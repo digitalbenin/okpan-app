@@ -1,0 +1,57 @@
+{
+  "name": "db-connection-tool-electron",
+  "productName": "db-connection-tool-electron",
+  "version": "1.0.0",
+  "description": "My Electron application description",
+  "main": "out/main/main.js",
+  "scripts": {
+    "start": "npm run build:sveltekit && electron-forge start",
+    "package": "npm run build:sveltekit && electron-forge package",
+    "make": "npm run build:sveltekit && electron-forge make",
+    "publish": "npm run build:sveltekit && electron-forge publish",
+    "lint": "echo \"No linting configured\"",
+    "dev:sveltekit": "vite dev --config vite.renderer.config.mjs",
+    "build:sveltekit": "vite build --config vite.renderer.config.mjs",
+    "preview": "vite preview --config vite.renderer.config.mjs",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:generate": "drizzle-kit generate"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.6.1",
+    "@electron-forge/maker-deb": "^7.6.1",
+    "@electron-forge/maker-rpm": "^7.6.1",
+    "@electron-forge/maker-squirrel": "^7.6.1",
+    "@electron-forge/maker-zip": "^7.6.1",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.6.1",
+    "@electron-forge/plugin-fuses": "^7.6.1",
+    "@electron-forge/plugin-vite": "^7.6.1",
+    "@electron/fuses": "^1.8.0",
+    "@sveltejs/adapter-static": "^3.0.8",
+    "@sveltejs/kit": "^2.5.0",
+    "@sveltejs/vite-plugin-svelte": "^3.0.1",
+    "@types/node": "^20.11.17",
+    "drizzle-kit": "^0.30.4",
+    "electron": "34.2.0",
+    "svelte": "^5.20.1",
+    "vite": "^5.0.12"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Calibro",
+    "email": "hello@calib.ro"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "bootstrap": "^5.3.3",
+    "bootstrap-icons": "^1.11.3",
+    "dotenv": "^16.4.7",
+    "drizzle-graphql": "^0.8.5",
+    "drizzle-orm": "^0.39.3",
+    "electron-squirrel-startup": "^1.0.1",
+    "graphql": "^16.10.0",
+    "icons": "^1.0.0",
+    "sass": "^1.85.0"
+  }
+}
