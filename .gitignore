@@ -96,6 +96,7 @@ out/
 
 # Dist
 dist/
+/build/
 
 # Database
 *.db
