@@ -4,7 +4,11 @@ import adapter from '@sveltejs/adapter-static';
 export default {
     kit: {
         adapter: adapter({
-            fallback: 'index.html' // may differ from host to host
-        })
+            fallback: 'index.html'
+        }),
+        alias: {
+            '~bootstrap': 'node_modules/bootstrap',
+            '~bootstrap-icons': 'node_modules/bootstrap-icons'
+        }
     }
 };

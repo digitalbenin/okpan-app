@@ -20,13 +20,6 @@ An Electron application for managing collections, built with:
 └── build/             # SvelteKit build
 ```
 
-## Prerequisites
-
-1. [Node.js](https://nodejs.org/) (version 16 or higher)
-2. [VSCode](https://code.visualstudio.com/) (recommended) with extensions:
-   - [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
-   - [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-   - [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode)
 
 ## Setup
 

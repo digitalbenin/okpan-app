@@ -3,8 +3,9 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
 module.exports = {
     packagerConfig: {
+        name: 'Data Connection Tool',
+        executableName: "DataConnectionTool",
         asar: true,
-        extraResource: ['./build']
     },
     rebuildConfig: {},
     makers: [
@@ -33,18 +34,16 @@ module.exports = {
                     {
                         entry: 'src/backend/main.js',
                         config: 'vite.main.config.mjs',
-                        target: 'main',
                     },
                     {
                         entry: 'src/backend/preload.js',
                         config: 'vite.preload.config.mjs',
-                        target: 'preload',
                     }
                 ],
                 renderer: [
                     {
                         name: 'main_window',
-                        config: 'vite.renderer.config.mjs'
+                        config: 'vite.config.mjs'
                     }
                 ]
             },

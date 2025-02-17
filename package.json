@@ -10,9 +10,9 @@
     "make": "npm run build:sveltekit && electron-forge make",
     "publish": "npm run build:sveltekit && electron-forge publish",
     "lint": "echo \"No linting configured\"",
-    "dev:sveltekit": "vite dev --config vite.renderer.config.mjs",
-    "build:sveltekit": "vite build --config vite.renderer.config.mjs",
-    "preview": "vite preview --config vite.renderer.config.mjs",
+    "dev:sveltekit": "vite dev",
+    "build:sveltekit": "vite build",
+    "preview": "vite preview",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate"
@@ -34,7 +34,10 @@
     "drizzle-kit": "^0.30.4",
     "electron": "34.2.0",
     "svelte": "^5.20.1",
-    "vite": "^5.0.12"
+    "vite": "^5.0.12",
+    "dotenv": "^16.4.7",
+    "electron-squirrel-startup": "^1.0.1",
+    "sass": "^1.85.0"
   },
   "keywords": [],
   "author": {
@@ -46,12 +49,8 @@
     "@libsql/client": "^0.14.0",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
-    "dotenv": "^16.4.7",
     "drizzle-graphql": "^0.8.5",
     "drizzle-orm": "^0.39.3",
-    "electron-squirrel-startup": "^1.0.1",
-    "graphql": "^16.10.0",
-    "icons": "^1.0.0",
-    "sass": "^1.85.0"
+    "graphql": "^16.10.0"
   }
 }
