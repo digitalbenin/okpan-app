@@ -2,8 +2,9 @@
   "name": "db-connection-tool-electron",
   "productName": "db-connection-tool-electron",
   "version": "1.0.0",
+  "type": "module",
   "description": "My Electron application description",
-  "main": "out/main/main.js",
+  "main": ".vite/main.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "npm run build:sveltekit && electron-forge package",

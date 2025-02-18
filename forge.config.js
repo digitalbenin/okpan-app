@@ -1,11 +1,12 @@
-const { FusesPlugin } = require('@electron-forge/plugin-fuses');
-const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+import { FusesPlugin } from '@electron-forge/plugin-fuses';
+import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
-module.exports = {
+export default {
     packagerConfig: {
         name: 'Data Connection Tool',
         executableName: "DataConnectionTool",
         asar: true,
+        prune: false
     },
     rebuildConfig: {},
     makers: [
@@ -33,17 +34,17 @@ module.exports = {
                 build: [
                     {
                         entry: 'src/backend/main.js',
-                        config: 'vite.main.config.mjs',
+                        config: 'vite.main.config.js',
                     },
                     {
-                        entry: 'src/backend/preload.js',
-                        config: 'vite.preload.config.mjs',
+                        entry: 'src/preload/preload.js',
+                        config: 'vite.preload.config.js',
                     }
                 ],
                 renderer: [
                     {
                         name: 'main_window',
-                        config: 'vite.config.mjs'
+                        config: 'vite.config.js'
                     }
                 ]
             },
@@ -58,4 +59,4 @@ module.exports = {
             [FuseV1Options.OnlyLoadAppFromAsar]: true,
         }),
     ],
-}; 
+};

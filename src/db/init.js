@@ -1,9 +1,9 @@
-const { drizzle } = require('drizzle-orm/libsql');
-const { createClient } = require('@libsql/client');
-const schema = require('./schema.js');
-const { dirname } = require('path');
-const fs = require('fs');
-const { buildSchema } = require('drizzle-graphql');
+import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
+import * as schema from './schema';
+import { dirname } from 'path';
+import fs from 'fs';
+import { buildSchema } from 'drizzle-graphql';
 
 // Get the database path from env
 const dbPath = process.env.DB_FILE_NAME || 'src/db/local.db';
@@ -27,4 +27,4 @@ const client = createClient({
 const db = drizzle(client, { schema });
 const graphqlSchema = buildSchema(db);
 
-module.exports = { db, graphqlSchema };
+export { db, graphqlSchema };

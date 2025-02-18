@@ -1,11 +1,11 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('node:path');
-const started = require('electron-squirrel-startup');
-const { graphql } = require('graphql')
-require('dotenv').config();
+import { app, BrowserWindow, ipcMain } from 'electron';
+import started from 'electron-squirrel-startup';
+import { graphql } from 'graphql';
+import 'dotenv/config';
+import path from 'path';
 
 // Import database
-const { db, graphqlSchema } = require(path.join(__dirname, 'init.js'));
+import { db, graphqlSchema } from '../db/init.js';
 console.log('Database initialized successfully');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -36,18 +36,16 @@ const handleGraphQL = async (event, { query, variables }) => {
   }
 };
 
-
-
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 1080,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(import.meta.dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      //sandbox: true  // Enable sandboxing
+      sandbox: true  // Enable sandboxing
     },
   });
 
@@ -67,7 +65,7 @@ const createWindow = () => {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../../build/index.html'));
+    mainWindow.loadFile(path.join(import.meta.dirname, '../../build/index.html'));
   }
 
   // Open the DevTools.
@@ -84,8 +82,6 @@ ipcMain.handle('ping', () => {
 
 // Initialize app
 app.whenReady().then(() => {
-
-
   // Register IPC handlers
   ipcMain.handle('execute-graphql', handleGraphQL)
 
