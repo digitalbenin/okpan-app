@@ -13,8 +13,8 @@ export default defineConfig({
         rollupOptions: {
             external: [
                 'electron',
-                '@libsql/client',
-                '@libsql/win32-x64-msvc'
+                //'@libsql/client',
+                //'@libsql/win32-x64-msvc'
             ],
             input: {
                 main: 'src/backend/main.js',

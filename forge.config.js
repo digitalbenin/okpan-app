@@ -1,5 +1,7 @@
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import fs from 'fs-extra';
+import path from 'path';
 
 export default {
     packagerConfig: {
