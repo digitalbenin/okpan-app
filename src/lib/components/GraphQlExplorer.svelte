@@ -1,36 +1,27 @@
 <script>
   import { slide } from "svelte/transition";
-  import {
-    INTROSPECTION_QUERY,
-    ADD_PROJECT_MUTATION,
-    LIST_PROJECTS_QUERY,
-    ADD_INSTITUTION_MUTATION,
-    LIST_INSTITUTIONS_QUERY,
-  } from "../utils/queries";
+  import { API_SECTIONS } from "../utils/queries";
 
-  let query = $state(`{
-    project {
-      id
-      title
-      description
-      institutions {
-        id
-        name
-        description
-        country
-        location
-      }
-    }
-  }`);
+  let query = $state("");
   let result = $state("");
   let status = $state("");
   let selectedProjectId = $state("");
+  let activeSection = $state("");
 
-  // State for section visibility
-  let activeSection = $state("projects");
+  const toggleSection = (sectionId) => {
+    activeSection = activeSection === sectionId ? "" : sectionId;
+  };
 
-  const toggleSection = (section) => {
-    activeSection = activeSection === section ? "" : section;
+  const loadQuery = (operation) => {
+    if (operation.requiresProjectId && !selectedProjectId) {
+      status = "Please enter a project ID first!";
+      setTimeout(() => {
+        status = "";
+      }, 3000);
+      return;
+    }
+
+    query = operation.query;
   };
 
   const handleExecuteQuery = async () => {
@@ -38,8 +29,8 @@
       status = "Executing query...";
       let variables = {};
 
-      // Add variables for specific operations
-      if (query === ADD_INSTITUTION_MUTATION) {
+      // Add variables for operations that need them
+      if (query.includes("$projectId")) {
         variables = { projectId: parseInt(selectedProjectId) };
       }
 
@@ -56,18 +47,6 @@
       status = "";
     }, 3000);
   };
-
-  const loadQuery = (queryText, operation) => {
-    if (operation === "Add Institution" && !selectedProjectId) {
-      status = "Please enter a project ID first!";
-      setTimeout(() => {
-        status = "";
-      }, 3000);
-      return;
-    }
-
-    query = queryText;
-  };
 </script>
 
 <div class="container-fluid py-3">
@@ -79,213 +58,100 @@
       </h2>
 
       <div class="mb-4">
-        <!-- Projects Section -->
-        <div class="card mb-2">
-          <div
-            class="card-header cursor-pointer {activeSection === 'projects'
-              ? 'bg-light'
-              : ''}"
-            onclick={() => toggleSection("projects")}
-          >
-            <div class="d-flex align-items-center">
-              <i
-                class="bi {activeSection === 'projects'
-                  ? 'bi-chevron-down'
-                  : 'bi-chevron-right'} me-2"
-              ></i>
-              <span class="badge bg-success me-2">GET</span>
-              <span class="badge bg-primary me-2">POST</span>
-              <strong>Projects</strong>
-            </div>
-          </div>
-          {#if activeSection === "projects"}
-            <div class="card-body" transition:slide>
-              <div class="list-group">
-                <!-- Add Project -->
-                <div class="list-group-item">
-                  <div
-                    class="d-flex justify-content-between align-items-center"
-                  >
-                    <div>
-                      <span class="badge bg-primary me-2">POST</span>
-                      <strong>Create Project</strong>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn btn-outline-primary btn-sm"
-                      onclick={() =>
-                        loadQuery(ADD_PROJECT_MUTATION, "Add project")}
-                    >
-                      Try it out
-                    </button>
-                  </div>
-                  <div class="mt-2">
-                    <small class="text-muted"
-                      >Creates a new project with auto-generated title</small
-                    >
-                  </div>
-                </div>
-                <!-- List Projects -->
-                <div class="list-group-item">
-                  <div
-                    class="d-flex justify-content-between align-items-center"
-                  >
-                    <div>
-                      <span class="badge bg-success me-2">GET</span>
-                      <strong>List Projects</strong>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn btn-outline-success btn-sm"
-                      onclick={() =>
-                        loadQuery(LIST_PROJECTS_QUERY, "List projects")}
-                    >
-                      Try it out
-                    </button>
-                  </div>
-                  <div class="mt-2">
-                    <small class="text-muted"
-                      >Retrieves all projects with their institutions</small
-                    >
-                  </div>
-                </div>
+        {#each Object.entries(API_SECTIONS) as [sectionId, section]}
+          <div class="card mb-2">
+            <div
+              class="card-header cursor-pointer {activeSection === sectionId
+                ? 'bg-light'
+                : ''}"
+              onclick={() => toggleSection(sectionId)}
+            >
+              <div class="d-flex align-items-center">
+                <i
+                  class="bi {activeSection === sectionId
+                    ? 'bi-chevron-down'
+                    : 'bi-chevron-right'} me-2"
+                ></i>
+                {#if section.operations.some((op) => op.type === "query")}
+                  <span class="badge bg-success me-2">GET</span>
+                {/if}
+                {#if section.operations.some((op) => op.type === "mutation")}
+                  <span class="badge bg-primary me-2">POST</span>
+                {/if}
+                {#if section.operations.some((op) => op.type === "schema")}
+                  <span class="badge bg-secondary me-2">SCHEMA</span>
+                {/if}
+                <strong>{section.name}</strong>
               </div>
             </div>
-          {/if}
-        </div>
 
-        <!-- Institutions Section -->
-        <div class="card mb-2">
-          <div
-            class="card-header cursor-pointer {activeSection === 'institutions'
-              ? 'bg-light'
-              : ''}"
-            onclick={() => toggleSection("institutions")}
-          >
-            <div class="d-flex align-items-center">
-              <i
-                class="bi {activeSection === 'institutions'
-                  ? 'bi-chevron-down'
-                  : 'bi-chevron-right'} me-2"
-              ></i>
-              <span class="badge bg-success me-2">GET</span>
-              <span class="badge bg-primary me-2">POST</span>
-              <strong>Institutions</strong>
-            </div>
-          </div>
-          {#if activeSection === "institutions"}
-            <div class="card-body" transition:slide>
-              <div class="list-group">
-                <!-- Add Institution -->
-                <div class="list-group-item">
-                  <div
-                    class="d-flex justify-content-between align-items-center"
-                  >
-                    <div>
-                      <span class="badge bg-primary me-2">POST</span>
-                      <strong>Create Institution</strong>
-                    </div>
-                    <div class="d-flex gap-2 align-items-center">
+            {#if activeSection === sectionId}
+              <div class="card-body" transition:slide>
+                <div class="list-group">
+                  {#each section.operations as operation}
+                    <div class="list-group-item">
                       <div
-                        class="input-group input-group-sm"
-                        style="width: auto;"
+                        class="d-flex justify-content-between align-items-center"
                       >
-                        <span class="input-group-text">Project ID</span>
-                        <input
-                          type="number"
-                          class="form-control"
-                          bind:value={selectedProjectId}
-                          placeholder="Required"
-                          style="width: 100px;"
-                        />
+                        <div>
+                          <span
+                            class="badge {operation.type === 'mutation'
+                              ? 'bg-primary'
+                              : operation.type === 'query'
+                                ? 'bg-success'
+                                : 'bg-secondary'} me-2"
+                          >
+                            {operation.type === "mutation"
+                              ? "POST"
+                              : operation.type === "query"
+                                ? "GET"
+                                : "SCHEMA"}
+                          </span>
+                          <strong>{operation.name}</strong>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                          {#if operation.requiresProjectId}
+                            <div
+                              class="input-group input-group-sm"
+                              style="width: auto;"
+                            >
+                              <span class="input-group-text">Project ID</span>
+                              <input
+                                type="number"
+                                class="form-control"
+                                bind:value={selectedProjectId}
+                                placeholder="Required"
+                                style="width: 100px;"
+                              />
+                            </div>
+                          {/if}
+                          <button
+                            type="button"
+                            class="btn btn-outline-{operation.type ===
+                            'mutation'
+                              ? 'primary'
+                              : operation.type === 'query'
+                                ? 'success'
+                                : 'secondary'} btn-sm"
+                            onclick={() => loadQuery(operation)}
+                            disabled={operation.requiresProjectId &&
+                              !selectedProjectId}
+                          >
+                            Try it out
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        class="btn btn-outline-primary btn-sm"
-                        onclick={() =>
-                          loadQuery(
-                            ADD_INSTITUTION_MUTATION,
-                            "Add Institution",
-                          )}
-                        disabled={!selectedProjectId}
-                      >
-                        Try it out
-                      </button>
+                      <div class="mt-2">
+                        <small class="text-muted">{operation.description}</small
+                        >
+                      </div>
                     </div>
-                  </div>
-                  <div class="mt-2">
-                    <small class="text-muted"
-                      >Creates a new institution linked to a project</small
-                    >
-                  </div>
-                </div>
-                <!-- List Institutions -->
-                <div class="list-group-item">
-                  <div
-                    class="d-flex justify-content-between align-items-center"
-                  >
-                    <div>
-                      <span class="badge bg-success me-2">GET</span>
-                      <strong>List Institutions</strong>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn btn-outline-success btn-sm"
-                      onclick={() =>
-                        loadQuery(LIST_INSTITUTIONS_QUERY, "List institutions")}
-                    >
-                      Try it out
-                    </button>
-                  </div>
-                  <div class="mt-2">
-                    <small class="text-muted">Retrieves all institutions</small>
-                  </div>
+                  {/each}
                 </div>
               </div>
-            </div>
-          {/if}
-        </div>
-
-        <!-- Schema Section -->
-        <div class="card">
-          <div
-            class="card-header cursor-pointer {activeSection === 'schema'
-              ? 'bg-light'
-              : ''}"
-            onclick={() => toggleSection("schema")}
-          >
-            <div class="d-flex align-items-center">
-              <i
-                class="bi {activeSection === 'schema'
-                  ? 'bi-chevron-down'
-                  : 'bi-chevron-right'} me-2"
-              ></i>
-              <span class="badge bg-secondary me-2">SCHEMA</span>
-              <strong>GraphQL Schema</strong>
-            </div>
+            {/if}
           </div>
-          {#if activeSection === "schema"}
-            <div class="card-body" transition:slide>
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <strong>Introspection Query</strong>
-                  <div class="mt-1">
-                    <small class="text-muted"
-                      >Retrieves the GraphQL schema structure</small
-                    >
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  onclick={() => loadQuery(INTROSPECTION_QUERY, "Schema")}
-                >
-                  Try it out
-                </button>
-              </div>
-            </div>
-          {/if}
-        </div>
+        {/each}
       </div>
 
       <!-- Query Editor Section -->
@@ -306,6 +172,7 @@
             type="button"
             class="btn btn-primary"
             onclick={handleExecuteQuery}
+            disabled={!query}
           >
             <i class="bi bi-play-fill me-2"></i>
             Execute Query
