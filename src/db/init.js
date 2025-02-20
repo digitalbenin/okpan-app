@@ -3,7 +3,6 @@ import { createClient } from '@libsql/client';
 import * as schema from './schema';
 import { dirname } from 'path';
 import fs from 'fs';
-import { buildSchema } from 'drizzle-graphql';
 
 // Get the database path from env
 const dbPath = process.env.DB_FILE_NAME || 'src/db/local.db';
@@ -25,6 +24,5 @@ const client = createClient({
 
 // Create Drizzle instance with schema
 const db = drizzle(client, { schema });
-const graphqlSchema = buildSchema(db);
 
-export { db, graphqlSchema };
+export { db };

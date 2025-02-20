@@ -2,7 +2,7 @@ import { integer, text, blob, boolean, sqliteTable } from 'drizzle-orm/sqlite-co
 import { relations } from 'drizzle-orm';
 
 // Project table
-const project = sqliteTable('project', {
+export const project = sqliteTable('project', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     title: text('title'),
     description: text('description'),
@@ -10,14 +10,14 @@ const project = sqliteTable('project', {
 });
 
 // Project relations
-const projectRelations = relations(project, ({ many }) => ({
+export const projectRelations = relations(project, ({ many }) => ({
     institutions: many(institutions),
     researchFields: many(research_fields),
     settings: many(settings)
 }));
 
 // Institutions table
-const institutions = sqliteTable('institutions', {
+export const institutions = sqliteTable('institutions', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name'),
     description: text('description'),
@@ -32,7 +32,7 @@ const institutions = sqliteTable('institutions', {
 });
 
 // Institutions relations
-const institutionsRelations = relations(institutions, ({ one, many }) => ({
+export const institutionsRelations = relations(institutions, ({ one, many }) => ({
     project: one(project, {
         fields: [institutions.project_id],
         references: [project.id]
@@ -44,7 +44,7 @@ const institutionsRelations = relations(institutions, ({ one, many }) => ({
 }));
 
 // Research Fields table
-const research_fields = sqliteTable('research_fields', {
+export const research_fields = sqliteTable('research_fields', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name'),
     type: text('type'),
@@ -53,7 +53,7 @@ const research_fields = sqliteTable('research_fields', {
 });
 
 // Research Fields relations
-const researchFieldsRelations = relations(research_fields, ({ one, many }) => ({
+export const researchFieldsRelations = relations(research_fields, ({ one, many }) => ({
     project: one(project, {
         fields: [research_fields.project_id],
         references: [project.id]
@@ -63,7 +63,7 @@ const researchFieldsRelations = relations(research_fields, ({ one, many }) => ({
 }));
 
 // Settings table
-const settings = sqliteTable('settings', {
+export const settings = sqliteTable('settings', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     username: integer('username'),
     password: integer('password'),
@@ -74,7 +74,7 @@ const settings = sqliteTable('settings', {
 });
 
 // Settings relations
-const settingsRelations = relations(settings, ({ one }) => ({
+export const settingsRelations = relations(settings, ({ one }) => ({
     project: one(project, {
         fields: [settings.project_id],
         references: [project.id]
@@ -82,7 +82,7 @@ const settingsRelations = relations(settings, ({ one }) => ({
 }));
 
 // Assets table
-const assets = sqliteTable('assets', {
+export const assets = sqliteTable('assets', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     filename: text('filename'),
     path: text('path'),
@@ -92,7 +92,7 @@ const assets = sqliteTable('assets', {
 });
 
 // Assets relations
-const assetsRelations = relations(assets, ({ one, many }) => ({
+export const assetsRelations = relations(assets, ({ one, many }) => ({
     institution: one(institutions, {
         fields: [assets.institution_id],
         references: [institutions.id]
@@ -102,14 +102,14 @@ const assetsRelations = relations(assets, ({ one, many }) => ({
 }));
 
 // Objects table
-const objects = sqliteTable('objects', {
+export const objects = sqliteTable('objects', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     status: text('status'),
     institution_id: integer('institution_id').references(() => institutions.id)
 });
 
 // Objects relations
-const objectsRelations = relations(objects, ({ one, many }) => ({
+export const objectsRelations = relations(objects, ({ one, many }) => ({
     institution: one(institutions, {
         fields: [objects.institution_id],
         references: [institutions.id]
@@ -120,7 +120,7 @@ const objectsRelations = relations(objects, ({ one, many }) => ({
 }));
 
 // Datasources table
-const datasources = sqliteTable('datasources', {
+export const datasources = sqliteTable('datasources', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name'),
     institution_id: integer('institution_id').references(() => institutions.id),
@@ -133,7 +133,7 @@ const datasources = sqliteTable('datasources', {
 });
 
 // Datasources relations
-const datasourcesRelations = relations(datasources, ({ one, many }) => ({
+export const datasourcesRelations = relations(datasources, ({ one, many }) => ({
     institution: one(institutions, {
         fields: [datasources.institution_id],
         references: [institutions.id]
@@ -143,7 +143,7 @@ const datasourcesRelations = relations(datasources, ({ one, many }) => ({
 }));
 
 // Assets Institutions junction table
-const assets_institutions = sqliteTable('assets_institutions', {
+export const assets_institutions = sqliteTable('assets_institutions', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     asset_id: integer('asset_id').references(() => assets.id),
     institution_id: integer('institution_id').references(() => institutions.id),
@@ -151,7 +151,7 @@ const assets_institutions = sqliteTable('assets_institutions', {
 });
 
 // Assets Institutions relations
-const assetsInstitutionsRelations = relations(assets_institutions, ({ one }) => ({
+export const assetsInstitutionsRelations = relations(assets_institutions, ({ one }) => ({
     asset: one(assets, {
         fields: [assets_institutions.asset_id],
         references: [assets.id]
@@ -163,7 +163,7 @@ const assetsInstitutionsRelations = relations(assets_institutions, ({ one }) => 
 }));
 
 // Vocabularies table
-const vocabularies = sqliteTable('vocabularies', {
+export const vocabularies = sqliteTable('vocabularies', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     option: text('option'),
     description: text('description'),
@@ -173,7 +173,7 @@ const vocabularies = sqliteTable('vocabularies', {
 });
 
 // Vocabularies relations
-const vocabulariesRelations = relations(vocabularies, ({ one }) => ({
+export const vocabulariesRelations = relations(vocabularies, ({ one }) => ({
     researchField: one(research_fields, {
         fields: [vocabularies.field_id],
         references: [research_fields.id]
@@ -181,7 +181,7 @@ const vocabulariesRelations = relations(vocabularies, ({ one }) => ({
 }));
 
 // Objects Research Fields junction table
-const objects_research_fields = sqliteTable('objects_research_fields', {
+export const objects_research_fields = sqliteTable('objects_research_fields', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     object_id: integer('object_id').references(() => objects.id),
     field_id: integer('field_id').references(() => research_fields.id),
@@ -189,7 +189,7 @@ const objects_research_fields = sqliteTable('objects_research_fields', {
 });
 
 // Objects Research Fields relations
-const objectsResearchFieldsRelations = relations(objects_research_fields, ({ one }) => ({
+export const objectsResearchFieldsRelations = relations(objects_research_fields, ({ one }) => ({
     object: one(objects, {
         fields: [objects_research_fields.object_id],
         references: [objects.id]
@@ -201,7 +201,7 @@ const objectsResearchFieldsRelations = relations(objects_research_fields, ({ one
 }));
 
 // Ontology Fields table
-const ontology_fields = sqliteTable('ontology_fields', {
+export const ontology_fields = sqliteTable('ontology_fields', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name'),
     description: text('description'),
@@ -210,12 +210,12 @@ const ontology_fields = sqliteTable('ontology_fields', {
 });
 
 // Ontology Fields relations
-const ontologyFieldsRelations = relations(ontology_fields, ({ many }) => ({
+export const ontologyFieldsRelations = relations(ontology_fields, ({ many }) => ({
     objectsOntologyFields: many(objects_ontology_fields)
 }));
 
 // Objects Ontology Fields table
-const objects_ontology_fields = sqliteTable('objects_ontology_fields', {
+export const objects_ontology_fields = sqliteTable('objects_ontology_fields', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     label: text('label'),
     value: text('value'),
@@ -226,7 +226,7 @@ const objects_ontology_fields = sqliteTable('objects_ontology_fields', {
 });
 
 // Objects Ontology Fields relations
-const objectsOntologyFieldsRelations = relations(objects_ontology_fields, ({ one }) => ({
+export const objectsOntologyFieldsRelations = relations(objects_ontology_fields, ({ one }) => ({
     object: one(objects, {
         fields: [objects_ontology_fields.object_id],
         references: [objects.id]
@@ -242,7 +242,7 @@ const objectsOntologyFieldsRelations = relations(objects_ontology_fields, ({ one
 }));
 
 // Templates table
-const templates = sqliteTable('templates', {
+export const templates = sqliteTable('templates', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name'),
     description: text('description'),
@@ -253,7 +253,7 @@ const templates = sqliteTable('templates', {
 });
 
 // Templates relations
-const templatesRelations = relations(templates, ({ one, many }) => ({
+export const templatesRelations = relations(templates, ({ one, many }) => ({
     datasource: one(datasources, {
         fields: [templates.datasource_id],
         references: [datasources.id]
@@ -262,7 +262,7 @@ const templatesRelations = relations(templates, ({ one, many }) => ({
 }));
 
 // Import table
-const import_table = sqliteTable('import', {
+export const import_table = sqliteTable('import', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     filename: text('filename'),
     data: text('data'), // JSON stored as text
@@ -270,7 +270,7 @@ const import_table = sqliteTable('import', {
 });
 
 // Import relations
-const importRelations = relations(import_table, ({ one }) => ({
+export const importRelations = relations(import_table, ({ one }) => ({
     template: one(templates, {
         fields: [import_table.template_id],
         references: [templates.id]
@@ -278,15 +278,14 @@ const importRelations = relations(import_table, ({ one }) => ({
 }));
 
 // Objects Assets junction table
-const objects_assets = sqliteTable('objects_assets', {
+export const objects_assets = sqliteTable('objects_assets', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     asset_id: integer('asset_id').references(() => assets.id),
     object_id: integer('object_id').references(() => objects.id),
     order: integer('order')
 });
-
 // Objects Assets relations
-const objectsAssetsRelations = relations(objects_assets, ({ one }) => ({
+export const objectsAssetsRelations = relations(objects_assets, ({ one }) => ({
     object: one(objects, {
         fields: [objects_assets.object_id],
         references: [objects.id]
@@ -295,22 +294,4 @@ const objectsAssetsRelations = relations(objects_assets, ({ one }) => ({
         fields: [objects_assets.asset_id],
         references: [assets.id]
     })
-}));
-
-export {
-    project, projectRelations,
-    institutions, institutionsRelations,
-    research_fields, researchFieldsRelations,
-    settings, settingsRelations,
-    assets, assetsRelations,
-    objects, objectsRelations,
-    datasources, datasourcesRelations,
-    assets_institutions, assetsInstitutionsRelations,
-    vocabularies, vocabulariesRelations,
-    objects_research_fields, objectsResearchFieldsRelations,
-    ontology_fields, ontologyFieldsRelations,
-    objects_ontology_fields, objectsOntologyFieldsRelations,
-    templates, templatesRelations,
-    import_table, importRelations,
-    objects_assets, objectsAssetsRelations
-};
+})); 

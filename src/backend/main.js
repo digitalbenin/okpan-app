@@ -1,12 +1,15 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import started from 'electron-squirrel-startup';
-import { graphql } from 'graphql';
+import { graphql } from 'graphql'
 import 'dotenv/config';
 import path from 'path';
 
-// Import database
-import { db, graphqlSchema } from '../db/init.js';
-console.log('Database initialized successfully');
+// Import database and schema
+import { db } from '../db/init.js';
+import { createGraphQLSchema } from '../db/graphqlDefs.js';
+
+// Create GraphQL schema
+const { schema, resolvers } = createGraphQLSchema(db);
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -18,8 +21,9 @@ const handleGraphQL = async (event, { query, variables }) => {
   try {
     console.log('Executing GraphQL query:', query, 'with variables:', variables);
     const result = await graphql({
-      schema: graphqlSchema.schema,
+      schema,
       source: query,
+      rootValue: resolvers,
       variableValues: variables,
       contextValue: { db }
     });
@@ -79,11 +83,13 @@ ipcMain.handle('ping', () => {
   console.log('pong');
   return 'pong';
 });
+ipcMain.handle('execute-graphql', handleGraphQL)
+
 
 // Initialize app
 app.whenReady().then(() => {
   // Register IPC handlers
-  ipcMain.handle('execute-graphql', handleGraphQL)
+
 
   createWindow();
 
