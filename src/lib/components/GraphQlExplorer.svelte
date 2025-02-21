@@ -8,6 +8,13 @@
   let selectedProjectId = $state("");
   let activeSection = $state("");
 
+  const sortOperations = (operations) => {
+    const typeOrder = { query: 1, mutation: 2, schema: 3 };
+    return [...operations].sort(
+      (a, b) => typeOrder[a.type] - typeOrder[b.type],
+    );
+  };
+
   const toggleSection = (sectionId) => {
     activeSection = activeSection === sectionId ? "" : sectionId;
   };
@@ -65,6 +72,9 @@
                 ? 'bg-light'
                 : ''}"
               onclick={() => toggleSection(sectionId)}
+              onkeydown={(e) => e.key === "Enter" && toggleSection(sectionId)}
+              tabindex="0"
+              role="button"
             >
               <div class="d-flex align-items-center">
                 <i
@@ -73,10 +83,10 @@
                     : 'bi-chevron-right'} me-2"
                 ></i>
                 {#if section.operations.some((op) => op.type === "query")}
-                  <span class="badge bg-success me-2">GET</span>
+                  <span class="badge bg-success me-2">Query</span>
                 {/if}
                 {#if section.operations.some((op) => op.type === "mutation")}
-                  <span class="badge bg-primary me-2">POST</span>
+                  <span class="badge bg-primary me-2">Mutation</span>
                 {/if}
                 {#if section.operations.some((op) => op.type === "schema")}
                   <span class="badge bg-secondary me-2">SCHEMA</span>
@@ -87,8 +97,8 @@
 
             {#if activeSection === sectionId}
               <div class="card-body" transition:slide>
-                <div class="list-group">
-                  {#each section.operations as operation}
+                <div class="list-group mb-4">
+                  {#each sortOperations(section.operations) as operation}
                     <div class="list-group-item">
                       <div
                         class="d-flex justify-content-between align-items-center"
@@ -102,10 +112,10 @@
                                 : 'bg-secondary'} me-2"
                           >
                             {operation.type === "mutation"
-                              ? "POST"
+                              ? "Mutation"
                               : operation.type === "query"
-                                ? "GET"
-                                : "SCHEMA"}
+                                ? "Query"
+                                : "Schema"}
                           </span>
                           <strong>{operation.name}</strong>
                         </div>
@@ -148,59 +158,59 @@
                     </div>
                   {/each}
                 </div>
+
+                <!-- Query Editor Section -->
+                <div class="card mb-4">
+                  <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Query Editor</h5>
+                  </div>
+                  <div class="card-body">
+                    <textarea
+                      id="queryEditor"
+                      class="form-control font-monospace mb-3"
+                      rows="8"
+                      bind:value={query}
+                      placeholder="Enter your GraphQL query here..."
+                    ></textarea>
+
+                    <button
+                      type="button"
+                      class="btn btn-primary"
+                      onclick={handleExecuteQuery}
+                      disabled={!query}
+                    >
+                      <i class="bi bi-play-fill me-2"></i>
+                      Execute Query
+                    </button>
+
+                    {#if status}
+                      <div class="alert alert-info mt-3 mb-0" role="alert">
+                        {status}
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="card">
+                  <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Response</h5>
+                  </div>
+                  <div class="card-body">
+                    <textarea
+                      id="resultViewer"
+                      class="form-control font-monospace"
+                      rows="8"
+                      bind:value={result}
+                      readonly
+                      placeholder="Query results will appear here..."
+                    ></textarea>
+                  </div>
+                </div>
               </div>
             {/if}
           </div>
         {/each}
-      </div>
-
-      <!-- Query Editor Section -->
-      <div class="card mb-4">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Query Editor</h5>
-        </div>
-        <div class="card-body">
-          <textarea
-            id="queryEditor"
-            class="form-control font-monospace mb-3"
-            rows="8"
-            bind:value={query}
-            placeholder="Enter your GraphQL query here..."
-          ></textarea>
-
-          <button
-            type="button"
-            class="btn btn-primary"
-            onclick={handleExecuteQuery}
-            disabled={!query}
-          >
-            <i class="bi bi-play-fill me-2"></i>
-            Execute Query
-          </button>
-
-          {#if status}
-            <div class="alert alert-info mt-3 mb-0" role="alert">
-              {status}
-            </div>
-          {/if}
-        </div>
-      </div>
-
-      <!-- Results Section -->
-      <div class="card">
-        <div class="card-header bg-light">
-          <h5 class="card-title mb-0">Response</h5>
-        </div>
-        <div class="card-body">
-          <textarea
-            id="resultViewer"
-            class="form-control font-monospace"
-            rows="8"
-            bind:value={result}
-            readonly
-            placeholder="Query results will appear here..."
-          ></textarea>
-        </div>
       </div>
     </div>
   </div>

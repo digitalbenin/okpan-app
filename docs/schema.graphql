@@ -11,56 +11,1209 @@ This documentation describes the GraphQL API for the Database Connection Tool.
 The API provides queries to fetch data from various tables including projects, institutions, research fields, and more.
 
 ## Mutations
-The API supports mutations for inserting data into all tables. Each mutation accepts a list of input objects with the required fields.
+The API supports mutations for inserting, editing, and deleting data for all tables. Each mutation accepts a list of input objects with the required fields.
 """
 
-type Query {
-  assets(offset: Int, limit: Int, orderBy: AssetsOrderBy, where: AssetsFilters): [AssetsSelectItem!]!
-  assetsSingle(offset: Int, orderBy: AssetsOrderBy, where: AssetsFilters): AssetsSelectItem
-  assets_institutions(offset: Int, limit: Int, orderBy: Assets_institutionsOrderBy, where: Assets_institutionsFilters): [Assets_institutionsSelectItem!]!
-  assets_institutionsSingle(offset: Int, orderBy: Assets_institutionsOrderBy, where: Assets_institutionsFilters): Assets_institutionsSelectItem
-  datasources(offset: Int, limit: Int, orderBy: DatasourcesOrderBy, where: DatasourcesFilters): [DatasourcesSelectItem!]!
-  datasourcesSingle(offset: Int, orderBy: DatasourcesOrderBy, where: DatasourcesFilters): DatasourcesSelectItem
-  import_table(offset: Int, limit: Int, orderBy: Import_tableOrderBy, where: Import_tableFilters): [Import_tableSelectItem!]!
-  import_tableSingle(offset: Int, orderBy: Import_tableOrderBy, where: Import_tableFilters): Import_tableSelectItem
-  institutions(offset: Int, limit: Int, orderBy: InstitutionsOrderBy, where: InstitutionsFilters): [InstitutionsSelectItem!]!
-  institutionsSingle(offset: Int, orderBy: InstitutionsOrderBy, where: InstitutionsFilters): InstitutionsSelectItem
-  objects(offset: Int, limit: Int, orderBy: ObjectsOrderBy, where: ObjectsFilters): [ObjectsSelectItem!]!
-  objectsSingle(offset: Int, orderBy: ObjectsOrderBy, where: ObjectsFilters): ObjectsSelectItem
-  objects_assets(offset: Int, limit: Int, orderBy: Objects_assetsOrderBy, where: Objects_assetsFilters): [Objects_assetsSelectItem!]!
-  objects_assetsSingle(offset: Int, orderBy: Objects_assetsOrderBy, where: Objects_assetsFilters): Objects_assetsSelectItem
-  objects_ontology_fields(offset: Int, limit: Int, orderBy: Objects_ontology_fieldsOrderBy, where: Objects_ontology_fieldsFilters): [Objects_ontology_fieldsSelectItem!]!
-  objects_ontology_fieldsSingle(offset: Int, orderBy: Objects_ontology_fieldsOrderBy, where: Objects_ontology_fieldsFilters): Objects_ontology_fieldsSelectItem
-  objects_research_fields(offset: Int, limit: Int, orderBy: Objects_research_fieldsOrderBy, where: Objects_research_fieldsFilters): [Objects_research_fieldsSelectItem!]!
-  objects_research_fieldsSingle(offset: Int, orderBy: Objects_research_fieldsOrderBy, where: Objects_research_fieldsFilters): Objects_research_fieldsSelectItem
-  ontology_fields(offset: Int, limit: Int, orderBy: Ontology_fieldsOrderBy, where: Ontology_fieldsFilters): [Ontology_fieldsSelectItem!]!
-  ontology_fieldsSingle(offset: Int, orderBy: Ontology_fieldsOrderBy, where: Ontology_fieldsFilters): Ontology_fieldsSelectItem
-  project(offset: Int, limit: Int, orderBy: ProjectOrderBy, where: ProjectFilters): [ProjectSelectItem!]!
-  projectSingle(offset: Int, orderBy: ProjectOrderBy, where: ProjectFilters): ProjectSelectItem
-  research_fields(offset: Int, limit: Int, orderBy: Research_fieldsOrderBy, where: Research_fieldsFilters): [Research_fieldsSelectItem!]!
-  research_fieldsSingle(offset: Int, orderBy: Research_fieldsOrderBy, where: Research_fieldsFilters): Research_fieldsSelectItem
-  settings(offset: Int, limit: Int, orderBy: SettingsOrderBy, where: SettingsFilters): [SettingsSelectItem!]!
-  settingsSingle(offset: Int, orderBy: SettingsOrderBy, where: SettingsFilters): SettingsSelectItem
-  templates(offset: Int, limit: Int, orderBy: TemplatesOrderBy, where: TemplatesFilters): [TemplatesSelectItem!]!
-  templatesSingle(offset: Int, orderBy: TemplatesOrderBy, where: TemplatesFilters): TemplatesSelectItem
-  vocabularies(offset: Int, limit: Int, orderBy: VocabulariesOrderBy, where: VocabulariesFilters): [VocabulariesSelectItem!]!
-  vocabulariesSingle(offset: Int, orderBy: VocabulariesOrderBy, where: VocabulariesFilters): VocabulariesSelectItem
-}
-
-type AssetsSelectItem {
-  id: Int!
+input AssetsInsertInput {
+  id: Int
   filename: String
   path: String
   type: String
   properties: String
   institution_id: Int
-  institution(where: InstitutionsFilters): AssetsInstitutionRelation
-  assetsInstitutions(where: Assets_institutionsFilters, orderBy: Assets_institutionsOrderBy, offset: Int, limit: Int): [AssetsAssetsInstitutionsRelation!]!
-  objectsAssets(where: Objects_assetsFilters, orderBy: Objects_assetsOrderBy, offset: Int, limit: Int): [AssetsObjectsAssetsRelation!]!
 }
 
-type AssetsInstitutionRelation {
-  id: Int!
+input AssetsUpdateInput {
+  id: Int
+  filename: String
+  path: String
+  type: String
+  properties: String
+  institution_id: Int
+}
+
+input AssetsFilters {
+  id: AssetsIdFilters
+  filename: AssetsFilenameFilters
+  path: AssetsPathFilters
+  type: AssetsTypeFilters
+  properties: AssetsPropertiesFilters
+  institution_id: AssetsInstitution_idFilters
+  OR: [AssetsFiltersOr!]
+}
+
+input AssetsIdFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [AssetsIdfiltersOr!]
+}
+
+input AssetsIdfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input AssetsFilenameFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [AssetsFilenamefiltersOr!]
+}
+
+input AssetsFilenamefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input AssetsPathFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [AssetsPathfiltersOr!]
+}
+
+input AssetsPathfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input AssetsTypeFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [AssetsTypefiltersOr!]
+}
+
+input AssetsTypefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input AssetsPropertiesFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [AssetsPropertiesfiltersOr!]
+}
+
+input AssetsPropertiesfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input AssetsInstitution_idFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [AssetsInstitution_idfiltersOr!]
+}
+
+input AssetsInstitution_idfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input AssetsFiltersOr {
+  id: AssetsIdFilters
+  filename: AssetsFilenameFilters
+  path: AssetsPathFilters
+  type: AssetsTypeFilters
+  properties: AssetsPropertiesFilters
+  institution_id: AssetsInstitution_idFilters
+}
+
+input AssetsOrderBy {
+  id: InnerOrder
+  filename: InnerOrder
+  path: InnerOrder
+  type: InnerOrder
+  properties: InnerOrder
+  institution_id: InnerOrder
+}
+
+input InnerOrder {
+  direction: OrderDirection!
+
+  """Priority of current field"""
+  priority: Int!
+}
+
+"""Order by direction"""
+enum OrderDirection {
+  """Ascending order"""
+  asc
+
+  """Descending order"""
+  desc
+}
+
+input Assets_institutionsInsertInput {
+  id: Int
+  asset_id: Int
+  institution_id: Int
+  rule: String
+}
+
+input Assets_institutionsUpdateInput {
+  id: Int
+  asset_id: Int
+  institution_id: Int
+  rule: String
+}
+
+input Assets_institutionsFilters {
+  id: Assets_institutionsIdFilters
+  asset_id: Assets_institutionsAsset_idFilters
+  institution_id: Assets_institutionsInstitution_idFilters
+  rule: Assets_institutionsRuleFilters
+  OR: [Assets_institutionsFiltersOr!]
+}
+
+input Assets_institutionsIdFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [Assets_institutionsIdfiltersOr!]
+}
+
+input Assets_institutionsIdfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input Assets_institutionsAsset_idFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [Assets_institutionsAsset_idfiltersOr!]
+}
+
+input Assets_institutionsAsset_idfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input Assets_institutionsInstitution_idFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [Assets_institutionsInstitution_idfiltersOr!]
+}
+
+input Assets_institutionsInstitution_idfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input Assets_institutionsRuleFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [Assets_institutionsRulefiltersOr!]
+}
+
+input Assets_institutionsRulefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input Assets_institutionsFiltersOr {
+  id: Assets_institutionsIdFilters
+  asset_id: Assets_institutionsAsset_idFilters
+  institution_id: Assets_institutionsInstitution_idFilters
+  rule: Assets_institutionsRuleFilters
+}
+
+input Assets_institutionsOrderBy {
+  id: InnerOrder
+  asset_id: InnerOrder
+  institution_id: InnerOrder
+  rule: InnerOrder
+}
+
+input DatasourcesInsertInput {
+  id: Int
+  name: String
+  institution_id: Int
+  language: String
+  copyright: String
+  method: String
+  contact: String
+  notes: String
+  date: Int
+}
+
+input DatasourcesUpdateInput {
+  id: Int
+  name: String
+  institution_id: Int
+  language: String
+  copyright: String
+  method: String
+  contact: String
+  notes: String
+  date: Int
+}
+
+input DatasourcesFilters {
+  id: DatasourcesIdFilters
+  name: DatasourcesNameFilters
+  institution_id: DatasourcesInstitution_idFilters
+  language: DatasourcesLanguageFilters
+  copyright: DatasourcesCopyrightFilters
+  method: DatasourcesMethodFilters
+  contact: DatasourcesContactFilters
+  notes: DatasourcesNotesFilters
+  date: DatasourcesDateFilters
+  OR: [DatasourcesFiltersOr!]
+}
+
+input DatasourcesIdFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [DatasourcesIdfiltersOr!]
+}
+
+input DatasourcesIdfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input DatasourcesNameFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [DatasourcesNamefiltersOr!]
+}
+
+input DatasourcesNamefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input DatasourcesInstitution_idFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [DatasourcesInstitution_idfiltersOr!]
+}
+
+input DatasourcesInstitution_idfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input DatasourcesLanguageFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [DatasourcesLanguagefiltersOr!]
+}
+
+input DatasourcesLanguagefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input DatasourcesCopyrightFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [DatasourcesCopyrightfiltersOr!]
+}
+
+input DatasourcesCopyrightfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input DatasourcesMethodFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [DatasourcesMethodfiltersOr!]
+}
+
+input DatasourcesMethodfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input DatasourcesContactFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [DatasourcesContactfiltersOr!]
+}
+
+input DatasourcesContactfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input DatasourcesNotesFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [DatasourcesNotesfiltersOr!]
+}
+
+input DatasourcesNotesfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input DatasourcesDateFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [DatasourcesDatefiltersOr!]
+}
+
+input DatasourcesDatefiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input DatasourcesFiltersOr {
+  id: DatasourcesIdFilters
+  name: DatasourcesNameFilters
+  institution_id: DatasourcesInstitution_idFilters
+  language: DatasourcesLanguageFilters
+  copyright: DatasourcesCopyrightFilters
+  method: DatasourcesMethodFilters
+  contact: DatasourcesContactFilters
+  notes: DatasourcesNotesFilters
+  date: DatasourcesDateFilters
+}
+
+input DatasourcesOrderBy {
+  id: InnerOrder
+  name: InnerOrder
+  institution_id: InnerOrder
+  language: InnerOrder
+  copyright: InnerOrder
+  method: InnerOrder
+  contact: InnerOrder
+  notes: InnerOrder
+  date: InnerOrder
+}
+
+input Import_tableInsertInput {
+  id: Int
+  filename: String
+  data: String
+  template_id: Int
+}
+
+input Import_tableUpdateInput {
+  id: Int
+  filename: String
+  data: String
+  template_id: Int
+}
+
+input Import_tableFilters {
+  id: Import_tableIdFilters
+  filename: Import_tableFilenameFilters
+  data: Import_tableDataFilters
+  template_id: Import_tableTemplate_idFilters
+  OR: [Import_tableFiltersOr!]
+}
+
+input Import_tableIdFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [Import_tableIdfiltersOr!]
+}
+
+input Import_tableIdfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input Import_tableFilenameFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [Import_tableFilenamefiltersOr!]
+}
+
+input Import_tableFilenamefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input Import_tableDataFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [Import_tableDatafiltersOr!]
+}
+
+input Import_tableDatafiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input Import_tableTemplate_idFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [Import_tableTemplate_idfiltersOr!]
+}
+
+input Import_tableTemplate_idfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input Import_tableFiltersOr {
+  id: Import_tableIdFilters
+  filename: Import_tableFilenameFilters
+  data: Import_tableDataFilters
+  template_id: Import_tableTemplate_idFilters
+}
+
+input Import_tableOrderBy {
+  id: InnerOrder
+  filename: InnerOrder
+  data: InnerOrder
+  template_id: InnerOrder
+}
+
+input InstitutionsInsertInput {
+  id: Int
+  name: String
+  description: String
+  country: String
+  location: String
+  lon: Int
+  lat: Int
+  website: String
+  links: String
+  project_id: Int
+  logo: String
+}
+
+input InstitutionsUpdateInput {
+  id: Int
   name: String
   description: String
   country: String
@@ -575,225 +1728,189 @@ input InstitutionsFiltersOr {
   logo: InstitutionsLogoFilters
 }
 
-type AssetsAssetsInstitutionsRelation {
-  id: Int!
-  asset_id: Int
-  institution_id: Int
-  rule: String
-}
-
-input Assets_institutionsFilters {
-  id: Assets_institutionsIdFilters
-  asset_id: Assets_institutionsAsset_idFilters
-  institution_id: Assets_institutionsInstitution_idFilters
-  rule: Assets_institutionsRuleFilters
-  OR: [Assets_institutionsFiltersOr!]
-}
-
-input Assets_institutionsIdFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [Assets_institutionsIdfiltersOr!]
-}
-
-input Assets_institutionsIdfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input Assets_institutionsAsset_idFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [Assets_institutionsAsset_idfiltersOr!]
-}
-
-input Assets_institutionsAsset_idfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input Assets_institutionsInstitution_idFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [Assets_institutionsInstitution_idfiltersOr!]
-}
-
-input Assets_institutionsInstitution_idfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input Assets_institutionsRuleFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [Assets_institutionsRulefiltersOr!]
-}
-
-input Assets_institutionsRulefiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input Assets_institutionsFiltersOr {
-  id: Assets_institutionsIdFilters
-  asset_id: Assets_institutionsAsset_idFilters
-  institution_id: Assets_institutionsInstitution_idFilters
-  rule: Assets_institutionsRuleFilters
-}
-
-input Assets_institutionsOrderBy {
+input InstitutionsOrderBy {
   id: InnerOrder
-  asset_id: InnerOrder
+  name: InnerOrder
+  description: InnerOrder
+  country: InnerOrder
+  location: InnerOrder
+  lon: InnerOrder
+  lat: InnerOrder
+  website: InnerOrder
+  links: InnerOrder
+  project_id: InnerOrder
+  logo: InnerOrder
+}
+
+input ObjectsInsertInput {
+  id: Int
+  status: String
+  institution_id: Int
+}
+
+input ObjectsUpdateInput {
+  id: Int
+  status: String
+  institution_id: Int
+}
+
+input ObjectsFilters {
+  id: ObjectsIdFilters
+  status: ObjectsStatusFilters
+  institution_id: ObjectsInstitution_idFilters
+  OR: [ObjectsFiltersOr!]
+}
+
+input ObjectsIdFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [ObjectsIdfiltersOr!]
+}
+
+input ObjectsIdfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input ObjectsStatusFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [ObjectsStatusfiltersOr!]
+}
+
+input ObjectsStatusfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input ObjectsInstitution_idFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [ObjectsInstitution_idfiltersOr!]
+}
+
+input ObjectsInstitution_idfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input ObjectsFiltersOr {
+  id: ObjectsIdFilters
+  status: ObjectsStatusFilters
+  institution_id: ObjectsInstitution_idFilters
+}
+
+input ObjectsOrderBy {
+  id: InnerOrder
+  status: InnerOrder
   institution_id: InnerOrder
-  rule: InnerOrder
 }
 
-input InnerOrder {
-  direction: OrderDirection!
-
-  """Priority of current field"""
-  priority: Int!
+input Objects_assetsInsertInput {
+  id: Int
+  asset_id: Int
+  object_id: Int
+  order: Int
 }
 
-"""Order by direction"""
-enum OrderDirection {
-  """Ascending order"""
-  asc
-
-  """Descending order"""
-  desc
-}
-
-type AssetsObjectsAssetsRelation {
-  id: Int!
+input Objects_assetsUpdateInput {
+  id: Int
   asset_id: Int
   object_id: Int
   order: Int
@@ -993,697 +2110,18 @@ input Objects_assetsOrderBy {
   order: InnerOrder
 }
 
-input AssetsOrderBy {
-  id: InnerOrder
-  filename: InnerOrder
-  path: InnerOrder
-  type: InnerOrder
-  properties: InnerOrder
-  institution_id: InnerOrder
+input Objects_ontology_fieldsInsertInput {
+  id: Int
+  label: String
+  value: String
+  object_id: Int
+  field_id: Int
+  datasources_id: Int
+  primary: Int
 }
 
-input AssetsFilters {
-  id: AssetsIdFilters
-  filename: AssetsFilenameFilters
-  path: AssetsPathFilters
-  type: AssetsTypeFilters
-  properties: AssetsPropertiesFilters
-  institution_id: AssetsInstitution_idFilters
-  OR: [AssetsFiltersOr!]
-}
-
-input AssetsIdFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [AssetsIdfiltersOr!]
-}
-
-input AssetsIdfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input AssetsFilenameFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [AssetsFilenamefiltersOr!]
-}
-
-input AssetsFilenamefiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input AssetsPathFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [AssetsPathfiltersOr!]
-}
-
-input AssetsPathfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input AssetsTypeFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [AssetsTypefiltersOr!]
-}
-
-input AssetsTypefiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input AssetsPropertiesFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [AssetsPropertiesfiltersOr!]
-}
-
-input AssetsPropertiesfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input AssetsInstitution_idFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [AssetsInstitution_idfiltersOr!]
-}
-
-input AssetsInstitution_idfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input AssetsFiltersOr {
-  id: AssetsIdFilters
-  filename: AssetsFilenameFilters
-  path: AssetsPathFilters
-  type: AssetsTypeFilters
-  properties: AssetsPropertiesFilters
-  institution_id: AssetsInstitution_idFilters
-}
-
-type Assets_institutionsSelectItem {
-  id: Int!
-  asset_id: Int
-  institution_id: Int
-  rule: String
-  asset(where: AssetsFilters): Assets_institutionsAssetRelation
-  institution(where: InstitutionsFilters): Assets_institutionsInstitutionRelation
-}
-
-type Assets_institutionsAssetRelation {
-  id: Int!
-  filename: String
-  path: String
-  type: String
-  properties: String
-  institution_id: Int
-}
-
-type Assets_institutionsInstitutionRelation {
-  id: Int!
-  name: String
-  description: String
-  country: String
-  location: String
-  lon: Int
-  lat: Int
-  website: String
-  links: String
-  project_id: Int
-  logo: String
-}
-
-type DatasourcesSelectItem {
-  id: Int!
-  name: String
-  institution_id: Int
-  language: String
-  copyright: String
-  method: String
-  contact: String
-  notes: String
-  date: Int
-  institution(where: InstitutionsFilters): DatasourcesInstitutionRelation
-  templates(where: TemplatesFilters, orderBy: TemplatesOrderBy, offset: Int, limit: Int): [DatasourcesTemplatesRelation!]!
-  objectsOntologyFields(where: Objects_ontology_fieldsFilters, orderBy: Objects_ontology_fieldsOrderBy, offset: Int, limit: Int): [DatasourcesObjectsOntologyFieldsRelation!]!
-}
-
-type DatasourcesInstitutionRelation {
-  id: Int!
-  name: String
-  description: String
-  country: String
-  location: String
-  lon: Int
-  lat: Int
-  website: String
-  links: String
-  project_id: Int
-  logo: String
-}
-
-type DatasourcesTemplatesRelation {
-  id: Int!
-  name: String
-  description: String
-  institutions: String
-  config: String
-  datasource_id: Int
-  asset_map_rule: String
-}
-
-input TemplatesFilters {
-  id: TemplatesIdFilters
-  name: TemplatesNameFilters
-  description: TemplatesDescriptionFilters
-  institutions: TemplatesInstitutionsFilters
-  config: TemplatesConfigFilters
-  datasource_id: TemplatesDatasource_idFilters
-  asset_map_rule: TemplatesAsset_map_ruleFilters
-  OR: [TemplatesFiltersOr!]
-}
-
-input TemplatesIdFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [TemplatesIdfiltersOr!]
-}
-
-input TemplatesIdfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input TemplatesNameFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [TemplatesNamefiltersOr!]
-}
-
-input TemplatesNamefiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input TemplatesDescriptionFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [TemplatesDescriptionfiltersOr!]
-}
-
-input TemplatesDescriptionfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input TemplatesInstitutionsFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [TemplatesInstitutionsfiltersOr!]
-}
-
-input TemplatesInstitutionsfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input TemplatesConfigFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [TemplatesConfigfiltersOr!]
-}
-
-input TemplatesConfigfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input TemplatesDatasource_idFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [TemplatesDatasource_idfiltersOr!]
-}
-
-input TemplatesDatasource_idfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input TemplatesAsset_map_ruleFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [TemplatesAsset_map_rulefiltersOr!]
-}
-
-input TemplatesAsset_map_rulefiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input TemplatesFiltersOr {
-  id: TemplatesIdFilters
-  name: TemplatesNameFilters
-  description: TemplatesDescriptionFilters
-  institutions: TemplatesInstitutionsFilters
-  config: TemplatesConfigFilters
-  datasource_id: TemplatesDatasource_idFilters
-  asset_map_rule: TemplatesAsset_map_ruleFilters
-}
-
-input TemplatesOrderBy {
-  id: InnerOrder
-  name: InnerOrder
-  description: InnerOrder
-  institutions: InnerOrder
-  config: InnerOrder
-  datasource_id: InnerOrder
-  asset_map_rule: InnerOrder
-}
-
-type DatasourcesObjectsOntologyFieldsRelation {
-  id: Int!
+input Objects_ontology_fieldsUpdateInput {
+  id: Int
   label: String
   value: String
   object_id: Int
@@ -2024,1077 +2462,15 @@ input Objects_ontology_fieldsOrderBy {
   primary: InnerOrder
 }
 
-input DatasourcesOrderBy {
-  id: InnerOrder
-  name: InnerOrder
-  institution_id: InnerOrder
-  language: InnerOrder
-  copyright: InnerOrder
-  method: InnerOrder
-  contact: InnerOrder
-  notes: InnerOrder
-  date: InnerOrder
+input Objects_research_fieldsInsertInput {
+  id: Int
+  object_id: Int
+  field_id: Int
+  value: String
 }
 
-input DatasourcesFilters {
-  id: DatasourcesIdFilters
-  name: DatasourcesNameFilters
-  institution_id: DatasourcesInstitution_idFilters
-  language: DatasourcesLanguageFilters
-  copyright: DatasourcesCopyrightFilters
-  method: DatasourcesMethodFilters
-  contact: DatasourcesContactFilters
-  notes: DatasourcesNotesFilters
-  date: DatasourcesDateFilters
-  OR: [DatasourcesFiltersOr!]
-}
-
-input DatasourcesIdFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [DatasourcesIdfiltersOr!]
-}
-
-input DatasourcesIdfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input DatasourcesNameFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [DatasourcesNamefiltersOr!]
-}
-
-input DatasourcesNamefiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input DatasourcesInstitution_idFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [DatasourcesInstitution_idfiltersOr!]
-}
-
-input DatasourcesInstitution_idfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input DatasourcesLanguageFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [DatasourcesLanguagefiltersOr!]
-}
-
-input DatasourcesLanguagefiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input DatasourcesCopyrightFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [DatasourcesCopyrightfiltersOr!]
-}
-
-input DatasourcesCopyrightfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input DatasourcesMethodFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [DatasourcesMethodfiltersOr!]
-}
-
-input DatasourcesMethodfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input DatasourcesContactFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [DatasourcesContactfiltersOr!]
-}
-
-input DatasourcesContactfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input DatasourcesNotesFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [DatasourcesNotesfiltersOr!]
-}
-
-input DatasourcesNotesfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input DatasourcesDateFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [DatasourcesDatefiltersOr!]
-}
-
-input DatasourcesDatefiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input DatasourcesFiltersOr {
-  id: DatasourcesIdFilters
-  name: DatasourcesNameFilters
-  institution_id: DatasourcesInstitution_idFilters
-  language: DatasourcesLanguageFilters
-  copyright: DatasourcesCopyrightFilters
-  method: DatasourcesMethodFilters
-  contact: DatasourcesContactFilters
-  notes: DatasourcesNotesFilters
-  date: DatasourcesDateFilters
-}
-
-type Import_tableSelectItem {
-  id: Int!
-  filename: String
-  data: String
-  template_id: Int
-  template(where: TemplatesFilters): Import_tableTemplateRelation
-}
-
-type Import_tableTemplateRelation {
-  id: Int!
-  name: String
-  description: String
-  institutions: String
-  config: String
-  datasource_id: Int
-  asset_map_rule: String
-}
-
-input Import_tableOrderBy {
-  id: InnerOrder
-  filename: InnerOrder
-  data: InnerOrder
-  template_id: InnerOrder
-}
-
-input Import_tableFilters {
-  id: Import_tableIdFilters
-  filename: Import_tableFilenameFilters
-  data: Import_tableDataFilters
-  template_id: Import_tableTemplate_idFilters
-  OR: [Import_tableFiltersOr!]
-}
-
-input Import_tableIdFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [Import_tableIdfiltersOr!]
-}
-
-input Import_tableIdfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input Import_tableFilenameFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [Import_tableFilenamefiltersOr!]
-}
-
-input Import_tableFilenamefiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input Import_tableDataFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [Import_tableDatafiltersOr!]
-}
-
-input Import_tableDatafiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input Import_tableTemplate_idFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [Import_tableTemplate_idfiltersOr!]
-}
-
-input Import_tableTemplate_idfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input Import_tableFiltersOr {
-  id: Import_tableIdFilters
-  filename: Import_tableFilenameFilters
-  data: Import_tableDataFilters
-  template_id: Import_tableTemplate_idFilters
-}
-
-type InstitutionsSelectItem {
-  id: Int!
-  name: String
-  description: String
-  country: String
-  location: String
-  lon: Int
-  lat: Int
-  website: String
-  links: String
-  project_id: Int
-  logo: String
-  project(where: ProjectFilters): InstitutionsProjectRelation
-  assets(where: AssetsFilters, orderBy: AssetsOrderBy, offset: Int, limit: Int): [InstitutionsAssetsRelation!]!
-  objects(where: ObjectsFilters, orderBy: ObjectsOrderBy, offset: Int, limit: Int): [InstitutionsObjectsRelation!]!
-  datasources(where: DatasourcesFilters, orderBy: DatasourcesOrderBy, offset: Int, limit: Int): [InstitutionsDatasourcesRelation!]!
-  assetsInstitutions(where: Assets_institutionsFilters, orderBy: Assets_institutionsOrderBy, offset: Int, limit: Int): [InstitutionsAssetsInstitutionsRelation!]!
-}
-
-type InstitutionsProjectRelation {
-  id: Int!
-  title: String
-  description: String
-  exports: String
-}
-
-input ProjectFilters {
-  id: ProjectIdFilters
-  title: ProjectTitleFilters
-  description: ProjectDescriptionFilters
-  exports: ProjectExportsFilters
-  OR: [ProjectFiltersOr!]
-}
-
-input ProjectIdFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [ProjectIdfiltersOr!]
-}
-
-input ProjectIdfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input ProjectTitleFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [ProjectTitlefiltersOr!]
-}
-
-input ProjectTitlefiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input ProjectDescriptionFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [ProjectDescriptionfiltersOr!]
-}
-
-input ProjectDescriptionfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input ProjectExportsFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [ProjectExportsfiltersOr!]
-}
-
-input ProjectExportsfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input ProjectFiltersOr {
-  id: ProjectIdFilters
-  title: ProjectTitleFilters
-  description: ProjectDescriptionFilters
-  exports: ProjectExportsFilters
-}
-
-type InstitutionsAssetsRelation {
-  id: Int!
-  filename: String
-  path: String
-  type: String
-  properties: String
-  institution_id: Int
-}
-
-type InstitutionsObjectsRelation {
-  id: Int!
-  status: String
-  institution_id: Int
-}
-
-input ObjectsFilters {
-  id: ObjectsIdFilters
-  status: ObjectsStatusFilters
-  institution_id: ObjectsInstitution_idFilters
-  OR: [ObjectsFiltersOr!]
-}
-
-input ObjectsIdFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [ObjectsIdfiltersOr!]
-}
-
-input ObjectsIdfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input ObjectsStatusFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [ObjectsStatusfiltersOr!]
-}
-
-input ObjectsStatusfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input ObjectsInstitution_idFilters {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [ObjectsInstitution_idfiltersOr!]
-}
-
-input ObjectsInstitution_idfiltersOr {
-  eq: Int
-  ne: Int
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [Int!]
-
-  """Array<undefined>"""
-  notInArray: [Int!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
-
-input ObjectsFiltersOr {
-  id: ObjectsIdFilters
-  status: ObjectsStatusFilters
-  institution_id: ObjectsInstitution_idFilters
-}
-
-input ObjectsOrderBy {
-  id: InnerOrder
-  status: InnerOrder
-  institution_id: InnerOrder
-}
-
-type InstitutionsDatasourcesRelation {
-  id: Int!
-  name: String
-  institution_id: Int
-  language: String
-  copyright: String
-  method: String
-  contact: String
-  notes: String
-  date: Int
-}
-
-type InstitutionsAssetsInstitutionsRelation {
-  id: Int!
-  asset_id: Int
-  institution_id: Int
-  rule: String
-}
-
-input InstitutionsOrderBy {
-  id: InnerOrder
-  name: InnerOrder
-  description: InnerOrder
-  country: InnerOrder
-  location: InnerOrder
-  lon: InnerOrder
-  lat: InnerOrder
-  website: InnerOrder
-  links: InnerOrder
-  project_id: InnerOrder
-  logo: InnerOrder
-}
-
-type ObjectsSelectItem {
-  id: Int!
-  status: String
-  institution_id: Int
-  institution(where: InstitutionsFilters): ObjectsInstitutionRelation
-  objectsResearchFields(where: Objects_research_fieldsFilters, orderBy: Objects_research_fieldsOrderBy, offset: Int, limit: Int): [ObjectsObjectsResearchFieldsRelation!]!
-  objectsOntologyFields(where: Objects_ontology_fieldsFilters, orderBy: Objects_ontology_fieldsOrderBy, offset: Int, limit: Int): [ObjectsObjectsOntologyFieldsRelation!]!
-  objectsAssets(where: Objects_assetsFilters, orderBy: Objects_assetsOrderBy, offset: Int, limit: Int): [ObjectsObjectsAssetsRelation!]!
-}
-
-type ObjectsInstitutionRelation {
-  id: Int!
-  name: String
-  description: String
-  country: String
-  location: String
-  lon: Int
-  lat: Int
-  website: String
-  links: String
-  project_id: Int
-  logo: String
-}
-
-type ObjectsObjectsResearchFieldsRelation {
-  id: Int!
+input Objects_research_fieldsUpdateInput {
+  id: Int
   object_id: Int
   field_id: Int
   value: String
@@ -3294,68 +2670,16 @@ input Objects_research_fieldsOrderBy {
   value: InnerOrder
 }
 
-type ObjectsObjectsOntologyFieldsRelation {
-  id: Int!
-  label: String
-  value: String
-  object_id: Int
-  field_id: Int
-  datasources_id: Int
-  primary: Int
+input Ontology_fieldsInsertInput {
+  id: Int
+  name: String
+  description: String
+  category: String
+  embeddings: String
 }
 
-type ObjectsObjectsAssetsRelation {
-  id: Int!
-  asset_id: Int
-  object_id: Int
-  order: Int
-}
-
-type Objects_assetsSelectItem {
-  id: Int!
-  asset_id: Int
-  object_id: Int
-  order: Int
-  object(where: ObjectsFilters): Objects_assetsObjectRelation
-  asset(where: AssetsFilters): Objects_assetsAssetRelation
-}
-
-type Objects_assetsObjectRelation {
-  id: Int!
-  status: String
-  institution_id: Int
-}
-
-type Objects_assetsAssetRelation {
-  id: Int!
-  filename: String
-  path: String
-  type: String
-  properties: String
-  institution_id: Int
-}
-
-type Objects_ontology_fieldsSelectItem {
-  id: Int!
-  label: String
-  value: String
-  object_id: Int
-  field_id: Int
-  datasources_id: Int
-  primary: Int
-  object(where: ObjectsFilters): Objects_ontology_fieldsObjectRelation
-  ontologyField(where: Ontology_fieldsFilters): Objects_ontology_fieldsOntologyFieldRelation
-  datasource(where: DatasourcesFilters): Objects_ontology_fieldsDatasourceRelation
-}
-
-type Objects_ontology_fieldsObjectRelation {
-  id: Int!
-  status: String
-  institution_id: Int
-}
-
-type Objects_ontology_fieldsOntologyFieldRelation {
-  id: Int!
+input Ontology_fieldsUpdateInput {
+  id: Int
   name: String
   description: String
   category: String
@@ -3594,35 +2918,232 @@ input Ontology_fieldsFiltersOr {
   embeddings: Ontology_fieldsEmbeddingsFilters
 }
 
-type Objects_ontology_fieldsDatasourceRelation {
-  id: Int!
+input Ontology_fieldsOrderBy {
+  id: InnerOrder
+  name: InnerOrder
+  description: InnerOrder
+  category: InnerOrder
+  embeddings: InnerOrder
+}
+
+input ProjectInsertInput {
+  id: Int
+  title: String
+  description: String
+  exports: String
+}
+
+input ProjectUpdateInput {
+  id: Int
+  title: String
+  description: String
+  exports: String
+}
+
+input ProjectFilters {
+  id: ProjectIdFilters
+  title: ProjectTitleFilters
+  description: ProjectDescriptionFilters
+  exports: ProjectExportsFilters
+  OR: [ProjectFiltersOr!]
+}
+
+input ProjectIdFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [ProjectIdfiltersOr!]
+}
+
+input ProjectIdfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input ProjectTitleFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [ProjectTitlefiltersOr!]
+}
+
+input ProjectTitlefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input ProjectDescriptionFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [ProjectDescriptionfiltersOr!]
+}
+
+input ProjectDescriptionfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input ProjectExportsFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [ProjectExportsfiltersOr!]
+}
+
+input ProjectExportsfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input ProjectFiltersOr {
+  id: ProjectIdFilters
+  title: ProjectTitleFilters
+  description: ProjectDescriptionFilters
+  exports: ProjectExportsFilters
+}
+
+input ProjectOrderBy {
+  id: InnerOrder
+  title: InnerOrder
+  description: InnerOrder
+  exports: InnerOrder
+}
+
+input Research_fieldsInsertInput {
+  id: Int
   name: String
-  institution_id: Int
-  language: String
-  copyright: String
-  method: String
-  contact: String
-  notes: String
-  date: Int
+  type: String
+  description: String
+  project_id: Int
 }
 
-type Objects_research_fieldsSelectItem {
-  id: Int!
-  object_id: Int
-  field_id: Int
-  value: String
-  object(where: ObjectsFilters): Objects_research_fieldsObjectRelation
-  researchField(where: Research_fieldsFilters): Objects_research_fieldsResearchFieldRelation
-}
-
-type Objects_research_fieldsObjectRelation {
-  id: Int!
-  status: String
-  institution_id: Int
-}
-
-type Objects_research_fieldsResearchFieldRelation {
-  id: Int!
+input Research_fieldsUpdateInput {
+  id: Int
   name: String
   type: String
   description: String
@@ -3861,65 +3382,6 @@ input Research_fieldsFiltersOr {
   project_id: Research_fieldsProject_idFilters
 }
 
-type Ontology_fieldsSelectItem {
-  id: Int!
-  name: String
-  description: String
-  category: String
-  embeddings: String
-  objectsOntologyFields(where: Objects_ontology_fieldsFilters, orderBy: Objects_ontology_fieldsOrderBy, offset: Int, limit: Int): [Ontology_fieldsObjectsOntologyFieldsRelation!]!
-}
-
-type Ontology_fieldsObjectsOntologyFieldsRelation {
-  id: Int!
-  label: String
-  value: String
-  object_id: Int
-  field_id: Int
-  datasources_id: Int
-  primary: Int
-}
-
-input Ontology_fieldsOrderBy {
-  id: InnerOrder
-  name: InnerOrder
-  description: InnerOrder
-  category: InnerOrder
-  embeddings: InnerOrder
-}
-
-type ProjectSelectItem {
-  id: Int!
-  title: String
-  description: String
-  exports: String
-  institutions(where: InstitutionsFilters, orderBy: InstitutionsOrderBy, offset: Int, limit: Int): [ProjectInstitutionsRelation!]!
-  researchFields(where: Research_fieldsFilters, orderBy: Research_fieldsOrderBy, offset: Int, limit: Int): [ProjectResearchFieldsRelation!]!
-  settings(where: SettingsFilters, orderBy: SettingsOrderBy, offset: Int, limit: Int): [ProjectSettingsRelation!]!
-}
-
-type ProjectInstitutionsRelation {
-  id: Int!
-  name: String
-  description: String
-  country: String
-  location: String
-  lon: Int
-  lat: Int
-  website: String
-  links: String
-  project_id: Int
-  logo: String
-}
-
-type ProjectResearchFieldsRelation {
-  id: Int!
-  name: String
-  type: String
-  description: String
-  project_id: Int
-}
-
 input Research_fieldsOrderBy {
   id: InnerOrder
   name: InnerOrder
@@ -3928,8 +3390,18 @@ input Research_fieldsOrderBy {
   project_id: InnerOrder
 }
 
-type ProjectSettingsRelation {
-  id: Int!
+input SettingsInsertInput {
+  id: Int
+  username: Int
+  password: Int
+  db_name: Int
+  sync_url: Int
+  sig_server: Int
+  project_id: Int
+}
+
+input SettingsUpdateInput {
+  id: Int
   username: Int
   password: Int
   db_name: Int
@@ -4270,33 +3742,369 @@ input SettingsOrderBy {
   project_id: InnerOrder
 }
 
-input ProjectOrderBy {
-  id: InnerOrder
-  title: InnerOrder
-  description: InnerOrder
-  exports: InnerOrder
-}
-
-type Research_fieldsSelectItem {
-  id: Int!
+input TemplatesInsertInput {
+  id: Int
   name: String
-  type: String
   description: String
-  project_id: Int
-  project(where: ProjectFilters): Research_fieldsProjectRelation
-  vocabularies(where: VocabulariesFilters, orderBy: VocabulariesOrderBy, offset: Int, limit: Int): [Research_fieldsVocabulariesRelation!]!
-  objectsResearchFields(where: Objects_research_fieldsFilters, orderBy: Objects_research_fieldsOrderBy, offset: Int, limit: Int): [Research_fieldsObjectsResearchFieldsRelation!]!
+  institutions: String
+  config: String
+  datasource_id: Int
+  asset_map_rule: String
 }
 
-type Research_fieldsProjectRelation {
-  id: Int!
-  title: String
+input TemplatesUpdateInput {
+  id: Int
+  name: String
   description: String
-  exports: String
+  institutions: String
+  config: String
+  datasource_id: Int
+  asset_map_rule: String
 }
 
-type Research_fieldsVocabulariesRelation {
-  id: Int!
+input TemplatesFilters {
+  id: TemplatesIdFilters
+  name: TemplatesNameFilters
+  description: TemplatesDescriptionFilters
+  institutions: TemplatesInstitutionsFilters
+  config: TemplatesConfigFilters
+  datasource_id: TemplatesDatasource_idFilters
+  asset_map_rule: TemplatesAsset_map_ruleFilters
+  OR: [TemplatesFiltersOr!]
+}
+
+input TemplatesIdFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [TemplatesIdfiltersOr!]
+}
+
+input TemplatesIdfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input TemplatesNameFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [TemplatesNamefiltersOr!]
+}
+
+input TemplatesNamefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input TemplatesDescriptionFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [TemplatesDescriptionfiltersOr!]
+}
+
+input TemplatesDescriptionfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input TemplatesInstitutionsFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [TemplatesInstitutionsfiltersOr!]
+}
+
+input TemplatesInstitutionsfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input TemplatesConfigFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [TemplatesConfigfiltersOr!]
+}
+
+input TemplatesConfigfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input TemplatesDatasource_idFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [TemplatesDatasource_idfiltersOr!]
+}
+
+input TemplatesDatasource_idfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input TemplatesAsset_map_ruleFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [TemplatesAsset_map_rulefiltersOr!]
+}
+
+input TemplatesAsset_map_rulefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input TemplatesFiltersOr {
+  id: TemplatesIdFilters
+  name: TemplatesNameFilters
+  description: TemplatesDescriptionFilters
+  institutions: TemplatesInstitutionsFilters
+  config: TemplatesConfigFilters
+  datasource_id: TemplatesDatasource_idFilters
+  asset_map_rule: TemplatesAsset_map_ruleFilters
+}
+
+input TemplatesOrderBy {
+  id: InnerOrder
+  name: InnerOrder
+  description: InnerOrder
+  institutions: InnerOrder
+  config: InnerOrder
+  datasource_id: InnerOrder
+  asset_map_rule: InnerOrder
+}
+
+input VocabulariesInsertInput {
+  id: Int
+  option: String
+  description: String
+  main_asset: String
+  other_assets: String
+  field_id: Int
+}
+
+input VocabulariesUpdateInput {
+  id: Int
   option: String
   description: String
   main_asset: String
@@ -4590,11 +4398,534 @@ input VocabulariesOrderBy {
   field_id: InnerOrder
 }
 
+type AssetsSelectItem {
+  id: Int!
+  filename: String
+  path: String
+  type: String
+  properties: String
+  institution_id: Int
+  institution(where: InstitutionsFilters): AssetsInstitutionRelation
+  assetsInstitutions(where: Assets_institutionsFilters, orderBy: Assets_institutionsOrderBy, offset: Int, limit: Int): [AssetsAssetsInstitutionsRelation!]!
+  objectsAssets(where: Objects_assetsFilters, orderBy: Objects_assetsOrderBy, offset: Int, limit: Int): [AssetsObjectsAssetsRelation!]!
+}
+
+type AssetsInstitutionRelation {
+  id: Int!
+  name: String
+  description: String
+  country: String
+  location: String
+  lon: Int
+  lat: Int
+  website: String
+  links: String
+  project_id: Int
+  logo: String
+}
+
+type AssetsAssetsInstitutionsRelation {
+  id: Int!
+  asset_id: Int
+  institution_id: Int
+  rule: String
+}
+
+type AssetsObjectsAssetsRelation {
+  id: Int!
+  asset_id: Int
+  object_id: Int
+  order: Int
+}
+
+type AssetsItem {
+  id: Int!
+  filename: String
+  path: String
+  type: String
+  properties: String
+  institution_id: Int
+}
+
+type Assets_institutionsSelectItem {
+  id: Int!
+  asset_id: Int
+  institution_id: Int
+  rule: String
+  asset(where: AssetsFilters): Assets_institutionsAssetRelation
+  institution(where: InstitutionsFilters): Assets_institutionsInstitutionRelation
+}
+
+type Assets_institutionsAssetRelation {
+  id: Int!
+  filename: String
+  path: String
+  type: String
+  properties: String
+  institution_id: Int
+}
+
+type Assets_institutionsInstitutionRelation {
+  id: Int!
+  name: String
+  description: String
+  country: String
+  location: String
+  lon: Int
+  lat: Int
+  website: String
+  links: String
+  project_id: Int
+  logo: String
+}
+
+type Assets_institutionsItem {
+  id: Int!
+  asset_id: Int
+  institution_id: Int
+  rule: String
+}
+
+type DatasourcesSelectItem {
+  id: Int!
+  name: String
+  institution_id: Int
+  language: String
+  copyright: String
+  method: String
+  contact: String
+  notes: String
+  date: Int
+  institution(where: InstitutionsFilters): DatasourcesInstitutionRelation
+  templates(where: TemplatesFilters, orderBy: TemplatesOrderBy, offset: Int, limit: Int): [DatasourcesTemplatesRelation!]!
+  objectsOntologyFields(where: Objects_ontology_fieldsFilters, orderBy: Objects_ontology_fieldsOrderBy, offset: Int, limit: Int): [DatasourcesObjectsOntologyFieldsRelation!]!
+}
+
+type DatasourcesInstitutionRelation {
+  id: Int!
+  name: String
+  description: String
+  country: String
+  location: String
+  lon: Int
+  lat: Int
+  website: String
+  links: String
+  project_id: Int
+  logo: String
+}
+
+type DatasourcesTemplatesRelation {
+  id: Int!
+  name: String
+  description: String
+  institutions: String
+  config: String
+  datasource_id: Int
+  asset_map_rule: String
+}
+
+type DatasourcesObjectsOntologyFieldsRelation {
+  id: Int!
+  label: String
+  value: String
+  object_id: Int
+  field_id: Int
+  datasources_id: Int
+  primary: Int
+}
+
+type DatasourcesItem {
+  id: Int!
+  name: String
+  institution_id: Int
+  language: String
+  copyright: String
+  method: String
+  contact: String
+  notes: String
+  date: Int
+}
+
+type Import_tableSelectItem {
+  id: Int!
+  filename: String
+  data: String
+  template_id: Int
+  template(where: TemplatesFilters): Import_tableTemplateRelation
+}
+
+type Import_tableTemplateRelation {
+  id: Int!
+  name: String
+  description: String
+  institutions: String
+  config: String
+  datasource_id: Int
+  asset_map_rule: String
+}
+
+type Import_tableItem {
+  id: Int!
+  filename: String
+  data: String
+  template_id: Int
+}
+
+type InstitutionsSelectItem {
+  id: Int!
+  name: String
+  description: String
+  country: String
+  location: String
+  lon: Int
+  lat: Int
+  website: String
+  links: String
+  project_id: Int
+  logo: String
+  project(where: ProjectFilters): InstitutionsProjectRelation
+  assets(where: AssetsFilters, orderBy: AssetsOrderBy, offset: Int, limit: Int): [InstitutionsAssetsRelation!]!
+  objects(where: ObjectsFilters, orderBy: ObjectsOrderBy, offset: Int, limit: Int): [InstitutionsObjectsRelation!]!
+  datasources(where: DatasourcesFilters, orderBy: DatasourcesOrderBy, offset: Int, limit: Int): [InstitutionsDatasourcesRelation!]!
+  assetsInstitutions(where: Assets_institutionsFilters, orderBy: Assets_institutionsOrderBy, offset: Int, limit: Int): [InstitutionsAssetsInstitutionsRelation!]!
+}
+
+type InstitutionsProjectRelation {
+  id: Int!
+  title: String
+  description: String
+  exports: String
+}
+
+type InstitutionsAssetsRelation {
+  id: Int!
+  filename: String
+  path: String
+  type: String
+  properties: String
+  institution_id: Int
+}
+
+type InstitutionsObjectsRelation {
+  id: Int!
+  status: String
+  institution_id: Int
+}
+
+type InstitutionsDatasourcesRelation {
+  id: Int!
+  name: String
+  institution_id: Int
+  language: String
+  copyright: String
+  method: String
+  contact: String
+  notes: String
+  date: Int
+}
+
+type InstitutionsAssetsInstitutionsRelation {
+  id: Int!
+  asset_id: Int
+  institution_id: Int
+  rule: String
+}
+
+type InstitutionsItem {
+  id: Int!
+  name: String
+  description: String
+  country: String
+  location: String
+  lon: Int
+  lat: Int
+  website: String
+  links: String
+  project_id: Int
+  logo: String
+}
+
+type ObjectsSelectItem {
+  id: Int!
+  status: String
+  institution_id: Int
+  institution(where: InstitutionsFilters): ObjectsInstitutionRelation
+  objectsResearchFields(where: Objects_research_fieldsFilters, orderBy: Objects_research_fieldsOrderBy, offset: Int, limit: Int): [ObjectsObjectsResearchFieldsRelation!]!
+  objectsOntologyFields(where: Objects_ontology_fieldsFilters, orderBy: Objects_ontology_fieldsOrderBy, offset: Int, limit: Int): [ObjectsObjectsOntologyFieldsRelation!]!
+  objectsAssets(where: Objects_assetsFilters, orderBy: Objects_assetsOrderBy, offset: Int, limit: Int): [ObjectsObjectsAssetsRelation!]!
+}
+
+type ObjectsInstitutionRelation {
+  id: Int!
+  name: String
+  description: String
+  country: String
+  location: String
+  lon: Int
+  lat: Int
+  website: String
+  links: String
+  project_id: Int
+  logo: String
+}
+
+type ObjectsObjectsResearchFieldsRelation {
+  id: Int!
+  object_id: Int
+  field_id: Int
+  value: String
+}
+
+type ObjectsObjectsOntologyFieldsRelation {
+  id: Int!
+  label: String
+  value: String
+  object_id: Int
+  field_id: Int
+  datasources_id: Int
+  primary: Int
+}
+
+type ObjectsObjectsAssetsRelation {
+  id: Int!
+  asset_id: Int
+  object_id: Int
+  order: Int
+}
+
+type ObjectsItem {
+  id: Int!
+  status: String
+  institution_id: Int
+}
+
+type Objects_assetsSelectItem {
+  id: Int!
+  asset_id: Int
+  object_id: Int
+  order: Int
+  object(where: ObjectsFilters): Objects_assetsObjectRelation
+  asset(where: AssetsFilters): Objects_assetsAssetRelation
+}
+
+type Objects_assetsObjectRelation {
+  id: Int!
+  status: String
+  institution_id: Int
+}
+
+type Objects_assetsAssetRelation {
+  id: Int!
+  filename: String
+  path: String
+  type: String
+  properties: String
+  institution_id: Int
+}
+
+type Objects_assetsItem {
+  id: Int!
+  asset_id: Int
+  object_id: Int
+  order: Int
+}
+
+type Objects_ontology_fieldsSelectItem {
+  id: Int!
+  label: String
+  value: String
+  object_id: Int
+  field_id: Int
+  datasources_id: Int
+  primary: Int
+  object(where: ObjectsFilters): Objects_ontology_fieldsObjectRelation
+  ontologyField(where: Ontology_fieldsFilters): Objects_ontology_fieldsOntologyFieldRelation
+  datasource(where: DatasourcesFilters): Objects_ontology_fieldsDatasourceRelation
+}
+
+type Objects_ontology_fieldsObjectRelation {
+  id: Int!
+  status: String
+  institution_id: Int
+}
+
+type Objects_ontology_fieldsOntologyFieldRelation {
+  id: Int!
+  name: String
+  description: String
+  category: String
+  embeddings: String
+}
+
+type Objects_ontology_fieldsDatasourceRelation {
+  id: Int!
+  name: String
+  institution_id: Int
+  language: String
+  copyright: String
+  method: String
+  contact: String
+  notes: String
+  date: Int
+}
+
+type Objects_ontology_fieldsItem {
+  id: Int!
+  label: String
+  value: String
+  object_id: Int
+  field_id: Int
+  datasources_id: Int
+  primary: Int
+}
+
+type Objects_research_fieldsSelectItem {
+  id: Int!
+  object_id: Int
+  field_id: Int
+  value: String
+  object(where: ObjectsFilters): Objects_research_fieldsObjectRelation
+  researchField(where: Research_fieldsFilters): Objects_research_fieldsResearchFieldRelation
+}
+
+type Objects_research_fieldsObjectRelation {
+  id: Int!
+  status: String
+  institution_id: Int
+}
+
+type Objects_research_fieldsResearchFieldRelation {
+  id: Int!
+  name: String
+  type: String
+  description: String
+  project_id: Int
+}
+
+type Objects_research_fieldsItem {
+  id: Int!
+  object_id: Int
+  field_id: Int
+  value: String
+}
+
+type Ontology_fieldsSelectItem {
+  id: Int!
+  name: String
+  description: String
+  category: String
+  embeddings: String
+  objectsOntologyFields(where: Objects_ontology_fieldsFilters, orderBy: Objects_ontology_fieldsOrderBy, offset: Int, limit: Int): [Ontology_fieldsObjectsOntologyFieldsRelation!]!
+}
+
+type Ontology_fieldsObjectsOntologyFieldsRelation {
+  id: Int!
+  label: String
+  value: String
+  object_id: Int
+  field_id: Int
+  datasources_id: Int
+  primary: Int
+}
+
+type Ontology_fieldsItem {
+  id: Int!
+  name: String
+  description: String
+  category: String
+  embeddings: String
+}
+
+type ProjectSelectItem {
+  id: Int!
+  title: String
+  description: String
+  exports: String
+  institutions(where: InstitutionsFilters, orderBy: InstitutionsOrderBy, offset: Int, limit: Int): [ProjectInstitutionsRelation!]!
+  researchFields(where: Research_fieldsFilters, orderBy: Research_fieldsOrderBy, offset: Int, limit: Int): [ProjectResearchFieldsRelation!]!
+  settings(where: SettingsFilters, orderBy: SettingsOrderBy, offset: Int, limit: Int): [ProjectSettingsRelation!]!
+}
+
+type ProjectInstitutionsRelation {
+  id: Int!
+  name: String
+  description: String
+  country: String
+  location: String
+  lon: Int
+  lat: Int
+  website: String
+  links: String
+  project_id: Int
+  logo: String
+}
+
+type ProjectResearchFieldsRelation {
+  id: Int!
+  name: String
+  type: String
+  description: String
+  project_id: Int
+}
+
+type ProjectSettingsRelation {
+  id: Int!
+  username: Int
+  password: Int
+  db_name: Int
+  sync_url: Int
+  sig_server: Int
+  project_id: Int
+}
+
+type ProjectItem {
+  id: Int!
+  title: String
+  description: String
+  exports: String
+}
+
+type Research_fieldsSelectItem {
+  id: Int!
+  name: String
+  type: String
+  description: String
+  project_id: Int
+  project(where: ProjectFilters): Research_fieldsProjectRelation
+  vocabularies(where: VocabulariesFilters, orderBy: VocabulariesOrderBy, offset: Int, limit: Int): [Research_fieldsVocabulariesRelation!]!
+  objectsResearchFields(where: Objects_research_fieldsFilters, orderBy: Objects_research_fieldsOrderBy, offset: Int, limit: Int): [Research_fieldsObjectsResearchFieldsRelation!]!
+}
+
+type Research_fieldsProjectRelation {
+  id: Int!
+  title: String
+  description: String
+  exports: String
+}
+
+type Research_fieldsVocabulariesRelation {
+  id: Int!
+  option: String
+  description: String
+  main_asset: String
+  other_assets: String
+  field_id: Int
+}
+
 type Research_fieldsObjectsResearchFieldsRelation {
   id: Int!
   object_id: Int
   field_id: Int
   value: String
+}
+
+type Research_fieldsItem {
+  id: Int!
+  name: String
+  type: String
+  description: String
+  project_id: Int
 }
 
 type SettingsSelectItem {
@@ -4613,6 +4944,16 @@ type SettingsProjectRelation {
   title: String
   description: String
   exports: String
+}
+
+type SettingsItem {
+  id: Int!
+  username: Int
+  password: Int
+  db_name: Int
+  sync_url: Int
+  sig_server: Int
+  project_id: Int
 }
 
 type TemplatesSelectItem {
@@ -4646,6 +4987,16 @@ type TemplatesImportsRelation {
   template_id: Int
 }
 
+type TemplatesItem {
+  id: Int!
+  name: String
+  description: String
+  institutions: String
+  config: String
+  datasource_id: Int
+  asset_map_rule: String
+}
+
 type VocabulariesSelectItem {
   id: Int!
   option: String
@@ -4664,86 +5015,8 @@ type VocabulariesResearchFieldRelation {
   project_id: Int
 }
 
-type Mutation {
-  insertIntoProject(values: [ProjectInput!]!): [ProjectSelectItem!]!
-  insertIntoInstitutions(values: [InstitutionsInput!]!): [InstitutionsSelectItem!]!
-  insertIntoResearchFields(values: [Research_fieldsInput!]!): [Research_fieldsSelectItem!]!
-  insertIntoSettings(values: [SettingsInput!]!): [SettingsSelectItem!]!
-  insertIntoAssets(values: [AssetsInput!]!): [AssetsSelectItem!]!
-  insertIntoObjects(values: [ObjectsInput!]!): [ObjectsSelectItem!]!
-  insertIntoDatasources(values: [DatasourcesInput!]!): [DatasourcesSelectItem!]!
-  insertIntoAssetsInstitutions(values: [Assets_institutionsInput!]!): [Assets_institutionsSelectItem!]!
-  insertIntoVocabularies(values: [VocabulariesInput!]!): [VocabulariesSelectItem!]!
-  insertIntoObjectsResearchFields(values: [Objects_research_fieldsInput!]!): [Objects_research_fieldsSelectItem!]!
-  insertIntoOntologyFields(values: [Ontology_fieldsInput!]!): [Ontology_fieldsSelectItem!]!
-  insertIntoObjectsOntologyFields(values: [Objects_ontology_fieldsInput!]!): [Objects_ontology_fieldsSelectItem!]!
-  insertIntoTemplates(values: [TemplatesInput!]!): [TemplatesSelectItem!]!
-  insertIntoImport(values: [Import_tableInput!]!): [Import_tableSelectItem!]!
-  insertIntoObjectsAssets(values: [Objects_assetsInput!]!): [Objects_assetsSelectItem!]!
-}
-
-input ProjectInput {
-  title: String
-  description: String
-}
-
-input InstitutionsInput {
-  name: String
-  description: String
-  country: String
-  location: String
-  website: String
-  links: String
-  logo: String
-  project_id: Int
-}
-
-input Research_fieldsInput {
-  name: String
-  type: String
-  description: String
-  project_id: Int
-}
-
-input SettingsInput {
-  username: String
-  password: String
-  db_name: String
-  sync_url: String
-  sig_server: String
-  project_id: Int
-}
-
-input AssetsInput {
-  filename: String
-  path: String
-  type: String
-  properties: String
-  institution_id: Int
-}
-
-input ObjectsInput {
-  status: String
-  institution_id: Int
-}
-
-input DatasourcesInput {
-  name: String
-  language: String
-  copyright: String
-  method: String
-  contact: String
-  notes: String
-  institution_id: Int
-}
-
-input Assets_institutionsInput {
-  rule: String
-  asset_id: Int
-  institution_id: Int
-}
-
-input VocabulariesInput {
+type VocabulariesItem {
+  id: Int!
   option: String
   description: String
   main_asset: String
@@ -4751,44 +5024,98 @@ input VocabulariesInput {
   field_id: Int
 }
 
-input Objects_research_fieldsInput {
-  value: String
-  object_id: Int
-  field_id: Int
+type Query {
+  assets(offset: Int, limit: Int, orderBy: AssetsOrderBy, where: AssetsFilters): [AssetsSelectItem!]!
+  assetsSingle(offset: Int, orderBy: AssetsOrderBy, where: AssetsFilters): AssetsSelectItem
+  assets_institutions(offset: Int, limit: Int, orderBy: Assets_institutionsOrderBy, where: Assets_institutionsFilters): [Assets_institutionsSelectItem!]!
+  assets_institutionsSingle(offset: Int, orderBy: Assets_institutionsOrderBy, where: Assets_institutionsFilters): Assets_institutionsSelectItem
+  datasources(offset: Int, limit: Int, orderBy: DatasourcesOrderBy, where: DatasourcesFilters): [DatasourcesSelectItem!]!
+  datasourcesSingle(offset: Int, orderBy: DatasourcesOrderBy, where: DatasourcesFilters): DatasourcesSelectItem
+  import_table(offset: Int, limit: Int, orderBy: Import_tableOrderBy, where: Import_tableFilters): [Import_tableSelectItem!]!
+  import_tableSingle(offset: Int, orderBy: Import_tableOrderBy, where: Import_tableFilters): Import_tableSelectItem
+  institutions(offset: Int, limit: Int, orderBy: InstitutionsOrderBy, where: InstitutionsFilters): [InstitutionsSelectItem!]!
+  institutionsSingle(offset: Int, orderBy: InstitutionsOrderBy, where: InstitutionsFilters): InstitutionsSelectItem
+  objects(offset: Int, limit: Int, orderBy: ObjectsOrderBy, where: ObjectsFilters): [ObjectsSelectItem!]!
+  objectsSingle(offset: Int, orderBy: ObjectsOrderBy, where: ObjectsFilters): ObjectsSelectItem
+  objects_assets(offset: Int, limit: Int, orderBy: Objects_assetsOrderBy, where: Objects_assetsFilters): [Objects_assetsSelectItem!]!
+  objects_assetsSingle(offset: Int, orderBy: Objects_assetsOrderBy, where: Objects_assetsFilters): Objects_assetsSelectItem
+  objects_ontology_fields(offset: Int, limit: Int, orderBy: Objects_ontology_fieldsOrderBy, where: Objects_ontology_fieldsFilters): [Objects_ontology_fieldsSelectItem!]!
+  objects_ontology_fieldsSingle(offset: Int, orderBy: Objects_ontology_fieldsOrderBy, where: Objects_ontology_fieldsFilters): Objects_ontology_fieldsSelectItem
+  objects_research_fields(offset: Int, limit: Int, orderBy: Objects_research_fieldsOrderBy, where: Objects_research_fieldsFilters): [Objects_research_fieldsSelectItem!]!
+  objects_research_fieldsSingle(offset: Int, orderBy: Objects_research_fieldsOrderBy, where: Objects_research_fieldsFilters): Objects_research_fieldsSelectItem
+  ontology_fields(offset: Int, limit: Int, orderBy: Ontology_fieldsOrderBy, where: Ontology_fieldsFilters): [Ontology_fieldsSelectItem!]!
+  ontology_fieldsSingle(offset: Int, orderBy: Ontology_fieldsOrderBy, where: Ontology_fieldsFilters): Ontology_fieldsSelectItem
+  project(offset: Int, limit: Int, orderBy: ProjectOrderBy, where: ProjectFilters): [ProjectSelectItem!]!
+  projectSingle(offset: Int, orderBy: ProjectOrderBy, where: ProjectFilters): ProjectSelectItem
+  research_fields(offset: Int, limit: Int, orderBy: Research_fieldsOrderBy, where: Research_fieldsFilters): [Research_fieldsSelectItem!]!
+  research_fieldsSingle(offset: Int, orderBy: Research_fieldsOrderBy, where: Research_fieldsFilters): Research_fieldsSelectItem
+  settings(offset: Int, limit: Int, orderBy: SettingsOrderBy, where: SettingsFilters): [SettingsSelectItem!]!
+  settingsSingle(offset: Int, orderBy: SettingsOrderBy, where: SettingsFilters): SettingsSelectItem
+  templates(offset: Int, limit: Int, orderBy: TemplatesOrderBy, where: TemplatesFilters): [TemplatesSelectItem!]!
+  templatesSingle(offset: Int, orderBy: TemplatesOrderBy, where: TemplatesFilters): TemplatesSelectItem
+  vocabularies(offset: Int, limit: Int, orderBy: VocabulariesOrderBy, where: VocabulariesFilters): [VocabulariesSelectItem!]!
+  vocabulariesSingle(offset: Int, orderBy: VocabulariesOrderBy, where: VocabulariesFilters): VocabulariesSelectItem
 }
 
-input Ontology_fieldsInput {
-  name: String
-  description: String
-  category: String
-  embeddings: String
-}
-
-input Objects_ontology_fieldsInput {
-  label: String
-  value: String
-  object_id: Int
-  field_id: Int
-  datasources_id: Int
-}
-
-input TemplatesInput {
-  name: String
-  description: String
-  institutions: String
-  config: String
-  asset_map_rule: String
-  datasource_id: Int
-}
-
-input Import_tableInput {
-  filename: String
-  data: String
-  template_id: Int
-}
-
-input Objects_assetsInput {
-  order: String
-  asset_id: Int
-  object_id: Int
+type Mutation {
+  insertIntoAssets(values: [AssetsInsertInput!]!): [AssetsItem!]!
+  insertIntoAssetsSingle(values: AssetsInsertInput!): AssetsItem
+  updateAssets(set: AssetsUpdateInput!, where: AssetsFilters): [AssetsItem!]!
+  deleteFromAssets(where: AssetsFilters): [AssetsItem!]!
+  insertIntoAssets_institutions(values: [Assets_institutionsInsertInput!]!): [Assets_institutionsItem!]!
+  insertIntoAssets_institutionsSingle(values: Assets_institutionsInsertInput!): Assets_institutionsItem
+  updateAssets_institutions(set: Assets_institutionsUpdateInput!, where: Assets_institutionsFilters): [Assets_institutionsItem!]!
+  deleteFromAssets_institutions(where: Assets_institutionsFilters): [Assets_institutionsItem!]!
+  insertIntoDatasources(values: [DatasourcesInsertInput!]!): [DatasourcesItem!]!
+  insertIntoDatasourcesSingle(values: DatasourcesInsertInput!): DatasourcesItem
+  updateDatasources(set: DatasourcesUpdateInput!, where: DatasourcesFilters): [DatasourcesItem!]!
+  deleteFromDatasources(where: DatasourcesFilters): [DatasourcesItem!]!
+  insertIntoImport_table(values: [Import_tableInsertInput!]!): [Import_tableItem!]!
+  insertIntoImport_tableSingle(values: Import_tableInsertInput!): Import_tableItem
+  updateImport_table(set: Import_tableUpdateInput!, where: Import_tableFilters): [Import_tableItem!]!
+  deleteFromImport_table(where: Import_tableFilters): [Import_tableItem!]!
+  insertIntoInstitutions(values: [InstitutionsInsertInput!]!): [InstitutionsItem!]!
+  insertIntoInstitutionsSingle(values: InstitutionsInsertInput!): InstitutionsItem
+  updateInstitutions(set: InstitutionsUpdateInput!, where: InstitutionsFilters): [InstitutionsItem!]!
+  deleteFromInstitutions(where: InstitutionsFilters): [InstitutionsItem!]!
+  insertIntoObjects(values: [ObjectsInsertInput!]!): [ObjectsItem!]!
+  insertIntoObjectsSingle(values: ObjectsInsertInput!): ObjectsItem
+  updateObjects(set: ObjectsUpdateInput!, where: ObjectsFilters): [ObjectsItem!]!
+  deleteFromObjects(where: ObjectsFilters): [ObjectsItem!]!
+  insertIntoObjects_assets(values: [Objects_assetsInsertInput!]!): [Objects_assetsItem!]!
+  insertIntoObjects_assetsSingle(values: Objects_assetsInsertInput!): Objects_assetsItem
+  updateObjects_assets(set: Objects_assetsUpdateInput!, where: Objects_assetsFilters): [Objects_assetsItem!]!
+  deleteFromObjects_assets(where: Objects_assetsFilters): [Objects_assetsItem!]!
+  insertIntoObjects_ontology_fields(values: [Objects_ontology_fieldsInsertInput!]!): [Objects_ontology_fieldsItem!]!
+  insertIntoObjects_ontology_fieldsSingle(values: Objects_ontology_fieldsInsertInput!): Objects_ontology_fieldsItem
+  updateObjects_ontology_fields(set: Objects_ontology_fieldsUpdateInput!, where: Objects_ontology_fieldsFilters): [Objects_ontology_fieldsItem!]!
+  deleteFromObjects_ontology_fields(where: Objects_ontology_fieldsFilters): [Objects_ontology_fieldsItem!]!
+  insertIntoObjects_research_fields(values: [Objects_research_fieldsInsertInput!]!): [Objects_research_fieldsItem!]!
+  insertIntoObjects_research_fieldsSingle(values: Objects_research_fieldsInsertInput!): Objects_research_fieldsItem
+  updateObjects_research_fields(set: Objects_research_fieldsUpdateInput!, where: Objects_research_fieldsFilters): [Objects_research_fieldsItem!]!
+  deleteFromObjects_research_fields(where: Objects_research_fieldsFilters): [Objects_research_fieldsItem!]!
+  insertIntoOntology_fields(values: [Ontology_fieldsInsertInput!]!): [Ontology_fieldsItem!]!
+  insertIntoOntology_fieldsSingle(values: Ontology_fieldsInsertInput!): Ontology_fieldsItem
+  updateOntology_fields(set: Ontology_fieldsUpdateInput!, where: Ontology_fieldsFilters): [Ontology_fieldsItem!]!
+  deleteFromOntology_fields(where: Ontology_fieldsFilters): [Ontology_fieldsItem!]!
+  insertIntoProject(values: [ProjectInsertInput!]!): [ProjectItem!]!
+  insertIntoProjectSingle(values: ProjectInsertInput!): ProjectItem
+  updateProject(set: ProjectUpdateInput!, where: ProjectFilters): [ProjectItem!]!
+  deleteFromProject(where: ProjectFilters): [ProjectItem!]!
+  insertIntoResearch_fields(values: [Research_fieldsInsertInput!]!): [Research_fieldsItem!]!
+  insertIntoResearch_fieldsSingle(values: Research_fieldsInsertInput!): Research_fieldsItem
+  updateResearch_fields(set: Research_fieldsUpdateInput!, where: Research_fieldsFilters): [Research_fieldsItem!]!
+  deleteFromResearch_fields(where: Research_fieldsFilters): [Research_fieldsItem!]!
+  insertIntoSettings(values: [SettingsInsertInput!]!): [SettingsItem!]!
+  insertIntoSettingsSingle(values: SettingsInsertInput!): SettingsItem
+  updateSettings(set: SettingsUpdateInput!, where: SettingsFilters): [SettingsItem!]!
+  deleteFromSettings(where: SettingsFilters): [SettingsItem!]!
+  insertIntoTemplates(values: [TemplatesInsertInput!]!): [TemplatesItem!]!
+  insertIntoTemplatesSingle(values: TemplatesInsertInput!): TemplatesItem
+  updateTemplates(set: TemplatesUpdateInput!, where: TemplatesFilters): [TemplatesItem!]!
+  deleteFromTemplates(where: TemplatesFilters): [TemplatesItem!]!
+  insertIntoVocabularies(values: [VocabulariesInsertInput!]!): [VocabulariesItem!]!
+  insertIntoVocabulariesSingle(values: VocabulariesInsertInput!): VocabulariesItem
+  updateVocabularies(set: VocabulariesUpdateInput!, where: VocabulariesFilters): [VocabulariesItem!]!
+  deleteFromVocabularies(where: VocabulariesFilters): [VocabulariesItem!]!
 }

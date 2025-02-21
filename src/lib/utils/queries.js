@@ -1,12 +1,12 @@
 export const API_SECTIONS = {
-    projects: {
-        name: "Projects",
-        operations: [
-            {
-                type: "mutation",
-                name: "Create Project",
-                description: "Creates a new project with auto-generated title",
-                query: `mutation {
+  projects: {
+    name: "Projects",
+    operations: [
+      {
+        type: "mutation",
+        name: "Create Project",
+        description: "Creates a new project with auto-generated title",
+        query: `mutation {
   insertIntoProject(values: [{
     title: "Project ${Math.random().toString(36).substring(7)}",
     description: "Description of the project"
@@ -16,12 +16,46 @@ export const API_SECTIONS = {
     description
   }
 }`
-            },
-            {
-                type: "query",
-                name: "List Projects",
-                description: "Retrieves all projects with their institutions",
-                query: `{
+      },
+      {
+        type: "mutation",
+        name: "Update Project",
+        description: "Updates an existing project by ID",
+        requiresProjectId: true,
+        query: `mutation UpdateProject($projectId: Int!) {
+  updateProject(
+    set: {
+      title: "Updated Project Title",
+      description: "Updated project description"
+    }
+    where: { id: { eq: $projectId } }
+  ) {
+    id
+    title
+    description
+  }
+}`
+      },
+      {
+        type: "mutation",
+        name: "Delete Project",
+        description: "Deletes a project by ID",
+        requiresProjectId: true,
+        query: `mutation DeleteProject($projectId: Int!) {
+  deleteFromProject(
+    where: { id: { eq: $projectId } }
+  ) {
+    id
+    title
+    description
+  }
+}`
+      },
+      {
+        type: "query",
+        name: "List Projects",
+        description: "Retrieves all projects with their institutions",
+        query: `{
   project {
     id
     title
@@ -35,18 +69,38 @@ export const API_SECTIONS = {
     }
   }
 }`
-            }
-        ]
-    },
-    institutions: {
-        name: "Institutions",
-        operations: [
-            {
-                type: "mutation",
-                name: "Create Institution",
-                description: "Creates a new institution linked to a project",
-                requiresProjectId: true,
-                query: `mutation AddInstitution($projectId: Int!) {
+      }
+    ]
+  },
+  institutions: {
+    name: "Institutions",
+    operations: [
+      {
+        type: "query",
+        name: "Get Institution by ID",
+        description: "Retrieves a single institution by its ID",
+        requiresProjectId: true,
+        query: `query GetInstitution($projectId: Int!) {
+  institutions(where: { id: { eq: $projectId } }) {
+    id
+    name
+    description
+    project {
+      id
+      title
+      description
+    }
+    country
+    location
+  }
+}`
+      },
+      {
+        type: "mutation",
+        name: "Create Institution",
+        description: "Creates a new institution linked to a project",
+        requiresProjectId: true,
+        query: `mutation AddInstitution($projectId: Int!) {
   insertIntoInstitutions(values: [{
     name: "Institution ${Math.random().toString(36).substring(7)}",
     description: "Description of the institution",
@@ -60,12 +114,12 @@ export const API_SECTIONS = {
     project_id
   }
 }`
-            },
-            {
-                type: "query",
-                name: "List Institutions",
-                description: "Retrieves all institutions",
-                query: `{
+      },
+      {
+        type: "query",
+        name: "List Institutions",
+        description: "Retrieves all institutions",
+        query: `{
   institutions {
     id
     name
@@ -79,17 +133,17 @@ export const API_SECTIONS = {
     location
   }
 }`
-            }
-        ]
-    },
-    schema: {
-        name: "GraphQL Schema",
-        operations: [
-            {
-                type: "schema",
-                name: "Introspection Query",
-                description: "Retrieves the GraphQL schema structure",
-                query: `{
+      }
+    ]
+  },
+  schema: {
+    name: "GraphQL Schema",
+    operations: [
+      {
+        type: "schema",
+        name: "Introspection Query",
+        description: "Retrieves the GraphQL schema structure",
+        query: `{
   __schema {
     types {
       name
@@ -115,7 +169,7 @@ export const API_SECTIONS = {
     }
   }
 }`
-            }
-        ]
-    }
+      }
+    ]
+  }
 }; 

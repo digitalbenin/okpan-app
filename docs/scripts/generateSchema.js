@@ -42,7 +42,7 @@ This documentation describes the GraphQL API for the Database Connection Tool.
 The API provides queries to fetch data from various tables including projects, institutions, research fields, and more.
 
 ## Mutations
-The API supports mutations for inserting data into all tables. Each mutation accepts a list of input objects with the required fields.
+The API supports mutations for inserting, editing, and deleting data for all tables. Each mutation accepts a list of input objects with the required fields.
 """
 
 ${sdl}`;
