@@ -16,7 +16,9 @@
     "preview": "vite preview",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "docs:schema": "node docs/scripts/generateSchema.js",
+    "docs:generate": "npm run docs:schema && spectaql docs/spectaql.config.yml -t docs/dist"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.6.1",

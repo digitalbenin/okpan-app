@@ -34,7 +34,9 @@ function createMutationField(queryField, table, inputFields) {
 }
 
 export function createGraphQLSchema(db) {
-    const baseSchema = buildSchema(db);
+    const baseSchema = buildSchema(db, {
+        relationsDepthLimit: 1
+    });
     const queryType = baseSchema.schema.getQueryType();
     const queryFields = queryType.getFields();
 

@@ -1,4 +1,4 @@
-import { integer, text, blob, boolean, sqliteTable } from 'drizzle-orm/sqlite-core';
+import { integer, text, blob, sqliteTable } from 'drizzle-orm/sqlite-core';
 import { relations } from 'drizzle-orm';
 
 // Project table

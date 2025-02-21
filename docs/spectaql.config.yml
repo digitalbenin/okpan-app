@@ -1,0 +1,10 @@
+introspection:
+  schemaFile: docs/schema.graphql
+
+info:
+  title: Database Connection Tool API
+  description: GraphQL API Documentation
+
+servers:
+  - url: http://localhost:3000/graphql
+    description: Development Server 
