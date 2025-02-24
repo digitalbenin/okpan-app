@@ -12,8 +12,8 @@ export function createGraphQLSchema(db) {
         name: 'institutionsCount',
         type: drizzleResult.schema._typeMap.Int,
         resolve: async (parent) => {
-            const result = await db.run(sql`SELECT COUNT(1) FROM institutions WHERE project_id = ${parent.id}`);
-            return Number(result.rows[0]['COUNT(1)'] ?? 0);
+            const result = await db.run(sql`SELECT COUNT(1) AS count FROM institutions WHERE project_id = ${parent.id}`);
+            return Number(result.rows[0]['count'] ?? 0);
         },
         args: [],
         extensions: {},

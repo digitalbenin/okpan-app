@@ -22,7 +22,7 @@ export const API_SECTIONS = {
         name: "Update Project",
         description: "Updates an existing project by ID",
         requiresProjectId: true,
-        query: `mutation UpdateProject($projectId: Int!) {
+        query: `mutation UpdateProject($projectId: String!) {
   updateProject(
     set: {
       title: "Updated Project Title",
@@ -41,7 +41,7 @@ export const API_SECTIONS = {
         name: "Delete Project",
         description: "Deletes a project by ID",
         requiresProjectId: true,
-        query: `mutation DeleteProject($projectId: Int!) {
+        query: `mutation DeleteProject($projectId: String!) {
   deleteFromProject(
     where: { id: { eq: $projectId } }
   ) {
@@ -58,6 +58,8 @@ export const API_SECTIONS = {
         query: `{
   project {
     id
+    created_at
+    updated_at
     title
     description
     institutionsCount
@@ -81,9 +83,11 @@ export const API_SECTIONS = {
         name: "Get Institution by ID",
         description: "Retrieves a single institution by its ID",
         requiresProjectId: true,
-        query: `query GetInstitution($projectId: Int!) {
+        query: `query GetInstitution($projectId: String!) {
   institutions(where: { id: { eq: $projectId } }) {
-    id
+    id,
+    created_at
+    updated_at
     name
     description
     project {
@@ -101,7 +105,7 @@ export const API_SECTIONS = {
         name: "Create Institution",
         description: "Creates a new institution linked to a project",
         requiresProjectId: true,
-        query: `mutation AddInstitution($projectId: Int!) {
+        query: `mutation AddInstitution($projectId: String!) {
   insertIntoInstitutions(values: [{
     name: "Institution ${Math.random().toString(36).substring(7)}",
     description: "Description of the institution",

@@ -1,12 +1,24 @@
 import { integer, text, blob, sqliteTable } from 'drizzle-orm/sqlite-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
+
+// Common fields configuration for all tables
+const commonFields = {
+    id: text('id').primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+    created_at: integer('created_at', { mode: 'timestamp_ms' })
+        .notNull()
+        .default(sql`CURRENT_TIMESTAMP`),
+    updated_at: integer('updated_at', { mode: 'timestamp_ms' })
+        .notNull()
+        .default(sql`CURRENT_TIMESTAMP`)
+        .$onUpdateFn(() => new Date())
+};
 
 // Project table
 export const project = sqliteTable('project', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     title: text('title'),
     description: text('description'),
-    exports: text('exports') // JSON stored as text
+    exports: text('exports', { mode: 'json' })
 });
 
 // Project relations
@@ -18,7 +30,7 @@ export const projectRelations = relations(project, ({ many }) => ({
 
 // Institutions table
 export const institutions = sqliteTable('institutions', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     name: text('name'),
     description: text('description'),
     country: text('country'),
@@ -26,8 +38,8 @@ export const institutions = sqliteTable('institutions', {
     lon: integer('lon'),
     lat: integer('lat'),
     website: text('website'),
-    links: text('links'), // JSON stored as text
-    project_id: integer('project_id').references(() => project.id),
+    links: text('links', { mode: 'json' }),
+    project_id: text('project_id').references(() => project.id),
     logo: text('logo')
 });
 
@@ -45,11 +57,11 @@ export const institutionsRelations = relations(institutions, ({ one, many }) => 
 
 // Research Fields table
 export const research_fields = sqliteTable('research_fields', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     name: text('name'),
     type: text('type'),
     description: text('description'),
-    project_id: integer('project_id').references(() => project.id)
+    project_id: text('project_id').references(() => project.id)
 });
 
 // Research Fields relations
@@ -64,13 +76,13 @@ export const researchFieldsRelations = relations(research_fields, ({ one, many }
 
 // Settings table
 export const settings = sqliteTable('settings', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     username: integer('username'),
     password: integer('password'),
     db_name: integer('db_name'),
     sync_url: integer('sync_url'),
     sig_server: integer('sig_server'),
-    project_id: integer('project_id').references(() => project.id)
+    project_id: text('project_id').references(() => project.id)
 });
 
 // Settings relations
@@ -83,12 +95,12 @@ export const settingsRelations = relations(settings, ({ one }) => ({
 
 // Assets table
 export const assets = sqliteTable('assets', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     filename: text('filename'),
     path: text('path'),
     type: text('type'),
-    properties: text('properties'), // JSON stored as text
-    institution_id: integer('institution_id').references(() => institutions.id)
+    properties: text('properties', { mode: 'json' }),
+    institution_id: text('institution_id').references(() => institutions.id)
 });
 
 // Assets relations
@@ -103,9 +115,9 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
 
 // Objects table
 export const objects = sqliteTable('objects', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     status: text('status'),
-    institution_id: integer('institution_id').references(() => institutions.id)
+    institution_id: text('institution_id').references(() => institutions.id)
 });
 
 // Objects relations
@@ -121,15 +133,15 @@ export const objectsRelations = relations(objects, ({ one, many }) => ({
 
 // Datasources table
 export const datasources = sqliteTable('datasources', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     name: text('name'),
-    institution_id: integer('institution_id').references(() => institutions.id),
+    institution_id: text('institution_id').references(() => institutions.id),
     language: text('language'),
     copyright: text('copyright'),
     method: text('method'),
     contact: text('contact'),
     notes: text('notes'),
-    date: integer('date') // SQLite stores timestamps as integers
+    date: integer('date')
 });
 
 // Datasources relations
@@ -144,9 +156,9 @@ export const datasourcesRelations = relations(datasources, ({ one, many }) => ({
 
 // Assets Institutions junction table
 export const assets_institutions = sqliteTable('assets_institutions', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    asset_id: integer('asset_id').references(() => assets.id),
-    institution_id: integer('institution_id').references(() => institutions.id),
+    ...commonFields,
+    asset_id: text('asset_id').references(() => assets.id),
+    institution_id: text('institution_id').references(() => institutions.id),
     rule: text('rule')
 });
 
@@ -164,12 +176,12 @@ export const assetsInstitutionsRelations = relations(assets_institutions, ({ one
 
 // Vocabularies table
 export const vocabularies = sqliteTable('vocabularies', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     option: text('option'),
     description: text('description'),
     main_asset: text('main_asset'),
-    other_assets: text('other_assets'), // JSON stored as text
-    field_id: integer('field_id').references(() => research_fields.id)
+    other_assets: text('other_assets', { mode: 'json' }),
+    field_id: text('field_id').references(() => research_fields.id)
 });
 
 // Vocabularies relations
@@ -182,9 +194,9 @@ export const vocabulariesRelations = relations(vocabularies, ({ one }) => ({
 
 // Objects Research Fields junction table
 export const objects_research_fields = sqliteTable('objects_research_fields', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    object_id: integer('object_id').references(() => objects.id),
-    field_id: integer('field_id').references(() => research_fields.id),
+    ...commonFields,
+    object_id: text('object_id').references(() => objects.id),
+    field_id: text('field_id').references(() => research_fields.id),
     value: text('value')
 });
 
@@ -202,7 +214,7 @@ export const objectsResearchFieldsRelations = relations(objects_research_fields,
 
 // Ontology Fields table
 export const ontology_fields = sqliteTable('ontology_fields', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     name: text('name'),
     description: text('description'),
     category: text('category'),
@@ -216,13 +228,13 @@ export const ontologyFieldsRelations = relations(ontology_fields, ({ many }) => 
 
 // Objects Ontology Fields table
 export const objects_ontology_fields = sqliteTable('objects_ontology_fields', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     label: text('label'),
     value: text('value'),
-    object_id: integer('object_id').references(() => objects.id),
-    field_id: integer('field_id').references(() => ontology_fields.id),
-    datasources_id: integer('datasources_id').references(() => datasources.id),
-    primary: integer('primary') // SQLite uses INTEGER for boolean
+    object_id: text('object_id').references(() => objects.id),
+    field_id: text('field_id').references(() => ontology_fields.id),
+    datasources_id: text('datasources_id').references(() => datasources.id),
+    primary: integer('primary')
 });
 
 // Objects Ontology Fields relations
@@ -243,12 +255,12 @@ export const objectsOntologyFieldsRelations = relations(objects_ontology_fields,
 
 // Templates table
 export const templates = sqliteTable('templates', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     name: text('name'),
     description: text('description'),
-    institutions: text('institutions'),
-    config: text('config'), // JSON stored as text
-    datasource_id: integer('datasource_id').references(() => datasources.id),
+    institutions: text('institutions', { mode: 'json' }),
+    config: text('config', { mode: 'json' }),
+    datasource_id: text('datasource_id').references(() => datasources.id),
     asset_map_rule: text('asset_map_rule')
 });
 
@@ -263,10 +275,10 @@ export const templatesRelations = relations(templates, ({ one, many }) => ({
 
 // Import table
 export const import_table = sqliteTable('import', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    ...commonFields,
     filename: text('filename'),
-    data: text('data'), // JSON stored as text
-    template_id: integer('template_id').references(() => templates.id)
+    data: text('data', { mode: 'json' }),
+    template_id: text('template_id').references(() => templates.id)
 });
 
 // Import relations
@@ -279,9 +291,9 @@ export const importRelations = relations(import_table, ({ one }) => ({
 
 // Objects Assets junction table
 export const objects_assets = sqliteTable('objects_assets', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    asset_id: integer('asset_id').references(() => assets.id),
-    object_id: integer('object_id').references(() => objects.id),
+    ...commonFields,
+    asset_id: text('asset_id').references(() => assets.id),
+    object_id: text('object_id').references(() => objects.id),
     order: integer('order')
 });
 // Objects Assets relations

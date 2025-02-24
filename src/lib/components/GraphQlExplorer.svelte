@@ -38,7 +38,7 @@
 
       // Add variables for operations that need them
       if (query.includes("$projectId")) {
-        variables = { projectId: parseInt(selectedProjectId) };
+        variables = { projectId: selectedProjectId };
       }
 
       const response = await window.api.executeGraphQL(query, variables);
@@ -127,11 +127,11 @@
                             >
                               <span class="input-group-text">Project ID</span>
                               <input
-                                type="number"
+                                type="text"
                                 class="form-control"
                                 bind:value={selectedProjectId}
-                                placeholder="Required"
-                                style="width: 100px;"
+                                placeholder="UUID"
+                                style="width: 250px;"
                               />
                             </div>
                           {/if}
