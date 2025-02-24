@@ -1,4 +1,5 @@
 import { buildSchema } from 'drizzle-graphql';
+import { sql } from 'drizzle-orm';
 
 export function createGraphQLSchema(db) {
     // Get the schema from drizzle-graphql
@@ -11,10 +12,8 @@ export function createGraphQLSchema(db) {
         name: 'institutionsCount',
         type: drizzleResult.schema._typeMap.Int,
         resolve: async (parent) => {
-            const institutions = await db.query.institutions.findMany({
-                where: (institutions, { eq }) => eq(institutions.project_id, parent.id)
-            });
-            return institutions.length;
+            const result = await db.run(sql`SELECT COUNT(1) FROM institutions WHERE project_id = ${parent.id}`);
+            return Number(result.rows[0]['COUNT(1)'] ?? 0);
         },
         args: [],
         extensions: {},

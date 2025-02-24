@@ -60,6 +60,7 @@ export const API_SECTIONS = {
     id
     title
     description
+    institutionsCount
     institutions {
       id
       name
