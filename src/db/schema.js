@@ -13,32 +13,92 @@ const commonFields = {
         .$onUpdateFn(() => new Date())
 };
 
+// Translation Schema
+
+// Languages table
+export const languages = sqliteTable('languages', {
+    ...commonFields,
+    code: text('code').notNull().unique(), // e.g., 'en', 'es', 'fr'
+    name: text('name').notNull(), // e.g., 'English', 'Spanish', 'French'
+    is_default: integer('is_default').notNull().default(0)
+});
+
+// Texts table - stores original texts
+export const texts = sqliteTable('texts', {
+    ...commonFields,
+    content: text('content').notNull(),
+    context: text('context').notNull(), // e.g., 'project.title', 'institutions.name'
+    original_language: text('original_language')
+        .notNull()
+        .references(() => languages.code)
+});
+
+// Translations table - stores translated content
+export const translations = sqliteTable('translations', {
+    ...commonFields,
+    text_id: text('text_id')
+        .notNull()
+        .references(() => texts.id),
+    language_code: text('language_code')
+        .notNull()
+        .references(() => languages.code),
+    content: text('content').notNull()
+});
+
+// Translation Relations
+export const textsRelations = relations(texts, ({ one, many }) => ({
+    originalLanguage: one(languages, {
+        fields: [texts.original_language],
+        references: [languages.code]
+    }),
+    translations: many(translations)
+}));
+
+export const translationsRelations = relations(translations, ({ one }) => ({
+    text: one(texts, {
+        fields: [translations.text_id],
+        references: [texts.id]
+    }),
+    language: one(languages, {
+        fields: [translations.language_code],
+        references: [languages.code]
+    })
+}));
+
 // Project table
 export const project = sqliteTable('project', {
     ...commonFields,
-    title: text('title'),
-    description: text('description'),
+    title_id: text('title_id').references(() => texts.id),
+    description_id: text('description_id').references(() => texts.id),
     exports: text('exports', { mode: 'json' })
 });
 
 // Project relations
-export const projectRelations = relations(project, ({ many }) => ({
+export const projectRelations = relations(project, ({ many, one }) => ({
     institutions: many(institutions),
     researchFields: many(research_fields),
-    settings: many(settings)
+    settings: many(settings),
+    title: one(texts, {
+        fields: [project.title_id],
+        references: [texts.id]
+    }),
+    description: one(texts, {
+        fields: [project.description_id],
+        references: [texts.id]
+    })
 }));
 
 // Institutions table
 export const institutions = sqliteTable('institutions', {
     ...commonFields,
-    name: text('name'),
-    description: text('description'),
-    country: text('country'),
-    location: text('location'),
+    name_id: text('name_id').references(() => texts.id),
+    description_id: text('description_id').references(() => texts.id),
+    country_id: text('country_id').references(() => texts.id),
+    location_id: text('location_id').references(() => texts.id),
     lon: integer('lon'),
     lat: integer('lat'),
     website: text('website'),
-    links: text('links', { mode: 'json' }),
+    links_id: text('links_id').references(() => texts.id),
     project_id: text('project_id').references(() => project.id),
     logo: text('logo')
 });
@@ -52,15 +112,35 @@ export const institutionsRelations = relations(institutions, ({ one, many }) => 
     assets: many(assets),
     objects: many(objects),
     datasources: many(datasources),
-    assetsInstitutions: many(assets_institutions)
+    assetsInstitutions: many(assets_institutions),
+    name: one(texts, {
+        fields: [institutions.name_id],
+        references: [texts.id]
+    }),
+    description: one(texts, {
+        fields: [institutions.description_id],
+        references: [texts.id]
+    }),
+    country: one(texts, {
+        fields: [institutions.country_id],
+        references: [texts.id]
+    }),
+    location: one(texts, {
+        fields: [institutions.location_id],
+        references: [texts.id]
+    }),
+    links: one(texts, {
+        fields: [institutions.links_id],
+        references: [texts.id]
+    })
 }));
 
 // Research Fields table
 export const research_fields = sqliteTable('research_fields', {
     ...commonFields,
-    name: text('name'),
+    name_id: text('name_id').references(() => texts.id),
     type: text('type'),
-    description: text('description'),
+    description_id: text('description_id').references(() => texts.id),
     project_id: text('project_id').references(() => project.id)
 });
 
@@ -71,7 +151,15 @@ export const researchFieldsRelations = relations(research_fields, ({ one, many }
         references: [project.id]
     }),
     vocabularies: many(vocabularies),
-    objectsResearchFields: many(objects_research_fields)
+    objectsResearchFields: many(objects_research_fields),
+    name: one(texts, {
+        fields: [research_fields.name_id],
+        references: [texts.id]
+    }),
+    description: one(texts, {
+        fields: [research_fields.description_id],
+        references: [texts.id]
+    })
 }));
 
 // Settings table
@@ -134,13 +222,13 @@ export const objectsRelations = relations(objects, ({ one, many }) => ({
 // Datasources table
 export const datasources = sqliteTable('datasources', {
     ...commonFields,
-    name: text('name'),
+    name_id: text('name_id').references(() => texts.id),
     institution_id: text('institution_id').references(() => institutions.id),
     language: text('language'),
     copyright: text('copyright'),
-    method: text('method'),
+    method_id: text('method_id').references(() => texts.id),
     contact: text('contact'),
-    notes: text('notes'),
+    notes_id: text('notes_id').references(() => texts.id),
     date: integer('date')
 });
 
@@ -151,7 +239,19 @@ export const datasourcesRelations = relations(datasources, ({ one, many }) => ({
         references: [institutions.id]
     }),
     templates: many(templates),
-    objectsOntologyFields: many(objects_ontology_fields)
+    objectsOntologyFields: many(objects_ontology_fields),
+    name: one(texts, {
+        fields: [datasources.name_id],
+        references: [texts.id]
+    }),
+    method: one(texts, {
+        fields: [datasources.method_id],
+        references: [texts.id]
+    }),
+    notes: one(texts, {
+        fields: [datasources.notes_id],
+        references: [texts.id]
+    })
 }));
 
 // Assets Institutions junction table
@@ -177,8 +277,8 @@ export const assetsInstitutionsRelations = relations(assets_institutions, ({ one
 // Vocabularies table
 export const vocabularies = sqliteTable('vocabularies', {
     ...commonFields,
-    option: text('option'),
-    description: text('description'),
+    option_id: text('option_id').references(() => texts.id),
+    description_id: text('description_id').references(() => texts.id),
     main_asset: text('main_asset'),
     other_assets: text('other_assets', { mode: 'json' }),
     field_id: text('field_id').references(() => research_fields.id)
@@ -189,6 +289,14 @@ export const vocabulariesRelations = relations(vocabularies, ({ one }) => ({
     researchField: one(research_fields, {
         fields: [vocabularies.field_id],
         references: [research_fields.id]
+    }),
+    option: one(texts, {
+        fields: [vocabularies.option_id],
+        references: [texts.id]
+    }),
+    description: one(texts, {
+        fields: [vocabularies.description_id],
+        references: [texts.id]
     })
 }));
 
@@ -215,15 +323,27 @@ export const objectsResearchFieldsRelations = relations(objects_research_fields,
 // Ontology Fields table
 export const ontology_fields = sqliteTable('ontology_fields', {
     ...commonFields,
-    name: text('name'),
-    description: text('description'),
-    category: text('category'),
+    name_id: text('name_id').references(() => texts.id),
+    description_id: text('description_id').references(() => texts.id),
+    category_id: text('category_id').references(() => texts.id),
     embeddings: text('embeddings')
 });
 
 // Ontology Fields relations
-export const ontologyFieldsRelations = relations(ontology_fields, ({ many }) => ({
-    objectsOntologyFields: many(objects_ontology_fields)
+export const ontologyFieldsRelations = relations(ontology_fields, ({ many, one }) => ({
+    objectsOntologyFields: many(objects_ontology_fields),
+    name: one(texts, {
+        fields: [ontology_fields.name_id],
+        references: [texts.id]
+    }),
+    description: one(texts, {
+        fields: [ontology_fields.description_id],
+        references: [texts.id]
+    }),
+    category: one(texts, {
+        fields: [ontology_fields.category_id],
+        references: [texts.id]
+    })
 }));
 
 // Objects Ontology Fields table

@@ -23,6 +23,6 @@ const client = createClient({
 });
 
 // Create Drizzle instance with schema
-const db = drizzle(client, { schema });
+const db = drizzle(client, { schema, logger: true });
 
 export { db };

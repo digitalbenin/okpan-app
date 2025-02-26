@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 export function createGraphQLSchema(db) {
     // Get the schema from drizzle-graphql
     const drizzleResult = buildSchema(db, {
-        relationsDepthLimit: 1
+        relationsDepthLimit: 3
     });
 
     // Add our custom resolver to the existing ProjectSelectItem resolvers

@@ -5,8 +5,9 @@
   let query = $state("");
   let result = $state("");
   let status = $state("");
-  let selectedProjectId = $state("");
   let activeSection = $state("");
+  let variables = $state({});
+  let currentOperationId = $state(null); // Store ID instead of the full operation object
 
   const sortOperations = (operations) => {
     const typeOrder = { query: 1, mutation: 2, schema: 3 };
@@ -17,35 +18,143 @@
 
   const toggleSection = (sectionId) => {
     activeSection = activeSection === sectionId ? "" : sectionId;
+    // Reset variables when changing sections
+    variables = {};
+    currentOperationId = null;
   };
 
-  const loadQuery = (operation) => {
-    if (operation.requiresProjectId && !selectedProjectId) {
-      status = "Please enter a project ID first!";
-      setTimeout(() => {
-        status = "";
-      }, 3000);
-      return;
+  const loadQuery = (operation, operationId) => {
+    currentOperationId = operationId;
+    variables = {}; // Reset variables when loading a new query
+
+    if (operation.mutations) {
+      // For mutation sequences, show a preview of all mutations
+      query = operation.mutations.map((m) => m.query).join("\n\n");
+    } else {
+      query = operation.query;
+    }
+  };
+
+  const coerceVariableValue = (value, varName, operation) => {
+    if (!operation?.variables) return value;
+
+    // For mutation sequences, check the first mutation that uses this variable
+    if (operation.mutations) {
+      const mutation = operation.mutations.find((m) =>
+        m.useVariables?.includes(varName),
+      );
+      if (!mutation) return value;
+
+      const typeMatch = mutation.query.match(
+        new RegExp(`\\$${varName}:\\s*(\\w+)!?`),
+      );
+      if (!typeMatch) return value;
+
+      const type = typeMatch[1];
+      switch (type) {
+        case "Int":
+          return value === "" ? 0 : parseInt(value, 10);
+        case "Float":
+          return value === "" ? 0.0 : parseFloat(value);
+        case "Boolean":
+          return Boolean(value);
+        default:
+          return value;
+      }
     }
 
-    query = operation.query;
+    // For regular queries/mutations
+    const typeMatch = operation.query?.match(
+      new RegExp(`\\$${varName}:\\s*(\\w+)!?`),
+    );
+    if (!typeMatch) return value;
+
+    const type = typeMatch[1];
+    switch (type) {
+      case "Int":
+        return value === "" ? 0 : parseInt(value, 10);
+      case "Float":
+        return value === "" ? 0.0 : parseFloat(value);
+      case "Boolean":
+        return Boolean(value);
+      default:
+        return value;
+    }
   };
 
-  const handleExecuteQuery = async () => {
+  const handleExecuteQuery = async (operation) => {
     try {
       status = "Executing query...";
-      let variables = {};
 
-      // Add variables for operations that need them
-      if (query.includes("$projectId")) {
-        variables = { projectId: selectedProjectId };
+      // Coerce variable values to their correct types
+      const queryVariables = Object.entries(variables).reduce(
+        (acc, [key, value]) => {
+          acc[key] = coerceVariableValue(value, key, operation);
+          return acc;
+        },
+        {},
+      );
+
+      // Handle mutation sequences
+      if (operation?.mutations) {
+        let results = {};
+
+        for (const mutation of operation.mutations) {
+          // Prepare variables for this mutation
+          const mutationVars = {};
+
+          // Add variables from the UI that this mutation needs
+          if (mutation.useVariables) {
+            for (const varName of mutation.useVariables) {
+              if (varName in queryVariables) {
+                mutationVars[varName] = queryVariables[varName];
+              }
+            }
+          }
+
+          // Add mapped variables from previous mutation results
+          if (mutation.mapVariables) {
+            for (const [varName, mapping] of Object.entries(
+              mutation.mapVariables,
+            )) {
+              const value = mapping.path
+                .split(".")
+                .reduce((obj, key) => obj?.[key], results[mapping.from]);
+              if (value !== undefined) {
+                mutationVars[varName] = value;
+              } else {
+                throw new Error(
+                  `Could not map variable ${varName} from ${mapping.from} using path ${mapping.path}`,
+                );
+              }
+            }
+          }
+
+          // Execute the mutation
+          const response = await window.api.executeGraphQL(
+            mutation.query,
+            mutationVars,
+          );
+          if (!response.success) {
+            throw new Error(
+              `Mutation ${mutation.name} failed: ${JSON.stringify(response.errors)}`,
+            );
+          }
+
+          // Store the result
+          results[mutation.name] = response.data;
+        }
+
+        result = JSON.stringify(results, null, 2);
+        status = "Mutations executed successfully!";
+      } else {
+        // Handle regular query/mutation
+        const response = await window.api.executeGraphQL(query, queryVariables);
+        result = JSON.stringify(response, null, 2);
+        status = response.success
+          ? "Query executed successfully!"
+          : "Query failed!";
       }
-
-      const response = await window.api.executeGraphQL(query, variables);
-      result = JSON.stringify(response, null, 2);
-      status = response.success
-        ? "Query executed successfully!"
-        : "Query failed!";
     } catch (error) {
       result = JSON.stringify({ error: error.message }, null, 2);
       status = "Error executing query!";
@@ -98,7 +207,8 @@
             {#if activeSection === sectionId}
               <div class="card-body" transition:slide>
                 <div class="list-group mb-4">
-                  {#each sortOperations(section.operations) as operation}
+                  {#each sortOperations(section.operations) as operation, operationIndex}
+                    {@const operationId = `${sectionId}-${operationIndex}`}
                     <div class="list-group-item">
                       <div
                         class="d-flex justify-content-between align-items-center"
@@ -119,22 +229,7 @@
                           </span>
                           <strong>{operation.name}</strong>
                         </div>
-                        <div class="d-flex gap-2 align-items-center">
-                          {#if operation.requiresProjectId}
-                            <div
-                              class="input-group input-group-sm"
-                              style="width: auto;"
-                            >
-                              <span class="input-group-text">Project ID</span>
-                              <input
-                                type="text"
-                                class="form-control"
-                                bind:value={selectedProjectId}
-                                placeholder="UUID"
-                                style="width: 250px;"
-                              />
-                            </div>
-                          {/if}
+                        <div>
                           <button
                             type="button"
                             class="btn btn-outline-{operation.type ===
@@ -143,9 +238,7 @@
                               : operation.type === 'query'
                                 ? 'success'
                                 : 'secondary'} btn-sm"
-                            onclick={() => loadQuery(operation)}
-                            disabled={operation.requiresProjectId &&
-                              !selectedProjectId}
+                            onclick={() => loadQuery(operation, operationId)}
                           >
                             Try it out
                           </button>
@@ -155,57 +248,90 @@
                         <small class="text-muted">{operation.description}</small
                         >
                       </div>
+
+                      <!-- Query Editor Section - Only show for the current operation -->
+                      {#if currentOperationId === operationId}
+                        <div class="card mt-3">
+                          <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">Query Editor</h5>
+                          </div>
+                          <div class="card-body">
+                            <textarea
+                              id="queryEditor"
+                              class="form-control font-monospace mb-3"
+                              rows="8"
+                              bind:value={query}
+                              placeholder="Enter your GraphQL query here..."
+                            ></textarea>
+
+                            <!-- Variables Section -->
+                            {#if operation.variables}
+                              <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                  <h6 class="card-title mb-0">Variables</h6>
+                                </div>
+                                <div class="card-body">
+                                  <div class="row">
+                                    {#each Object.entries(operation.variables) as [varName, description]}
+                                      <div class="col-md-6 mb-2">
+                                        <div class="input-group">
+                                          <span class="input-group-text"
+                                            >{varName}</span
+                                          >
+                                          <input
+                                            type="text"
+                                            class="form-control"
+                                            placeholder={description}
+                                            bind:value={variables[varName]}
+                                          />
+                                        </div>
+                                      </div>
+                                    {/each}
+                                  </div>
+                                </div>
+                              </div>
+                            {/if}
+
+                            <button
+                              type="button"
+                              class="btn btn-primary"
+                              onclick={() => handleExecuteQuery(operation)}
+                              disabled={!query}
+                            >
+                              <i class="bi bi-play-fill me-2"></i>
+                              Execute Query
+                            </button>
+
+                            {#if status}
+                              <div
+                                class="alert alert-info mt-3 mb-0"
+                                role="alert"
+                              >
+                                {status}
+                              </div>
+                            {/if}
+                          </div>
+                        </div>
+
+                        <!-- Results Section -->
+                        <div class="card mt-3">
+                          <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">Response</h5>
+                          </div>
+                          <div class="card-body">
+                            <textarea
+                              id="resultViewer"
+                              class="form-control font-monospace"
+                              rows="8"
+                              bind:value={result}
+                              readonly
+                              placeholder="Query results will appear here..."
+                            ></textarea>
+                          </div>
+                        </div>
+                      {/if}
                     </div>
                   {/each}
-                </div>
-
-                <!-- Query Editor Section -->
-                <div class="card mb-4">
-                  <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">Query Editor</h5>
-                  </div>
-                  <div class="card-body">
-                    <textarea
-                      id="queryEditor"
-                      class="form-control font-monospace mb-3"
-                      rows="8"
-                      bind:value={query}
-                      placeholder="Enter your GraphQL query here..."
-                    ></textarea>
-
-                    <button
-                      type="button"
-                      class="btn btn-primary"
-                      onclick={handleExecuteQuery}
-                      disabled={!query}
-                    >
-                      <i class="bi bi-play-fill me-2"></i>
-                      Execute Query
-                    </button>
-
-                    {#if status}
-                      <div class="alert alert-info mt-3 mb-0" role="alert">
-                        {status}
-                      </div>
-                    {/if}
-                  </div>
-                </div>
-
-                <!-- Results Section -->
-                <div class="card">
-                  <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">Response</h5>
-                  </div>
-                  <div class="card-body">
-                    <textarea
-                      id="resultViewer"
-                      class="form-control font-monospace"
-                      rows="8"
-                      bind:value={result}
-                      readonly
-                      placeholder="Query results will appear here..."
-                    ></textarea>
-                  </div>
                 </div>
               </div>
             {/if}
