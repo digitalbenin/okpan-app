@@ -1,4 +1,5 @@
 import { API_SECTIONS } from "$lib/utils/queries.js";
+import { getValidationStore } from "./ValidationStore.svelte.js";
 
 // Create a singleton instance
 let storeInstance = null;
@@ -9,6 +10,12 @@ export function getTranslationStore() {
     if (storeInstance) {
         return storeInstance;
     }
+
+    // Get validation store
+    const { getSchema, validate } = getValidationStore();
+
+    // Get the base schema for validation
+    const baseSchema = getSchema('interface_translations', 'insert');
 
     // State variables defined inside the function
     const translationState = $state({
@@ -289,11 +296,27 @@ export function getTranslationStore() {
         }
     };
 
-    // Create a new translation
+    // Create a new translation with validation
     const createTranslation = async (namespace, key, values) => {
         try {
             translationState.isLoading = true;
             translationState.error = null;
+
+            // Validate each translation using the base schema
+            for (const [locale, value] of Object.entries(values)) {
+                if (!value.trim()) continue;
+
+                const validationResult = await validate({
+                    namespace,
+                    key,
+                    locale,
+                    value
+                }, baseSchema);
+
+                if (!validationResult.success) {
+                    throw new Error(validationResult.errors[0]);
+                }
+            }
 
             // Create mutations for each language
             const mutations = [];
@@ -336,11 +359,22 @@ export function getTranslationStore() {
         }
     };
 
-    // Update an existing translation
+    // Update an existing translation with validation
     const updateTranslation = async (namespace, key, values) => {
         try {
             translationState.isLoading = true;
             translationState.error = null;
+
+            // Validate namespace and key using the base schema
+            const validationResult = await validate({
+                namespace,
+                key,
+                value: Object.values(values)[0] // Validate first value as sample
+            }, baseSchema);
+
+            if (!validationResult.success) {
+                throw new Error(validationResult.errors[0]);
+            }
 
             // Find all translations for this key in the namespace
             const keyTranslations = [];
@@ -514,6 +548,84 @@ export function getTranslationStore() {
         }
     };
 
+    // Delete a namespace and all its translations
+    const deleteNamespace = async (namespace) => {
+        try {
+            translationState.isLoading = true;
+            translationState.error = null;
+
+            // Find all translations in this namespace
+            const query = `{
+                interface_translations(where: { 
+                    namespace: { eq: "${namespace}" }
+                }) {
+                    id
+                }
+            }`;
+
+            const result = await window.api.executeGraphQL(query);
+            if (!result.success || result.errors) {
+                throw new Error(
+                    result.errors
+                        ? result.errors[0].message
+                        : "Failed to fetch translations to delete"
+                );
+            }
+
+            const translationsToDelete = result.data.interface_translations;
+
+            // Delete each translation
+            const mutations = [];
+            for (const translation of translationsToDelete) {
+                const result = await window.api.executeGraphQL(
+                    deleteInterfaceTranslationQuery,
+                    {
+                        id: translation.id
+                    }
+                );
+                mutations.push(result);
+            }
+
+            // Check for errors
+            const errors = mutations.filter(
+                (result) => !result.success || result.errors
+            );
+            if (errors.length > 0) {
+                throw new Error(
+                    errors[0].errors
+                        ? errors[0].errors[0].message
+                        : "Failed to delete namespace translations"
+                );
+            }
+
+            // Refresh translations
+            await fetchTranslations();
+            return { success: true };
+        } catch (err) {
+            translationState.error = `Failed to delete namespace: ${err.message}`;
+            console.error("Error deleting namespace:", err);
+            return { success: false, error: err.message };
+        } finally {
+            translationState.isLoading = false;
+        }
+    };
+
+    // Create a new namespace with validation
+    const createNamespace = (namespace) => {
+        try {
+            // Validate namespace using the base schema's namespace field
+            const validationResult = baseSchema.pick({ namespace }).safeParse({ namespace });
+
+            return {
+                success: validationResult.success,
+                error: validationResult.success ? null : validationResult.error.errors[0].message
+            };
+        } catch (err) {
+            console.error("Error validating namespace:", err);
+            return { success: false, error: err.message };
+        }
+    };
+
     // Translate function (t)
     const t = (key, params = {}) => {
         // Split key into namespace and actual key
@@ -567,6 +679,8 @@ export function getTranslationStore() {
         createTranslation,
         updateTranslation,
         deleteTranslation,
+        deleteNamespace,
+        createNamespace,
         t
     };
 

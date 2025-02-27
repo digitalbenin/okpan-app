@@ -9,7 +9,9 @@
         importTranslations,
         createTranslation,
         updateTranslation,
-        deleteTranslation: deleteTranslationFromStore,
+        deleteTranslation,
+        deleteNamespace,
+        createNamespace,
     } = getTranslationStore();
 
     // State variables using $state
@@ -137,11 +139,22 @@
             return;
         }
 
-        namespaces = [...namespaces, newNamespace];
-        currentNamespace = newNamespace;
-        newNamespace = "";
-        error = null;
-        toggleAddNamespaceModal();
+        try {
+            const result = await createNamespace(newNamespace);
+
+            if (!result.success) {
+                error = result.error;
+                return;
+            }
+
+            namespaces = [...namespaces, newNamespace];
+            currentNamespace = newNamespace;
+            newNamespace = "";
+            error = null;
+            toggleAddNamespaceModal();
+        } catch (err) {
+            error = `Failed to create namespace: ${err.message}`;
+        }
     };
 
     // Add a new translation
@@ -244,7 +257,7 @@
     };
 
     // Delete a translation
-    const deleteTranslation = async (key) => {
+    const handleDeleteTranslation = async (key) => {
         if (
             !confirm(
                 `Are you sure you want to delete the translation key "${key}" and all its translations?`,
@@ -257,11 +270,7 @@
             isLoading = true;
             error = null;
 
-            // Use the store method to delete the translation
-            const result = await deleteTranslationFromStore(
-                currentNamespace,
-                key,
-            );
+            const result = await deleteTranslation(currentNamespace, key);
 
             if (!result.success) {
                 throw new Error(result.error || "Failed to delete translation");
@@ -271,6 +280,40 @@
             await fetchInterfaceTranslations();
         } catch (err) {
             error = `Failed to delete translation: ${err.message}`;
+        } finally {
+            isLoading = false;
+        }
+    };
+
+    // Delete a namespace
+    const handleDeleteNamespace = async (namespace) => {
+        if (
+            !confirm(
+                `Are you sure you want to delete the namespace "${namespace}" and all its translations?`,
+            )
+        ) {
+            return;
+        }
+
+        try {
+            isLoading = true;
+            error = null;
+
+            const result = await deleteNamespace(namespace);
+
+            if (!result.success) {
+                throw new Error(result.error || "Failed to delete namespace");
+            }
+
+            // Reset current namespace if it was deleted
+            if (currentNamespace === namespace) {
+                currentNamespace = "";
+            }
+
+            // Refresh translations
+            await fetchInterfaceTranslations();
+        } catch (err) {
+            error = `Failed to delete namespace: ${err.message}`;
         } finally {
             isLoading = false;
         }
@@ -421,15 +464,25 @@
                     </div>
                     <div class="py-2">
                         {#each namespaces as namespace}
-                            <button
-                                class="btn btn-link text-start w-100 text-decoration-none {currentNamespace ===
-                                namespace
-                                    ? 'text-primary fw-bold'
-                                    : 'text-body'}"
-                                onclick={() => setNamespace(namespace)}
-                            >
-                                {namespace}
-                            </button>
+                            <div class="d-flex align-items-center">
+                                <button
+                                    class="btn btn-link text-start flex-grow-1 text-decoration-none {currentNamespace ===
+                                    namespace
+                                        ? 'text-primary fw-bold'
+                                        : 'text-body'}"
+                                    onclick={() => setNamespace(namespace)}
+                                >
+                                    {namespace}
+                                </button>
+                                <button
+                                    class="btn btn-link text-danger p-1"
+                                    onclick={() =>
+                                        handleDeleteNamespace(namespace)}
+                                    title="Delete namespace"
+                                >
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
                         {/each}
                         {#if namespaces.length === 0}
                             <div class="px-3 text-muted">
@@ -552,7 +605,7 @@
                                                     <button
                                                         class="btn btn-sm btn-link text-danger p-1"
                                                         onclick={() =>
-                                                            deleteTranslation(
+                                                            handleDeleteTranslation(
                                                                 item.key,
                                                             )}
                                                     >
