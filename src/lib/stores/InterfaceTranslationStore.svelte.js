@@ -29,6 +29,18 @@ export function getTranslationStore() {
         (op) => op.name === "List Interface Translations"
     ).query;
 
+    const createInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.find(
+        (op) => op.name === "Create Interface Translation"
+    ).query;
+
+    const updateInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.find(
+        (op) => op.name === "Update Interface Translation"
+    ).query;
+
+    const deleteInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.find(
+        (op) => op.name === "Delete Interface Translation"
+    ).query;
+
     // Fetch all supported languages
     const fetchLanguages = async () => {
         try {
@@ -277,6 +289,231 @@ export function getTranslationStore() {
         }
     };
 
+    // Create a new translation
+    const createTranslation = async (namespace, key, values) => {
+        try {
+            translationState.isLoading = true;
+            translationState.error = null;
+
+            // Create mutations for each language
+            const mutations = [];
+            for (const [locale, value] of Object.entries(values)) {
+                if (!value.trim()) continue;
+
+                const result = await window.api.executeGraphQL(
+                    createInterfaceTranslationQuery,
+                    {
+                        locale,
+                        namespace,
+                        key,
+                        value
+                    }
+                );
+                mutations.push(result);
+            }
+
+            // Check for errors
+            const errors = mutations.filter(
+                (result) => !result.success || result.errors
+            );
+            if (errors.length > 0) {
+                throw new Error(
+                    errors[0].errors
+                        ? errors[0].errors[0].message
+                        : "Failed to create translation"
+                );
+            }
+
+            // Refresh translations
+            await fetchTranslations();
+            return { success: true };
+        } catch (err) {
+            translationState.error = `Failed to create translation: ${err.message}`;
+            console.error("Error creating translation:", err);
+            return { success: false, error: err.message };
+        } finally {
+            translationState.isLoading = false;
+        }
+    };
+
+    // Update an existing translation
+    const updateTranslation = async (namespace, key, values) => {
+        try {
+            translationState.isLoading = true;
+            translationState.error = null;
+
+            // Find all translations for this key in the namespace
+            const keyTranslations = [];
+            for (const ns in translationState.translations) {
+                if (ns === namespace && translationState.translations[ns][key]) {
+                    for (const locale in translationState.translations[ns][key]) {
+                        keyTranslations.push({
+                            namespace,
+                            key,
+                            locale,
+                            value: translationState.translations[ns][key][locale]
+                        });
+                    }
+                }
+            }
+
+            // Get existing translations from the database
+            const query = `{
+                interface_translations(where: { 
+                    namespace: { eq: "${namespace}" }, 
+                    key: { eq: "${key}" }
+                }) {
+                    id
+                    locale
+                    value
+                }
+            }`;
+
+            const result = await window.api.executeGraphQL(query);
+            if (!result.success || result.errors) {
+                throw new Error(
+                    result.errors
+                        ? result.errors[0].message
+                        : "Failed to fetch existing translations"
+                );
+            }
+
+            const existingTranslations = result.data.interface_translations;
+            const existingLocales = existingTranslations.map(t => t.locale);
+
+            // Update existing translations and create new ones
+            const mutations = [];
+
+            // First, handle existing translations
+            for (const translation of existingTranslations) {
+                const newValue = values[translation.locale];
+
+                // Skip if value hasn't changed or isn't provided
+                if (!newValue || newValue === translation.value) {
+                    continue;
+                }
+
+                const result = await window.api.executeGraphQL(
+                    updateInterfaceTranslationQuery,
+                    {
+                        id: translation.id,
+                        value: newValue
+                    }
+                );
+                mutations.push(result);
+            }
+
+            // Create new translations for languages that don't have one yet
+            for (const locale of Object.keys(values)) {
+                // Skip if this language already has a translation
+                if (existingLocales.includes(locale)) {
+                    continue;
+                }
+
+                // Skip if no value was provided for this language
+                if (!values[locale]) {
+                    continue;
+                }
+
+                const result = await window.api.executeGraphQL(
+                    createInterfaceTranslationQuery,
+                    {
+                        locale,
+                        namespace,
+                        key,
+                        value: values[locale]
+                    }
+                );
+                mutations.push(result);
+            }
+
+            // Check for errors
+            const errors = mutations.filter(
+                (result) => !result.success || result.errors
+            );
+            if (errors.length > 0) {
+                throw new Error(
+                    errors[0].errors
+                        ? errors[0].errors[0].message
+                        : "Failed to update translation"
+                );
+            }
+
+            // Refresh translations
+            await fetchTranslations();
+            return { success: true };
+        } catch (err) {
+            translationState.error = `Failed to update translation: ${err.message}`;
+            console.error("Error updating translation:", err);
+            return { success: false, error: err.message };
+        } finally {
+            translationState.isLoading = false;
+        }
+    };
+
+    // Delete a translation
+    const deleteTranslation = async (namespace, key) => {
+        try {
+            translationState.isLoading = true;
+            translationState.error = null;
+
+            // Find all translations for this key in the namespace
+            const query = `{
+                interface_translations(where: { 
+                    namespace: { eq: "${namespace}" }, 
+                    key: { eq: "${key}" }
+                }) {
+                    id
+                }
+            }`;
+
+            const result = await window.api.executeGraphQL(query);
+            if (!result.success || result.errors) {
+                throw new Error(
+                    result.errors
+                        ? result.errors[0].message
+                        : "Failed to fetch translations to delete"
+                );
+            }
+
+            const translationsToDelete = result.data.interface_translations;
+
+            // Delete each translation
+            const mutations = [];
+            for (const translation of translationsToDelete) {
+                const result = await window.api.executeGraphQL(
+                    deleteInterfaceTranslationQuery,
+                    {
+                        id: translation.id
+                    }
+                );
+                mutations.push(result);
+            }
+
+            // Check for errors
+            const errors = mutations.filter(
+                (result) => !result.success || result.errors
+            );
+            if (errors.length > 0) {
+                throw new Error(
+                    errors[0].errors
+                        ? errors[0].errors[0].message
+                        : "Failed to delete translation"
+                );
+            }
+
+            // Refresh translations
+            await fetchTranslations();
+            return { success: true };
+        } catch (err) {
+            translationState.error = `Failed to delete translation: ${err.message}`;
+            console.error("Error deleting translation:", err);
+            return { success: false, error: err.message };
+        } finally {
+            translationState.isLoading = false;
+        }
+    };
+
     // Translate function (t)
     const t = (key, params = {}) => {
         // Split key into namespace and actual key
@@ -327,6 +564,9 @@ export function getTranslationStore() {
         refreshTranslations,
         exportTranslations,
         importTranslations,
+        createTranslation,
+        updateTranslation,
+        deleteTranslation,
         t
     };
 

@@ -3,24 +3,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   // Get the store
-  const { translationState, t, setLocale, refreshTranslations } =
-    getTranslationStore();
-
-  let count = $state(0);
-
-  function increment() {
-    count += 1;
-  }
-
-  async function handlePing() {
-    const response = await window.api.ping();
-    console.log("Frontend received:", response);
-  }
-
-  // Example function to switch language
-  function switchLanguage(locale) {
-    setLocale(locale);
-  }
+  const { translationState, t, refreshTranslations } = getTranslationStore();
 
   // Example of using $effect to react to locale changes
   $effect(() => {
@@ -33,12 +16,7 @@
   }
 </script>
 
-<div class="container py-4">
-  <!-- Example of using the translation store with the t() function -->
-  <h1 class="display-4 mb-4">
-    {t("common.title", { fallback: "Data Connection Tool!" })}
-  </h1>
-
+<div class="container-fluid py-4">
   <!-- Example of showing loading state -->
   {#if translationState.isLoading}
     <div class="alert alert-info">Loading translations...</div>
@@ -57,28 +35,9 @@
     </div>
   {/if}
 
-  <div class="d-flex gap-3">
+  <div class="d-flex flex-column gap-0">
     <button
-      class="btn btn-primary d-flex align-items-center"
-      onclick={increment}
-    >
-      <i class="bi bi-plus-circle me-2"></i>
-      <!-- Example of using translation with parameters -->
-      {t("common.click", { fallback: `clicks` })}
-      {count}
-    </button>
-
-    <button
-      class="btn btn-success d-flex align-items-center"
-      onclick={handlePing}
-    >
-      <i class="bi bi-arrow-repeat me-2"></i>
-      <!-- Simple translation example -->
-      {t("common.ping", { fallback: "Send Ping" })}
-    </button>
-
-    <button
-      class="btn btn-info d-flex align-items-center"
+      class="btn btn-link d-flex align-items-center text-decoration-none"
       onclick={() => goto("/test")}
     >
       <i class="bi bi-box-arrow-right me-2"></i>
@@ -86,30 +45,12 @@
     </button>
 
     <button
-      class="btn btn-info d-flex align-items-center"
+      class="btn btn-link d-flex align-items-center text-decoration-none"
       onclick={() => goto("/translations")}
     >
       <i class="bi bi-translate me-2"></i>
       {t("common.translations", { fallback: "Translations" })}
     </button>
-  </div>
-
-  <!-- Example of language switcher -->
-  <div class="mt-4">
-    <h5>{t("common.language", { fallback: "Language" })}:</h5>
-    <div class="btn-group">
-      {#each translationState.languages as language}
-        <button
-          class="btn btn-outline-secondary {translationState.currentLocale ===
-          language.code
-            ? 'active'
-            : ''}"
-          onclick={() => switchLanguage(language.code)}
-        >
-          {language.name}
-        </button>
-      {/each}
-    </div>
   </div>
 
   <!-- 

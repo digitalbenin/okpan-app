@@ -1871,6 +1871,11 @@ drizzle-orm@^0.39.3:
   resolved "https://registry.yarnpkg.com/drizzle-orm/-/drizzle-orm-0.39.3.tgz#4f844d5849a0236082340e47e2dc9eecc1e0e64c"
   integrity sha512-EZ8ZpYvDIvKU9C56JYLOmUskazhad+uXZCTCRN4OnRMsL+xAJ05dv1eCpAG5xzhsm1hqiuC5kAZUCS924u2DTw==
 
+drizzle-zod@^0.7.0:
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/drizzle-zod/-/drizzle-zod-0.7.0.tgz#cffc9cd37adc7a528f30bdf29c1510ba0848e1da"
+  integrity sha512-xgCRYYVEzRkeXTS33GSMgoowe3vKsMNBjSI+cwG1oLQVEhAWWbqtb/AAMlm7tkmV4fG/uJjEmWzdzlEmTgWOoQ==
+
 dset@^3.1.4:
   version "3.1.4"
   resolved "https://registry.yarnpkg.com/dset/-/dset-3.1.4.tgz#f8eaf5f023f068a036d08cd07dc9ffb7d0065248"

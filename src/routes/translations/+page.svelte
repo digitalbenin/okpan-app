@@ -4,7 +4,13 @@
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     // Get the translation store for import/export functionality
-    const { exportTranslations, importTranslations } = getTranslationStore();
+    const {
+        exportTranslations,
+        importTranslations,
+        createTranslation,
+        updateTranslation,
+        deleteTranslation: deleteTranslationFromStore,
+    } = getTranslationStore();
 
     // State variables using $state
     let languages = $state([]);
@@ -32,25 +38,14 @@
     const languagesQuery = API_SECTIONS.languages.operations.find(
         (op) => op.name === "List Languages",
     ).query;
+
     const interfaceTranslationsQuery =
         API_SECTIONS.interface_translations.operations.find(
             (op) => op.name === "List Interface Translations",
         ).query;
-    const createInterfaceTranslationQuery =
-        API_SECTIONS.interface_translations.operations.find(
-            (op) => op.name === "Create Interface Translation",
-        ).query;
-    const updateInterfaceTranslationQuery =
-        API_SECTIONS.interface_translations.operations.find(
-            (op) => op.name === "Update Interface Translation",
-        ).query;
-    const deleteInterfaceTranslationQuery =
-        API_SECTIONS.interface_translations.operations.find(
-            (op) => op.name === "Delete Interface Translation",
-        ).query;
 
     // Fetch all languages
-    async function fetchLanguages() {
+    const fetchLanguages = async () => {
         try {
             const result = await window.api.executeGraphQL(languagesQuery);
 
@@ -65,27 +60,22 @@
             languages = result.data.languages;
 
             // Initialize newTranslationValues with empty strings for each language
-            const values = {};
-            languages.forEach((lang) => {
-                values[lang.code] = "";
-            });
-            newTranslationValues = values;
+            newTranslationValues = Object.fromEntries(
+                languages.map((lang) => [lang.code, ""]),
+            );
         } catch (err) {
             error = `Failed to fetch languages: ${err.message}`;
         }
-    }
+    };
 
     // Fetch all interface translations
-    async function fetchInterfaceTranslations() {
+    const fetchInterfaceTranslations = async () => {
         try {
             isLoading = true;
-            console.log("Fetching interface translations...");
 
             const result = await window.api.executeGraphQL(
                 interfaceTranslationsQuery,
             );
-
-            console.log("Interface translations result:", result);
 
             if (!result.success || result.errors) {
                 throw new Error(
@@ -95,88 +85,67 @@
                 );
             }
 
-            // Make sure we have data before trying to use it
-            if (!result.data || !result.data.interface_translations) {
-                console.error(
-                    "No interface_translations data in response:",
-                    result,
-                );
+            if (!result.data?.interface_translations) {
                 throw new Error("No translation data received from server");
             }
 
             interfaceTranslations = result.data.interface_translations;
-            console.log(
-                "Updated interfaceTranslations:",
-                interfaceTranslations,
-            );
 
             // Extract unique namespaces
-            const uniqueNamespaces = [
+            namespaces = [
                 ...new Set(
                     result.data.interface_translations.map((t) => t.namespace),
                 ),
             ];
-            console.log("Unique namespaces:", uniqueNamespaces);
-            namespaces = uniqueNamespaces;
 
             // Set default namespace if available
             if (namespaces.length > 0 && !currentNamespace) {
                 currentNamespace = namespaces[0];
-                console.log("Set current namespace to:", currentNamespace);
             }
         } catch (err) {
-            console.error("Error in fetchInterfaceTranslations:", err);
             error = `Failed to fetch translations: ${err.message}`;
         } finally {
             isLoading = false;
         }
-    }
+    };
 
     // Toggle modals
-    function toggleAddNamespaceModal() {
+    const toggleAddNamespaceModal = () => {
         showAddNamespaceModal = !showAddNamespaceModal;
-        if (!showAddNamespaceModal) {
-            newNamespace = "";
-        }
-    }
+        if (!showAddNamespaceModal) newNamespace = "";
+    };
 
-    function toggleAddTranslationModal() {
+    const toggleAddTranslationModal = () => {
         showAddTranslationModal = !showAddTranslationModal;
         if (!showAddTranslationModal) {
             newTranslationKey = "";
-            const resetValues = {};
-            languages.forEach((lang) => {
-                resetValues[lang.code] = "";
-            });
-            newTranslationValues = resetValues;
+            newTranslationValues = Object.fromEntries(
+                languages.map((lang) => [lang.code, ""]),
+            );
         }
-    }
+    };
 
     // Add a new namespace
-    async function addNamespace() {
+    const addNamespace = async () => {
         if (!newNamespace.trim()) {
             error = "Namespace cannot be empty";
             return;
         }
 
-        // Check if namespace already exists
         if (namespaces.includes(newNamespace)) {
             error = "Namespace already exists";
             return;
         }
 
-        // Add namespace to the list
         namespaces = [...namespaces, newNamespace];
         currentNamespace = newNamespace;
         newNamespace = "";
         error = null;
         toggleAddNamespaceModal();
-    }
+    };
 
     // Add a new translation
-    async function addTranslation() {
-        console.log("addTranslation function called");
-
+    const addTranslation = async () => {
         if (!newTranslationKey.trim()) {
             error = "Translation key cannot be empty";
             return;
@@ -187,11 +156,9 @@
             return;
         }
 
-        // Check if any translation value is empty
         const emptyLanguages = languages.filter(
             (lang) => !newTranslationValues[lang.code]?.trim(),
         );
-
         if (emptyLanguages.length > 0) {
             error = `Please provide translations for: ${emptyLanguages.map((l) => l.name).join(", ")}`;
             return;
@@ -201,240 +168,62 @@
             error = null;
             isLoading = true;
 
-            console.log("Adding translation:", {
-                key: newTranslationKey,
-                namespace: currentNamespace,
-                values: JSON.stringify(newTranslationValues),
-            });
-
-            // Create mutations for each language
-            const mutations = [];
-            for (const lang of languages) {
-                console.log(
-                    `Creating translation for language: ${lang.code}, value: "${newTranslationValues[lang.code]}"`,
-                );
-                try {
-                    // Log the exact query and variables being sent
-                    console.log(
-                        "GraphQL query:",
-                        createInterfaceTranslationQuery,
-                    );
-                    console.log("Variables:", {
-                        locale: lang.code,
-                        namespace: currentNamespace,
-                        key: newTranslationKey,
-                        value: newTranslationValues[lang.code],
-                    });
-
-                    const result = await window.api.executeGraphQL(
-                        createInterfaceTranslationQuery,
-                        {
-                            locale: lang.code,
-                            namespace: currentNamespace,
-                            key: newTranslationKey,
-                            value: newTranslationValues[lang.code],
-                        },
-                    );
-                    console.log(`Result for ${lang.code}:`, result);
-                    mutations.push(result);
-                } catch (err) {
-                    console.error(
-                        `Error creating translation for ${lang.code}:`,
-                        err,
-                    );
-                    throw err;
-                }
-            }
-
-            // Check for errors
-            const errors = mutations.filter(
-                (result) => !result.success || result.errors,
+            // Use the store method to create the translation
+            const result = await createTranslation(
+                currentNamespace,
+                newTranslationKey,
+                newTranslationValues,
             );
-            if (errors.length > 0) {
-                console.error("Errors in mutations:", errors);
-                throw new Error(
-                    errors[0].errors
-                        ? errors[0].errors[0].message
-                        : "Failed to add translation",
-                );
+
+            if (!result.success) {
+                throw new Error(result.error || "Failed to add translation");
             }
 
-            console.log("All translations added successfully");
-
-            // Reset form
+            // Reset form and close modal
             newTranslationKey = "";
-            const resetValues = {};
-            languages.forEach((lang) => {
-                resetValues[lang.code] = "";
-            });
-            newTranslationValues = resetValues;
-
-            // Close modal first
+            newTranslationValues = Object.fromEntries(
+                languages.map((lang) => [lang.code, ""]),
+            );
             toggleAddTranslationModal();
 
-            // Then refresh translations
-            console.log("Refreshing translations after add");
+            // Refresh translations
             await fetchInterfaceTranslations();
-
-            console.log("Add translation process completed");
         } catch (err) {
-            console.error("Error in addTranslation:", err);
             error = `Failed to add translation: ${err.message}`;
         } finally {
             isLoading = false;
         }
-    }
+    };
 
     // Start editing a translation
-    function startEditing(key) {
-        // Find all translations for this key in the current namespace
+    const startEditing = (key) => {
         const keyTranslations = interfaceTranslations.filter(
             (t) => t.key === key && t.namespace === currentNamespace,
         );
-
-        console.log("Starting to edit key:", key);
-        console.log("Found translations:", keyTranslations);
-
         editingTranslation = key;
-
-        // Initialize edited values with current values
-        const values = {};
-        keyTranslations.forEach((t) => {
-            values[t.locale] = t.value;
-        });
-
-        console.log("Initial edited values:", values);
-        editedValues = values;
-    }
+        editedValues = Object.fromEntries(
+            keyTranslations.map((t) => [t.locale, t.value]),
+        );
+    };
 
     // Save edited translation
-    async function saveEditing() {
+    const saveEditing = async () => {
         if (!editingTranslation) return;
 
         try {
             isLoading = true;
             error = null;
 
-            // Find all translations for this key in the current namespace
-            const keyTranslations = interfaceTranslations.filter(
-                (t) =>
-                    t.key === editingTranslation &&
-                    t.namespace === currentNamespace,
-            );
-
-            console.log(
-                "Saving edited translations for key:",
+            // Use the store method to update the translation
+            const result = await updateTranslation(
+                currentNamespace,
                 editingTranslation,
+                editedValues,
             );
-            console.log("Current namespace:", currentNamespace);
-            console.log("Found translations to update:", keyTranslations);
-            console.log("Edited values:", JSON.stringify(editedValues));
 
-            // Get all language codes that have edited values
-            const editedLanguages = Object.keys(editedValues);
-            console.log("Languages with edited values:", editedLanguages);
-
-            // Update existing translations and create new ones
-            const mutations = [];
-
-            // First, handle existing translations
-            for (const translation of keyTranslations) {
-                const newValue = editedValues[translation.locale];
-
-                // Skip if value hasn't changed
-                if (newValue === translation.value) {
-                    console.log(
-                        `Skipping update for ${translation.locale} - value unchanged`,
-                    );
-                    continue;
-                }
-
-                console.log(`Updating translation for ${translation.locale}:`, {
-                    id: translation.id,
-                    oldValue: translation.value,
-                    newValue: newValue,
-                });
-
-                try {
-                    const result = await window.api.executeGraphQL(
-                        updateInterfaceTranslationQuery,
-                        {
-                            id: translation.id,
-                            value: newValue || translation.value,
-                        },
-                    );
-                    console.log(
-                        `Update result for ${translation.locale}:`,
-                        result,
-                    );
-                    mutations.push(result);
-                } catch (err) {
-                    console.error(
-                        `Error updating translation for ${translation.locale}:`,
-                        err,
-                    );
-                    throw err;
-                }
+            if (!result.success) {
+                throw new Error(result.error || "Failed to update translation");
             }
-
-            // Now, create new translations for languages that don't have one yet
-            const existingLocales = keyTranslations.map((t) => t.locale);
-            console.log("Existing locales:", existingLocales);
-
-            for (const lang of languages) {
-                // Skip if this language already has a translation
-                if (existingLocales.includes(lang.code)) {
-                    continue;
-                }
-
-                // Skip if no value was provided for this language
-                if (!editedValues[lang.code]) {
-                    console.log(`No value provided for ${lang.code}, skipping`);
-                    continue;
-                }
-
-                console.log(`Creating new translation for ${lang.code}:`, {
-                    locale: lang.code,
-                    namespace: currentNamespace,
-                    key: editingTranslation,
-                    value: editedValues[lang.code],
-                });
-
-                try {
-                    const result = await window.api.executeGraphQL(
-                        createInterfaceTranslationQuery,
-                        {
-                            locale: lang.code,
-                            namespace: currentNamespace,
-                            key: editingTranslation,
-                            value: editedValues[lang.code],
-                        },
-                    );
-                    console.log(`Creation result for ${lang.code}:`, result);
-                    mutations.push(result);
-                } catch (err) {
-                    console.error(
-                        `Error creating translation for ${lang.code}:`,
-                        err,
-                    );
-                    throw err;
-                }
-            }
-
-            // Check for errors
-            const errors = mutations.filter(
-                (result) => !result.success || result.errors,
-            );
-            if (errors.length > 0) {
-                console.error("Errors in update/create mutations:", errors);
-                throw new Error(
-                    errors[0].errors
-                        ? errors[0].errors[0].message
-                        : "Failed to update translation",
-                );
-            }
-
-            console.log("All translations updated successfully");
 
             // Reset editing state
             editingTranslation = null;
@@ -443,21 +232,19 @@
             // Refresh translations
             await fetchInterfaceTranslations();
         } catch (err) {
-            console.error("Error in saveEditing:", err);
             error = `Failed to update translation: ${err.message}`;
         } finally {
             isLoading = false;
         }
-    }
+    };
 
-    // Cancel editing
-    function cancelEditing() {
+    const cancelEditing = () => {
         editingTranslation = null;
         editedValues = {};
-    }
+    };
 
     // Delete a translation
-    async function deleteTranslation(key) {
+    const deleteTranslation = async (key) => {
         if (
             !confirm(
                 `Are you sure you want to delete the translation key "${key}" and all its translations?`,
@@ -470,33 +257,14 @@
             isLoading = true;
             error = null;
 
-            // Find all translations for this key in the current namespace
-            const keyTranslations = interfaceTranslations.filter(
-                (t) => t.key === key && t.namespace === currentNamespace,
+            // Use the store method to delete the translation
+            const result = await deleteTranslationFromStore(
+                currentNamespace,
+                key,
             );
 
-            // Delete each translation
-            const mutations = keyTranslations.map((translation) => {
-                return window.api.executeGraphQL(
-                    deleteInterfaceTranslationQuery,
-                    {
-                        id: translation.id,
-                    },
-                );
-            });
-
-            const results = await Promise.all(mutations);
-
-            // Check for errors
-            const errors = results.filter(
-                (result) => !result.success || result.errors,
-            );
-            if (errors.length > 0) {
-                throw new Error(
-                    errors[0].errors
-                        ? errors[0].errors[0].message
-                        : "Failed to delete translation",
-                );
+            if (!result.success) {
+                throw new Error(result.error || "Failed to delete translation");
             }
 
             // Refresh translations
@@ -506,13 +274,12 @@
         } finally {
             isLoading = false;
         }
-    }
+    };
 
-    // Get translations for the current namespace
-    function getTranslationsForCurrentNamespace() {
+    // Helper functions
+    const getTranslationsForCurrentNamespace = () => {
         if (!currentNamespace) return [];
 
-        // Get all unique keys for the current namespace
         const keys = [
             ...new Set(
                 interfaceTranslations
@@ -521,54 +288,39 @@
             ),
         ];
 
-        // For each key, get all translations
-        return keys.map((key) => {
-            const keyTranslations = interfaceTranslations.filter(
-                (t) => t.key === key && t.namespace === currentNamespace,
-            );
+        return keys.map((key) => ({
+            key,
+            translations: Object.fromEntries(
+                interfaceTranslations
+                    .filter(
+                        (t) =>
+                            t.key === key && t.namespace === currentNamespace,
+                    )
+                    .map((t) => [t.locale, t.value]),
+            ),
+        }));
+    };
 
-            // Create an object with translations for each language
-            const translations = {};
-            keyTranslations.forEach((t) => {
-                translations[t.locale] = t.value;
-            });
-
-            return {
-                key,
-                translations,
-            };
-        });
-    }
-
-    // Set namespace function
-    function setNamespace(namespace) {
+    const setNamespace = (namespace) => {
         currentNamespace = namespace;
-    }
+    };
 
-    // Clear error function
-    function clearError() {
+    const clearError = () => {
         error = null;
-    }
+    };
 
-    // Handle export translations
-    async function handleExportTranslations() {
+    // Import/Export functions
+    const handleExportTranslations = async () => {
         try {
             isLoading = true;
             importExportMessage = null;
-
             const result = await exportTranslations();
-
-            if (result.success) {
-                importExportMessage = {
-                    type: "success",
-                    text: `Translations exported successfully to ${result.filePath}`,
-                };
-            } else {
-                importExportMessage = {
-                    type: "danger",
-                    text: result.message || "Export failed",
-                };
-            }
+            importExportMessage = {
+                type: result.success ? "success" : "danger",
+                text: result.success
+                    ? `Translations exported successfully to ${result.filePath}`
+                    : result.message || "Export failed",
+            };
         } catch (err) {
             importExportMessage = {
                 type: "danger",
@@ -577,14 +329,12 @@
         } finally {
             isLoading = false;
         }
-    }
+    };
 
-    // Handle import translations
-    async function handleImportTranslations() {
+    const handleImportTranslations = async () => {
         try {
             isLoading = true;
             importExportMessage = null;
-
             const result = await importTranslations();
 
             if (result.success) {
@@ -592,8 +342,6 @@
                     type: "success",
                     text: `Translations imported successfully: ${result.stats.imported} new, ${result.stats.updated} updated, ${result.stats.errors} errors`,
                 };
-
-                // Refresh the UI data
                 await fetchLanguages();
                 await fetchInterfaceTranslations();
             } else {
@@ -610,20 +358,16 @@
         } finally {
             isLoading = false;
         }
-    }
+    };
 
-    // Clear import/export message
-    function clearImportExportMessage() {
+    const clearImportExportMessage = () => {
         importExportMessage = null;
-    }
+    };
 
-    // Initialize data using $effect
+    // Initialize data
     $effect(() => {
-        async function loadData() {
-            await fetchLanguages();
-            await fetchInterfaceTranslations();
-        }
-        loadData();
+        fetchLanguages();
+        fetchInterfaceTranslations();
     });
 </script>
 
@@ -661,57 +405,37 @@
         </div>
     {:else}
         <div class="row">
-            <!-- Sidebar for namespaces -->
-            <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar p-0">
+            <!-- Sidebar for namespaces - removed bg-light -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar p-0">
                 <div class="position-sticky">
                     <div
-                        class="d-flex justify-content-between align-items-center p-3 border-bottom"
+                        class="d-flex justify-content-start align-items-start gap-2 p-3"
                     >
                         <h5 class="m-0">Namespaces</h5>
                         <button
-                            class="btn btn-sm btn-primary"
+                            class="btn btn-link p-0 text-decoration-none"
                             onclick={toggleAddNamespaceModal}
                         >
-                            <i class="bi bi-plus"></i>
+                            <i class="bi bi-plus-circle"></i>
                         </button>
                     </div>
-                    <div class="list-group list-group-flush">
+                    <div class="py-2">
                         {#each namespaces as namespace}
                             <button
-                                class="list-group-item list-group-item-action {currentNamespace ===
+                                class="btn btn-link text-start w-100 text-decoration-none {currentNamespace ===
                                 namespace
-                                    ? 'active'
-                                    : ''}"
+                                    ? 'text-primary fw-bold'
+                                    : 'text-body'}"
                                 onclick={() => setNamespace(namespace)}
                             >
                                 {namespace}
                             </button>
                         {/each}
                         {#if namespaces.length === 0}
-                            <div class="list-group-item text-muted">
+                            <div class="px-3 text-muted">
                                 No namespaces found
                             </div>
                         {/if}
-                    </div>
-
-                    <!-- Import/Export buttons -->
-                    <div class="p-3 border-top">
-                        <div class="d-grid gap-2">
-                            <button
-                                class="btn btn-sm btn-outline-primary"
-                                onclick={handleExportTranslations}
-                                disabled={isLoading}
-                            >
-                                <i class="bi bi-download me-1"></i> Export Translations
-                            </button>
-                            <button
-                                class="btn btn-sm btn-outline-secondary"
-                                onclick={handleImportTranslations}
-                                disabled={isLoading}
-                            >
-                                <i class="bi bi-upload me-1"></i> Import Translations
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -719,45 +443,63 @@
             <!-- Main content -->
             <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4">
                 <div
-                    class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"
+                    class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3"
                 >
                     <h1 class="h2">Interface Translations</h1>
-                    {#if currentNamespace}
+
+                    <!-- Action buttons side by side -->
+                    <div class="d-flex gap-2">
                         <button
-                            class="btn btn-primary"
-                            onclick={toggleAddTranslationModal}
+                            class="btn btn-sm btn-outline-secondary"
+                            onclick={handleExportTranslations}
+                            disabled={isLoading}
                         >
-                            <i class="bi bi-plus-lg me-1"></i> Add Translation
+                            <i class="bi bi-download me-1"></i> Export
                         </button>
-                    {/if}
+                        <button
+                            class="btn btn-sm btn-outline-secondary"
+                            onclick={handleImportTranslations}
+                            disabled={isLoading}
+                        >
+                            <i class="bi bi-upload me-1"></i> Import
+                        </button>
+                        {#if currentNamespace}
+                            <button
+                                class="btn btn-sm btn-primary"
+                                onclick={toggleAddTranslationModal}
+                            >
+                                <i class="bi bi-plus-lg me-1"></i> Add Translation
+                            </button>
+                        {/if}
+                    </div>
                 </div>
 
                 {#if currentNamespace}
-                    <h2 class="h4 mb-3">
-                        Translations for "{currentNamespace}"
-                    </h2>
-
                     {#if getTranslationsForCurrentNamespace().length > 0}
                         <div class="table-responsive">
-                            <table class="table table-striped table-hover">
+                            <table class="table table-sm table-hover">
                                 <thead>
                                     <tr>
                                         <th>Key</th>
                                         {#each languages as language}
-                                            <th
-                                                >{language.name}
-                                                {language.is_default
-                                                    ? "(Default)"
-                                                    : ""}</th
-                                            >
+                                            <th>
+                                                {language.name}
+                                                {#if language.is_default}
+                                                    <span class="text-muted"
+                                                        >(Default)</span
+                                                    >
+                                                {/if}
+                                            </th>
                                         {/each}
                                         <th class="text-end">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {#each getTranslationsForCurrentNamespace() as item}
-                                        <tr>
-                                            <td>{item.key}</td>
+                                        <tr class="align-middle">
+                                            <td class="fw-medium">
+                                                {item.key}
+                                            </td>
                                             {#each languages as language}
                                                 <td>
                                                     {#if editingTranslation === item.key}
@@ -782,21 +524,23 @@
                                             <td class="text-end">
                                                 {#if editingTranslation === item.key}
                                                     <button
-                                                        class="btn btn-sm btn-success me-1"
+                                                        class="btn btn-sm btn-link text-success p-1"
                                                         onclick={saveEditing}
                                                     >
-                                                        <i class="bi bi-check"
+                                                        <i
+                                                            class="bi bi-check-lg"
                                                         ></i>
                                                     </button>
                                                     <button
-                                                        class="btn btn-sm btn-secondary"
+                                                        class="btn btn-sm btn-link text-secondary p-1"
                                                         onclick={cancelEditing}
                                                     >
-                                                        <i class="bi bi-x"></i>
+                                                        <i class="bi bi-x-lg"
+                                                        ></i>
                                                     </button>
                                                 {:else}
                                                     <button
-                                                        class="btn btn-sm btn-primary me-1"
+                                                        class="btn btn-sm btn-link text-primary p-1"
                                                         onclick={() =>
                                                             startEditing(
                                                                 item.key,
@@ -806,7 +550,7 @@
                                                         ></i>
                                                     </button>
                                                     <button
-                                                        class="btn btn-sm btn-danger"
+                                                        class="btn btn-sm btn-link text-danger p-1"
                                                         onclick={() =>
                                                             deleteTranslation(
                                                                 item.key,
@@ -831,7 +575,7 @@
                 {:else}
                     <div class="alert alert-warning">
                         Please select an existing namespace or create a new one
-                        using the button in the sidebar.
+                        using the + button in the sidebar.
                     </div>
                 {/if}
             </div>
@@ -857,7 +601,6 @@
                 <form
                     onsubmit={(e) => {
                         e.preventDefault();
-                        console.log("Form submitted");
                         addTranslation();
                     }}
                 >
@@ -904,17 +647,11 @@
                     <div class="modal-footer">
                         <button
                             type="button"
-                            class="btn btn-secondary"
+                            class="btn btn-sm btn-outline-secondary"
                             onclick={toggleAddTranslationModal}>Cancel</button
                         >
-                        <button type="submit" class="btn btn-primary"
+                        <button type="submit" class="btn btn-sm btn-primary"
                             >Add Translation</button
-                        >
-                        <button
-                            type="button"
-                            class="btn btn-primary d-none"
-                            id="directAddButton"
-                            onclick={addTranslation}>Direct Add</button
                         >
                     </div>
                 </form>
@@ -961,10 +698,10 @@
                     <div class="modal-footer">
                         <button
                             type="button"
-                            class="btn btn-secondary"
+                            class="btn btn-sm btn-outline-secondary"
                             onclick={toggleAddNamespaceModal}>Cancel</button
                         >
-                        <button type="submit" class="btn btn-primary"
+                        <button type="submit" class="btn btn-sm btn-primary"
                             >Add Namespace</button
                         >
                     </div>

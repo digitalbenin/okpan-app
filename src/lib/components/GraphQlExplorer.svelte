@@ -1,6 +1,10 @@
 <script>
   import { slide } from "svelte/transition";
   import { API_SECTIONS } from "../utils/queries";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+
+  // Get the translation store
+  const { t } = getTranslationStore();
 
   let query = $state("");
   let result = $state("");
@@ -169,8 +173,7 @@
   <div class="row">
     <div class="col-12">
       <h2 class="border-bottom pb-2 mb-4">
-        <i class="bi bi-box-arrow-in-down-right me-2"></i>
-        GraphQL API Explorer
+        {t("test.title", { fallback: "GraphQL API Explorer" })}
       </h2>
 
       <div class="mb-4">
@@ -240,7 +243,7 @@
                                 : 'secondary'} btn-sm"
                             onclick={() => loadQuery(operation, operationId)}
                           >
-                            Try it out
+                            {t("test.tryit", { fallback: "Try it out" })}
                           </button>
                         </div>
                       </div>
@@ -253,7 +256,9 @@
                       {#if currentOperationId === operationId}
                         <div class="card mt-3">
                           <div class="card-header bg-light">
-                            <h5 class="card-title mb-0">Query Editor</h5>
+                            <h5 class="card-title mb-0">
+                              {t("test.editor", { fallback: "Query Editor" })}
+                            </h5>
                           </div>
                           <div class="card-body">
                             <textarea
@@ -268,7 +273,11 @@
                             {#if operation.variables}
                               <div class="card mb-3">
                                 <div class="card-header bg-light">
-                                  <h6 class="card-title mb-0">Variables</h6>
+                                  <h6 class="card-title mb-0">
+                                    {t("test.variables", {
+                                      fallback: "Variables",
+                                    })}
+                                  </h6>
                                 </div>
                                 <div class="card-body">
                                   <div class="row">
@@ -299,7 +308,7 @@
                               disabled={!query}
                             >
                               <i class="bi bi-play-fill me-2"></i>
-                              Execute Query
+                              {t("test.exec", { fallback: "Execute Query" })}
                             </button>
 
                             {#if status}
@@ -316,7 +325,9 @@
                         <!-- Results Section -->
                         <div class="card mt-3">
                           <div class="card-header bg-light">
-                            <h5 class="card-title mb-0">Response</h5>
+                            <h5 class="card-title mb-0">
+                              {t("test.response", { fallback: "Response" })}
+                            </h5>
                           </div>
                           <div class="card-body">
                             <textarea

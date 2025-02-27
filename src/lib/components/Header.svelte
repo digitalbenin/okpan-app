@@ -4,7 +4,7 @@
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     // Get the translation store
-    const { t } = getTranslationStore();
+    const { t, translationState, setLocale } = getTranslationStore();
 
     // Store for navigation history using $state
     let navigationHistory = $state([]);
@@ -41,43 +41,58 @@
     function goHome() {
         goto("/");
     }
+
+    // Function to switch language
+    function switchLanguage(locale) {
+        setLocale(locale);
+    }
 </script>
 
 <header
-    class="navbar navbar-expand-lg navbar-light bg-light border-bottom py-2 px-3 px-sm-4"
+    class="navbar navbar-expand-lg navbar-light bg-light border-bottom py-2 px-2 px-sm-2"
 >
     <div class="container-fluid">
         <div class="d-flex align-items-center">
             <button
-                class="btn btn-outline-secondary me-2 py-1 px-2 py-sm-2 px-sm-3"
-                onclick={goHome}
-                aria-label="Go to home page"
-            >
-                <i class="bi bi-house-door"></i>
-                <span class="ms-1 d-none d-sm-inline"
-                    >{t("nav.home", { fallback: "Home" })}</span
-                >
-            </button>
-
-            <button
-                class="btn btn-outline-secondary py-1 px-2 py-sm-2 px-sm-3"
+                class="d-flex align-items-center gap-1 btn btn-sm px-2 mx-1 {navigationHistory.length ===
+                0
+                    ? 'text-secondary opacity-50'
+                    : ''}"
                 onclick={goBack}
                 disabled={navigationHistory.length === 0}
                 aria-label="Go back to previous page"
             >
-                <i class="bi bi-arrow-left"></i>
-                <span class="ms-1 d-none d-sm-inline"
-                    >{t("nav.back", { fallback: "Back" })}</span
-                >
+                <i class="bi bi-arrow-left me-1"></i>
+                {t("nav.back", { fallback: "Back" })}
             </button>
         </div>
 
-        <div class="navbar-brand mx-auto">
+        <div
+            class="navbar-brand mx-auto"
+            style="cursor: pointer;"
+            onclick={goHome}
+            role="button"
+            tabindex="0"
+        >
             {t("common.title", { fallback: "DB Connection Tool" })}
         </div>
 
-        <div class="d-flex">
-            <!-- Action buttons can be added here -->
+        <div class="d-flex align-items-center">
+            <!-- Language selector -->
+            <div class="d-flex">
+                {#each translationState.languages as language}
+                    <button
+                        class="btn btn-sm px-2 mx-1 {translationState.currentLocale ===
+                        language.code
+                            ? 'fw-bold text-primary'
+                            : 'text-secondary opacity-50'}"
+                        onclick={() => switchLanguage(language.code)}
+                        aria-label="Switch to {language.name}"
+                    >
+                        {language.code.toUpperCase()}
+                    </button>
+                {/each}
+            </div>
         </div>
     </div>
 </header>
