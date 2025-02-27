@@ -1,0 +1,161 @@
+{
+  "translations": [
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "title",
+      "value": "Data Connection Tool"
+    },
+    {
+      "locale": "en",
+      "namespace": "nav",
+      "key": "home",
+      "value": "home"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "title",
+      "value": "Strumento di connessione dati!"
+    },
+    {
+      "locale": "it",
+      "namespace": "nav",
+      "key": "home",
+      "value": "casa"
+    },
+    {
+      "locale": "en",
+      "namespace": "nav",
+      "key": "back",
+      "value": "back"
+    },
+    {
+      "locale": "it",
+      "namespace": "nav",
+      "key": "back",
+      "value": "indietro"
+    },
+    {
+      "locale": "en",
+      "namespace": "nav",
+      "key": "settings",
+      "value": "settings"
+    },
+    {
+      "locale": "it",
+      "namespace": "nav",
+      "key": "settings",
+      "value": "impostazioni"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "translations",
+      "value": "translations"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "translations",
+      "value": "traduzioni"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "click",
+      "value": "click"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "click",
+      "value": "clicks"
+    },
+    {
+      "locale": "en",
+      "namespace": "test",
+      "key": "title",
+      "value": "GraphQL API Explorer"
+    },
+    {
+      "locale": "it",
+      "namespace": "test",
+      "key": "title",
+      "value": "Esplorazione delle API Graphql"
+    },
+    {
+      "locale": "en",
+      "namespace": "test",
+      "key": "tryit",
+      "value": "try it now"
+    },
+    {
+      "locale": "it",
+      "namespace": "test",
+      "key": "tryit",
+      "value": "prova"
+    },
+    {
+      "locale": "en",
+      "namespace": "test",
+      "key": "response",
+      "value": "response"
+    },
+    {
+      "locale": "it",
+      "namespace": "test",
+      "key": "response",
+      "value": "risposta"
+    },
+    {
+      "locale": "en",
+      "namespace": "test",
+      "key": "editor",
+      "value": "query editor"
+    },
+    {
+      "locale": "it",
+      "namespace": "test",
+      "key": "editor",
+      "value": "editor di query"
+    },
+    {
+      "locale": "en",
+      "namespace": "test",
+      "key": "exec",
+      "value": "execute query"
+    },
+    {
+      "locale": "it",
+      "namespace": "test",
+      "key": "exec",
+      "value": "esegui query"
+    },
+    {
+      "locale": "en",
+      "namespace": "test",
+      "key": "variables",
+      "value": "variables"
+    },
+    {
+      "locale": "it",
+      "namespace": "test",
+      "key": "variables",
+      "value": "variabili"
+    }
+  ],
+  "languages": [
+    {
+      "code": "en",
+      "name": "english",
+      "is_default": 1
+    },
+    {
+      "code": "it",
+      "name": "italiano",
+      "is_default": 0
+    }
+  ],
+  "exportDate": "2025-02-27T15:46:20.517Z"
+}

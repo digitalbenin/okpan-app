@@ -19,14 +19,12 @@ export const handleExportTranslations = async (event, filePath, { schema, resolv
         // Query to get all interface translations
         const query = `{
       interface_translations {
-        id
         locale
         namespace
         key
         value
       }
       languages {
-        id
         code
         name
         is_default
@@ -168,7 +166,7 @@ export const handleImportTranslations = async (event, filePath, { schema, resolv
 
         for (const translation of importData.translations) {
             try {
-                // Check if translation exists
+                // Check if translation exists using namespace, key, and locale as unique identifiers
                 const checkQuery = `{
           interface_translations(where: { 
             namespace: { eq: "${translation.namespace}" }, 
@@ -188,11 +186,14 @@ export const handleImportTranslations = async (event, filePath, { schema, resolv
 
                 if (checkResult.data.interface_translations.length > 0) {
                     // Translation exists, update it
-                    const id = checkResult.data.interface_translations[0].id;
                     const updateQuery = `mutation {
             updateInterface_translations(
               set: { value: "${translation.value.replace(/"/g, '\\"')}" }
-              where: { id: { eq: "${id}" } }
+              where: { 
+                namespace: { eq: "${translation.namespace}" }, 
+                key: { eq: "${translation.key}" },
+                locale: { eq: "${translation.locale}" }
+              }
             ) {
               id
             }
