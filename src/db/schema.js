@@ -65,6 +65,32 @@ export const translationsRelations = relations(translations, ({ one }) => ({
     })
 }));
 
+// Interface Translations table - stores UI translations
+export const interface_translations = sqliteTable('interface_translations', {
+    ...commonFields,
+    locale: text('locale')
+        .notNull()
+        .references(() => languages.code),
+    namespace: text('namespace').notNull(), // e.g., 'common', 'navigation', 'errors'
+    key: text('key').notNull(), // e.g., 'welcome', 'submit', 'cancel'
+    value: text('value').notNull(), // The translated text
+});
+
+// Create a unique constraint on locale, namespace, and key
+// This ensures we don't have duplicate translations for the same key in the same locale and namespace
+export const interfaceTranslationsIndex = sqliteTable('interface_translations_idx', {
+    id: text('id').primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+    locale_namespace_key: text('locale_namespace_key').notNull().unique()
+});
+
+// Interface Translations relations
+export const interfaceTranslationsRelations = relations(interface_translations, ({ one }) => ({
+    language: one(languages, {
+        fields: [interface_translations.locale],
+        references: [languages.code]
+    })
+}));
+
 // Project table
 export const project = sqliteTable('project', {
     ...commonFields,

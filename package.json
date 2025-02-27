@@ -55,7 +55,8 @@
     "drizzle-graphql": "^0.8.5",
     "drizzle-orm": "^0.39.3",
     "graphql": "^16.10.0",
-    "graphql-tools": "^9.0.13"
+    "graphql-tools": "^9.0.13",
+    "sveltekit-i18n": "^2.4.2"
   },
   "resolutions": {
     "graphql": "16.10.0"

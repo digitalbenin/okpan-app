@@ -1,0 +1,335 @@
+import { API_SECTIONS } from "$lib/utils/queries.js";
+
+// Create a singleton instance
+let storeInstance = null;
+
+// Main store function that creates and returns the store
+export function getTranslationStore() {
+    // If we already have an instance, return it
+    if (storeInstance) {
+        return storeInstance;
+    }
+
+    // State variables defined inside the function
+    const translationState = $state({
+        translations: {},
+        languages: [],
+        currentLocale: 'en',
+        isLoading: false,
+        error: null,
+        isInitialized: false
+    });
+
+    // Get queries from API_SECTIONS
+    const languagesQuery = API_SECTIONS.languages.operations.find(
+        (op) => op.name === "List Languages"
+    ).query;
+
+    const interfaceTranslationsQuery = API_SECTIONS.interface_translations.operations.find(
+        (op) => op.name === "List Interface Translations"
+    ).query;
+
+    // Fetch all supported languages
+    const fetchLanguages = async () => {
+        try {
+            const result = await window.api.executeGraphQL(languagesQuery);
+
+            if (!result.success || result.errors) {
+                throw new Error(
+                    result.errors
+                        ? result.errors[0].message
+                        : "Failed to fetch languages"
+                );
+            }
+
+            translationState.languages = result.data.languages;
+
+            // Set default locale if available
+            const defaultLang = translationState.languages.find(lang => lang.is_default);
+            if (defaultLang) {
+                translationState.currentLocale = defaultLang.code;
+            }
+        } catch (err) {
+            console.error("Error fetching languages:", err);
+            throw err;
+        }
+    };
+
+    // Fetch all translations and organize them by namespace and key
+    const fetchTranslations = async () => {
+        try {
+            const result = await window.api.executeGraphQL(interfaceTranslationsQuery);
+
+            if (!result.success || result.errors) {
+                throw new Error(
+                    result.errors
+                        ? result.errors[0].message
+                        : "Failed to fetch translations"
+                );
+            }
+
+            if (!result.data || !result.data.interface_translations) {
+                throw new Error("No translation data received from server");
+            }
+
+            // Organize translations by namespace and key
+            const translationData = {};
+
+            for (const item of result.data.interface_translations) {
+                // Create namespace if it doesn't exist
+                if (!translationData[item.namespace]) {
+                    translationData[item.namespace] = {};
+                }
+
+                // Create key if it doesn't exist
+                if (!translationData[item.namespace][item.key]) {
+                    translationData[item.namespace][item.key] = {};
+                }
+
+                // Add translation for this locale
+                translationData[item.namespace][item.key][item.locale] = item.value;
+            }
+
+            translationState.translations = translationData;
+        } catch (err) {
+            console.error("Error fetching translations:", err);
+            throw err;
+        }
+    };
+
+    // Initialize the store
+    const initialize = async () => {
+        if (translationState.isInitialized) return;
+
+        try {
+            translationState.isLoading = true;
+            translationState.error = null;
+
+            // Fetch languages first
+            await fetchLanguages();
+
+            // Then fetch translations
+            await fetchTranslations();
+
+            translationState.isInitialized = true;
+        } catch (err) {
+            translationState.error = `Failed to initialize translation store: ${err.message}`;
+            console.error("Translation store initialization error:", err);
+        } finally {
+            translationState.isLoading = false;
+        }
+    };
+
+    // Get a translation by namespace, key and locale
+    const getTranslation = (namespace, key, locale = null) => {
+        const targetLocale = locale || translationState.currentLocale;
+
+        try {
+            // Check if namespace exists
+            if (!translationState.translations[namespace]) {
+                console.warn(`Namespace "${namespace}" not found`);
+                return key;
+            }
+
+            // Check if key exists in namespace
+            if (!translationState.translations[namespace][key]) {
+                console.warn(`Key "${key}" not found in namespace "${namespace}"`);
+                return key;
+            }
+
+            // Check if translation exists for locale
+            if (!translationState.translations[namespace][key][targetLocale]) {
+                // Fallback to default locale if available
+                const defaultLang = translationState.languages.find(lang => lang.is_default);
+                if (defaultLang && translationState.translations[namespace][key][defaultLang.code]) {
+                    return translationState.translations[namespace][key][defaultLang.code];
+                }
+
+                // Fallback to any available translation
+                const availableLocales = Object.keys(translationState.translations[namespace][key]);
+                if (availableLocales.length > 0) {
+                    return translationState.translations[namespace][key][availableLocales[0]];
+                }
+
+                console.warn(`No translation found for "${namespace}.${key}" in locale "${targetLocale}"`);
+                return key;
+            }
+
+            return translationState.translations[namespace][key][targetLocale];
+        } catch (err) {
+            console.error(`Error getting translation for "${namespace}.${key}":`, err);
+            return key;
+        }
+    };
+
+    // Set the current locale
+    const setLocale = (locale) => {
+        if (translationState.languages.some(lang => lang.code === locale)) {
+            translationState.currentLocale = locale;
+        } else {
+            console.warn(`Locale "${locale}" is not supported`);
+        }
+    };
+
+    // Function to get available namespaces
+    const getAvailableNamespaces = () => {
+        return Object.keys(translationState.translations);
+    };
+
+    // Get all translations for a specific namespace
+    const getNamespaceTranslations = (namespace, locale = null) => {
+        const targetLocale = locale || translationState.currentLocale;
+
+        if (!translationState.translations[namespace]) {
+            return {};
+        }
+
+        const result = {};
+
+        for (const key in translationState.translations[namespace]) {
+            result[key] = getTranslation(namespace, key, targetLocale);
+        }
+
+        return result;
+    };
+
+    // Get translations formatted for sveltekit-i18n
+    const getFormattedTranslations = () => {
+        const formatted = {};
+
+        for (const namespace in translationState.translations) {
+            formatted[namespace] = {};
+
+            for (const locale of translationState.languages.map(l => l.code)) {
+                formatted[namespace][locale] = getNamespaceTranslations(namespace, locale);
+            }
+        }
+
+        return formatted;
+    };
+
+    // Refresh translations from the server
+    const refreshTranslations = async () => {
+        try {
+            translationState.isLoading = true;
+            translationState.error = null;
+            await fetchTranslations();
+        } catch (err) {
+            translationState.error = `Failed to refresh translations: ${err.message}`;
+            console.error("Error refreshing translations:", err);
+        } finally {
+            translationState.isLoading = false;
+        }
+    };
+
+    // Export translations to a JSON file
+    const exportTranslations = async (filePath = null) => {
+        try {
+            translationState.isLoading = true;
+            translationState.error = null;
+
+            console.log('Exporting translations...');
+
+            const result = await window.api.exportTranslations(filePath);
+
+            if (!result.success) {
+                throw new Error(result.error || result.message || 'Export failed');
+            }
+
+            console.log('Export successful:', result.message);
+            return result;
+        } catch (err) {
+            translationState.error = `Failed to export translations: ${err.message}`;
+            console.error("Error exporting translations:", err);
+            throw err;
+        } finally {
+            translationState.isLoading = false;
+        }
+    };
+
+    // Import translations from a JSON file
+    const importTranslations = async (filePath = null) => {
+        try {
+            translationState.isLoading = true;
+            translationState.error = null;
+
+            console.log('Importing translations...');
+
+            const result = await window.api.importTranslations(filePath);
+
+            if (!result.success) {
+                throw new Error(result.error || result.message || 'Import failed');
+            }
+
+            console.log('Import successful:', result.message, result.stats);
+
+            // Refresh translations after import
+            await fetchLanguages();
+            await fetchTranslations();
+
+            return result;
+        } catch (err) {
+            translationState.error = `Failed to import translations: ${err.message}`;
+            console.error("Error importing translations:", err);
+            throw err;
+        } finally {
+            translationState.isLoading = false;
+        }
+    };
+
+    // Translate function (t)
+    const t = (key, params = {}) => {
+        // Split key into namespace and actual key
+        const parts = key.split('.');
+
+        if (parts.length < 2) {
+            console.warn(`Invalid translation key format: ${key}. Expected format: namespace.key`);
+            return key;
+        }
+
+        const namespace = parts[0];
+        const actualKey = parts.slice(1).join('.');
+
+        let text = getTranslation(namespace, actualKey);
+
+        // Replace parameters in the text
+        if (params && typeof params === 'object') {
+            for (const [key, value] of Object.entries(params)) {
+                const fallback = key === 'fallback' ? value : null;
+                if (fallback && text === actualKey) {
+                    text = fallback;
+                    continue;
+                }
+                text = text.replace(new RegExp(`{${key}}`, 'g'), value);
+            }
+        }
+
+        return text;
+    };
+
+    // Start initialization if not already initialized
+    if (!translationState.isInitialized && !translationState.isLoading) {
+        // Start initialization asynchronously
+        setTimeout(() => {
+            initialize();
+        }, 0);
+    }
+
+    // Create the store instance
+    storeInstance = {
+        translationState,
+        getAvailableNamespaces,
+        initialize,
+        getTranslation,
+        setLocale,
+        getNamespaceTranslations,
+        getFormattedTranslations,
+        refreshTranslations,
+        exportTranslations,
+        importTranslations,
+        t
+    };
+
+    return storeInstance;
+}
+

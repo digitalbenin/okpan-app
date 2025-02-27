@@ -1,12 +1,18 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import started from 'electron-squirrel-startup';
 import { graphql } from 'graphql'
 import 'dotenv/config';
 import path from 'path';
+import fs from 'fs/promises';
 
 // Import database and schema
 import { db } from '../db/init.js';
 import { createGraphQLSchema } from '../db/graphqlDefs.js';
+
+// Import handlers
+import { handleExportTranslations, handleImportTranslations } from './handlers/translationHandlers.js';
+import { handleGraphQL } from './handlers/graphqlHandler.js';
+import { handlePing } from './handlers/systemHandlers.js';
 
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
@@ -17,29 +23,6 @@ if (started) {
 }
 
 // IPC Handlers
-const handleGraphQL = async (event, { query, variables }) => {
-  try {
-    console.log('Executing GraphQL query:', query, 'with variables:', variables);
-    const result = await graphql({
-      schema,
-      source: query,
-      rootValue: resolvers,
-      variableValues: variables,
-      contextValue: { db }
-    });
-
-    if (result.errors) {
-      console.error('GraphQL errors:', result.errors);
-      return { success: false, errors: result.errors };
-    }
-
-    return { success: true, data: result.data };
-  } catch (error) {
-    console.error('Error executing GraphQL query:', error);
-    return { success: false, error: error.message };
-  }
-};
-
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -78,19 +61,20 @@ const createWindow = () => {
   }
 };
 
-// Add this before app.whenReady()
-ipcMain.handle('ping', () => {
-  console.log('pong');
-  return 'pong';
-});
-ipcMain.handle('execute-graphql', handleGraphQL)
-
+// Register IPC handlers
+ipcMain.handle('ping', handlePing);
+ipcMain.handle('execute-graphql', (event, params) =>
+  handleGraphQL(event, params, { schema, resolvers, db })
+);
+ipcMain.handle('export-translations', (event, filePath) =>
+  handleExportTranslations(event, filePath, { schema, resolvers, db })
+);
+ipcMain.handle('import-translations', (event, filePath) =>
+  handleImportTranslations(event, filePath, { schema, resolvers, db })
+);
 
 // Initialize app
 app.whenReady().then(() => {
-  // Register IPC handlers
-
-
   createWindow();
 
   app.on('activate', () => {

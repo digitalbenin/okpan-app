@@ -119,8 +119,7 @@ export const API_SECTIONS = {
         variables: {
           projectId: "ID of the project to update",
           title: "New title content",
-          description: "New description content",
-          languageCode: "Language code for the update"
+          description: "New description content"
         },
         query: `mutation UpdateProject($projectId: String!, $title: String!, $description: String!) {
   # Update the title translation
@@ -154,6 +153,46 @@ export const API_SECTIONS = {
   deleteFromProject(where: { id: { eq: $projectId } }) {
     id
     title_id
+  }
+}`
+      },
+      {
+        type: "query",
+        name: "Get Project by ID",
+        description: "Retrieves a single project by its ID",
+        variables: {
+          projectId: "ID of the project to retrieve"
+        },
+        query: `query GetProject($projectId: String!) {
+  project(where: { id: { eq: $projectId } }) {
+    id
+    created_at
+    updated_at
+    title_id
+    description_id
+    title {
+      content
+      original_language
+      translations {
+        content
+        language_code
+      }
+    }
+    description {
+      content
+      original_language
+      translations {
+        content
+        language_code
+      }
+    }
+    institutionsCount
+    institutions {
+      id
+      name {
+        content
+      }
+    }
   }
 }`
       },
@@ -367,6 +406,73 @@ export const API_SECTIONS = {
         query: null
       },
       {
+        type: "mutation",
+        name: "Update Institution",
+        description: "Updates an existing institution by ID",
+        variables: {
+          institutionId: "ID of the institution to update",
+          name: "New name content",
+          description: "New description content",
+          country: "New country content",
+          location: "New location content"
+        },
+        query: `mutation UpdateInstitution($institutionId: String!, $name: String!, $description: String!, $country: String!, $location: String!) {
+  # Update the name
+  updateName: updateTexts(
+    set: { content: $name }
+    where: { id: { eq: $institutionId } }
+  ) {
+    id
+    content
+    original_language
+  }
+  # Update the description
+  updateDescription: updateTexts(
+    set: { content: $description }
+    where: { id: { eq: $institutionId } }
+  ) {
+    id
+    content
+    original_language
+  }
+  # Update the country
+  updateCountry: updateTexts(
+    set: { content: $country }
+    where: { id: { eq: $institutionId } }
+  ) {
+    id
+    content
+    original_language
+  }
+  # Update the location
+  updateLocation: updateTexts(
+    set: { content: $location }
+    where: { id: { eq: $institutionId } }
+  ) {
+    id
+    content
+    original_language
+  }
+}`
+      },
+      {
+        type: "mutation",
+        name: "Delete Institution",
+        description: "Deletes an institution by ID",
+        variables: {
+          institutionId: "ID of the institution to delete"
+        },
+        query: `mutation DeleteInstitution($institutionId: String!) {
+  deleteFromInstitutions(where: { id: { eq: $institutionId } }) {
+    id
+    name_id
+    description_id
+    country_id
+    location_id
+  }
+}`
+      },
+      {
         type: "query",
         name: "List Institutions",
         description: "Retrieves all institutions",
@@ -465,6 +571,81 @@ export const API_SECTIONS = {
     content
     language_code
     text_id
+  }
+}`
+      }
+    ]
+  },
+  interface_translations: {
+    name: "Interface Translations",
+    operations: [
+      {
+        type: "query",
+        name: "List Interface Translations",
+        description: "Retrieves all interface translations",
+        query: `{
+  interface_translations {
+    id
+    locale
+    namespace
+    key
+    value
+  }
+}`
+      },
+      {
+        type: "mutation",
+        name: "Create Interface Translation",
+        description: "Creates a new interface translation",
+        variables: {
+          locale: "Language code for the translation",
+          namespace: "Namespace for grouping translations",
+          key: "Translation key",
+          value: "Translated content"
+        },
+        query: `mutation CreateInterfaceTranslation($locale: String!, $namespace: String!, $key: String!, $value: String!) {
+  insertIntoInterface_translations(values: [{
+    locale: $locale,
+    namespace: $namespace,
+    key: $key,
+    value: $value
+  }]) {
+    id
+    locale
+    namespace
+    key
+    value
+  }
+}`
+      },
+      {
+        type: "mutation",
+        name: "Update Interface Translation",
+        description: "Updates an existing interface translation",
+        variables: {
+          id: "ID of the translation to update",
+          value: "New translated content"
+        },
+        query: `mutation UpdateInterfaceTranslation($id: String!, $value: String!) {
+  updateInterface_translations(
+    set: { value: $value }
+    where: { id: { eq: $id } }
+  ) {
+    id
+    value
+  }
+}`
+      },
+      {
+        type: "mutation",
+        name: "Delete Interface Translation",
+        description: "Deletes an interface translation",
+        variables: {
+          id: "ID of the translation to delete"
+        },
+        query: `mutation DeleteInterfaceTranslation($id: String!) {
+  deleteFromInterface_translations(where: { id: { eq: $id } }) {
+    id
   }
 }`
       }
