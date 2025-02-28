@@ -365,15 +365,20 @@ export function getTranslationStore() {
             translationState.isLoading = true;
             translationState.error = null;
 
-            // Validate namespace and key using the base schema
-            const validationResult = await validate({
-                namespace,
-                key,
-                value: Object.values(values)[0] // Validate first value as sample
-            }, baseSchema);
+            // Validate each translation using the base schema
+            // Get the first locale to use for validation
+            const firstLocale = Object.keys(values)[0];
+            if (firstLocale) {
+                const validationResult = await validate({
+                    namespace,
+                    key,
+                    locale: firstLocale,
+                    value: values[firstLocale]
+                }, baseSchema);
 
-            if (!validationResult.success) {
-                throw new Error(validationResult.errors[0]);
+                if (!validationResult.success) {
+                    throw new Error(validationResult.errors[0]);
+                }
             }
 
             // Find all translations for this key in the namespace
