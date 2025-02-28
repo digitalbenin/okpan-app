@@ -442,6 +442,7 @@ export const objects_assets = sqliteTable('objects_assets', {
     object_id: text('object_id').references(() => objects.id),
     order: integer('order')
 });
+
 // Objects Assets relations
 export const objectsAssetsRelations = relations(objects_assets, ({ one }) => ({
     object: one(objects, {
@@ -452,4 +453,12 @@ export const objectsAssetsRelations = relations(objects_assets, ({ one }) => ({
         fields: [objects_assets.asset_id],
         references: [assets.id]
     })
-})); 
+}));
+
+// Logs table - stores application logs
+export const logs = sqliteTable('logs', {
+    ...commonFields,
+    level: text('level').notNull().default('error'), // e.g., 'error', 'warn', 'info', 'debug'
+    action: text('action').notNull(), // The action that triggered the log
+    message: text('message').notNull(), // The log message
+}); 

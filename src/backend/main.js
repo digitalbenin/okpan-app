@@ -1,9 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import started from 'electron-squirrel-startup';
-import { graphql } from 'graphql'
 import 'dotenv/config';
 import path from 'path';
-import fs from 'fs/promises';
 
 // Import database and schema
 import { db } from '../db/init.js';
@@ -72,6 +70,7 @@ ipcMain.handle('export-translations', (event, filePath) =>
 ipcMain.handle('import-translations', (event, filePath) =>
   handleImportTranslations(event, filePath, { schema, resolvers, db })
 );
+
 
 // Initialize app
 app.whenReady().then(() => {

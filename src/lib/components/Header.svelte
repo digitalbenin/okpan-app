@@ -2,6 +2,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+    import BaseButton from "$lib/components/base/BaseButton.svelte";
 
     // Get the translation store
     const { t, translationState, setLocale } = getTranslationStore();
@@ -53,44 +54,36 @@
 >
     <div class="container-fluid">
         <div class="d-flex align-items-center">
-            <button
+            <BaseButton
+                text={t("nav.back", { fallback: "Back" })}
+                icon="arrow-left"
+                disabled={navigationHistory.length === 0}
+                onClick={goBack}
                 class="d-flex align-items-center gap-1 btn btn-sm px-2 mx-1 {navigationHistory.length ===
                 0
                     ? 'text-secondary opacity-50'
                     : ''}"
-                onclick={goBack}
-                disabled={navigationHistory.length === 0}
-                aria-label="Go back to previous page"
-            >
-                <i class="bi bi-arrow-left me-1"></i>
-                {t("nav.back", { fallback: "Back" })}
-            </button>
+            />
         </div>
 
-        <div
-            class="navbar-brand mx-auto"
-            style="cursor: pointer;"
-            onclick={goHome}
-            role="button"
-            tabindex="0"
-        >
-            {t("common.title", { fallback: "DB Connection Tool" })}
-        </div>
+        <BaseButton
+            text={t("common.title", { fallback: "DB Connection Tool" })}
+            onClick={goHome}
+            class="navbar-brand mx-auto btn btn-link border-0"
+        />
 
         <div class="d-flex align-items-center">
             <!-- Language selector -->
             <div class="d-flex">
                 {#each translationState.languages as language}
-                    <button
+                    <BaseButton
+                        text={language.code.toUpperCase()}
+                        onClick={() => switchLanguage(language.code)}
                         class="btn btn-sm px-2 mx-1 {translationState.currentLocale ===
                         language.code
                             ? 'fw-bold text-primary'
                             : 'text-secondary opacity-50'}"
-                        onclick={() => switchLanguage(language.code)}
-                        aria-label="Switch to {language.name}"
-                    >
-                        {language.code.toUpperCase()}
-                    </button>
+                    />
                 {/each}
             </div>
         </div>

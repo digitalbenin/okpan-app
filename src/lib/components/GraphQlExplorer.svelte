@@ -2,6 +2,7 @@
   import { slide } from "svelte/transition";
   import { API_SECTIONS } from "../utils/queries";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import BaseButton from "$lib/components/base/BaseButton.svelte";
 
   // Get the translation store
   const { t } = getTranslationStore();
@@ -233,18 +234,16 @@
                           <strong>{operation.name}</strong>
                         </div>
                         <div>
-                          <button
-                            type="button"
+                          <BaseButton
+                            text={t("test.tryit", { fallback: "Try it out" })}
+                            onClick={() => loadQuery(operation, operationId)}
                             class="btn btn-outline-{operation.type ===
                             'mutation'
                               ? 'primary'
                               : operation.type === 'query'
                                 ? 'success'
                                 : 'secondary'} btn-sm"
-                            onclick={() => loadQuery(operation, operationId)}
-                          >
-                            {t("test.tryit", { fallback: "Try it out" })}
-                          </button>
+                          />
                         </div>
                       </div>
                       <div class="mt-2">
@@ -301,15 +300,15 @@
                               </div>
                             {/if}
 
-                            <button
-                              type="button"
-                              class="btn btn-primary"
-                              onclick={() => handleExecuteQuery(operation)}
+                            <BaseButton
+                              text={t("test.exec", {
+                                fallback: "Execute Query",
+                              })}
+                              icon="play-fill"
+                              onClick={() => handleExecuteQuery(operation)}
                               disabled={!query}
-                            >
-                              <i class="bi bi-play-fill me-2"></i>
-                              {t("test.exec", { fallback: "Execute Query" })}
-                            </button>
+                              class="btn btn-primary"
+                            />
 
                             {#if status}
                               <div

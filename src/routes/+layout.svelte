@@ -5,6 +5,7 @@
     // Import the store to ensure it's loaded
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import Header from "$lib/components/Header.svelte";
+    import BaseToast from "$lib/components/base/BaseToast.svelte";
 
     // Just get the store, initialization happens automatically
     getTranslationStore();
@@ -15,6 +16,7 @@
 
     <main class="container-fluid py-3 flex-grow-1">
         <slot />
+        <BaseToast />
     </main>
 </div>
 

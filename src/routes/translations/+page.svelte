@@ -1,9 +1,11 @@
 <script>
-    // Using Svelte 5 runes syntax
     import { API_SECTIONS } from "$lib/utils/queries.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+    import { addToast } from "$lib/components/base/BaseToast.svelte";
+    import { getLogStore } from "$lib/stores/LogStore.svelte.js";
+    import BaseButton from "$lib/components/base/BaseButton.svelte";
 
-    // Get the translation store for import/export functionality
+    // Initialize stores
     const {
         exportTranslations,
         importTranslations,
@@ -12,106 +14,96 @@
         deleteTranslation,
         deleteNamespace,
         createNamespace,
+        t,
     } = getTranslationStore();
+    const { error: logError } = getLogStore();
 
-    // State variables using $state
+    // State
     let languages = $state([]);
     let interfaceTranslations = $state([]);
     let namespaces = $state([]);
     let currentNamespace = $state("");
     let isLoading = $state(true);
-    let error = $state(null);
-    let importExportMessage = $state(null);
-
-    // Form data for adding new translations
     let newTranslationKey = $state("");
     let newTranslationValues = $state({});
     let newNamespace = $state("");
-
-    // Modal states
     let showAddTranslationModal = $state(false);
     let showAddNamespaceModal = $state(false);
-
-    // Editing state
     let editingTranslation = $state(null);
     let editedValues = $state({});
 
-    // Get queries from API_SECTIONS
-    const languagesQuery = API_SECTIONS.languages.operations.find(
+    // Get API queries
+    const { query: languagesQuery } = API_SECTIONS.languages.operations.find(
         (op) => op.name === "List Languages",
-    ).query;
-
-    const interfaceTranslationsQuery =
+    );
+    const { query: interfaceTranslationsQuery } =
         API_SECTIONS.interface_translations.operations.find(
             (op) => op.name === "List Interface Translations",
-        ).query;
+        );
 
-    // Fetch all languages
-    const fetchLanguages = async () => {
+    // Fetch data
+    async function fetchLanguages() {
         try {
             const result = await window.api.executeGraphQL(languagesQuery);
-
-            if (!result.success || result.errors) {
+            if (!result.success)
                 throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to fetch languages",
+                    result.errors?.[0]?.message || "Failed to fetch languages",
                 );
-            }
 
             languages = result.data.languages;
-
-            // Initialize newTranslationValues with empty strings for each language
             newTranslationValues = Object.fromEntries(
                 languages.map((lang) => [lang.code, ""]),
             );
         } catch (err) {
-            error = `Failed to fetch languages: ${err.message}`;
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: t("translations.error_fetch_languages", {
+                        fallback: `Failed to fetch languages: ${err.message}`,
+                    }),
+                    type: "error",
+                },
+            });
+            await logError("fetch_languages", err.message);
         }
-    };
+    }
 
-    // Fetch all interface translations
-    const fetchInterfaceTranslations = async () => {
+    async function fetchInterfaceTranslations() {
         try {
             isLoading = true;
-
             const result = await window.api.executeGraphQL(
                 interfaceTranslationsQuery,
             );
-
-            if (!result.success || result.errors) {
+            if (!result.success || !result.data?.interface_translations) {
                 throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to fetch translations",
+                    result.errors?.[0]?.message ||
+                        "Failed to fetch translations",
                 );
             }
 
-            if (!result.data?.interface_translations) {
-                throw new Error("No translation data received from server");
-            }
-
             interfaceTranslations = result.data.interface_translations;
-
-            // Extract unique namespaces
             namespaces = [
-                ...new Set(
-                    result.data.interface_translations.map((t) => t.namespace),
-                ),
+                ...new Set(interfaceTranslations.map((t) => t.namespace)),
             ];
-
-            // Set default namespace if available
-            if (namespaces.length > 0 && !currentNamespace) {
+            if (namespaces.length && !currentNamespace)
                 currentNamespace = namespaces[0];
-            }
         } catch (err) {
-            error = `Failed to fetch translations: ${err.message}`;
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: t("translations.error_fetch_translations", {
+                        fallback: `Failed to fetch translations: ${err.message}`,
+                    }),
+                    type: "error",
+                },
+            });
+            await logError("fetch_translations", err.message);
         } finally {
             isLoading = false;
         }
-    };
+    }
 
-    // Toggle modals
+    // Modal handlers
     const toggleAddNamespaceModal = () => {
         showAddNamespaceModal = !showAddNamespaceModal;
         if (!showAddNamespaceModal) newNamespace = "";
@@ -127,202 +119,242 @@
         }
     };
 
-    // Add a new namespace
-    const addNamespace = async () => {
-        if (!newNamespace.trim()) {
-            error = "Namespace cannot be empty";
-            return;
-        }
+    // Function to set the current namespace
+    const setNamespace = (namespace) => {
+        currentNamespace = namespace;
+    };
 
-        if (namespaces.includes(newNamespace)) {
-            error = "Namespace already exists";
+    // CRUD operations
+    async function addNamespace() {
+        if (!newNamespace.trim()) {
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: t("translations.error_empty_namespace", {
+                        fallback: "Namespace cannot be empty",
+                    }),
+                    type: "error",
+                },
+            });
             return;
         }
 
         try {
             const result = await createNamespace(newNamespace);
-
-            if (!result.success) {
-                error = result.error;
-                return;
-            }
+            if (!result.success) throw new Error(result.error);
 
             namespaces = [...namespaces, newNamespace];
             currentNamespace = newNamespace;
             newNamespace = "";
-            error = null;
             toggleAddNamespaceModal();
+            addToast({
+                data: {
+                    title: t("common.success", { fallback: "Success" }),
+                    description: t("translations.namespace_created", {
+                        fallback: "Namespace created",
+                    }),
+                    type: "success",
+                },
+            });
         } catch (err) {
-            error = `Failed to create namespace: ${err.message}`;
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: err.message,
+                    type: "error",
+                },
+            });
+            await logError("add_namespace", err.message);
         }
-    };
+    }
 
-    // Add a new translation
-    const addTranslation = async () => {
-        if (!newTranslationKey.trim()) {
-            error = "Translation key cannot be empty";
-            return;
-        }
-
-        if (!currentNamespace) {
-            error = "Please select or create a namespace first";
-            return;
-        }
-
-        const emptyLanguages = languages.filter(
-            (lang) => !newTranslationValues[lang.code]?.trim(),
-        );
-        if (emptyLanguages.length > 0) {
-            error = `Please provide translations for: ${emptyLanguages.map((l) => l.name).join(", ")}`;
+    async function addTranslation() {
+        if (!newTranslationKey.trim() || !currentNamespace) {
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: t("translations.error_invalid_input", {
+                        fallback: "Invalid input",
+                    }),
+                    type: "error",
+                },
+            });
             return;
         }
 
         try {
-            error = null;
             isLoading = true;
-
-            // Use the store method to create the translation
             const result = await createTranslation(
                 currentNamespace,
                 newTranslationKey,
                 newTranslationValues,
             );
+            if (!result.success) throw new Error(result.error);
 
-            if (!result.success) {
-                throw new Error(result.error || "Failed to add translation");
-            }
-
-            // Reset form and close modal
-            newTranslationKey = "";
-            newTranslationValues = Object.fromEntries(
-                languages.map((lang) => [lang.code, ""]),
-            );
             toggleAddTranslationModal();
-
-            // Refresh translations
             await fetchInterfaceTranslations();
+            addToast({
+                data: {
+                    title: t("common.success", { fallback: "Success" }),
+                    description: t("translations.translation_added", {
+                        fallback: "Translation added",
+                    }),
+                    type: "success",
+                },
+            });
         } catch (err) {
-            error = `Failed to add translation: ${err.message}`;
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: err.message,
+                    type: "error",
+                },
+            });
+            await logError("add_translation", err.message);
         } finally {
             isLoading = false;
         }
-    };
+    }
 
-    // Start editing a translation
+    // Edit handlers
     const startEditing = (key) => {
-        const keyTranslations = interfaceTranslations.filter(
+        const translations = interfaceTranslations.filter(
             (t) => t.key === key && t.namespace === currentNamespace,
         );
         editingTranslation = key;
         editedValues = Object.fromEntries(
-            keyTranslations.map((t) => [t.locale, t.value]),
+            translations.map((t) => [t.locale, t.value]),
         );
     };
 
-    // Save edited translation
-    const saveEditing = async () => {
+    async function saveEditing() {
         if (!editingTranslation) return;
 
         try {
             isLoading = true;
-            error = null;
-
-            // Use the store method to update the translation
             const result = await updateTranslation(
                 currentNamespace,
                 editingTranslation,
                 editedValues,
             );
+            if (!result.success) throw new Error(result.error);
 
-            if (!result.success) {
-                throw new Error(result.error || "Failed to update translation");
-            }
-
-            // Reset editing state
             editingTranslation = null;
             editedValues = {};
-
-            // Refresh translations
             await fetchInterfaceTranslations();
+            addToast({
+                data: {
+                    title: t("common.success", { fallback: "Success" }),
+                    description: t("translations.translation_updated", {
+                        fallback: "Translation updated",
+                    }),
+                    type: "success",
+                },
+            });
         } catch (err) {
-            error = `Failed to update translation: ${err.message}`;
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: err.message,
+                    type: "error",
+                },
+            });
+            await logError("update_translation", err.message);
         } finally {
             isLoading = false;
         }
-    };
+    }
 
     const cancelEditing = () => {
         editingTranslation = null;
         editedValues = {};
     };
 
-    // Delete a translation
-    const handleDeleteTranslation = async (key) => {
+    // Delete handlers
+    async function handleDeleteTranslation(key) {
         if (
             !confirm(
-                `Are you sure you want to delete the translation key "${key}" and all its translations?`,
+                t("translations.confirm_delete_translation", {
+                    fallback: `Delete translation "${key}"?`,
+                    key,
+                }),
             )
-        ) {
+        )
             return;
-        }
 
         try {
             isLoading = true;
-            error = null;
-
             const result = await deleteTranslation(currentNamespace, key);
+            if (!result.success) throw new Error(result.error);
 
-            if (!result.success) {
-                throw new Error(result.error || "Failed to delete translation");
-            }
-
-            // Refresh translations
             await fetchInterfaceTranslations();
+            addToast({
+                data: {
+                    title: t("common.success", { fallback: "Success" }),
+                    description: t("translations.translation_deleted", {
+                        fallback: "Translation deleted",
+                    }),
+                    type: "success",
+                },
+            });
         } catch (err) {
-            error = `Failed to delete translation: ${err.message}`;
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: err.message,
+                    type: "error",
+                },
+            });
+            await logError("delete_translation", err.message);
         } finally {
             isLoading = false;
         }
-    };
+    }
 
-    // Delete a namespace
-    const handleDeleteNamespace = async (namespace) => {
+    async function handleDeleteNamespace(namespace) {
         if (
             !confirm(
-                `Are you sure you want to delete the namespace "${namespace}" and all its translations?`,
+                t("translations.confirm_delete_namespace", {
+                    fallback: `Delete namespace "${namespace}"?`,
+                    namespace,
+                }),
             )
-        ) {
+        )
             return;
-        }
 
         try {
             isLoading = true;
-            error = null;
-
             const result = await deleteNamespace(namespace);
+            if (!result.success) throw new Error(result.error);
 
-            if (!result.success) {
-                throw new Error(result.error || "Failed to delete namespace");
-            }
-
-            // Reset current namespace if it was deleted
-            if (currentNamespace === namespace) {
-                currentNamespace = "";
-            }
-
-            // Refresh translations
+            if (currentNamespace === namespace) currentNamespace = "";
             await fetchInterfaceTranslations();
+            addToast({
+                data: {
+                    title: t("common.success", { fallback: "Success" }),
+                    description: t("translations.namespace_deleted", {
+                        fallback: "Namespace deleted",
+                    }),
+                    type: "success",
+                },
+            });
         } catch (err) {
-            error = `Failed to delete namespace: ${err.message}`;
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: err.message,
+                    type: "error",
+                },
+            });
+            await logError("delete_namespace", err.message);
         } finally {
             isLoading = false;
         }
-    };
+    }
 
     // Helper functions
     const getTranslationsForCurrentNamespace = () => {
         if (!currentNamespace) return [];
-
         const keys = [
             ...new Set(
                 interfaceTranslations
@@ -330,7 +362,6 @@
                     .map((t) => t.key),
             ),
         ];
-
         return keys.map((key) => ({
             key,
             translations: Object.fromEntries(
@@ -344,70 +375,77 @@
         }));
     };
 
-    const setNamespace = (namespace) => {
-        currentNamespace = namespace;
-    };
-
-    const clearError = () => {
-        error = null;
-    };
-
-    // Import/Export functions
-    const handleExportTranslations = async () => {
+    // Import/Export handlers
+    async function handleExportTranslations() {
         try {
             isLoading = true;
-            importExportMessage = null;
             const result = await exportTranslations();
-            importExportMessage = {
-                type: result.success ? "success" : "danger",
-                text: result.success
-                    ? `Translations exported successfully to ${result.filePath}`
-                    : result.message || "Export failed",
-            };
+            addToast({
+                data: {
+                    title: result.success
+                        ? t("common.success", { fallback: "Success" })
+                        : t("common.error", { fallback: "Error" }),
+                    description: result.success
+                        ? t("translations.export_success", {
+                              fallback: `Exported to ${result.filePath}`,
+                              filePath: result.filePath,
+                          })
+                        : result.message,
+                    type: result.success ? "success" : "error",
+                },
+            });
         } catch (err) {
-            importExportMessage = {
-                type: "danger",
-                text: `Export failed: ${err.message}`,
-            };
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: err.message,
+                    type: "error",
+                },
+            });
+            await logError("export_translations", err.message);
         } finally {
             isLoading = false;
         }
-    };
+    }
 
-    const handleImportTranslations = async () => {
+    async function handleImportTranslations() {
         try {
             isLoading = true;
-            importExportMessage = null;
             const result = await importTranslations();
-
             if (result.success) {
-                importExportMessage = {
-                    type: "success",
-                    text: `Translations imported successfully: ${result.stats.imported} new, ${result.stats.updated} updated, ${result.stats.errors} errors`,
-                };
-                await fetchLanguages();
-                await fetchInterfaceTranslations();
+                await Promise.all([
+                    fetchLanguages(),
+                    fetchInterfaceTranslations(),
+                ]);
+                addToast({
+                    data: {
+                        title: t("common.success", { fallback: "Success" }),
+                        description: t("translations.import_success", {
+                            fallback: `Imported: ${result.stats.imported} new, ${result.stats.updated} updated`,
+                            imported: result.stats.imported,
+                            updated: result.stats.updated,
+                        }),
+                        type: "success",
+                    },
+                });
             } else {
-                importExportMessage = {
-                    type: "danger",
-                    text: result.message || "Import failed",
-                };
+                throw new Error(result.message);
             }
         } catch (err) {
-            importExportMessage = {
-                type: "danger",
-                text: `Import failed: ${err.message}`,
-            };
+            addToast({
+                data: {
+                    title: t("common.error", { fallback: "Error" }),
+                    description: err.message,
+                    type: "error",
+                },
+            });
+            await logError("import_translations", err.message);
         } finally {
             isLoading = false;
         }
-    };
+    }
 
-    const clearImportExportMessage = () => {
-        importExportMessage = null;
-    };
-
-    // Initialize data
+    // Initialize
     $effect(() => {
         fetchLanguages();
         fetchInterfaceTranslations();
@@ -415,35 +453,12 @@
 </script>
 
 <div class="container-fluid">
-    {#if error}
-        <div
-            class="alert alert-danger alert-dismissible fade show mt-3"
-            role="alert"
-        >
-            {error}
-            <button type="button" class="btn-close" onclick={clearError}
-            ></button>
-        </div>
-    {/if}
-
-    {#if importExportMessage}
-        <div
-            class="alert alert-{importExportMessage.type} alert-dismissible fade show mt-3"
-            role="alert"
-        >
-            {importExportMessage.text}
-            <button
-                type="button"
-                class="btn-close"
-                onclick={clearImportExportMessage}
-            ></button>
-        </div>
-    {/if}
-
     {#if isLoading}
         <div class="d-flex justify-content-center my-5">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden"
+                    >{t("common.loading", { fallback: "Loading..." })}</span
+                >
             </div>
         </div>
     {:else}
@@ -454,39 +469,43 @@
                     <div
                         class="d-flex justify-content-start align-items-start gap-2 p-3"
                     >
-                        <h5 class="m-0">Namespaces</h5>
-                        <button
+                        <h5 class="m-0">
+                            {t("translations.namespaces", {
+                                fallback: "Namespaces",
+                            })}
+                        </h5>
+                        <BaseButton
+                            text=""
+                            icon="plus-circle"
+                            onClick={toggleAddNamespaceModal}
                             class="btn btn-link p-0 text-decoration-none"
-                            onclick={toggleAddNamespaceModal}
-                        >
-                            <i class="bi bi-plus-circle"></i>
-                        </button>
+                        />
                     </div>
                     <div class="py-2">
                         {#each namespaces as namespace}
                             <div class="d-flex align-items-center">
-                                <button
+                                <BaseButton
+                                    text={namespace}
+                                    onClick={() => setNamespace(namespace)}
                                     class="btn btn-link text-start flex-grow-1 text-decoration-none {currentNamespace ===
                                     namespace
                                         ? 'text-primary fw-bold'
                                         : 'text-body'}"
-                                    onclick={() => setNamespace(namespace)}
-                                >
-                                    {namespace}
-                                </button>
-                                <button
-                                    class="btn btn-link text-danger p-1"
-                                    onclick={() =>
+                                />
+                                <BaseButton
+                                    text=""
+                                    icon="x-circle"
+                                    onClick={() =>
                                         handleDeleteNamespace(namespace)}
-                                    title="Delete namespace"
-                                >
-                                    <i class="bi bi-x-circle"></i>
-                                </button>
+                                    class="btn btn-link text-danger p-1"
+                                />
                             </div>
                         {/each}
                         {#if namespaces.length === 0}
                             <div class="px-3 text-muted">
-                                No namespaces found
+                                {t("translations.no_namespaces", {
+                                    fallback: "No namespaces found",
+                                })}
                             </div>
                         {/if}
                     </div>
@@ -498,31 +517,44 @@
                 <div
                     class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3"
                 >
-                    <h1 class="h2">Interface Translations</h1>
+                    <h1 class="h2">
+                        {t("translations.interface_translations", {
+                            fallback: "Interface Translations",
+                        })}
+                    </h1>
 
                     <!-- Action buttons side by side -->
                     <div class="d-flex gap-2">
-                        <button
-                            class="btn btn-sm btn-outline-secondary"
-                            onclick={handleExportTranslations}
+                        <BaseButton
+                            text={t("translations.export", {
+                                fallback: "Export",
+                            })}
+                            icon="download"
+                            iconPosition="left"
+                            onClick={handleExportTranslations}
                             disabled={isLoading}
-                        >
-                            <i class="bi bi-download me-1"></i> Export
-                        </button>
-                        <button
                             class="btn btn-sm btn-outline-secondary"
-                            onclick={handleImportTranslations}
+                        />
+                        <BaseButton
+                            text={t("translations.import", {
+                                fallback: "Import",
+                            })}
+                            icon="upload"
+                            iconPosition="left"
+                            onClick={handleImportTranslations}
                             disabled={isLoading}
-                        >
-                            <i class="bi bi-upload me-1"></i> Import
-                        </button>
+                            class="btn btn-sm btn-outline-secondary"
+                        />
                         {#if currentNamespace}
-                            <button
+                            <BaseButton
+                                text={t("translations.add_translation", {
+                                    fallback: "Add Translation",
+                                })}
+                                icon="plus-lg"
+                                iconPosition="left"
+                                onClick={toggleAddTranslationModal}
                                 class="btn btn-sm btn-primary"
-                                onclick={toggleAddTranslationModal}
-                            >
-                                <i class="bi bi-plus-lg me-1"></i> Add Translation
-                            </button>
+                            />
                         {/if}
                     </div>
                 </div>
@@ -533,18 +565,32 @@
                             <table class="table table-sm table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Key</th>
+                                        <th
+                                            >{t("translations.key", {
+                                                fallback: "Key",
+                                            })}</th
+                                        >
                                         {#each languages as language}
                                             <th>
                                                 {language.name}
                                                 {#if language.is_default}
                                                     <span class="text-muted"
-                                                        >(Default)</span
+                                                        >({t(
+                                                            "translations.default",
+                                                            {
+                                                                fallback:
+                                                                    "Default",
+                                                            },
+                                                        )})</span
                                                     >
                                                 {/if}
                                             </th>
                                         {/each}
-                                        <th class="text-end">Actions</th>
+                                        <th class="text-end"
+                                            >{t("translations.actions", {
+                                                fallback: "Actions",
+                                            })}</th
+                                        >
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -574,44 +620,41 @@
                                                     {/if}
                                                 </td>
                                             {/each}
-                                            <td class="text-end">
+                                            <td
+                                                class="text-end d-flex gap-2 justify-content-end"
+                                            >
                                                 {#if editingTranslation === item.key}
-                                                    <button
+                                                    <BaseButton
+                                                        text=""
+                                                        icon="check-lg"
+                                                        onClick={saveEditing}
                                                         class="btn btn-sm btn-link text-success p-1"
-                                                        onclick={saveEditing}
-                                                    >
-                                                        <i
-                                                            class="bi bi-check-lg"
-                                                        ></i>
-                                                    </button>
-                                                    <button
+                                                    />
+                                                    <BaseButton
+                                                        text=""
+                                                        icon="x-lg"
+                                                        onClick={cancelEditing}
                                                         class="btn btn-sm btn-link text-secondary p-1"
-                                                        onclick={cancelEditing}
-                                                    >
-                                                        <i class="bi bi-x-lg"
-                                                        ></i>
-                                                    </button>
+                                                    />
                                                 {:else}
-                                                    <button
-                                                        class="btn btn-sm btn-link text-primary p-1"
-                                                        onclick={() =>
+                                                    <BaseButton
+                                                        text=""
+                                                        icon="pencil"
+                                                        onClick={() =>
                                                             startEditing(
                                                                 item.key,
                                                             )}
-                                                    >
-                                                        <i class="bi bi-pencil"
-                                                        ></i>
-                                                    </button>
-                                                    <button
-                                                        class="btn btn-sm btn-link text-danger p-1"
-                                                        onclick={() =>
+                                                        class="btn btn-sm btn-link text-primary p-1"
+                                                    />
+                                                    <BaseButton
+                                                        text=""
+                                                        icon="trash"
+                                                        onClick={() =>
                                                             handleDeleteTranslation(
                                                                 item.key,
                                                             )}
-                                                    >
-                                                        <i class="bi bi-trash"
-                                                        ></i>
-                                                    </button>
+                                                        class="btn btn-sm btn-link text-danger p-1"
+                                                    />
                                                 {/if}
                                             </td>
                                         </tr>
@@ -621,14 +664,18 @@
                         </div>
                     {:else}
                         <div class="alert alert-info">
-                            No translations found for this namespace. Add your
-                            first translation using the button above.
+                            {t("translations.no_translations_for_namespace", {
+                                fallback:
+                                    "No translations found for this namespace. Add your first translation using the button above.",
+                            })}
                         </div>
                     {/if}
                 {:else}
                     <div class="alert alert-warning">
-                        Please select an existing namespace or create a new one
-                        using the + button in the sidebar.
+                        {t("translations.select_namespace", {
+                            fallback:
+                                "Please select an existing namespace or create a new one using the + button in the sidebar.",
+                        })}
                     </div>
                 {/if}
             </div>
@@ -643,7 +690,10 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        Add New Translation to "{currentNamespace}"
+                        {t("translations.add_new_translation_to", {
+                            fallback: 'Add New Translation to "{namespace}"',
+                            namespace: currentNamespace,
+                        })}
                     </h5>
                     <button
                         type="button"
@@ -660,20 +710,29 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="newTranslationKey" class="form-label"
-                                >Translation Key</label
+                                >{t("translations.translation_key", {
+                                    fallback: "Translation Key",
+                                })}</label
                             >
                             <input
                                 type="text"
                                 class="form-control"
                                 id="newTranslationKey"
                                 bind:value={newTranslationKey}
-                                placeholder="e.g., welcome.message"
+                                placeholder={t(
+                                    "translations.translation_key_placeholder",
+                                    { fallback: "e.g., welcome.message" },
+                                )}
                                 required
                             />
                         </div>
 
                         <hr />
-                        <h6>Translations</h6>
+                        <h6>
+                            {t("translations.translations", {
+                                fallback: "Translations",
+                            })}
+                        </h6>
 
                         {#each languages as language}
                             <div class="mb-3">
@@ -682,7 +741,9 @@
                                     class="form-label"
                                 >
                                     {language.name}
-                                    {language.is_default ? "(Default)" : ""}
+                                    {language.is_default
+                                        ? `(${t("translations.default", { fallback: "Default" })})`
+                                        : ""}
                                 </label>
                                 <input
                                     type="text"
@@ -691,21 +752,31 @@
                                     bind:value={newTranslationValues[
                                         language.code
                                     ]}
-                                    placeholder={`Translation in ${language.name}`}
+                                    placeholder={t(
+                                        "translations.translation_in_language",
+                                        {
+                                            fallback: `Translation in ${language.name}`,
+                                            language: language.name,
+                                        },
+                                    )}
                                     required
                                 />
                             </div>
                         {/each}
                     </div>
                     <div class="modal-footer">
-                        <button
-                            type="button"
+                        <BaseButton
+                            text={t("common.cancel", { fallback: "Cancel" })}
+                            onClick={toggleAddTranslationModal}
                             class="btn btn-sm btn-outline-secondary"
-                            onclick={toggleAddTranslationModal}>Cancel</button
-                        >
-                        <button type="submit" class="btn btn-sm btn-primary"
-                            >Add Translation</button
-                        >
+                        />
+                        <BaseButton
+                            text={t("translations.add_translation", {
+                                fallback: "Add Translation",
+                            })}
+                            onClick={() => {}}
+                            class="btn btn-sm btn-primary"
+                        />
                     </div>
                 </form>
             </div>
@@ -720,7 +791,11 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Add New Namespace</h5>
+                    <h5 class="modal-title">
+                        {t("translations.add_new_namespace", {
+                            fallback: "Add New Namespace",
+                        })}
+                    </h5>
                     <button
                         type="button"
                         class="btn-close"
@@ -736,27 +811,39 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="newNamespace" class="form-label"
-                                >Namespace Name</label
+                                >{t("translations.namespace_name", {
+                                    fallback: "Namespace Name",
+                                })}</label
                             >
                             <input
                                 type="text"
                                 class="form-control"
                                 id="newNamespace"
                                 bind:value={newNamespace}
-                                placeholder="e.g., common, navigation, errors"
+                                placeholder={t(
+                                    "translations.namespace_placeholder",
+                                    {
+                                        fallback:
+                                            "e.g., common, navigation, errors",
+                                    },
+                                )}
                                 required
                             />
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button
-                            type="button"
+                        <BaseButton
+                            text={t("common.cancel", { fallback: "Cancel" })}
+                            onClick={toggleAddNamespaceModal}
                             class="btn btn-sm btn-outline-secondary"
-                            onclick={toggleAddNamespaceModal}>Cancel</button
-                        >
-                        <button type="submit" class="btn btn-sm btn-primary"
-                            >Add Namespace</button
-                        >
+                        />
+                        <BaseButton
+                            text={t("translations.add_namespace", {
+                                fallback: "Add Namespace",
+                            })}
+                            onClick={() => {}}
+                            class="btn btn-sm btn-primary"
+                        />
                     </div>
                 </form>
             </div>
