@@ -11,6 +11,7 @@
         class: customClass = "",
         style: customStyle = "",
         id = crypto.randomUUID(),
+        disabled = false,
     } = $props();
 
     const select = new Select({
@@ -40,6 +41,7 @@
             <button
                 type="button"
                 {...select.trigger}
+                {disabled}
                 class={`form-select d-flex justify-content-between align-items-center px-3 gap-2 ${customClass}`}
             >
                 <span
@@ -87,6 +89,7 @@
         <button
             type="button"
             {...select.trigger}
+            {disabled}
             class={`form-select d-flex justify-content-between align-items-center px-3 gap-2 ${customClass}`}
         >
             <span
@@ -95,8 +98,8 @@
                 {#if icon}
                     <i class={`bi bi-${icon}`}></i>
                 {/if}
-                <span class="pe-3"></span>{select.value || placeholder}</span
-            >
+                <span class="pe-3">{select.value || placeholder}</span>
+            </span>
         </button>
 
         <div

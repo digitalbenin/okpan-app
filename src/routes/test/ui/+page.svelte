@@ -95,8 +95,9 @@
 
             <BaseInput
                 type="text"
-                placeholder="custom style, no label"
+                placeholder="no label, disabled"
                 style="width: 20%;"
+                disabled={true}
             />
         </div>
     </section>

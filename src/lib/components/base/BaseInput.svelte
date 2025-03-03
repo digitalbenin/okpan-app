@@ -10,6 +10,7 @@
         class: customClass = "",
         style: customStyle = "",
         id = crypto.randomUUID(),
+        disabled = false,
     } = $props();
 
     // Validate type
@@ -36,6 +37,7 @@
             bind:value
             class={`form-control ${customClass}`}
             {placeholder}
+            {disabled}
             min={validatedType === "number" ? min : undefined}
             max={validatedType === "number" ? max : undefined}
         />
@@ -47,6 +49,7 @@
         class={`form-control ${customClass}`}
         style={customStyle}
         {placeholder}
+        {disabled}
         min={validatedType === "number" ? min : undefined}
         max={validatedType === "number" ? max : undefined}
     />
