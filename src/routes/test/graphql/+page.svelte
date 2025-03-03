@@ -1,5 +1,5 @@
 <script>
-    import GraphQLExplorer from "../../lib/components/GraphQlExplorer.svelte";
+    import GraphQLExplorer from "$lib/components/GraphQlExplorer.svelte";
 
     let status = $state("");
 </script>

@@ -22,7 +22,7 @@
     <BaseButton
       text={t("nav.test", { fallback: "Test Graphql" })}
       icon="box-arrow-right"
-      onClick={() => goto("/test")}
+      onClick={() => goto("/test/graphql")}
       class="btn btn-link d-flex align-items-center text-decoration-none"
     />
 
@@ -37,6 +37,13 @@
       text={t("common.logs", { fallback: "Logs" })}
       icon="list"
       onClick={() => goto("/logs")}
+      class="btn btn-link d-flex align-items-center text-decoration-none"
+    />
+
+    <BaseButton
+      text={t("common.ui", { fallback: "UI components" })}
+      icon="ui-checks"
+      onClick={() => goto("/test/ui")}
       class="btn btn-link d-flex align-items-center text-decoration-none"
     />
   </div>
