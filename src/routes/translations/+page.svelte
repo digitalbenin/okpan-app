@@ -4,6 +4,7 @@
     import { addToast } from "$lib/components/base/BaseToast.svelte";
     import { getLogStore } from "$lib/stores/LogStore.svelte.js";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import BaseModal from "$lib/components/base/BaseModal.svelte";
 
     // Initialize stores
     const {
@@ -684,170 +685,139 @@
 </div>
 
 <!-- Add Translation Modal -->
-{#if showAddTranslationModal}
-    <div class="modal fade show" style="display: block;" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        {t("translations.add_new_translation_to", {
-                            fallback: 'Add New Translation to "{namespace}"',
-                            namespace: currentNamespace,
-                        })}
-                    </h5>
-                    <button
-                        type="button"
-                        class="btn-close"
-                        onclick={toggleAddTranslationModal}
-                    ></button>
-                </div>
-                <form
-                    onsubmit={(e) => {
-                        e.preventDefault();
-                        addTranslation();
-                    }}
-                >
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="newTranslationKey" class="form-label"
-                                >{t("translations.translation_key", {
-                                    fallback: "Translation Key",
-                                })}</label
-                            >
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="newTranslationKey"
-                                bind:value={newTranslationKey}
-                                placeholder={t(
-                                    "translations.translation_key_placeholder",
-                                    { fallback: "e.g., welcome.message" },
-                                )}
-                                required
-                            />
-                        </div>
+<BaseModal bind:isOpen={showAddTranslationModal} size="lg">
+    {#snippet header()}
+        {t("translations.add_new_translation_to", {
+            fallback: 'Add New Translation to "{namespace}"',
+            namespace: currentNamespace,
+        })}
+    {/snippet}
 
-                        <hr />
-                        <h6>
-                            {t("translations.translations", {
-                                fallback: "Translations",
-                            })}
-                        </h6>
-
-                        {#each languages as language}
-                            <div class="mb-3">
-                                <label
-                                    for="translation-{language.code}"
-                                    class="form-label"
-                                >
-                                    {language.name}
-                                    {language.is_default
-                                        ? `(${t("translations.default", { fallback: "Default" })})`
-                                        : ""}
-                                </label>
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    id="translation-{language.code}"
-                                    bind:value={newTranslationValues[
-                                        language.code
-                                    ]}
-                                    placeholder={t(
-                                        "translations.translation_in_language",
-                                        {
-                                            fallback: `Translation in ${language.name}`,
-                                            language: language.name,
-                                        },
-                                    )}
-                                    required
-                                />
-                            </div>
-                        {/each}
-                    </div>
-                    <div class="modal-footer">
-                        <BaseButton
-                            text={t("common.cancel", { fallback: "Cancel" })}
-                            onClick={toggleAddTranslationModal}
-                            class="btn btn-sm btn-outline-secondary"
-                        />
-                        <BaseButton
-                            text={t("translations.add_translation", {
-                                fallback: "Add Translation",
-                            })}
-                            onClick={() => {}}
-                            class="btn btn-sm btn-primary"
-                        />
-                    </div>
-                </form>
+    {#snippet body()}
+        <form
+            onsubmit={(e) => {
+                e.preventDefault();
+                addTranslation();
+            }}
+        >
+            <div class="mb-3">
+                <label for="newTranslationKey" class="form-label">
+                    {t("translations.translation_key", {
+                        fallback: "Translation Key",
+                    })}
+                </label>
+                <input
+                    type="text"
+                    class="form-control"
+                    id="newTranslationKey"
+                    bind:value={newTranslationKey}
+                    placeholder={t("translations.translation_key_placeholder", {
+                        fallback: "e.g., welcome.message",
+                    })}
+                    required
+                />
             </div>
+
+            <hr />
+            <h6>
+                {t("translations.translations", {
+                    fallback: "Translations",
+                })}
+            </h6>
+
+            {#each languages as language}
+                <div class="mb-3">
+                    <label for="translation-{language.code}" class="form-label">
+                        {language.name}
+                        {language.is_default
+                            ? `(${t("translations.default", {
+                                  fallback: "Default",
+                              })})`
+                            : ""}
+                    </label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="translation-{language.code}"
+                        bind:value={newTranslationValues[language.code]}
+                        placeholder={t("translations.translation_in_language", {
+                            fallback: `Translation in ${language.name}`,
+                            language: language.name,
+                        })}
+                        required
+                    />
+                </div>
+            {/each}
+        </form>
+    {/snippet}
+
+    {#snippet actions()}
+        <div class="d-flex gap-2">
+            <BaseButton
+                text={t("common.cancel", { fallback: "Cancel" })}
+                onClick={toggleAddTranslationModal}
+                class="btn btn-secondary"
+            />
+            <BaseButton
+                text={t("translations.add_translation", {
+                    fallback: "Add Translation",
+                })}
+                onClick={addTranslation}
+                class="btn btn-primary"
+            />
         </div>
-    </div>
-    <div class="modal-backdrop fade show"></div>
-{/if}
+    {/snippet}
+</BaseModal>
 
 <!-- Add Namespace Modal -->
-{#if showAddNamespaceModal}
-    <div class="modal fade show" style="display: block;" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        {t("translations.add_new_namespace", {
-                            fallback: "Add New Namespace",
-                        })}
-                    </h5>
-                    <button
-                        type="button"
-                        class="btn-close"
-                        onclick={toggleAddNamespaceModal}
-                    ></button>
-                </div>
-                <form
-                    onsubmit={(e) => {
-                        e.preventDefault();
-                        addNamespace();
-                    }}
-                >
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="newNamespace" class="form-label"
-                                >{t("translations.namespace_name", {
-                                    fallback: "Namespace Name",
-                                })}</label
-                            >
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="newNamespace"
-                                bind:value={newNamespace}
-                                placeholder={t(
-                                    "translations.namespace_placeholder",
-                                    {
-                                        fallback:
-                                            "e.g., common, navigation, errors",
-                                    },
-                                )}
-                                required
-                            />
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <BaseButton
-                            text={t("common.cancel", { fallback: "Cancel" })}
-                            onClick={toggleAddNamespaceModal}
-                            class="btn btn-sm btn-outline-secondary"
-                        />
-                        <BaseButton
-                            text={t("translations.add_namespace", {
-                                fallback: "Add Namespace",
-                            })}
-                            onClick={() => {}}
-                            class="btn btn-sm btn-primary"
-                        />
-                    </div>
-                </form>
+<BaseModal bind:isOpen={showAddNamespaceModal}>
+    {#snippet header()}
+        {t("translations.add_new_namespace", {
+            fallback: "Add New Namespace",
+        })}
+    {/snippet}
+
+    {#snippet body()}
+        <form
+            onsubmit={(e) => {
+                e.preventDefault();
+                addNamespace();
+            }}
+        >
+            <div class="mb-3">
+                <label for="newNamespace" class="form-label">
+                    {t("translations.namespace_name", {
+                        fallback: "Namespace Name",
+                    })}
+                </label>
+                <input
+                    type="text"
+                    class="form-control"
+                    id="newNamespace"
+                    bind:value={newNamespace}
+                    placeholder={t("translations.namespace_placeholder", {
+                        fallback: "e.g., common, navigation, errors",
+                    })}
+                    required
+                />
             </div>
+        </form>
+    {/snippet}
+
+    {#snippet actions()}
+        <div class="d-flex gap-2">
+            <BaseButton
+                text={t("common.cancel", { fallback: "Cancel" })}
+                onClick={toggleAddNamespaceModal}
+                class="btn btn-secondary"
+            />
+            <BaseButton
+                text={t("translations.add_namespace", {
+                    fallback: "Add Namespace",
+                })}
+                onClick={addNamespace}
+                class="btn btn-primary"
+            />
         </div>
-    </div>
-    <div class="modal-backdrop fade show"></div>
-{/if}
+    {/snippet}
+</BaseModal>

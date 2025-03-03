@@ -7,7 +7,7 @@
     import Header from "$lib/components/Header.svelte";
     import BaseToast from "$lib/components/base/BaseToast.svelte";
 
-    // Just get the store, initialization happens automatically
+    // Initialize stores
     getTranslationStore();
 </script>
 
