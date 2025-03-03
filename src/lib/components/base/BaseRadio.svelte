@@ -52,12 +52,6 @@
         flex-shrink: 0;
     }
 
-    /* Style for highlighted radio */
-    .form-check-input[data-highlighted="true"] {
-        border-color: var(--bs-primary);
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-
     /* Style for checked radio */
     .form-check-input:checked {
         background-color: var(--bs-primary);

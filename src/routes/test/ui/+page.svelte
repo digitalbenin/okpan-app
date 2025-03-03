@@ -4,11 +4,14 @@
     import BaseModal from "$lib/components/base/BaseModal.svelte";
     import BaseSelect from "$lib/components/base/BaseSelect.svelte";
     import BaseRadio from "$lib/components/base/BaseRadio.svelte";
+    import BaseToggle from "$lib/components/base/BaseToggle.svelte";
     import { addToast } from "$lib/components/base/BaseToast.svelte";
 
     let showModal = $state(false);
     let numberValue = $state(50);
     let textValue = $state("");
+    let toggleValue1 = $state(true);
+    let toggleValue2 = $state(false);
 
     const fruits = ["Apple", "Banana", "Orange", "Mango", "Pineapple"];
     const colors = ["Red", "Blue", "Green", "Yellow", "Purple"];
@@ -16,8 +19,8 @@
     const alignments = ["Left", "Center", "Right"];
     let selectedFruit = $state("");
     let selectedColor = $state("");
-    let selectedSize = $state("Small");
-    let selectedAlignment = $state("Left");
+    let selectedSize = $state("");
+    let selectedAlignment = $state("");
 
     $effect(() => {
         console.log("fruit", selectedFruit);
@@ -144,6 +147,32 @@
                 orientation="vertical"
                 class="w-auto"
                 bind:value={selectedSize}
+            />
+        </div>
+    </section>
+
+    <!-- TOGGLES -->
+
+    <section class="mb-5">
+        <h2 class="mb-4">Toggles</h2>
+        <div class="d-flex flex-column gap-3">
+            <BaseToggle
+                bind:value={toggleValue1}
+                label="Default Toggle (Label Left)"
+            />
+
+            <BaseToggle
+                bind:value={toggleValue2}
+                label="Label on Right"
+                labelPosition="right"
+            />
+
+            <BaseToggle
+                bind:value={toggleValue1}
+                label="Disabled Toggle (label on top)"
+                labelPosition="top"
+                disabled={true}
+                class="mt-3"
             />
         </div>
     </section>

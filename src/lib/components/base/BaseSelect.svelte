@@ -48,9 +48,8 @@
                     {#if icon}
                         <i class={`bi bi-${icon}`}></i>
                     {/if}
-                    {select.value || placeholder}
+                    <span class="pe-3">{select.value || placeholder}</span>
                 </span>
-                <i class="bi bi-chevron-down"></i>
             </button>
 
             <div
@@ -96,9 +95,8 @@
                 {#if icon}
                     <i class={`bi bi-${icon}`}></i>
                 {/if}
-                {select.value || placeholder}
-            </span>
-            <i class="bi bi-chevron-down"></i>
+                <span class="pe-3"></span>{select.value || placeholder}</span
+            >
         </button>
 
         <div
@@ -133,11 +131,6 @@
 {/if}
 
 <style>
-    /* When label is on the left, make it take minimum width needed */
-    .d-flex label {
-        flex-shrink: 0;
-    }
-
     .cursor-pointer {
         cursor: pointer;
     }
