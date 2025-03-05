@@ -5,6 +5,7 @@
     import BaseSelect from "$lib/components/base/BaseSelect.svelte";
     import BaseRadio from "$lib/components/base/BaseRadio.svelte";
     import BaseToggle from "$lib/components/base/BaseToggle.svelte";
+    import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { addToast } from "$lib/components/base/BaseToast.svelte";
 
     let showModal = $state(false);
@@ -260,6 +261,43 @@
                     })}
                 class="btn btn-info"
             />
+        </div>
+    </section>
+
+    <!-- IMAGES -->
+
+    <section class="mb-5">
+        <h2 class="mb-4">Images</h2>
+        <div class="d-flex flex-row gap-3 flex-wrap justify-content-between">
+            <div class="d-flex flex-column gap-1">
+                <p>Image with ratio = 16/9</p>
+                <BaseImage
+                    src="https://picsum.photos/400"
+                    alt="Placeholder"
+                    width="300"
+                    ratio="16/9"
+                    class="mb-3"
+                />
+            </div>
+            <div class="d-flex flex-column gap-1">
+                <p>Image with no src, ratio = 4/3</p>
+                <BaseImage
+                    alt="Placeholder"
+                    width="300"
+                    ratio="4/3"
+                    class="mb-3"
+                />
+            </div>
+            <div class="d-flex flex-column gap-1">
+                <p>Image not present</p>
+                <BaseImage
+                    src="https://fake.url"
+                    alt="Placeholder"
+                    width="300"
+                    ratio="16/9"
+                    class="mb-3"
+                />
+            </div>
         </div>
     </section>
 </div>
