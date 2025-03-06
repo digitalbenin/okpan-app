@@ -102,6 +102,7 @@ export const project = sqliteTable('project', {
 // Project relations
 export const projectRelations = relations(project, ({ many, one }) => ({
     institutions: many(institutions),
+    objects: many(objects),
     researchFields: many(research_fields),
     settings: many(settings),
     title: one(texts, {
@@ -231,7 +232,8 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
 export const objects = sqliteTable('objects', {
     ...commonFields,
     status: text('status'),
-    institution_id: text('institution_id').references(() => institutions.id)
+    institution_id: text('institution_id').references(() => institutions.id),
+    project_id: text('project_id').references(() => project.id)
 });
 
 // Objects relations
@@ -239,6 +241,10 @@ export const objectsRelations = relations(objects, ({ one, many }) => ({
     institution: one(institutions, {
         fields: [objects.institution_id],
         references: [institutions.id]
+    }),
+    project: one(project, {
+        fields: [objects.project_id],
+        references: [project.id]
     }),
     objectsResearchFields: many(objects_research_fields),
     objectsOntologyFields: many(objects_ontology_fields),

@@ -241,6 +241,28 @@ export const API_SECTIONS = {
     }
   }
 }`
+      },
+      {
+        type: "query",
+        name: "List projects (with counts)",
+        description: "Retrieves all the projects with their institutions and objects count",
+        query: `{
+  projectsList {
+    id
+    created_at
+    updated_at
+    title {
+      content
+      original_language
+    }
+    description {
+      content
+      original_language
+    }
+    institutionsCount
+    objectsCount
+  }
+}`
       }
     ]
   },
