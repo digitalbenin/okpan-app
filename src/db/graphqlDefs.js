@@ -134,7 +134,13 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Query._fields.institutionsList = {
         name: 'institutionsList',
         type: new GraphQLList(new GraphQLNonNull(drizzleResult.schema._typeMap.InstitutionsSelectItem)),
-        args: [],
+        args: [
+            {
+                name: 'project_id',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Filter institutions by project ID'
+            }
+        ],
         resolve: async (source, args, context, info) => {
             // Create aliases for the texts tables
             const nameTexts = aliasedTable(dbSchema.texts, 'name_texts');
@@ -169,8 +175,8 @@ export function createGraphQLSchema(db) {
                 'assets_count'
             );
 
-            // Execute the query
-            const institutions = await db.select({
+            // Build the base query
+            let query = db.select({
                 id: dbSchema.institutions.id,
                 created_at: dbSchema.institutions.created_at,
                 updated_at: dbSchema.institutions.updated_at,
@@ -197,12 +203,118 @@ export function createGraphQLSchema(db) {
                 .leftJoin(countryTexts, eq(dbSchema.institutions.country_id, countryTexts.id))
                 .leftJoin(countryTranslations, eq(countryTexts.id, countryTranslations.text_id))
                 .leftJoin(linksTexts, eq(dbSchema.institutions.links_id, linksTexts.id))
-                .leftJoin(linksTranslations, eq(linksTexts.id, linksTranslations.text_id))
+                .leftJoin(linksTranslations, eq(linksTexts.id, linksTranslations.text_id));
+
+            // Apply project_id filter if provided
+            if (args.project_id) {
+                query = query.where(eq(dbSchema.institutions.project_id, args.project_id));
+            }
+
+            // Complete the query with groupBy and execute
+            const institutions = await query
                 .groupBy(dbSchema.institutions.id)
                 .execute();
 
             // Process translations
             return processTranslations(institutions, ['name', 'description', 'location', 'country', 'links']);
+        }
+    };
+
+    // Add custom query for getting a single institution by ID
+    drizzleResult.schema._typeMap.Query._fields.institutionById = {
+        name: 'institutionById',
+        type: drizzleResult.schema._typeMap.InstitutionsSelectItem,
+        args: [
+            {
+                name: 'institution_id',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'ID of the institution to retrieve'
+            }
+        ],
+        resolve: async (source, args, context, info) => {
+            // Validate input
+            if (!args.institution_id) {
+                throw new Error('institution_id is required');
+            }
+
+            // Create aliases for the texts tables
+            const nameTexts = aliasedTable(dbSchema.texts, 'name_texts');
+            const descriptionTexts = aliasedTable(dbSchema.texts, 'description_texts');
+            const locationTexts = aliasedTable(dbSchema.texts, 'location_texts');
+            const countryTexts = aliasedTable(dbSchema.texts, 'country_texts');
+            const linksTexts = aliasedTable(dbSchema.texts, 'links_texts');
+
+            // Create aliases for the translations tables
+            const nameTranslations = aliasedTable(dbSchema.translations, 'name_translations');
+            const descriptionTranslations = aliasedTable(dbSchema.translations, 'description_translations');
+            const locationTranslations = aliasedTable(dbSchema.translations, 'location_translations');
+            const countryTranslations = aliasedTable(dbSchema.translations, 'country_translations');
+            const linksTranslations = aliasedTable(dbSchema.translations, 'links_translations');
+
+            // Create count subqueries
+            const objectsSubquery = createCountSubquery(
+                dbSchema.objects,
+                'institution_id',
+                'objects_count'
+            );
+
+            const datasourcesSubquery = createCountSubquery(
+                dbSchema.datasources,
+                'institution_id',
+                'datasources_count'
+            );
+
+            const assetsSubquery = createCountSubquery(
+                dbSchema.assets,
+                'institution_id',
+                'assets_count'
+            );
+
+            // Build the query
+            const query = db.select({
+                id: dbSchema.institutions.id,
+                created_at: dbSchema.institutions.created_at,
+                updated_at: dbSchema.institutions.updated_at,
+                project_id: dbSchema.institutions.project_id,
+                name: createTextFieldWithTranslations(nameTexts, nameTranslations),
+                description: createTextFieldWithTranslations(descriptionTexts, descriptionTranslations),
+                location: createTextFieldWithTranslations(locationTexts, locationTranslations),
+                country: createTextFieldWithTranslations(countryTexts, countryTranslations),
+                links: createTextFieldWithTranslations(linksTexts, linksTranslations),
+                objectsCount: sql`COALESCE(${objectsSubquery.objects_count}, 0)`.as('objectsCount'),
+                datasourcesCount: sql`COALESCE(${datasourcesSubquery.datasources_count}, 0)`.as('datasourcesCount'),
+                assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount')
+            })
+                .from(dbSchema.institutions)
+                .where(eq(dbSchema.institutions.id, args.institution_id))
+                .leftJoin(objectsSubquery, eq(dbSchema.institutions.id, objectsSubquery.institution_id))
+                .leftJoin(datasourcesSubquery, eq(dbSchema.institutions.id, datasourcesSubquery.institution_id))
+                .leftJoin(assetsSubquery, eq(dbSchema.institutions.id, assetsSubquery.institution_id))
+                .leftJoin(nameTexts, eq(dbSchema.institutions.name_id, nameTexts.id))
+                .leftJoin(nameTranslations, eq(nameTexts.id, nameTranslations.text_id))
+                .leftJoin(descriptionTexts, eq(dbSchema.institutions.description_id, descriptionTexts.id))
+                .leftJoin(descriptionTranslations, eq(descriptionTexts.id, descriptionTranslations.text_id))
+                .leftJoin(locationTexts, eq(dbSchema.institutions.location_id, locationTexts.id))
+                .leftJoin(locationTranslations, eq(locationTexts.id, locationTranslations.text_id))
+                .leftJoin(countryTexts, eq(dbSchema.institutions.country_id, countryTexts.id))
+                .leftJoin(countryTranslations, eq(countryTexts.id, countryTranslations.text_id))
+                .leftJoin(linksTexts, eq(dbSchema.institutions.links_id, linksTexts.id))
+                .leftJoin(linksTranslations, eq(linksTexts.id, linksTranslations.text_id))
+                .groupBy(dbSchema.institutions.id);
+
+            // Execute the query
+            const institutions = await query.execute();
+
+            // Process the result
+            if (institutions.length === 0) {
+                return null; // Return null if no institution is found
+            }
+
+            // Process translations for the single institution
+            const processedInstitutions = processTranslations(institutions, ['name', 'description', 'location', 'country', 'links']);
+
+            // Return the first (and only) result
+            return processedInstitutions[0];
         }
     };
 

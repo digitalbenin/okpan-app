@@ -576,6 +576,61 @@ export const API_SECTIONS = {
             objectsCount
           }
         }`
+      },
+      {
+        type: "query",
+        name: "Get Institution By ID (with counts)",
+        description: "Retrieves a single institution by its ID with all details including counts",
+        query: `query GetInstitution($institutionId: String!) {
+          institutionById(institution_id: $institutionId) {
+            id
+            created_at
+            updated_at
+            project_id
+            name {
+              content
+              original_language
+              translations {
+                language_code
+                content
+              }
+            }
+            description {
+              content
+              translations {
+                language_code
+                content
+              }
+            }
+            location {
+              content
+              translations {
+                language_code
+                content
+              }
+            }
+            country {
+              content
+              translations {
+                language_code
+                content
+              }
+            }
+            links {
+              content
+              translations {
+                language_code
+                content
+              }
+            }
+            assetsCount
+            datasourcesCount
+            objectsCount
+          }
+        }`,
+        variables: {
+          institutionId: "your-institution-id-here"
+        }
       }
     ]
   },
