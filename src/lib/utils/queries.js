@@ -548,6 +548,34 @@ export const API_SECTIONS = {
     }
   }
 }`
+      },
+      {
+        type: "query",
+        name: "List Institutions (with counts)",
+        description: "Retrieves all institutions with their counts",
+        query: `{
+          institutionsList {
+            id
+            created_at
+            updated_at
+            project_id
+            name {
+              content
+            }
+            description {
+              content
+            }
+            location {
+              content
+            }
+            country {
+              content
+            }
+            assetsCount
+            datasourcesCount
+            objectsCount
+          }
+        }`
       }
     ]
   },
