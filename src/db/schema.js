@@ -105,6 +105,7 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     objects: many(objects),
     researchFields: many(research_fields),
     settings: many(settings),
+    assets: many(assets),
     title: one(texts, {
         fields: [project.title_id],
         references: [texts.id]
@@ -214,8 +215,10 @@ export const assets = sqliteTable('assets', {
     filename: text('filename'),
     path: text('path'),
     type: text('type'),
+    formats: text('formats', { mode: 'json' }),
     properties: text('properties', { mode: 'json' }),
-    institution_id: text('institution_id').references(() => institutions.id)
+    institution_id: text('institution_id').references(() => institutions.id),
+    project_id: text('project_id').references(() => project.id)
 });
 
 // Assets relations
@@ -223,6 +226,10 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
     institution: one(institutions, {
         fields: [assets.institution_id],
         references: [institutions.id]
+    }),
+    project: one(project, {
+        fields: [assets.project_id],
+        references: [project.id]
     }),
     assetsInstitutions: many(assets_institutions),
     objectsAssets: many(objects_assets)

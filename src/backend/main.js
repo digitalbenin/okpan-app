@@ -10,8 +10,8 @@ import { createGraphQLSchema } from '../db/graphqlDefs.js';
 // Import handlers
 import { handleExportTranslations, handleImportTranslations } from './handlers/translationHandlers.js';
 import { handleGraphQL } from './handlers/graphqlHandler.js';
-import { handlePing } from './handlers/systemHandlers.js';
-
+import { handlePing, handleFileDialog } from './handlers/systemHandlers.js';
+import { handleImportAssets } from './handlers/assetHandlers.js';
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
 
@@ -70,7 +70,10 @@ ipcMain.handle('export-translations', (event, filePath) =>
 ipcMain.handle('import-translations', (event, filePath) =>
   handleImportTranslations(event, filePath, { schema, resolvers, db })
 );
-
+ipcMain.handle('import-assets', (event, data) =>
+  handleImportAssets(event, data)
+);
+ipcMain.handle('open-file-dialog', handleFileDialog);
 
 // Initialize app
 app.whenReady().then(() => {

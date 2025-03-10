@@ -58,7 +58,9 @@
     "graphql": "^16.10.0",
     "graphql-tools": "^9.0.13",
     "melt": "^0.17.0",
+    "sharp": "^0.33.5",
     "sveltekit-i18n": "^2.4.2",
+    "uuid": "^11.1.0",
     "zod": "^3.24.2"
   },
   "resolutions": {

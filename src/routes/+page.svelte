@@ -46,6 +46,13 @@
       onClick={() => goto("/test/ui")}
       class="btn btn-link d-flex align-items-center text-decoration-none"
     />
+
+    <BaseButton
+      text={t("common.assets", { fallback: "Assets" })}
+      icon="file-earmark-image"
+      onClick={() => goto("/test/assets")}
+      class="btn btn-link d-flex align-items-center text-decoration-none"
+    />
   </div>
 
   <!-- 

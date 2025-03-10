@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 // https://vitejs.dev/config
 export default defineConfig({
     optimizeDeps: {
-        exclude: ['@libsql/client', '@libsql/win32-x64-msvc']
+        exclude: ['@libsql/client', '@libsql/win32-x64-msvc', 'sharp']
     },
     build: {
         outDir: '.vite',
@@ -17,6 +17,7 @@ export default defineConfig({
             external: [
                 'electron',
                 'graphql',
+                'sharp',
                 '@libsql/client',
                 '@libsql/win32-x64-msvc',
                 /^graphql\/.*/  // Ensure all graphql subpaths are treated as external

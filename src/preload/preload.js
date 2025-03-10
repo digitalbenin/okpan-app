@@ -10,5 +10,7 @@ contextBridge.exposeInMainWorld('api', {
     exportTranslations: (filePath) => ipcRenderer.invoke('export-translations', filePath),
     importTranslations: (filePath) => ipcRenderer.invoke('import-translations', filePath),
     exportLogs: (filePath) => ipcRenderer.invoke('export-logs', filePath),
-    clearLogs: (filters) => ipcRenderer.invoke('clear-logs', filters)
+    clearLogs: (filters) => ipcRenderer.invoke('clear-logs', filters),
+    importAssets: (data) => ipcRenderer.invoke('import-assets', data),
+    openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options)
 });
