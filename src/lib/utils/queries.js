@@ -1,17 +1,67 @@
 export const API_SECTIONS = {
+  interface_languages: {
+    name: "Interface Languages",
+    operations: [
+      {
+        type: "query",
+        name: "List Interface Languages",
+        description: "Lists all supported interface languages",
+        query: `{
+  interface_languages {
+    id
+    code
+    name
+  }
+}`
+      },
+      {
+        type: "mutation",
+        name: "Create Interface Language",
+        description: "Creates a new interface language",
+        variables: {
+          code: "Language code (e.g., 'en', 'es')",
+          name: "Language name (e.g., 'English', 'Spanish')"
+        },
+        query: `mutation CreateInterfaceLanguage($code: String!, $name: String!) {
+  insertIntoInterface_languages(values: [{
+    code: $code,
+    name: $name
+  }]) {
+    id
+    code
+    name
+  }
+}`
+      },
+      {
+        type: "mutation",
+        name: "Delete Interface Language",
+        description: "Deletes an interface language by its code",
+        variables: {
+          code: "Language code to delete"
+        },
+        query: `mutation DeleteInterfaceLanguage($code: String!) {
+  deleteFromInterface_languages(where: { code: { eq: $code } }) {
+    code
+    name
+  }
+}`
+      }
+    ]
+  },
   languages: {
-    name: "Languages",
+    name: "Content Languages",
     operations: [
       {
         type: "mutation",
-        name: "Create Language",
-        description: "Creates a new supported language",
+        name: "Create Content Language",
+        description: "Creates a new content language for translations",
         variables: {
           code: "Language code (e.g., 'en', 'es')",
           name: "Language name (e.g., 'English', 'Spanish')",
           isDefault: "Is this the default language (0 or 1)"
         },
-        query: `mutation CreateLanguage($code: String!, $name: String!, $isDefault: Int!) {
+        query: `mutation CreateContentLanguage($code: String!, $name: String!, $isDefault: Int!) {
   insertIntoLanguages(values: [{
     code: $code,
     name: $name,
@@ -26,12 +76,12 @@ export const API_SECTIONS = {
       },
       {
         type: "mutation",
-        name: "Delete Language",
-        description: "Deletes a language by its code",
+        name: "Delete Content Language",
+        description: "Deletes a content language by its code",
         variables: {
           code: "Language code to delete"
         },
-        query: `mutation DeleteLanguage($code: String!) {
+        query: `mutation DeleteContentLanguage($code: String!) {
   deleteFromLanguages(where: { code: { eq: $code } }) {
     code
     name
@@ -40,8 +90,8 @@ export const API_SECTIONS = {
       },
       {
         type: "query",
-        name: "List Languages",
-        description: "Lists all supported languages",
+        name: "List Content Languages",
+        description: "Lists all supported content languages",
         query: `{
   languages {
     id
@@ -695,6 +745,30 @@ export const API_SECTIONS = {
     namespace
     key
     value
+    interfaceLanguage {
+      code
+      name
+    }
+  }
+}`
+      },
+      {
+        type: "query",
+        name: "Get Interface Translations By Locale",
+        description: "Retrieves interface translations for a specific locale",
+        variables: {
+          locale: "Language code for the translations"
+        },
+        query: `query GetInterfaceTranslations($locale: String!) {
+  interface_translations(where: { locale: { eq: $locale } }) {
+    id
+    namespace
+    key
+    value
+    interfaceLanguage {
+      code
+      name
+    }
   }
 }`
       },
@@ -720,6 +794,10 @@ export const API_SECTIONS = {
     namespace
     key
     value
+    interfaceLanguage {
+      code
+      name
+    }
   }
 }`
       },
@@ -738,6 +816,10 @@ export const API_SECTIONS = {
   ) {
     id
     value
+    interfaceLanguage {
+      code
+      name
+    }
   }
 }`
       },
@@ -751,6 +833,23 @@ export const API_SECTIONS = {
         query: `mutation DeleteInterfaceTranslation($id: String!) {
   deleteFromInterface_translations(where: { id: { eq: $id } }) {
     id
+  }
+}`
+      },
+      {
+        type: "mutation",
+        name: "Import Interface Translations",
+        description: "Imports multiple interface translations at once",
+        variables: {
+          translations: "Array of translations to import"
+        },
+        query: `mutation ImportInterfaceTranslations($translations: [interface_translationsInsertInput!]!) {
+  insertIntoInterface_translations(values: $translations) {
+    id
+    locale
+    namespace
+    key
+    value
   }
 }`
       }

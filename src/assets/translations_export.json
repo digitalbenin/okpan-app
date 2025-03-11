@@ -592,13 +592,11 @@
   "languages": [
     {
       "code": "en",
-      "name": "english",
-      "is_default": 1
+      "name": "english"
     },
     {
       "code": "it",
-      "name": "italiano",
-      "is_default": 0
+      "name": "italiano"
     }
   ],
   "exportDate": "2025-02-28T16:44:20.649Z"

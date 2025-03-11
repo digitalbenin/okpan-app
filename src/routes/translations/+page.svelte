@@ -34,9 +34,10 @@
     let editedValues = $state({});
 
     // Get API queries
-    const { query: languagesQuery } = API_SECTIONS.languages.operations.find(
-        (op) => op.name === "List Languages",
-    );
+    const { query: languagesQuery } =
+        API_SECTIONS.interface_languages.operations.find(
+            (op) => op.name === "List Interface Languages",
+        );
     const { query: interfaceTranslationsQuery } =
         API_SECTIONS.interface_translations.operations.find(
             (op) => op.name === "List Interface Translations",
@@ -51,7 +52,7 @@
                     result.errors?.[0]?.message || "Failed to fetch languages",
                 );
 
-            languages = result.data.languages;
+            languages = result.data.interface_languages;
             newTranslationValues = Object.fromEntries(
                 languages.map((lang) => [lang.code, ""]),
             );
@@ -574,7 +575,7 @@
                                         {#each languages as language}
                                             <th>
                                                 {language.name}
-                                                {#if language.is_default}
+                                                {#if language.code === "en"}
                                                     <span class="text-muted"
                                                         >({t(
                                                             "translations.default",
@@ -606,9 +607,12 @@
                                                         <input
                                                             type="text"
                                                             class="form-control form-control-sm"
-                                                            bind:value={editedValues[
-                                                                language.code
-                                                            ]}
+                                                            bind:value={
+                                                                editedValues[
+                                                                    language
+                                                                        .code
+                                                                ]
+                                                            }
                                                             placeholder={item
                                                                 .translations[
                                                                 language.code
@@ -729,11 +733,11 @@
                 <div class="mb-3">
                     <label for="translation-{language.code}" class="form-label">
                         {language.name}
-                        {language.is_default
-                            ? `(${t("translations.default", {
-                                  fallback: "Default",
-                              })})`
-                            : ""}
+                        {#if language.code === "en"}
+                            ({t("translations.default", {
+                                fallback: "Default",
+                            })})
+                        {/if}
                     </label>
                     <input
                         type="text"

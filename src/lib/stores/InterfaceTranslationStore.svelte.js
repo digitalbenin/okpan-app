@@ -24,12 +24,13 @@ export function getTranslationStore() {
         currentLocale: 'en',
         isLoading: false,
         error: null,
-        isInitialized: false
+        isInitialized: false,
+        defaultLocale: 'en' // Added to track default locale
     });
 
     // Get queries from API_SECTIONS
-    const languagesQuery = API_SECTIONS.languages.operations.find(
-        (op) => op.name === "List Languages"
+    const languagesQuery = API_SECTIONS.interface_languages.operations.find(
+        (op) => op.name === "List Interface Languages"
     ).query;
 
     const interfaceTranslationsQuery = API_SECTIONS.interface_translations.operations.find(
@@ -61,12 +62,13 @@ export function getTranslationStore() {
                 );
             }
 
-            translationState.languages = result.data.languages;
+            translationState.languages = result.data.interface_languages;
 
             // Set default locale if available
-            const defaultLang = translationState.languages.find(lang => lang.is_default);
-            if (defaultLang) {
-                translationState.currentLocale = defaultLang.code;
+            // Note: interface languages don't have is_default, so we'll use the first one or 'en'
+            if (translationState.languages.length > 0) {
+                const enLang = translationState.languages.find(lang => lang.code === 'en');
+                translationState.currentLocale = enLang ? enLang.code : translationState.languages[0].code;
             }
         } catch (err) {
             console.error("Error fetching languages:", err);
@@ -158,10 +160,9 @@ export function getTranslationStore() {
 
             // Check if translation exists for locale
             if (!translationState.translations[namespace][key][targetLocale]) {
-                // Fallback to default locale if available
-                const defaultLang = translationState.languages.find(lang => lang.is_default);
-                if (defaultLang && translationState.translations[namespace][key][defaultLang.code]) {
-                    return translationState.translations[namespace][key][defaultLang.code];
+                // Try English as first fallback
+                if (translationState.translations[namespace][key]['en']) {
+                    return translationState.translations[namespace][key]['en'];
                 }
 
                 // Fallback to any available translation
@@ -185,8 +186,10 @@ export function getTranslationStore() {
     const setLocale = (locale) => {
         if (translationState.languages.some(lang => lang.code === locale)) {
             translationState.currentLocale = locale;
+            return true;
         } else {
-            console.warn(`Locale "${locale}" is not supported`);
+            console.warn(`Locale "${locale}" is not supported in interface languages`);
+            return false;
         }
     };
 
@@ -219,8 +222,9 @@ export function getTranslationStore() {
         for (const namespace in translationState.translations) {
             formatted[namespace] = {};
 
-            for (const locale of translationState.languages.map(l => l.code)) {
-                formatted[namespace][locale] = getNamespaceTranslations(namespace, locale);
+            // Use interface languages
+            for (const lang of translationState.languages) {
+                formatted[namespace][lang.code] = getNamespaceTranslations(namespace, lang.code);
             }
         }
 

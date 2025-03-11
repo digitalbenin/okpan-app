@@ -2,7 +2,7 @@ import { dialog } from 'electron';
 import fs from 'fs/promises';
 import { eq, and } from 'drizzle-orm';
 // Import the database schema tables
-import { languages, interface_translations } from '../../db/schema.js';
+import { interface_languages, interface_translations } from '../../db/schema.js';
 
 /**
  * Handler for exporting translations to a JSON file
@@ -18,7 +18,7 @@ export const handleExportTranslations = async (event, filePath, { db }) => {
 
         // Query to get all interface translations and languages
         const translations = await db.query.interface_translations.findMany();
-        const languages = await db.query.languages.findMany();
+        const languages = await db.query.interface_languages.findMany();
 
         // Format the data for export - exclude IDs and timestamps
         const exportData = {
@@ -30,8 +30,8 @@ export const handleExportTranslations = async (event, filePath, { db }) => {
         // If no filePath is provided, show a save dialog
         if (!filePath) {
             const { canceled, filePath: selectedPath } = await dialog.showSaveDialog({
-                title: 'Export Translations',
-                defaultPath: 'translations_export.json',
+                title: 'Export Interface Translations',
+                defaultPath: 'interface_translations_export.json',
                 filters: [
                     { name: 'JSON Files', extensions: ['json'] }
                 ]
@@ -47,9 +47,9 @@ export const handleExportTranslations = async (event, filePath, { db }) => {
         // Write the data to the file
         await fs.writeFile(filePath, JSON.stringify(exportData, null, 2));
 
-        return { success: true, message: 'Translations exported successfully', filePath };
+        return { success: true, message: 'Interface translations exported successfully', filePath };
     } catch (error) {
-        console.error('Error exporting translations:', error);
+        console.error('Error exporting interface translations:', error);
         return { success: false, error: error.message };
     }
 };
@@ -69,7 +69,7 @@ export const handleImportTranslations = async (event, filePath, { db }) => {
         // If no filePath is provided, show an open dialog
         if (!filePath) {
             const { canceled, filePaths } = await dialog.showOpenDialog({
-                title: 'Import Translations',
+                title: 'Import Interface Translations',
                 filters: [
                     { name: 'JSON Files', extensions: ['json'] }
                 ],
@@ -92,25 +92,44 @@ export const handleImportTranslations = async (event, filePath, { db }) => {
             return { success: false, error: 'Invalid import file format: missing translations array' };
         }
 
-        // Import languages first if they don't exist
+        // Import interface languages first if they don't exist
         if (importData.languages && Array.isArray(importData.languages)) {
             for (const language of importData.languages) {
-                // Check if language exists
-                const existingLanguage = await db.query.languages.findFirst({
-                    where: eq(languages.code, language.code)
-                });
+                try {
+                    // Validate language object
+                    if (!language.code || !language.name) {
+                        console.warn(`Skipping invalid language entry:`, language);
+                        continue;
+                    }
 
-                if (!existingLanguage) {
-                    // Language doesn't exist, create it
-                    await db.insert(languages).values({
-                        code: language.code,
-                        name: language.name,
-                        is_default: language.is_default || 0
+                    // Check if language exists
+                    const existingLanguage = await db.query.interface_languages.findFirst({
+                        where: eq(interface_languages.code, language.code)
                     });
 
-                    console.log(`Created language: ${language.code} (${language.name})`);
+                    if (!existingLanguage) {
+                        // Language doesn't exist, create it
+                        await db.insert(interface_languages).values({
+                            code: language.code.toLowerCase(),
+                            name: language.name.toLowerCase()
+                        });
+
+                        console.log(`Created interface language: ${language.code} (${language.name})`);
+                    } else {
+                        // Optionally update existing language name if different
+                        if (existingLanguage.name !== language.name.toLowerCase()) {
+                            await db.update(interface_languages)
+                                .set({ name: language.name.toLowerCase() })
+                                .where(eq(interface_languages.code, language.code));
+                            console.log(`Updated interface language: ${language.code} (${language.name})`);
+                        }
+                    }
+                } catch (err) {
+                    console.error(`Error importing language ${language.code}:`, err);
                 }
             }
+        } else {
+            console.warn('No languages found in import data');
         }
 
         // Import translations
@@ -159,7 +178,7 @@ export const handleImportTranslations = async (event, filePath, { db }) => {
 
         return {
             success: true,
-            message: 'Translations imported successfully',
+            message: 'Interface translations imported successfully',
             stats: {
                 imported: importedCount,
                 updated: updatedCount,
@@ -168,7 +187,7 @@ export const handleImportTranslations = async (event, filePath, { db }) => {
             }
         };
     } catch (error) {
-        console.error('Error importing translations:', error);
+        console.error('Error importing interface translations:', error);
         return { success: false, error: error.message };
     }
 }; 

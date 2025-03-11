@@ -23,6 +23,7 @@ export const languages = sqliteTable('languages', {
     is_default: integer('is_default').notNull().default(0)
 });
 
+
 // Texts table - stores original texts
 export const texts = sqliteTable('texts', {
     ...commonFields,
@@ -65,12 +66,22 @@ export const translationsRelations = relations(translations, ({ one }) => ({
     })
 }));
 
+
+export const interface_languages = sqliteTable('interface_languages', {
+    ...commonFields,
+    code: text('code').notNull().unique(), // e.g., 'en', 'es', 'fr'
+    name: text('name').notNull() // e.g., 'English', 'Spanish', 'French'
+});
+
+
+
+
 // Interface Translations table - stores UI translations
 export const interface_translations = sqliteTable('interface_translations', {
     ...commonFields,
     locale: text('locale')
         .notNull()
-        .references(() => languages.code),
+        .references(() => interface_languages.code),
     namespace: text('namespace').notNull(), // e.g., 'common', 'navigation', 'errors'
     key: text('key').notNull(), // e.g., 'welcome', 'submit', 'cancel'
     value: text('value').notNull(), // The translated text
@@ -85,9 +96,9 @@ export const interfaceTranslationsIndex = sqliteTable('interface_translations_id
 
 // Interface Translations relations
 export const interfaceTranslationsRelations = relations(interface_translations, ({ one }) => ({
-    language: one(languages, {
+    interfaceLanguage: one(interface_languages, {
         fields: [interface_translations.locale],
-        references: [languages.code]
+        references: [interface_languages.code]
     })
 }));
 

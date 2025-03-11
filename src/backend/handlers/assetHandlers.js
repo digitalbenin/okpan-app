@@ -14,6 +14,7 @@ const videoFormats = ["mp4", "webm", "ogg"]
 const audioFormats = ["mp3", "wav", "ogg", "m4a"]
 
 
+
 const getCroppedUUID = () => {
     return uuidv4().slice(0, 8);
 }
@@ -42,6 +43,7 @@ const checkAssetType = (path) => {
 
 const handleImportAssets = async (event, data) => {
     let progress = 0
+    let loading = true
     let errors = []
 
     console.log("asset handler data", data)
@@ -116,6 +118,7 @@ const handleImportAssets = async (event, data) => {
             }
         }
     }
+    loading = false
     return {
         errors
     }
