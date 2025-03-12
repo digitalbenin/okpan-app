@@ -100,3 +100,6 @@ dist/
 
 # Database
 *.db
+
+# Assets
+src/assets/project_assets/*

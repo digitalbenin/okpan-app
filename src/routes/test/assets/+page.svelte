@@ -128,7 +128,7 @@
 
                     <div class="mb-3">
                         <BaseInput
-                            label="Project ID (Optional)"
+                            label="Project ID"
                             placeholder="Enter project ID"
                             bind:value={projectId}
                         />

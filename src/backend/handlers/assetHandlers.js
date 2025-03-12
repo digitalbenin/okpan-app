@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 const sm = 300
 const md = 1400
 const maxSize = 5000000 // 5Mb
-const assetPath = "./src/assets"
+const assetPath = "./src/assets/project_assets"
 const imagesFormats = ["png", "jpg", "jpeg", "webp", "gif", "avif"]
 const videoFormats = ["mp4", "webm", "ogg"]
 const audioFormats = ["mp3", "wav", "ogg", "m4a"]
