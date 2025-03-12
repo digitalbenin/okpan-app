@@ -1,8 +1,8 @@
 export const API_SECTIONS = {
   interface_languages: {
     name: "Interface Languages",
-    operations: [
-      {
+    operations: {
+      interfaceLanguagesList: {
         type: "query",
         name: "List Interface Languages",
         description: "Lists all supported interface languages",
@@ -14,7 +14,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      interfaceLanguagesCreate: {
         type: "mutation",
         name: "Create Interface Language",
         description: "Creates a new interface language",
@@ -33,7 +33,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      interfaceLanguagesDelete: {
         type: "mutation",
         name: "Delete Interface Language",
         description: "Deletes an interface language by its code",
@@ -47,12 +47,12 @@ export const API_SECTIONS = {
   }
 }`
       }
-    ]
+    }
   },
   languages: {
     name: "Content Languages",
-    operations: [
-      {
+    operations: {
+      contentLanguagesCreate: {
         type: "mutation",
         name: "Create Content Language",
         description: "Creates a new content language for translations",
@@ -74,7 +74,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      contentLanguagesDelete: {
         type: "mutation",
         name: "Delete Content Language",
         description: "Deletes a content language by its code",
@@ -88,7 +88,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      contentLanguagesList: {
         type: "query",
         name: "List Content Languages",
         description: "Lists all supported content languages",
@@ -101,12 +101,12 @@ export const API_SECTIONS = {
   }
 }`
       }
-    ]
+    }
   },
   projects: {
     name: "Projects",
-    operations: [
-      {
+    operations: {
+      projectsCreate: {
         type: "mutation",
         name: "Create Project",
         description: "Creates a new project with title and description",
@@ -162,7 +162,7 @@ export const API_SECTIONS = {
         ],
         query: null
       },
-      {
+      projectsUpdate: {
         type: "mutation",
         name: "Update Project",
         description: "Updates an existing project by ID",
@@ -192,7 +192,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      projectsDelete: {
         type: "mutation",
         name: "Delete Project",
         description: "Deletes a project by ID",
@@ -206,7 +206,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      projectsGetById: {
         type: "query",
         name: "Get Project by ID",
         description: "Retrieves a single project by its ID",
@@ -246,7 +246,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      projectsList: {
         type: "query",
         name: "List Projects",
         description: "Retrieves all projects with their institutions",
@@ -292,7 +292,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      projectsListWithCounts: {
         type: "query",
         name: "List projects (with counts)",
         description: "Retrieves all the projects with their institutions and objects count",
@@ -314,12 +314,12 @@ export const API_SECTIONS = {
   }
 }`
       }
-    ]
+    }
   },
   institutions: {
     name: "Institutions",
-    operations: [
-      {
+    operations: {
+      institutionsGetById: {
         type: "query",
         name: "Get Institution by ID",
         description: "Retrieves a single institution by its ID",
@@ -379,7 +379,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      institutionsCreate: {
         type: "mutation",
         name: "Create Institution",
         description: "Creates a new institution linked to a project",
@@ -477,7 +477,7 @@ export const API_SECTIONS = {
         ],
         query: null
       },
-      {
+      institutionsUpdate: {
         type: "mutation",
         name: "Update Institution",
         description: "Updates an existing institution by ID",
@@ -527,7 +527,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      institutionsDelete: {
         type: "mutation",
         name: "Delete Institution",
         description: "Deletes an institution by ID",
@@ -544,7 +544,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      institutionsList: {
         type: "query",
         name: "List Institutions",
         description: "Retrieves all institutions",
@@ -599,7 +599,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      institutionsListWithCounts: {
         type: "query",
         name: "List Institutions (with counts)",
         description: "Retrieves all institutions with their counts",
@@ -627,7 +627,7 @@ export const API_SECTIONS = {
           }
         }`
       },
-      {
+      institutionsGetByIdWithCounts: {
         type: "query",
         name: "Get Institution By ID (with counts)",
         description: "Retrieves a single institution by its ID with all details including counts",
@@ -682,12 +682,12 @@ export const API_SECTIONS = {
           institutionId: "your-institution-id-here"
         }
       }
-    ]
+    }
   },
   translations: {
     name: "Translations",
-    operations: [
-      {
+    operations: {
+      translationsCreate: {
         type: "mutation",
         name: "Create Translation",
         description: "Creates a translation for a specific text",
@@ -709,7 +709,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      translationsUpdate: {
         type: "mutation",
         name: "Update Translation",
         description: "Updates an existing translation",
@@ -729,12 +729,12 @@ export const API_SECTIONS = {
   }
 }`
       }
-    ]
+    }
   },
   interface_translations: {
     name: "Interface Translations",
-    operations: [
-      {
+    operations: {
+      interfaceTranslationsList: {
         type: "query",
         name: "List Interface Translations",
         description: "Retrieves all interface translations",
@@ -745,14 +745,10 @@ export const API_SECTIONS = {
     namespace
     key
     value
-    interfaceLanguage {
-      code
-      name
-    }
   }
 }`
       },
-      {
+      interfaceTranslationsGetByLocale: {
         type: "query",
         name: "Get Interface Translations By Locale",
         description: "Retrieves interface translations for a specific locale",
@@ -765,14 +761,10 @@ export const API_SECTIONS = {
     namespace
     key
     value
-    interfaceLanguage {
-      code
-      name
-    }
   }
 }`
       },
-      {
+      interfaceTranslationsCreate: {
         type: "mutation",
         name: "Create Interface Translation",
         description: "Creates a new interface translation",
@@ -794,14 +786,10 @@ export const API_SECTIONS = {
     namespace
     key
     value
-    interfaceLanguage {
-      code
-      name
-    }
   }
 }`
       },
-      {
+      interfaceTranslationsUpdate: {
         type: "mutation",
         name: "Update Interface Translation",
         description: "Updates an existing interface translation",
@@ -816,14 +804,10 @@ export const API_SECTIONS = {
   ) {
     id
     value
-    interfaceLanguage {
-      code
-      name
-    }
   }
 }`
       },
-      {
+      interfaceTranslationsDelete: {
         type: "mutation",
         name: "Delete Interface Translation",
         description: "Deletes an interface translation",
@@ -836,7 +820,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      interfaceTranslationsImport: {
         type: "mutation",
         name: "Import Interface Translations",
         description: "Imports multiple interface translations at once",
@@ -853,7 +837,7 @@ export const API_SECTIONS = {
   }
 }`
       }
-    ]
+    }
   },
   schema: {
     name: "GraphQL Schema",
@@ -893,8 +877,8 @@ export const API_SECTIONS = {
   },
   logs: {
     name: "Logs",
-    operations: [
-      {
+    operations: {
+      logsList: {
         type: "query",
         name: "List Logs",
         description: "Retrieves logs with pagination and filtering",
@@ -938,7 +922,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      logsCreate: {
         type: "mutation",
         name: "Create Log",
         description: "Creates a new log entry",
@@ -961,7 +945,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      logsDelete: {
         type: "mutation",
         name: "Delete Log",
         description: "Deletes a log entry by ID",
@@ -974,7 +958,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      {
+      logsClear: {
         type: "mutation",
         name: "Clear Logs",
         description: "Clears logs based on filters",
@@ -996,6 +980,6 @@ export const API_SECTIONS = {
   }
 }`
       }
-    ]
+    }
   }
 }; 

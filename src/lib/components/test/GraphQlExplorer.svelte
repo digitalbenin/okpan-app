@@ -16,7 +16,12 @@
 
   const sortOperations = (operations) => {
     const typeOrder = { query: 1, mutation: 2, schema: 3 };
-    return [...operations].sort(
+    // Convert operations object to array for sorting
+    const operationsArray = Object.entries(operations).map(([id, op]) => ({
+      ...op,
+      id,
+    }));
+    return operationsArray.sort(
       (a, b) => typeOrder[a.type] - typeOrder[b.type],
     );
   };
@@ -195,13 +200,13 @@
                     ? 'bi-chevron-down'
                     : 'bi-chevron-right'} me-2"
                 ></i>
-                {#if section.operations.some((op) => op.type === "query")}
+                {#if Object.values(section.operations).some((op) => op.type === "query")}
                   <span class="badge bg-success me-2">Query</span>
                 {/if}
-                {#if section.operations.some((op) => op.type === "mutation")}
+                {#if Object.values(section.operations).some((op) => op.type === "mutation")}
                   <span class="badge bg-primary me-2">Mutation</span>
                 {/if}
-                {#if section.operations.some((op) => op.type === "schema")}
+                {#if Object.values(section.operations).some((op) => op.type === "schema")}
                   <span class="badge bg-secondary me-2">SCHEMA</span>
                 {/if}
                 <strong>{section.name}</strong>
@@ -211,8 +216,8 @@
             {#if activeSection === sectionId}
               <div class="card-body" transition:slide>
                 <div class="list-group mb-4">
-                  {#each sortOperations(section.operations) as operation, operationIndex}
-                    {@const operationId = `${sectionId}-${operationIndex}`}
+                  {#each sortOperations(section.operations) as operation}
+                    {@const operationId = `${sectionId}-${operation.id}`}
                     <div class="list-group-item">
                       <div
                         class="d-flex justify-content-between align-items-center"

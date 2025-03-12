@@ -35,13 +35,10 @@
 
     // Get API queries
     const { query: languagesQuery } =
-        API_SECTIONS.interface_languages.operations.find(
-            (op) => op.name === "List Interface Languages",
-        );
+        API_SECTIONS.interface_languages.operations.interfaceLanguagesList;
     const { query: interfaceTranslationsQuery } =
-        API_SECTIONS.interface_translations.operations.find(
-            (op) => op.name === "List Interface Translations",
-        );
+        API_SECTIONS.interface_translations.operations
+            .interfaceTranslationsList;
 
     // Fetch data
     async function fetchLanguages() {

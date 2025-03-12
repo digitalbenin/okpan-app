@@ -33,21 +33,13 @@ export function getLogStore() {
     });
 
     // Get queries from API_SECTIONS
-    const listLogsQuery = API_SECTIONS.logs.operations.find(
-        (op) => op.name === "List Logs"
-    ).query;
+    const listLogsQuery = API_SECTIONS.logs.operations.logsList.query;
 
-    const createLogQuery = API_SECTIONS.logs.operations.find(
-        (op) => op.name === "Create Log"
-    ).query;
+    const createLogQuery = API_SECTIONS.logs.operations.logsCreate.query;
 
-    const deleteLogQuery = API_SECTIONS.logs.operations.find(
-        (op) => op.name === "Delete Log"
-    ).query;
+    const deleteLogQuery = API_SECTIONS.logs.operations.logsDelete.query;
 
-    const clearLogsQuery = API_SECTIONS.logs.operations.find(
-        (op) => op.name === "Clear Logs"
-    ).query;
+    const clearLogsQuery = API_SECTIONS.logs.operations.logsClear.query;
 
     // Initialize the store
     const initialize = async () => {
