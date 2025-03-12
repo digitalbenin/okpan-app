@@ -3,7 +3,6 @@
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { addToast as originalAddToast } from "$lib/components/base/BaseToast.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
-    import { onMount } from "svelte";
 
     // Get the translation store for i18n
     const { t } = getTranslationStore();
@@ -130,19 +129,18 @@
         }
     };
 
-    // Initialize on mount
-    onMount(async () => {
-        try {
-            if (!logState.isInitialized) {
-                await initialize();
-                await logInfo("logs.initialize", "Log page initialized");
-            }
-        } catch (err) {
-            await handleError(
-                `Failed to initialize logs: ${err.message}`,
-                "logs.initialize",
-                err,
-            );
+    // Initialize once when component mounts
+    let hasInitialized = false;
+    $effect(() => {
+        if (!hasInitialized && !logState.isInitialized) {
+            hasInitialized = true;
+            initialize()
+                .then(() => {
+                    logInfo("logs.initialize", "Log page initialized");
+                })
+                .catch((err) => {
+                    console.error("Failed to initialize logs:", err);
+                });
         }
     });
 </script>
