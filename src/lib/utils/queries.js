@@ -941,42 +941,7 @@ export const API_SECTIONS = {
       }
     }
   },
-  schema: {
-    name: "GraphQL Schema",
-    operations: [
-      {
-        type: "schema",
-        name: "Introspection Query",
-        description: "Retrieves the GraphQL schema structure",
-        query: `{
-  __schema {
-    types {
-      name
-      fields {
-        name
-        type {
-          name
-          kind
-        }
-      }
-    }
-    mutationType {
-      fields {
-        name
-        args {
-          name
-          type {
-            name
-            kind
-          }
-        }
-      }
-    }
-  }
-}`
-      }
-    ]
-  },
+
   logs: {
     name: "Logs",
     operations: {
@@ -1083,5 +1048,189 @@ export const API_SECTIONS = {
 }`
       }
     }
+  },
+  assets: {
+    name: "Assets",
+    operations: {
+      assetsList: {
+        type: "query",
+        name: "List Assets",
+        description: "Retrieves all assets with optional filtering and pagination",
+        variables: {
+          page: "Page number for pagination (offset)",
+          pageSize: "Number of assets per page (limit)",
+          projectId: "Filter by project ID",
+          institutionId: "Filter by institution ID",
+          type: "Filter by asset type"
+        },
+        query: `query ListAssets($page: Int, $pageSize: Int, $projectId: String, $institutionId: String, $type: String) {
+  assets(
+    limit: $pageSize
+    offset: $page
+    where: {
+      project_id: { eq: $projectId }
+      institution_id: { eq: $institutionId }
+      type: { eq: $type }
+    }
+  ) {
+    id
+    filename
+    path
+    type
+    formats
+    properties
+    institution_id
+    project_id
+    created_at
+    updated_at
+    institution {
+      id
+      name {
+        content
+      }
+    }
+    project {
+      id
+      title {
+        content
+      }
+    }
   }
+}`
+      },
+      assetsGetById: {
+        type: "query",
+        name: "Get Asset by ID",
+        description: "Retrieves a single asset by its ID",
+        variables: {
+          assetId: "ID of the asset to retrieve"
+        },
+        query: `query GetAsset($assetId: String!) {
+  assets(where: { id: { eq: $assetId } }) {
+    id
+    filename
+    path
+    type
+    formats
+    properties
+    institution_id
+    project_id
+    created_at
+    updated_at
+    institution {
+      id
+      name {
+        content
+      }
+    }
+    project {
+      id
+      title {
+        content
+      }
+    }
+  }
+}`
+      },
+      assetsUpdate: {
+        type: "mutation",
+        name: "Update Asset",
+        description: "Updates an existing asset by ID",
+        variables: {
+          assetId: "ID of the asset to update",
+          filename: "New filename",
+          path: "New file path",
+          type: "New asset type",
+          formats: "New formats object",
+          properties: "New properties object",
+          institutionId: "New institution ID",
+          projectId: "New project ID"
+        },
+        query: `mutation UpdateAsset(
+  $assetId: String!,
+  $filename: String,
+  $path: String,
+  $type: String,
+  $formats: JSON,
+  $properties: JSON,
+  $institutionId: String,
+  $projectId: String
+) {
+  updateAssets(
+    set: {
+      filename: $filename,
+      path: $path,
+      type: $type,
+      formats: $formats,
+      properties: $properties,
+      institution_id: $institutionId,
+      project_id: $projectId
+    }
+    where: { id: { eq: $assetId } }
+  ) {
+    id
+    filename
+    path
+    type
+    formats
+    properties
+    institution_id
+    project_id
+    updated_at
+  }
+}`
+      },
+      assetsDelete: {
+        type: "mutation",
+        name: "Delete Asset",
+        description: "Deletes an asset by ID",
+        variables: {
+          assetId: "ID of the asset to delete"
+        },
+        query: `mutation DeleteAsset($assetId: String!) {
+  deleteFromAssets(where: { id: { eq: $assetId } }) {
+    id
+    filename
+    path
+  }
+}`
+      }
+    }
+  },
+  schema: {
+    name: "GraphQL Schema",
+    operations: [
+      {
+        type: "schema",
+        name: "Introspection Query",
+        description: "Retrieves the GraphQL schema structure",
+        query: `{
+  __schema {
+    types {
+      name
+      fields {
+        name
+        type {
+          name
+          kind
+        }
+      }
+    }
+    mutationType {
+      fields {
+        name
+        args {
+          name
+          type {
+            name
+            kind
+          }
+        }
+      }
+    }
+  }
+}`
+      }
+    ]
+  },
 }; 

@@ -3,6 +3,7 @@
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseToggle from "$lib/components/base/BaseToggle.svelte";
+    import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { addToast } from "$lib/components/base/BaseToast.svelte";
 
     // Get the translation store
@@ -15,6 +16,69 @@
     let institutionId = $state("");
     let isUploading = $state(false);
     let uploadProgress = $state(0);
+    let recentAssets = $state([]);
+
+    // Query to fetch recent assets
+    const fetchRecentAssets = async () => {
+        try {
+            const result = await window.api
+                .executeGraphQL(`query ListRecentAssets {
+                assets(
+                    limit: 4
+                    orderBy: { created_at: { direction: desc, priority: 1 } }
+                ) {
+                    id
+                    filename
+                    path
+                    type
+                    formats
+                    created_at
+                    project {
+                        id
+                        title {
+                            content
+                        }
+                    }
+                }
+            }`);
+
+            if (result.success && result.data) {
+                recentAssets = result.data.assets;
+                console.log(
+                    "recentAssets full data:",
+                    JSON.stringify(recentAssets, null, 2),
+                );
+                recentAssets.forEach((asset) => {
+                    console.log(`Asset ${asset.filename} path:`, asset.path);
+                    console.log(
+                        `Media URL for ${asset.filename}:`,
+                        `media://${asset.path}`,
+                    );
+                });
+            } else {
+                console.error("Failed to fetch assets:", result.errors);
+                addToast({
+                    data: {
+                        title: "Error",
+                        description: "Failed to load recent assets",
+                        type: "error",
+                    },
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching assets:", error);
+            addToast({
+                data: {
+                    title: "Error",
+                    description: "Failed to load recent assets",
+                    type: "error",
+                },
+            });
+        }
+    };
+
+    // Fetch assets on component mount and after successful upload
+    $effect(fetchRecentAssets);
 
     // File selection handler
     async function handleFileSelect() {
@@ -88,6 +152,9 @@
                 },
             });
             files = [];
+
+            // Refresh the recent assets list after successful upload
+            await fetchRecentAssets();
         } catch (error) {
             isUploading = false;
             addToast({
@@ -188,7 +255,9 @@
                 <div
                     class="card-header bg-light d-flex justify-content-between align-items-center"
                 >
-                    <h5 class="card-title mb-0">Selected Files</h5>
+                    <h5 class="card-title mb-0">
+                        Selected {isDirectory ? "Directory" : "Files"}
+                    </h5>
                     <span class="badge bg-primary">{files.length}</span>
                 </div>
                 <div class="card-body p-0">
@@ -206,25 +275,70 @@
                                     <div>
                                         <div class="d-flex align-items-center">
                                             <i
-                                                class="bi bi-{file.type.startsWith(
-                                                    'image/',
-                                                )
-                                                    ? 'image'
-                                                    : 'file-earmark'} me-2"
+                                                class="bi bi-{isDirectory
+                                                    ? 'folder'
+                                                    : 'image'} me-2"
                                             ></i>
-                                            <div>
-                                                <div
-                                                    class="fw-bold text-truncate"
-                                                    style="max-width: 250px;"
-                                                >
-                                                    {file.name}
-                                                </div>
-                                                <small class="text-muted"
-                                                    >{(
-                                                        file.size / 1024
-                                                    ).toFixed(1)} KB</small
-                                                >
+                                            <div
+                                                class="fw-bold text-truncate"
+                                                style="max-width: 250px;"
+                                            >
+                                                {file.name}
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Assets -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Recent Assets</h5>
+                </div>
+                <div class="card-body">
+                    {#if recentAssets.length === 0}
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-images fs-1"></i>
+                            <p class="mt-2">No assets found</p>
+                        </div>
+                    {:else}
+                        <div class="row g-4">
+                            {#each recentAssets as asset}
+                                <div class="col-md-4 col-lg-3">
+                                    <div class="card h-100">
+                                        <BaseImage
+                                            src={`media://${asset.path}`}
+                                            alt={asset.filename}
+                                            ratio="1"
+                                            class="card-img-top"
+                                        />
+                                        <div class="card-body">
+                                            <h6
+                                                class="card-title text-truncate"
+                                            >
+                                                {asset.filename}
+                                            </h6>
+                                            <p
+                                                class="card-text small text-muted mb-0"
+                                            >
+                                                Type: {asset.type}
+                                            </p>
+                                            {#if asset.project}
+                                                <p
+                                                    class="card-text small text-muted mb-0"
+                                                >
+                                                    Project: {asset.project
+                                                        .title.content}
+                                                </p>
+                                            {/if}
                                         </div>
                                     </div>
                                 </div>

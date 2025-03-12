@@ -1,7 +1,9 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, protocol } from 'electron';
 import started from 'electron-squirrel-startup';
 import 'dotenv/config';
 import path from 'path';
+import net from 'net';
+import fs from 'fs';
 
 // Import database and schema
 import { db } from '../db/init.js';
@@ -12,6 +14,7 @@ import { handleExportTranslations, handleImportTranslations } from './handlers/t
 import { handleGraphQL } from './handlers/graphqlHandler.js';
 import { handlePing, handleFileDialog } from './handlers/systemHandlers.js';
 import { handleImportAssets } from './handlers/assetHandlers.js';
+
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
 
@@ -20,7 +23,38 @@ if (started) {
   app.quit();
 }
 
-// IPC Handlers
+// Register IPC handlers
+ipcMain.handle('ping', handlePing);
+ipcMain.handle('execute-graphql', (event, params) =>
+  handleGraphQL(event, params, { schema, resolvers, db })
+);
+ipcMain.handle('export-translations', (event, filePath) =>
+  handleExportTranslations(event, filePath, { schema, resolvers, db })
+);
+ipcMain.handle('import-translations', (event, filePath) =>
+  handleImportTranslations(event, filePath, { schema, resolvers, db })
+);
+ipcMain.handle('import-assets', (event, data) =>
+  handleImportAssets(event, data)
+);
+ipcMain.handle('open-file-dialog', handleFileDialog);
+
+// Register protocol
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'media',
+    privileges: {
+      secure: true,
+      standard: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+      corsEnabled: true,
+      stream: true
+    }
+  }
+]);
+
+// Create window function
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -40,7 +74,7 @@ const createWindow = () => {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src * 'self' data:"
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src * 'self' data: media:"
         ]
       }
     });
@@ -59,37 +93,62 @@ const createWindow = () => {
   }
 };
 
-// Register IPC handlers
-ipcMain.handle('ping', handlePing);
-ipcMain.handle('execute-graphql', (event, params) =>
-  handleGraphQL(event, params, { schema, resolvers, db })
-);
-ipcMain.handle('export-translations', (event, filePath) =>
-  handleExportTranslations(event, filePath, { schema, resolvers, db })
-);
-ipcMain.handle('import-translations', (event, filePath) =>
-  handleImportTranslations(event, filePath, { schema, resolvers, db })
-);
-ipcMain.handle('import-assets', (event, data) =>
-  handleImportAssets(event, data)
-);
-ipcMain.handle('open-file-dialog', handleFileDialog);
-
 // Initialize app
 app.whenReady().then(() => {
-  createWindow();
+  // Register media protocol handler
+  protocol.registerFileProtocol('media', (request, callback) => {
+    try {
+      console.log('Media protocol request:', request.url);
+      const pathToMedia = decodeURIComponent(new URL(request.url).pathname).replace(/^\//, '');
+      console.log('Path to media:', pathToMedia);
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      // Get the project root directory
+      const projectRoot = process.cwd();
+      console.log('Project root:', projectRoot);
+
+      // TEMPORARY!!!!!!! Try different path combinations
+      const possiblePaths = [
+        // Try with src prefix
+        path.join(projectRoot, 'src', pathToMedia),
+        // Try as-is
+        path.join(projectRoot, pathToMedia),
+        // Try with src prefix and Windows separators
+        path.join(projectRoot, 'src', pathToMedia.replace(/\//g, '\\')),
+        // Try the exact path from database
+        path.join(projectRoot, pathToMedia.replace(/\//g, '\\'))
+      ];
+
+      console.log('Trying possible paths:');
+      for (const tryPath of possiblePaths) {
+        console.log('Attempting path:', tryPath);
+        if (fs.existsSync(tryPath)) {
+          console.log('File found at:', tryPath);
+          callback({ path: tryPath });
+          return;
+        }
+      }
+
+      console.error('File not found in any of the attempted paths');
+      callback({ error: -2 });
+    } catch (error) {
+      console.error('Media protocol error:', error);
+      callback({ error: -2 });
     }
   });
+
+  createWindow();
 });
 
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
   }
 });
 
