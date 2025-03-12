@@ -58,19 +58,16 @@ export const API_SECTIONS = {
         description: "Creates a new content language for translations",
         variables: {
           code: "Language code (e.g., 'en', 'es')",
-          name: "Language name (e.g., 'English', 'Spanish')",
-          isDefault: "Is this the default language (0 or 1)"
+          name: "Language name (e.g., 'English', 'Spanish')"
         },
-        query: `mutation CreateContentLanguage($code: String!, $name: String!, $isDefault: Int!) {
+        query: `mutation CreateContentLanguage($code: String!, $name: String!) {
   insertIntoLanguages(values: [{
     code: $code,
-    name: $name,
-    is_default: $isDefault
+    name: $name
   }]) {
     id
     code
     name
-    is_default
   }
 }`
       },
@@ -97,7 +94,24 @@ export const API_SECTIONS = {
     id
     code
     name
+  }
+}`
+      },
+      contentLanguagesListByProject: {
+        type: "query",
+        name: "List Content Languages by Project",
+        description: "Lists all languages associated with a specific project",
+        variables: {
+          projectId: "ID of the project"
+        },
+        query: `query GetProjectLanguages($projectId: String!) {
+  project_languages(where: { project_id: { eq: $projectId } }) {
+    language_code
     is_default
+    language {
+      code
+      name
+    }
   }
 }`
       }
@@ -157,6 +171,24 @@ export const API_SECTIONS = {
             mapVariables: {
               titleId: { from: "createTitle", path: "insertIntoTexts.0.id" },
               descriptionId: { from: "createDescription", path: "insertIntoTexts.0.id" }
+            }
+          },
+          {
+            name: "addDefaultLanguage",
+            query: `mutation AddDefaultLanguage($projectId: String!, $languageCode: String!) {
+  insertIntoProject_languages(values: [{
+    project_id: $projectId,
+    language_code: $languageCode,
+    is_default: 1
+  }]) {
+    project_id
+    language_code
+    is_default
+  }
+}`,
+            useVariables: ["languageCode"],
+            mapVariables: {
+              projectId: { from: "createProject", path: "insertIntoProject.0.id" }
             }
           }
         ],
@@ -243,13 +275,21 @@ export const API_SECTIONS = {
         content
       }
     }
+    projectLanguages {
+      language_code
+      is_default
+      language {
+        code
+        name
+      }
+    }
   }
 }`
       },
       projectsList: {
         type: "query",
         name: "List Projects",
-        description: "Retrieves all projects with their institutions",
+        description: "Retrieves all projects with their institutions and languages",
         query: `{
   project {
     id
@@ -268,27 +308,89 @@ export const API_SECTIONS = {
     institutionsCount
     institutions {
       id
-      name_id
-      description_id
-      country_id
-      location_id
       name {
         content
-        original_language
-      }
-      description {
-        content
-        original_language
-      }
-      country {
-        content
-        original_language
-      }
-      location {
-        content
-        original_language
       }
     }
+    projectLanguages {
+      language_code
+      is_default
+      language {
+        code
+        name
+      }
+    }
+  }
+}`
+      },
+      projectAddLanguage: {
+        type: "mutation",
+        name: "Add Language to Project",
+        description: "Adds a language to a project",
+        variables: {
+          projectId: "ID of the project",
+          languageCode: "Code of the language to add",
+          isDefault: "Whether this is the default language (0 or 1)"
+        },
+        query: `mutation AddProjectLanguage($projectId: String!, $languageCode: String!, $isDefault: Int!) {
+  insertIntoProject_languages(values: [{
+    project_id: $projectId,
+    language_code: $languageCode,
+    is_default: $isDefault
+  }]) {
+    project_id
+    language_code
+    is_default
+  }
+}`
+      },
+      projectRemoveLanguage: {
+        type: "mutation",
+        name: "Remove Language from Project",
+        description: "Removes a language from a project",
+        variables: {
+          projectId: "ID of the project",
+          languageCode: "Code of the language to remove"
+        },
+        query: `mutation RemoveProjectLanguage($projectId: String!, $languageCode: String!) {
+  deleteFromProject_languages(
+    where: { 
+      project_id: { eq: $projectId },
+      language_code: { eq: $languageCode }
+    }
+  ) {
+    project_id
+    language_code
+  }
+}`
+      },
+      projectSetDefaultLanguage: {
+        type: "mutation",
+        name: "Set Project Default Language",
+        description: "Sets the default language for a project",
+        variables: {
+          projectId: "ID of the project",
+          languageCode: "Code of the language to set as default"
+        },
+        query: `mutation SetProjectDefaultLanguage($projectId: String!, $languageCode: String!) {
+  # First, set all languages for this project to non-default
+  updateAllToNonDefault: updateProject_languages(
+    set: { is_default: 0 }
+    where: { project_id: { eq: $projectId } }
+  ) {
+    project_id
+  }
+  # Then, set the specified language as default
+  setNewDefault: updateProject_languages(
+    set: { is_default: 1 }
+    where: { 
+      project_id: { eq: $projectId },
+      language_code: { eq: $languageCode }
+    }
+  ) {
+    project_id
+    language_code
+    is_default
   }
 }`
       },

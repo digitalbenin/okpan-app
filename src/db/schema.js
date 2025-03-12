@@ -20,7 +20,6 @@ export const languages = sqliteTable('languages', {
     ...commonFields,
     code: text('code').notNull().unique(), // e.g., 'en', 'es', 'fr'
     name: text('name').notNull(), // e.g., 'English', 'Spanish', 'French'
-    is_default: integer('is_default').notNull().default(0)
 });
 
 
@@ -110,12 +109,36 @@ export const project = sqliteTable('project', {
     exports: text('exports', { mode: 'json' })
 });
 
-// Project relations
+// Project Languages junction table
+export const project_languages = sqliteTable('project_languages', {
+    ...commonFields,
+    project_id: text('project_id')
+        .notNull()
+        .references(() => project.id),
+    language_code: text('language_code')
+        .notNull()
+        .references(() => languages.code),
+    is_default: integer('is_default').notNull().default(0)
+});
+
+// Project Languages relations
+export const projectLanguagesRelations = relations(project_languages, ({ one }) => ({
+    project: one(project, {
+        fields: [project_languages.project_id],
+        references: [project.id]
+    }),
+    language: one(languages, {
+        fields: [project_languages.language_code],
+        references: [languages.code]
+    })
+}));
+
+// Update project relations to include languages
 export const projectRelations = relations(project, ({ many, one }) => ({
     institutions: many(institutions),
     objects: many(objects),
     researchFields: many(research_fields),
-    settings: many(settings),
+    settings: one(settings),
     assets: many(assets),
     title: one(texts, {
         fields: [project.title_id],
@@ -124,7 +147,13 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     description: one(texts, {
         fields: [project.description_id],
         references: [texts.id]
-    })
+    }),
+    projectLanguages: many(project_languages)
+}));
+
+// Update languages relations to include projects
+export const languagesRelations = relations(languages, ({ many }) => ({
+    projectLanguages: many(project_languages)
 }));
 
 // Institutions table
@@ -209,7 +238,7 @@ export const settings = sqliteTable('settings', {
     db_name: integer('db_name'),
     sync_url: integer('sync_url'),
     sig_server: integer('sig_server'),
-    project_id: text('project_id').references(() => project.id)
+    project_id: text('project_id').references(() => project.id),
 });
 
 // Settings relations
