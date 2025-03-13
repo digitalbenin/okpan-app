@@ -16,12 +16,11 @@ export function getContentLanguageStore() {
     }
 
     // Get validation store
-    /* const { getSchema, validate } = getValidationStore();
-     
- 
-     // Get the base schema for validation
-     const baseSchema = getSchema('languages', 'insert');
- */
+    const { getSchema, validate } = getValidationStore();
+
+    // Get the base schema for validation
+    const languagesSchema = getSchema('languages', 'insert');
+
     // State variables defined inside the function
     const contentLanguageState = $state({
         languages: [],
@@ -127,6 +126,22 @@ export function getContentLanguageStore() {
     const createLanguage = async (code, name, nativeName, direction, flag) => {
         try {
             contentLanguageState.isLoading = true;
+            const validationResult = await validate({
+                code, name, nativeName, direction, flag
+            }, languagesSchema);
+
+            if (!validationResult.success) {
+                await logError("create_language", validationResult.errors[0]);
+                addToast({
+                    data: {
+                        title: "Can't create language",
+                        description: validationResult.errors[0],
+                        type: "error"
+                    }
+                });
+                throw new Error(validationResult.errors[0]);
+            }
+
             const response = await window.api.executeGraphQL(createLanguageMutation, {
                 code, name, nativeName, direction, flag
             });

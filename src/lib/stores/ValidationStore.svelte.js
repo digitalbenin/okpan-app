@@ -25,13 +25,14 @@ export function getValidationStore() {
         try {
             // Get all table schemas from the schema file
             const tables = Object.entries(schema).filter(([key, value]) =>
-                key.includes('Table') || (typeof value === 'object' && value.hasOwnProperty('_')
-                ));
+                !key.includes('Relations')
+            );
 
             // Generate schemas for each table
             tables.forEach(([tableName, table]) => {
-                const cleanTableName = tableName.replace('Table', '');
-                validationState.schemas[cleanTableName] = {
+
+
+                validationState.schemas[tableName] = {
                     insert: createInsertSchema(table),
                     select: createSelectSchema(table)
                 };
