@@ -93,7 +93,7 @@ export function getProjectStore() {
         }
     };
 
-    const getProject = async (projectId) => {
+    const setProject = async (projectId) => {
         try {
             projectState.isLoading = true;
 
@@ -105,9 +105,10 @@ export function getProjectStore() {
                 throw new Error(response.errors?.[0]?.message || "Failed to fetch project");
             }
 
-            projectState.currentProject = response.data.project;
+            projectState.currentProject = response?.data?.project[0];
             projectState.isLoading = false;
-            return response.data.project;
+            return response?.data?.project[0];
+
         } catch (error) {
             projectState.error = error;
             projectState.isLoading = false;
@@ -118,7 +119,7 @@ export function getProjectStore() {
                     type: "error"
                 }
             });
-            await logError("getProject", error.message);
+            await logError("setProject", error.message);
             throw error;
         } finally {
             projectState.isLoading = false;
@@ -347,7 +348,7 @@ export function getProjectStore() {
         projectState,
         initialize,
         getProjects,
-        getProject,
+        setProject,
         createProject,
         updateProject,
         deleteProject,
