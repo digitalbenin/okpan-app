@@ -30,13 +30,9 @@ export function getTranslationStore() {
 
     // Get queries from API_SECTIONS
     const languagesQuery = API_SECTIONS.interface_languages.operations.interfaceLanguagesList.query;
-
     const interfaceTranslationsQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsList.query;
-
     const createInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsCreate.query;
-
     const updateInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsUpdate.query;
-
     const deleteInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsDelete.query;
 
     // Fetch all supported languages

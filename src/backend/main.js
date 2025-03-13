@@ -98,13 +98,10 @@ app.whenReady().then(() => {
   // Register media protocol handler
   protocol.registerFileProtocol('media', (request, callback) => {
     try {
-      console.log('Media protocol request:', request.url);
       const pathToMedia = decodeURIComponent(new URL(request.url).pathname).replace(/^\//, '');
-      console.log('Path to media:', pathToMedia);
 
       // Get the project root directory
       const projectRoot = process.cwd();
-      console.log('Project root:', projectRoot);
 
       // TEMPORARY!!!!!!! Try different path combinations
       const possiblePaths = [
@@ -118,17 +115,12 @@ app.whenReady().then(() => {
         path.join(projectRoot, pathToMedia.replace(/\//g, '\\'))
       ];
 
-      console.log('Trying possible paths:');
       for (const tryPath of possiblePaths) {
-        console.log('Attempting path:', tryPath);
         if (fs.existsSync(tryPath)) {
-          console.log('File found at:', tryPath);
           callback({ path: tryPath });
           return;
         }
       }
-
-      console.error('File not found in any of the attempted paths');
       callback({ error: -2 });
     } catch (error) {
       console.error('Media protocol error:', error);
