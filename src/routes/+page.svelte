@@ -21,7 +21,7 @@
   <div class="d-flex flex-column gap-0">
     <BaseButton
       text={t("nav.test", { fallback: "Test Graphql" })}
-      icon="box-arrow-right"
+      icon="code-slash"
       onClick={() => goto("/test/graphql")}
       class="btn btn-link d-flex align-items-center text-decoration-none"
     />
@@ -56,7 +56,7 @@
 
     <BaseButton
       text={t("common.projects", { fallback: "Projects" })}
-      icon="file-earmark-image"
+      icon="folder2-open"
       onClick={() => goto("/projects")}
       class="btn btn-link d-flex align-items-center text-decoration-none"
     />

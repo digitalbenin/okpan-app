@@ -27,7 +27,6 @@ export function getProjectStore() {
 
     const projectListQuery = API_SECTIONS.projects.operations.projectsListWithCounts.query;
     const projectByIdQuery = API_SECTIONS.projects.operations.projectsGetById.query;
-    const createProjectMutation = API_SECTIONS.projects.operations.projectsCreate.query;
     const updateProjectMutation = API_SECTIONS.projects.operations.projectsUpdate.query;
     const deleteProjectMutation = API_SECTIONS.projects.operations.projectsDelete.query;
     const addLanguageToProjectMutation = API_SECTIONS.projects.operations.projectAddLanguage.query;
@@ -130,23 +129,110 @@ export function getProjectStore() {
         try {
             projectState.isLoading = true;
 
-            const validationResult = await validate(project, getSchema('project', 'insert'));
-
-            if (!validationResult.success) {
-                throw new Error(validationResult.errors[0]);
+            // Validate the incoming project data
+            if (!project.languages || !project.title || !project.description) {
+                throw new Error("Missing required project data");
             }
 
-            const response = await window.api.executeGraphQL(createProjectMutation, {
-                project
+            // Find the default language
+            const defaultLang = project.languages.find(lang => lang.is_default === 1);
+            if (!defaultLang) {
+                throw new Error("No default language selected");
+            }
+
+            const projectName = project.title.content;
+            const description = project.description.content;
+            const languageCode = defaultLang.language_code;
+
+            // Get mutations from the API_SECTIONS
+            const mutations = API_SECTIONS.projects.operations.projectsCreate.mutations;
+
+            // Step 1: Create title
+            const titleQuery = mutations[0].query;
+            const titleResult = await window.api.executeGraphQL(titleQuery, {
+                projectName,
+                languageCode,
             });
 
-            if (!response.success) {
-                throw new Error(response.errors?.[0]?.message || "Failed to create project");
+            if (!titleResult.success) {
+                throw new Error(titleResult.errors?.[0]?.message || "Failed to create title");
+            }
+            const titleId = titleResult.data.insertIntoTexts[0].id;
+
+            // Step 2: Create description
+            const descriptionQuery = mutations[1].query;
+            const descriptionResult = await window.api.executeGraphQL(descriptionQuery, {
+                description,
+                languageCode,
+            });
+
+            if (!descriptionResult.success) {
+                throw new Error(descriptionResult.errors?.[0]?.message || "Failed to create description");
+            }
+            const descriptionId = descriptionResult.data.insertIntoTexts[0].id;
+
+            // Step 3: Create project
+            const projectQuery = mutations[2].query;
+            const projectResult = await window.api.executeGraphQL(projectQuery, {
+                titleId,
+                descriptionId,
+            });
+
+            if (!projectResult.success) {
+                throw new Error(projectResult.errors?.[0]?.message || "Failed to create project");
+            }
+            const projectId = projectResult.data.insertIntoProject[0].id;
+
+            // Step 4: Add default language
+            const languageQuery = mutations[3].query;
+            const languageResult = await window.api.executeGraphQL(languageQuery, {
+                projectId,
+                languageCode,
+            });
+
+            if (!languageResult.success) {
+                throw new Error(languageResult.errors?.[0]?.message || "Failed to set default language");
             }
 
-            projectState.projects.push(response.data.project);
+            // Step 5: Add translations if any (both for title and description)
+            if (project.title.translations?.length || project.description.translations?.length) {
+                const createTranslationQuery = API_SECTIONS.translations.operations.translationsCreate.query;
+
+                // Add title translations
+                for (const translation of project.title.translations || []) {
+                    if (translation.content) {
+                        await window.api.executeGraphQL(createTranslationQuery, {
+                            textId: titleId,
+                            languageCode: translation.language_code,
+                            content: translation.content,
+                        });
+                    }
+                }
+
+                // Add description translations
+                for (const translation of project.description.translations || []) {
+                    if (translation.content) {
+                        await window.api.executeGraphQL(createTranslationQuery, {
+                            textId: descriptionId,
+                            languageCode: translation.language_code,
+                            content: translation.content,
+                        });
+                    }
+                }
+            }
+
+            // Create a response object with the new project data
+            const newProject = {
+                id: projectId,
+                title_id: titleId,
+                description_id: descriptionId
+            };
+
+            // Add to projects array
+            projectState.projects.push(newProject);
             projectState.isLoading = false;
-            return response.data.project;
+
+            return newProject;
         } catch (error) {
             projectState.error = error;
             projectState.isLoading = false;

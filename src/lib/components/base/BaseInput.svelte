@@ -1,7 +1,7 @@
 <script>
     let {
         type = "text",
-        value = $bindable(""),
+        value = $bindable(),
         label = null,
         labelPosition = "top",
         placeholder = "",

@@ -406,10 +406,18 @@ export const API_SECTIONS = {
     title {
       content
       original_language
+      translations {
+        content
+        language_code      
+      }
     }
     description {
       content
       original_language
+      translations {
+        content
+        language_code
+      }
     }
     institutionsCount
     objectsCount

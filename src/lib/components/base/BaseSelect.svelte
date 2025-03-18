@@ -3,30 +3,45 @@
 
     let {
         options = [],
-        value = $bindable(""),
+        value = $bindable(null),
         label = null,
         labelPosition = "top",
-        placeholder = "Select an option...",
+        placeholder = "Select a value",
         icon,
         class: customClass = "",
         style: customStyle = "",
         id = crypto.randomUUID(),
         disabled = false,
+        multiple = false,
     } = $props();
 
     const select = new Select({
-        defaultValue: value,
-        onValueChange: (v) => (value = v),
+        onValueChange: (v) =>
+            multiple ? (value = v.size ? Array.from(v) : null) : (value = v),
+        multiple,
     });
 
-    // Keep the external value in sync with the select's internal value
-    $effect(() => {
-        if (value !== select.value) {
-            select.value = value;
+    // Helper to check if an option is selected
+    const isSelected = (option) => {
+        if (!select.value) return false;
+        if (multiple) {
+            return select.value instanceof Set
+                ? select.value.has(option)
+                : Array.isArray(select.value) && select.value.includes(option);
         }
-    });
+        return option === select.value;
+    };
 
-    const triggerId = `select-${id}`;
+    // Helper to get display text
+    const getDisplayText = () => {
+        if (multiple) {
+            const vals = select.value.size
+                ? Array.from(select.value).filter((a) => a)
+                : null;
+            return vals?.length ? vals.join(", ") : placeholder;
+        }
+        return select.value || placeholder;
+    };
 </script>
 
 {#if label}
@@ -50,29 +65,37 @@
                     {#if icon}
                         <i class={`bi bi-${icon}`}></i>
                     {/if}
-                    <span class="pe-3">{select.value || placeholder}</span>
+                    <span class="pe-3 text-truncate">
+                        {getDisplayText()}
+                    </span>
                 </span>
             </button>
 
             <div
                 {...select.content}
-                class="position-absolute mt-1 shadow-sm bg-white border rounded-2 py-1 z-1 m-0"
+                class="position-absolute mt-1 shadow-sm bg-white border rounded-2 py-1 z-1 m-0 w-100"
             >
                 {#each options as option}
                     <div
                         {...select.getOption(option)}
-                        class="px-3 py-1 cursor-pointer d-flex align-items-center gap-2 {option ===
-                        select.value
+                        class="px-3 py-1 cursor-pointer d-flex align-items-center gap-2 {isSelected(
+                            option,
+                        )
                             ? 'bg-primary bg-opacity-10'
                             : ''} {option === select.highlighted
                             ? 'bg-primary bg-opacity-10'
                             : ''}"
                     >
-                        {#if option === select.value}
-                            <i class="bi bi-check2 text-primary"></i>
-                        {/if}
+                        <div
+                            class="d-flex align-items-center"
+                            style="width: 20px;"
+                        >
+                            {#if isSelected(option)}
+                                <i class="bi bi-check2 text-primary"></i>
+                            {/if}
+                        </div>
                         <span
-                            class={option === select.value ||
+                            class={isSelected(option) ||
                             option === select.highlighted
                                 ? "text-primary"
                                 : ""}
@@ -98,29 +121,35 @@
                 {#if icon}
                     <i class={`bi bi-${icon}`}></i>
                 {/if}
-                <span class="pe-3">{select.value || placeholder}</span>
+                <span class="pe-3 text-truncate">
+                    {getDisplayText()}
+                </span>
             </span>
+            <i class="bi bi-chevron-down"></i>
         </button>
 
         <div
             {...select.content}
-            class="position-absolute mt-1 shadow-sm bg-white border rounded-2 py-1 z-1 m-0"
+            class="position-absolute mt-1 shadow-sm bg-white border rounded-2 py-1 z-1 m-0 w-100"
         >
             {#each options as option}
                 <div
                     {...select.getOption(option)}
-                    class="px-3 py-1 cursor-pointer d-flex align-items-center gap-2 {option ===
-                    select.value
+                    class="px-3 py-1 cursor-pointer d-flex align-items-center gap-2 {isSelected(
+                        option,
+                    )
                         ? 'bg-primary bg-opacity-10'
                         : ''} {option === select.highlighted
                         ? 'bg-primary bg-opacity-10'
                         : ''}"
                 >
-                    {#if option === select.value}
-                        <i class="bi bi-check2 text-primary"></i>
-                    {/if}
+                    <div class="d-flex align-items-center" style="width: 20px;">
+                        {#if isSelected(option)}
+                            <i class="bi bi-check2 text-primary"></i>
+                        {/if}
+                    </div>
                     <span
-                        class={option === select.value ||
+                        class={isSelected(option) ||
                         option === select.highlighted
                             ? "text-primary"
                             : ""}
@@ -136,5 +165,13 @@
 <style>
     .cursor-pointer {
         cursor: pointer;
+    }
+
+    /* Prevent overflow for long selection display */
+    .text-truncate {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 </style>

@@ -6,6 +6,7 @@
     import BaseRadio from "$lib/components/base/BaseRadio.svelte";
     import BaseToggle from "$lib/components/base/BaseToggle.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
+    import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
     import { addToast } from "$lib/components/base/BaseToast.svelte";
 
     let showModal = $state(false);
@@ -13,28 +14,22 @@
     let textValue = $state("");
     let toggleValue1 = $state(true);
     let toggleValue2 = $state(false);
+    let description = $state("");
 
     const fruits = ["Apple", "Banana", "Orange", "Mango", "Pineapple"];
     const colors = ["Red", "Blue", "Green", "Yellow", "Purple"];
     const sizes = ["Small", "Medium", "Large"];
     const alignments = ["Left", "Center", "Right"];
     let selectedFruit = $state("");
-    let selectedColor = $state("");
+    let selectedColors = $state(null);
     let selectedSize = $state("");
     let selectedAlignment = $state("");
 
-    $effect(() => {
-        console.log("fruit", selectedFruit);
-    });
-    $effect(() => {
-        console.log("color", selectedColor);
-    });
-    $effect(() => {
-        console.log("size", selectedSize);
-    });
-    $effect(() => {
-        console.log("alignment", selectedAlignment);
-    });
+    $inspect("fruit:", selectedFruit);
+    $inspect("colors:", selectedColors);
+    $inspect("size:", selectedSize);
+    $inspect("alignment:", selectedAlignment);
+    $inspect("description:", description);
 </script>
 
 <div class="container py-5">
@@ -103,6 +98,28 @@
         </div>
     </section>
 
+    <!-- TEXT AREAS -->
+
+    <section class="mb-5">
+        <h2 class="mb-4">Text Areas</h2>
+        <div class="d-flex flex-column gap-4">
+            <BaseTextArea
+                label="Description (Label Top)"
+                placeholder="Enter a description..."
+                bind:value={description}
+                rows={4}
+                maxLength={200}
+            />
+
+            <BaseTextArea
+                placeholder="No label, disabled state"
+                disabled={true}
+                resize="none"
+                style="width: 50%;"
+            />
+        </div>
+    </section>
+
     <!-- SELECTS -->
 
     <section class="mb-5">
@@ -116,11 +133,12 @@
             />
 
             <BaseSelect
-                label="Select Color (Label Left)"
+                label="Select Color (Multiple, Label Left)"
                 labelPosition="left"
                 icon="palette"
                 options={colors}
-                bind:value={selectedColor}
+                multiple={true}
+                bind:value={selectedColors}
             />
         </div>
     </section>

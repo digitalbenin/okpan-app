@@ -1,27 +1,20 @@
 <script>
-    import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte";
-    import { getProjectStore } from "$lib/stores/ProjectStore.svelte";
-    const { contentLanguageState } = getContentLanguageStore();
-    const { projectState, setProject } = getProjectStore();
+    import ProjectsList from "$lib/components/projects/ProjectsList.svelte";
+    import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
 
-    $inspect("frontend languages", contentLanguageState.languages);
-    $inspect("frontend projects", projectState.projects);
-    $inspect("frontend current project", projectState.currentProject);
+    let { data } = $props();
+    $inspect("frontend languages", data.languages);
+    $inspect("frontend projects", data.projects);
+    $inspect("frontend current project", data.currentProject);
 </script>
 
-<h1>Projects</h1>
-
-<div>
-    {#each projectState.projects as project}
-        <button onclick={() => setProject(project.id)}
-            >{project.title.content}</button
-        >
-    {/each}
-</div>
-
-<div>
-    {#if projectState.currentProject}
-        <h2>{projectState.currentProject?.title?.content}</h2>
-        <p>{projectState.currentProject?.description?.content}</p>
-    {/if}
+<div class="container-fluid h-100">
+    <div class="row h-100">
+        <div class="col-3 p-0">
+            <ProjectsList bind:projects={data.projects} />
+        </div>
+        <div class="col-9 p-0">
+            <ProjectCreate />
+        </div>
+    </div>
 </div>
