@@ -1,10 +1,11 @@
 <script>
-    import { Tabs } from "melt/builders";
     import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte";
     import { getProjectStore } from "$lib/stores/ProjectStore.svelte.js";
     import { API_SECTIONS } from "$lib/utils/queries.js";
     import BaseSelect from "$lib/components/base/BaseSelect.svelte";
     import ProjectData from "./ProjectData.svelte";
+    import ProjectImportUrl from "./ProjectImportUrl.svelte";
+    import ProjectImportFile from "./ProjectImportFile.svelte";
     import BaseButton from "../base/BaseButton.svelte";
     import { addToast } from "$lib/components/base/BaseToast.svelte";
 
@@ -14,6 +15,16 @@
     let selectedLanguages = $state([]);
     let projectData = $state({});
     let isCreating = $state(false);
+
+    // Active tab tracking
+    let activeTab = $state("Create a new project");
+
+    // Tab IDs
+    const tabIds = [
+        "Create a new project",
+        "Import from URL",
+        "Import from file",
+    ];
 
     // Get language options
     let languageOptions = $derived(
@@ -31,14 +42,6 @@
               )
             : [],
     );
-
-    // Initialize tabs after state declarations
-    const tabs = new Tabs({ value: "Create a new project" });
-    const tabIds = [
-        "Create a new project",
-        "Import from URL",
-        "Import from file",
-    ];
 
     // Handle creating a new project
     async function handleCreateProject() {
@@ -91,17 +94,28 @@
 <div class="d-flex flex-column gap-2 p-4">
     <h1 class="fs-4">Create Project</h1>
     <div>
-        <div {...tabs.triggerList}>
+        <!-- Bootstrap 5 Tabs -->
+        <ul class="nav mb-4">
             {#each tabIds as id}
-                <button class="btn btn-link" {...tabs.getTrigger(id)}>
-                    {id}
-                </button>
+                <li class="nav-item">
+                    <button
+                        class="nav-link border-bottom text-decoration-none px-3 py-2"
+                        class:active={activeTab === id}
+                        class:text-primary={activeTab !== id}
+                        class:text-dark={activeTab === id}
+                        class:border-primary={activeTab === id}
+                        class:border-2={activeTab === id}
+                        onclick={() => (activeTab = id)}
+                    >
+                        {id}
+                    </button>
+                </li>
             {/each}
-        </div>
+        </ul>
 
-        {#each tabIds as id}
-            <div {...tabs.getContent(id)}></div>
-            {#if id === "Create a new project"}
+        <!-- Tab Content -->
+        <div class="tab-content">
+            {#if activeTab === "Create a new project"}
                 <div class="mt-3">
                     <p>Select one or more languages</p>
 
@@ -128,8 +142,12 @@
                         </div>
                     {/if}
                 </div>
+            {:else if activeTab === "Import from URL"}
+                <ProjectImportUrl />
+            {:else if activeTab === "Import from file"}
+                <ProjectImportFile />
             {/if}
-        {/each}
+        </div>
     </div>
     {#if selectedLanguages?.length && projectData?.title?.content}
         <div class="d-flex justify-content-end">
