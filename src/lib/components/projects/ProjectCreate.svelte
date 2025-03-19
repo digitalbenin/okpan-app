@@ -98,17 +98,16 @@
         <ul class="nav mb-4">
             {#each tabIds as id}
                 <li class="nav-item">
-                    <button
-                        class="nav-link border-bottom text-decoration-none px-3 py-2"
-                        class:active={activeTab === id}
-                        class:text-primary={activeTab !== id}
-                        class:text-dark={activeTab === id}
-                        class:border-primary={activeTab === id}
-                        class:border-2={activeTab === id}
-                        onclick={() => (activeTab = id)}
-                    >
-                        {id}
-                    </button>
+                    <BaseButton
+                        class="nav-link border-bottom text-decoration-none px-3 py-2 {activeTab !==
+                        id
+                            ? 'text-primary'
+                            : ''} {activeTab === id
+                            ? 'text-dark border-primary border-2'
+                            : ''}"
+                        text={id}
+                        onClick={() => (activeTab = id)}
+                    />
                 </li>
             {/each}
         </ul>
