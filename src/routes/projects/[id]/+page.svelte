@@ -1,12 +1,9 @@
 <script>
     import { getProjectStore } from "$lib/stores/ProjectStore.svelte";
-
+    import ProjectOverview from "$lib/components/projects/ProjectOverview.svelte";
     const { projectState } = getProjectStore();
 
     $inspect("projectState", projectState);
 </script>
 
-<div>
-    <h1>Current Project</h1>
-    <h4>{projectState.currentProject.title.content}</h4>
-</div>
+<ProjectOverview />
