@@ -2,6 +2,7 @@
     import { getProjectStore } from "$lib/stores/ProjectStore.svelte";
 
     const { projectState } = getProjectStore();
+    $inspect(projectState);
 </script>
 
 <div class="container-fluid">

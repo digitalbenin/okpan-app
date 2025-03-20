@@ -423,6 +423,40 @@ export const API_SECTIONS = {
     objectsCount
   }
 }`
+      },
+      projectByIdWithCounts: {
+        type: "query",
+        name: "Get project by ID (with counts)",
+        description: "Retrieves a single project by its ID with all counts",
+        variables: {
+          projectId: "ID of the project to retrieve"
+        },
+        query: `query GetProjectById($projectId: String!) {
+  projectById(project_id: $projectId) {
+    id
+    created_at
+    updated_at
+    title {
+      content
+      original_language
+      translations {
+        content
+        language_code      
+      }
+    }
+    description {
+      content
+      original_language
+      translations {
+        content
+        language_code
+      }
+    }
+    institutionsCount
+    objectsCount
+    assetsCount
+  }
+}`
       }
     }
   },
@@ -713,8 +747,11 @@ export const API_SECTIONS = {
         type: "query",
         name: "List Institutions (with counts)",
         description: "Retrieves all institutions with their counts",
-        query: `{
-          institutionsList {
+        variables: {
+          projectId: "Optional ID of project to filter by"
+        },
+        query: `query GetInstitutionsList($projectId: String) {
+          institutionsList(project_id: $projectId) {
             id
             created_at
             updated_at

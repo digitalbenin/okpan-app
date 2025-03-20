@@ -26,7 +26,7 @@ export function getProjectStore() {
     });
 
     const projectListQuery = API_SECTIONS.projects.operations.projectsListWithCounts.query;
-    const projectByIdQuery = API_SECTIONS.projects.operations.projectsGetById.query;
+    const projectByIdWithCountsQuery = API_SECTIONS.projects.operations.projectByIdWithCounts.query;
     const updateProjectMutation = API_SECTIONS.projects.operations.projectsUpdate.query;
     const deleteProjectMutation = API_SECTIONS.projects.operations.projectsDelete.query;
     const addLanguageToProjectMutation = API_SECTIONS.projects.operations.projectAddLanguage.query;
@@ -96,7 +96,7 @@ export function getProjectStore() {
         try {
             projectState.isLoading = true;
 
-            const response = await window.api.executeGraphQL(projectByIdQuery, {
+            const response = await window.api.executeGraphQL(projectByIdWithCountsQuery, {
                 projectId
             });
 
@@ -104,9 +104,9 @@ export function getProjectStore() {
                 throw new Error(response.errors?.[0]?.message || "Failed to fetch project");
             }
 
-            projectState.currentProject = response?.data?.project[0];
+            projectState.currentProject = response?.data?.projectById;
             projectState.isLoading = false;
-            return response?.data?.project[0];
+            return response?.data?.projectById;
 
         } catch (error) {
             projectState.error = error;
