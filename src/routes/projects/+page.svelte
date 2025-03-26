@@ -1,6 +1,6 @@
 <script>
   import ProjectsList from "$lib/components/projects/ProjectsList.svelte";
-  import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
+  //import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
 
   let { data } = $props();
   // $inspect("frontend languages", data.languages);
