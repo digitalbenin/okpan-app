@@ -104,3 +104,5 @@ dist/
 
 # Assets
 src/assets/project_assets/*
+
+.vscode
