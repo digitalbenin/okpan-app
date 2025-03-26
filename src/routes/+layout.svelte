@@ -9,17 +9,11 @@
   let { children } = $props();
 </script>
 
-<div class="app-container d-flex flex-column">
+<div class="d-flex flex-column vh-100">
   <Header />
 
-  <main class="container-fluid flex-grow-1">
+  <div class="flex-grow-1 flex-shrink-1">
     {@render children()}
     <BaseToast />
-  </main>
+  </div>
 </div>
-
-<style>
-  .app-container {
-    min-height: 100vh;
-  }
-</style>

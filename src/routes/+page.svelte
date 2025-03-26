@@ -91,9 +91,3 @@
     <button onclick={() => refreshTranslations()}>Refresh</button>
   -->
 </div>
-
-<style>
-  :global(.bi) {
-    font-size: 1.1rem;
-  }
-</style>

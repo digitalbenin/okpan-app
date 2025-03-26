@@ -1,36 +1,35 @@
 <script>
   import { getContext } from "svelte";
-  let project = getContext("project");
+  const project = getContext("project");
+  const cards = $derived.by(() => {
+    return [
+      { title: "Institutions", value: project.institutionsCount || 0 },
+      { title: "Objects", value: project.objectsCount || 0 },
+      { title: "Assets", value: project.assetsCount || 0 },
+    ];
+  });
 </script>
 
-<div class="container-fluid">
-  <div class="row p-4 mb-2">
-    <h3 class="col-12 display-6">Project Overview</h3>
+{#snippet card(item)}
+  <div class="bg-light p-3 rounded">
+    <h5 class="card-title">{item.title}</h5>
+    <div class="fs-3">
+      {item.value}
+    </div>
   </div>
-  <div class="row px-4 d-flex flex-row justify-content-between gap-4">
-    <div class="card bg-light" style="flex:1">
-      <div class="card-body">
-        <h5 class="card-title">Institutions</h5>
-        <h2 class="card-text">
-          {project.institutionsCount || 0}
-        </h2>
-      </div>
+{/snippet}
+
+<div class="container-fluid mt-2">
+  <div class="row">
+    <div class="col-12">
+      <h4>Overview</h4>
     </div>
-    <div class="card bg-light" style="flex:1">
-      <div class="card-body">
-        <h5 class="card-title">Objects added</h5>
-        <h2 class="card-text">
-          {project.objectsCount || 0}
-        </h2>
+  </div>
+  <div class="row">
+    {#each cards as cardItem}
+      <div class="col-4">
+        {@render card(cardItem)}
       </div>
-    </div>
-    <div class="card bg-light" style="flex:1">
-      <div class="card-body">
-        <h5 class="card-title">Assets added</h5>
-        <h2 class="card-text">
-          {project.assetsCount || 0}
-        </h2>
-      </div>
-    </div>
+    {/each}
   </div>
 </div>

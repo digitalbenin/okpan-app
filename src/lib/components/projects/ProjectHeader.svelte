@@ -6,35 +6,26 @@
 </script>
 
 <div
-  class="d-flex flex-row align-items-center justify-content-between p-4"
-  style="height:60px"
+  class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
 >
-  <h6 class="col-4">{project?.title.content}</h6>
-  <div class="d-flex flex-row justify-content-center align-items-center gap-1">
+  <div>
+    <h6 class="m-0">{project.title.content}</h6>
+  </div>
+  <div class="d-flex gap-1">
     <BaseButton class="btn btn-sm btn-primary" text="Data Editor" />
     <BaseButton class="btn btn-sm btn-primary" text="Data Explorer" />
   </div>
 
-  <div
-    class="col-4 d-flex flex-row justify-content-end align-items-center gap-1"
-  >
+  <div class="d-flex gap-1">
     <BaseButton
-      class="btn btn-sm bg-black text-white"
+      class="btn btn-sm btn-dark"
       icon="table"
       text="Data Structure"
     />
+    <BaseButton class="btn btn-sm btn-dark" icon="download" text="Export" />
+    <BaseButton class="btn btn-sm btn-dark" icon="gear" text="Settings" />
     <BaseButton
-      class="btn btn-sm bg-black text-white"
-      icon="download"
-      text="Export"
-    />
-    <BaseButton
-      class="btn btn-sm bg-black text-white"
-      icon="gear"
-      text="Settings"
-    />
-    <BaseButton
-      class="btn btn-sm bg-black text-white"
+      class="btn btn-sm btn-dark"
       icon="question-circle"
       text="Help"
     />

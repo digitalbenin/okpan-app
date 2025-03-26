@@ -6,13 +6,19 @@ $primary: #006666;
 $danger: #93304c;
 $warning: #e49707;*/
 
-$black: #000000;
+// $black: #000000;
 
 // Required Bootstrap imports
 @import "~bootstrap/scss/variables";
 @import "~bootstrap/scss/variables-dark";
 
-// Add color modes 
+$custom-sizes: (
+  7: 0.875rem,
+);
+
+$font-sizes: map-merge($font-sizes, $custom-sizes);
+
+// Add color modes
 @import "~bootstrap/scss/maps";
 @import "~bootstrap/scss/mixins";
 @import "~bootstrap/scss/root";
@@ -59,7 +65,7 @@ $black: #000000;
 
 body,
 html {
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
 }
