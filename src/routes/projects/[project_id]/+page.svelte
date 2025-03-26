@@ -2,6 +2,7 @@
   import ProjectOverview from "$lib/components/projects/ProjectOverview.svelte";
   import Table from "$lib/components/institutions/Table.svelte";
   const { data } = $props();
+  $inspect("data project", data);
 </script>
 
 <ProjectOverview />
