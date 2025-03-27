@@ -80,6 +80,7 @@ export function createGraphQLSchema(db) {
     addCountField('InstitutionsSelectItem', 'objectsCount');
     addCountField('InstitutionsSelectItem', 'assetsCount');
     addCountField('InstitutionsSelectItem', 'datasourcesCount');
+    addCountField('InstitutionsSelectItem', 'totalCount');
 
     // Add custom query for projects list
     drizzleResult.schema._typeMap.Query._fields.projectsList = {
@@ -226,6 +227,30 @@ export function createGraphQLSchema(db) {
                 name: 'project_id',
                 type: drizzleResult.schema._typeMap.String,
                 description: 'Filter institutions by project ID'
+            },
+            {
+                name: 'page',
+                type: drizzleResult.schema._typeMap.Int,
+                description: 'Page number for pagination (0-based)',
+                defaultValue: 0
+            },
+            {
+                name: 'pageSize',
+                type: drizzleResult.schema._typeMap.Int,
+                description: 'Number of items per page',
+                defaultValue: 10
+            },
+            {
+                name: 'orderBy',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Field to order by (created_at, updated_at, name)',
+                defaultValue: 'created_at'
+            },
+            {
+                name: 'direction',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Sort direction (asc or desc)',
+                defaultValue: 'desc'
             }
         ],
         resolve: async (source, args, context, info) => {
@@ -297,13 +322,63 @@ export function createGraphQLSchema(db) {
                 query = query.where(eq(dbSchema.institutions.project_id, args.project_id));
             }
 
-            // Complete the query with groupBy and execute
-            const institutions = await query
-                .groupBy(dbSchema.institutions.id)
-                .execute();
+            // Apply ordering
+            let orderByField;
+            const direction = args.direction === 'asc' ? 'asc' : 'desc';
+
+            switch (args.orderBy) {
+                case 'created_at':
+                    orderByField = dbSchema.institutions.created_at;
+                    break;
+                case 'updated_at':
+                    orderByField = dbSchema.institutions.updated_at;
+                    break;
+                case 'name':
+                    orderByField = nameTexts.content;
+                    break;
+                default:
+                    orderByField = dbSchema.institutions.created_at;
+            }
+
+            // Add ordering to the query
+            query = query.orderBy(direction === 'asc' ? orderByField : sql`${orderByField} DESC`);
+
+            // Apply pagination
+            query = query
+                .limit(args.pageSize)
+                .offset(args.page * args.pageSize)
+                .groupBy(dbSchema.institutions.id);
+
+            // Execute the paginated query
+            const institutions = await query.execute();
 
             // Process translations
             return processTranslations(institutions, ['name', 'description', 'location', 'country', 'links']);
+        }
+    };
+
+    // Add custom query for institutions total count
+    drizzleResult.schema._typeMap.Query._fields.institutionsTotalCount = {
+        name: 'institutionsTotalCount',
+        type: drizzleResult.schema._typeMap.Int,
+        args: [
+            {
+                name: 'project_id',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Filter institutions by project ID'
+            }
+        ],
+        resolve: async (source, args, context, info) => {
+            let countQuery = db
+                .select({ count: sql`count(*)` })
+                .from(dbSchema.institutions);
+
+            if (args.project_id) {
+                countQuery = countQuery.where(eq(dbSchema.institutions.project_id, args.project_id));
+            }
+
+            const result = await countQuery.execute();
+            return result[0].count;
         }
     };
 
