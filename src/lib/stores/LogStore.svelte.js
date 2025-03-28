@@ -1,6 +1,3 @@
-import * as schema from '../../db/schema';
-import { API_SECTIONS } from '$lib/utils/queries.js';
-
 // Create a singleton instance
 let storeInstance = null;
 
@@ -32,40 +29,102 @@ export function getLogStore() {
         }
     });
 
-    // Get queries from API_SECTIONS
-    const listLogsQuery = API_SECTIONS.logs.operations.logsList.query;
+    // Define queries directly in the file
+    const logsList = {
+        type: "query",
+        name: "List Logs",
+        description: "Retrieves logs with pagination and filtering",
+        query: `query ListLogs($page: Int!, $pageSize: Int!, $level: String, $action: String, $fromDate: String, $toDate: String, $search: String) {
+  result: logs(
+    limit: $pageSize
+    offset: $page
+    where: {
+      level: { eq: $level }
+      action: { eq: $action }
+      created_at: { gte: $fromDate, lte: $toDate }
+      message: { like: $search }
+    }
+  ) {
+    id
+    created_at
+    level
+    action
+    message
+  }
+  
+  # Get total count for pagination
+  count: logs(
+    where: {
+      level: { eq: $level }
+      action: { eq: $action }
+      created_at: { gte: $fromDate, lte: $toDate }
+      message: { like: $search }
+    }
+  ) {
+    id
+  }
+}`
+    };
 
-    const createLogQuery = API_SECTIONS.logs.operations.logsCreate.query;
+    const logsCreate = {
+        type: "mutation",
+        name: "Create Log",
+        description: "Creates a new log entry",
+        query: `mutation CreateLog($level: String!, $action: String!, $message: String!) {
+  insertIntoLogs(values: [{
+    level: $level,
+    action: $action,
+    message: $message
+  }]) {
+    id
+    created_at
+    level
+    action
+    message
+  }
+}`
+    };
 
-    const deleteLogQuery = API_SECTIONS.logs.operations.logsDelete.query;
+    const logsDelete = {
+        type: "mutation",
+        name: "Delete Log",
+        description: "Deletes a log entry by ID",
+        query: `mutation DeleteLog($id: String!) {
+  deleteFromLogs(where: { id: { eq: $id } }) {
+    id
+  }
+}`
+    };
 
-    const clearLogsQuery = API_SECTIONS.logs.operations.logsClear.query;
+    const logsClear = {
+        type: "mutation",
+        name: "Clear Logs",
+        description: "Clears logs based on filters",
+        query: `mutation ClearLogs($level: String, $action: String, $fromDate: String, $toDate: String) {
+  deleteFromLogs(
+    where: {
+      level: { eq: $level }
+      action: { eq: $action }
+      created_at: { gte: $fromDate, lte: $toDate }
+    }
+  ) {
+    id
+  }
+}`
+    };
 
     // Initialize the store
     const initialize = async () => {
         if (logState.isInitialized) return;
 
-        try {
-            logState.isLoading = true;
-            logState.error = null;
-
-            // Fetch initial logs
-            await fetchLogs();
-
-            logState.isInitialized = true;
-        } catch (err) {
-            logState.error = `Failed to initialize log store: ${err.message}`;
-            console.error('Log store initialization error:', err);
-        } finally {
-            logState.isLoading = false;
-        }
+        await fetchLogs();
+        logState.isInitialized = true;
     };
 
     // Fetch logs with pagination and filters
     const fetchLogs = async (page = 1, pageSize = 50, filters = {}) => {
         try {
             logState.isLoading = true;
-            logState.error = null;
 
             // Update pagination state
             logState.pagination.page = page;
@@ -89,19 +148,14 @@ export function getLogStore() {
                 search: appliedFilters.search ? `%${appliedFilters.search}%` : undefined
             };
 
-            // Execute GraphQL query
-            const result = await window.api.executeGraphQL(listLogsQuery, variables);
+            // Execute GraphQL query directly
+            const response = await window.api.executeGraphQL(logsList.query, variables);
 
-            if (!result.success || result.errors) {
-                throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to fetch logs"
-                );
-            }
+            // Extract data from response
+            const result = response.data;
 
             // Update state with fetched logs
-            logState.logs = result.data.logs.map(log => {
+            logState.logs = result.result.map(log => {
                 // Parse JSON details if it exists and the field exists in the schema
                 if (log.details && typeof log.details === 'string') {
                     try {
@@ -114,7 +168,7 @@ export function getLogStore() {
             });
 
             // Update pagination info
-            const totalLogs = result.data.totalLogs ? result.data.totalLogs.length : 0;
+            const totalLogs = result.count ? result.count.length : 0;
             logState.pagination.totalLogs = totalLogs;
             logState.pagination.totalPages = Math.ceil(totalLogs / pageSize);
 
@@ -124,8 +178,8 @@ export function getLogStore() {
                 pagination: logState.pagination
             };
         } catch (err) {
-            logState.error = `Failed to fetch logs: ${err.message}`;
             console.error('Error fetching logs:', err);
+            logState.error = `Failed to fetch logs: ${err.message}`;
             return {
                 success: false,
                 error: err.message
@@ -145,16 +199,9 @@ export function getLogStore() {
                 message: logData.message
             };
 
-            // Execute GraphQL mutation
-            const result = await window.api.executeGraphQL(createLogQuery, variables);
-
-            if (!result.success || result.errors) {
-                throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to create log"
-                );
-            }
+            // Execute GraphQL mutation directly
+            const response = await window.api.executeGraphQL(logsCreate.query, variables);
+            const result = response.data;
 
             // Refresh logs if needed
             if (logState.isInitialized) {
@@ -163,7 +210,7 @@ export function getLogStore() {
 
             return {
                 success: true,
-                log: result.data.insertIntoLogs[0]
+                log: result.insertIntoLogs[0]
             };
         } catch (err) {
             console.error('Error creating log:', err);
@@ -180,16 +227,8 @@ export function getLogStore() {
             logState.isLoading = true;
             logState.error = null;
 
-            // Execute GraphQL mutation
-            const result = await window.api.executeGraphQL(deleteLogQuery, { id });
-
-            if (!result.success || result.errors) {
-                throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to delete log"
-                );
-            }
+            // Execute GraphQL mutation directly
+            await window.api.executeGraphQL(logsDelete.query, { id });
 
             // Refresh logs
             await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
@@ -227,16 +266,8 @@ export function getLogStore() {
                 toDate: appliedFilters.toDate ? String(appliedFilters.toDate) : undefined
             };
 
-            // Execute GraphQL mutation
-            const result = await window.api.executeGraphQL(clearLogsQuery, variables);
-
-            if (!result.success || result.errors) {
-                throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to clear logs"
-                );
-            }
+            // Execute GraphQL mutation directly
+            await window.api.executeGraphQL(logsClear.query, variables);
 
             // Refresh logs
             await fetchLogs(1, logState.pagination.pageSize, {});

@@ -1,4 +1,4 @@
-import { API_SECTIONS } from "$lib/utils/queries.js";
+import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
 import { addToast } from "$lib/components/base/BaseToast.svelte";
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
@@ -18,8 +18,8 @@ const { getSchema, validate } = getValidationStore();
 //     error: null
 // });
 
-const projectListQuery = API_SECTIONS.projects.operations.projectsListWithCounts.query;
-const projectByIdWithCountsQuery = API_SECTIONS.projects.operations.projectByIdWithCounts.query;
+const projectsListWithCounts = API_SECTIONS.projects.operations.projectsListWithCounts;
+const projectByIdWithCounts = API_SECTIONS.projects.operations.projectByIdWithCounts;
 const updateProjectMutation = API_SECTIONS.projects.operations.projectsUpdate.query;
 const deleteProjectMutation = API_SECTIONS.projects.operations.projectsDelete.query;
 const addLanguageToProjectMutation = API_SECTIONS.projects.operations.projectAddLanguage.query;
@@ -30,61 +30,21 @@ const setLanguageAsDefaultMutation = API_SECTIONS.projects.operations.projectSet
 
 export const getProjects = async () => {
     try {
-        // projectState.isLoading = true;
-
-        const response = await window.api.executeGraphQL(projectListQuery);
-
-        console.log("response", response);
-        // projectState.projects = response.data.projectsList;
-        // projectState.isLoading = false;
-        return response.data.projectsList;
+        const result = await performQuery(projectsListWithCounts);
+        return result.result;
     } catch (error) {
-        // projectState.error = error;
-        // projectState.isLoading = false;
-        addToast({
-            data: {
-                title: "Error",
-                description: `Failed to fetch projects: ${error.message}`,
-                type: "error"
-            }
-        });
-        await logError("getProjects", error.message);
+        // Already handled by performQuery
         throw error;
-    } finally {
-        // projectState.isLoading = false;
     }
 };
 
 export const getProject = async (projectId) => {
     try {
-        // projectState.isLoading = true;
-
-        const response = await window.api.executeGraphQL(projectByIdWithCountsQuery, {
-            projectId
-        });
-
-        if (!response.success) {
-            throw new Error(response.errors?.[0]?.message || "Failed to fetch project");
-        }
-
-        // projectState.currentProject = response?.data?.projectById;
-        // projectState.isLoading = false;
-        return response.data.projectById;
-
+        const result = await performQuery(projectByIdWithCounts, { projectId });
+        return result.result;
     } catch (error) {
-        // projectState.error = error;
-        // projectState.isLoading = false;
-        addToast({
-            data: {
-                title: "Error",
-                description: `Failed to fetch project: ${error.message}`,
-                type: "error"
-            }
-        });
-        await logError("setProject", error.message);
+        // Already handled by performQuery
         throw error;
-    } finally {
-        // projectState.isLoading = false;
     }
 };
 

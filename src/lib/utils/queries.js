@@ -1,3 +1,28 @@
+import { getLogStore } from "$lib/stores/LogStore.svelte.js";
+import { addToast } from "$lib/components/base/BaseToast.svelte";
+const { error: logError } = getLogStore();
+
+export const performQuery = async (query, params) => {
+  let result = null;
+  try {
+    const response = await window.api.executeGraphQL(query.query, params);
+    result = response.data;
+  } catch (error) {
+    addToast({
+      data: {
+        title: "Error",
+        description: `Failed to fetch query ${query.name}: ${error.message}`,
+        type: "error"
+      }
+    });
+    await logError(query.name, error.message);
+    throw error;
+  } finally {
+    console.log(`result from query ${query.name}:`, result);
+    return result;
+  }
+}
+
 export const API_SECTIONS = {
   interface_languages: {
     name: "Interface Languages",
@@ -105,7 +130,7 @@ export const API_SECTIONS = {
           projectId: "ID of the project"
         },
         query: `query GetProjectLanguages($projectId: String!) {
-  project_languages(where: { project_id: { eq: $projectId } }) {
+  result: project_languages(where: { project_id: { eq: $projectId } }) {
     language_code
     is_default
     language {
@@ -246,7 +271,7 @@ export const API_SECTIONS = {
           projectId: "ID of the project to retrieve"
         },
         query: `query GetProject($projectId: String!) {
-  project(where: { id: { eq: $projectId } }) {
+  result: project(where: { id: { eq: $projectId } }) {
     id
     created_at
     updated_at
@@ -432,7 +457,7 @@ export const API_SECTIONS = {
           projectId: "ID of the project to retrieve"
         },
         query: `query GetProjectById($projectId: String!) {
-  projectById(project_id: $projectId) {
+  result:projectById(project_id: $projectId) {
     id
     created_at
     updated_at
@@ -471,7 +496,7 @@ export const API_SECTIONS = {
           projectId: "ID of the institution to retrieve"
         },
         query: `query GetInstitution($projectId: String!) {
-  institutions(where: { id: { eq: $projectId } }) {
+  result:institutions(where: { id: { eq: $projectId } }) {
     id
     created_at
     updated_at
@@ -784,7 +809,7 @@ export const API_SECTIONS = {
         name: "Get Institution By ID (with counts)",
         description: "Retrieves a single institution by its ID with all details including counts",
         query: `query GetInstitution($institutionId: String!) {
-          institutionById(institution_id: $institutionId) {
+          result: institutionById(institution_id: $institutionId) {
             id
             created_at
             updated_at
@@ -892,7 +917,7 @@ export const API_SECTIONS = {
           objectId: "ID of the object to retrieve"
         },
         query: `query GetObject($objectId: String!) {
-  objects(where: { id: { eq: $objectId } }) {
+  result: objects(where: { id: { eq: $objectId } }) {
     id
     status
     created_at
@@ -1309,7 +1334,7 @@ export const API_SECTIONS = {
           locale: "Language code for the translations"
         },
         query: `query GetInterfaceTranslations($locale: String!) {
-  interface_translations(where: { locale: { eq: $locale } }) {
+  result:interface_translations(where: { locale: { eq: $locale } }) {
     id
     namespace
     key
@@ -1410,7 +1435,7 @@ export const API_SECTIONS = {
           search: "Search in log messages"
         },
         query: `query ListLogs($page: Int!, $pageSize: Int!, $level: String, $action: String, $fromDate: String, $toDate: String, $search: String) {
-  logs(
+  result: logs(
     limit: $pageSize
     offset: $page
     where: {
@@ -1428,7 +1453,7 @@ export const API_SECTIONS = {
   }
   
   # Get total count for pagination
-  totalLogs: logs(
+  count: logs(
     where: {
       level: { eq: $level }
       action: { eq: $action }
@@ -1557,7 +1582,7 @@ export const API_SECTIONS = {
           assetId: "ID of the asset to retrieve"
         },
         query: `query GetAsset($assetId: String!) {
-  assets(where: { id: { eq: $assetId } }) {
+  result: assets(where: { id: { eq: $assetId } }) {
     id
     filename
     path

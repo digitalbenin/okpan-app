@@ -1,4 +1,4 @@
-import { API_SECTIONS } from "$lib/utils/queries.js";
+import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
 import { getValidationStore } from "./ValidationStore.svelte.js";
 import { addToast } from "$lib/components/base/BaseToast.svelte";
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
@@ -33,10 +33,10 @@ export function getContentLanguageStore() {
     });
 
     // Get queries from API_SECTIONS
-    const languagesQuery = API_SECTIONS.languages.operations.contentLanguagesList.query;
-    const projectLanguagesQuery = API_SECTIONS.languages.operations.contentLanguagesListByProject.query;
-    const createLanguageMutation = API_SECTIONS.languages.operations.contentLanguagesCreate.query;
-    const deleteLanguageMutation = API_SECTIONS.languages.operations.contentLanguagesDelete.query;
+    const contentLanguagesList = API_SECTIONS.languages.operations.contentLanguagesList;
+    const contentLanguagesListByProject = API_SECTIONS.languages.operations.contentLanguagesListByProject;
+    const contentLanguagesCreate = API_SECTIONS.languages.operations.contentLanguagesCreate;
+    const contentLanguagesDelete = API_SECTIONS.languages.operations.contentLanguagesDelete;
 
 
 
@@ -62,23 +62,17 @@ export function getContentLanguageStore() {
     const fetchLanguages = async () => {
         try {
             contentLanguageState.isLoading = true;
-            const response = await window.api.executeGraphQL(languagesQuery);
-            console.log(response);
+            const result = await performQuery(contentLanguagesList);
+            console.log(result);
 
-            contentLanguageState.languages = response?.data?.languages || [];
+            contentLanguageState.languages = result?.result || [];
             contentLanguageState.isLoading = false;
-            return response?.data?.languages || [];
+            return result?.result || [];
         } catch (error) {
             contentLanguageState.error = error;
             contentLanguageState.isLoading = false;
-            addToast({
-                data: {
-                    title: "Error",
-                    description: `Failed to fetch languages: ${error.message}`,
-                    type: "error"
-                }
-            });
-            await logError("fetch_languages", error.message);
+            // Error already handled by performQuery
+            throw error;
         }
     };
 
@@ -93,11 +87,7 @@ export function getContentLanguageStore() {
     const deleteLanguage = async (code) => {
         try {
             contentLanguageState.isLoading = true;
-            const response = await window.api.executeGraphQL(deleteLanguageMutation, { code });
-
-            if (!response.success) {
-                throw new Error(response.errors?.[0]?.message || "Failed to delete language");
-            }
+            await performQuery(contentLanguagesDelete, { code });
 
             await fetchLanguages();
             addToast({
@@ -109,14 +99,7 @@ export function getContentLanguageStore() {
             });
 
         } catch (error) {
-            addToast({
-                data: {
-                    title: "Error",
-                    description: `Failed to delete language: ${error.message}`,
-                    type: "error"
-                }
-            });
-            await logError("delete_language", error.message);
+            // Error already handled by performQuery
             throw error;
         } finally {
             contentLanguageState.isLoading = false;
@@ -142,13 +125,9 @@ export function getContentLanguageStore() {
                 throw new Error(validationResult.errors[0]);
             }
 
-            const response = await window.api.executeGraphQL(createLanguageMutation, {
+            const result = await performQuery(contentLanguagesCreate, {
                 code, name, nativeName, direction, flag
             });
-
-            if (!response.success) {
-                throw new Error(response.errors?.[0]?.message || "Failed to create language");
-            }
 
             await fetchLanguages();
             addToast({
@@ -158,16 +137,9 @@ export function getContentLanguageStore() {
                     type: "success"
                 }
             });
-            return response.data.contentLanguageCreate;
+            return result.insertIntoLanguages[0];
         } catch (error) {
-            addToast({
-                data: {
-                    title: "Error",
-                    description: `Failed to create language: ${error.message}`,
-                    type: "error"
-                }
-            });
-            await logError("create_language", error.message);
+            // Error already handled by performQuery
             throw error;
         } finally {
             contentLanguageState.isLoading = false;
@@ -180,23 +152,12 @@ export function getContentLanguageStore() {
 
     const getAvaliableLocalesForProject = async (projectId) => {
         try {
-            const response = await window.api.executeGraphQL(projectLanguagesQuery, { projectId });
+            const result = await performQuery(contentLanguagesListByProject, { projectId });
 
-            if (!response.success) {
-                throw new Error(response.errors?.[0]?.message || "Failed to fetch project languages");
-            }
-
-            contentLanguageState.projectLanguages = response.data.languages;
-            return response.data.languages;
+            contentLanguageState.projectLanguages = result.result;
+            return result.result;
         } catch (error) {
-            addToast({
-                data: {
-                    title: "Error",
-                    description: `Failed to fetch project languages: ${error.message}`,
-                    type: "error"
-                }
-            });
-            await logError("get_project_languages", error.message);
+            // Error already handled by performQuery
             throw error;
         }
     };

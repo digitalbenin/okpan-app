@@ -1,6 +1,5 @@
-import { API_SECTIONS } from "$lib/utils/queries.js";
+import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
-import { addToast } from "$lib/components/base/BaseToast.svelte";
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 
 
@@ -10,8 +9,8 @@ const { error: logError } = getLogStore();
 const { getSchema, validate } = getValidationStore();
 
 
-const institutionsListQuery = API_SECTIONS.institutions.operations.institutionsListWithCounts.query;
-const institutionQuery = API_SECTIONS.institutions.operations.institutionsGetByIdWithCounts.query;
+const institutionsListWithCounts = API_SECTIONS.institutions.operations.institutionsListWithCounts;
+const institutionsGetByIdWithCounts = API_SECTIONS.institutions.operations.institutionsGetByIdWithCounts;
 // const projectByIdWithCountsQuery = API_SECTIONS.projects.operations.projectByIdWithCounts.query;
 // const updateProjectMutation = API_SECTIONS.projects.operations.projectsUpdate.query;
 // const deleteProjectMutation = API_SECTIONS.projects.operations.projectsDelete.query;
@@ -21,55 +20,20 @@ const institutionQuery = API_SECTIONS.institutions.operations.institutionsGetByI
 
 export const getProjectInstitutions = async (projectId) => {
     try {
-        // projectInstitutionsState.isLoading = true;
-
-        const response = await window.api.executeGraphQL(institutionsListQuery, { projectId });
-
-        // console.log("response", response);
-        // projectInstitutionsState.institutions = response.data.institutionsList;
-        // projectInstitutionsState.isLoading = false;
-        return response.data.institutionsList;
+        const result = await performQuery(institutionsListWithCounts, { projectId });
+        return result.result;
     } catch (error) {
-        // projectInstitutionsState.error = error;
-        // projectInstitutionsState.isLoading = false;
-        addToast({
-            data: {
-                title: "Error",
-                description: `Failed to fetch institutions: ${error.message}`,
-                type: "error"
-            }
-        });
-        await logError("getInstitutions", error.message);
+        // Already handled by performQuery
         throw error;
-    } finally {
-        // projectInstitutionsState.isLoading = false;
     }
 };
 
 export const getInstitution = async (institutionId) => {
     try {
-        // projectInstitutionsState.isLoading = true;
-
-        const response = await window.api.executeGraphQL(institutionQuery, { institutionId });
-
-        // console.log("response", response);
-        // projectInstitutionsState.institutions = response.data.institutionsList;
-        // projectInstitutionsState.isLoading = false;
-        console.log(response.data)
-        return response.data.institutionById;
+        const result = await performQuery(institutionsGetByIdWithCounts, { institutionId });
+        return result.result;
     } catch (error) {
-        // projectInstitutionsState.error = error;
-        // projectInstitutionsState.isLoading = false;
-        addToast({
-            data: {
-                title: "Error",
-                description: `Failed to fetch institution: ${error.message}`,
-                type: "error"
-            }
-        });
-        await logError("getInstitutions", error.message);
+        // Already handled by performQuery
         throw error;
-    } finally {
-        // projectInstitutionsState.isLoading = false;
     }
 };

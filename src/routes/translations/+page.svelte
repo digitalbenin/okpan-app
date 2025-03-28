@@ -7,6 +7,7 @@
     import BaseModal from "$lib/components/base/BaseModal.svelte";
 
     // Initialize stores
+    const translationStore = getTranslationStore();
     const {
         exportTranslations,
         importTranslations,
@@ -16,7 +17,7 @@
         deleteNamespace,
         createNamespace,
         t,
-    } = getTranslationStore();
+    } = translationStore;
     const { error: logError } = getLogStore();
 
     // State
@@ -40,67 +41,88 @@
         API_SECTIONS.interface_translations.operations
             .interfaceTranslationsList;
 
-    // Fetch data
-    async function fetchLanguages() {
-        try {
-            const result = await window.api.executeGraphQL(languagesQuery);
-            if (!result.success)
-                throw new Error(
-                    result.errors?.[0]?.message || "Failed to fetch languages",
-                );
-
-            languages = result.data.interface_languages;
-            newTranslationValues = Object.fromEntries(
-                languages.map((lang) => [lang.code, ""]),
-            );
-        } catch (err) {
-            addToast({
-                data: {
-                    title: t("common.error", { fallback: "Error" }),
-                    description: t("translations.error_fetch_languages", {
-                        fallback: `Failed to fetch languages: ${err.message}`,
-                    }),
-                    type: "error",
-                },
-            });
-            await logError("fetch_languages", err.message);
-        }
-    }
-
-    async function fetchInterfaceTranslations() {
-        try {
+    // Initialize
+    $effect(() => {
+        const initializeData = async () => {
             isLoading = true;
-            const result = await window.api.executeGraphQL(
-                interfaceTranslationsQuery,
-            );
-            if (!result.success || !result.data?.interface_translations) {
-                throw new Error(
-                    result.errors?.[0]?.message ||
-                        "Failed to fetch translations",
-                );
-            }
+            try {
+                // Initialize store first if needed
+                if (!translationStore.translationState.isInitialized) {
+                    await translationStore.initialize();
+                }
 
-            interfaceTranslations = result.data.interface_translations;
-            namespaces = [
-                ...new Set(interfaceTranslations.map((t) => t.namespace)),
-            ];
-            if (namespaces.length && !currentNamespace)
-                currentNamespace = namespaces[0];
-        } catch (err) {
-            addToast({
-                data: {
-                    title: t("common.error", { fallback: "Error" }),
-                    description: t("translations.error_fetch_translations", {
-                        fallback: `Failed to fetch translations: ${err.message}`,
-                    }),
-                    type: "error",
-                },
-            });
-            await logError("fetch_translations", err.message);
-        } finally {
-            isLoading = false;
-        }
-    }
+                // Only fetch data if we have languages and translations
+                if (translationStore.translationState.languages.length > 0) {
+                    languages = translationStore.translationState.languages;
+
+                    // Set up translation value placeholder
+                    newTranslationValues = Object.fromEntries(
+                        languages.map((lang) => [lang.code, ""]),
+                    );
+
+                    // Convert from nested to flat structure only when needed
+                    const translations = Object.entries(
+                        translationStore.translationState.translations,
+                    ).flatMap(([namespace, keys]) =>
+                        Object.entries(keys).flatMap(([key, locales]) =>
+                            Object.entries(locales).map(([locale, value]) => ({
+                                namespace,
+                                key,
+                                locale,
+                                value,
+                            })),
+                        ),
+                    );
+
+                    // Only update if changed to avoid loops
+                    if (
+                        JSON.stringify(interfaceTranslations) !==
+                        JSON.stringify(translations)
+                    ) {
+                        interfaceTranslations = translations;
+
+                        // Update namespaces
+                        const newNamespaces = [
+                            ...new Set(
+                                interfaceTranslations.map((t) => t.namespace),
+                            ),
+                        ];
+                        if (
+                            JSON.stringify(namespaces) !==
+                            JSON.stringify(newNamespaces)
+                        ) {
+                            namespaces = newNamespaces;
+
+                            // Set current namespace if not already set
+                            if (namespaces.length && !currentNamespace) {
+                                currentNamespace = namespaces[0];
+                            }
+                        }
+                    }
+                } else {
+                    // If no data yet, this is the first load
+                    console.log(
+                        "No translation data yet, waiting for initialization",
+                    );
+                }
+            } catch (err) {
+                console.error("Error initializing translations:", err);
+                addToast({
+                    data: {
+                        title: t("common.error", { fallback: "Error" }),
+                        description: `Failed to initialize translations: ${err.message}`,
+                        type: "error",
+                    },
+                });
+                await logError("initialize_translations", err.message);
+            } finally {
+                isLoading = false;
+            }
+        };
+
+        // Run initialization
+        initializeData();
+    });
 
     // Modal handlers
     const toggleAddNamespaceModal = () => {
@@ -191,7 +213,8 @@
             if (!result.success) throw new Error(result.error);
 
             toggleAddTranslationModal();
-            await fetchInterfaceTranslations();
+            // Refresh translations
+            await translationStore.refreshTranslations();
             addToast({
                 data: {
                     title: t("common.success", { fallback: "Success" }),
@@ -240,7 +263,8 @@
 
             editingTranslation = null;
             editedValues = {};
-            await fetchInterfaceTranslations();
+            // Refresh translations
+            await translationStore.refreshTranslations();
             addToast({
                 data: {
                     title: t("common.success", { fallback: "Success" }),
@@ -286,7 +310,8 @@
             const result = await deleteTranslation(currentNamespace, key);
             if (!result.success) throw new Error(result.error);
 
-            await fetchInterfaceTranslations();
+            // Refresh translations
+            await translationStore.refreshTranslations();
             addToast({
                 data: {
                     title: t("common.success", { fallback: "Success" }),
@@ -327,7 +352,8 @@
             if (!result.success) throw new Error(result.error);
 
             if (currentNamespace === namespace) currentNamespace = "";
-            await fetchInterfaceTranslations();
+            // Refresh translations
+            await translationStore.refreshTranslations();
             addToast({
                 data: {
                     title: t("common.success", { fallback: "Success" }),
@@ -412,10 +438,10 @@
             isLoading = true;
             const result = await importTranslations();
             if (result.success) {
-                await Promise.all([
-                    fetchLanguages(),
-                    fetchInterfaceTranslations(),
-                ]);
+                // Refresh the translation store instead of calling individual fetch functions
+                await translationStore.initialize();
+
+                // The effect will automatically update the UI with new data
                 addToast({
                     data: {
                         title: t("common.success", { fallback: "Success" }),
@@ -443,12 +469,6 @@
             isLoading = false;
         }
     }
-
-    // Initialize
-    $effect(() => {
-        fetchLanguages();
-        fetchInterfaceTranslations();
-    });
 </script>
 
 <div class="container-fluid">

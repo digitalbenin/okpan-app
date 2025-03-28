@@ -1,9 +1,13 @@
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import * as schema from '../../db/schema';
+import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
+import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 
 // Create a singleton instance
 let storeInstance = null;
+
+const { error: logError } = getLogStore();
 
 // Main store function that creates and returns the store
 export function getValidationStore() {
@@ -30,8 +34,6 @@ export function getValidationStore() {
 
             // Generate schemas for each table
             tables.forEach(([tableName, table]) => {
-
-
                 validationState.schemas[tableName] = {
                     insert: createInsertSchema(table),
                     select: createSelectSchema(table)
@@ -63,6 +65,7 @@ export function getValidationStore() {
         } catch (err) {
             validationState.error = `Failed to initialize validation schemas: ${err.message}`;
             console.error('Validation schema initialization error:', err);
+            logError('init_validation_schemas', err.message);
         }
     };
 
@@ -80,6 +83,7 @@ export function getValidationStore() {
             };
         } catch (err) {
             console.error('Validation error:', err);
+            await logError('validation_error', err.message);
             return {
                 success: false,
                 errors: [err.message]
@@ -112,6 +116,7 @@ export function getValidationStore() {
             return baseSchema.extend(customValidations);
         } catch (err) {
             console.error(`Error creating custom schema for ${tableName}:`, err);
+            logError('create_custom_schema', err.message);
             throw err;
         }
     };

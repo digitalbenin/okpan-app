@@ -1,5 +1,6 @@
-import { API_SECTIONS } from "$lib/utils/queries.js";
+import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
 import { getValidationStore } from "./ValidationStore.svelte.js";
+import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 
 // Create a singleton instance
 let storeInstance = null;
@@ -13,6 +14,9 @@ export function getTranslationStore() {
 
     // Get validation store
     const { getSchema, validate } = getValidationStore();
+
+    // Get log store for error logging
+    const { error: logError } = getLogStore();
 
     // Get the base schema for validation
     const baseSchema = getSchema('interface_translations', 'insert');
@@ -29,60 +33,104 @@ export function getTranslationStore() {
     });
 
     // Get queries from API_SECTIONS
-    const languagesQuery = API_SECTIONS.interface_languages.operations.interfaceLanguagesList.query;
-    const interfaceTranslationsQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsList.query;
-    const createInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsCreate.query;
-    const updateInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsUpdate.query;
-    const deleteInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsDelete.query;
+    const languagesQuery = API_SECTIONS.interface_languages.operations.interfaceLanguagesList;
+    const interfaceTranslationsQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsList;
+    const createInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsCreate;
+    const updateInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsUpdate;
+    const deleteInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsDelete;
 
     // Fetch all supported languages
     const fetchLanguages = async () => {
         try {
-            const result = await window.api.executeGraphQL(languagesQuery);
+            console.log("Fetching interface languages...");
+            const result = await performQuery(languagesQuery);
+            console.log("Received interface languages:", result);
 
-            if (!result.success || result.errors) {
-                throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to fetch languages"
-                );
+            // Check if we have a valid result with more detailed logging
+            if (!result) {
+                const errorMsg = "No response received from server for languages";
+                console.error(errorMsg);
+                translationState.languages = [];
+                translationState.error = errorMsg;
+                await logError("fetch_languages", errorMsg);
+                return;
             }
 
-            translationState.languages = result.data.interface_languages;
+            if (!result.result) {
+                const errorMsg = `Response missing 'result' field: ${JSON.stringify(result)}`;
+                console.error(errorMsg);
+                translationState.languages = [];
+                translationState.error = errorMsg;
+                await logError("fetch_languages", errorMsg);
+                return;
+            }
+
+            // Store languages with fallback to empty array
+            translationState.languages = Array.isArray(result.result) ? result.result : [];
+            console.log(`Found ${translationState.languages.length} interface languages`);
 
             // Set default locale if available
-            // Note: interface languages don't have is_default, so we'll use the first one or 'en'
             if (translationState.languages.length > 0) {
                 const enLang = translationState.languages.find(lang => lang.code === 'en');
                 translationState.currentLocale = enLang ? enLang.code : translationState.languages[0].code;
+                console.log("Current locale set to:", translationState.currentLocale);
             }
         } catch (err) {
+            const errorMsg = err?.message || "Unknown error";
             console.error("Error fetching languages:", err);
-            throw err;
+            translationState.languages = [];
+            translationState.error = `Failed to fetch languages: ${errorMsg}`;
+            await logError("fetch_languages", errorMsg);
         }
     };
 
     // Fetch all translations and organize them by namespace and key
     const fetchTranslations = async () => {
         try {
-            const result = await window.api.executeGraphQL(interfaceTranslationsQuery);
+            console.log("Fetching interface translations...");
+            const result = await performQuery(interfaceTranslationsQuery);
+            console.log("Received interface translations:", result);
 
-            if (!result.success || result.errors) {
-                throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to fetch translations"
-                );
+            // Log the structure for debugging
+            console.log("Translation result keys:", result ? Object.keys(result) : "null result");
+            if (result && result.result) {
+                console.log("Translation result.result type:", Array.isArray(result.result) ? "Array" : typeof result.result);
+                console.log("Translation result.result length:", Array.isArray(result.result) ? result.result.length : "not an array");
             }
 
-            if (!result.data || !result.data.interface_translations) {
-                throw new Error("No translation data received from server");
+            // Check if we have a valid result with more detailed logging
+            if (!result) {
+                const errorMsg = "No response received from server for translations";
+                console.error(errorMsg);
+                translationState.translations = {};
+                translationState.error = errorMsg;
+                await logError("fetch_translations", errorMsg);
+                return;
             }
+
+            if (!result.result) {
+                const errorMsg = `Response missing 'result' field: ${JSON.stringify(result)}`;
+                console.error(errorMsg);
+                translationState.translations = {};
+                translationState.error = errorMsg;
+                await logError("fetch_translations", errorMsg);
+                return;
+            }
+
+            // Ensure result.result is treated as an array
+            const translations = Array.isArray(result.result) ? result.result : [];
+            console.log(`Found ${translations.length} interface translations`);
 
             // Organize translations by namespace and key
             const translationData = {};
 
-            for (const item of result.data.interface_translations) {
+            for (const item of translations) {
+                // Skip invalid items
+                if (!item || !item.namespace || !item.key || !item.locale) {
+                    console.warn("Skipping invalid translation item:", item);
+                    continue;
+                }
+
                 // Create namespace if it doesn't exist
                 if (!translationData[item.namespace]) {
                     translationData[item.namespace] = {};
@@ -98,9 +146,13 @@ export function getTranslationStore() {
             }
 
             translationState.translations = translationData;
+            console.log(`Organized translations into ${Object.keys(translationData).length} namespaces`);
         } catch (err) {
+            const errorMsg = err?.message || "Unknown error";
             console.error("Error fetching translations:", err);
-            throw err;
+            translationState.translations = {};
+            translationState.error = `Failed to fetch translations: ${errorMsg}`;
+            await logError("fetch_translations", errorMsg);
         }
     };
 
@@ -122,6 +174,7 @@ export function getTranslationStore() {
         } catch (err) {
             translationState.error = `Failed to initialize translation store: ${err.message}`;
             console.error("Translation store initialization error:", err);
+            await logError("init_translation_store", err.message);
         } finally {
             translationState.isLoading = false;
         }
@@ -219,13 +272,22 @@ export function getTranslationStore() {
 
     // Refresh translations from the server
     const refreshTranslations = async () => {
+        translationState.isLoading = true;
+        translationState.error = null;
+
         try {
-            translationState.isLoading = true;
-            translationState.error = null;
+            console.log("Refreshing translations...");
+
             await fetchTranslations();
+
+            console.log("Translations refreshed successfully");
+            return { success: true };
         } catch (err) {
-            translationState.error = `Failed to refresh translations: ${err.message}`;
-            console.error("Error refreshing translations:", err);
+            const errorMsg = err?.message || "Unknown error";
+            console.error("Error refreshing translations:", errorMsg);
+            translationState.error = `Failed to fetch translations: ${errorMsg}`;
+            await logError("refresh_translations", errorMsg);
+            return { success: false, error: errorMsg };
         } finally {
             translationState.isLoading = false;
         }
@@ -250,6 +312,7 @@ export function getTranslationStore() {
         } catch (err) {
             translationState.error = `Failed to export translations: ${err.message}`;
             console.error("Error exporting translations:", err);
+            await logError("export_translations", err.message);
             throw err;
         } finally {
             translationState.isLoading = false;
@@ -280,6 +343,7 @@ export function getTranslationStore() {
         } catch (err) {
             translationState.error = `Failed to import translations: ${err.message}`;
             console.error("Error importing translations:", err);
+            await logError("import_translations", err.message);
             throw err;
         } finally {
             translationState.isLoading = false;
@@ -313,28 +377,13 @@ export function getTranslationStore() {
             for (const [locale, value] of Object.entries(values)) {
                 if (!value.trim()) continue;
 
-                const result = await window.api.executeGraphQL(
-                    createInterfaceTranslationQuery,
-                    {
-                        locale,
-                        namespace,
-                        key,
-                        value
-                    }
-                );
+                const result = await performQuery(createInterfaceTranslationQuery, {
+                    locale,
+                    namespace,
+                    key,
+                    value
+                });
                 mutations.push(result);
-            }
-
-            // Check for errors
-            const errors = mutations.filter(
-                (result) => !result.success || result.errors
-            );
-            if (errors.length > 0) {
-                throw new Error(
-                    errors[0].errors
-                        ? errors[0].errors[0].message
-                        : "Failed to create translation"
-                );
             }
 
             // Refresh translations
@@ -343,6 +392,7 @@ export function getTranslationStore() {
         } catch (err) {
             translationState.error = `Failed to create translation: ${err.message}`;
             console.error("Error creating translation:", err);
+            await logError("create_translation", err.message);
             return { success: false, error: err.message };
         } finally {
             translationState.isLoading = false;
@@ -387,7 +437,9 @@ export function getTranslationStore() {
             }
 
             // Get existing translations from the database
-            const query = `{
+            const query = {
+                name: "Get existing translations",
+                query: `{
                 interface_translations(where: { 
                     namespace: { eq: "${namespace}" }, 
                     key: { eq: "${key}" }
@@ -396,18 +448,12 @@ export function getTranslationStore() {
                     locale
                     value
                 }
-            }`;
+                }`
+            };
 
-            const result = await window.api.executeGraphQL(query);
-            if (!result.success || result.errors) {
-                throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to fetch existing translations"
-                );
-            }
+            const result = await performQuery(query);
 
-            const existingTranslations = result.data.interface_translations;
+            const existingTranslations = result.interface_translations;
             const existingLocales = existingTranslations.map(t => t.locale);
 
             // Update existing translations and create new ones
@@ -422,13 +468,10 @@ export function getTranslationStore() {
                     continue;
                 }
 
-                const result = await window.api.executeGraphQL(
-                    updateInterfaceTranslationQuery,
-                    {
-                        id: translation.id,
-                        value: newValue
-                    }
-                );
+                const result = await performQuery(updateInterfaceTranslationQuery, {
+                    id: translation.id,
+                    value: newValue
+                });
                 mutations.push(result);
             }
 
@@ -444,28 +487,13 @@ export function getTranslationStore() {
                     continue;
                 }
 
-                const result = await window.api.executeGraphQL(
-                    createInterfaceTranslationQuery,
-                    {
-                        locale,
-                        namespace,
-                        key,
-                        value: values[locale]
-                    }
-                );
+                const result = await performQuery(createInterfaceTranslationQuery, {
+                    locale,
+                    namespace,
+                    key,
+                    value: values[locale]
+                });
                 mutations.push(result);
-            }
-
-            // Check for errors
-            const errors = mutations.filter(
-                (result) => !result.success || result.errors
-            );
-            if (errors.length > 0) {
-                throw new Error(
-                    errors[0].errors
-                        ? errors[0].errors[0].message
-                        : "Failed to update translation"
-                );
             }
 
             // Refresh translations
@@ -474,6 +502,7 @@ export function getTranslationStore() {
         } catch (err) {
             translationState.error = `Failed to update translation: ${err.message}`;
             console.error("Error updating translation:", err);
+            await logError("update_translation", err.message);
             return { success: false, error: err.message };
         } finally {
             translationState.isLoading = false;
@@ -487,48 +516,29 @@ export function getTranslationStore() {
             translationState.error = null;
 
             // Find all translations for this key in the namespace
-            const query = `{
+            const query = {
+                name: "Get translations to delete",
+                query: `{
                 interface_translations(where: { 
                     namespace: { eq: "${namespace}" }, 
                     key: { eq: "${key}" }
                 }) {
                     id
                 }
-            }`;
+                }`
+            };
 
-            const result = await window.api.executeGraphQL(query);
-            if (!result.success || result.errors) {
-                throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to fetch translations to delete"
-                );
-            }
+            const result = await performQuery(query);
 
-            const translationsToDelete = result.data.interface_translations;
+            const translationsToDelete = result.interface_translations;
 
             // Delete each translation
             const mutations = [];
             for (const translation of translationsToDelete) {
-                const result = await window.api.executeGraphQL(
-                    deleteInterfaceTranslationQuery,
-                    {
-                        id: translation.id
-                    }
-                );
+                const result = await performQuery(deleteInterfaceTranslationQuery, {
+                    id: translation.id
+                });
                 mutations.push(result);
-            }
-
-            // Check for errors
-            const errors = mutations.filter(
-                (result) => !result.success || result.errors
-            );
-            if (errors.length > 0) {
-                throw new Error(
-                    errors[0].errors
-                        ? errors[0].errors[0].message
-                        : "Failed to delete translation"
-                );
             }
 
             // Refresh translations
@@ -537,6 +547,7 @@ export function getTranslationStore() {
         } catch (err) {
             translationState.error = `Failed to delete translation: ${err.message}`;
             console.error("Error deleting translation:", err);
+            await logError("delete_translation", err.message);
             return { success: false, error: err.message };
         } finally {
             translationState.isLoading = false;
@@ -550,47 +561,28 @@ export function getTranslationStore() {
             translationState.error = null;
 
             // Find all translations in this namespace
-            const query = `{
+            const query = {
+                name: "Get namespace translations to delete",
+                query: `{
                 interface_translations(where: { 
                     namespace: { eq: "${namespace}" }
                 }) {
                     id
                 }
-            }`;
+                }`
+            };
 
-            const result = await window.api.executeGraphQL(query);
-            if (!result.success || result.errors) {
-                throw new Error(
-                    result.errors
-                        ? result.errors[0].message
-                        : "Failed to fetch translations to delete"
-                );
-            }
+            const result = await performQuery(query);
 
-            const translationsToDelete = result.data.interface_translations;
+            const translationsToDelete = result.interface_translations;
 
             // Delete each translation
             const mutations = [];
             for (const translation of translationsToDelete) {
-                const result = await window.api.executeGraphQL(
-                    deleteInterfaceTranslationQuery,
-                    {
-                        id: translation.id
-                    }
-                );
+                const result = await performQuery(deleteInterfaceTranslationQuery, {
+                    id: translation.id
+                });
                 mutations.push(result);
-            }
-
-            // Check for errors
-            const errors = mutations.filter(
-                (result) => !result.success || result.errors
-            );
-            if (errors.length > 0) {
-                throw new Error(
-                    errors[0].errors
-                        ? errors[0].errors[0].message
-                        : "Failed to delete namespace translations"
-                );
             }
 
             // Refresh translations
@@ -599,6 +591,7 @@ export function getTranslationStore() {
         } catch (err) {
             translationState.error = `Failed to delete namespace: ${err.message}`;
             console.error("Error deleting namespace:", err);
+            await logError("delete_namespace", err.message);
             return { success: false, error: err.message };
         } finally {
             translationState.isLoading = false;
