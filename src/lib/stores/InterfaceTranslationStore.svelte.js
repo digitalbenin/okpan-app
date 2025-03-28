@@ -42,14 +42,11 @@ export function getTranslationStore() {
     // Fetch all supported languages
     const fetchLanguages = async () => {
         try {
-            console.log("Fetching interface languages...");
             const result = await performQuery(languagesQuery);
-            console.log("Received interface languages:", result);
 
             // Check if we have a valid result with more detailed logging
             if (!result) {
                 const errorMsg = "No response received from server for languages";
-                console.error(errorMsg);
                 translationState.languages = [];
                 translationState.error = errorMsg;
                 await logError("fetch_languages", errorMsg);
@@ -58,7 +55,6 @@ export function getTranslationStore() {
 
             if (!result.result) {
                 const errorMsg = `Response missing 'result' field: ${JSON.stringify(result)}`;
-                console.error(errorMsg);
                 translationState.languages = [];
                 translationState.error = errorMsg;
                 await logError("fetch_languages", errorMsg);
@@ -67,17 +63,14 @@ export function getTranslationStore() {
 
             // Store languages with fallback to empty array
             translationState.languages = Array.isArray(result.result) ? result.result : [];
-            console.log(`Found ${translationState.languages.length} interface languages`);
 
             // Set default locale if available
             if (translationState.languages.length > 0) {
                 const enLang = translationState.languages.find(lang => lang.code === 'en');
                 translationState.currentLocale = enLang ? enLang.code : translationState.languages[0].code;
-                console.log("Current locale set to:", translationState.currentLocale);
             }
         } catch (err) {
             const errorMsg = err?.message || "Unknown error";
-            console.error("Error fetching languages:", err);
             translationState.languages = [];
             translationState.error = `Failed to fetch languages: ${errorMsg}`;
             await logError("fetch_languages", errorMsg);
@@ -87,21 +80,11 @@ export function getTranslationStore() {
     // Fetch all translations and organize them by namespace and key
     const fetchTranslations = async () => {
         try {
-            console.log("Fetching interface translations...");
             const result = await performQuery(interfaceTranslationsQuery);
-            console.log("Received interface translations:", result);
-
-            // Log the structure for debugging
-            console.log("Translation result keys:", result ? Object.keys(result) : "null result");
-            if (result && result.result) {
-                console.log("Translation result.result type:", Array.isArray(result.result) ? "Array" : typeof result.result);
-                console.log("Translation result.result length:", Array.isArray(result.result) ? result.result.length : "not an array");
-            }
 
             // Check if we have a valid result with more detailed logging
             if (!result) {
                 const errorMsg = "No response received from server for translations";
-                console.error(errorMsg);
                 translationState.translations = {};
                 translationState.error = errorMsg;
                 await logError("fetch_translations", errorMsg);
@@ -110,7 +93,6 @@ export function getTranslationStore() {
 
             if (!result.result) {
                 const errorMsg = `Response missing 'result' field: ${JSON.stringify(result)}`;
-                console.error(errorMsg);
                 translationState.translations = {};
                 translationState.error = errorMsg;
                 await logError("fetch_translations", errorMsg);
@@ -119,7 +101,6 @@ export function getTranslationStore() {
 
             // Ensure result.result is treated as an array
             const translations = Array.isArray(result.result) ? result.result : [];
-            console.log(`Found ${translations.length} interface translations`);
 
             // Organize translations by namespace and key
             const translationData = {};
@@ -146,9 +127,7 @@ export function getTranslationStore() {
             }
 
             translationState.translations = translationData;
-            console.log(`Organized translations into ${Object.keys(translationData).length} namespaces`);
         } catch (err) {
-            const errorMsg = err?.message || "Unknown error";
             console.error("Error fetching translations:", err);
             translationState.translations = {};
             translationState.error = `Failed to fetch translations: ${errorMsg}`;
@@ -276,11 +255,7 @@ export function getTranslationStore() {
         translationState.error = null;
 
         try {
-            console.log("Refreshing translations...");
-
             await fetchTranslations();
-
-            console.log("Translations refreshed successfully");
             return { success: true };
         } catch (err) {
             const errorMsg = err?.message || "Unknown error";
@@ -299,15 +274,12 @@ export function getTranslationStore() {
             translationState.isLoading = true;
             translationState.error = null;
 
-            console.log('Exporting translations...');
-
             const result = await window.api.exportTranslations(filePath);
 
             if (!result.success) {
                 throw new Error(result.error || result.message || 'Export failed');
             }
 
-            console.log('Export successful:', result.message);
             return result;
         } catch (err) {
             translationState.error = `Failed to export translations: ${err.message}`;
@@ -325,15 +297,11 @@ export function getTranslationStore() {
             translationState.isLoading = true;
             translationState.error = null;
 
-            console.log('Importing translations...');
-
             const result = await window.api.importTranslations(filePath);
 
             if (!result.success) {
                 throw new Error(result.error || result.message || 'Import failed');
             }
-
-            console.log('Import successful:', result.message, result.stats);
 
             // Refresh translations after import
             await fetchLanguages();

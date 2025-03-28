@@ -18,7 +18,7 @@ export const performQuery = async (query, params) => {
     await logError(query.name, error.message);
     throw error;
   } finally {
-    console.log(`result from query ${query.name}:`, result);
+    //console.log(`result from query ${query.name}:`, result);
     return result;
   }
 }
