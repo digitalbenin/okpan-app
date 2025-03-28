@@ -9,7 +9,7 @@ export const load = async ({ params }) => {
     const assets = await getAssets(params.project_id, params.institution_id);
     const objects = await getObjects(params.project_id, params.institution_id);
     return {
-        institution: institution[0],
+        institution,
         assets,
         objects
     }

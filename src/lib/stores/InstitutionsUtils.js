@@ -50,12 +50,13 @@ export const getInstitution = async (institutionId) => {
     try {
         // projectInstitutionsState.isLoading = true;
 
-        const response = await window.api.executeGraphQL(institutionsListQuery, { institutionId });
+        const response = await window.api.executeGraphQL(institutionQuery, { institutionId });
 
         // console.log("response", response);
         // projectInstitutionsState.institutions = response.data.institutionsList;
         // projectInstitutionsState.isLoading = false;
-        return response.data.institutionsList;
+        console.log(response.data)
+        return response.data.institutionById;
     } catch (error) {
         // projectInstitutionsState.error = error;
         // projectInstitutionsState.isLoading = false;
