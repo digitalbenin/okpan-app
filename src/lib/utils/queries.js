@@ -7,7 +7,7 @@ export const API_SECTIONS = {
         name: "List Interface Languages",
         description: "Lists all supported interface languages",
         query: `{
-  interface_languages {
+  result: interface_languages {
     id
     code
     name
@@ -90,7 +90,7 @@ export const API_SECTIONS = {
         name: "List Content Languages",
         description: "Lists all supported content languages",
         query: `{
-  languages {
+  result: languages {
     id
     code
     name
@@ -291,7 +291,7 @@ export const API_SECTIONS = {
         name: "List Projects",
         description: "Retrieves all projects with their institutions and languages",
         query: `{
-  project {
+  result: project {
     id
     created_at
     updated_at
@@ -399,7 +399,7 @@ export const API_SECTIONS = {
         name: "List projects (with counts)",
         description: "Retrieves all the projects with their institutions and objects count",
         query: `{
-  projectsList {
+  result: projectsList {
     id
     created_at
     updated_at
@@ -693,7 +693,7 @@ export const API_SECTIONS = {
         name: "List Institutions",
         description: "Retrieves all institutions",
         query: `{
-  institutions {
+  result: institutions {
     id
     name {
       content
@@ -755,7 +755,7 @@ export const API_SECTIONS = {
           direction: "Sort direction (asc or desc)"
         },
         query: `query GetInstitutionsList($projectId: String, $page: Int = 0, $pageSize: Int = 10, $orderBy: String = "created_at", $direction: String = "desc") {
-          institutionsList(project_id: $projectId, page: $page, pageSize: $pageSize, orderBy: $orderBy, direction: $direction) {
+          result: institutionsList(project_id: $projectId, page: $page, pageSize: $pageSize, orderBy: $orderBy, direction: $direction) {
             id
             created_at
             updated_at
@@ -776,7 +776,7 @@ export const API_SECTIONS = {
             datasourcesCount
             objectsCount
           }
-          institutionsTotalCount(project_id: $projectId)
+          count: institutionsCount(project_id: $projectId)
         }`
       },
       institutionsGetByIdWithCounts: {
@@ -848,7 +848,7 @@ export const API_SECTIONS = {
           institutionId: "Optional ID of institution to filter by"
         },
         query: `query ListObjects($projectId: String, $institutionId: String) {
-  objects(
+  result: objects(
     where: {
       project_id: { eq: $projectId }
       institution_id: { eq: $institutionId }
@@ -1292,7 +1292,7 @@ export const API_SECTIONS = {
         name: "List Interface Translations",
         description: "Retrieves all interface translations",
         query: `{
-  interface_translations {
+  result: interface_translations {
     id
     locale
     namespace
@@ -1515,7 +1515,7 @@ export const API_SECTIONS = {
           type: "Filter by asset type"
         },
         query: `query ListAssets($page: Int, $pageSize: Int, $projectId: String, $institutionId: String, $type: String) {
-  assets(
+  result: assets(
     limit: $pageSize
     offset: $page
     where: {

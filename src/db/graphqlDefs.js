@@ -357,9 +357,9 @@ export function createGraphQLSchema(db) {
         }
     };
 
-    // Add custom query for institutions total count
-    drizzleResult.schema._typeMap.Query._fields.institutionsTotalCount = {
-        name: 'institutionsTotalCount',
+    // Add custom query to count institutions
+    drizzleResult.schema._typeMap.Query._fields.institutionsCount = {
+        name: 'institutionsCount',
         type: drizzleResult.schema._typeMap.Int,
         args: [
             {
@@ -369,15 +369,15 @@ export function createGraphQLSchema(db) {
             }
         ],
         resolve: async (source, args, context, info) => {
-            let countQuery = db
+            let query = db
                 .select({ count: sql`count(*)` })
                 .from(dbSchema.institutions);
 
             if (args.project_id) {
-                countQuery = countQuery.where(eq(dbSchema.institutions.project_id, args.project_id));
+                query = query.where(eq(dbSchema.institutions.project_id, args.project_id));
             }
 
-            const result = await countQuery.execute();
+            const result = await query.execute();
             return result[0].count;
         }
     };
