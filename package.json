@@ -17,6 +17,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
+    "db:seed": "node src/db/seed.js",
     "docs:schema": "node docs/scripts/generateSchema.js",
     "docs:generate": "npm run docs:schema && spectaql docs/spectaql.config.yml -t docs/dist"
   },

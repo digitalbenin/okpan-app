@@ -6,7 +6,7 @@ import * as dbSchema from './schema';
 export function createGraphQLSchema(db) {
     // Get the schema from drizzle-graphql
     const drizzleResult = buildSchema(db, {
-        relationsDepthLimit: 3
+        relationsDepthLimit: 4
     });
 
     // Helper function to add count fields to entity types

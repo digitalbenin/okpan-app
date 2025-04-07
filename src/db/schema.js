@@ -384,6 +384,7 @@ export const objects_research_fields = sqliteTable('objects_research_fields', {
     ...commonFields,
     object_id: text('object_id').references(() => objects.id),
     field_id: text('field_id').references(() => research_fields.id),
+    vocabulary_id: text('vocabulary_id').references(() => vocabularies.id),
     value: text('value')
 });
 
@@ -396,6 +397,10 @@ export const objectsResearchFieldsRelations = relations(objects_research_fields,
     researchField: one(research_fields, {
         fields: [objects_research_fields.field_id],
         references: [research_fields.id]
+    }),
+    vocabulary: one(vocabularies, {
+        fields: [objects_research_fields.vocabulary_id],
+        references: [vocabularies.id]
     })
 }));
 

@@ -939,12 +939,32 @@ export const API_SECTIONS = {
     objectsResearchFields {
       id
       value
+      vocabulary_id
       researchField {
         id
         name {
           content
         }
         type
+      }
+      vocabulary {
+        id
+        option {
+          content
+          original_language
+          translations {
+            language_code
+            content
+          }
+        }
+        description {
+          content
+          original_language
+          translations {
+            language_code
+            content
+          }
+        }
       }
     }
     objectsOntologyFields {
@@ -1141,41 +1161,48 @@ export const API_SECTIONS = {
     }
   }
 }`
-      },/*
+      },
       objectAssignResearchField: {
         type: "mutation",
         name: "Assign Research Field to Object",
-        description: "Associates an object with a research field and assigns a value",
+        description: "Associates an object with a research field and assigns a value or vocabulary",
         variables: {
           objectId: "ID of the object",
           fieldId: "ID of the research field to assign",
-          value: "Value to store for this field (e.g., selected option)"
+          value: "Value to store for this field (for free text)",
+          vocabularyId: "ID of the vocabulary option (for vocabulary-based fields)"
         },
-        query: `mutation AssignResearchField($objectId: String!, $fieldId: String!, $value: String) {
+        query: `mutation AssignResearchField($objectId: String!, $fieldId: String!, $value: String, $vocabularyId: String) {
   insertIntoObjects_research_fields(values: [{
     object_id: $objectId,
     field_id: $fieldId,
-    value: $value
+    value: $value,
+    vocabulary_id: $vocabularyId
   }]) {
     id
     object_id
     field_id
     value
+    vocabulary_id
   }
 }`
       },
       objectUpdateResearchField: {
         type: "mutation",
         name: "Update Research Field Value for Object",
-        description: "Updates the value of a research field associated with an object",
+        description: "Updates the value or vocabulary of a research field associated with an object",
         variables: {
           objectId: "ID of the object",
           fieldId: "ID of the research field",
-          value: "New value to store for this field"
+          value: "New value to store for this field (for free text)",
+          vocabularyId: "ID of the vocabulary option (for vocabulary-based fields)"
         },
-        query: `mutation UpdateResearchFieldValue($objectId: String!, $fieldId: String!, $value: String) {
+        query: `mutation UpdateResearchFieldValue($objectId: String!, $fieldId: String!, $value: String, $vocabularyId: String) {
   updateObjects_research_fields(
-    set: { value: $value }
+    set: { 
+      value: $value,
+      vocabulary_id: $vocabularyId
+    }
     where: { 
       object_id: { eq: $objectId },
       field_id: { eq: $fieldId }
@@ -1185,27 +1212,7 @@ export const API_SECTIONS = {
     object_id
     field_id
     value
-  }
-}`
-      },
-      objectRemoveResearchField: {
-        type: "mutation",
-        name: "Remove Research Field from Object",
-        description: "Removes the association between an object and a research field",
-        variables: {
-          objectId: "ID of the object",
-          fieldId: "ID of the research field to remove"
-        },
-        query: `mutation RemoveResearchField($objectId: String!, $fieldId: String!) {
-  deleteFromObjects_research_fields(
-    where: { 
-      object_id: { eq: $objectId },
-      field_id: { eq: $fieldId }
-    }
-  ) {
-    id
-    object_id
-    field_id
+    vocabulary_id
   }
 }`
       },
@@ -1220,6 +1227,7 @@ export const API_SECTIONS = {
   objects_research_fields(where: { object_id: { eq: $objectId } }) {
     id
     value
+    vocabulary_id
     field_id
     researchField {
       id
@@ -1238,12 +1246,34 @@ export const API_SECTIONS = {
         id
         option {
           content
+          original_language
+          translations {
+            language_code
+            content
+          }
         }
+        description {
+          content
+          original_language
+          translations {
+            language_code
+            content
+          }
+        }
+      }
+    }
+    vocabulary {
+      id
+      option {
+        content
+      }
+      description {
+        content
       }
     }
   }
 }`
-      }*/
+      }
     }
   },
   translations: {
@@ -1673,7 +1703,7 @@ export const API_SECTIONS = {
       }
     }
   },
-  /*research_fields: {
+  research_fields: {
     name: "Research Fields",
     operations: {
       researchFieldsList: {
@@ -1775,6 +1805,7 @@ export const API_SECTIONS = {
       option {
         id
         content
+        original_language
         translations {
           language_code
           content
@@ -1783,18 +1814,11 @@ export const API_SECTIONS = {
       description {
         id
         content
+        original_language
         translations {
           language_code
           content
         }
-      }
-    }
-    objectsResearchFields {
-      id
-      value
-      object {
-        id
-        status
       }
     }
   }
@@ -2009,7 +2033,7 @@ export const API_SECTIONS = {
 }`
       }
     }
-  },*/
+  },
   schema: {
     name: "GraphQL Schema",
     operations: [
