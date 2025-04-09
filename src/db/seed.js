@@ -1,5 +1,5 @@
 import { db } from './init.js';
-import { languages, project, project_languages, institutions, texts, objects, assets, objects_assets, research_fields, vocabularies, objects_research_fields } from './schema.js';
+import { languages, project, project_languages, institutions, texts, objects, assets, objects_assets, research_fields, vocabularies, objects_research_fields, ontology_fields } from './schema.js';
 import { v4 as uuidv4 } from 'uuid';
 import { sql } from 'drizzle-orm';
 import * as fs from 'fs';
@@ -84,6 +84,119 @@ const seed = async () => {
                 is_default: 0
             })
         ]);
+
+        // Create ontology field categories
+        const categoryMap = {
+            "basic": "Basic Information",
+            "physical": "Physical Attributes",
+            "creation": "Creation Information",
+            "history": "Historical Context",
+            "acquisition": "Acquisition Details",
+            "management": "Collection Management",
+            "references": "References & Documentation"
+        };
+
+        // Create category text entries
+        const categoryTextEntries = {};
+        for (const [key, value] of Object.entries(categoryMap)) {
+            const categoryText = await db.insert(texts).values({
+                content: value,
+                context: `ontology.category.${key}`,
+                original_language: english[0].code
+            }).returning();
+
+            // Debug logging to see what's coming back
+            console.log(`Category text for ${key}:`, categoryText);
+
+            // Guard against undefined values
+            if (categoryText && categoryText.length > 0) {
+                categoryTextEntries[key] = categoryText[0].id;
+            } else {
+                // Create a fallback if the returning() doesn't work as expected
+                const insertedText = await db.select().from(texts)
+                    .where(sql`${texts.content} = ${value} AND ${texts.context} = ${"ontology.category." + key}`)
+                    .limit(1);
+
+                if (insertedText && insertedText.length > 0) {
+                    categoryTextEntries[key] = insertedText[0].id;
+                    console.log(`Retrieved ${key} category using fallback:`, insertedText[0].id);
+                } else {
+                    throw new Error(`Failed to create category text for ${key}`);
+                }
+            }
+        }
+
+        // Define ontology fields with categories
+        const ontologyFieldsList = [
+            { name: "object id", description: "Unique identifier for the artifact.", category: "basic" },
+            { name: "designation", description: "Official title or name.", category: "basic" },
+            { name: "description", description: "Brief summary of the artifact.", category: "basic" },
+            { name: "object type", description: "Category or type of artifact.", category: "basic" },
+            { name: "object count", description: "Number of items in the artifact group.", category: "basic" },
+
+            { name: "material", description: "Substance(s) used to create the artifact.", category: "physical" },
+            { name: "dimensions", description: "Size measurements (height, width, depth).", category: "physical" },
+            { name: "weight", description: "Weight of the artifact.", category: "physical" },
+            { name: "colour", description: "Dominant colors of the artifact.", category: "physical" },
+            { name: "condition", description: "Current state of preservation.", category: "physical" },
+
+            { name: "date made", description: "When the artifact was created.", category: "creation" },
+            { name: "producer", description: "Creator or maker of the artifact.", category: "creation" },
+            { name: "production technique", description: "Method used to create the artifact.", category: "creation" },
+            { name: "production place", description: "Location where the artifact was made.", category: "creation" },
+            { name: "iconography", description: "Symbols and imagery depicted.", category: "creation" },
+            { name: "inscriptions", description: "Any text or markings on the artifact.", category: "creation" },
+
+            { name: "prior owner", description: "Previous owner of the artifact.", category: "history" },
+            { name: "prior owner role", description: "Role or title of the previous owner.", category: "history" },
+            { name: "provenance", description: "Artifact's history and ownership record.", category: "history" },
+            { name: "event", description: "Historical event associated with the artifact.", category: "history" },
+            { name: "reign associated name", description: "Name of a ruler or figure linked to the artifact.", category: "history" },
+            { name: "ethnic attribution", description: "Cultural or ethnic origin.", category: "history" },
+
+            { name: "date collected", description: "When the artifact was acquired.", category: "acquisition" },
+            { name: "place collected", description: "Location where the artifact was found.", category: "acquisition" },
+            { name: "department and institution", description: "Museum or department housing the artifact.", category: "acquisition" },
+            { name: "accession date", description: "Date the artifact was added to the collection.", category: "acquisition" },
+            { name: "accession method", description: "How the artifact was acquired.", category: "acquisition" },
+
+            { name: "notes", description: "Additional remarks or observations.", category: "management" },
+            { name: "exhibition history", description: "Past exhibitions featuring the artifact.", category: "management" },
+            { name: "display status", description: "Current display status (on display, in storage, etc.).", category: "management" },
+            { name: "legal status", description: "Legal ownership and rights.", category: "management" },
+            { name: "license", description: "Usage rights and permissions.", category: "management" },
+
+            { name: "bibliography", description: "References and sources related to the artifact.", category: "references" },
+            { name: "images", description: "Visual representations of the artifact.", category: "references" },
+            { name: "weblink", description: "Online link for more information.", category: "references" }
+        ];
+
+        // Create ontology fields
+        const ontologyFieldPromises = ontologyFieldsList.map(async (field) => {
+            const [nameText, descriptionText] = await Promise.all([
+                db.insert(texts).values({
+                    content: field.name,
+                    context: 'ontology_fields.name',
+                    original_language: english[0].code
+                }).returning(),
+                db.insert(texts).values({
+                    content: field.description,
+                    context: 'ontology_fields.description',
+                    original_language: english[0].code
+                }).returning()
+            ]);
+
+            const [ontologyField] = await db.insert(ontology_fields).values({
+                name_id: nameText[0].id,
+                description_id: descriptionText[0].id,
+                category_id: categoryTextEntries[field.category]
+            }).returning();
+
+            return ontologyField;
+        });
+
+        const ontologyFieldsCreated = await Promise.all(ontologyFieldPromises);
+        console.log(`Created ${ontologyFieldsCreated.length} ontology fields`);
 
         // Create 10 institutions
         const institutionPromises = Array(10).fill().map(async (_, i) => {
@@ -252,82 +365,56 @@ const seed = async () => {
 
         console.log('Seed completed successfully!');
 
-        // Test query to verify the data structure
-        const testQuery = `query GetObject($objectId: String!) {
-            result: objects(where: { id: { eq: $objectId } }) {
-                id
-                status
-                created_at
-                updated_at
-                institution_id
-                project_id
-                institution {
-                    id
-                    name {
-                        content
-                    }
-                }
-                project {
-                    id
-                    title {
-                        content
-                    }
-                }
-                objectsResearchFields {
-                    id
-                    value
-                    vocabulary_id
-                    researchField {
-                        id
-                        name {
-                            content
-                        }
-                        type
-                    }
-                    vocabulary {
-                        id
-                        option {
-                            content
-                        }
-                        description {
-                            content
-                        }
-                    }
-                }
-                objectsOntologyFields {
-                    id
-                    label
-                    value
-                    field_id
-                    primary
-                    ontologyField {
-                        id
-                        name {
-                            content
-                        }
-                        category {
-                            content
-                        }
-                    }
-                }
-                objectsAssets {
-                    id
-                    order
-                    asset {
-                        id
-                        filename
-                        path
-                        type
-                    }
+        // Get the first object for logging (using Drizzle directly)
+        const firstObject = await db.select({
+            id: objects.id,
+            status: objects.status,
+            institution_id: objects.institution_id,
+            project_id: objects.project_id
+        }).from(objects).limit(1);
+
+        if (firstObject.length > 0) {
+            console.log('First seeded object:', firstObject[0]);
+
+            // Get research fields for the object (using Drizzle directly)
+            const objectResearchFields = await db.select({
+                id: objects_research_fields.id,
+                value: objects_research_fields.value,
+                field_id: objects_research_fields.field_id,
+                vocabulary_id: objects_research_fields.vocabulary_id
+            })
+                .from(objects_research_fields)
+                .where(sql`${objects_research_fields.object_id} = ${firstObject[0].id}`);
+
+            console.log(`Found ${objectResearchFields.length} research fields for object`);
+
+            // Get assets for the object (using Drizzle directly)
+            const objectAssets = await db.select({
+                id: objects_assets.id,
+                asset_id: objects_assets.asset_id,
+                order: objects_assets.order
+            })
+                .from(objects_assets)
+                .where(sql`${objects_assets.object_id} = ${firstObject[0].id}`);
+
+            console.log(`Found ${objectAssets.length} assets for object`);
+
+            // Get asset details if assets exist
+            if (objectAssets.length > 0) {
+                const asset = await db.select({
+                    id: assets.id,
+                    filename: assets.filename,
+                    path: assets.path,
+                    type: assets.type
+                })
+                    .from(assets)
+                    .where(sql`${assets.id} = ${objectAssets[0].asset_id}`)
+                    .limit(1);
+
+                if (asset.length > 0) {
+                    console.log('First asset:', asset[0]);
                 }
             }
-        }`;
-
-        // Get the first object to test
-        const firstObject = await db.select().from(objects).limit(1);
-        if (firstObject.length > 0) {
-            const result = await window.api.executeGraphQL(testQuery, { objectId: firstObject[0].id });
-            console.log('Test query result:', JSON.stringify(result, null, 2));
         }
     } catch (error) {
         console.error('Error during seeding:', error);
