@@ -233,11 +233,11 @@ export const researchFieldsRelations = relations(research_fields, ({ one, many }
 // Settings table
 export const settings = sqliteTable('settings', {
     ...commonFields,
-    username: integer('username'),
-    password: integer('password'),
-    db_name: integer('db_name'),
-    sync_url: integer('sync_url'),
-    sig_server: integer('sig_server'),
+    username: text('username'),
+    password: text('password'),
+    //db_name: text('db_name'),
+    sync_url: text('sync_url'),
+    sig_server: text('sig_server'),
     project_id: text('project_id').references(() => project.id),
 });
 

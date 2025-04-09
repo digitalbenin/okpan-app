@@ -225,11 +225,11 @@ export const API_SECTIONS = {
         description: "Updates an existing project by ID",
         variables: {
           projectId: "ID of the project to update",
-          title: "New title content",
-          description: "New description content"
+          title: "New title content (optional)",
+          description: "New description content (optional)"
         },
-        query: `mutation UpdateProject($projectId: String!, $title: String!, $description: String!) {
-  # Update the title translation
+        query: `mutation UpdateProject($projectId: String!, $title: String, $description: String) {
+  # Update the title translation if provided
   updateTitle: updateTexts(
     set: { content: $title }
     where: { id: { eq: $projectId } }
@@ -238,7 +238,7 @@ export const API_SECTIONS = {
     content
     original_language
   }
-  # Update the description translation
+  # Update the description translation if provided
   updateDescription: updateTexts(
     set: { content: $description }
     where: { id: { eq: $projectId } }
@@ -652,12 +652,18 @@ export const API_SECTIONS = {
         description: "Updates an existing institution by ID",
         variables: {
           institutionId: "ID of the institution to update",
-          name: "New name content",
-          description: "New description content",
-          country: "New country content",
-          location: "New location content"
+          name: "New name content (optional)",
+          description: "New description content (optional)",
+          country: "New country content (optional)",
+          location: "New location content (optional)"
         },
-        query: `mutation UpdateInstitution($institutionId: String!, $name: String!, $description: String!, $country: String!, $location: String!) {
+        query: `mutation UpdateInstitution(
+  $institutionId: String!, 
+  $name: String, 
+  $description: String, 
+  $country: String, 
+  $location: String
+) {
   # Update the name
   updateName: updateTexts(
     set: { content: $name }
@@ -1026,9 +1032,9 @@ export const API_SECTIONS = {
         description: "Updates an existing object by ID",
         variables: {
           objectId: "ID of the object to update",
-          status: "New status of the object",
-          institutionId: "New institution ID for the object",
-          projectId: "New project ID for the object"
+          status: "New status of the object (optional)",
+          institutionId: "New institution ID for the object (optional)",
+          projectId: "New project ID for the object (optional)"
         },
         query: `mutation UpdateObject(
   $objectId: String!,
@@ -1194,8 +1200,8 @@ export const API_SECTIONS = {
         variables: {
           objectId: "ID of the object",
           fieldId: "ID of the research field",
-          value: "New value to store for this field (for free text)",
-          vocabularyId: "ID of the vocabulary option (for vocabulary-based fields)"
+          value: "New value to store for this field (for free text, optional)",
+          vocabularyId: "ID of the vocabulary option (for vocabulary-based fields, optional)"
         },
         query: `mutation UpdateResearchFieldValue($objectId: String!, $fieldId: String!, $value: String, $vocabularyId: String) {
   updateObjects_research_fields(
@@ -1309,7 +1315,7 @@ export const API_SECTIONS = {
           id: "ID of the translation to update",
           content: "New translated content"
         },
-        query: `mutation UpdateTranslation($id: String!, $content: String!) {
+        query: `mutation UpdateTranslation($id: String!, $content: String) {
   updateTranslations(
     set: { content: $content }
     where: { id: { eq: $id } }
@@ -1403,9 +1409,9 @@ export const API_SECTIONS = {
         description: "Updates an existing interface translation",
         variables: {
           id: "ID of the translation to update",
-          value: "New translated content"
+          value: "New translated content (optional)"
         },
-        query: `mutation UpdateInterfaceTranslation($id: String!, $value: String!) {
+        query: `mutation UpdateInterfaceTranslation($id: String!, $value: String) {
   updateInterface_translations(
     set: { value: $value }
     where: { id: { eq: $id } }
@@ -1644,13 +1650,13 @@ export const API_SECTIONS = {
         description: "Updates an existing asset by ID",
         variables: {
           assetId: "ID of the asset to update",
-          filename: "New filename",
-          path: "New file path",
-          type: "New asset type",
-          formats: "New formats object",
-          properties: "New properties object",
-          institutionId: "New institution ID",
-          projectId: "New project ID"
+          filename: "New filename (optional)",
+          path: "New file path (optional)",
+          type: "New asset type (optional)",
+          formats: "New formats object (optional)",
+          properties: "New properties object (optional)",
+          institutionId: "New institution ID (optional)",
+          projectId: "New project ID (optional)"
         },
         query: `mutation UpdateAsset(
   $assetId: String!,
@@ -1895,11 +1901,16 @@ export const API_SECTIONS = {
         description: "Updates an existing research field",
         variables: {
           fieldId: "ID of the research field to update",
-          name: "New name content",
-          description: "New description content",
-          type: "New field type"
+          name: "New name content (optional)",
+          description: "New description content (optional)",
+          type: "New field type (optional)"
         },
-        query: `mutation UpdateResearchField($fieldId: String!, $name: String!, $description: String!, $type: String) {
+        query: `mutation UpdateResearchField(
+  $fieldId: String!, 
+  $name: String, 
+  $description: String, 
+  $type: String
+) {
   # Update the name text
   updateName: updateTexts(
     set: { content: $name }
@@ -1918,7 +1929,7 @@ export const API_SECTIONS = {
     content
   }
   
-  # Update the type if provided
+  # Update the type
   updateType: updateResearch_fields(
     set: { type: $type }
     where: { id: { eq: $fieldId } }
@@ -2199,12 +2210,18 @@ export const API_SECTIONS = {
         description: "Updates an existing ontology field",
         variables: {
           fieldId: "ID of the ontology field to update",
-          name: "New name content",
-          description: "New description content",
-          category: "New category content",
-          embeddings: "New embeddings data"
+          name: "New name content (optional)",
+          description: "New description content (optional)",
+          category: "New category content (optional)",
+          embeddings: "New embeddings data (optional)"
         },
-        query: `mutation UpdateOntologyField($fieldId: String!, $name: String!, $description: String!, $category: String!, $embeddings: String) {
+        query: `mutation UpdateOntologyField(
+  $fieldId: String!, 
+  $name: String, 
+  $description: String, 
+  $category: String, 
+  $embeddings: String
+) {
   # Update the name text
   updateName: updateTexts(
     set: { content: $name }
@@ -2232,7 +2249,7 @@ export const API_SECTIONS = {
     content
   }
   
-  # Update the embeddings if provided
+  # Update the embeddings
   updateEmbeddings: updateOntology_fields(
     set: { embeddings: $embeddings }
     where: { id: { eq: $fieldId } }
@@ -2296,4 +2313,161 @@ export const API_SECTIONS = {
       }
     ]
   },
+  settings: {
+    name: "Project Settings",
+    operations: {
+      settingsGetByProjectId: {
+        type: "query",
+        name: "Get Settings by Project ID",
+        description: "Retrieves settings for a specific project",
+        variables: {
+          projectId: "ID of the project"
+        },
+        query: `query GetProjectSettings($projectId: String!) {
+  result: settings(where: { project_id: { eq: $projectId } }) {
+    id
+    project_id
+    username
+    password
+    sync_url
+    sig_server
+    created_at
+    updated_at
+  }
+}`
+      },
+      settingsCreate: {
+        type: "mutation",
+        name: "Create Project Settings",
+        description: "Creates settings for a project",
+        variables: {
+          projectId: "ID of the project",
+          username: "Username for database connection",
+          password: "Password for database connection",
+          syncUrl: "Synchronization URL",
+          sigServer: "Signature server URL"
+        },
+        query: `mutation CreateProjectSettings($projectId: String!, $username: String, $password: String, $syncUrl: String, $sigServer: String) {
+  insertIntoSettings(values: [{
+    project_id: $projectId,
+    username: $username,
+    password: $password,
+    sync_url: $syncUrl,
+    sig_server: $sigServer
+  }]) {
+    id
+    project_id
+    username
+    password
+    sync_url
+    sig_server
+    created_at
+    updated_at
+  }
+}`
+      },
+      settingsUpdate: {
+        type: "mutation",
+        name: "Update Project Settings",
+        description: "Updates existing project settings",
+        variables: {
+          settingsId: "ID of the settings to update",
+          username: "Username for database connection (optional)",
+          password: "Password for database connection (optional)",
+          syncUrl: "Synchronization URL (optional)",
+          sigServer: "Signature server URL (optional)"
+        },
+        query: `mutation UpdateProjectSettings(
+  $settingsId: String!, 
+  $username: String, 
+  $password: String, 
+  $syncUrl: String, 
+  $sigServer: String
+) {
+  updateSettings(
+    set: { 
+      username: $username,
+      password: $password,
+      sync_url: $syncUrl,
+      sig_server: $sigServer
+    }
+    where: { id: { eq: $settingsId } }
+  ) {
+    id
+    project_id
+    username
+    password
+    sync_url
+    sig_server
+    updated_at
+  }
+}`
+      },
+      settingsUpdateByProjectId: {
+        type: "mutation",
+        name: "Update Project Settings by Project ID",
+        description: "Updates settings for a project by project ID",
+        variables: {
+          projectId: "ID of the project",
+          username: "Username for database connection (optional)",
+          password: "Password for database connection (optional)",
+          syncUrl: "Synchronization URL (optional)",
+          sigServer: "Signature server URL (optional)"
+        },
+        query: `mutation UpdateProjectSettingsByProjectId(
+  $projectId: String!, 
+  $username: String, 
+  $password: String, 
+  $syncUrl: String, 
+  $sigServer: String
+) {
+  updateSettings(
+    set: { 
+      username: $username,
+      password: $password,
+      sync_url: $syncUrl,
+      sig_server: $sigServer
+    }
+    where: { project_id: { eq: $projectId } }
+  ) {
+    id
+    project_id
+    username
+    password
+    sync_url
+    sig_server
+    updated_at
+  }
+}`
+      },
+      settingsDelete: {
+        type: "mutation",
+        name: "Delete Project Settings",
+        description: "Deletes project settings by ID",
+        variables: {
+          settingsId: "ID of the settings to delete"
+        },
+        query: `mutation DeleteProjectSettings($settingsId: String!) {
+  deleteFromSettings(where: { id: { eq: $settingsId } }) {
+    id
+    project_id
+  }
+}`
+      },
+      settingsDeleteByProjectId: {
+        type: "mutation",
+        name: "Delete Project Settings by Project ID",
+        description: "Deletes settings for a project by project ID",
+        variables: {
+          projectId: "ID of the project"
+        },
+        query: `mutation DeleteProjectSettingsByProjectId($projectId: String!) {
+  deleteFromSettings(where: { project_id: { eq: $projectId } }) {
+    id
+    project_id
+  }
+}`
+      }
+    }
+  }
 }; 
