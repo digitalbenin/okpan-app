@@ -11,7 +11,7 @@
   import FlexRender from "$lib/components/table/flex-render.svelte";
   import TableLink from "$lib/components/table/TableLink.svelte";
 
-  let { institutions } = $props();
+  let { institutions, count } = $props();
 
   const params = queryParameters({
     page: {
@@ -22,7 +22,7 @@
     ["page-size"]: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 2,
+      defaultValue: 1,
     },
   });
 
@@ -53,13 +53,13 @@
 
   const table = createSvelteTable({
     get data() {
-      return dataState;
+      return institutions;
     },
     columns: columnDefs,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: false, //turn off client-side pagination
     manualSorting: false,
-    // rowCount: institutions.length,
+    rowCount: count,
     onSortingChange: (updater) => {
       if (updater instanceof Function) {
         state.sorting = updater(state.sorting);

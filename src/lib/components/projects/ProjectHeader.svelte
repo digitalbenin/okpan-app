@@ -9,7 +9,9 @@
   class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
 >
   <div>
-    <h6 class="m-0">{project.title.content}</h6>
+    <h6 class="m-0">
+      <a href="/projects/{project.id}"> {project.title.content}</a>
+    </h6>
   </div>
   <div class="d-flex gap-1">
     <BaseButton class="btn btn-sm btn-primary" text="Data Editor" />

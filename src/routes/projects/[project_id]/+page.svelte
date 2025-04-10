@@ -11,5 +11,8 @@
   <div class="row">
     <div class="col-12"><h3>Institutions</h3></div>
   </div>
-  <Table institutions={data.institutions} />
+  <Table
+    institutions={data.institutions.result}
+    count={data.institutions.count}
+  />
 </div>

@@ -18,10 +18,10 @@ const institutionsGetByIdWithCounts = API_SECTIONS.institutions.operations.insti
 // const removeLanguageFromProjectMutation = API_SECTIONS.projects.operations.projectRemoveLanguage.query;
 // const setLanguageAsDefaultMutation = API_SECTIONS.projects.operations.projectSetDefaultLanguage.query;
 
-export const getProjectInstitutions = async (projectId) => {
+export const getProjectInstitutions = async (projectId, page, pageSize) => {
     try {
-        const result = await performQuery(institutionsListWithCounts, { projectId });
-        return result.result;
+        const response = await performQuery(institutionsListWithCounts, { projectId, page, pageSize });
+        return response;
     } catch (error) {
         // Already handled by performQuery
         throw error;

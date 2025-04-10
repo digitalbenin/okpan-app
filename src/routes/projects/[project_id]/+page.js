@@ -5,9 +5,11 @@ export const load = async ({ params, url }) => {
     if (!browser) return;
     const page = url.searchParams.get('page');
     const pageSize = url.searchParams.get('page-size')
-    console.log('page', page);
-    console.log('pageSize', pageSize);
-    const institutions = await getProjectInstitutions(params.id);
+    const projectId = params.project_id
+    // console.log('page', page);
+    // console.log('pageSize', pageSize);
+    // console.log('id project for institution list', params.project_id);
+    const institutions = await getProjectInstitutions(projectId, +page - 1, +pageSize);
     return {
         institutions
     }

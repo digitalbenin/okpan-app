@@ -1,14 +1,15 @@
 <script>
   import { setContext } from "svelte";
+  import InstitutionOverview from "$lib/components/institutions/InstitutionOverview.svelte";
+  import InstitutionItems from "$lib/components/institutions/InstitutionItems.svelte";
   const { data } = $props();
   let institution = $state(data.institution);
   setContext("institution", institution);
-  $inspect("institution", data);
+  let objects = $state(data.objects);
+  setContext("objects", objects);
+  let assets = $state(data.assets);
+  setContext("assets", assets);
 </script>
 
-<div>
-  <h1>{institution.name.content}</h1>
-  <p>{institution.location.content}</p>
-  <p>Assets {data.assets.length}</p>
-  <p>Objects {data.objects.length}</p>
-</div>
+<InstitutionOverview></InstitutionOverview>
+<InstitutionItems></InstitutionItems>

@@ -42,7 +42,9 @@ export function getTranslationStore() {
     // Fetch all supported languages
     const fetchLanguages = async () => {
         try {
+            // console.log("Fetching interface languages...");
             const result = await performQuery(languagesQuery);
+            // console.log("Received interface languages:", result);
 
             // Check if we have a valid result with more detailed logging
             if (!result) {
@@ -63,6 +65,7 @@ export function getTranslationStore() {
 
             // Store languages with fallback to empty array
             translationState.languages = Array.isArray(result.result) ? result.result : [];
+            // console.log(`Found ${translationState.languages.length} interface languages`);
 
             // Set default locale if available
             if (translationState.languages.length > 0) {
@@ -80,7 +83,16 @@ export function getTranslationStore() {
     // Fetch all translations and organize them by namespace and key
     const fetchTranslations = async () => {
         try {
+            // console.log("Fetching interface translations...");
             const result = await performQuery(interfaceTranslationsQuery);
+            // console.log("Received interface translations:", result);
+
+            // Log the structure for debugging
+            // console.log("Translation result keys:", result ? Object.keys(result) : "null result");
+            if (result && result.result) {
+                // console.log("Translation result.result type:", Array.isArray(result.result) ? "Array" : typeof result.result);
+                // console.log("Translation result.result length:", Array.isArray(result.result) ? result.result.length : "not an array");
+            }
 
             // Check if we have a valid result with more detailed logging
             if (!result) {
@@ -101,6 +113,7 @@ export function getTranslationStore() {
 
             // Ensure result.result is treated as an array
             const translations = Array.isArray(result.result) ? result.result : [];
+            // console.log(`Found ${translations.length} interface translations`);
 
             // Organize translations by namespace and key
             const translationData = {};
@@ -127,6 +140,7 @@ export function getTranslationStore() {
             }
 
             translationState.translations = translationData;
+            // console.log(`Organized translations into ${Object.keys(translationData).length} namespaces`);
         } catch (err) {
             console.error("Error fetching translations:", err);
             translationState.translations = {};
