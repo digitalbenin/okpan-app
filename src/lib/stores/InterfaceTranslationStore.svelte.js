@@ -33,11 +33,11 @@ export function getTranslationStore() {
     });
 
     // Get queries from API_SECTIONS
-    const languagesQuery = API_SECTIONS.interface_languages.operations.interfaceLanguagesList;
-    const interfaceTranslationsQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsList;
-    const createInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsCreate;
-    const updateInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsUpdate;
-    const deleteInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.interfaceTranslationsDelete;
+    const languagesQuery = API_SECTIONS.interface_languages.operations.list;
+    const interfaceTranslationsQuery = API_SECTIONS.interface_translations.operations.list;
+    const createInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.create;
+    const updateInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.update;
+    const deleteInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.delete;
 
     // Fetch all supported languages
     const fetchLanguages = async () => {

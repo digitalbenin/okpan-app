@@ -18,19 +18,19 @@ const { getSchema, validate } = getValidationStore();
 //     error: null
 // });
 
-const projectsListWithCounts = API_SECTIONS.projects.operations.projectsListWithCounts;
-const projectByIdWithCounts = API_SECTIONS.projects.operations.projectByIdWithCounts;
-const updateProjectMutation = API_SECTIONS.projects.operations.projectsUpdate.query;
-const deleteProjectMutation = API_SECTIONS.projects.operations.projectsDelete.query;
-const addLanguageToProjectMutation = API_SECTIONS.projects.operations.projectAddLanguage.query;
-const removeLanguageFromProjectMutation = API_SECTIONS.projects.operations.projectRemoveLanguage.query;
-const setLanguageAsDefaultMutation = API_SECTIONS.projects.operations.projectSetDefaultLanguage.query;
+const projectsList = API_SECTIONS.projects.operations.list;
+const projectById = API_SECTIONS.projects.operations.getById;
+const updateProjectMutation = API_SECTIONS.projects.operations.update.query;
+const deleteProjectMutation = API_SECTIONS.projects.operations.delete.query;
+const addLanguageToProjectMutation = API_SECTIONS.projects.operations.addLanguage.query;
+const removeLanguageFromProjectMutation = API_SECTIONS.projects.operations.removeLanguage.query;
+const setLanguageAsDefaultMutation = API_SECTIONS.projects.operations.setDefaultLanguage.query;
 
 // Initialize the project store
 
 export const getProjects = async () => {
     try {
-        const result = await performQuery(projectsListWithCounts);
+        const result = await performQuery(projectsList);
         return result.result;
     } catch (error) {
         // Already handled by performQuery
@@ -40,7 +40,7 @@ export const getProjects = async () => {
 
 export const getProject = async (projectId) => {
     try {
-        const result = await performQuery(projectByIdWithCounts, { projectId });
+        const result = await performQuery(projectById, { projectId });
         return result.result;
     } catch (error) {
         // Already handled by performQuery
@@ -68,7 +68,7 @@ export const createProject = async (project) => {
         const languageCode = defaultLang.language_code;
 
         // Get mutations from the API_SECTIONS
-        const mutations = API_SECTIONS.projects.operations.projectsCreate.mutations;
+        const mutations = API_SECTIONS.projects.operations.create.mutations;
 
         // Step 1: Create title
         const titleQuery = mutations[0].query;
@@ -119,7 +119,7 @@ export const createProject = async (project) => {
 
         // Step 5: Add translations if any (both for title and description)
         if (project.title.translations?.length || project.description.translations?.length) {
-            const createTranslationQuery = API_SECTIONS.translations.operations.translationsCreate.query;
+            const createTranslationQuery = API_SECTIONS.translations.operations.create.query;
 
             // Add title translations
             for (const translation of project.title.translations || []) {

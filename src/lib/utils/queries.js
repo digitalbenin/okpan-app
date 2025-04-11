@@ -27,7 +27,7 @@ export const API_SECTIONS = {
   interface_languages: {
     name: "Interface Languages",
     operations: {
-      interfaceLanguagesList: {
+      list: {
         type: "query",
         name: "List Interface Languages",
         description: "Lists all supported interface languages",
@@ -39,7 +39,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      interfaceLanguagesCreate: {
+      create: {
         type: "mutation",
         name: "Create Interface Language",
         description: "Creates a new interface language",
@@ -58,7 +58,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      interfaceLanguagesDelete: {
+      delete: {
         type: "mutation",
         name: "Delete Interface Language",
         description: "Deletes an interface language by its code",
@@ -77,7 +77,7 @@ export const API_SECTIONS = {
   languages: {
     name: "Content Languages",
     operations: {
-      contentLanguagesCreate: {
+      create: {
         type: "mutation",
         name: "Create Content Language",
         description: "Creates a new content language for translations",
@@ -96,7 +96,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      contentLanguagesDelete: {
+      delete: {
         type: "mutation",
         name: "Delete Content Language",
         description: "Deletes a content language by its code",
@@ -110,7 +110,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      contentLanguagesList: {
+      list: {
         type: "query",
         name: "List Content Languages",
         description: "Lists all supported content languages",
@@ -122,7 +122,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      contentLanguagesListByProject: {
+      listByProject: {
         type: "query",
         name: "List Content Languages by Project",
         description: "Lists all languages associated with a specific project",
@@ -145,7 +145,8 @@ export const API_SECTIONS = {
   projects: {
     name: "Projects",
     operations: {
-      projectsCreate: {
+      // CREATE
+      create: {
         type: "mutation",
         name: "Create Project",
         description: "Creates a new project with title and description",
@@ -219,7 +220,9 @@ export const API_SECTIONS = {
         ],
         query: null
       },
-      projectsUpdate: {
+
+      // UPDATE
+      update: {
         type: "mutation",
         name: "Update Project",
         description: "Updates an existing project by ID",
@@ -228,61 +231,161 @@ export const API_SECTIONS = {
           title: "New title content (optional)",
           description: "New description content (optional)"
         },
-        query: `mutation UpdateProject($projectId: String!, $title: String, $description: String) {
-  # Update the title translation if provided
-  updateTitle: updateTexts(
+        mutations: [
+          {
+            name: "getProject",
+            query: `query GetProjectForUpdate($projectId: String!) {
+  project(where: { id: { eq: $projectId } }) {
+    id
+    title_id
+    description_id
+  }
+}`,
+            useVariables: ["projectId"]
+          },
+          {
+            name: "updateTitle",
+            query: `mutation UpdateProjectTitle($titleId: String!, $title: String!) {
+  updateTexts(
     set: { content: $title }
-    where: { id: { eq: $projectId } }
+    where: { id: { eq: $titleId } }
   ) {
     id
     content
-    original_language
   }
-  # Update the description translation if provided
-  updateDescription: updateTexts(
+}`,
+            useVariables: ["title"],
+            mapVariables: {
+              titleId: { from: "getProject", path: "project.0.title_id" }
+            },
+            skipIf: { variableName: "title", isUndefined: true }
+          },
+          {
+            name: "updateDescription",
+            query: `mutation UpdateProjectDescription($descriptionId: String!, $description: String!) {
+  updateTexts(
     set: { content: $description }
-    where: { id: { eq: $projectId } }
+    where: { id: { eq: $descriptionId } }
   ) {
     id
     content
-    original_language
   }
-}`
+}`,
+            useVariables: ["description"],
+            mapVariables: {
+              descriptionId: { from: "getProject", path: "project.0.description_id" }
+            },
+            skipIf: { variableName: "description", isUndefined: true }
+          }
+        ],
+        query: null
       },
-      projectsDelete: {
+
+      // DELETE
+      delete: {
         type: "mutation",
         name: "Delete Project",
         description: "Deletes a project by ID",
         variables: {
           projectId: "ID of the project to delete"
         },
-        query: `mutation DeleteProject($projectId: String!) {
+        mutations: [
+          {
+            name: "getProject",
+            query: `query GetProjectForDelete($projectId: String!) {
+  project(where: { id: { eq: $projectId } }) {
+    id
+    title_id
+    description_id
+  }
+}`,
+            useVariables: ["projectId"]
+          },
+          {
+            name: "deleteProjectLanguages",
+            query: `mutation DeleteProjectLanguages($projectId: String!) {
+  deleteFromProject_languages(where: { project_id: { eq: $projectId } }) {
+    project_id
+  }
+}`,
+            useVariables: ["projectId"]
+          },
+          {
+            name: "deleteInstitutions",
+            query: `mutation DeleteProjectInstitutions($projectId: String!) {
+  deleteFromInstitutions(where: { project_id: { eq: $projectId } }) {
+    id
+  }
+}`,
+            useVariables: ["projectId"]
+          },
+          {
+            name: "deleteObjects",
+            query: `mutation DeleteProjectObjects($projectId: String!) {
+  deleteFromObjects(where: { project_id: { eq: $projectId } }) {
+    id
+  }
+}`,
+            useVariables: ["projectId"]
+          },
+          {
+            name: "deleteProject",
+            query: `mutation DeleteProjectFinal($projectId: String!) {
   deleteFromProject(where: { id: { eq: $projectId } }) {
     id
     title_id
+    description_id
   }
-}`
+}`,
+            useVariables: ["projectId"]
+          },
+          {
+            name: "deleteTitleText",
+            query: `mutation DeleteProjectTitleText($titleId: String!) {
+  deleteFromTexts(where: { id: { eq: $titleId } }) {
+    id
+  }
+}`,
+            mapVariables: {
+              titleId: { from: "getProject", path: "project.0.title_id" }
+            },
+            skipIf: { variableName: "titleId", isUndefined: true }
+          },
+          {
+            name: "deleteDescriptionText",
+            query: `mutation DeleteProjectDescriptionText($descriptionId: String!) {
+  deleteFromTexts(where: { id: { eq: $descriptionId } }) {
+    id
+  }
+}`,
+            mapVariables: {
+              descriptionId: { from: "getProject", path: "project.0.description_id" }
+            },
+            skipIf: { variableName: "descriptionId", isUndefined: true }
+          }
+        ],
+        query: null
       },
-      projectsGetById: {
+
+      // GET BY ID - Using the custom resolver from graphqlDefs.js
+      getById: {
         type: "query",
-        name: "Get Project by ID",
-        description: "Retrieves a single project by its ID",
+        name: "Get Project by ID With Counts",
+        description: "Retrieves a single project by its ID with all related counts",
         variables: {
           projectId: "ID of the project to retrieve"
         },
-        query: `query GetProject($projectId: String!) {
-  result: project(where: { id: { eq: $projectId } }) {
+        query: `query GetProjectById($projectId: String!) {
+  result: projectById(project_id: $projectId) {
     id
     created_at
     updated_at
-    title_id
-    description_id
     title {
       content
       original_language
       translations {
         content
-        language_code
+        language_code      
       }
     }
     description {
@@ -294,61 +397,47 @@ export const API_SECTIONS = {
       }
     }
     institutionsCount
-    institutions {
-      id
-      name {
-        content
-      }
-    }
-    projectLanguages {
-      language_code
-      is_default
-      language {
-        code
-        name
-      }
-    }
+    objectsCount
+    assetsCount
   }
 }`
       },
-      projectsList: {
+
+      // LIST - Using the custom resolver from graphqlDefs.js
+      list: {
         type: "query",
-        name: "List Projects",
-        description: "Retrieves all projects with their institutions and languages",
+        name: "List Projects With Counts",
+        description: "Retrieves all projects with their aggregated counts",
         query: `{
-  result: project {
+  result: projectsList {
     id
     created_at
     updated_at
-    title_id
-    description_id
     title {
       content
       original_language
+      translations {
+        content
+        language_code      
+      }
     }
     description {
       content
       original_language
+      translations {
+        content
+        language_code
+      }
     }
     institutionsCount
-    institutions {
-      id
-      name {
-        content
-      }
-    }
-    projectLanguages {
-      language_code
-      is_default
-      language {
-        code
-        name
-      }
-    }
+    objectsCount
+    assetsCount
   }
 }`
       },
-      projectAddLanguage: {
+
+      // Add Language to Project
+      addLanguage: {
         type: "mutation",
         name: "Add Language to Project",
         description: "Adds a language to a project",
@@ -369,7 +458,9 @@ export const API_SECTIONS = {
   }
 }`
       },
-      projectRemoveLanguage: {
+
+      // Remove Language from Project
+      removeLanguage: {
         type: "mutation",
         name: "Remove Language from Project",
         description: "Removes a language from a project",
@@ -389,7 +480,9 @@ export const API_SECTIONS = {
   }
 }`
       },
-      projectSetDefaultLanguage: {
+
+      // Set Default Language
+      setDefaultLanguage: {
         type: "mutation",
         name: "Set Project Default Language",
         description: "Sets the default language for a project",
@@ -418,88 +511,87 @@ export const API_SECTIONS = {
     is_default
   }
 }`
-      },
-      projectsListWithCounts: {
-        type: "query",
-        name: "List projects (with counts)",
-        description: "Retrieves all the projects with their institutions and objects count",
-        query: `{
-  result: projectsList {
-    id
-    created_at
-    updated_at
-    title {
-      content
-      original_language
-      translations {
-        content
-        language_code      
-      }
-    }
-    description {
-      content
-      original_language
-      translations {
-        content
-        language_code
-      }
-    }
-    institutionsCount
-    objectsCount
-  }
-}`
-      },
-      projectByIdWithCounts: {
-        type: "query",
-        name: "Get project by ID (with counts)",
-        description: "Retrieves a single project by its ID with all counts",
-        variables: {
-          projectId: "ID of the project to retrieve"
-        },
-        query: `query GetProjectById($projectId: String!) {
-  result:projectById(project_id: $projectId) {
-    id
-    created_at
-    updated_at
-    title {
-      content
-      original_language
-      translations {
-        content
-        language_code      
-      }
-    }
-    description {
-      content
-      original_language
-      translations {
-        content
-        language_code
-      }
-    }
-    institutionsCount
-    objectsCount
-    assetsCount
-  }
-}`
       }
     }
   },
   institutions: {
     name: "Institutions",
     operations: {
-      institutionsGetById: {
+      // GET BY ID - Using the custom resolver from graphqlDefs.js
+      getById: {
         type: "query",
-        name: "Get Institution by ID",
-        description: "Retrieves a single institution by its ID",
+        name: "Get Institution By ID With Counts",
+        description: "Retrieves a single institution by its ID with all details including counts",
         variables: {
-          projectId: "ID of the institution to retrieve"
+          institutionId: "ID of the institution to retrieve"
         },
-        query: `query GetInstitution($projectId: String!) {
-  result:institutions(where: { id: { eq: $projectId } }) {
+        query: `query GetInstitution($institutionId: String!) {
+  result: institutionById(institution_id: $institutionId) {
     id
     created_at
     updated_at
+    project_id
+    name {
+      content
+      original_language
+      translations {
+        language_code
+        content
+      }
+    }
+    description {
+      content
+      translations {
+        language_code
+        content
+      }
+    }
+    location {
+      content
+      translations {
+        language_code
+        content
+      }
+    }
+    country {
+      content
+      translations {
+        language_code
+        content
+      }
+    }
+    links {
+      content
+      translations {
+        language_code
+        content
+      }
+    }
+    objectsCount
+    datasourcesCount
+    assetsCount
+  }
+}`
+      },
+
+      // LIST - Using the custom resolver from graphqlDefs.js
+      list: {
+        type: "query",
+        name: "List Institutions With Counts",
+        description: "Retrieves all institutions with their aggregated counts and pagination",
+        variables: {
+          projectId: "Optional ID of project to filter by",
+          page: "Page number for pagination (0-based)",
+          pageSize: "Number of items per page",
+          orderBy: "Field to order by (created_at, updated_at, name)",
+          direction: "Sort direction (asc or desc)"
+        },
+        query: `query GetInstitutionsList($projectId: String, $page: Int = 0, $pageSize: Int = 10, $orderBy: String = "created_at", $direction: String = "desc") {
+  result: institutionsList(project_id: $projectId, page: $page, pageSize: $pageSize, orderBy: $orderBy, direction: $direction) {
+    id
+    created_at
+    updated_at
+    project_id
     name {
       content
       translations {
@@ -514,21 +606,11 @@ export const API_SECTIONS = {
         language_code
       }
     }
-    project {
-      id
-      title {
+    location {
+      content
+      translations {
         content
-        translations {
-          content
-          language_code
-        }
-      }
-      description {
-        content
-        translations {
-          content
-          language_code
-        }
+        language_code
       }
     }
     country {
@@ -538,17 +620,36 @@ export const API_SECTIONS = {
         language_code
       }
     }
-    location {
+    links {
       content
       translations {
         content
         language_code
       }
     }
+    objectsCount
+    datasourcesCount
+    assetsCount
   }
+  count: institutionsCount(project_id: $projectId)
 }`
       },
-      institutionsCreate: {
+
+      // COUNT - Using the custom resolver
+      count: {
+        type: "query",
+        name: "Count Institutions",
+        description: "Returns the total count of institutions, optionally filtered by project",
+        variables: {
+          projectId: "Optional ID of project to filter by"
+        },
+        query: `query CountInstitutions($projectId: String) {
+  result: institutionsCount(project_id: $projectId)
+}`
+      },
+
+      // CREATE
+      create: {
         type: "mutation",
         name: "Create Institution",
         description: "Creates a new institution linked to a project",
@@ -646,7 +747,9 @@ export const API_SECTIONS = {
         ],
         query: null
       },
-      institutionsUpdate: {
+
+      // UPDATE
+      update: {
         type: "mutation",
         name: "Update Institution",
         description: "Updates an existing institution by ID",
@@ -657,59 +760,146 @@ export const API_SECTIONS = {
           country: "New country content (optional)",
           location: "New location content (optional)"
         },
-        query: `mutation UpdateInstitution(
-  $institutionId: String!, 
-  $name: String, 
-  $description: String, 
-  $country: String, 
-  $location: String
-) {
-  # Update the name
-  updateName: updateTexts(
+        mutations: [
+          {
+            name: "getInstitution",
+            query: `query GetInstitutionForUpdate($institutionId: String!) {
+  institutions(where: { id: { eq: $institutionId } }) {
+    id
+    name_id
+    description_id
+    country_id
+    location_id
+    links_id
+  }
+}`,
+            useVariables: ["institutionId"]
+          },
+          {
+            name: "updateName",
+            query: `mutation UpdateInstitutionName($nameId: String!, $name: String!) {
+  updateTexts(
     set: { content: $name }
-    where: { id: { eq: $institutionId } }
+    where: { id: { eq: $nameId } }
   ) {
     id
     content
-    original_language
   }
-  # Update the description
-  updateDescription: updateTexts(
+}`,
+            useVariables: ["name"],
+            mapVariables: {
+              nameId: { from: "getInstitution", path: "institutions.0.name_id" }
+            },
+            skipIf: { variableName: "name", isUndefined: true }
+          },
+          {
+            name: "updateDescription",
+            query: `mutation UpdateInstitutionDescription($descriptionId: String!, $description: String!) {
+  updateTexts(
     set: { content: $description }
-    where: { id: { eq: $institutionId } }
+    where: { id: { eq: $descriptionId } }
   ) {
     id
     content
-    original_language
   }
-  # Update the country
-  updateCountry: updateTexts(
+}`,
+            useVariables: ["description"],
+            mapVariables: {
+              descriptionId: { from: "getInstitution", path: "institutions.0.description_id" }
+            },
+            skipIf: { variableName: "description", isUndefined: true }
+          },
+          {
+            name: "updateCountry",
+            query: `mutation UpdateInstitutionCountry($countryId: String!, $country: String!) {
+  updateTexts(
     set: { content: $country }
-    where: { id: { eq: $institutionId } }
+    where: { id: { eq: $countryId } }
   ) {
     id
     content
-    original_language
   }
-  # Update the location
-  updateLocation: updateTexts(
+}`,
+            useVariables: ["country"],
+            mapVariables: {
+              countryId: { from: "getInstitution", path: "institutions.0.country_id" }
+            },
+            skipIf: { variableName: "country", isUndefined: true }
+          },
+          {
+            name: "updateLocation",
+            query: `mutation UpdateInstitutionLocation($locationId: String!, $location: String!) {
+  updateTexts(
     set: { content: $location }
-    where: { id: { eq: $institutionId } }
+    where: { id: { eq: $locationId } }
   ) {
     id
     content
-    original_language
   }
-}`
+}`,
+            useVariables: ["location"],
+            mapVariables: {
+              locationId: { from: "getInstitution", path: "institutions.0.location_id" }
+            },
+            skipIf: { variableName: "location", isUndefined: true }
+          }
+        ],
+        query: null
       },
-      institutionsDelete: {
+
+      // DELETE
+      delete: {
         type: "mutation",
         name: "Delete Institution",
         description: "Deletes an institution by ID",
         variables: {
           institutionId: "ID of the institution to delete"
         },
-        query: `mutation DeleteInstitution($institutionId: String!) {
+        mutations: [
+          {
+            name: "getInstitution",
+            query: `query GetInstitutionForDelete($institutionId: String!) {
+  institutions(where: { id: { eq: $institutionId } }) {
+    id
+    name_id
+    description_id
+    country_id
+    location_id
+    links_id
+  }
+}`,
+            useVariables: ["institutionId"]
+          },
+          {
+            name: "deleteObjects",
+            query: `mutation DeleteInstitutionObjects($institutionId: String!) {
+  deleteFromObjects(where: { institution_id: { eq: $institutionId } }) {
+    id
+  }
+}`,
+            useVariables: ["institutionId"]
+          },
+          {
+            name: "deleteDatasources",
+            query: `mutation DeleteInstitutionDatasources($institutionId: String!) {
+  deleteFromDatasources(where: { institution_id: { eq: $institutionId } }) {
+    id
+  }
+}`,
+            useVariables: ["institutionId"]
+          },
+          {
+            name: "deleteAssetsRelations",
+            query: `mutation DeleteInstitutionAssetsRelations($institutionId: String!) {
+  deleteFromAssets_institutions(where: { institution_id: { eq: $institutionId } }) {
+    id
+  }
+}`,
+            useVariables: ["institutionId"]
+          },
+          {
+            name: "deleteInstitution",
+            query: `mutation DeleteInstitutionFinal($institutionId: String!) {
   deleteFromInstitutions(where: { id: { eq: $institutionId } }) {
     id
     name_id
@@ -717,160 +907,79 @@ export const API_SECTIONS = {
     country_id
     location_id
   }
-}`
-      },
-      institutionsList: {
-        type: "query",
-        name: "List Institutions",
-        description: "Retrieves all institutions",
-        query: `{
-  result: institutions {
+}`,
+            useVariables: ["institutionId"]
+          },
+          {
+            name: "deleteNameText",
+            query: `mutation DeleteInstitutionNameText($nameId: String!) {
+  deleteFromTexts(where: { id: { eq: $nameId } }) {
     id
-    name {
-      content
-      translations {
-        content
-        language_code
-      }
-    }
-    description {
-      content
-      translations {
-        content
-        language_code
-      }
-    }
-    project {
-      id
-      title {
-        content
-        translations {
-          content
-          language_code
-        }
-      }
-      description {
-        content
-        translations {
-          content
-          language_code
-        }
-      }
-    }
-    country {
-      content
-      translations {
-        content
-        language_code
-      }
-    }
-    location {
-      content
-      translations {
-        content
-        language_code
-      }
-    }
   }
-}`
-      },
-      institutionsListWithCounts: {
-        type: "query",
-        name: "List Institutions (with counts)",
-        description: "Retrieves all institutions with their counts",
-        variables: {
-          projectId: "Optional ID of project to filter by",
-          page: "Page number for pagination (0-based)",
-          pageSize: "Number of items per page",
-          orderBy: "Field to order by (created_at, updated_at, name)",
-          direction: "Sort direction (asc or desc)"
-        },
-        query: `query GetInstitutionsList($projectId: String, $page: Int = 0, $pageSize: Int = 10, $orderBy: String = "created_at", $direction: String = "desc") {
-          result: institutionsList(project_id: $projectId, page: $page, pageSize: $pageSize, orderBy: $orderBy, direction: $direction) {
-            id
-            created_at
-            updated_at
-            project_id
-            name {
-              content
-            }
-            description {
-              content
-            }
-            location {
-              content
-            }
-            country {
-              content
-            }
-            assetsCount
-            datasourcesCount
-            objectsCount
+}`,
+            mapVariables: {
+              nameId: { from: "getInstitution", path: "institutions.0.name_id" }
+            },
+            skipIf: { variableName: "nameId", isUndefined: true }
+          },
+          {
+            name: "deleteDescriptionText",
+            query: `mutation DeleteInstitutionDescriptionText($descriptionId: String!) {
+  deleteFromTexts(where: { id: { eq: $descriptionId } }) {
+    id
+  }
+}`,
+            mapVariables: {
+              descriptionId: { from: "getInstitution", path: "institutions.0.description_id" }
+            },
+            skipIf: { variableName: "descriptionId", isUndefined: true }
+          },
+          {
+            name: "deleteCountryText",
+            query: `mutation DeleteInstitutionCountryText($countryId: String!) {
+  deleteFromTexts(where: { id: { eq: $countryId } }) {
+    id
+  }
+}`,
+            mapVariables: {
+              countryId: { from: "getInstitution", path: "institutions.0.country_id" }
+            },
+            skipIf: { variableName: "countryId", isUndefined: true }
+          },
+          {
+            name: "deleteLocationText",
+            query: `mutation DeleteInstitutionLocationText($locationId: String!) {
+  deleteFromTexts(where: { id: { eq: $locationId } }) {
+    id
+  }
+}`,
+            mapVariables: {
+              locationId: { from: "getInstitution", path: "institutions.0.location_id" }
+            },
+            skipIf: { variableName: "locationId", isUndefined: true }
+          },
+          {
+            name: "deleteLinksText",
+            query: `mutation DeleteInstitutionLinksText($linksId: String!) {
+  deleteFromTexts(where: { id: { eq: $linksId } }) {
+    id
+  }
+}`,
+            mapVariables: {
+              linksId: { from: "getInstitution", path: "institutions.0.links_id" }
+            },
+            skipIf: { variableName: "linksId", isUndefined: true }
           }
-          count: institutionsCount(project_id: $projectId)
-        }`
-      },
-      institutionsGetByIdWithCounts: {
-        type: "query",
-        name: "Get Institution By ID (with counts)",
-        description: "Retrieves a single institution by its ID with all details including counts",
-        query: `query GetInstitution($institutionId: String!) {
-          result: institutionById(institution_id: $institutionId) {
-            id
-            created_at
-            updated_at
-            project_id
-            name {
-              content
-              original_language
-              translations {
-                language_code
-                content
-              }
-            }
-            description {
-              content
-              translations {
-                language_code
-                content
-              }
-            }
-            location {
-              content
-              translations {
-                language_code
-                content
-              }
-            }
-            country {
-              content
-              translations {
-                language_code
-                content
-              }
-            }
-            links {
-              content
-              translations {
-                language_code
-                content
-              }
-            }
-            assetsCount
-            datasourcesCount
-            objectsCount
-          }
-        }`,
-        variables: {
-          institutionId: "your-institution-id-here"
-        }
+        ],
+        query: null
       }
     }
   },
   objects: {
     name: "Objects",
     operations: {
-      objectsList: {
+      // LIST
+      list: {
         type: "query",
         name: "List Objects",
         description: "Retrieves all objects with optional filtering by project or institution",
@@ -915,7 +1024,9 @@ export const API_SECTIONS = {
   }
 }`
       },
-      objectsGetById: {
+
+      // GET BY ID
+      getById: {
         type: "query",
         name: "Get Object by ID",
         description: "Retrieves a single object by its ID",
@@ -1002,7 +1113,9 @@ export const API_SECTIONS = {
   }
 }`
       },
-      objectsCreate: {
+
+      // CREATE
+      create: {
         type: "mutation",
         name: "Create Object",
         description: "Creates a new object",
@@ -1026,7 +1139,9 @@ export const API_SECTIONS = {
   }
 }`
       },
-      objectsUpdate: {
+
+      // UPDATE
+      update: {
         type: "mutation",
         name: "Update Object",
         description: "Updates an existing object by ID",
@@ -1058,23 +1173,70 @@ export const API_SECTIONS = {
   }
 }`
       },
-      objectsDelete: {
+
+      // DELETE
+      delete: {
         type: "mutation",
         name: "Delete Object",
         description: "Deletes an object by ID",
         variables: {
           objectId: "ID of the object to delete"
         },
-        query: `mutation DeleteObject($objectId: String!) {
+        mutations: [
+          {
+            name: "getObject",
+            query: `query GetObjectForDelete($objectId: String!) {
+  objects(where: { id: { eq: $objectId } }) {
+    id
+  }
+}`,
+            useVariables: ["objectId"]
+          },
+          {
+            name: "deleteObjectsAssets",
+            query: `mutation DeleteObjectAssets($objectId: String!) {
+  deleteFromObjects_assets(where: { object_id: { eq: $objectId } }) {
+    id
+  }
+}`,
+            useVariables: ["objectId"]
+          },
+          {
+            name: "deleteObjectsResearchFields",
+            query: `mutation DeleteObjectResearchFields($objectId: String!) {
+  deleteFromObjects_research_fields(where: { object_id: { eq: $objectId } }) {
+    id
+  }
+}`,
+            useVariables: ["objectId"]
+          },
+          {
+            name: "deleteObjectsOntologyFields",
+            query: `mutation DeleteObjectOntologyFields($objectId: String!) {
+  deleteFromObjects_ontology_fields(where: { object_id: { eq: $objectId } }) {
+    id
+  }
+}`,
+            useVariables: ["objectId"]
+          },
+          {
+            name: "deleteObject",
+            query: `mutation DeleteObjectFinal($objectId: String!) {
   deleteFromObjects(where: { id: { eq: $objectId } }) {
     id
     status
     institution_id
     project_id
   }
-}`
+}`,
+            useVariables: ["objectId"]
+          }
+        ],
+        query: null
       },
-      objectsAddAsset: {
+
+      // ASSET OPERATIONS
+      addAsset: {
         type: "mutation",
         name: "Add Asset to Object",
         description: "Associates an asset with an object",
@@ -1096,7 +1258,8 @@ export const API_SECTIONS = {
   }
 }`
       },
-      objectsRemoveAsset: {
+
+      removeAsset: {
         type: "mutation",
         name: "Remove Asset from Object",
         description: "Removes the association between an asset and an object",
@@ -1117,7 +1280,8 @@ export const API_SECTIONS = {
   }
 }`
       },
-      objectsUpdateAssetOrder: {
+
+      updateAssetOrder: {
         type: "mutation",
         name: "Update Asset Order",
         description: "Updates the display order of an asset associated with an object",
@@ -1141,7 +1305,8 @@ export const API_SECTIONS = {
   }
 }`
       },
-      objectsGetAssets: {
+
+      getAssets: {
         type: "query",
         name: "Get Object Assets",
         description: "Retrieves all assets associated with a specific object",
@@ -1285,7 +1450,7 @@ export const API_SECTIONS = {
   translations: {
     name: "Translations",
     operations: {
-      translationsCreate: {
+      create: {
         type: "mutation",
         name: "Create Translation",
         description: "Creates a translation for a specific text",
@@ -1307,7 +1472,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      translationsUpdate: {
+      update: {
         type: "mutation",
         name: "Update Translation",
         description: "Updates an existing translation",
@@ -1326,29 +1491,13 @@ export const API_SECTIONS = {
     text_id
   }
 }`
-      },/*
-      researchFieldsDeleteVocabulary: {
-        type: "mutation",
-        name: "Delete Vocabulary from Research Field",
-        description: "Deletes a vocabulary option from a research field",
-        variables: {
-          vocabularyId: "ID of the vocabulary to delete"
-        },
-        query: `mutation DeleteVocabulary($vocabularyId: String!) {
-  deleteFromVocabularies(where: { id: { eq: $vocabularyId } }) {
-    id
-    option_id
-    description_id
-    field_id
-  }
-}`
-      }*/
+      }
     }
   },
   interface_translations: {
     name: "Interface Translations",
     operations: {
-      interfaceTranslationsList: {
+      list: {
         type: "query",
         name: "List Interface Translations",
         description: "Retrieves all interface translations",
@@ -1362,7 +1511,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      interfaceTranslationsGetByLocale: {
+      getByLocale: {
         type: "query",
         name: "Get Interface Translations By Locale",
         description: "Retrieves interface translations for a specific locale",
@@ -1378,7 +1527,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      interfaceTranslationsCreate: {
+      create: {
         type: "mutation",
         name: "Create Interface Translation",
         description: "Creates a new interface translation",
@@ -1403,7 +1552,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      interfaceTranslationsUpdate: {
+      update: {
         type: "mutation",
         name: "Update Interface Translation",
         description: "Updates an existing interface translation",
@@ -1421,7 +1570,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      interfaceTranslationsDelete: {
+      delete: {
         type: "mutation",
         name: "Delete Interface Translation",
         description: "Deletes an interface translation",
@@ -1434,7 +1583,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      interfaceTranslationsImport: {
+      import: {
         type: "mutation",
         name: "Import Interface Translations",
         description: "Imports multiple interface translations at once",
@@ -1457,7 +1606,7 @@ export const API_SECTIONS = {
   logs: {
     name: "Logs",
     operations: {
-      logsList: {
+      list: {
         type: "query",
         name: "List Logs",
         description: "Retrieves logs with pagination and filtering",
@@ -1501,7 +1650,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      logsCreate: {
+      create: {
         type: "mutation",
         name: "Create Log",
         description: "Creates a new log entry",
@@ -1524,7 +1673,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      logsDelete: {
+      delete: {
         type: "mutation",
         name: "Delete Log",
         description: "Deletes a log entry by ID",
@@ -1537,15 +1686,15 @@ export const API_SECTIONS = {
   }
 }`
       },
-      logsClear: {
+      clear: {
         type: "mutation",
         name: "Clear Logs",
         description: "Clears logs based on filters",
         variables: {
           level: "Filter by log level",
           action: "Filter by action",
-          fromDate: "Filter by date range (start timestamp)",
-          toDate: "Filter by date range (end timestamp)"
+          fromDate: "Filter by start date",
+          toDate: "Filter by end date"
         },
         query: `mutation ClearLogs($level: String, $action: String, $fromDate: String, $toDate: String) {
   deleteFromLogs(
@@ -1564,7 +1713,7 @@ export const API_SECTIONS = {
   assets: {
     name: "Assets",
     operations: {
-      assetsList: {
+      list: {
         type: "query",
         name: "List Assets",
         description: "Retrieves all assets with optional filtering and pagination",
@@ -1610,7 +1759,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      assetsGetById: {
+      getById: {
         type: "query",
         name: "Get Asset by ID",
         description: "Retrieves a single asset by its ID",
@@ -1644,7 +1793,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      assetsUpdate: {
+      update: {
         type: "mutation",
         name: "Update Asset",
         description: "Updates an existing asset by ID",
@@ -1692,7 +1841,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      assetsDelete: {
+      delete: {
         type: "mutation",
         name: "Delete Asset",
         description: "Deletes an asset by ID",
@@ -1712,7 +1861,7 @@ export const API_SECTIONS = {
   research_fields: {
     name: "Research Fields",
     operations: {
-      researchFieldsList: {
+      list: {
         type: "query",
         name: "List Research Fields",
         description: "Retrieves all research fields with optional filtering by project",
@@ -1764,7 +1913,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      researchFieldsGetById: {
+      getById: {
         type: "query",
         name: "Get Research Field by ID",
         description: "Retrieves a single research field by its ID",
@@ -1830,7 +1979,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      researchFieldsCreate: {
+      create: {
         type: "mutation",
         name: "Create Research Field",
         description: "Creates a new research field with name and description",
@@ -1895,7 +2044,7 @@ export const API_SECTIONS = {
         ],
         query: null
       },
-      researchFieldsUpdate: {
+      update: {
         type: "mutation",
         name: "Update Research Field",
         description: "Updates an existing research field",
@@ -1905,41 +2054,71 @@ export const API_SECTIONS = {
           description: "New description content (optional)",
           type: "New field type (optional)"
         },
-        query: `mutation UpdateResearchField(
-  $fieldId: String!, 
-  $name: String, 
-  $description: String, 
-  $type: String
-) {
-  # Update the name text
-  updateName: updateTexts(
+        mutations: [
+          {
+            name: "getResearchField",
+            query: `query GetResearchFieldForUpdate($fieldId: String!) {
+  research_fields(where: { id: { eq: $fieldId } }) {
+    id
+    name_id
+    description_id
+    type
+  }
+}`,
+            useVariables: ["fieldId"]
+          },
+          {
+            name: "updateName",
+            query: `mutation UpdateResearchFieldName($nameId: String!, $name: String!) {
+  updateTexts(
     set: { content: $name }
-    where: { id: { eq: $fieldId } }
+    where: { id: { eq: $nameId } }
   ) {
     id
     content
   }
-  
-  # Update the description text
-  updateDescription: updateTexts(
+}`,
+            useVariables: ["name"],
+            mapVariables: {
+              nameId: { from: "getResearchField", path: "research_fields.0.name_id" }
+            },
+            skipIf: { variableName: "name", isUndefined: true }
+          },
+          {
+            name: "updateDescription",
+            query: `mutation UpdateResearchFieldDescription($descriptionId: String!, $description: String!) {
+  updateTexts(
     set: { content: $description }
-    where: { id: { eq: $fieldId } }
+    where: { id: { eq: $descriptionId } }
   ) {
     id
     content
   }
-  
-  # Update the type
-  updateType: updateResearch_fields(
+}`,
+            useVariables: ["description"],
+            mapVariables: {
+              descriptionId: { from: "getResearchField", path: "research_fields.0.description_id" }
+            },
+            skipIf: { variableName: "description", isUndefined: true }
+          },
+          {
+            name: "updateType",
+            query: `mutation UpdateResearchFieldType($fieldId: String!, $type: String!) {
+  updateResearch_fields(
     set: { type: $type }
     where: { id: { eq: $fieldId } }
   ) {
     id
     type
   }
-}`
+}`,
+            useVariables: ["fieldId", "type"],
+            skipIf: { variableName: "type", isUndefined: true }
+          }
+        ],
+        query: null
       },
-      researchFieldsDelete: {
+      delete: {
         type: "mutation",
         name: "Delete Research Field",
         description: "Deletes a research field by ID",
@@ -1954,7 +2133,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      researchFieldsAddVocabulary: {
+      addVocabulary: {
         type: "mutation",
         name: "Add Vocabulary to Research Field",
         description: "Adds a vocabulary option to a research field",
@@ -2020,7 +2199,7 @@ export const API_SECTIONS = {
         ],
         query: null
       },
-      researchFieldsDeleteVocabulary: {
+      deleteVocabulary: {
         type: "mutation",
         name: "Delete Vocabulary from Research Field",
         description: "Deletes a vocabulary option from a research field",
@@ -2041,7 +2220,7 @@ export const API_SECTIONS = {
   ontology_fields: {
     name: "Ontology Fields",
     operations: {
-      ontologyFieldsList: {
+      list: {
         type: "query",
         name: "List Ontology Fields",
         description: "Retrieves all ontology fields",
@@ -2081,7 +2260,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      ontologyFieldsGetById: {
+      getById: {
         type: "query",
         name: "Get Ontology Field by ID",
         description: "Retrieves a single ontology field by its ID",
@@ -2124,7 +2303,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      ontologyFieldsCreate: {
+      create: {
         type: "mutation",
         name: "Create Ontology Field",
         description: "Creates a new ontology field with name, description, and category",
@@ -2204,7 +2383,7 @@ export const API_SECTIONS = {
         ],
         query: null
       },
-      ontologyFieldsUpdate: {
+      update: {
         type: "mutation",
         name: "Update Ontology Field",
         description: "Updates an existing ontology field",
@@ -2215,51 +2394,89 @@ export const API_SECTIONS = {
           category: "New category content (optional)",
           embeddings: "New embeddings data (optional)"
         },
-        query: `mutation UpdateOntologyField(
-  $fieldId: String!, 
-  $name: String, 
-  $description: String, 
-  $category: String, 
-  $embeddings: String
-) {
-  # Update the name text
-  updateName: updateTexts(
+        mutations: [
+          {
+            name: "getOntologyField",
+            query: `query GetOntologyFieldForUpdate($fieldId: String!) {
+  ontology_fields(where: { id: { eq: $fieldId } }) {
+    id
+    name_id
+    description_id
+    category_id
+    embeddings
+  }
+}`,
+            useVariables: ["fieldId"]
+          },
+          {
+            name: "updateName",
+            query: `mutation UpdateOntologyFieldName($nameId: String!, $name: String!) {
+  updateTexts(
     set: { content: $name }
-    where: { id: { eq: $fieldId } }
+    where: { id: { eq: $nameId } }
   ) {
     id
     content
   }
-  
-  # Update the description text
-  updateDescription: updateTexts(
+}`,
+            useVariables: ["name"],
+            mapVariables: {
+              nameId: { from: "getOntologyField", path: "ontology_fields.0.name_id" }
+            },
+            skipIf: { variableName: "name", isUndefined: true }
+          },
+          {
+            name: "updateDescription",
+            query: `mutation UpdateOntologyFieldDescription($descriptionId: String!, $description: String!) {
+  updateTexts(
     set: { content: $description }
-    where: { id: { eq: $fieldId } }
+    where: { id: { eq: $descriptionId } }
   ) {
     id
     content
   }
-  
-  # Update the category text
-  updateCategory: updateTexts(
+}`,
+            useVariables: ["description"],
+            mapVariables: {
+              descriptionId: { from: "getOntologyField", path: "ontology_fields.0.description_id" }
+            },
+            skipIf: { variableName: "description", isUndefined: true }
+          },
+          {
+            name: "updateCategory",
+            query: `mutation UpdateOntologyFieldCategory($categoryId: String!, $category: String!) {
+  updateTexts(
     set: { content: $category }
-    where: { id: { eq: $fieldId } }
+    where: { id: { eq: $categoryId } }
   ) {
     id
     content
   }
-  
-  # Update the embeddings
-  updateEmbeddings: updateOntology_fields(
+}`,
+            useVariables: ["category"],
+            mapVariables: {
+              categoryId: { from: "getOntologyField", path: "ontology_fields.0.category_id" }
+            },
+            skipIf: { variableName: "category", isUndefined: true }
+          },
+          {
+            name: "updateEmbeddings",
+            query: `mutation UpdateOntologyFieldEmbeddings($fieldId: String!, $embeddings: String!) {
+  updateOntology_fields(
     set: { embeddings: $embeddings }
     where: { id: { eq: $fieldId } }
   ) {
     id
     embeddings
   }
-}`
+}`,
+            useVariables: ["fieldId", "embeddings"],
+            skipIf: { variableName: "embeddings", isUndefined: true }
+          }
+        ],
+        query: null
       },
-      ontologyFieldsDelete: {
+      delete: {
         type: "mutation",
         name: "Delete Ontology Field",
         description: "Deletes an ontology field by ID",
@@ -2316,7 +2533,7 @@ export const API_SECTIONS = {
   settings: {
     name: "Project Settings",
     operations: {
-      settingsGetByProjectId: {
+      getByProjectId: {
         type: "query",
         name: "Get Settings by Project ID",
         description: "Retrieves settings for a specific project",
@@ -2336,7 +2553,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      settingsCreate: {
+      create: {
         type: "mutation",
         name: "Create Project Settings",
         description: "Creates settings for a project",
@@ -2366,7 +2583,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      settingsUpdate: {
+      update: {
         type: "mutation",
         name: "Update Project Settings",
         description: "Updates existing project settings",
@@ -2403,7 +2620,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      settingsUpdateByProjectId: {
+      updateByProjectId: {
         type: "mutation",
         name: "Update Project Settings by Project ID",
         description: "Updates settings for a project by project ID",
@@ -2440,7 +2657,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      settingsDelete: {
+      delete: {
         type: "mutation",
         name: "Delete Project Settings",
         description: "Deletes project settings by ID",
@@ -2454,7 +2671,7 @@ export const API_SECTIONS = {
   }
 }`
       },
-      settingsDeleteByProjectId: {
+      deleteByProjectId: {
         type: "mutation",
         name: "Delete Project Settings by Project ID",
         description: "Deletes settings for a project by project ID",

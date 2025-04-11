@@ -9,8 +9,8 @@ const { error: logError } = getLogStore();
 const { getSchema, validate } = getValidationStore();
 
 
-const institutionsListWithCounts = API_SECTIONS.institutions.operations.institutionsListWithCounts;
-const institutionsGetByIdWithCounts = API_SECTIONS.institutions.operations.institutionsGetByIdWithCounts;
+const institutionsList = API_SECTIONS.institutions.operations.list;
+const institutionGetById = API_SECTIONS.institutions.operations.getById;
 // const projectByIdWithCountsQuery = API_SECTIONS.projects.operations.projectByIdWithCounts.query;
 // const updateProjectMutation = API_SECTIONS.projects.operations.projectsUpdate.query;
 // const deleteProjectMutation = API_SECTIONS.projects.operations.projectsDelete.query;
@@ -20,7 +20,7 @@ const institutionsGetByIdWithCounts = API_SECTIONS.institutions.operations.insti
 
 export const getProjectInstitutions = async (projectId, page, pageSize) => {
     try {
-        const response = await performQuery(institutionsListWithCounts, { projectId, page, pageSize });
+        const response = await performQuery(institutionsList, { projectId, page, pageSize });
         return response;
     } catch (error) {
         // Already handled by performQuery
@@ -30,7 +30,7 @@ export const getProjectInstitutions = async (projectId, page, pageSize) => {
 
 export const getInstitution = async (institutionId) => {
     try {
-        const result = await performQuery(institutionsGetByIdWithCounts, { institutionId });
+        const result = await performQuery(institutionGetById, { institutionId });
         return result.result;
     } catch (error) {
         // Already handled by performQuery

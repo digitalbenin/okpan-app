@@ -35,11 +35,10 @@
     let editedValues = $state({});
 
     // Get API queries
-    const { query: languagesQuery } =
-        API_SECTIONS.interface_languages.operations.interfaceLanguagesList;
-    const { query: interfaceTranslationsQuery } =
-        API_SECTIONS.interface_translations.operations
-            .interfaceTranslationsList;
+    const languagesQuery =
+        API_SECTIONS.interface_languages.operations.list.query;
+    const interfaceTranslationsQuery =
+        API_SECTIONS.interface_translations.operations.list.query;
 
     // Initialize
     $effect(() => {

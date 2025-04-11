@@ -33,10 +33,10 @@ export function getContentLanguageStore() {
     });
 
     // Get queries from API_SECTIONS
-    const contentLanguagesList = API_SECTIONS.languages.operations.contentLanguagesList;
-    const contentLanguagesListByProject = API_SECTIONS.languages.operations.contentLanguagesListByProject;
-    const contentLanguagesCreate = API_SECTIONS.languages.operations.contentLanguagesCreate;
-    const contentLanguagesDelete = API_SECTIONS.languages.operations.contentLanguagesDelete;
+    const contentLanguagesList = API_SECTIONS.languages.operations.list;
+    const contentLanguagesListByProject = API_SECTIONS.languages.operations.listByProject;
+    const contentLanguagesCreate = API_SECTIONS.languages.operations.create;
+    const contentLanguagesDelete = API_SECTIONS.languages.operations.delete;
 
 
 

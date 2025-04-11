@@ -9,7 +9,7 @@ const { error: logError } = getLogStore();
 const { getSchema, validate } = getValidationStore();
 
 
-const objectsList = API_SECTIONS.objects.operations.objectsList;
+const objectsList = API_SECTIONS.objects.operations.list;
 
 
 export const getObjects = async (projectId, institutionId) => {
