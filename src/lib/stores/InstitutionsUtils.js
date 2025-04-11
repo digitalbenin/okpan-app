@@ -1,39 +1,15 @@
-import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
+import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
-import { getLogStore } from "$lib/stores/LogStore.svelte.js";
-
-
-const { error: logError } = getLogStore();
 
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
-
-const institutionsList = API_SECTIONS.institutions.operations.list;
-const institutionGetById = API_SECTIONS.institutions.operations.getById;
-// const projectByIdWithCountsQuery = API_SECTIONS.projects.operations.projectByIdWithCounts.query;
-// const updateProjectMutation = API_SECTIONS.projects.operations.projectsUpdate.query;
-// const deleteProjectMutation = API_SECTIONS.projects.operations.projectsDelete.query;
-// const addLanguageToProjectMutation = API_SECTIONS.projects.operations.projectAddLanguage.query;
-// const removeLanguageFromProjectMutation = API_SECTIONS.projects.operations.projectRemoveLanguage.query;
-// const setLanguageAsDefaultMutation = API_SECTIONS.projects.operations.projectSetDefaultLanguage.query;
-
 export const getProjectInstitutions = async (projectId, page, pageSize) => {
-    try {
-        const response = await performQuery(institutionsList, { projectId, page, pageSize });
-        return response;
-    } catch (error) {
-        // Already handled by performQuery
-        throw error;
-    }
+    const response = await executeQuery('institutions', 'list', { projectId, page, pageSize });
+    return response;
 };
 
 export const getInstitution = async (institutionId) => {
-    try {
-        const result = await performQuery(institutionGetById, { institutionId });
-        return result.result;
-    } catch (error) {
-        // Already handled by performQuery
-        throw error;
-    }
+    const result = await executeQuery('institutions', 'getById', { institutionId });
+    return result.result;
 };

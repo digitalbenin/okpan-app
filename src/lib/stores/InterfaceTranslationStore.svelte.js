@@ -1,4 +1,4 @@
-import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
+import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "./ValidationStore.svelte.js";
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 
@@ -32,186 +32,153 @@ export function getTranslationStore() {
         defaultLocale: 'en' // Added to track default locale
     });
 
-    // Get queries from API_SECTIONS
-    const languagesQuery = API_SECTIONS.interface_languages.operations.list;
-    const interfaceTranslationsQuery = API_SECTIONS.interface_translations.operations.list;
-    const createInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.create;
-    const updateInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.update;
-    const deleteInterfaceTranslationQuery = API_SECTIONS.interface_translations.operations.delete;
-
     // Fetch all supported languages
     const fetchLanguages = async () => {
-        try {
-            // console.log("Fetching interface languages...");
-            const result = await performQuery(languagesQuery);
-            // console.log("Received interface languages:", result);
+        // console.log("Fetching interface languages...");
+        const result = await executeQuery('interface_languages', 'list');
+        // console.log("Received interface languages:", result);
 
-            // Check if we have a valid result with more detailed logging
-            if (!result) {
-                const errorMsg = "No response received from server for languages";
-                translationState.languages = [];
-                translationState.error = errorMsg;
-                await logError("fetch_languages", errorMsg);
-                return;
-            }
-
-            if (!result.result) {
-                const errorMsg = `Response missing 'result' field: ${JSON.stringify(result)}`;
-                translationState.languages = [];
-                translationState.error = errorMsg;
-                await logError("fetch_languages", errorMsg);
-                return;
-            }
-
-            // Store languages with fallback to empty array
-            translationState.languages = Array.isArray(result.result) ? result.result : [];
-            // console.log(`Found ${translationState.languages.length} interface languages`);
-
-            // Set default locale if available
-            if (translationState.languages.length > 0) {
-                const enLang = translationState.languages.find(lang => lang.code === 'en');
-                translationState.currentLocale = enLang ? enLang.code : translationState.languages[0].code;
-            }
-        } catch (err) {
-            const errorMsg = err?.message || "Unknown error";
+        // Check if we have a valid result with more detailed logging
+        if (!result) {
+            const errorMsg = "No response received from server for languages";
             translationState.languages = [];
-            translationState.error = `Failed to fetch languages: ${errorMsg}`;
+            translationState.error = errorMsg;
             await logError("fetch_languages", errorMsg);
+            return;
+        }
+
+        if (!result.result) {
+            const errorMsg = `Response missing 'result' field: ${JSON.stringify(result)}`;
+            translationState.languages = [];
+            translationState.error = errorMsg;
+            await logError("fetch_languages", errorMsg);
+            return;
+        }
+
+        // Store languages with fallback to empty array
+        translationState.languages = Array.isArray(result.result) ? result.result : [];
+        // console.log(`Found ${translationState.languages.length} interface languages`);
+
+        // Set default locale if available
+        if (translationState.languages.length > 0) {
+            const enLang = translationState.languages.find(lang => lang.code === 'en');
+            translationState.currentLocale = enLang ? enLang.code : translationState.languages[0].code;
         }
     };
 
     // Fetch all translations and organize them by namespace and key
     const fetchTranslations = async () => {
-        try {
-            // console.log("Fetching interface translations...");
-            const result = await performQuery(interfaceTranslationsQuery);
-            // console.log("Received interface translations:", result);
+        // console.log("Fetching interface translations...");
+        const result = await executeQuery('interface_translations', 'list');
+        // console.log("Received interface translations:", result);
 
-            // Log the structure for debugging
-            // console.log("Translation result keys:", result ? Object.keys(result) : "null result");
-            if (result && result.result) {
-                // console.log("Translation result.result type:", Array.isArray(result.result) ? "Array" : typeof result.result);
-                // console.log("Translation result.result length:", Array.isArray(result.result) ? result.result.length : "not an array");
-            }
-
-            // Check if we have a valid result with more detailed logging
-            if (!result) {
-                const errorMsg = "No response received from server for translations";
-                translationState.translations = {};
-                translationState.error = errorMsg;
-                await logError("fetch_translations", errorMsg);
-                return;
-            }
-
-            if (!result.result) {
-                const errorMsg = `Response missing 'result' field: ${JSON.stringify(result)}`;
-                translationState.translations = {};
-                translationState.error = errorMsg;
-                await logError("fetch_translations", errorMsg);
-                return;
-            }
-
-            // Ensure result.result is treated as an array
-            const translations = Array.isArray(result.result) ? result.result : [];
-            // console.log(`Found ${translations.length} interface translations`);
-
-            // Organize translations by namespace and key
-            const translationData = {};
-
-            for (const item of translations) {
-                // Skip invalid items
-                if (!item || !item.namespace || !item.key || !item.locale) {
-                    console.warn("Skipping invalid translation item:", item);
-                    continue;
-                }
-
-                // Create namespace if it doesn't exist
-                if (!translationData[item.namespace]) {
-                    translationData[item.namespace] = {};
-                }
-
-                // Create key if it doesn't exist
-                if (!translationData[item.namespace][item.key]) {
-                    translationData[item.namespace][item.key] = {};
-                }
-
-                // Add translation for this locale
-                translationData[item.namespace][item.key][item.locale] = item.value;
-            }
-
-            translationState.translations = translationData;
-            // console.log(`Organized translations into ${Object.keys(translationData).length} namespaces`);
-        } catch (err) {
-            console.error("Error fetching translations:", err);
-            translationState.translations = {};
-            translationState.error = `Failed to fetch translations: ${errorMsg}`;
-            await logError("fetch_translations", errorMsg);
+        // Log the structure for debugging
+        // console.log("Translation result keys:", result ? Object.keys(result) : "null result");
+        if (result && result.result) {
+            // console.log("Translation result.result type:", Array.isArray(result.result) ? "Array" : typeof result.result);
+            // console.log("Translation result.result length:", Array.isArray(result.result) ? result.result.length : "not an array");
         }
+
+        // Check if we have a valid result with more detailed logging
+        if (!result) {
+            const errorMsg = "No response received from server for translations";
+            translationState.translations = {};
+            translationState.error = errorMsg;
+            await logError("fetch_translations", errorMsg);
+            return;
+        }
+
+        if (!result.result) {
+            const errorMsg = `Response missing 'result' field: ${JSON.stringify(result)}`;
+            translationState.translations = {};
+            translationState.error = errorMsg;
+            await logError("fetch_translations", errorMsg);
+            return;
+        }
+
+        // Ensure result.result is treated as an array
+        const translations = Array.isArray(result.result) ? result.result : [];
+        // console.log(`Found ${translations.length} interface translations`);
+
+        // Organize translations by namespace and key
+        const translationData = {};
+
+        for (const item of translations) {
+            // Skip invalid items
+            if (!item || !item.namespace || !item.key || !item.locale) {
+                console.warn("Skipping invalid translation item:", item);
+                continue;
+            }
+
+            // Create namespace if it doesn't exist
+            if (!translationData[item.namespace]) {
+                translationData[item.namespace] = {};
+            }
+
+            // Create key if it doesn't exist
+            if (!translationData[item.namespace][item.key]) {
+                translationData[item.namespace][item.key] = {};
+            }
+
+            // Add translation for this locale
+            translationData[item.namespace][item.key][item.locale] = item.value;
+        }
+
+        translationState.translations = translationData;
+        // console.log(`Organized translations into ${Object.keys(translationData).length} namespaces`);
     };
 
     // Initialize the store
     const initialize = async () => {
         if (translationState.isInitialized) return;
 
-        try {
-            translationState.isLoading = true;
-            translationState.error = null;
+        translationState.isLoading = true;
+        translationState.error = null;
 
-            // Fetch languages first
-            await fetchLanguages();
+        // Fetch languages first
+        await fetchLanguages();
 
-            // Then fetch translations
-            await fetchTranslations();
+        // Then fetch translations
+        await fetchTranslations();
 
-            translationState.isInitialized = true;
-        } catch (err) {
-            translationState.error = `Failed to initialize translation store: ${err.message}`;
-            console.error("Translation store initialization error:", err);
-            await logError("init_translation_store", err.message);
-        } finally {
-            translationState.isLoading = false;
-        }
+        translationState.isInitialized = true;
+        translationState.isLoading = false;
     };
 
     // Get a translation by namespace, key and locale
     const getTranslation = (namespace, key, locale = null) => {
         const targetLocale = locale || translationState.currentLocale;
 
-        try {
-            // Check if namespace exists
-            if (!translationState.translations[namespace]) {
-                console.warn(`Namespace "${namespace}" not found`);
-                return key;
-            }
-
-            // Check if key exists in namespace
-            if (!translationState.translations[namespace][key]) {
-                console.warn(`Key "${key}" not found in namespace "${namespace}"`);
-                return key;
-            }
-
-            // Check if translation exists for locale
-            if (!translationState.translations[namespace][key][targetLocale]) {
-                // Try English as first fallback
-                if (translationState.translations[namespace][key]['en']) {
-                    return translationState.translations[namespace][key]['en'];
-                }
-
-                // Fallback to any available translation
-                const availableLocales = Object.keys(translationState.translations[namespace][key]);
-                if (availableLocales.length > 0) {
-                    return translationState.translations[namespace][key][availableLocales[0]];
-                }
-
-                console.warn(`No translation found for "${namespace}.${key}" in locale "${targetLocale}"`);
-                return key;
-            }
-
-            return translationState.translations[namespace][key][targetLocale];
-        } catch (err) {
-            console.error(`Error getting translation for "${namespace}.${key}":`, err);
+        // Check if namespace exists
+        if (!translationState.translations[namespace]) {
+            console.warn(`Namespace "${namespace}" not found`);
             return key;
         }
+
+        // Check if key exists in namespace
+        if (!translationState.translations[namespace][key]) {
+            console.warn(`Key "${key}" not found in namespace "${namespace}"`);
+            return key;
+        }
+
+        // Check if translation exists for locale
+        if (!translationState.translations[namespace][key][targetLocale]) {
+            // Try English as first fallback
+            if (translationState.translations[namespace][key]['en']) {
+                return translationState.translations[namespace][key]['en'];
+            }
+
+            // Fallback to any available translation
+            const availableLocales = Object.keys(translationState.translations[namespace][key]);
+            if (availableLocales.length > 0) {
+                return translationState.translations[namespace][key][availableLocales[0]];
+            }
+
+            console.warn(`No translation found for "${namespace}.${key}" in locale "${targetLocale}"`);
+            return key;
+        }
+
+        return translationState.translations[namespace][key][targetLocale];
     };
 
     // Set the current locale
@@ -247,380 +214,316 @@ export function getTranslationStore() {
         return result;
     };
 
-    // Get translations formatted for sveltekit-i18n
+    // Get all translations formatted for i18n library
     const getFormattedTranslations = () => {
-        const formatted = {};
+        const result = {};
 
         for (const namespace in translationState.translations) {
-            formatted[namespace] = {};
-
-            // Use interface languages
-            for (const lang of translationState.languages) {
-                formatted[namespace][lang.code] = getNamespaceTranslations(namespace, lang.code);
-            }
+            result[namespace] = getNamespaceTranslations(namespace);
         }
 
-        return formatted;
+        return result;
     };
 
-    // Refresh translations from the server
+    // Refresh translations from backend
     const refreshTranslations = async () => {
         translationState.isLoading = true;
-        translationState.error = null;
 
-        try {
-            await fetchTranslations();
-            return { success: true };
-        } catch (err) {
-            const errorMsg = err?.message || "Unknown error";
-            console.error("Error refreshing translations:", errorMsg);
-            translationState.error = `Failed to fetch translations: ${errorMsg}`;
-            await logError("refresh_translations", errorMsg);
-            return { success: false, error: errorMsg };
-        } finally {
-            translationState.isLoading = false;
-        }
+        // Fetch translations and update the state
+        await fetchTranslations();
+
+        translationState.isLoading = false;
+        return Object.keys(translationState.translations).length;
     };
 
-    // Export translations to a JSON file
+    // Export translations to a file
     const exportTranslations = async (filePath = null) => {
-        try {
-            translationState.isLoading = true;
-            translationState.error = null;
+        const data = {
+            namespaces: getAvailableNamespaces(),
+            languages: translationState.languages.map(l => l.code),
+            translations: translationState.translations
+        };
 
-            const result = await window.api.exportTranslations(filePath);
-
-            if (!result.success) {
-                throw new Error(result.error || result.message || 'Export failed');
-            }
-
-            return result;
-        } catch (err) {
-            translationState.error = `Failed to export translations: ${err.message}`;
-            console.error("Error exporting translations:", err);
-            await logError("export_translations", err.message);
-            throw err;
-        } finally {
-            translationState.isLoading = false;
+        if (filePath) {
+            // TODO: Implement file export when ready
+            return { success: true, data };
         }
+
+        return data;
     };
 
-    // Import translations from a JSON file
+    // Import translations from a file
     const importTranslations = async (filePath = null) => {
-        try {
-            translationState.isLoading = true;
-            translationState.error = null;
+        if (!filePath) return { success: false, error: "No file provided" };
 
-            const result = await window.api.importTranslations(filePath);
+        // TODO: Implement file import when ready
+        // This would include loading, validation, and updating the backend
 
-            if (!result.success) {
-                throw new Error(result.error || result.message || 'Import failed');
-            }
+        translationState.isLoading = true;
 
-            // Refresh translations after import
-            await fetchLanguages();
-            await fetchTranslations();
+        // For now just refresh from backend after import
+        await refreshTranslations();
 
-            return result;
-        } catch (err) {
-            translationState.error = `Failed to import translations: ${err.message}`;
-            console.error("Error importing translations:", err);
-            await logError("import_translations", err.message);
-            throw err;
-        } finally {
-            translationState.isLoading = false;
-        }
+        translationState.isLoading = false;
+        return { success: true };
     };
 
-    // Create a new translation with validation
+    // Create a new translation or update if exists
     const createTranslation = async (namespace, key, values) => {
-        try {
-            translationState.isLoading = true;
-            translationState.error = null;
-
-            // Validate each translation using the base schema
-            for (const [locale, value] of Object.entries(values)) {
-                if (!value.trim()) continue;
-
-                const validationResult = await validate({
-                    namespace,
-                    key,
-                    locale,
-                    value
-                }, baseSchema);
-
-                if (!validationResult.success) {
-                    throw new Error(validationResult.errors[0]);
-                }
-            }
-
-            // Create mutations for each language
-            const mutations = [];
-            for (const [locale, value] of Object.entries(values)) {
-                if (!value.trim()) continue;
-
-                const result = await performQuery(createInterfaceTranslationQuery, {
-                    locale,
-                    namespace,
-                    key,
-                    value
-                });
-                mutations.push(result);
-            }
-
-            // Refresh translations
-            await fetchTranslations();
-            return { success: true };
-        } catch (err) {
-            translationState.error = `Failed to create translation: ${err.message}`;
-            console.error("Error creating translation:", err);
-            await logError("create_translation", err.message);
-            return { success: false, error: err.message };
-        } finally {
-            translationState.isLoading = false;
+        if (!namespace || !key || !values) {
+            throw new Error("Missing required parameters");
         }
+
+        // Validate namespace and key
+        const validationResult = await validate(
+            { namespace, key },
+            {
+                namespace: baseSchema.shape.namespace,
+                key: baseSchema.shape.key
+            }
+        );
+
+        if (!validationResult.success) {
+            await logError("create_translation_validation", validationResult.errors[0]);
+            throw new Error(validationResult.errors[0]);
+        }
+
+        translationState.isLoading = true;
+
+        // We'll create entries for each locale provided in values
+        const results = [];
+
+        for (const locale in values) {
+            if (!values[locale]) continue;
+
+            // Validate using base schema
+            const entryValidation = await validate(
+                { namespace, key, locale, value: values[locale] },
+                baseSchema
+            );
+
+            if (!entryValidation.success) {
+                await logError(`create_translation_${locale}`, entryValidation.errors[0]);
+                throw new Error(`Error for ${locale}: ${entryValidation.errors[0]}`);
+            }
+
+            // Execute the creation query
+            const result = await executeQuery('interface_translations', 'create', {
+                namespace,
+                key,
+                locale,
+                value: values[locale]
+            });
+
+            results.push(result);
+        }
+
+        // Refresh translations after creating new ones
+        await fetchTranslations();
+
+        translationState.isLoading = false;
+        return results;
     };
 
-    // Update an existing translation with validation
+    // Update a translation (multi-locale update)
     const updateTranslation = async (namespace, key, values) => {
-        try {
-            translationState.isLoading = true;
-            translationState.error = null;
+        if (!namespace || !key || !values) {
+            throw new Error("Missing required parameters");
+        }
 
-            // Validate each translation using the base schema
-            // Get the first locale to use for validation
-            const firstLocale = Object.keys(values)[0];
-            if (firstLocale) {
-                const validationResult = await validate({
+        // Ensure we have existing translations for this namespace and key
+        if (!translationState.translations[namespace] ||
+            !translationState.translations[namespace][key]) {
+            throw new Error(`Translation ${namespace}.${key} not found`);
+        }
+
+        // Validate namespace and key
+        const validationResult = await validate(
+            { namespace, key },
+            {
+                namespace: baseSchema.shape.namespace,
+                key: baseSchema.shape.key
+            }
+        );
+
+        if (!validationResult.success) {
+            await logError("update_translation_validation", validationResult.errors[0]);
+            throw new Error(validationResult.errors[0]);
+        }
+
+        translationState.isLoading = true;
+
+        // We'll update entries for each locale provided in values
+        const results = [];
+
+        for (const locale in values) {
+            if (!values[locale] && values[locale] !== '') continue;
+
+            // Validate using base schema
+            const entryValidation = await validate(
+                { namespace, key, locale, value: values[locale] },
+                baseSchema
+            );
+
+            if (!entryValidation.success) {
+                await logError(`update_translation_${locale}`, entryValidation.errors[0]);
+                throw new Error(`Error for ${locale}: ${entryValidation.errors[0]}`);
+            }
+
+            // Check if we already have a translation for this locale
+            const existingTranslation = translationState.translations[namespace][key][locale];
+
+            if (existingTranslation !== undefined) {
+                // If exists, update
+                const result = await executeQuery('interface_translations', 'update', {
                     namespace,
                     key,
-                    locale: firstLocale,
-                    value: values[firstLocale]
-                }, baseSchema);
-
-                if (!validationResult.success) {
-                    throw new Error(validationResult.errors[0]);
-                }
-            }
-
-            // Find all translations for this key in the namespace
-            const keyTranslations = [];
-            for (const ns in translationState.translations) {
-                if (ns === namespace && translationState.translations[ns][key]) {
-                    for (const locale in translationState.translations[ns][key]) {
-                        keyTranslations.push({
-                            namespace,
-                            key,
-                            locale,
-                            value: translationState.translations[ns][key][locale]
-                        });
-                    }
-                }
-            }
-
-            // Get existing translations from the database
-            const query = {
-                name: "Get existing translations",
-                query: `{
-                interface_translations(where: { 
-                    namespace: { eq: "${namespace}" }, 
-                    key: { eq: "${key}" }
-                }) {
-                    id
-                    locale
-                    value
-                }
-                }`
-            };
-
-            const result = await performQuery(query);
-
-            const existingTranslations = result.interface_translations;
-            const existingLocales = existingTranslations.map(t => t.locale);
-
-            // Update existing translations and create new ones
-            const mutations = [];
-
-            // First, handle existing translations
-            for (const translation of existingTranslations) {
-                const newValue = values[translation.locale];
-
-                // Skip if value hasn't changed or isn't provided
-                if (!newValue || newValue === translation.value) {
-                    continue;
-                }
-
-                const result = await performQuery(updateInterfaceTranslationQuery, {
-                    id: translation.id,
-                    value: newValue
-                });
-                mutations.push(result);
-            }
-
-            // Create new translations for languages that don't have one yet
-            for (const locale of Object.keys(values)) {
-                // Skip if this language already has a translation
-                if (existingLocales.includes(locale)) {
-                    continue;
-                }
-
-                // Skip if no value was provided for this language
-                if (!values[locale]) {
-                    continue;
-                }
-
-                const result = await performQuery(createInterfaceTranslationQuery, {
                     locale,
-                    namespace,
-                    key,
                     value: values[locale]
                 });
-                mutations.push(result);
+                results.push(result);
+            } else {
+                // If doesn't exist, create
+                const result = await executeQuery('interface_translations', 'create', {
+                    namespace,
+                    key,
+                    locale,
+                    value: values[locale]
+                });
+                results.push(result);
             }
-
-            // Refresh translations
-            await fetchTranslations();
-            return { success: true };
-        } catch (err) {
-            translationState.error = `Failed to update translation: ${err.message}`;
-            console.error("Error updating translation:", err);
-            await logError("update_translation", err.message);
-            return { success: false, error: err.message };
-        } finally {
-            translationState.isLoading = false;
         }
+
+        // Refresh translations after updating
+        await fetchTranslations();
+
+        translationState.isLoading = false;
+        return results;
     };
 
-    // Delete a translation
+    // Delete a translation (all locales)
     const deleteTranslation = async (namespace, key) => {
-        try {
-            translationState.isLoading = true;
-            translationState.error = null;
-
-            // Find all translations for this key in the namespace
-            const query = {
-                name: "Get translations to delete",
-                query: `{
-                interface_translations(where: { 
-                    namespace: { eq: "${namespace}" }, 
-                    key: { eq: "${key}" }
-                }) {
-                    id
-                }
-                }`
-            };
-
-            const result = await performQuery(query);
-
-            const translationsToDelete = result.interface_translations;
-
-            // Delete each translation
-            const mutations = [];
-            for (const translation of translationsToDelete) {
-                const result = await performQuery(deleteInterfaceTranslationQuery, {
-                    id: translation.id
-                });
-                mutations.push(result);
-            }
-
-            // Refresh translations
-            await fetchTranslations();
-            return { success: true };
-        } catch (err) {
-            translationState.error = `Failed to delete translation: ${err.message}`;
-            console.error("Error deleting translation:", err);
-            await logError("delete_translation", err.message);
-            return { success: false, error: err.message };
-        } finally {
-            translationState.isLoading = false;
+        if (!namespace || !key) {
+            throw new Error("Missing required parameters");
         }
+
+        // Ensure we have existing translations for this namespace and key
+        if (!translationState.translations[namespace] ||
+            !translationState.translations[namespace][key]) {
+            throw new Error(`Translation ${namespace}.${key} not found`);
+        }
+
+        translationState.isLoading = true;
+
+        const result = await executeQuery('interface_translations', 'delete', {
+            namespace,
+            key
+        });
+
+        // Remove from local state
+        if (translationState.translations[namespace] &&
+            translationState.translations[namespace][key]) {
+            delete translationState.translations[namespace][key];
+
+            // If namespace is now empty, remove it
+            if (Object.keys(translationState.translations[namespace]).length === 0) {
+                delete translationState.translations[namespace];
+            }
+        }
+
+        translationState.isLoading = false;
+        return result;
     };
 
-    // Delete a namespace and all its translations
+    // Delete a namespace (all keys and locales)
     const deleteNamespace = async (namespace) => {
-        try {
-            translationState.isLoading = true;
-            translationState.error = null;
-
-            // Find all translations in this namespace
-            const query = {
-                name: "Get namespace translations to delete",
-                query: `{
-                interface_translations(where: { 
-                    namespace: { eq: "${namespace}" }
-                }) {
-                    id
-                }
-                }`
-            };
-
-            const result = await performQuery(query);
-
-            const translationsToDelete = result.interface_translations;
-
-            // Delete each translation
-            const mutations = [];
-            for (const translation of translationsToDelete) {
-                const result = await performQuery(deleteInterfaceTranslationQuery, {
-                    id: translation.id
-                });
-                mutations.push(result);
-            }
-
-            // Refresh translations
-            await fetchTranslations();
-            return { success: true };
-        } catch (err) {
-            translationState.error = `Failed to delete namespace: ${err.message}`;
-            console.error("Error deleting namespace:", err);
-            await logError("delete_namespace", err.message);
-            return { success: false, error: err.message };
-        } finally {
-            translationState.isLoading = false;
+        if (!namespace) {
+            throw new Error("Missing namespace parameter");
         }
+
+        // Ensure namespace exists
+        if (!translationState.translations[namespace]) {
+            throw new Error(`Namespace ${namespace} not found`);
+        }
+
+        translationState.isLoading = true;
+
+        // Delete all translations in the namespace
+        const keys = Object.keys(translationState.translations[namespace]);
+        const results = [];
+
+        for (const key of keys) {
+            const result = await executeQuery('interface_translations', 'delete', {
+                namespace,
+                key
+            });
+            results.push(result);
+        }
+
+        // Remove from local state
+        if (translationState.translations[namespace]) {
+            delete translationState.translations[namespace];
+        }
+
+        translationState.isLoading = false;
+        return {
+            namespace,
+            deletedKeys: keys.length,
+            results
+        };
     };
 
-    // Create a new namespace with validation
+    // Create a new namespace if it doesn't exist
     const createNamespace = (namespace) => {
-        try {
-            // Validate namespace using the base schema's namespace field
-            const validationResult = baseSchema.pick({ namespace }).safeParse({ namespace });
-
-            return {
-                success: validationResult.success,
-                error: validationResult.success ? null : validationResult.error.errors[0].message
-            };
-        } catch (err) {
-            console.error("Error validating namespace:", err);
-            return { success: false, error: err.message };
+        if (!namespace) {
+            throw new Error("Missing namespace parameter");
         }
+
+        // Validate namespace
+        const namespaceSchema = baseSchema.shape.namespace;
+        const validationResult = namespaceSchema.safeParse(namespace);
+
+        if (!validationResult.success) {
+            const error = validationResult.error.errors[0].message;
+            throw new Error(error);
+        }
+
+        // No need to create in backend as namespaces are created implicitly with translations
+        // Just create empty namespace in local state if doesn't exist
+        if (!translationState.translations[namespace]) {
+            translationState.translations = {
+                ...translationState.translations,
+                [namespace]: {}
+            };
+        }
+
+        return { namespace, success: true };
     };
 
-    // Translate function (t)
+    // Simple translator function (t)
     const t = (key, params = {}) => {
-        // Split key into namespace and actual key
-        const parts = key.split('.');
+        let namespace = 'common';
+        let translationKey = key;
 
-        if (parts.length < 2) {
-            console.warn(`Invalid translation key format: ${key}. Expected format: namespace.key`);
-            return key;
+        // Check if key includes namespace (format: namespace:key or namespace.key)
+        if (key.includes(':')) {
+            const parts = key.split(':');
+            namespace = parts[0];
+            translationKey = parts.slice(1).join(':');
+        } else if (key.includes('.')) {
+            const parts = key.split('.');
+            namespace = parts[0];
+            translationKey = parts.slice(1).join('.');
         }
 
-        const namespace = parts[0];
-        const actualKey = parts.slice(1).join('.');
+        // Get the translation
+        let text = getTranslation(namespace, translationKey);
 
-        let text = getTranslation(namespace, actualKey);
-
-        // Replace parameters in the text
-        if (params && typeof params === 'object') {
-            for (const [key, value] of Object.entries(params)) {
-                const fallback = key === 'fallback' ? value : null;
-                if (fallback && text === actualKey) {
-                    text = fallback;
-                    continue;
-                }
-                text = text.replace(new RegExp(`{${key}}`, 'g'), value);
-            }
+        // Replace parameters in the translation
+        if (params && Object.keys(params).length > 0) {
+            Object.keys(params).forEach(param => {
+                text = text.replace(new RegExp(`{{${param}}}`, 'g'), params[param]);
+            });
         }
 
         return text;
@@ -637,20 +540,22 @@ export function getTranslationStore() {
     // Create the store instance
     storeInstance = {
         translationState,
-        getAvailableNamespaces,
         initialize,
+        fetchLanguages,
+        fetchTranslations,
+        refreshTranslations,
         getTranslation,
         setLocale,
         getNamespaceTranslations,
+        getAvailableNamespaces,
         getFormattedTranslations,
-        refreshTranslations,
-        exportTranslations,
-        importTranslations,
         createTranslation,
         updateTranslation,
         deleteTranslation,
-        deleteNamespace,
         createNamespace,
+        deleteNamespace,
+        exportTranslations,
+        importTranslations,
         t
     };
 

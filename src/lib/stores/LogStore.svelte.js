@@ -123,166 +123,121 @@ export function getLogStore() {
 
     // Fetch logs with pagination and filters
     const fetchLogs = async (page = 1, pageSize = 50, filters = {}) => {
-        try {
-            logState.isLoading = true;
+        logState.isLoading = true;
 
-            // Update pagination state
-            logState.pagination.page = page;
-            logState.pagination.pageSize = pageSize;
+        // Update pagination state
+        logState.pagination.page = page;
+        logState.pagination.pageSize = pageSize;
 
-            // Apply filters
-            const appliedFilters = {
-                ...logState.filters,
-                ...filters
-            };
-            logState.filters = appliedFilters;
+        // Apply filters
+        const appliedFilters = {
+            ...logState.filters,
+            ...filters
+        };
+        logState.filters = appliedFilters;
 
-            // Prepare variables for GraphQL query
-            const variables = {
-                page: (page - 1) * pageSize, // Convert to zero-based offset
-                pageSize: pageSize,
-                level: appliedFilters.level || undefined,
-                action: appliedFilters.action || undefined,
-                fromDate: appliedFilters.fromDate ? String(appliedFilters.fromDate) : undefined,
-                toDate: appliedFilters.toDate ? String(appliedFilters.toDate) : undefined,
-                search: appliedFilters.search ? `%${appliedFilters.search}%` : undefined
-            };
+        // Prepare variables for GraphQL query
+        const variables = {
+            page: (page - 1) * pageSize, // Convert to zero-based offset
+            pageSize: pageSize,
+            level: appliedFilters.level || undefined,
+            action: appliedFilters.action || undefined,
+            fromDate: appliedFilters.fromDate ? String(appliedFilters.fromDate) : undefined,
+            toDate: appliedFilters.toDate ? String(appliedFilters.toDate) : undefined,
+            search: appliedFilters.search ? `%${appliedFilters.search}%` : undefined
+        };
 
-            // Execute GraphQL query directly
-            const response = await window.api.executeGraphQL(logsList.query, variables);
+        // Execute GraphQL query directly
+        const response = await window.api.executeGraphQL(logsList.query, variables);
 
-            // Extract data from response
-            const result = response.data;
+        // Extract data from response
+        const result = response.data;
 
-            // Update state with fetched logs
-            logState.logs = result.result.map(log => {
-                // Parse JSON details if it exists and the field exists in the schema
-                if (log.details && typeof log.details === 'string') {
-                    try {
-                        log.details = JSON.parse(log.details);
-                    } catch (e) {
-                        // Keep as string if parsing fails
-                    }
+        // Update state with fetched logs
+        logState.logs = result.result.map(log => {
+            // Parse JSON details if it exists and the field exists in the schema
+            if (log.details && typeof log.details === 'string') {
+                try {
+                    log.details = JSON.parse(log.details);
+                } catch (e) {
+                    // Keep as string if parsing fails
                 }
-                return log;
-            });
+            }
+            return log;
+        });
 
-            // Update pagination info
-            const totalLogs = result.count ? result.count.length : 0;
-            logState.pagination.totalLogs = totalLogs;
-            logState.pagination.totalPages = Math.ceil(totalLogs / pageSize);
+        // Update pagination info
+        const totalLogs = result.count ? result.count.length : 0;
+        logState.pagination.totalLogs = totalLogs;
+        logState.pagination.totalPages = Math.ceil(totalLogs / pageSize);
 
-            return {
-                success: true,
-                logs: logState.logs,
-                pagination: logState.pagination
-            };
-        } catch (err) {
-            console.error('Error fetching logs:', err);
-            logState.error = `Failed to fetch logs: ${err.message}`;
-            return {
-                success: false,
-                error: err.message
-            };
-        } finally {
-            logState.isLoading = false;
-        }
+        logState.isLoading = false;
+
+        return {
+            success: true,
+            logs: logState.logs,
+            pagination: logState.pagination
+        };
     };
 
     // Create a new log entry
     const createLog = async (logData) => {
-        try {
-            // Prepare variables for GraphQL mutation
-            const variables = {
-                level: logData.level || 'error',
-                action: logData.action,
-                message: logData.message
-            };
+        // Prepare variables for GraphQL mutation
+        const variables = {
+            level: logData.level || 'error',
+            action: logData.action,
+            message: logData.message
+        };
 
-            // Execute GraphQL mutation directly
-            const response = await window.api.executeGraphQL(logsCreate.query, variables);
-            const result = response.data;
+        // Execute GraphQL mutation
+        const response = await window.api.executeGraphQL(logsCreate.query, variables);
 
-            // Refresh logs if needed
-            if (logState.isInitialized) {
-                await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
-            }
+        // Update logs after creating new entry
+        await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
 
-            return {
-                success: true,
-                log: result.insertIntoLogs[0]
-            };
-        } catch (err) {
-            console.error('Error creating log:', err);
-            return {
-                success: false,
-                error: err.message
-            };
-        }
+        return response.data.insertIntoLogs[0];
     };
 
-    // Delete a log entry
+    // Delete a log by ID
     const deleteLog = async (id) => {
-        try {
-            logState.isLoading = true;
-            logState.error = null;
+        // Prepare variables for GraphQL mutation
+        const variables = {
+            id: id
+        };
 
-            // Execute GraphQL mutation directly
-            await window.api.executeGraphQL(logsDelete.query, { id });
+        // Execute GraphQL mutation
+        const response = await window.api.executeGraphQL(logsDelete.query, variables);
 
-            // Refresh logs
-            await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
+        // Update logs after deleting entry
+        await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
 
-            return { success: true };
-        } catch (err) {
-            logState.error = `Failed to delete log: ${err.message}`;
-            console.error('Error deleting log:', err);
-            return {
-                success: false,
-                error: err.message
-            };
-        } finally {
-            logState.isLoading = false;
-        }
+        return response.data;
     };
 
     // Clear logs based on filters
     const clearLogs = async (filters = {}) => {
-        try {
-            logState.isLoading = true;
-            logState.error = null;
+        // Prepare variables for GraphQL mutation
+        const variables = {
+            level: filters.level || logState.filters.level || undefined,
+            action: filters.action || logState.filters.action || undefined,
+            fromDate: filters.fromDate || logState.filters.fromDate
+                ? String(filters.fromDate || logState.filters.fromDate)
+                : undefined,
+            toDate: filters.toDate || logState.filters.toDate
+                ? String(filters.toDate || logState.filters.toDate)
+                : undefined
+        };
 
-            // Apply filters
-            const appliedFilters = {
-                ...logState.filters,
-                ...filters
-            };
+        // Execute GraphQL mutation
+        const response = await window.api.executeGraphQL(logsClear.query, variables);
 
-            // Prepare variables for GraphQL mutation
-            const variables = {
-                level: appliedFilters.level || undefined,
-                action: appliedFilters.action || undefined,
-                fromDate: appliedFilters.fromDate ? String(appliedFilters.fromDate) : undefined,
-                toDate: appliedFilters.toDate ? String(appliedFilters.toDate) : undefined
-            };
+        // Update logs after clearing
+        await fetchLogs(1, logState.pagination.pageSize);
 
-            // Execute GraphQL mutation directly
-            await window.api.executeGraphQL(logsClear.query, variables);
-
-            // Refresh logs
-            await fetchLogs(1, logState.pagination.pageSize, {});
-
-            return { success: true };
-        } catch (err) {
-            logState.error = `Failed to clear logs: ${err.message}`;
-            console.error('Error clearing logs:', err);
-            return {
-                success: false,
-                error: err.message
-            };
-        } finally {
-            logState.isLoading = false;
-        }
+        return {
+            success: true,
+            deleted: response.data.deleteFromLogs.length
+        };
     };
 
     // Get available log levels
@@ -290,16 +245,16 @@ export function getLogStore() {
         return ['error', 'warn', 'info', 'debug'];
     };
 
-    // Get unique actions from current logs
+    // Get unique action values from logs
     const getUniqueActions = () => {
         const actions = new Set();
         logState.logs.forEach(log => {
             if (log.action) actions.add(log.action);
         });
-        return Array.from(actions);
+        return Array.from(actions).sort();
     };
 
-    // Convenience methods for different log levels
+    // Log an error message
     const error = async (action, message) => {
         return await createLog({
             level: 'error',
@@ -308,6 +263,7 @@ export function getLogStore() {
         });
     };
 
+    // Log a warning message
     const warn = async (action, message) => {
         return await createLog({
             level: 'warn',
@@ -316,6 +272,7 @@ export function getLogStore() {
         });
     };
 
+    // Log an info message
     const info = async (action, message) => {
         return await createLog({
             level: 'info',
@@ -324,6 +281,7 @@ export function getLogStore() {
         });
     };
 
+    // Log a debug message
     const debug = async (action, message) => {
         return await createLog({
             level: 'debug',

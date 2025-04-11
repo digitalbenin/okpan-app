@@ -1,6 +1,5 @@
-import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
+import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "./ValidationStore.svelte.js";
-import { addToast } from "$lib/components/base/BaseToast.svelte";
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 
 // Create a singleton instance
@@ -32,48 +31,20 @@ export function getContentLanguageStore() {
         defaultLocale: 'en'
     });
 
-    // Get queries from API_SECTIONS
-    const contentLanguagesList = API_SECTIONS.languages.operations.list;
-    const contentLanguagesListByProject = API_SECTIONS.languages.operations.listByProject;
-    const contentLanguagesCreate = API_SECTIONS.languages.operations.create;
-    const contentLanguagesDelete = API_SECTIONS.languages.operations.delete;
-
-
-
     const initialize = async () => {
         console.log("initializing languages");
-        try {
-            await fetchLanguages();
-            contentLanguageState.isInitialized = true;
-        } catch (error) {
-            contentLanguageState.error = error;
-            contentLanguageState.isInitialized = false;
-            addToast({
-                data: {
-                    title: "Error",
-                    description: `Failed to initialize: ${error.message}`,
-                    type: "error"
-                }
-            });
-            await logError("initialize", error.message);
-        }
+        await fetchLanguages();
+        contentLanguageState.isInitialized = true;
     };
 
     const fetchLanguages = async () => {
-        try {
-            contentLanguageState.isLoading = true;
-            const result = await performQuery(contentLanguagesList);
-            console.log(result);
+        contentLanguageState.isLoading = true;
+        const result = await executeQuery('languages', 'list');
+        console.log(result);
 
-            contentLanguageState.languages = result?.result || [];
-            contentLanguageState.isLoading = false;
-            return result?.result || [];
-        } catch (error) {
-            contentLanguageState.error = error;
-            contentLanguageState.isLoading = false;
-            // Error already handled by performQuery
-            throw error;
-        }
+        contentLanguageState.languages = result?.result || [];
+        contentLanguageState.isLoading = false;
+        return result?.result || [];
     };
 
     const getLanguage = (code) => {
@@ -85,65 +56,32 @@ export function getContentLanguageStore() {
     };
 
     const deleteLanguage = async (code) => {
-        try {
-            contentLanguageState.isLoading = true;
-            await performQuery(contentLanguagesDelete, { code });
-
-            await fetchLanguages();
-            addToast({
-                data: {
-                    title: "Success",
-                    description: "Language deleted successfully",
-                    type: "success"
-                }
-            });
-
-        } catch (error) {
-            // Error already handled by performQuery
-            throw error;
-        } finally {
-            contentLanguageState.isLoading = false;
-        }
+        contentLanguageState.isLoading = true;
+        await executeQuery('languages', 'delete', { code });
+        await fetchLanguages();
+        contentLanguageState.isLoading = false;
     };
 
     const createLanguage = async (code, name, nativeName, direction, flag) => {
-        try {
-            contentLanguageState.isLoading = true;
-            const validationResult = await validate({
-                code, name, nativeName, direction, flag
-            }, languagesSchema);
+        contentLanguageState.isLoading = true;
 
-            if (!validationResult.success) {
-                await logError("create_language", validationResult.errors[0]);
-                addToast({
-                    data: {
-                        title: "Can't create language",
-                        description: validationResult.errors[0],
-                        type: "error"
-                    }
-                });
-                throw new Error(validationResult.errors[0]);
-            }
+        const validationResult = await validate({
+            code, name, nativeName, direction, flag
+        }, languagesSchema);
 
-            const result = await performQuery(contentLanguagesCreate, {
-                code, name, nativeName, direction, flag
-            });
-
-            await fetchLanguages();
-            addToast({
-                data: {
-                    title: "Success",
-                    description: "Language created successfully",
-                    type: "success"
-                }
-            });
-            return result.insertIntoLanguages[0];
-        } catch (error) {
-            // Error already handled by performQuery
-            throw error;
-        } finally {
+        if (!validationResult.success) {
+            await logError("create_language", validationResult.errors[0]);
             contentLanguageState.isLoading = false;
+            throw new Error(validationResult.errors[0]);
         }
+
+        const result = await executeQuery('languages', 'create', {
+            code, name, nativeName, direction, flag
+        });
+
+        await fetchLanguages();
+        contentLanguageState.isLoading = false;
+        return result.insertIntoLanguages[0];
     };
 
     const getAvailableLocales = () => {
@@ -151,15 +89,9 @@ export function getContentLanguageStore() {
     };
 
     const getAvaliableLocalesForProject = async (projectId) => {
-        try {
-            const result = await performQuery(contentLanguagesListByProject, { projectId });
-
-            contentLanguageState.projectLanguages = result.result;
-            return result.result;
-        } catch (error) {
-            // Error already handled by performQuery
-            throw error;
-        }
+        const result = await executeQuery('languages', 'listByProject', { projectId });
+        contentLanguageState.projectLanguages = result.result;
+        return result.result;
     };
 
     // Start initialization if not already initialized

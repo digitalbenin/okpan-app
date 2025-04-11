@@ -1,9 +1,6 @@
-import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
-
-const assetsList = API_SECTIONS.assets.operations.list;
-
+import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 
 export const getAssets = async (projectId, institutionId) => {
-    let result = await performQuery(assetsList, { projectId, institutionId });
+    let result = await executeQuery('assets', 'list', { projectId, institutionId });
     return result.result;
 };

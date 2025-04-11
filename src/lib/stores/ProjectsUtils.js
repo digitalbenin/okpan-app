@@ -1,369 +1,135 @@
-import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
+import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
-import { addToast } from "$lib/components/base/BaseToast.svelte";
-import { getLogStore } from "$lib/stores/LogStore.svelte.js";
-
-
-const { error: logError } = getLogStore();
-
-// Main store function that creates and returns the store
+import { API_SECTIONS } from "$lib/utils/queries.js";
 
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
-// const projectState = $state({
-//     projects: [],
-//     currentProject: null,
-//     isLoading: false,
-//     error: null
-// });
-
-const projectsList = API_SECTIONS.projects.operations.list;
-const projectById = API_SECTIONS.projects.operations.getById;
-const updateProjectMutation = API_SECTIONS.projects.operations.update.query;
-const deleteProjectMutation = API_SECTIONS.projects.operations.delete.query;
-const addLanguageToProjectMutation = API_SECTIONS.projects.operations.addLanguage.query;
-const removeLanguageFromProjectMutation = API_SECTIONS.projects.operations.removeLanguage.query;
-const setLanguageAsDefaultMutation = API_SECTIONS.projects.operations.setDefaultLanguage.query;
-
 // Initialize the project store
 
 export const getProjects = async () => {
-    try {
-        const result = await performQuery(projectsList);
-        return result.result;
-    } catch (error) {
-        // Already handled by performQuery
-        throw error;
-    }
+    const result = await executeQuery('projects', 'list');
+    return result.result;
 };
 
 export const getProject = async (projectId) => {
-    try {
-        const result = await performQuery(projectById, { projectId });
-        return result.result;
-    } catch (error) {
-        // Already handled by performQuery
-        throw error;
-    }
+    const result = await executeQuery('projects', 'getById', { projectId });
+    return result.result;
 };
 
 export const createProject = async (project) => {
-    try {
-        // projectState.isLoading = true;
-
-        // Validate the incoming project data
-        if (!project.languages || !project.title || !project.description) {
-            throw new Error("Missing required project data");
-        }
-
-        // Find the default language
-        const defaultLang = project.languages.find(lang => lang.is_default === 1);
-        if (!defaultLang) {
-            throw new Error("No default language selected");
-        }
-
-        const projectName = project.title.content;
-        const description = project.description.content;
-        const languageCode = defaultLang.language_code;
-
-        // Get mutations from the API_SECTIONS
-        const mutations = API_SECTIONS.projects.operations.create.mutations;
-
-        // Step 1: Create title
-        const titleQuery = mutations[0].query;
-        const titleResult = await window.api.executeGraphQL(titleQuery, {
-            projectName,
-            languageCode,
-        });
-
-        if (!titleResult.success) {
-            throw new Error(titleResult.errors?.[0]?.message || "Failed to create title");
-        }
-        const titleId = titleResult.data.insertIntoTexts[0].id;
-
-        // Step 2: Create description
-        const descriptionQuery = mutations[1].query;
-        const descriptionResult = await window.api.executeGraphQL(descriptionQuery, {
-            description,
-            languageCode,
-        });
-
-        if (!descriptionResult.success) {
-            throw new Error(descriptionResult.errors?.[0]?.message || "Failed to create description");
-        }
-        const descriptionId = descriptionResult.data.insertIntoTexts[0].id;
-
-        // Step 3: Create project
-        const projectQuery = mutations[2].query;
-        const projectResult = await window.api.executeGraphQL(projectQuery, {
-            titleId,
-            descriptionId,
-        });
-
-        if (!projectResult.success) {
-            throw new Error(projectResult.errors?.[0]?.message || "Failed to create project");
-        }
-        const projectId = projectResult.data.insertIntoProject[0].id;
-
-        // Step 4: Add default language
-        const languageQuery = mutations[3].query;
-        const languageResult = await window.api.executeGraphQL(languageQuery, {
-            projectId,
-            languageCode,
-        });
-
-        if (!languageResult.success) {
-            throw new Error(languageResult.errors?.[0]?.message || "Failed to set default language");
-        }
-
-        // Step 5: Add translations if any (both for title and description)
-        if (project.title.translations?.length || project.description.translations?.length) {
-            const createTranslationQuery = API_SECTIONS.translations.operations.create.query;
-
-            // Add title translations
-            for (const translation of project.title.translations || []) {
-                if (translation.content) {
-                    await window.api.executeGraphQL(createTranslationQuery, {
-                        textId: titleId,
-                        languageCode: translation.language_code,
-                        content: translation.content,
-                    });
-                }
-            }
-
-            // Add description translations
-            for (const translation of project.description.translations || []) {
-                if (translation.content) {
-                    await window.api.executeGraphQL(createTranslationQuery, {
-                        textId: descriptionId,
-                        languageCode: translation.language_code,
-                        content: translation.content,
-                    });
-                }
-            }
-        }
-
-        // Create a response object with the new project data
-        const newProject = {
-            id: projectId,
-            title_id: titleId,
-            description_id: descriptionId
-        };
-
-        // Add to projects array
-        // projectState.projects.push(newProject);
-        // projectState.isLoading = false;
-
-        return newProject;
-    } catch (error) {
-        // projectState.error = error;
-        // projectState.isLoading = false;
-        addToast({
-            data: {
-                title: "Error",
-                description: `Failed to create project: ${error.message}`,
-                type: "error"
-            }
-        });
-        await logError("createProject", error.message);
-        throw error;
-    } finally {
-        // projectState.isLoading = false;
+    // Validate the incoming project data
+    if (!project.languages || !project.title || !project.description) {
+        throw new Error("Missing required project data");
     }
+
+    // Find the default language
+    const defaultLang = project.languages.find(lang => lang.is_default === 1);
+    if (!defaultLang) {
+        throw new Error("No default language selected");
+    }
+
+    const projectName = project.title.content;
+    const description = project.description.content;
+    const languageCode = defaultLang.language_code;
+
+    // Get mutations from the API_SECTIONS
+    const mutations = API_SECTIONS.projects.operations.create.mutations;
+
+    // Step 1: Create title
+    const titleResult = await performCustomMutation(mutations[0], {
+        projectName,
+        languageCode,
+    });
+    const titleId = titleResult.insertIntoTexts[0].id;
+
+    // Step 2: Create description
+    const descriptionResult = await performCustomMutation(mutations[1], {
+        description,
+        languageCode,
+    });
+    const descriptionId = descriptionResult.insertIntoTexts[0].id;
+
+    // Step 3: Create project
+    const projectResult = await performCustomMutation(mutations[2], {
+        titleId,
+        descriptionId,
+    });
+    const projectId = projectResult.insertIntoProject[0].id;
+
+    // Step 4: Add default language
+    await performCustomMutation(mutations[3], {
+        projectId,
+        languageCode,
+    });
+
+    // Step 5: Add translations if any (both for title and description)
+    if (project.title.translations?.length || project.description.translations?.length) {
+        // Add title translations
+        for (const translation of project.title.translations || []) {
+            if (translation.content) {
+                await executeQuery('translations', 'create', {
+                    textId: titleId,
+                    languageCode: translation.language_code,
+                    content: translation.content,
+                });
+            }
+        }
+
+        // Add description translations
+        for (const translation of project.description.translations || []) {
+            if (translation.content) {
+                await executeQuery('translations', 'create', {
+                    textId: descriptionId,
+                    languageCode: translation.language_code,
+                    content: translation.content,
+                });
+            }
+        }
+    }
+
+    // Return the new project data
+    return {
+        id: projectId,
+        title_id: titleId,
+        description_id: descriptionId
+    };
 };
 
+// Helper function to execute a single mutation from a multi-step mutation chain
+async function performCustomMutation(mutation, params) {
+    const queryObj = { name: mutation.name, query: mutation.query };
+    return await executeQuery('custom', 'mutation', { query: queryObj, params });
+}
+
 export const updateProject = async (projectId, project) => {
-    try {
-        // projectState.isLoading = true;
-
-        const validationResult = await validate(project, getSchema('project', 'update'));
-
-        if (!validationResult.success) {
-            throw new Error(validationResult.errors[0]);
-        }
-
-        const response = await window.api.executeGraphQL(updateProjectMutation, {
-            projectId,
-            project
-        });
-
-        if (!response.success) {
-            throw new Error(response.errors?.[0]?.message || "Failed to update project");
-        }
-
-        // const index = projectState.projects.findIndex(p => p.id === projectId);
-        // projectState.projects[index] = response.data.project;
-        // projectState.isLoading = false;
-        return response.data.project;
-    } catch (error) {
-        // projectState.error = error;
-        // projectState.isLoading = false;
-        addToast({
-            data: {
-                title: "Error",
-                description: `Failed to update project: ${error.message}`,
-                type: "error"
-            }
-        });
-        await logError("updateProject", error.message);
-        throw error;
-    } finally {
-        // projectState.isLoading = false;
+    // Validate the input
+    const validationResult = await validate(project, getSchema('project', 'update'));
+    if (!validationResult.success) {
+        throw new Error(validationResult.errors[0]);
     }
+
+    // Use executeQuery which handles errors, logging, and notifications
+    return await executeQuery('projects', 'update', { projectId, ...project });
 };
 
 export const deleteProject = async (projectId) => {
-    try {
-        // projectState.isLoading = true;
-
-        const response = await window.api.executeGraphQL(deleteProjectMutation, {
-            projectId
-        });
-
-        if (!response.success) {
-            throw new Error(response.errors?.[0]?.message || "Failed to delete project");
-        }
-
-        // projectState.projects = projectState.projects.filter(p => p.id !== projectId);
-        // projectState.isLoading = false;
-        return response.data.project;
-    } catch (error) {
-        // projectState.error = error;
-        // projectState.isLoading = false;
-        addToast({
-            data: {
-                title: "Error",
-                description: `Failed to delete project: ${error.message}`,
-                type: "error"
-            }
-        });
-        await logError("deleteProject", error.message);
-        throw error;
-    } finally {
-        // projectState.isLoading = false;
-    }
+    // Use executeQuery which handles errors, logging, and notifications
+    return await executeQuery('projects', 'delete', { projectId });
 };
 
 export const addLanguageToProject = async (projectId, languageCode) => {
-    try {
-        // projectState.isLoading = true;
-
-        const response = await window.api.executeGraphQL(addLanguageToProjectMutation, {
-            projectId,
-            languageCode
-        });
-
-        if (!response.success) {
-            throw new Error(response.errors?.[0]?.message || "Failed to add language to project");
-        }
-
-        // projectState.projects.find(p => p.id === projectId).languages.push(response.data.projectLanguage);
-        // projectState.isLoading = false;
-        return response.data.projectLanguage;
-    } catch (error) {
-        // projectState.error = error;
-        // projectState.isLoading = false;
-        addToast({
-            data: {
-                title: "Error",
-                description: `Failed to add language to project: ${error.message}`,
-                type: "error"
-            }
-        });
-        await logError("addLanguageToProject", error.message);
-        throw error;
-    } finally {
-        // projectState.isLoading = false;
-    }
+    // Use executeQuery which handles errors, logging, and notifications
+    return await executeQuery('projects', 'addLanguage', { projectId, languageCode });
 };
 
 export const removeLanguageFromProject = async (projectId, languageCode) => {
-    try {
-        // projectState.isLoading = true;
-
-        const response = await window.api.executeGraphQL(removeLanguageFromProjectMutation, {
-            projectId,
-            languageCode
-        });
-
-        if (!response.success) {
-            throw new Error(response.errors?.[0]?.message || "Failed to remove language from project");
-        }
-
-        // projectState.projects.find(p => p.id === projectId).languages = projectState.projects.find(p => p.id === projectId).languages.filter(l => l.languageCode !== languageCode);
-        // projectState.isLoading = false;
-        return response.data.projectLanguage;
-    } catch (error) {
-        // projectState.error = error;
-        // projectState.isLoading = false;
-        addToast({
-            data: {
-                title: "Error",
-                description: `Failed to remove language from project: ${error.message}`,
-                type: "error"
-            }
-        });
-        await logError("removeLanguageFromProject", error.message);
-        throw error;
-    } finally {
-        // projectState.isLoading = false;
-    }
+    // Use executeQuery which handles errors, logging, and notifications
+    return await executeQuery('projects', 'removeLanguage', { projectId, languageCode });
 };
 
-export const setLanguageAsDefault = async (projectId, code) => {
-    try {
-        // projectState.isLoading = true;
-
-        const response = await window.api.executeGraphQL(setLanguageAsDefaultMutation, {
-            projectId,
-            code
-        });
-
-        if (!response.success) {
-            throw new Error(response.errors?.[0]?.message || "Failed to set language as default");
-        }
-
-        // projectState.projects.find(p => p.id === projectId).defaultLanguage = code;
-        // projectState.isLoading = false;
-        return response.data.projectLanguage;
-    } catch (error) {
-        // projectState.error = error;
-        // projectState.isLoading = false;
-        addToast({
-            data: {
-                title: "Error",
-                description: `Failed to set language as default: ${error.message}`,
-                type: "error"
-            }
-        });
-        await logError("setLanguageAsDefault", error.message);
-        throw error;
-    } finally {
-        // projectState.isLoading = false;
-    }
+export const setLanguageAsDefault = async (projectId, languageCode) => {
+    // Use executeQuery which handles errors, logging, and notifications
+    return await executeQuery('projects', 'setDefaultLanguage', { projectId, languageCode });
 };
-
-// // Start initialization if not already initialized
-// if (!projectState.isInitialized && !projectState.isLoading) {
-//     // Start initialization asynchronously
-//     setTimeout(() => {
-//         initialize();
-//     }, 0);
-// }
-
-// // Create the store instance
-// storeInstance = {
-//     projectState,
-//     initialize,
-//     getProjects,
-//     setProject,
-//     createProject,
-//     updateProject,
-//     deleteProject,
-//     addLanguageToProject,
-//     removeLanguageFromProject,
-//     setLanguageAsDefault
-// };
-
 

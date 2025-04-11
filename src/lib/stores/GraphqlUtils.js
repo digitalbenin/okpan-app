@@ -1,37 +1,62 @@
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 import { addToast } from "$lib/components/base/BaseToast.svelte";
-import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
+import { API_SECTIONS } from "$lib/utils/queries.js";
 
 const { error: logError } = getLogStore();
 
 /**
- * Enhanced version of performQuery that checks for GraphQL errors
- * @param {Object} query - Query definition
+ * Executes a GraphQL query with enhanced error handling
+ * @param {Object} query - Query definition with query string and name
  * @param {Object} params - Parameters for the query
  * @returns {Promise<Object>} Query result
  * @throws {Error} If the query fails or contains GraphQL errors
  */
-export async function executeGraphQLOperation(query, params) {
-    // Perform the query using the existing function
-    const result = await performQuery(query, params);
+export const performQuery = async (query, params) => {
+    let result = null;
+    try {
+        const response = await window.api.executeGraphQL(query.query, params);
+        result = response.data;
 
-    // Check if there are GraphQL errors in the result
-    // GraphQL can return data with errors, so we need to check for both
-    if (result && result.errors) {
-        // Get the first error message or a default message
-        const errorMessage = result.errors[0]?.message || 'GraphQL operation failed';
-        console.error('GraphQL operation errors:', result.errors);
+        // Check for GraphQL errors in the response (GraphQL can return data with errors)
+        if (result && result.errors) {
+            // Get the first error message or a default message
+            const errorMessage = result.errors[0]?.message || 'GraphQL operation failed';
+            console.error('GraphQL operation errors:', result.errors);
 
-        // Create a custom error with the GraphQL error details
-        const error = new Error(errorMessage);
-        error.graphqlErrors = result.errors;
-        error.graphqlResult = result;
+            addToast({
+                data: {
+                    title: "GraphQL Error",
+                    description: `Error in ${query.name}: ${errorMessage}`,
+                    type: "error"
+                }
+            });
 
-        // Throw the error to be caught by the calling function
+            await logError(query.name, errorMessage);
+
+            // Create a custom error with the GraphQL error details
+            const error = new Error(errorMessage);
+            error.graphqlErrors = result.errors;
+            error.graphqlResult = result;
+
+            // Throw the error to be caught by the calling function
+            throw error;
+        }
+    } catch (error) {
+        // Handle network/execution errors (different from GraphQL errors in the response)
+        if (!error.graphqlErrors) {
+            addToast({
+                data: {
+                    title: "Error",
+                    description: `Failed to fetch query ${query.name}: ${error.message}`,
+                    type: "error"
+                }
+            });
+            await logError(query.name, error.message);
+        }
         throw error;
+    } finally {
+        return result;
     }
-
-    return result;
 }
 
 /**
@@ -100,7 +125,7 @@ async function executeMultiStepMutation(mutations, params) {
 
         // Execute this step
         try {
-            const result = await executeGraphQLOperation({ name: mutation.name, query: mutation.query }, stepVariables);
+            const result = await performQuery({ name: mutation.name, query: mutation.query }, stepVariables);
             results[mutation.name] = result;
             Object.assign(finalResults, result);
         } catch (error) {
@@ -223,7 +248,7 @@ export async function performPartialUpdate(query, params) {
     };
 
     // Execute the modified query with only the provided parameters
-    return executeGraphQLOperation(newQuery, params);
+    return performQuery(newQuery, params);
 }
 
 /**
@@ -297,45 +322,56 @@ export async function performDelete(query, params) {
     }
 
     // Use enhanced query execution that properly checks for GraphQL errors
-    return executeGraphQLOperation(query, params);
+    return performQuery(query, params);
 }
 
 /**
  * Perform bulk delete operations on multiple items
- * @param {Object} query - Delete query definition
- * @param {Array} ids - Array of IDs to delete
- * @param {string} idField - Name of the ID field to use (default: 'id')
- * @returns {Promise<Object>} Bulk operation results
+ * @param {string} section - API section name
+ * @param {Array} items - Array of items to delete (usually just IDs)
+ * @returns {Promise<Array>} Array of delete operation results with success/error information
  */
-export async function performBulkDelete(query, ids, idField = 'id') {
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-        return null;
+export async function bulkDelete(section, items) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        return [];
     }
 
-    // Execute delete operations in parallel
-    const results = await Promise.all(
-        ids.map(id => {
-            const params = { [idField]: id };
-            return performDelete(query, params);
-        })
+    // Get the delete operation for this section
+    if (!API_SECTIONS[section]) {
+        throw new Error(`Section ${section} not found`);
+    }
+
+    const deleteOperation = API_SECTIONS[section].operations.delete;
+    if (!deleteOperation) {
+        throw new Error(`Delete operation not found in section ${section}`);
+    }
+
+    // Process delete operations in parallel
+    // Using Promise.allSettled to continue even if some operations fail
+    // Each operation internally uses performQuery which handles logging and notifications
+    const results = await Promise.allSettled(
+        items.map(item => deleteEntity(section, item))
     );
 
-    return {
-        count: results.length,
-        results
-    };
+    // Format results to include success/error information
+    return results.map((result, index) => ({
+        item: items[index],
+        success: result.status === 'fulfilled',
+        data: result.status === 'fulfilled' ? result.value : null,
+        error: result.status === 'rejected' ? result.reason : null
+    }));
 }
 
 /**
- * Performs an operation based on the API_SECTIONS configuration
+ * Perform bulk updates on multiple items
  * @param {string} section - API section name
- * @param {string} operation - Operation name within the section
- * @param {Object} params - Parameters for the operation
- * @returns {Promise<Object>} Operation result
+ * @param {string} operation - Update operation name
+ * @param {Array} items - Array of items to update
+ * @returns {Promise<Object>} Grouped results of the update operations
  */
-export function executeQuery(section, operation, params = {}) {
-    if (!section || !operation) {
-        throw new Error('Missing section or operation');
+export async function bulkUpdate(section, operation, items) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        return [];
     }
 
     if (!API_SECTIONS[section]) {
@@ -347,13 +383,15 @@ export function executeQuery(section, operation, params = {}) {
         throw new Error(`Operation ${operation} not found in section ${section}`);
     }
 
-    return executeGraphQLOperation(queryDef, params);
+    // performBulkUpdate uses performPartialUpdate which uses performQuery
+    // Error handling happens at the performQuery level
+    const results = await performBulkUpdate(queryDef, items);
+    return results;
 }
 
 /**
  * Execute a complex multi-step delete operation based on the configured mutations
  * @param {string} section - API section name
- * @param {string} operation - Delete operation name
  * @param {Object} params - Delete parameters
  * @returns {Promise<Object>} Delete operation result
  */
@@ -372,47 +410,13 @@ export async function deleteEntity(section, params = {}) {
     }
 
     // If using multi-step mutations, execute the mutation chain
+    // executeMultiStepMutation uses performQuery internally which handles errors
     if (deleteOperation.mutations && Array.isArray(deleteOperation.mutations)) {
         return executeMultiStepMutation(deleteOperation.mutations, params);
     }
 
-    // If using a simple query, execute it directly
-    return executeGraphQLOperation(deleteOperation, params);
-}
-
-/**
- * Perform a bulk delete operation
- * @param {string} section - API section name
- * @param {Array} items - Array of items to delete (usually just IDs)
- * @returns {Promise<Array>} Array of delete operation results
- */
-export async function bulkDelete(section, items) {
-    if (!items || !Array.isArray(items) || items.length === 0) {
-        return [];
-    }
-
-    // Get the delete operation for this section
-    if (!API_SECTIONS[section]) {
-        throw new Error(`Section ${section} not found`);
-    }
-
-    const deleteOperation = API_SECTIONS[section].operations.delete;
-    if (!deleteOperation) {
-        throw new Error(`Delete operation not found in section ${section}`);
-    }
-
-    // Process delete operations in parallel
-    const results = await Promise.allSettled(
-        items.map(item => deleteEntity(section, item))
-    );
-
-    // Format results
-    return results.map((result, index) => ({
-        item: items[index],
-        success: result.status === 'fulfilled',
-        data: result.status === 'fulfilled' ? result.value : null,
-        error: result.status === 'rejected' ? result.reason : null
-    }));
+    // performQuery already handles errors, logging, and notifications
+    return performQuery(deleteOperation, params);
 }
 
 /**
@@ -422,7 +426,7 @@ export async function bulkDelete(section, items) {
  * @param {Object} params - Parameters for the update
  * @returns {Promise<Object>} Update operation result
  */
-export function partialUpdate(section, operation, params = {}) {
+export async function partialUpdate(section, operation, params = {}) {
     if (!section || !operation) {
         throw new Error('Missing section or operation');
     }
@@ -436,19 +440,20 @@ export function partialUpdate(section, operation, params = {}) {
         throw new Error(`Operation ${operation} not found in section ${section}`);
     }
 
+    // performPartialUpdate uses performQuery internally which handles errors
     return performPartialUpdate(queryDef, params);
 }
 
 /**
- * Perform bulk updates on multiple items
+ * Performs an operation based on the API_SECTIONS configuration
  * @param {string} section - API section name
- * @param {string} operation - Update operation name
- * @param {Array} items - Array of items to update
- * @returns {Promise<Array>} Array of update operation results
+ * @param {string} operation - Operation name within the section
+ * @param {Object} params - Parameters for the operation
+ * @returns {Promise<Object>} Operation result
  */
-export async function bulkUpdate(section, operation, items) {
-    if (!items || !Array.isArray(items) || items.length === 0) {
-        return [];
+export async function executeQuery(section, operation, params = {}) {
+    if (!section || !operation) {
+        throw new Error('Missing section or operation');
     }
 
     if (!API_SECTIONS[section]) {
@@ -460,17 +465,21 @@ export async function bulkUpdate(section, operation, items) {
         throw new Error(`Operation ${operation} not found in section ${section}`);
     }
 
-    const results = await performBulkUpdate(queryDef, items);
-    return results;
+    // performQuery already handles errors, logging, and notifications
+    return performQuery(queryDef, params);
 }
 
-// Create a store with our GraphQL utility functions
+/**
+ * Returns a store with GraphQL utility functions
+ * @returns {Object} Object containing GraphQL utility functions
+ */
 export function useGraphQL() {
     return {
         executeQuery,
         partialUpdate,
         bulkUpdate,
         deleteEntity,
-        bulkDelete
+        bulkDelete,
+        performQuery  // Expose the base performQuery for direct use
     };
 } 

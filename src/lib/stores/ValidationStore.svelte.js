@@ -1,7 +1,8 @@
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import * as schema from '../../db/schema';
-import { API_SECTIONS, performQuery } from "$lib/utils/queries.js";
+import { API_SECTIONS } from "$lib/utils/queries.js";
+import { performQuery } from "$lib/stores/GraphqlUtils.js";
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 
 // Create a singleton instance
@@ -26,69 +27,59 @@ export function getValidationStore() {
 
     // Initialize schemas for all tables
     const initializeSchemas = () => {
-        try {
-            // Get all table schemas from the schema file
-            const tables = Object.entries(schema).filter(([key, value]) =>
-                !key.includes('Relations')
-            );
+        // Get all table schemas from the schema file
+        const tables = Object.entries(schema).filter(([key, value]) =>
+            !key.includes('Relations')
+        );
 
-            // Generate schemas for each table
-            tables.forEach(([tableName, table]) => {
-                validationState.schemas[tableName] = {
-                    insert: createInsertSchema(table),
-                    select: createSelectSchema(table)
-                };
-            });
-
-            // Add interface_translations schema with custom rules
-            const namespaceSchema = z.string().min(1).max(50).regex(/^[a-z0-9_]+$/, {
-                message: "Namespace can only contain lowercase letters, numbers, and underscores"
-            });
-
-            const translationKeySchema = z.string().min(1).max(100).regex(/^[a-z0-9_\\.]+$/, {
-                message: "Key can only contain lowercase letters, numbers, underscores, and dots"
-            });
-
-            validationState.schemas['interface_translations'] = {
-                insert: createInsertSchema(schema.interface_translations).extend({
-                    namespace: namespaceSchema,
-                    key: translationKeySchema,
-                    value: z.string().min(1)
-                }),
-                select: createSelectSchema(schema.interface_translations),
-                // Add specific schemas for namespace and key validation
-                namespace: namespaceSchema,
-                key: translationKeySchema
+        // Generate schemas for each table
+        tables.forEach(([tableName, table]) => {
+            validationState.schemas[tableName] = {
+                insert: createInsertSchema(table),
+                select: createSelectSchema(table)
             };
+        });
 
-            validationState.isInitialized = true;
-        } catch (err) {
-            validationState.error = `Failed to initialize validation schemas: ${err.message}`;
-            console.error('Validation schema initialization error:', err);
-            logError('init_validation_schemas', err.message);
-        }
+        // Add interface_translations schema with custom rules
+        const namespaceSchema = z.string().min(1).max(50).regex(/^[a-z0-9_]+$/, {
+            message: "Namespace can only contain lowercase letters, numbers, and underscores"
+        });
+
+        const translationKeySchema = z.string().min(1).max(100).regex(/^[a-z0-9_\\.]+$/, {
+            message: "Key can only contain lowercase letters, numbers, underscores, and dots"
+        });
+
+        validationState.schemas['interface_translations'] = {
+            insert: createInsertSchema(schema.interface_translations).extend({
+                namespace: namespaceSchema,
+                key: translationKeySchema,
+                value: z.string().min(1)
+            }),
+            select: createSelectSchema(schema.interface_translations),
+            // Add specific schemas for namespace and key validation
+            namespace: namespaceSchema,
+            key: translationKeySchema
+        };
+
+        validationState.isInitialized = true;
     };
 
     // Validate data against a schema
     const validate = async (data, schema) => {
-        try {
-            if (!validationState.isInitialized) {
-                throw new Error('Validation store not initialized');
-            }
-
-            const result = schema.safeParse(data);
-            return {
-                success: result.success,
-                errors: result.success ? [] : result.error.errors.map(e => e.message)
-            };
-        } catch (err) {
-            console.error('Validation error:', err);
-            await logError('validation_error', err.message);
-            return {
-                success: false,
-                errors: [err.message]
-            };
+        if (!validationState.isInitialized) {
+            throw new Error('Validation store not initialized');
         }
+
+        const result = schema.safeParse(data);
+
+        if (!result.success) {
+            await logError('validation_error', result.error.errors[0].message);
+        }
+
+        return {
+            success: result.success,
+            errors: result.success ? [] : result.error.errors.map(e => e.message)
+        };
     };
 
     // Get a specific schema
@@ -111,14 +102,8 @@ export function getValidationStore() {
 
     // Create a custom schema with additional validations
     const createCustomSchema = (tableName, customValidations = {}, type = 'insert') => {
-        try {
-            const baseSchema = getSchema(tableName, type);
-            return baseSchema.extend(customValidations);
-        } catch (err) {
-            console.error(`Error creating custom schema for ${tableName}:`, err);
-            logError('create_custom_schema', err.message);
-            throw err;
-        }
+        const baseSchema = getSchema(tableName, type);
+        return baseSchema.extend(customValidations);
     };
 
     // Initialize schemas

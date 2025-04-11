@@ -1,28 +1,3 @@
-import { getLogStore } from "$lib/stores/LogStore.svelte.js";
-import { addToast } from "$lib/components/base/BaseToast.svelte";
-const { error: logError } = getLogStore();
-
-export const performQuery = async (query, params) => {
-  let result = null;
-  try {
-    const response = await window.api.executeGraphQL(query.query, params);
-    result = response.data;
-  } catch (error) {
-    addToast({
-      data: {
-        title: "Error",
-        description: `Failed to fetch query ${query.name}: ${error.message}`,
-        type: "error"
-      }
-    });
-    await logError(query.name, error.message);
-    throw error;
-  } finally {
-    // console.log(`result from query ${query.name}:`, result);
-    return result;
-  }
-}
-
 export const API_SECTIONS = {
   interface_languages: {
     name: "Interface Languages",
