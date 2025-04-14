@@ -305,6 +305,7 @@ export function createGraphQLSchema(db) {
                 description: createTextFieldWithTranslations(descriptionTexts, descriptionTranslations),
                 location: createTextFieldWithTranslations(locationTexts, locationTranslations),
                 country: createTextFieldWithTranslations(countryTexts, countryTranslations),
+                status: dbSchema.institutions.status,
                 links: createTextFieldWithTranslations(linksTexts, linksTranslations),
                 objectsCount: sql`COALESCE(${objectsSubquery.objects_count}, 0)`.as('objectsCount'),
                 datasourcesCount: sql`COALESCE(${datasourcesSubquery.datasources_count}, 0)`.as('datasourcesCount'),
