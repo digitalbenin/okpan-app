@@ -4,17 +4,12 @@
   import { updateProject, getProject } from "$lib/stores/ProjectsUtils.js";
   import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
   import { Tabs } from "melt/builders";
-  import { addToast } from "$lib/components/base/BaseToast.svelte";
-  import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 
   let project = getContext("project");
 
   // Get content language store to work with translations
   const { getAvaliableLocalesForProject, addTranslation, updateTranslation } =
     getContentLanguageStore();
-
-  // Get log store for error logging
-  const { error: logError } = getLogStore();
 
   // State for project editing
   let projectLanguages = $state([]);
@@ -283,19 +278,21 @@
 </script>
 
 <div
-  class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
+  class="d-flex align-items-center justify-content-between px-3 py-2 mb-4 mt-2"
 >
   <div class="d-flex align-items-center gap-2">
-    <h6 class="m-0">
-      <a href="/projects/{project.id}"> {project.title.content}</a>
-    </h6>
     <BaseButton
       icon="pencil-square"
       onClick={prepareEditModal}
-      class="btn btn-sm btn-link p-0 text-decoration-none"
+      class="btn btn-sm btn-link text-dark p-0 text-decoration-none"
       text=""
       title="Edit project"
     />
+    <h6 class="m-0">
+      <a class="text-decoration-none text-dark" href="/projects/{project.id}">
+        {project.title.content}</a
+      >
+    </h6>
   </div>
   <!--
   <div class="d-flex gap-1">

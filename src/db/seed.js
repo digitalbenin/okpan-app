@@ -308,7 +308,7 @@ const seed = async () => {
             const objectPromises = Array(SEED_CONFIG.OBJECTS_PER_INSTITUTION).fill().map(async (_, i) => {
                 // Create object
                 const [object] = await db.insert(objects).values({
-                    status: 'active',
+                    status: 'in progress',
                     institution_id: institution.id,
                     project_id: projectRecord.id
                 }).returning();

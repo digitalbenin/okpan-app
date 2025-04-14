@@ -9,10 +9,10 @@
   let { children } = $props();
 </script>
 
-<div class="d-flex flex-column vh-100">
+<div class="d-flex flex-column vh-100 px-3">
   <Header />
 
-  <div class="flex-grow-1 flex-shrink-1">
+  <div class="flex-grow-1 flex-shrink-1 px-3">
     {@render children()}
     <BaseToast />
   </div>
