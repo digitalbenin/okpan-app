@@ -355,18 +355,24 @@ export const API_SECTIONS = {
     id
     created_at
     updated_at
+    title_id
+    description_id
     title {
+      id
       content
       original_language
       translations {
+        id
         content
         language_code      
       }
     }
     description {
+      id
       content
       original_language
       translations {
+        id
         content
         language_code
       }
@@ -388,18 +394,24 @@ export const API_SECTIONS = {
     id
     created_at
     updated_at
+    title_id
+    description_id
     title {
+      id
       content
       original_language
       translations {
+        id
         content
         language_code      
       }
     }
     description {
+      id
       content
       original_language
       translations {
+        id
         content
         language_code
       }
@@ -506,6 +518,7 @@ export const API_SECTIONS = {
     created_at
     updated_at
     project_id
+    status
     name {
       content
       original_language
@@ -567,6 +580,7 @@ export const API_SECTIONS = {
     created_at
     updated_at
     project_id
+    status
     name {
       content
       translations {
@@ -634,7 +648,8 @@ export const API_SECTIONS = {
           institutionName: "Name of the institution",
           institutionDescription: "Description of the institution",
           country: "Country of the institution",
-          location: "Location of the institution"
+          location: "Location of the institution",
+          status: "Status of the institution"
         },
         mutations: [
           {
@@ -695,13 +710,14 @@ export const API_SECTIONS = {
           },
           {
             name: "createInstitution",
-            query: `mutation CreateInstitutionEntry($nameId: String!, $descriptionId: String!, $countryId: String!, $locationId: String!, $projectId: String!) {
+            query: `mutation CreateInstitutionEntry($nameId: String!, $descriptionId: String!, $countryId: String!, $locationId: String!, $projectId: String!, $status: String) {
   insertIntoInstitutions(values: [{
     name_id: $nameId,
     description_id: $descriptionId,
     country_id: $countryId,
     location_id: $locationId,
-    project_id: $projectId
+    project_id: $projectId,
+    status: $status
   }]) {
     id
     name_id
@@ -709,9 +725,10 @@ export const API_SECTIONS = {
     country_id
     location_id
     project_id
+    status
   }
 }`,
-            useVariables: ["projectId"],
+            useVariables: ["projectId", "status"],
             mapVariables: {
               nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
               descriptionId: { from: "createDescriptionText", path: "insertIntoTexts.0.id" },
@@ -733,7 +750,8 @@ export const API_SECTIONS = {
           name: "New name content (optional)",
           description: "New description content (optional)",
           country: "New country content (optional)",
-          location: "New location content (optional)"
+          location: "New location content (optional)",
+          status: "New status (optional)"
         },
         mutations: [
           {
@@ -746,6 +764,7 @@ export const API_SECTIONS = {
     country_id
     location_id
     links_id
+    status
   }
 }`,
             useVariables: ["institutionId"]
@@ -817,6 +836,20 @@ export const API_SECTIONS = {
               locationId: { from: "getInstitution", path: "institutions.0.location_id" }
             },
             skipIf: { variableName: "location", isUndefined: true }
+          },
+          {
+            name: "updateStatus",
+            query: `mutation UpdateInstitutionStatus($institutionId: String!, $status: String!) {
+  updateInstitutions(
+    set: { status: $status }
+    where: { id: { eq: $institutionId } }
+  ) {
+    id
+    status
+  }
+}`,
+            useVariables: ["institutionId", "status"],
+            skipIf: { variableName: "status", isUndefined: true }
           }
         ],
         query: null
@@ -841,6 +874,7 @@ export const API_SECTIONS = {
     country_id
     location_id
     links_id
+    status
   }
 }`,
             useVariables: ["institutionId"]

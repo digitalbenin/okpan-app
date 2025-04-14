@@ -1,6 +1,9 @@
 // Create a singleton instance
 let storeInstance = null;
 
+// Helper to safely check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
+
 // Main store function that creates and returns the store
 export function getLogStore() {
     // If we already have an instance, return it
@@ -117,12 +120,23 @@ export function getLogStore() {
     const initialize = async () => {
         if (logState.isInitialized) return;
 
-        await fetchLogs();
+        // Only fetch logs if we're in a browser environment
+        if (isBrowser) {
+            await fetchLogs();
+        }
         logState.isInitialized = true;
     };
 
     // Fetch logs with pagination and filters
     const fetchLogs = async (page = 1, pageSize = 50, filters = {}) => {
+        // Skip if not in browser environment
+        if (!isBrowser) {
+            return {
+                success: false,
+                error: "Not in browser environment"
+            };
+        }
+
         logState.isLoading = true;
 
         // Update pagination state
@@ -147,41 +161,55 @@ export function getLogStore() {
             search: appliedFilters.search ? `%${appliedFilters.search}%` : undefined
         };
 
-        // Execute GraphQL query directly
-        const response = await window.api.executeGraphQL(logsList.query, variables);
+        try {
+            // Execute GraphQL query directly
+            const response = await window.api.executeGraphQL(logsList.query, variables);
 
-        // Extract data from response
-        const result = response.data;
+            // Extract data from response
+            const result = response.data;
 
-        // Update state with fetched logs
-        logState.logs = result.result.map(log => {
-            // Parse JSON details if it exists and the field exists in the schema
-            if (log.details && typeof log.details === 'string') {
-                try {
-                    log.details = JSON.parse(log.details);
-                } catch (e) {
-                    // Keep as string if parsing fails
+            // Update state with fetched logs
+            logState.logs = result.result.map(log => {
+                // Parse JSON details if it exists and the field exists in the schema
+                if (log.details && typeof log.details === 'string') {
+                    try {
+                        log.details = JSON.parse(log.details);
+                    } catch (e) {
+                        // Keep as string if parsing fails
+                    }
                 }
-            }
-            return log;
-        });
+                return log;
+            });
 
-        // Update pagination info
-        const totalLogs = result.count ? result.count.length : 0;
-        logState.pagination.totalLogs = totalLogs;
-        logState.pagination.totalPages = Math.ceil(totalLogs / pageSize);
+            // Update pagination info
+            const totalLogs = result.count ? result.count.length : 0;
+            logState.pagination.totalLogs = totalLogs;
+            logState.pagination.totalPages = Math.ceil(totalLogs / pageSize);
 
-        logState.isLoading = false;
+            logState.isLoading = false;
 
-        return {
-            success: true,
-            logs: logState.logs,
-            pagination: logState.pagination
-        };
+            return {
+                success: true,
+                logs: logState.logs,
+                pagination: logState.pagination
+            };
+        } catch (error) {
+            logState.error = error.message;
+            logState.isLoading = false;
+            return {
+                success: false,
+                error: error.message
+            };
+        }
     };
 
     // Create a new log entry
     const createLog = async (logData) => {
+        // Skip if not in browser environment
+        if (!isBrowser) {
+            return null;
+        }
+
         // Prepare variables for GraphQL mutation
         const variables = {
             level: logData.level || 'error',
@@ -189,33 +217,58 @@ export function getLogStore() {
             message: logData.message
         };
 
-        // Execute GraphQL mutation
-        const response = await window.api.executeGraphQL(logsCreate.query, variables);
+        try {
+            // Execute GraphQL mutation
+            const response = await window.api.executeGraphQL(logsCreate.query, variables);
 
-        // Update logs after creating new entry
-        await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
+            // Update logs after creating new entry if in browser
+            if (isBrowser) {
+                await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
+            }
 
-        return response.data.insertIntoLogs[0];
+            return response.data.insertIntoLogs[0];
+        } catch (error) {
+            logState.error = error.message;
+            return null;
+        }
     };
 
     // Delete a log by ID
     const deleteLog = async (id) => {
+        // Skip if not in browser environment
+        if (!isBrowser) {
+            return null;
+        }
+
         // Prepare variables for GraphQL mutation
         const variables = {
             id: id
         };
 
-        // Execute GraphQL mutation
-        const response = await window.api.executeGraphQL(logsDelete.query, variables);
+        try {
+            // Execute GraphQL mutation
+            const response = await window.api.executeGraphQL(logsDelete.query, variables);
 
-        // Update logs after deleting entry
-        await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
+            // Update logs after deleting entry
+            await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
 
-        return response.data;
+            return response.data;
+        } catch (error) {
+            logState.error = error.message;
+            return null;
+        }
     };
 
     // Clear logs based on filters
     const clearLogs = async (filters = {}) => {
+        // Skip if not in browser environment
+        if (!isBrowser) {
+            return {
+                success: false,
+                error: "Not in browser environment"
+            };
+        }
+
         // Prepare variables for GraphQL mutation
         const variables = {
             level: filters.level || logState.filters.level || undefined,
@@ -228,16 +281,24 @@ export function getLogStore() {
                 : undefined
         };
 
-        // Execute GraphQL mutation
-        const response = await window.api.executeGraphQL(logsClear.query, variables);
+        try {
+            // Execute GraphQL mutation
+            const response = await window.api.executeGraphQL(logsClear.query, variables);
 
-        // Update logs after clearing
-        await fetchLogs(1, logState.pagination.pageSize);
+            // Update logs after clearing
+            await fetchLogs(1, logState.pagination.pageSize);
 
-        return {
-            success: true,
-            deleted: response.data.deleteFromLogs.length
-        };
+            return {
+                success: true,
+                deleted: response.data.deleteFromLogs.length
+            };
+        } catch (error) {
+            logState.error = error.message;
+            return {
+                success: false,
+                error: error.message
+            };
+        }
     };
 
     // Get available log levels
@@ -256,6 +317,10 @@ export function getLogStore() {
 
     // Log an error message
     const error = async (action, message) => {
+        if (!isBrowser) {
+            console.error(`[${action}] ${message}`);
+            return null;
+        }
         return await createLog({
             level: 'error',
             action,
@@ -265,6 +330,10 @@ export function getLogStore() {
 
     // Log a warning message
     const warn = async (action, message) => {
+        if (!isBrowser) {
+            console.warn(`[${action}] ${message}`);
+            return null;
+        }
         return await createLog({
             level: 'warn',
             action,
@@ -274,6 +343,10 @@ export function getLogStore() {
 
     // Log an info message
     const info = async (action, message) => {
+        if (!isBrowser) {
+            console.info(`[${action}] ${message}`);
+            return null;
+        }
         return await createLog({
             level: 'info',
             action,
@@ -283,6 +356,10 @@ export function getLogStore() {
 
     // Log a debug message
     const debug = async (action, message) => {
+        if (!isBrowser) {
+            console.debug(`[${action}] ${message}`);
+            return null;
+        }
         return await createLog({
             level: 'debug',
             action,

@@ -1,6 +1,7 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "./ValidationStore.svelte.js";
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
+import { z } from "zod";
 
 // Create a singleton instance
 let storeInstance = null;
@@ -19,6 +20,13 @@ export function getContentLanguageStore() {
 
     // Get the base schema for validation
     const languagesSchema = getSchema('languages', 'insert');
+
+    // Create a custom schema for translations to ensure all fields are properly validated
+    const translationsSchema = z.object({
+        textId: z.string().min(1),
+        languageCode: z.string().min(1),
+        content: z.string().min(1)
+    });
 
     // State variables defined inside the function
     const contentLanguageState = $state({
@@ -94,6 +102,74 @@ export function getContentLanguageStore() {
         return result.result;
     };
 
+    // Add a new translation for a text in a specific language
+    const addTranslation = async (textId, languageCode, content) => {
+        contentLanguageState.isLoading = true;
+
+        // Validate the input data
+        const validationResult = await validate({
+            textId,
+            languageCode,
+            content
+        }, translationsSchema);
+
+        if (!validationResult.success) {
+            await logError("add_translation", validationResult.errors[0]);
+            contentLanguageState.isLoading = false;
+            throw new Error(validationResult.errors[0]);
+        }
+
+        // Execute the query to create the translation
+        const result = await executeQuery('translations', 'create', {
+            textId,
+            languageCode,
+            content
+        });
+
+        contentLanguageState.isLoading = false;
+        return result;
+    };
+
+    // Update an existing translation
+    const updateTranslation = async (translationId, content) => {
+        contentLanguageState.isLoading = true;
+
+        // Execute the query to update the translation
+        const result = await executeQuery('translations', 'update', {
+            id: translationId,
+            content
+        });
+
+        contentLanguageState.isLoading = false;
+        return result;
+    };
+
+    // Delete a translation
+    const deleteTranslation = async (translationId) => {
+        contentLanguageState.isLoading = true;
+
+        // Execute the query to delete the translation
+        const result = await executeQuery('translations', 'delete', {
+            translationId
+        });
+
+        contentLanguageState.isLoading = false;
+        return result;
+    };
+
+    // Get all translations for a specific text
+    const getTranslationsForText = async (textId) => {
+        contentLanguageState.isLoading = true;
+
+        // Execute the query to get translations
+        const result = await executeQuery('translations', 'getByTextId', {
+            textId
+        });
+
+        contentLanguageState.isLoading = false;
+        return result?.result || [];
+    };
+
     // Start initialization if not already initialized
     if (!contentLanguageState.isInitialized && !contentLanguageState.isLoading) {
         // Start initialization asynchronously
@@ -112,7 +188,12 @@ export function getContentLanguageStore() {
         getAvailableLocales,
         deleteLanguage,
         createLanguage,
-        getAvaliableLocalesForProject
+        getAvaliableLocalesForProject,
+        // Add the new translation functions
+        addTranslation,
+        updateTranslation,
+        deleteTranslation,
+        getTranslationsForText
     };
 
     return storeInstance;

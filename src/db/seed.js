@@ -7,6 +7,16 @@ import * as path from 'path';
 import https from 'https';
 import { handleImportAssets } from '../backend/handlers/assetHandlers.js';
 
+// Configuration constants for seed cardinality
+const SEED_CONFIG = {
+    INSTITUTIONS_COUNT: 5,              // Number of institutions to create
+    OBJECTS_PER_INSTITUTION: 3,         // Number of objects per institution
+    RESEARCH_FIELDS_COUNT: 10,           // Total number of research fields
+    MULTISELECT_FIELDS_COUNT: 3,         // Number of multiselect research fields (out of total)
+    VOCABULARY_OPTIONS_PER_FIED: 3,     // Number of vocabulary options per multiselect field
+    ASSETS_PER_OBJECT: 1                 // Number of assets per object
+};
+
 // Function to download a file from URL
 const downloadFile = (url, destPath) => {
     return new Promise((resolve, reject) => {
@@ -198,8 +208,8 @@ const seed = async () => {
         const ontologyFieldsCreated = await Promise.all(ontologyFieldPromises);
         console.log(`Created ${ontologyFieldsCreated.length} ontology fields`);
 
-        // Create 10 institutions
-        const institutionPromises = Array(10).fill().map(async (_, i) => {
+        // Create institutions
+        const institutionPromises = Array(SEED_CONFIG.INSTITUTIONS_COUNT).fill().map(async (_, i) => {
             const [nameText, descriptionText, countryText, locationText] = await Promise.all([
                 db.insert(texts).values({
                     content: `Institution ${i + 1}`,
@@ -228,7 +238,8 @@ const seed = async () => {
                 description_id: descriptionText[0].id,
                 country_id: countryText[0].id,
                 location_id: locationText[0].id,
-                project_id: projectRecord.id
+                project_id: projectRecord.id,
+                status: 'in progress'
             }).returning();
 
             return institution;
@@ -236,9 +247,9 @@ const seed = async () => {
 
         const institutionsList = await Promise.all(institutionPromises);
 
-        // Create 10 research fields (3 multiselect, 7 free text)
-        const researchFieldPromises = Array(10).fill().map(async (_, i) => {
-            const isMultiselect = i < 3;
+        // Create research fields (some multiselect, some free text)
+        const researchFieldPromises = Array(SEED_CONFIG.RESEARCH_FIELDS_COUNT).fill().map(async (_, i) => {
+            const isMultiselect = i < SEED_CONFIG.MULTISELECT_FIELDS_COUNT;
             const [nameText, descriptionText] = await Promise.all([
                 db.insert(texts).values({
                     content: `Research Field ${i + 1}`,
@@ -259,9 +270,9 @@ const seed = async () => {
                 type: isMultiselect ? 'multiselect' : 'free_text'
             }).returning();
 
-            // For multiselect fields, create 3 vocabulary options
+            // For multiselect fields, create vocabulary options
             if (isMultiselect) {
-                const vocabularyPromises = Array(3).fill().map(async (_, j) => {
+                const vocabularyPromises = Array(SEED_CONFIG.VOCABULARY_OPTIONS_PER_FIELD).fill().map(async (_, j) => {
                     const [optionText, descriptionText] = await Promise.all([
                         db.insert(texts).values({
                             content: `Option ${j + 1} for Field ${i + 1}`,
@@ -292,9 +303,9 @@ const seed = async () => {
 
         const researchFieldsList = await Promise.all(researchFieldPromises);
 
-        // Create 10 objects per institution with 1 asset each
+        // Create objects per institution with assets each
         for (const institution of institutionsList) {
-            const objectPromises = Array(10).fill().map(async (_, i) => {
+            const objectPromises = Array(SEED_CONFIG.OBJECTS_PER_INSTITUTION).fill().map(async (_, i) => {
                 // Create object
                 const [object] = await db.insert(objects).values({
                     status: 'active',
@@ -302,28 +313,31 @@ const seed = async () => {
                     project_id: projectRecord.id
                 }).returning();
 
-                // Generate placeholder image details
-                const assetText = `Object ${i + 1} from Institution ${institution.id}`;
-                const assetColor = `${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
-                const assetUrl = `https://placehold.co/600x400/${assetColor}/FFFFFF/png?text=${encodeURIComponent(assetText)}`;
+                // Create assets for the object
+                for (let assetIndex = 0; assetIndex < SEED_CONFIG.ASSETS_PER_OBJECT; assetIndex++) {
+                    // Generate placeholder image details
+                    const assetText = `Object ${i + 1} from Institution ${institution.id}`;
+                    const assetColor = `${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+                    const assetUrl = `https://placehold.co/600x400/${assetColor}/FFFFFF/png?text=${encodeURIComponent(assetText)}`;
 
-                // Download the placeholder image
-                const tempFilePath = path.join(tempDir, `temp_${object.id}.png`);
-                await downloadFile(assetUrl, tempFilePath);
+                    // Download the placeholder image
+                    const tempFilePath = path.join(tempDir, `temp_${object.id}_${assetIndex}.png`);
+                    await downloadFile(assetUrl, tempFilePath);
 
-                // Import the asset using our asset handler
-                const assetData = {
-                    path: [tempFilePath], // handleImportAssets expects an array for non-directory imports
-                    isDirectory: false,
-                    projectId: projectRecord.id,
-                    institutionId: institution.id
-                };
+                    // Import the asset using our asset handler
+                    const assetData = {
+                        path: [tempFilePath], // handleImportAssets expects an array for non-directory imports
+                        isDirectory: false,
+                        projectId: projectRecord.id,
+                        institutionId: institution.id
+                    };
 
-                // Import the asset using our handler
-                await handleImportAssets(null, assetData);
+                    // Import the asset using our handler
+                    await handleImportAssets(null, assetData);
 
-                // Clean up temp file
-                fs.unlinkSync(tempFilePath);
+                    // Clean up temp file
+                    fs.unlinkSync(tempFilePath);
+                }
 
                 // Add research field values
                 const researchFieldPromises = researchFieldsList.map(async (field) => {

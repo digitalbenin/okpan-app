@@ -65,7 +65,7 @@ export const performQuery = async (query, params) => {
  * @param {Object} params - Parameters for the mutations
  * @returns {Promise<Object>} Final operation result
  */
-async function executeMultiStepMutation(mutations, params) {
+export async function executeMultiStepMutation(mutations, params) {
     if (!mutations || !Array.isArray(mutations) || mutations.length === 0) {
         throw new Error("Invalid mutation chain");
     }
@@ -456,6 +456,10 @@ export async function executeQuery(section, operation, params = {}) {
         throw new Error('Missing section or operation');
     }
 
+    if (section === 'custom' && operation === 'mutation' && params.query) {
+        return performQuery(params.query, params.params || {});
+    }
+
     if (!API_SECTIONS[section]) {
         throw new Error(`Section ${section} not found`);
     }
@@ -465,6 +469,12 @@ export async function executeQuery(section, operation, params = {}) {
         throw new Error(`Operation ${operation} not found in section ${section}`);
     }
 
+    // Check if this is a multi-step mutation
+    if (queryDef.mutations && Array.isArray(queryDef.mutations)) {
+        return executeMultiStepMutation(queryDef.mutations, params);
+    }
+
+    // Otherwise, perform a single query
     // performQuery already handles errors, logging, and notifications
     return performQuery(queryDef, params);
 }

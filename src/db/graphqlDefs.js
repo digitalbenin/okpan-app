@@ -37,6 +37,7 @@ export function createGraphQLSchema(db) {
             id: textTable.id,
             original_language: textTable.original_language,
             translations: sql`json_group_array(json_object(
+                'id', ${translationsTable.id},
                 'language_code', ${translationsTable.language_code},
                 'content', ${translationsTable.content}
             ))`.as('translations')
@@ -54,10 +55,17 @@ export function createGraphQLSchema(db) {
 
                         // Filter out null entries and duplicates
                         translations = translations
-                            .filter(t => t.language_code && t.content)
+                            .filter(t => t.language_code && t.content) // Keep entries with language_code and content
                             .filter((t, index, self) =>
                                 index === self.findIndex(s => s.language_code === t.language_code)
                             );
+
+                        // Make sure id field isn't null to avoid GraphQL errors
+                        translations = translations.map(t => ({
+                            id: t.id || `temp_${field}_${t.language_code}`, // Fallback ID to avoid null
+                            language_code: t.language_code,
+                            content: t.content
+                        }));
 
                         item[field].translations = translations.length > 0 ? translations : [];
                     } catch (e) {

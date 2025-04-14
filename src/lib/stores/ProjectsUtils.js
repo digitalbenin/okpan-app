@@ -5,6 +5,10 @@ import { API_SECTIONS } from "$lib/utils/queries.js";
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
+// Get schemas for projects
+const projectInsertSchema = getSchema('project', 'insert');
+const projectUpdateSchema = getSchema('project', 'update');
+
 // Initialize the project store
 
 export const getProjects = async () => {
@@ -14,6 +18,56 @@ export const getProjects = async () => {
 
 export const getProject = async (projectId) => {
     const result = await executeQuery('projects', 'getById', { projectId });
+
+    // Make sure we add title_id and description_id to the result for easier access
+    if (result && result.result) {
+        // Try to extract directly from existing fields
+        const project = result.result;
+
+        console.log("Processing project data:", JSON.stringify(project, null, 2));
+
+        // Add direct references to the IDs if not already present
+        if (!project.title_id && project.title) {
+            // Use a safe method to get the ID
+            project.title_id = project.title.id;
+            console.log("Extracted title_id:", project.title_id);
+        }
+
+        if (!project.description_id && project.description) {
+            // Use a safe method to get the ID
+            project.description_id = project.description.id;
+            console.log("Extracted description_id:", project.description_id);
+        }
+
+        // Additional check for translations array - ensure it's properly initialized
+        if (project.title && !project.title.translations) {
+            project.title.translations = [];
+        }
+
+        if (project.description && !project.description.translations) {
+            project.description.translations = [];
+        }
+
+        // If translations are in JSON string format, parse them
+        if (project.title && typeof project.title.translations === 'string') {
+            try {
+                project.title.translations = JSON.parse(project.title.translations);
+            } catch (e) {
+                console.warn("Failed to parse title translations:", e);
+                project.title.translations = [];
+            }
+        }
+
+        if (project.description && typeof project.description.translations === 'string') {
+            try {
+                project.description.translations = JSON.parse(project.description.translations);
+            } catch (e) {
+                console.warn("Failed to parse description translations:", e);
+                project.description.translations = [];
+            }
+        }
+    }
+
     return result.result;
 };
 
@@ -103,14 +157,32 @@ async function performCustomMutation(mutation, params) {
 }
 
 export const updateProject = async (projectId, project) => {
-    // Validate the input
-    const validationResult = await validate(project, getSchema('project', 'update'));
+    // Validate the project data using our schema
+    const validationResult = await validate(project, projectUpdateSchema);
+
     if (!validationResult.success) {
         throw new Error(validationResult.errors[0]);
     }
 
+    // Prepare the parameters for the multi-step mutation
+    // Extract content from nested objects to match the expected format
+    const params = {
+        projectId,
+        title: project.title?.content,
+        description: project.description?.content
+    };
+
     // Use executeQuery which handles errors, logging, and notifications
-    return await executeQuery('projects', 'update', { projectId, ...project });
+    const result = await executeQuery('projects', 'update', params);
+
+    // Return the result with the project ID for convenience
+    return {
+        ...result,
+        id: projectId,
+        // If result contains any useful data, ensure we pass it back
+        title_id: result?.title_id,
+        description_id: result?.description_id
+    };
 };
 
 export const deleteProject = async (projectId) => {

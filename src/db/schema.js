@@ -168,6 +168,7 @@ export const institutions = sqliteTable('institutions', {
     website: text('website'),
     links_id: text('links_id').references(() => texts.id),
     project_id: text('project_id').references(() => project.id),
+    status: text('status'),
     logo: text('logo')
 });
 

@@ -1,8 +1,6 @@
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import * as schema from '../../db/schema';
-import { API_SECTIONS } from "$lib/utils/queries.js";
-import { performQuery } from "$lib/stores/GraphqlUtils.js";
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 
 // Create a singleton instance
@@ -36,7 +34,8 @@ export function getValidationStore() {
         tables.forEach(([tableName, table]) => {
             validationState.schemas[tableName] = {
                 insert: createInsertSchema(table),
-                select: createSelectSchema(table)
+                select: createSelectSchema(table),
+                update: createUpdateSchema(table)
             };
         });
 
@@ -56,6 +55,11 @@ export function getValidationStore() {
                 value: z.string().min(1)
             }),
             select: createSelectSchema(schema.interface_translations),
+            update: createUpdateSchema(schema.interface_translations).extend({
+                namespace: namespaceSchema.optional(),
+                key: translationKeySchema.optional(),
+                value: z.string().min(1).optional()
+            }),
             // Add specific schemas for namespace and key validation
             namespace: namespaceSchema,
             key: translationKeySchema

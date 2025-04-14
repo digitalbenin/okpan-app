@@ -3,7 +3,7 @@
 </script>
 
 <div class="container py-4">
-    <div class="mb-5">
+    <!--<div class="mb-5">
         <h2 class="text-xl font-semibold mb-3">GraphQL Test Pages</h2>
         <div class="list-group">
             <a
@@ -20,7 +20,7 @@
                 <span class="ms-auto">→</span>
             </a>
         </div>
-    </div>
+    </div>-->
 
     <GraphQLExplorer />
 </div>
