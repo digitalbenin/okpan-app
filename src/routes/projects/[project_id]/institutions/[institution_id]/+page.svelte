@@ -2,14 +2,18 @@
   import { setContext } from "svelte";
   import InstitutionOverview from "$lib/components/institutions/InstitutionOverview.svelte";
   import InstitutionItems from "$lib/components/institutions/InstitutionItems.svelte";
+
   const { data } = $props();
-  let institution = $state(data.institution);
+  // Extract all needed data from the load function
+  const { institution, objects, assets, projectId, institutionId } = data;
+
+  // Pass data to children via context
   setContext("institution", institution);
-  let objects = $state(data.objects);
   setContext("objects", objects);
-  let assets = $state(data.assets);
   setContext("assets", assets);
+  setContext("projectId", projectId);
+  setContext("institutionId", institutionId);
 </script>
 
-<InstitutionOverview></InstitutionOverview>
-<InstitutionItems></InstitutionItems>
+<InstitutionOverview />
+<InstitutionItems />

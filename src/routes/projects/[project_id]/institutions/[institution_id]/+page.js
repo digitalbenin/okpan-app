@@ -5,13 +5,23 @@ import { getObjects } from '$lib/stores/ObjectsUtils.js';
 
 export const load = async ({ params }) => {
     if (!browser) return;
-    const institution = await getInstitution(params.institution_id);
-    const assets = await getAssets(params.project_id, params.institution_id);
-    const objects = await getObjects(params.project_id, params.institution_id);
+
+    const projectId = params.project_id;
+    const institutionId = params.institution_id;
+
+    // Load all data in parallel for better performance
+    const [institution, assets, objects] = await Promise.all([
+        getInstitution(institutionId),
+        getAssets(projectId, institutionId),
+        getObjects(projectId, institutionId)
+    ]);
+
     return {
         institution,
         assets,
-        objects
+        objects,
+        projectId,
+        institutionId
     }
 };
 

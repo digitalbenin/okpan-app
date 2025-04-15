@@ -548,13 +548,7 @@ export const API_SECTIONS = {
         content
       }
     }
-    links {
-      content
-      translations {
-        language_code
-        content
-      }
-    }
+    links
     objectsCount
     datasourcesCount
     assetsCount
@@ -609,13 +603,7 @@ export const API_SECTIONS = {
         language_code
       }
     }
-    links {
-      content
-      translations {
-        content
-        language_code
-      }
-    }
+    links
     objectsCount
     datasourcesCount
     assetsCount
@@ -751,7 +739,8 @@ export const API_SECTIONS = {
           description: "New description content (optional)",
           country: "New country content (optional)",
           location: "New location content (optional)",
-          status: "New status (optional)"
+          status: "New status (optional)",
+          links: "New links array (optional)"
         },
         mutations: [
           {
@@ -763,8 +752,8 @@ export const API_SECTIONS = {
     description_id
     country_id
     location_id
-    links_id
     status
+    links
   }
 }`,
             useVariables: ["institutionId"]
@@ -850,6 +839,20 @@ export const API_SECTIONS = {
 }`,
             useVariables: ["institutionId", "status"],
             skipIf: { variableName: "status", isUndefined: true }
+          },
+          {
+            name: "updateLinks",
+            query: `mutation UpdateInstitutionLinks($institutionId: String!, $links: JSON!) {
+  updateInstitutions(
+    set: { links: $links }
+    where: { id: { eq: $institutionId } }
+  ) {
+    id
+    links
+  }
+}`,
+            useVariables: ["institutionId", "links"],
+            skipIf: { variableName: "links", isUndefined: true }
           }
         ],
         query: null
@@ -873,8 +876,8 @@ export const API_SECTIONS = {
     description_id
     country_id
     location_id
-    links_id
     status
+    links
   }
 }`,
             useVariables: ["institutionId"]
@@ -966,18 +969,6 @@ export const API_SECTIONS = {
               locationId: { from: "getInstitution", path: "institutions.0.location_id" }
             },
             skipIf: { variableName: "locationId", isUndefined: true }
-          },
-          {
-            name: "deleteLinksText",
-            query: `mutation DeleteInstitutionLinksText($linksId: String!) {
-  deleteFromTexts(where: { id: { eq: $linksId } }) {
-    id
-  }
-}`,
-            mapVariables: {
-              linksId: { from: "getInstitution", path: "institutions.0.links_id" }
-            },
-            skipIf: { variableName: "linksId", isUndefined: true }
           }
         ],
         query: null

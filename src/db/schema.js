@@ -166,7 +166,7 @@ export const institutions = sqliteTable('institutions', {
     lon: integer('lon'),
     lat: integer('lat'),
     website: text('website'),
-    links_id: text('links_id').references(() => texts.id),
+    links: text('links', { mode: 'json' }),
     project_id: text('project_id').references(() => project.id),
     status: text('status'),
     logo: text('logo')
@@ -196,10 +196,6 @@ export const institutionsRelations = relations(institutions, ({ one, many }) => 
     }),
     location: one(texts, {
         fields: [institutions.location_id],
-        references: [texts.id]
-    }),
-    links: one(texts, {
-        fields: [institutions.links_id],
         references: [texts.id]
     })
 }));

@@ -1,13 +1,46 @@
 import { buildSchema } from 'drizzle-graphql';
 import { sql, eq, aliasedTable } from 'drizzle-orm';
-import { GraphQLList, GraphQLNonNull } from 'graphql';
+import { GraphQLList, GraphQLNonNull, GraphQLScalarType, Kind } from 'graphql';
 import * as dbSchema from './schema';
 
 export function createGraphQLSchema(db) {
+    // Define a GraphQL JSON scalar type
+    const GraphQLJSON = new GraphQLScalarType({
+        name: 'JSON',
+        description: 'The `JSON` scalar type represents JSON values as specified by ECMA-404',
+        serialize(value) {
+            return value; // Return the value directly
+        },
+        parseValue(value) {
+            return typeof value === 'string' ? JSON.parse(value) : value;
+        },
+        parseLiteral(ast) {
+            if (ast.kind === Kind.STRING) {
+                try {
+                    return JSON.parse(ast.value);
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
+        }
+    });
+
     // Get the schema from drizzle-graphql
     const drizzleResult = buildSchema(db, {
         relationsDepthLimit: 4
     });
+
+    // Add the JSON scalar type to the schema
+    drizzleResult.schema._typeMap.JSON = GraphQLJSON;
+
+    // Modify the InstitutionsSelectItem to use JSON type for links
+    if (drizzleResult.schema._typeMap.InstitutionsSelectItem) {
+        const institutionsType = drizzleResult.schema._typeMap.InstitutionsSelectItem;
+        if (institutionsType._fields.links) {
+            institutionsType._fields.links.type = GraphQLJSON;
+        }
+    }
 
     // Helper function to add count fields to entity types
     const addCountField = (typeName, fieldName, type = drizzleResult.schema._typeMap.Int) => {
@@ -76,6 +109,16 @@ export function createGraphQLSchema(db) {
                     item[field].translations = [];
                 }
             });
+
+            // Parse links field if it exists and is a string
+            if (item.links && typeof item.links === 'string') {
+                try {
+                    item.links = JSON.parse(item.links);
+                } catch (e) {
+                    console.error(`Error parsing links for item ${item.id}:`, e);
+                    item.links = [];
+                }
+            }
 
             return item;
         });
@@ -267,14 +310,12 @@ export function createGraphQLSchema(db) {
             const descriptionTexts = aliasedTable(dbSchema.texts, 'description_texts');
             const locationTexts = aliasedTable(dbSchema.texts, 'location_texts');
             const countryTexts = aliasedTable(dbSchema.texts, 'country_texts');
-            const linksTexts = aliasedTable(dbSchema.texts, 'links_texts');
 
             // Create aliases for the translations tables
             const nameTranslations = aliasedTable(dbSchema.translations, 'name_translations');
             const descriptionTranslations = aliasedTable(dbSchema.translations, 'description_translations');
             const locationTranslations = aliasedTable(dbSchema.translations, 'location_translations');
             const countryTranslations = aliasedTable(dbSchema.translations, 'country_translations');
-            const linksTranslations = aliasedTable(dbSchema.translations, 'links_translations');
 
             // Create count subqueries
             const objectsSubquery = createCountSubquery(
@@ -306,7 +347,7 @@ export function createGraphQLSchema(db) {
                 location: createTextFieldWithTranslations(locationTexts, locationTranslations),
                 country: createTextFieldWithTranslations(countryTexts, countryTranslations),
                 status: dbSchema.institutions.status,
-                links: createTextFieldWithTranslations(linksTexts, linksTranslations),
+                links: dbSchema.institutions.links,
                 objectsCount: sql`COALESCE(${objectsSubquery.objects_count}, 0)`.as('objectsCount'),
                 datasourcesCount: sql`COALESCE(${datasourcesSubquery.datasources_count}, 0)`.as('datasourcesCount'),
                 assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount')
@@ -322,9 +363,7 @@ export function createGraphQLSchema(db) {
                 .leftJoin(locationTexts, eq(dbSchema.institutions.location_id, locationTexts.id))
                 .leftJoin(locationTranslations, eq(locationTexts.id, locationTranslations.text_id))
                 .leftJoin(countryTexts, eq(dbSchema.institutions.country_id, countryTexts.id))
-                .leftJoin(countryTranslations, eq(countryTexts.id, countryTranslations.text_id))
-                .leftJoin(linksTexts, eq(dbSchema.institutions.links_id, linksTexts.id))
-                .leftJoin(linksTranslations, eq(linksTexts.id, linksTranslations.text_id));
+                .leftJoin(countryTranslations, eq(countryTexts.id, countryTranslations.text_id));
 
             // Apply project_id filter if provided
             if (args.project_id) {
@@ -362,7 +401,21 @@ export function createGraphQLSchema(db) {
             const institutions = await query.execute();
 
             // Process translations
-            return processTranslations(institutions, ['name', 'description', 'location', 'country', 'links']);
+            const results = processTranslations(institutions, ['name', 'description', 'location', 'country']);
+
+            // Explicitly parse the links JSON for each institution
+            results.forEach(institution => {
+                if (institution.links && typeof institution.links === 'string') {
+                    try {
+                        institution.links = JSON.parse(institution.links);
+                    } catch (e) {
+                        console.error(`Error parsing links for institution ${institution.id}:`, e);
+                        institution.links = [];
+                    }
+                }
+            });
+
+            return results;
         }
     };
 
@@ -413,14 +466,12 @@ export function createGraphQLSchema(db) {
             const descriptionTexts = aliasedTable(dbSchema.texts, 'description_texts');
             const locationTexts = aliasedTable(dbSchema.texts, 'location_texts');
             const countryTexts = aliasedTable(dbSchema.texts, 'country_texts');
-            const linksTexts = aliasedTable(dbSchema.texts, 'links_texts');
 
             // Create aliases for the translations tables
             const nameTranslations = aliasedTable(dbSchema.translations, 'name_translations');
             const descriptionTranslations = aliasedTable(dbSchema.translations, 'description_translations');
             const locationTranslations = aliasedTable(dbSchema.translations, 'location_translations');
             const countryTranslations = aliasedTable(dbSchema.translations, 'country_translations');
-            const linksTranslations = aliasedTable(dbSchema.translations, 'links_translations');
 
             // Create count subqueries
             const objectsSubquery = createCountSubquery(
@@ -451,7 +502,8 @@ export function createGraphQLSchema(db) {
                 description: createTextFieldWithTranslations(descriptionTexts, descriptionTranslations),
                 location: createTextFieldWithTranslations(locationTexts, locationTranslations),
                 country: createTextFieldWithTranslations(countryTexts, countryTranslations),
-                links: createTextFieldWithTranslations(linksTexts, linksTranslations),
+                status: dbSchema.institutions.status,
+                links: dbSchema.institutions.links,
                 objectsCount: sql`COALESCE(${objectsSubquery.objects_count}, 0)`.as('objectsCount'),
                 datasourcesCount: sql`COALESCE(${datasourcesSubquery.datasources_count}, 0)`.as('datasourcesCount'),
                 assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount')
@@ -469,8 +521,6 @@ export function createGraphQLSchema(db) {
                 .leftJoin(locationTranslations, eq(locationTexts.id, locationTranslations.text_id))
                 .leftJoin(countryTexts, eq(dbSchema.institutions.country_id, countryTexts.id))
                 .leftJoin(countryTranslations, eq(countryTexts.id, countryTranslations.text_id))
-                .leftJoin(linksTexts, eq(dbSchema.institutions.links_id, linksTexts.id))
-                .leftJoin(linksTranslations, eq(linksTexts.id, linksTranslations.text_id))
                 .groupBy(dbSchema.institutions.id);
 
             // Execute the query
@@ -482,7 +532,17 @@ export function createGraphQLSchema(db) {
             }
 
             // Process translations for the single institution
-            const processedInstitutions = processTranslations(institutions, ['name', 'description', 'location', 'country', 'links']);
+            const processedInstitutions = processTranslations(institutions, ['name', 'description', 'location', 'country']);
+
+            // Explicitly parse the links JSON for the institution
+            if (processedInstitutions[0].links && typeof processedInstitutions[0].links === 'string') {
+                try {
+                    processedInstitutions[0].links = JSON.parse(processedInstitutions[0].links);
+                } catch (e) {
+                    console.error(`Error parsing links for institution ${processedInstitutions[0].id}:`, e);
+                    processedInstitutions[0].links = [];
+                }
+            }
 
             // Return the first (and only) result
             return processedInstitutions[0];

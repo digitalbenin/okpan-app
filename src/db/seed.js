@@ -239,7 +239,12 @@ const seed = async () => {
                 country_id: countryText[0].id,
                 location_id: locationText[0].id,
                 project_id: projectRecord.id,
-                status: 'in progress'
+                status: 'in progress',
+                links: JSON.stringify([
+                    { url: `https://institution${i + 1}.example.com`, label: `${i + 1} Official Website` },
+                    { url: `https://collections.institution${i + 1}.example.com`, label: `${i + 1} Collections` },
+                    { url: `https://research.institution${i + 1}.example.com`, label: `${i + 1} Research Portal` }
+                ])
             }).returning();
 
             return institution;
@@ -272,7 +277,7 @@ const seed = async () => {
 
             // For multiselect fields, create vocabulary options
             if (isMultiselect) {
-                const vocabularyPromises = Array(SEED_CONFIG.VOCABULARY_OPTIONS_PER_FIELD).fill().map(async (_, j) => {
+                const vocabularyPromises = Array(SEED_CONFIG.VOCABULARY_OPTIONS_PER_FIED).fill().map(async (_, j) => {
                     const [optionText, descriptionText] = await Promise.all([
                         db.insert(texts).values({
                             content: `Option ${j + 1} for Field ${i + 1}`,
