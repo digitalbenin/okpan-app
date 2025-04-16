@@ -11,7 +11,7 @@
   let tabsList = [
     { id: "objects", label: `Objects (${objects.length})` },
     { id: "assets", label: `Assets (${assets.length})` },
-    { id: "datasources", label: "Data sources (2)" },
+    { id: "datasources", label: "Data sources" },
   ];
 
   const tabs = new Tabs({

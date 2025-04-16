@@ -5,7 +5,14 @@
 
   const { data } = $props();
   // Extract all needed data from the load function
-  const { institution, objects, assets, projectId, institutionId } = data;
+  const {
+    institution,
+    objects,
+    assets,
+    projectId,
+    institutionId,
+    projectLanguages,
+  } = data;
 
   // Pass data to children via context
   setContext("institution", institution);
@@ -13,6 +20,7 @@
   setContext("assets", assets);
   setContext("projectId", projectId);
   setContext("institutionId", institutionId);
+  setContext("projectLanguages", projectLanguages);
 </script>
 
 <InstitutionOverview />

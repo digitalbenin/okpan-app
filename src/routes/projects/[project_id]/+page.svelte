@@ -1,8 +1,13 @@
 <script>
   import ProjectOverview from "$lib/components/projects/ProjectOverview.svelte";
   import Table from "$lib/components/institutions/Table.svelte";
+  import { setContext } from "svelte";
+
   const { data } = $props();
   $inspect("data project", data);
+
+  // Set project languages in context so they can be accessed by child components
+  setContext("projectLanguages", data.projectLanguages);
 </script>
 
 <ProjectOverview />

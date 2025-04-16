@@ -520,30 +520,41 @@ export const API_SECTIONS = {
     project_id
     status
     name {
+      id
       content
       original_language
       translations {
+        id
         language_code
         content
       }
     }
     description {
+      id
       content
+      original_language
       translations {
+        id
         language_code
         content
       }
     }
     location {
+      id
       content
+      original_language
       translations {
+        id
         language_code
         content
       }
     }
     country {
+      id
       content
+      original_language
       translations {
+        id
         language_code
         content
       }
@@ -842,7 +853,7 @@ export const API_SECTIONS = {
           },
           {
             name: "updateLinks",
-            query: `mutation UpdateInstitutionLinks($institutionId: String!, $links: JSON!) {
+            query: `mutation UpdateInstitutionLinks($institutionId: String!, $links: String!) {
   updateInstitutions(
     set: { links: $links }
     where: { id: { eq: $institutionId } }
@@ -1756,6 +1767,10 @@ export const API_SECTIONS = {
         content
       }
     }
+    objectsAssets {
+      id
+      object_id
+    }
   }
 }`
       },
@@ -1788,6 +1803,14 @@ export const API_SECTIONS = {
       id
       title {
         content
+      }
+    }
+    objectsAssets {
+      id
+      object_id
+      object {
+        id
+        status
       }
     }
   }

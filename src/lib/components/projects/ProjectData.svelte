@@ -2,8 +2,16 @@
     import { Tabs } from "melt/builders";
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
+    import { getContext } from "svelte";
 
-    let { languages = $bindable([]), projData = $bindable({}) } = $props();
+    // Get data from context if available
+    const projectFromContext = getContext("project");
+    const projectLanguagesFromContext = getContext("projectLanguages");
+
+    let {
+        languages = $bindable(projectLanguagesFromContext || []),
+        projData = $bindable(projectFromContext || {}),
+    } = $props();
 
     // Track content
     let titleContent = $state({});
@@ -14,27 +22,57 @@
 
     // Ensure titleContent and descriptionContent are initialized for all languages
     $effect(() => {
-        languages.forEach((lang) => {
-            if (!titleContent[lang.code]) {
-                titleContent[lang.code] = "";
-            }
-            if (!descriptionContent[lang.code]) {
-                descriptionContent[lang.code] = "";
-            }
-        });
+        if (languages && languages.length > 0) {
+            languages.forEach((lang) => {
+                // Use language_code if available (from context) or fall back to code
+                const langCode = lang.language_code || lang.code;
+                // If language has a language object (from context), use that code
+                const code = lang.language?.code || langCode;
+
+                if (!titleContent[code]) {
+                    titleContent[code] = "";
+                }
+                if (!descriptionContent[code]) {
+                    descriptionContent[code] = "";
+                }
+            });
+        }
     });
 
     // One-time initialization
     $effect(() => {
-        if (!initialized && languages.length > 0) {
+        if (!initialized && languages && languages.length > 0) {
+            // Determine if we're using context format or direct format
+            const isContextFormat = !!languages[0].language_code;
+
             // Set initial default language
-            defaultLangCode = languages[0].code;
+            if (isContextFormat) {
+                // From context: find default language
+                const defaultLang = languages.find((l) => l.is_default);
+                defaultLangCode = defaultLang
+                    ? defaultLang.language_code
+                    : languages[0].language_code;
+            } else {
+                // Direct format
+                defaultLangCode = languages[0].code;
+            }
 
             // Load data if available
             if (projData.title && projData.description) {
-                const defaultLang = projData.languages?.find(
-                    (l) => l.is_default === 1,
-                )?.language_code;
+                let defaultLang;
+
+                if (projData.languages) {
+                    defaultLang = projData.languages.find(
+                        (l) => l.is_default === 1,
+                    )?.language_code;
+                }
+
+                if (!defaultLang && isContextFormat) {
+                    // Try to get default from context languages
+                    defaultLang = languages.find(
+                        (l) => l.is_default,
+                    )?.language_code;
+                }
 
                 if (defaultLang) {
                     defaultLangCode = defaultLang;
@@ -69,32 +107,66 @@
 
     // Update projData when content or default language changes
     $effect(() => {
-        if (!initialized || !defaultLangCode || languages.length === 0) return;
+        if (
+            !initialized ||
+            !defaultLangCode ||
+            !languages ||
+            languages.length === 0
+        )
+            return;
+
+        // Determine if we're using context format or direct format
+        const isContextFormat = !!languages[0].language_code;
 
         console.log("Updating projData", { titleContent, descriptionContent });
 
         projData = {
-            languages: languages.map((lang) => ({
-                language_code: lang.code,
-                is_default: lang.code === defaultLangCode ? 1 : 0,
-            })),
+            languages: languages.map((lang) => {
+                const langCode = isContextFormat
+                    ? lang.language_code
+                    : lang.code;
+                return {
+                    language_code: langCode,
+                    is_default: langCode === defaultLangCode ? 1 : 0,
+                };
+            }),
             title: {
                 content: titleContent[defaultLangCode] || "",
                 translations: languages
-                    .filter((lang) => lang.code !== defaultLangCode)
-                    .map((lang) => ({
-                        language_code: lang.code,
-                        content: titleContent[lang.code] || "",
-                    })),
+                    .filter((lang) => {
+                        const langCode = isContextFormat
+                            ? lang.language_code
+                            : lang.code;
+                        return langCode !== defaultLangCode;
+                    })
+                    .map((lang) => {
+                        const langCode = isContextFormat
+                            ? lang.language_code
+                            : lang.code;
+                        return {
+                            language_code: langCode,
+                            content: titleContent[langCode] || "",
+                        };
+                    }),
             },
             description: {
                 content: descriptionContent[defaultLangCode] || "",
                 translations: languages
-                    .filter((lang) => lang.code !== defaultLangCode)
-                    .map((lang) => ({
-                        language_code: lang.code,
-                        content: descriptionContent[lang.code] || "",
-                    })),
+                    .filter((lang) => {
+                        const langCode = isContextFormat
+                            ? lang.language_code
+                            : lang.code;
+                        return langCode !== defaultLangCode;
+                    })
+                    .map((lang) => {
+                        const langCode = isContextFormat
+                            ? lang.language_code
+                            : lang.code;
+                        return {
+                            language_code: langCode,
+                            content: descriptionContent[langCode] || "",
+                        };
+                    }),
             },
         };
     });
@@ -118,38 +190,43 @@
 
 <div class="card border-0">
     <div class="card-body p-0 m-0">
-        {#if languages.length > 0}
+        {#if languages && languages.length > 0}
             <div class="mb-4">
                 <!-- Language Tabs -->
                 <div {...tabs.triggerList} class="nav nav-tabs gap-4 border-0">
                     {#each languages as lang}
+                        <!-- Handle both direct languages and context format -->
+                        {@const langCode = lang.language_code || lang.code}
+                        {@const langName =
+                            lang.language?.name || lang.name || langCode}
+
                         <div class="d-flex align-items-center">
                             <div class="d-flex flex-row align-items-center">
                                 <div class="form-check">
                                     <input
                                         type="checkbox"
                                         class="form-check-input"
-                                        checked={lang.code === defaultLangCode}
+                                        checked={langCode === defaultLangCode}
                                         onchange={() =>
-                                            updateDefaultLanguage(lang.code)}
+                                            updateDefaultLanguage(langCode)}
                                     />
                                 </div>
                                 <div
                                     class="d-flex flex-column justify-content-baseline align-items-start nav-link m-0 p-0"
-                                    style={lang.code === defaultLangCode
+                                    style={langCode === defaultLangCode
                                         ? "margin-top:14px !important"
                                         : ""}
                                 >
                                     <button
-                                        {...tabs.getTrigger(lang.code)}
+                                        {...tabs.getTrigger(langCode)}
                                         class="btn btn-link text-decoration-none p-0 m-0 {tabs.value ===
-                                        lang.code
+                                        langCode
                                             ? 'text-primary'
                                             : 'text-dark'}"
                                     >
-                                        {lang.name}
+                                        {langName}
                                     </button>
-                                    {#if lang.code === defaultLangCode}
+                                    {#if langCode === defaultLangCode}
                                         <div
                                             style="font-size: 10px"
                                             class="text-muted"
@@ -165,18 +242,23 @@
 
                 <!-- Tab Content -->
                 {#each languages as lang}
-                    <div {...tabs.getContent(lang.code)} class="pt-4">
+                    <!-- Handle both direct languages and context format -->
+                    {@const langCode = lang.language_code || lang.code}
+                    {@const langName =
+                        lang.language?.name || lang.name || langCode}
+
+                    <div {...tabs.getContent(langCode)} class="pt-4">
                         <div class="d-flex flex-column gap-4">
                             <BaseInput
                                 label="Title"
-                                placeholder={`Enter title in ${lang.name}...`}
-                                bind:value={titleContent[lang.code]}
+                                placeholder={`Enter title in ${langName}...`}
+                                bind:value={titleContent[langCode]}
                             />
 
                             <BaseTextArea
                                 label="Description"
-                                placeholder={`Enter description in ${lang.name}...`}
-                                bind:value={descriptionContent[lang.code]}
+                                placeholder={`Enter description in ${langName}...`}
+                                bind:value={descriptionContent[langCode]}
                                 rows={5}
                                 maxLength={500}
                             />

@@ -45,6 +45,7 @@ const handleImportAssets = async (event, data) => {
     let progress = 0
     let loading = true
     let errors = []
+    let createdAssets = []; // Array to store created assets
 
     console.log("asset handler data", data)
 
@@ -75,11 +76,12 @@ const handleImportAssets = async (event, data) => {
                     project_id: data?.projectId,
                     institution_id: data?.institutionId,
                     path: formats?.original || path.join(projectFolder, file),
-                    filename: file.split("/").pop(),
+                    filename: path.basename(file),
                     type: assetType,
                     formats: formats || null
                 }
-                await saveAssetToDb(asset)
+                const newAsset = await saveAssetToDb(asset)
+                createdAssets.push(newAsset);
 
                 progress++;
                 console.log(`${progress}/${totalFiles} files processed`);
@@ -104,12 +106,13 @@ const handleImportAssets = async (event, data) => {
                         project_id: data?.projectId,
                         institution_id: data?.institutionId,
                         path: formats.original,
-                        filename: file.split("/").pop(),
+                        filename: path.basename(file),
                         type: assetType,
                         formats
                     }
                     console.log("saving asset to db", asset)
-                    await saveAssetToDb(asset)
+                    const newAsset = await saveAssetToDb(asset)
+                    createdAssets.push(newAsset);
                 }
                 progress++;
                 console.log(`${progress}/${totalFiles} files processed`);
@@ -120,7 +123,8 @@ const handleImportAssets = async (event, data) => {
     }
     loading = false
     return {
-        errors
+        errors,
+        createdAssets // Return the list of created assets
     }
 }
 
@@ -160,7 +164,7 @@ const saveAssetToDb = async (asset) => {
     try {
         console.log("saving asset to db", asset)
         const res = await db.insert(assets).values(asset).returning();
-        return res
+        return res[0]; // Return the first (and only) created asset object
     } catch (error) {
         console.error("error saving asset to db", error)
         throw new Error("Error saving asset to db")

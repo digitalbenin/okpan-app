@@ -13,18 +13,11 @@
     // Display mode state
     let displayMode = "grid"; // 'grid' or 'list'
 
-    // Tabs configuration with real counts
-    const tabs = [
-        { id: "objects", label: "Objects", count: objects.length },
-        { id: "assets", label: "Assets", count: assets.length, active: true },
-        { id: "datasources", label: "Data sources", count: 2 },
-    ];
-
     // Function to determine if an asset is linked to objects
     function isAssetLinked(asset) {
-        // This would be replaced with actual logic to check if the asset is linked to objects
-        // For now, returning random values as placeholder
-        return Math.random() > 0.2;
+        // Check if the asset has any objectsAssets relations
+        // If it has at least one, it's linked to an object
+        return asset.objectsAssets && asset.objectsAssets.length > 0;
     }
 
     // Format date for display
@@ -59,24 +52,6 @@
 </script>
 
 <div class="container-fluid mt-4">
-    <!-- Tabs Navigation -->
-    <div class="mb-4 border-bottom">
-        <ul class="nav nav-tabs border-0">
-            {#each tabs as tab}
-                <li class="nav-item">
-                    <a
-                        class="nav-link {tab.active
-                            ? 'active text-primary'
-                            : 'text-secondary'}"
-                        href="#"
-                    >
-                        {tab.label} ({tab.count})
-                    </a>
-                </li>
-            {/each}
-        </ul>
-    </div>
-
     <!-- Display Controls -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
@@ -165,7 +140,11 @@
                                 style="height: 200px; overflow: hidden;"
                             >
                                 <BaseImage
-                                    src={"media://" + getImageSrc(asset)}
+                                    src={getImageSrc(asset)
+                                        ? `media://${getImageSrc(asset)}`
+                                        : asset.path
+                                          ? `media://${asset.path}`
+                                          : null}
                                     alt={asset.filename || `Asset ${i + 1}`}
                                     ratio="1"
                                     objectFit="cover"
@@ -225,7 +204,11 @@
                             <tr>
                                 <td style="width: 80px; height: 60px;">
                                     <BaseImage
-                                        src={"media://" + getImageSrc(asset)}
+                                        src={getImageSrc(asset)
+                                            ? `media://${getImageSrc(asset)}`
+                                            : asset.path
+                                              ? `media://${asset.path}`
+                                              : null}
                                         alt={asset.filename || `Asset ${i + 1}`}
                                         width="60"
                                         height="60"

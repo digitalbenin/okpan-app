@@ -8,10 +8,12 @@
         onClick = $bindable(),
         class: customClass = "", // Add class prop with default empty string
         style: customStyle = "", // Add style prop with default empty string
+        type = "button", // Add type prop with default button
     } = $props();
 </script>
 
 <button
+    {type}
     class={`d-flex gap-2 align-items-center ${customClass}`}
     style={customStyle}
     {disabled}

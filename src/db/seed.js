@@ -337,8 +337,24 @@ const seed = async () => {
                         institutionId: institution.id
                     };
 
-                    // Import the asset using our handler
-                    await handleImportAssets(null, assetData);
+                    // Import the asset using our handler and get the created asset ID
+                    const importResult = await handleImportAssets(null, assetData);
+
+                    if (importResult.createdAssets && importResult.createdAssets.length > 0) {
+                        const createdAsset = importResult.createdAssets[0]; // Assuming one asset per loop
+
+                        // Link the asset to the object
+                        await db.insert(objects_assets).values({
+                            id: uuidv4(),
+                            asset_id: createdAsset.id,
+                            object_id: object.id,
+                            order: assetIndex + 1 // Set order based on index
+                        }).execute();
+
+                        console.log(`Linked asset ${createdAsset.id} to object ${object.id}`);
+                    } else {
+                        console.warn(`Asset creation failed for object ${object.id}, index ${assetIndex}. Skipping link.`);
+                    }
 
                     // Clean up temp file
                     fs.unlinkSync(tempFilePath);
