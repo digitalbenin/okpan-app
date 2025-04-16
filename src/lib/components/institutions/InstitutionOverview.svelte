@@ -83,6 +83,7 @@
       name: {},
       location: {},
       country: {},
+      description: {},
       status: institution?.status || "in progress",
       // Include IDs needed for saving, if not part of the context already
       // institutionId: institutionId
@@ -98,6 +99,8 @@
         institution?.location?.content || "";
       initialFormData.country[defaultLangCode] =
         institution?.country?.content || "";
+      initialFormData.description[defaultLangCode] =
+        institution?.description?.content || "";
     }
 
     // Populate with translations
@@ -121,6 +124,12 @@
           (t) => t.language_code === langCode,
         );
         initialFormData.country[langCode] = countryTrans?.content || "";
+      }
+      if (!initialFormData.description[langCode]) {
+        const descTrans = institution?.description?.translations?.find(
+          (t) => t.language_code === langCode,
+        );
+        initialFormData.description[langCode] = descTrans?.content || "";
       }
     });
 
@@ -162,6 +171,7 @@
         name: formDataForEdit.name[defaultLangCode]?.trim() || "",
         location: formDataForEdit.location[defaultLangCode]?.trim() || "",
         country: formDataForEdit.country[defaultLangCode]?.trim() || "",
+        description: formDataForEdit.description[defaultLangCode]?.trim() || "",
         links: JSON.stringify(formDataForEdit.links || []),
       };
       console.log("Preparing main update payload:", updatePayload);
@@ -257,6 +267,30 @@
         } else if (countryVal && countryMainId) {
           translationPromises.push(
             addTranslation(countryMainId, langCode, countryVal),
+          );
+        }
+
+        // Process Description Translation
+        const descVal = formDataForEdit.description[langCode]?.trim() || "";
+        const descMainId = institution.description?.id;
+        const descExistingTranslationId = getExistingTranslationId(
+          "description",
+          langCode,
+        );
+        console.log(
+          `[Submit Secondary ${langCode}] Description: value='${descVal}', mainId=${descMainId}, existingTransId=${descExistingTranslationId}`,
+        );
+        if (descExistingTranslationId) {
+          if (descVal) {
+            translationPromises.push(
+              updateTranslation(descExistingTranslationId, descVal),
+            );
+          } else {
+            /* Optional: delete */
+          }
+        } else if (descVal && descMainId) {
+          translationPromises.push(
+            addTranslation(descMainId, langCode, descVal),
           );
         }
       });
@@ -375,7 +409,7 @@
 </div>
 
 <!-- Edit Modal -->
-<BaseModal bind:isOpen={showEditModal} size="lg">
+<BaseModal bind:isOpen={showEditModal} size="xl">
   {#snippet header()}
     Edit Institution
   {/snippet}

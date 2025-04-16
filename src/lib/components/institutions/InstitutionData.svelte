@@ -3,6 +3,7 @@
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseSelect from "$lib/components/base/BaseSelect.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
     import { Tabs } from "melt/builders";
 
     // Props: formData is now bindable, managed by parent.
@@ -108,30 +109,42 @@
             {@const langCode = lang.language_code}
             <div {...tabs.getContent(langCode)}>
                 <div class="d-flex flex-column gap-3">
-                    <!-- Bind inputs directly to the formData prop -->
+                    <!-- Arrange Name and Location in columns -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <BaseInput
+                                label="Institution Name"
+                                bind:value={formData.name[langCode]}
+                                error={lang.is_default ? errors.name : null}
+                                required={lang.is_default}
+                                placeholder={`Enter name in ${lang.language?.name || langCode}...`}
+                            />
+                        </div>
+                        <div class="col-md-6">
+                            <BaseInput
+                                label="Location"
+                                bind:value={formData.location[langCode]}
+                                placeholder={`Enter location in ${lang.language?.name || langCode}...`}
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Add Description TextArea -->
                     <div class="mb-3">
-                        <BaseInput
-                            label="Institution Name"
-                            bind:value={formData.name[langCode]}
-                            error={lang.is_default ? errors.name : null}
-                            required={lang.is_default}
-                            placeholder={`Enter name in ${lang.language?.name || langCode}...`}
+                        <BaseTextArea
+                            label="Description"
+                            bind:value={formData.description[langCode]}
+                            placeholder={`Enter description in ${lang.language?.name || langCode}...`}
+                            rows={4}
                         />
                     </div>
 
+                    <!-- Keep Country below for now or move into columns if preferred -->
                     <div class="mb-3">
                         <BaseInput
                             label="Country"
                             bind:value={formData.country[langCode]}
                             placeholder={`Enter country in ${lang.language?.name || langCode}...`}
-                        />
-                    </div>
-
-                    <div class="mb-3">
-                        <BaseInput
-                            label="Location"
-                            bind:value={formData.location[langCode]}
-                            placeholder={`Enter location in ${lang.language?.name || langCode}...`}
                         />
                     </div>
                 </div>
@@ -150,43 +163,58 @@
 
     <!-- Links Editor -->
     <div class="mt-4 mb-3 border-top pt-3">
-        <h5>Links</h5>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5>Links</h5>
+            <BaseButton
+                title="Add Link"
+                type="button"
+                class="btn btn-icon text-secondary"
+                icon="bi bi-plus-circle"
+                onClick={addLink}
+            />
+        </div>
         {#if formData.links && formData.links.length > 0}
+            <!-- Add Header Row -->
+            <div class="row g-2 align-items-center mb-1 fw-bold">
+                <div class="col">
+                    <label class="form-label mb-0 small">URL</label>
+                </div>
+                <div class="col">
+                    <label class="form-label mb-0 small">Label</label>
+                </div>
+                <div class="col-auto">
+                    <!-- Empty column for alignment with delete button -->
+                </div>
+            </div>
+            <!-- Existing Loop -->
             {#each formData.links as link, index (index)}
                 <div class="row g-2 align-items-center mb-2">
                     <div class="col">
                         <BaseInput
-                            label="URL"
                             bind:value={link.url}
-                            placeholder="https://example.com"
+                            placeholder="URL (e.g., https://example.com)"
                             required={true}
                         />
                     </div>
                     <div class="col">
                         <BaseInput
-                            label="Label"
                             bind:value={link.label}
-                            placeholder="Website Label"
+                            placeholder="Link Label (e.g., Official Website)"
                             required={true}
                         />
                     </div>
                     <div class="col-auto">
                         <BaseButton
-                            text="Remove"
+                            title="Remove Link"
                             type="button"
-                            class="btn btn-sm btn-outline-danger mt-4"
+                            class="btn btn-icon text-danger"
+                            icon="bi bi-trash"
                             onClick={() => removeLink(index)}
                         />
                     </div>
                 </div>
             {/each}
         {/if}
-        <BaseButton
-            text="Add Link"
-            type="button"
-            class="btn btn-sm btn-secondary"
-            onClick={addLink}
-        />
     </div>
 
     <!-- Remove Save button - Parent handles save -->
