@@ -2,6 +2,7 @@
   import { getContext } from "svelte";
   import { Tabs } from "melt/builders";
   import InstitutionAssets from "./InstitutionAssets.svelte";
+  import InstitutionObjects from "../objects/InstitutionObjects.svelte";
 
   // Get data from context
   const objects = getContext("objects") || [];
@@ -37,18 +38,8 @@
         {/each}
       </ul>
 
-      <div {...tabs.getContent("objects")}>
-        <div class="py-4">
-          <h4>Objects Content</h4>
-          <p>This tab will display institution objects.</p>
-          {#if objects.length === 0}
-            <div class="alert alert-info">
-              No objects found for this institution.
-            </div>
-          {:else}
-            <p>Found {objects.length} objects.</p>
-          {/if}
-        </div>
+      <div {...tabs.getContent("objects")} class="py-4">
+        <InstitutionObjects />
       </div>
 
       <div {...tabs.getContent("assets")}>

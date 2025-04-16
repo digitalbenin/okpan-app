@@ -2,13 +2,10 @@
     import { getContext } from "svelte";
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
+    import BaseButton from "$lib/components/base/BaseButton.svelte";
 
     // Get assets from context
     const assets = getContext("assets") || [];
-    const objects = getContext("objects") || [];
-    const institution = getContext("institution");
-    const projectId = getContext("projectId");
-    const institutionId = getContext("institutionId");
 
     // Display mode state
     let displayMode = "grid"; // 'grid' or 'list'
@@ -52,70 +49,73 @@
 </script>
 
 <div class="container-fluid mt-4">
-    <!-- Display Controls -->
+    <!-- Control Row 1: Display, Actions -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
+        <div class="d-flex align-items-center gap-2">
             <span class="me-2">Display as:</span>
             <div class="btn-group" role="group">
-                <button
-                    type="button"
+                <BaseButton
+                    icon="grid-3x3-gap-fill"
                     class="btn btn-sm {displayMode === 'grid'
                         ? 'btn-primary'
                         : 'btn-outline-secondary'}"
-                    on:click={() => (displayMode = "grid")}
-                >
-                    <i class="bi bi-grid-3x3-gap-fill"></i>
-                </button>
-                <button
-                    type="button"
+                    onClick={() => (displayMode = "grid")}
+                />
+                <BaseButton
+                    icon="list-ul"
                     class="btn btn-sm {displayMode === 'list'
                         ? 'btn-primary'
                         : 'btn-outline-secondary'}"
-                    on:click={() => (displayMode = "list")}
-                >
-                    <i class="bi bi-list-ul"></i>
-                </button>
+                    onClick={() => (displayMode = "list")}
+                />
             </div>
         </div>
+        <div class="d-flex align-items-center gap-2">
+            <BaseButton
+                text="Import assets"
+                icon="upload"
+                class="btn btn-sm btn-primary"
+                onClick={() => {
+                    /* TODO: Implement import */
+                }}
+            />
+        </div>
+    </div>
 
-        <div class="d-flex">
-            <div class="dropdown me-2">
-                <button
-                    class="btn btn-sm btn-dark dropdown-toggle"
-                    type="button"
-                    id="sortDropdown"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                >
-                    <i class="bi bi-sort-down-alt me-1"></i> Filename
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
-                    <li><a class="dropdown-item" href="#">Filename</a></li>
-                    <li><a class="dropdown-item" href="#">Date</a></li>
-                    <li><a class="dropdown-item" href="#">Type</a></li>
-                </ul>
-            </div>
-
-            <div class="dropdown me-2">
-                <button
-                    class="btn btn-sm btn-dark dropdown-toggle"
-                    type="button"
-                    id="filterDropdown"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                >
-                    <i class="bi bi-funnel me-1"></i> Filter by status
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="filterDropdown">
-                    <li><a class="dropdown-item" href="#">All</a></li>
-                    <li><a class="dropdown-item" href="#">Linked</a></li>
-                    <li><a class="dropdown-item" href="#">Not linked</a></li>
-                </ul>
-            </div>
-
-            <button class="btn btn-sm btn-primary">
-                <i class="bi bi-upload me-1"></i> Import assets
+    <!-- Control Row 2: Sort, Filter -->
+    <div class="d-flex align-items-center gap-2 mb-4">
+        <div class="dropdown">
+            <button
+                class="btn btn-sm btn-dark dropdown-toggle"
+                type="button"
+                id="sortDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+            >
+                <i class="bi bi-sort-down-alt me-1"></i> Filename
             </button>
+            <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                <li><a class="dropdown-item" href="#">Filename</a></li>
+                <li><a class="dropdown-item" href="#">Date</a></li>
+                <li><a class="dropdown-item" href="#">Type</a></li>
+            </ul>
+        </div>
+
+        <div class="dropdown">
+            <button
+                class="btn btn-sm btn-dark dropdown-toggle"
+                type="button"
+                id="filterDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+            >
+                <i class="bi bi-funnel me-1"></i> Filter by status
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                <li><a class="dropdown-item" href="#">All</a></li>
+                <li><a class="dropdown-item" href="#">Linked</a></li>
+                <li><a class="dropdown-item" href="#">Not linked</a></li>
+            </ul>
         </div>
     </div>
 

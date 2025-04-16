@@ -8,7 +8,15 @@ export const objectsOperations = {
             projectId: "Optional ID of project to filter by",
             institutionId: "Optional ID of institution to filter by"
         },
-        query: `query ListObjects($projectId: String, $institutionId: String) {\n  result: objects(\n    where: {\n      project_id: { eq: $projectId }\n      institution_id: { eq: $institutionId }\n    }\n  ) {\n    id\n    status\n    created_at\n    updated_at\n    institution_id\n    project_id\n    institution {\n      id\n      name {\n        content\n      }\n    }\n    project {\n      id\n      title {\n        content\n      }\n    }\n    objectsAssets {\n      order\n      asset {\n        id\n        filename\n        path\n        type     \n      }\n    }\n  }\n}`
+        query: `query ListObjects($projectId: String, $institutionId: String) {\n  result: objects(\n    where: {\n      project_id: { eq: $projectId }\n      institution_id: { eq: $institutionId }\n    }\n  ) {\n    id\n    status\n    created_at\n    updated_at\n    institution_id\n    project_id\n    institution {\n      id\n      name {\n        content\n      }\n    }\n    project {\n      id\n      title {\n        content\n      }\n    }\n    objectsAssets {\n      order\n      asset {\n        id\n        filename\n        formats\n        path\n        type     \n      }\n    }\n    objectsOntologyFields {
+      value
+      ontologyField {
+        name {
+          content
+        }
+      }
+    }
+  }\n}`
     },
 
     // GET BY ID

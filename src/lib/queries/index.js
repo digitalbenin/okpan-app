@@ -62,13 +62,13 @@ export const API_SECTIONS = {
         name: "Ontology Fields",
         operations: ontologyFieldsOperations
     },
-    schema: {
-        name: "GraphQL Schema",
-        operations: schemaOperations // Note: schema operations is an array
-    },
     settings: {
         name: "Project Settings",
         operations: settingsOperations
+    },
+    schema: {
+        name: "GraphQL Schema",
+        operations: schemaOperations // Note: schema operations is an array
     }
 };
 

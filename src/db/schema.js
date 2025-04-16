@@ -471,11 +471,11 @@ export const templatesRelations = relations(templates, ({ one, many }) => ({
         fields: [templates.datasource_id],
         references: [datasources.id]
     }),
-    imports: many(import_table)
+    imports: many(imports)
 }));
 
-// Import table
-export const import_table = sqliteTable('import', {
+// Imports table
+export const imports = sqliteTable('imports', {
     ...commonFields,
     filename: text('filename'),
     data: text('data', { mode: 'json' }),
@@ -483,9 +483,9 @@ export const import_table = sqliteTable('import', {
 });
 
 // Import relations
-export const importRelations = relations(import_table, ({ one }) => ({
+export const importsRelations = relations(imports, ({ one }) => ({
     template: one(templates, {
-        fields: [import_table.template_id],
+        fields: [imports.template_id],
         references: [templates.id]
     })
 }));
