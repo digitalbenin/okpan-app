@@ -1,7 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import { useGraphQL } from "$lib/stores/GraphqlUtils.js";
-    import { API_SECTIONS } from "$lib/utils/queries.js";
+    import { API_SECTIONS } from "$lib/queries/index.js";
 
     // Get GraphQL utilities
     const {

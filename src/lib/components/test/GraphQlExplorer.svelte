@@ -1,6 +1,6 @@
 <script>
   import { slide } from "svelte/transition";
-  import { API_SECTIONS } from "../../utils/queries";
+  import { API_SECTIONS } from "$lib/queries/index.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
 

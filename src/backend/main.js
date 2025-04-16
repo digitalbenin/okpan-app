@@ -4,6 +4,7 @@ import 'dotenv/config';
 import path from 'path';
 import net from 'net';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 
 // Import database and schema
 import { db } from '../db/init.js';
@@ -38,6 +39,24 @@ ipcMain.handle('import-assets', (event, data) =>
   handleImportAssets(event, data)
 );
 ipcMain.handle('open-file-dialog', handleFileDialog);
+
+// Handler for reading file content
+ipcMain.handle('read-file', async (event, filePath) => {
+  if (!filePath || typeof filePath !== 'string') {
+    throw new Error('Invalid file path provided.');
+  }
+  // Basic security check (optional): Ensure it's an absolute path if needed
+  // or restrict to certain directories if required.
+  // For now, we assume the path provided by dialog is trustworthy enough
+  try {
+    const content = await fsPromises.readFile(filePath, 'utf-8');
+    return content;
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error);
+    // Rethrow a more generic error or specific error code
+    throw new Error(`Failed to read file: ${error.message}`);
+  }
+});
 
 // Register protocol
 protocol.registerSchemesAsPrivileged([

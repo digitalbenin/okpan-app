@@ -1,5 +1,5 @@
 <script>
-    import { API_SECTIONS } from "$lib/utils/queries.js";
+    import { API_SECTIONS } from "$lib/queries/index.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { addToast } from "$lib/components/base/BaseToast.svelte";
     import { getLogStore } from "$lib/stores/LogStore.svelte.js";

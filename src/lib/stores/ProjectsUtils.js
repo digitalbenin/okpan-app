@@ -1,6 +1,6 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
-import { API_SECTIONS } from "$lib/utils/queries.js";
+import { API_SECTIONS } from "$lib/queries/index.js";
 
 // Get validation store
 const { getSchema, validate } = getValidationStore();

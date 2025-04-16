@@ -12,5 +12,6 @@ contextBridge.exposeInMainWorld('api', {
     exportLogs: (filePath) => ipcRenderer.invoke('export-logs', filePath),
     clearLogs: (filters) => ipcRenderer.invoke('clear-logs', filters),
     importAssets: (data) => ipcRenderer.invoke('import-assets', data),
-    openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options)
+    openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options),
+    readFile: (filePath) => ipcRenderer.invoke('read-file', filePath)
 });

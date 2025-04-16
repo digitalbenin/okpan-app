@@ -253,19 +253,113 @@ export function getTranslationStore() {
     };
 
     // Import translations from a file
-    const importTranslations = async (filePath = null) => {
-        if (!filePath) return { success: false, error: "No file provided" };
-
-        // TODO: Implement file import when ready
-        // This would include loading, validation, and updating the backend
-
+    const importTranslations = async () => {
         translationState.isLoading = true;
+        translationState.error = null;
+        let languagesAddedCount = 0;
+        let translationsAddedCount = 0;
 
-        // For now just refresh from backend after import
-        await refreshTranslations();
+        try {
+            // 1. Show Open Dialog via preload script (using correct function name)
+            const result = await window.api.openFileDialog({
+                title: 'Select Translations JSON File',
+                properties: ['openFile'],
+                filters: [{ name: 'JSON Files', extensions: ['json'] }]
+            });
 
-        translationState.isLoading = false;
-        return { success: true };
+            // Check if the user cancelled or an error occurred
+            if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+                translationState.isLoading = false;
+                return { success: false, message: "No file selected or dialog cancelled", stats: { languages: 0, translations: 0 } };
+            }
+
+            const filePath = result.filePaths[0];
+
+            // 2. Read File Content via preload script (using correct function name)
+            const fileContent = await window.api.readFile(filePath);
+            if (fileContent === null || fileContent === undefined) { // Check for null/undefined explicitly
+                throw new Error("Failed to read file or file is empty.");
+            }
+
+            // 3. Parse JSON
+            let jsonData;
+            try {
+                jsonData = JSON.parse(fileContent);
+            } catch (parseError) {
+                console.error("JSON Parse Error:", parseError, "\nContent:", fileContent); // Log content on error
+                throw new Error(`Failed to parse JSON: ${parseError.message}`);
+            }
+
+            // --- Step 4: Process Languages FIRST ---
+            const languagesToImport = jsonData?.languages;
+            if (Array.isArray(languagesToImport) && languagesToImport.length > 0) {
+                console.log(`Found ${languagesToImport.length} languages to import.`);
+                for (const lang of languagesToImport) {
+                    if (lang && lang.code && lang.name) {
+                        try {
+                            // Use executeQuery to add each language
+                            // Assuming 'create' is the operation name in interface_languages.js
+                            await executeQuery('interface_languages', 'create', {
+                                code: lang.code,
+                                name: lang.name
+                            });
+                            languagesAddedCount++;
+                        } catch (langError) {
+                            // Ignore errors if language likely already exists (e.g., unique constraint)
+                            // More specific error checking could be added if needed
+                            console.warn(`Could not add language ${lang.code} (may already exist):`, langError.message);
+                        }
+                    }
+                }
+                console.log(`Finished processing ${languagesToImport.length} languages. Added/Confirmed: ${languagesAddedCount}`);
+                // Optional: Short delay or refresh languages store if needed here
+                // await fetchLanguages(); // Refresh local language list if necessary
+            } else {
+                console.log("No 'languages' array found or empty in JSON file.");
+            }
+
+            // --- Step 5: Process Translations --- 
+            let translationsToImport = jsonData?.translations; // Use let instead of const
+
+            // Basic validation
+            if (!Array.isArray(translationsToImport)) {
+                // Allow import even if only languages were present
+                console.log("No 'translations' array found or not an array in JSON file.");
+                translationsToImport = []; // Ensure it's an empty array if missing/invalid
+            }
+
+            // Call the import mutation only if there are translations
+            if (translationsToImport.length > 0) {
+                console.log(`Attempting to import ${translationsToImport.length} translations.`);
+                await executeQuery('interface_translations', 'import', {
+                    translations: translationsToImport // Pass the extracted array
+                });
+                translationsAddedCount = translationsToImport.length; // Assume all were processed by bulk import
+            } else {
+                console.log("No translations to import.");
+            }
+
+            // 6. Refresh translations from backend after successful import
+            await refreshTranslations();
+            // Optionally refresh languages too if they might have changed
+            await fetchLanguages();
+
+            translationState.isLoading = false;
+            // Return success stats
+            return {
+                success: true,
+                message: `Import successful. Languages processed: ${languagesAddedCount}, Translations processed: ${translationsAddedCount}`,
+                stats: { languages: languagesAddedCount, translations: translationsAddedCount }
+            };
+
+        } catch (err) {
+            console.error("Import failed:", err);
+            translationState.error = err.message;
+            await logError("import_translations", err.message); // Log the error
+            translationState.isLoading = false;
+            // Return error details
+            return { success: false, message: err.message, stats: { languages: languagesAddedCount, translations: translationsAddedCount } };
+        }
     };
 
     // Create a new translation or update if exists

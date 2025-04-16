@@ -1,7 +1,7 @@
 <script>
     import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte";
     import { getProjectStore } from "$lib/stores/ProjectStore.svelte.js";
-    import { API_SECTIONS } from "$lib/utils/queries.js";
+    import { API_SECTIONS } from "$lib/queries/index.js";
     import BaseSelect from "$lib/components/base/BaseSelect.svelte";
     import ProjectData from "./ProjectData.svelte";
     import ProjectImportUrl from "./ProjectImportUrl.svelte";

@@ -1,6 +1,6 @@
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 import { addToast } from "$lib/components/base/BaseToast.svelte";
-import { API_SECTIONS } from "$lib/utils/queries.js";
+import { API_SECTIONS } from "$lib/queries/index.js";
 
 const { error: logError } = getLogStore();
 
