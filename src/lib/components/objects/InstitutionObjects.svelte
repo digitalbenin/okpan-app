@@ -193,11 +193,63 @@
             {/each}
         </div>
     {:else}
-        <!-- TODO: Implement List View -->
-        <div class="alert alert-secondary">List view not implemented yet.</div>
+        <!-- List View -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col" style="width: 80px;">Preview</th>
+                        <th scope="col">Object ID</th>
+                        <th scope="col">Designation</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {#if filteredObjects.length === 0}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4"
+                                >No objects found.</td
+                            >
+                        </tr>
+                    {:else}
+                        {#each filteredObjects as object (object.id)}
+                            <tr>
+                                <td>
+                                    <BaseImage
+                                        src={getObjectImageUrl(object)}
+                                        alt={getObjectTitle(object)}
+                                        width="60"
+                                        height="60"
+                                        objectFit="cover"
+                                        ratio="1/1"
+                                    />
+                                </td>
+                                <td>{getObjectTitle(object)}</td>
+                                <td>{getObjectType(object) || "-"}</td>
+                                <td>
+                                    {#if getObjectStatus(object).toLowerCase() === "completed"}
+                                        <span class="badge bg-success"
+                                            >Completed</span
+                                        >
+                                    {:else if getObjectStatus(object).toLowerCase() === "in progress"}
+                                        <span class="badge bg-warning text-dark"
+                                            >in progress</span
+                                        >
+                                    {:else}
+                                        <span class="badge bg-secondary"
+                                            >{getObjectStatus(object)}</span
+                                        >
+                                    {/if}
+                                </td>
+                            </tr>
+                        {/each}
+                    {/if}
+                </tbody>
+            </table>
+        </div>
     {/if}
 
-    {#if filteredObjects.length === 0}
+    {#if filteredObjects.length === 0 && displayMode === "grid"}
         <div class="alert alert-info mt-4">
             No objects found.
             <!-- TODO: Add guidance or link to add/import -->
