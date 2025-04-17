@@ -9,6 +9,7 @@
     institution,
     objects,
     assets,
+    datasources,
     projectId,
     institutionId,
     projectLanguages,
@@ -18,6 +19,7 @@
   setContext("institution", institution);
   setContext("objects", objects);
   setContext("assets", assets);
+  setContext("datasources", datasources);
   setContext("projectId", projectId);
   setContext("institutionId", institutionId);
   setContext("projectLanguages", projectLanguages);

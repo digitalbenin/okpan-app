@@ -1,17 +1,18 @@
 <script>
     import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte";
-    import { getProjectStore } from "$lib/stores/ProjectStore.svelte.js";
-    import { API_SECTIONS } from "$lib/queries/index.js";
-    import BaseSelect from "$lib/components/base/BaseSelect.svelte";
+    // import { getProjectStore } from "$lib/stores/ProjectStore.svelte.js"; // Removed store usage for creation
+    import { executeQuery } from "$lib/stores/GraphqlUtils.js"; // Added GraphqlUtils
+    // import { API_SECTIONS } from "$lib/queries/index.js"; // Likely not needed directly
+    import BaseSelect from "$lib/components/base/BaseSelect.svelte"; // Corrected path
     import ProjectData from "./ProjectData.svelte";
     import ProjectImportUrl from "./ProjectImportUrl.svelte";
     import ProjectImportFile from "./ProjectImportFile.svelte";
-    import BaseButton from "../base/BaseButton.svelte";
+    import BaseButton from "$lib/components/base/BaseButton.svelte"; // Corrected path
     import { addToast } from "$lib/components/base/BaseToast.svelte";
 
     // Get the store but don't use $inspect
     let { contentLanguageState } = getContentLanguageStore();
-    let { createProject, projectState } = getProjectStore();
+    // let { createProject, projectState } = getProjectStore(); // Removed store state
     let selectedLanguages = $state([]);
     let projectData = $state({});
     let isCreating = $state(false);
@@ -45,32 +46,73 @@
 
     // Handle creating a new project
     async function handleCreateProject() {
+        // Basic validation (Example: check if title exists for default language)
+        const defaultLangCode = selectedLanguageObjects.find(
+            (l) => l.is_default,
+        )?.code;
+        if (!projectData?.title?.[defaultLangCode]?.trim()) {
+            addToast({
+                data: {
+                    title: "Validation Error",
+                    description:
+                        "Project title is required for the default language.",
+                    type: "error",
+                },
+            });
+            return; // Stop creation
+        }
+
         try {
             isCreating = true;
 
-            // Simple, clean object with no circular references
+            // Prepare the payload (ensure it matches the expected GQL input type)
+            // This structure assumes the GQL mutation expects nested objects for translatable fields
             const formattedProject = {
-                languages: [...projectData.languages], // Create a copy to avoid references
+                languages: selectedLanguageObjects.map((lang) => lang.code), // Send array of codes
                 title: {
-                    content: projectData.title.content,
-                    translations: projectData.title.translations
-                        ? [...projectData.title.translations]
-                        : [], // Create a copy
+                    content: projectData.title[defaultLangCode] || "",
+                    translations: selectedLanguageObjects
+                        .filter(
+                            (lang) =>
+                                !lang.is_default &&
+                                projectData.title[lang.code]?.trim(),
+                        )
+                        .map((lang) => ({
+                            language_code: lang.code,
+                            content: projectData.title[lang.code].trim(),
+                        })),
                 },
                 description: {
-                    content: projectData.description.content,
-                    translations: projectData.description.translations
-                        ? [...projectData.description.translations]
-                        : [], // Create a copy
+                    content: projectData.description?.[defaultLangCode] || "",
+                    translations: selectedLanguageObjects
+                        .filter(
+                            (lang) =>
+                                !lang.is_default &&
+                                projectData.description?.[lang.code]?.trim(),
+                        )
+                        .map((lang) => ({
+                            language_code: lang.code,
+                            content: projectData.description[lang.code].trim(),
+                        })),
                 },
+                // Add other fields expected by the mutation if any
             };
 
-            // Call the store's createProject method
-            await createProject(formattedProject);
+            console.log("Creating project with payload:", formattedProject);
+
+            // Use executeQuery for creation
+            const result = await executeQuery(
+                "projects",
+                "create",
+                formattedProject,
+            );
+
+            console.log("Project creation result:", result);
 
             // Reset form after successful creation
             selectedLanguages = [];
             projectData = {};
+            activeTab = "Create a new project"; // Optionally reset tab
 
             // Show success message
             addToast({
@@ -80,15 +122,25 @@
                     type: "success",
                 },
             });
+
+            // TODO: Optionally redirect or update UI based on 'result'
+            // e.g., if result contains the new project ID
         } catch (error) {
             console.error("Failed to create project:", error);
-            // Error is already shown by the store
+            addToast({
+                data: {
+                    title: "Error",
+                    description: `Failed to create project: ${error.message}`,
+                    type: "error",
+                },
+            });
         } finally {
             isCreating = false;
         }
     }
 
-    $inspect("projectData", projectData);
+    // Remove $inspect if not needed for debugging
+    // $inspect("projectData", projectData);
 </script>
 
 <div class="d-flex flex-column gap-2 p-4">
@@ -153,7 +205,7 @@
             <BaseButton
                 text={isCreating ? "Creating..." : "Create Project"}
                 class="btn btn-primary"
-                disabled={isCreating || projectState.isLoading}
+                disabled={isCreating}
                 onClick={handleCreateProject}
             />
         </div>

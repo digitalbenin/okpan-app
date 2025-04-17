@@ -1,6 +1,6 @@
 <script>
   import ProjectsList from "$lib/components/projects/ProjectsList.svelte";
-  // import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
+  import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
 
   const { data } = $props();
 </script>
@@ -11,7 +11,7 @@
   </div>
   <div class="col">
     create project
-    <!-- <ProjectCreate /> -->
+    <ProjectCreate />
   </div>
 </div>
 
