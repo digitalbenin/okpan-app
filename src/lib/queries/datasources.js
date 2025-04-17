@@ -3,11 +3,75 @@ export const datasourcesOperations = {
     list: {
         type: "query",
         name: "List Datasources",
-        description: "Retrieves all datasources with optional filtering by institution",
+        description: "Retrieves a paginated list of datasources with optional filtering by institution and sorting",
         variables: {
-            institutionId: "Optional ID of institution to filter by"
+            institutionId: "Optional ID of institution to filter by",
+            page: "Page number for pagination (0-based, default: 0)",
+            pageSize: "Number of items per page (default: 10)",
+            orderBy: "Field to order by (created_at, updated_at, name, default: created_at)",
+            direction: "Sort direction (asc or desc, default: desc)"
         },
-        query: `query ListDatasources($institutionId: String) {\n  result: datasources(\n    where: { institution_id: { eq: $institutionId } }\n  ) {\n    id\n    created_at\n    updated_at\n    institution_id\n    language\n    copyright\n    contact\n    # date // Temporarily removed due to Int overflow error\n    institution {\n      id\n      name {\n        content\n      }\n    }\n    name {\n      id\n      content\n      original_language\n      translations {\n        id\n        language_code\n        content\n      }\n    }\n    method {\n      id\n      content\n      original_language\n      translations {\n        id\n        language_code\n        content\n      }\n    }\n    notes {\n      id\n      content\n      original_language\n      translations {\n        id\n        language_code\n        content\n      }\n    }\n    # Add counts later if needed via custom resolver\n  }\n}`
+        query: `query ListDatasources(
+    $institutionId: String, 
+    $page: Int, 
+    $pageSize: Int, 
+    $orderBy: String, 
+    $direction: String
+  ) {
+  result: datasourcesList(
+    institution_id: $institutionId, 
+    page: $page, 
+    pageSize: $pageSize, 
+    orderBy: $orderBy, 
+    direction: $direction
+  ) {
+    id
+    created_at
+    updated_at
+    institution_id
+    language
+    copyright
+    contact
+    date
+    objectsCount # Count of linked objects
+    institution {
+      id
+      name {
+        content
+      }
+    }
+    name {
+      id
+      content
+      original_language
+      translations {
+        id
+        language_code
+        content
+      }
+    }
+    method {
+      id
+      content
+      original_language
+      translations {
+        id
+        language_code
+        content
+      }
+    }
+    notes {
+      id
+      content
+      original_language
+      translations {
+        id
+        language_code
+        content
+      }
+    }
+  }
+}`
     },
 
     // GET BY ID

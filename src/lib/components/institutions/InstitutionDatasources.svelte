@@ -1,6 +1,7 @@
 <script>
     import { getContext } from "svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import { epochToDate } from "$lib/utils/dates";
 
     // Get data from context
     const datasources = getContext("datasources") || [];
@@ -11,30 +12,6 @@
     // Placeholder for sorting
     let sortColumn = "name"; // 'name' or 'date'
     let sortDirection = "asc"; // 'asc' or 'desc'
-
-    // Format date for display
-    function formatDate(dateString) {
-        if (!dateString) return "N/A";
-        try {
-            // Directly parse the ISO date string
-            const date = new Date(dateString);
-            // Check if the date is valid after parsing
-            if (isNaN(date.getTime())) {
-                console.error(
-                    "Invalid date string passed to formatDate:",
-                    dateString,
-                );
-                return "Invalid Date";
-            }
-            // Use toLocaleDateString for formatting. Using UTC might still be desired
-            // depending on whether you want to show the date in the user's local timezone
-            // or the UTC date part.
-            return date.toLocaleDateString(undefined, { timeZone: "UTC" }); // Keep UTC formatting for consistency for now
-        } catch (e) {
-            console.error("Error formatting date:", e);
-            return "Error"; // Return clearer error indicator
-        }
-    }
 
     // Computed property for filtered and sorted datasources (implement actual logic later)
     let filteredAndSortedDatasources = $derived(datasources); // TODO: Add filtering and sorting
@@ -105,13 +82,27 @@
                             Date
                         </span>
                     </th>
+                    <th
+                        scope="col"
+                        class="py-1"
+                        style="cursor: pointer;"
+                        onclick={() => toggleSort("objectsCount")}
+                        aria-label="Sort by Objects"
+                    >
+                        <span
+                            class="btn btn-sm btn-dark d-inline-flex align-items-center gap-1"
+                        >
+                            <i class="bi bi-sort-down-alt me-1"></i>
+                            Objects
+                        </span>
+                    </th>
                     <th scope="col" class="text-end"></th>
                 </tr>
             </thead>
             <tbody>
                 {#if filteredAndSortedDatasources.length === 0}
                     <tr>
-                        <td colspan="3" class="text-center text-muted py-4">
+                        <td colspan="4" class="text-center text-muted py-4">
                             {#if datasources.length === 0}
                                 No data sources found for this institution.
                                 <!-- TODO: Add link/button to import? -->
@@ -127,7 +118,8 @@
                                 >{datasource.name?.content ||
                                     "Untitled Data Source"}</td
                             >
-                            <td>{formatDate(datasource.created_at)}</td>
+                            <td>{epochToDate(datasource.date)}</td>
+                            <td>{datasource.objectsCount}</td>
                             <td
                                 class="text-end d-flex flex-row justify-content-end"
                             >

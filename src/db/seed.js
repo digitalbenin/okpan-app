@@ -326,7 +326,7 @@ const seed = async () => {
                     language: english[0].code,
                     copyright: `© ${new Date().getFullYear()} Institution ${i + 1}`,
                     contact: `curator@institution${i + 1}.example.com`,
-                    date: Date.now()
+                    date: new Date()
                 }).returning();
 
                 if (insertResult && insertResult.length > 0) {

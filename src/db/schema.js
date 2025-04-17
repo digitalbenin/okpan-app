@@ -305,7 +305,7 @@ export const datasources = sqliteTable('datasources', {
     method_id: text('method_id').references(() => texts.id),
     contact: text('contact'),
     notes_id: text('notes_id').references(() => texts.id),
-    date: integer('date')
+    date: integer('date', { mode: 'timestamp_ms' })
 });
 
 // Datasources relations
