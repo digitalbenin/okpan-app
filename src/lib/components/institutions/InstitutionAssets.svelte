@@ -1,14 +1,161 @@
 <script>
-    import { getContext } from "svelte";
+    import { getContext, onMount, onDestroy } from "svelte";
+    import { page } from "$app/stores";
+    import { goto } from "$app/navigation";
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import AssetDetail from "$lib/components/assets/assetDetail.svelte";
+    import SidePanel from "$lib/components/common/SidePanel.svelte"; // Import the new SidePanel
 
     // Get assets from context
     const assets = getContext("assets") || [];
 
     // Display mode state
     let displayMode = "grid"; // 'grid' or 'list'
+
+    // Selected asset state
+    let selectedAssetId = null;
+    let selectedAsset = null;
+    let closeContentTimeout = null; // Added to manage timeout
+
+    // Subscribe to URL changes
+    let pageUnsubscribe;
+
+    onMount(() => {
+        pageUnsubscribe = page.subscribe((currentPage) => {
+            const urlAssetId = currentPage.url.searchParams.get("assetId");
+
+            // Convert null to undefined for comparison, or keep as string
+            const currentSelectedId = selectedAssetId
+                ? String(selectedAssetId)
+                : undefined;
+            const currentUrlId = urlAssetId ? String(urlAssetId) : undefined;
+
+            if (currentUrlId && currentUrlId !== currentSelectedId) {
+                // URL has an ID, and it's different from the current state, or state is null -> Open/switch panel
+                console.log(
+                    `URL change detected: Opening/switching to asset ${currentUrlId}`,
+                );
+                showAssetDetail(currentUrlId, false); // Don't push state if triggered by URL
+            } else if (!currentUrlId && currentSelectedId) {
+                // URL has no ID, but state does -> Close panel
+                console.log(
+                    `URL change detected: Closing asset ${currentSelectedId}`,
+                );
+                closeAssetDetail(false); // Don't push state if triggered by URL
+            }
+            // Handle case where URL and state match (no change needed)
+            // Handle case where both are null/undefined (no change needed)
+        });
+
+        // Check initial URL state on mount
+        const initialAssetId = $page.url.searchParams.get("assetId");
+        if (initialAssetId) {
+            console.log(
+                `Initial mount: Found assetId ${initialAssetId} in URL`,
+            );
+            showAssetDetail(initialAssetId, false);
+        }
+    });
+
+    onDestroy(() => {
+        if (pageUnsubscribe) {
+            pageUnsubscribe();
+        }
+        // Clear timeout on component destroy to prevent memory leaks
+        if (closeContentTimeout) {
+            clearTimeout(closeContentTimeout);
+        }
+    });
+
+    // Function to find asset by ID
+    function findAssetById(id) {
+        // Assuming asset IDs are numbers or strings that need comparison
+        return assets.find((asset) => String(asset.id) === String(id)) || null;
+    }
+
+    // Function to show asset detail panel
+    function showAssetDetail(assetId, updateUrl = true) {
+        // Clear any pending timeout to remove content, as we are now showing content
+        if (closeContentTimeout) {
+            clearTimeout(closeContentTimeout);
+            closeContentTimeout = null;
+        }
+
+        const asset = findAssetById(assetId);
+        const newAssetId = asset ? String(asset.id) : null;
+
+        if (newAssetId && newAssetId !== selectedAssetId) {
+            console.log(
+                `Showing asset detail for ID: ${newAssetId}, updateUrl: ${updateUrl}`,
+            );
+            selectedAssetId = newAssetId;
+            selectedAsset = asset;
+            // The panel will open reactively based on selectedAssetId
+
+            if (updateUrl) {
+                const currentPath = $page.url.pathname;
+                const currentParams = new URLSearchParams($page.url.search);
+                currentParams.set("assetId", newAssetId);
+                console.log(
+                    `Updating URL: ${currentPath}?${currentParams.toString()}`,
+                );
+                goto(`${currentPath}?${currentParams.toString()}`, {
+                    keepfocus: true,
+                    noscroll: true,
+                    replaceState: false, // Use false to allow back button navigation
+                });
+            }
+        } else if (!newAssetId) {
+            console.warn(`Asset with ID ${assetId} not found.`);
+            closeAssetDetail(true); // Close if asset not found
+        }
+    }
+
+    // Function to close asset detail panel
+    function closeAssetDetail(updateUrl = true) {
+        console.log(
+            `Closing asset detail. Current ID: ${selectedAssetId}, updateUrl: ${updateUrl}`,
+        );
+        if (selectedAssetId !== null) {
+            const idToRemove = selectedAssetId;
+            selectedAssetId = null; // Start panel closing animation immediately
+            // Panel closes reactively via isOpen={!!selectedAssetId}
+
+            // Clear any existing timeout before setting a new one
+            if (closeContentTimeout) {
+                clearTimeout(closeContentTimeout);
+            }
+
+            // Set timeout to remove the content *after* the animation
+            closeContentTimeout = setTimeout(() => {
+                // Only set asset to null if the panel wasn't reopened for the same ID in the meantime
+                // (selectedAssetId being null is the check that close is still intended)
+                if (selectedAssetId === null) {
+                    console.log(
+                        `Timeout: Removing asset content for ID: ${idToRemove}`,
+                    );
+                    selectedAsset = null;
+                }
+                closeContentTimeout = null; // Clear the timeout ID variable
+            }, 310); // Matches CSS transition duration + small buffer
+
+            if (updateUrl) {
+                const currentPath = $page.url.pathname;
+                const currentParams = new URLSearchParams($page.url.search);
+                currentParams.delete("assetId");
+                const newSearch = currentParams.toString();
+                const newUrl = `${currentPath}${newSearch ? "?" + newSearch : ""}`;
+                console.log(`Updating URL: ${newUrl}`);
+                goto(newUrl, {
+                    keepfocus: true,
+                    noscroll: true,
+                    replaceState: false, // Use false to allow back button navigation
+                });
+            }
+        }
+    }
 
     // Function to determine if an asset is linked to objects
     function isAssetLinked(asset) {
@@ -44,6 +191,13 @@
         } catch (e) {
             console.error("Error parsing formats:", e);
             return asset.path || null;
+        }
+    }
+
+    // Keyboard handler for accessible clicks
+    function handleAssetKeyPress(event, assetId) {
+        if (event.key === "Enter" || event.key === " ") {
+            showAssetDetail(assetId);
         }
     }
 </script>
@@ -133,7 +287,15 @@
                 </div>
             {:else}
                 {#each assets as asset, i}
-                    <div class="col">
+                    <div
+                        class="col"
+                        role="button"
+                        tabindex="0"
+                        onclick={() => showAssetDetail(asset.id)}
+                        onkeydown={(event) =>
+                            handleAssetKeyPress(event, asset.id)}
+                        style="cursor: pointer;"
+                    >
                         <div class="card h-100 border-light">
                             <div
                                 class="card-img-top position-relative"
@@ -201,7 +363,14 @@
                         </tr>
                     {:else}
                         {#each assets as asset, i}
-                            <tr>
+                            <tr
+                                role="button"
+                                tabindex="0"
+                                onclick={() => showAssetDetail(asset.id)}
+                                onkeydown={(event) =>
+                                    handleAssetKeyPress(event, asset.id)}
+                                style="cursor: pointer;"
+                            >
                                 <td style="width: 80px; height: 60px;">
                                     <BaseImage
                                         src={getImageSrc(asset)
@@ -240,3 +409,41 @@
         </div>
     {/if}
 </div>
+
+<!-- Use the reusable SidePanel component -->
+<SidePanel
+    isOpen={!!selectedAssetId}
+    on:close={() => closeAssetDetail(true)}
+    position="right"
+    width="500px"
+    aria-labelledby="assetDetailTitle"
+>
+    <div
+        slot="header"
+        class="d-flex align-items-center justify-content-between"
+    >
+        <div class="d-flex align-items-center gap-2">
+            <BaseButton
+                icon="chevron-right"
+                onClick={() => closeAssetDetail(true)}
+                class="btn btn-light border-1 px-2 me-2 rounded-0 border-dark text-decoration-none text-dark"
+                aria-label="Close asset detail"
+            />
+            <h5 id="assetDetailTitle" class="mb-0 text-break">
+                {selectedAsset?.filename || "Asset Detail"}
+            </h5>
+        </div>
+        <!-- Optional: Add other header elements here if needed -->
+    </div>
+
+    {#if selectedAsset}
+        <!-- Pass the selected asset to AssetDetail component -->
+        <AssetDetail asset={selectedAsset} />
+        <!-- No need for on:close here as SidePanel handles it -->
+    {:else}
+        <!-- Optional: Placeholder or loading state inside the panel before asset is loaded -->
+        <p>Loading...</p>
+    {/if}
+</SidePanel>
+
+<!-- Removed Bootstrap Offcanvas HTML -->

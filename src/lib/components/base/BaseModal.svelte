@@ -88,6 +88,5 @@
     /* Remove custom margin as Bootstrap handles it */
     :global(.modal-dialog) {
         margin: 1.75rem auto;
-        max-width: 500px;
     }
 </style>
