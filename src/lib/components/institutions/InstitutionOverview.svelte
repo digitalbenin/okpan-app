@@ -14,7 +14,6 @@
 
   // Get data from context initially
   const initialInstitution = getContext("institution");
-  const projectId = getContext("projectId");
   const institutionId = getContext("institutionId");
   const projectLanguages = getContext("projectLanguages");
 
@@ -137,18 +136,10 @@
     initialFormData.links = safeParseLinks(institution?.links || "[]");
 
     formDataForEdit = initialFormData;
-    console.log(
-      "Initialized formDataForEdit:",
-      JSON.stringify(formDataForEdit),
-    );
     showEditModal = true;
   }
 
   async function handleSubmit() {
-    console.log(
-      "Submit handler called with formDataForEdit:",
-      JSON.stringify(formDataForEdit),
-    );
     isSubmitting = true;
     formErrors = {};
 
@@ -174,21 +165,12 @@
         description: formDataForEdit.description[defaultLangCode]?.trim() || "",
         links: JSON.stringify(formDataForEdit.links || []),
       };
-      console.log("Preparing main update payload:", updatePayload);
 
-      // Call the main update function (which should handle updating texts for default lang via partialUpdate)
       await updateInstitution(institutionId, updatePayload);
-      console.log(
-        "Main institution update (status, default texts) successful.",
-      );
 
-      // 2. Prepare and process ONLY Secondary Language Translations
       const translationPromises = [];
       const secondaryLanguages = projectLanguages.filter(
         (lang) => !lang.is_default,
-      );
-      console.log(
-        `Processing ${secondaryLanguages.length} secondary languages.`,
       );
 
       secondaryLanguages.forEach((lang) => {
@@ -201,14 +183,9 @@
           "name",
           langCode,
         );
-        console.log(
-          `[Submit Secondary ${langCode}] Name: value='${nameVal}', mainId=${nameMainId}, existingTransId=${nameExistingTranslationId}`,
-        );
+
         if (nameExistingTranslationId) {
           if (nameVal) {
-            console.log(
-              ` --> Queuing UPDATE translation name: ID=${nameExistingTranslationId}, Content="${nameVal}"`,
-            );
             translationPromises.push(
               updateTranslation(nameExistingTranslationId, nameVal),
             );
@@ -216,9 +193,6 @@
             /* Optional: delete */
           }
         } else if (nameVal && nameMainId) {
-          console.log(
-            ` --> Queuing ADD translation name: ParentID=${nameMainId}, Lang=${langCode}, Content="${nameVal}"`,
-          );
           translationPromises.push(
             addTranslation(nameMainId, langCode, nameVal),
           );
@@ -231,9 +205,7 @@
           "location",
           langCode,
         );
-        console.log(
-          `[Submit Secondary ${langCode}] Location: value='${locVal}', mainId=${locMainId}, existingTransId=${locExistingTranslationId}`,
-        );
+
         if (locExistingTranslationId) {
           if (locVal) {
             translationPromises.push(
@@ -253,9 +225,7 @@
           "country",
           langCode,
         );
-        console.log(
-          `[Submit Secondary ${langCode}] Country: value='${countryVal}', mainId=${countryMainId}, existingTransId=${countryExistingTranslationId}`,
-        );
+
         if (countryExistingTranslationId) {
           if (countryVal) {
             translationPromises.push(
@@ -277,9 +247,7 @@
           "description",
           langCode,
         );
-        console.log(
-          `[Submit Secondary ${langCode}] Description: value='${descVal}', mainId=${descMainId}, existingTransId=${descExistingTranslationId}`,
-        );
+
         if (descExistingTranslationId) {
           if (descVal) {
             translationPromises.push(
@@ -297,13 +265,7 @@
 
       // 3. Execute all translation promises
       if (translationPromises.length > 0) {
-        console.log(
-          `Executing ${translationPromises.length} translation operations...`,
-        );
         await Promise.all(translationPromises);
-        console.log("All translation operations processed.");
-      } else {
-        console.log("No translation operations to perform.");
       }
 
       // 4. Manual Refresh of local state
@@ -322,13 +284,6 @@
       });
     } catch (error) {
       console.error("Error updating institution:", error);
-      addToast({
-        data: {
-          title: "Error",
-          description: "Failed to update institution: " + error.message,
-          type: "error",
-        },
-      });
     } finally {
       isSubmitting = false;
     }
@@ -342,12 +297,12 @@
   <div class="row mb-4 align-items-center">
     <div class="col">
       <div class="d-flex align-items-center">
-        <button
+        <BaseButton
           class="btn btn-sm btn-outline-secondary me-3"
-          on:click={openEditModal}
-        >
-          <i class="bi bi-pencil"></i>
-        </button>
+          icon="pencil"
+          onClick={openEditModal}
+          aria-label="Edit Institution"
+        />
         <h1 class="m-0 d-inline-block">{institution?.name?.content}</h1>
         <BaseBadge
           text={institution?.status === "in progress"
