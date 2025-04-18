@@ -6,7 +6,48 @@ export const researchFieldsOperations = {
         variables: {
             projectId: "Optional ID of project to filter by"
         },
-        query: `query ListResearchFields($projectId: String) {\n  research_fields(\n    where: { project_id: { eq: $projectId } }\n  ) {\n    id\n    type\n    created_at\n    updated_at\n    project_id\n    name {\n      id\n      content\n      original_language\n      translations {\n        language_code\n        content\n      }\n    }\n    description {\n      id\n      content\n      original_language\n      translations {\n        language_code\n        content\n      }\n    }\n    project {\n      id\n      title {\n        content\n      }\n    }\n    vocabularies {\n      id\n      option {\n        content\n      }\n      description {\n        content\n      }\n    }\n  }\n}`
+        query: `query ListResearchFields($projectId: String) {
+  research_fields(where: { project_id: { eq: $projectId } }) {
+    id
+    type
+    created_at
+    updated_at
+    project_id
+    name {
+      id
+      content
+      original_language
+      translations {
+        language_code
+        content
+      }
+    }
+    description {
+      id
+      content
+      original_language
+      translations {
+        language_code
+        content
+      }
+    }
+    project {
+      id
+      title {
+        content
+      }
+    }
+    vocabularies {
+      id
+      option {
+        content
+      }
+      description {
+        content
+      }
+    }
+  }
+}`
     },
     getById: {
         type: "query",
@@ -15,7 +56,64 @@ export const researchFieldsOperations = {
         variables: {
             fieldId: "ID of the research field to retrieve"
         },
-        query: `query GetResearchField($fieldId: String!) {\n  research_fields(where: { id: { eq: $fieldId } }) {\n    id\n    type\n    created_at\n    updated_at\n    project_id\n    name {\n      id\n      content\n      original_language\n      translations {\n        id\n        language_code\n        content\n      }\n    }\n    description {\n      id\n      content\n      original_language\n      translations {\n        id\n        language_code\n        content\n      }\n    }\n    project {\n      id\n      title {\n        content\n      }\n    }\n    vocabularies {\n      id\n      main_asset\n      other_assets\n      option {\n        id\n        content\n        original_language\n        translations {\n          language_code\n          content\n        }\n      }\n      description {\n        id\n        content\n        original_language\n        translations {\n          language_code\n          content\n        }\n      }\n    }\n  }\n}`
+        query: `query GetResearchField($fieldId: String!) {
+  research_fields(where: { id: { eq: $fieldId } }) {
+    id
+    type
+    created_at
+    updated_at
+    project_id
+    name {
+      id
+      content
+      original_language
+      translations {
+        id
+        language_code
+        content
+      }
+    }
+    description {
+      id
+      content
+      original_language
+      translations {
+        id
+        language_code
+        content
+      }
+    }
+    project {
+      id
+      title {
+        content
+      }
+    }
+    vocabularies {
+      id
+      main_asset
+      other_assets
+      option {
+        id
+        content
+        original_language
+        translations {
+          language_code
+          content
+        }
+      }
+      description {
+        id
+        content
+        original_language
+        translations {
+          language_code
+          content
+        }
+      }
+    }
+  }
+}`
     },
     create: {
         type: "mutation",
@@ -31,17 +129,65 @@ export const researchFieldsOperations = {
         mutations: [
             {
                 name: "createNameText",
-                query: `mutation CreateResearchFieldName($name: String!, $languageCode: String!) {\n  insertIntoTexts(values: [{\n    content: $name,\n    context: "research_fields.name",\n    original_language: $languageCode\n  }]) {\n    id\n    content\n  }\n}`,
+                query: `mutation CreateResearchFieldName($name: String!, $languageCode: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $name
+        context: "research_fields.name"
+        original_language: $languageCode
+      }
+    ]
+  ) {
+    id
+    content
+  }
+}`,
                 useVariables: ["name", "languageCode"]
             },
             {
                 name: "createDescriptionText",
-                query: `mutation CreateResearchFieldDescription($description: String!, $languageCode: String!) {\n  insertIntoTexts(values: [{\n    content: $description,\n    context: "research_fields.description",\n    original_language: $languageCode\n  }]) {\n    id\n    content\n  }\n}`,
+                query: `mutation CreateResearchFieldDescription($description: String!, $languageCode: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $description
+        context: "research_fields.description"
+        original_language: $languageCode
+      }
+    ]
+  ) {
+    id
+    content
+  }
+}`,
                 useVariables: ["description", "languageCode"]
             },
             {
                 name: "createResearchField",
-                query: `mutation CreateResearchFieldEntry($nameId: String!, $descriptionId: String!, $projectId: String!, $type: String) {\n  insertIntoResearch_fields(values: [{\n    name_id: $nameId,\n    description_id: $descriptionId,\n    project_id: $projectId,\n    type: $type\n  }]) {\n    id\n    type\n    project_id\n    name_id\n    description_id\n  }\n}`,
+                query: `mutation CreateResearchFieldEntry(
+  $nameId: String!
+  $descriptionId: String!
+  $projectId: String!
+  $type: String
+) {
+  insertIntoResearch_fields(
+    values: [
+      {
+        name_id: $nameId
+        description_id: $descriptionId
+        project_id: $projectId
+        type: $type
+      }
+    ]
+  ) {
+    id
+    type
+    project_id
+    name_id
+    description_id
+  }
+}`,
                 useVariables: ["projectId", "type"],
                 mapVariables: {
                     nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
@@ -64,12 +210,27 @@ export const researchFieldsOperations = {
         mutations: [
             {
                 name: "getResearchField",
-                query: `query GetResearchFieldForUpdate($fieldId: String!) {\n  research_fields(where: { id: { eq: $fieldId } }) {\n    id\n    name_id\n    description_id\n    type\n  }\n}`,
+                query: `query GetResearchFieldForUpdate($fieldId: String!) {
+  research_fields(where: { id: { eq: $fieldId } }) {
+    id
+    name_id
+    description_id
+    type
+  }
+}`,
                 useVariables: ["fieldId"]
             },
             {
                 name: "updateName",
-                query: `mutation UpdateResearchFieldName($nameId: String!, $name: String!) {\n  updateTexts(\n    set: { content: $name }\n    where: { id: { eq: $nameId } }\n  ) {\n    id\n    content\n  }\n}`,
+                query: `mutation UpdateResearchFieldName($nameId: String!, $name: String!) {
+  updateTexts(
+    set: { content: $name }
+    where: { id: { eq: $nameId } }
+  ) {
+    id
+    content
+  }
+}`,
                 useVariables: ["name"],
                 mapVariables: {
                     nameId: { from: "getResearchField", path: "research_fields.0.name_id" }
@@ -78,7 +239,15 @@ export const researchFieldsOperations = {
             },
             {
                 name: "updateDescription",
-                query: `mutation UpdateResearchFieldDescription($descriptionId: String!, $description: String!) {\n  updateTexts(\n    set: { content: $description }\n    where: { id: { eq: $descriptionId } }\n  ) {\n    id\n    content\n  }\n}`,
+                query: `mutation UpdateResearchFieldDescription($descriptionId: String!, $description: String!) {
+  updateTexts(
+    set: { content: $description }
+    where: { id: { eq: $descriptionId } }
+  ) {
+    id
+    content
+  }
+}`,
                 useVariables: ["description"],
                 mapVariables: {
                     descriptionId: { from: "getResearchField", path: "research_fields.0.description_id" }
@@ -87,7 +256,15 @@ export const researchFieldsOperations = {
             },
             {
                 name: "updateType",
-                query: `mutation UpdateResearchFieldType($fieldId: String!, $type: String!) {\n  updateResearch_fields(\n    set: { type: $type }\n    where: { id: { eq: $fieldId } }\n  ) {\n    id\n    type\n  }\n}`,
+                query: `mutation UpdateResearchFieldType($fieldId: String!, $type: String!) {
+  updateResearch_fields(
+    set: { type: $type }
+    where: { id: { eq: $fieldId } }
+  ) {
+    id
+    type
+  }
+}`,
                 useVariables: ["fieldId", "type"],
                 skipIf: { variableName: "type", isUndefined: true }
             }
@@ -101,7 +278,13 @@ export const researchFieldsOperations = {
         variables: {
             fieldId: "ID of the research field to delete"
         },
-        query: `mutation DeleteResearchField($fieldId: String!) {\n  deleteFromResearch_fields(where: { id: { eq: $fieldId } }) {\n    id\n    name_id\n    description_id\n  }\n}`
+        query: `mutation DeleteResearchField($fieldId: String!) {
+  deleteFromResearch_fields(where: { id: { eq: $fieldId } }) {
+    id
+    name_id
+    description_id
+  }
+}`
     },
     addVocabulary: {
         type: "mutation",
@@ -118,17 +301,66 @@ export const researchFieldsOperations = {
         mutations: [
             {
                 name: "createOptionText",
-                query: `mutation CreateVocabularyOption($option: String!, $languageCode: String!) {\n  insertIntoTexts(values: [{\n    content: $option,\n    context: "vocabularies.option",\n    original_language: $languageCode\n  }]) {\n    id\n  }\n}`,
+                query: `mutation CreateVocabularyOption($option: String!, $languageCode: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $option
+        context: "vocabularies.option"
+        original_language: $languageCode
+      }
+    ]
+  ) {
+    id
+  }
+}`,
                 useVariables: ["option", "languageCode"]
             },
             {
                 name: "createDescriptionText",
-                query: `mutation CreateVocabularyDescription($description: String!, $languageCode: String!) {\n  insertIntoTexts(values: [{\n    content: $description,\n    context: "vocabularies.description",\n    original_language: $languageCode\n  }]) {\n    id\n  }\n}`,
+                query: `mutation CreateVocabularyDescription($description: String!, $languageCode: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $description
+        context: "vocabularies.description"
+        original_language: $languageCode
+      }
+    ]
+  ) {
+    id
+  }
+}`,
                 useVariables: ["description", "languageCode"]
             },
             {
                 name: "createVocabulary",
-                query: `mutation CreateVocabularyEntry($optionId: String!, $descriptionId: String!, $fieldId: String!, $mainAsset: String, $otherAssets: String) {\n  insertIntoVocabularies(values: [{\n    option_id: $optionId,\n    description_id: $descriptionId,\n    field_id: $fieldId,\n    main_asset: $mainAsset,\n    other_assets: $otherAssets\n  }]) {\n    id\n    option_id\n    description_id\n    field_id\n    main_asset\n    other_assets\n  }\n}`,
+                query: `mutation CreateVocabularyEntry(
+  $optionId: String!
+  $descriptionId: String!
+  $fieldId: String!
+  $mainAsset: String
+  $otherAssets: String
+) {
+  insertIntoVocabularies(
+    values: [
+      {
+        option_id: $optionId
+        description_id: $descriptionId
+        field_id: $fieldId
+        main_asset: $mainAsset
+        other_assets: $otherAssets
+      }
+    ]
+  ) {
+    id
+    option_id
+    description_id
+    field_id
+    main_asset
+    other_assets
+  }
+}`,
                 useVariables: ["fieldId", "mainAsset", "otherAssets"],
                 mapVariables: {
                     optionId: { from: "createOptionText", path: "insertIntoTexts.0.id" },
@@ -145,6 +377,13 @@ export const researchFieldsOperations = {
         variables: {
             vocabularyId: "ID of the vocabulary to delete"
         },
-        query: `mutation DeleteVocabulary($vocabularyId: String!) {\n  deleteFromVocabularies(where: { id: { eq: $vocabularyId } }) {\n    id\n    option_id\n    description_id\n    field_id\n  }\n}`
+        query: `mutation DeleteVocabulary($vocabularyId: String!) {
+  deleteFromVocabularies(where: { id: { eq: $vocabularyId } }) {
+    id
+    option_id
+    description_id
+    field_id
+  }
+}`
     }
 }; 

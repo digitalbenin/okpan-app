@@ -10,7 +10,50 @@ export const assetsOperations = {
             institutionId: "Filter by institution ID",
             type: "Filter by asset type"
         },
-        query: `query ListAssets($page: Int, $pageSize: Int, $projectId: String, $institutionId: String, $type: String) {\n  result: assets(\n    limit: $pageSize\n    offset: $page\n    where: {\n      project_id: { eq: $projectId }\n      institution_id: { eq: $institutionId }\n      type: { eq: $type }\n    }\n  ) {\n    id\n    filename\n    path\n    type\n    formats\n    properties\n    institution_id\n    project_id\n    created_at\n    updated_at\n    institution {\n      id\n      name {\n        content\n      }\n    }\n    project {\n      id\n      title {\n        content\n      }\n    }\n    objectsAssets {\n      id\n      object_id\n    }\n  }\n}`
+        query: `query ListAssets(
+  $page: Int
+  $pageSize: Int
+  $projectId: String
+  $institutionId: String
+  $type: String
+) {
+  result: assets(
+    limit: $pageSize
+    offset: $page
+    where: {
+      project_id: { eq: $projectId }
+      institution_id: { eq: $institutionId }
+      type: { eq: $type }
+    }
+  ) {
+    id
+    filename
+    path
+    type
+    formats
+    properties
+    institution_id
+    project_id
+    created_at
+    updated_at
+    institution {
+      id
+      name {
+        content
+      }
+    }
+    project {
+      id
+      title {
+        content
+      }
+    }
+    objectsAssets {
+      id
+      object_id
+    }
+  }
+}`
     },
     getById: {
         type: "query",
@@ -19,7 +62,40 @@ export const assetsOperations = {
         variables: {
             assetId: "ID of the asset to retrieve"
         },
-        query: `query GetAsset($assetId: String!) {\n  result: assets(where: { id: { eq: $assetId } }) {\n    id\n    filename\n    path\n    type\n    formats\n    properties\n    institution_id\n    project_id\n    created_at\n    updated_at\n    institution {\n      id\n      name {\n        content\n      }\n    }\n    project {\n      id\n      title {\n        content\n      }\n    }\n    objectsAssets {\n      id\n      object_id\n      object {\n        id\n        status\n      }\n    }\n  }\n}`
+        query: `query GetAsset($assetId: String!) {
+  result: assets(where: { id: { eq: $assetId } }) {
+    id
+    filename
+    path
+    type
+    formats
+    properties
+    institution_id
+    project_id
+    created_at
+    updated_at
+    institution {
+      id
+      name {
+        content
+      }
+    }
+    project {
+      id
+      title {
+        content
+      }
+    }
+    objectsAssets {
+      id
+      object_id
+      object {
+        id
+        status
+      }
+    }
+  }
+}`
     },
     update: {
         type: "mutation",
@@ -35,7 +111,39 @@ export const assetsOperations = {
             institutionId: "New institution ID (optional)",
             projectId: "New project ID (optional)"
         },
-        query: `mutation UpdateAsset(\n  $assetId: String!,\n  $filename: String,\n  $path: String,\n  $type: String,\n  $formats: JSON,\n  $properties: JSON,\n  $institutionId: String,\n  $projectId: String\n) {\n  updateAssets(\n    set: {\n      filename: $filename,\n      path: $path,\n      type: $type,\n      formats: $formats,\n      properties: $properties,\n      institution_id: $institutionId,\n      project_id: $projectId\n    }\n    where: { id: { eq: $assetId } }\n  ) {\n    id\n    filename\n    path\n    type\n    formats\n    properties\n    institution_id\n    project_id\n    updated_at\n  }\n}`
+        query: `mutation UpdateAsset(
+  $assetId: String!
+  $filename: String
+  $path: String
+  $type: String
+  $formats: JSON
+  $properties: JSON
+  $institutionId: String
+  $projectId: String
+) {
+  updateAssets(
+    set: {
+      filename: $filename
+      path: $path
+      type: $type
+      formats: $formats
+      properties: $properties
+      institution_id: $institutionId
+      project_id: $projectId
+    }
+    where: { id: { eq: $assetId } }
+  ) {
+    id
+    filename
+    path
+    type
+    formats
+    properties
+    institution_id
+    project_id
+    updated_at
+  }
+}`
     },
     delete: {
         type: "mutation",
@@ -44,6 +152,12 @@ export const assetsOperations = {
         variables: {
             assetId: "ID of the asset to delete"
         },
-        query: `mutation DeleteAsset($assetId: String!) {\n  deleteFromAssets(where: { id: { eq: $assetId } }) {\n    id\n    filename\n    path\n  }\n}`
+        query: `mutation DeleteAsset($assetId: String!) {
+  deleteFromAssets(where: { id: { eq: $assetId } }) {
+    id
+    filename
+    path
+  }
+}`
     }
 }; 

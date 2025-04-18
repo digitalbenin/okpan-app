@@ -6,7 +6,18 @@ export const settingsOperations = {
         variables: {
             projectId: "ID of the project"
         },
-        query: `query GetProjectSettings($projectId: String!) {\n  result: settings(where: { project_id: { eq: $projectId } }) {\n    id\n    project_id\n    username\n    password\n    sync_url\n    sig_server\n    created_at\n    updated_at\n  }\n}`
+        query: `query GetProjectSettings($projectId: String!) {
+  result: settings(where: { project_id: { eq: $projectId } }) {
+    id
+    project_id
+    username
+    password
+    sync_url
+    sig_server
+    created_at
+    updated_at
+  }
+}`
     },
     create: {
         type: "mutation",
@@ -19,7 +30,34 @@ export const settingsOperations = {
             syncUrl: "Synchronization URL",
             sigServer: "Signature server URL"
         },
-        query: `mutation CreateProjectSettings($projectId: String!, $username: String, $password: String, $syncUrl: String, $sigServer: String) {\n  insertIntoSettings(values: [{\n    project_id: $projectId,\n    username: $username,\n    password: $password,\n    sync_url: $syncUrl,\n    sig_server: $sigServer\n  }]) {\n    id\n    project_id\n    username\n    password\n    sync_url\n    sig_server\n    created_at\n    updated_at\n  }\n}`
+        query: `mutation CreateProjectSettings(
+  $projectId: String!
+  $username: String
+  $password: String
+  $syncUrl: String
+  $sigServer: String
+) {
+  insertIntoSettings(
+    values: [
+      {
+        project_id: $projectId
+        username: $username
+        password: $password
+        sync_url: $syncUrl
+        sig_server: $sigServer
+      }
+    ]
+  ) {
+    id
+    project_id
+    username
+    password
+    sync_url
+    sig_server
+    created_at
+    updated_at
+  }
+}`
     },
     update: {
         type: "mutation",
@@ -32,7 +70,26 @@ export const settingsOperations = {
             syncUrl: "Synchronization URL (optional)",
             sigServer: "Signature server URL (optional)"
         },
-        query: `mutation UpdateProjectSettings(\n  $settingsId: String!, \n  $username: String, \n  $password: String, \n  $syncUrl: String, \n  $sigServer: String\n) {\n  updateSettings(\n    set: { \n      username: $username,\n      password: $password,\n      sync_url: $syncUrl,\n      sig_server: $sigServer\n    }\n    where: { id: { eq: $settingsId } }\n  ) {\n    id\n    project_id\n    username\n    password\n    sync_url\n    sig_server\n    updated_at\n  }\n}`
+        query: `mutation UpdateProjectSettings(
+  $settingsId: String!
+  $username: String
+  $password: String
+  $syncUrl: String
+  $sigServer: String
+) {
+  updateSettings(
+    set: { username: $username, password: $password, sync_url: $syncUrl, sig_server: $sigServer }
+    where: { id: { eq: $settingsId } }
+  ) {
+    id
+    project_id
+    username
+    password
+    sync_url
+    sig_server
+    updated_at
+  }
+}`
     },
     updateByProjectId: {
         type: "mutation",
@@ -45,7 +102,26 @@ export const settingsOperations = {
             syncUrl: "Synchronization URL (optional)",
             sigServer: "Signature server URL (optional)"
         },
-        query: `mutation UpdateProjectSettingsByProjectId(\n  $projectId: String!, \n  $username: String, \n  $password: String, \n  $syncUrl: String, \n  $sigServer: String\n) {\n  updateSettings(\n    set: { \n      username: $username,\n      password: $password,\n      sync_url: $syncUrl,\n      sig_server: $sigServer\n    }\n    where: { project_id: { eq: $projectId } }\n  ) {\n    id\n    project_id\n    username\n    password\n    sync_url\n    sig_server\n    updated_at\n  }\n}`
+        query: `mutation UpdateProjectSettingsByProjectId(
+  $projectId: String!
+  $username: String
+  $password: String
+  $syncUrl: String
+  $sigServer: String
+) {
+  updateSettings(
+    set: { username: $username, password: $password, sync_url: $syncUrl, sig_server: $sigServer }
+    where: { project_id: { eq: $projectId } }
+  ) {
+    id
+    project_id
+    username
+    password
+    sync_url
+    sig_server
+    updated_at
+  }
+}`
     },
     delete: {
         type: "mutation",
@@ -54,7 +130,12 @@ export const settingsOperations = {
         variables: {
             settingsId: "ID of the settings to delete"
         },
-        query: `mutation DeleteProjectSettings($settingsId: String!) {\n  deleteFromSettings(where: { id: { eq: $settingsId } }) {\n    id\n    project_id\n  }\n}`
+        query: `mutation DeleteProjectSettings($settingsId: String!) {
+  deleteFromSettings(where: { id: { eq: $settingsId } }) {
+    id
+    project_id
+  }
+}`
     },
     deleteByProjectId: {
         type: "mutation",
@@ -63,6 +144,11 @@ export const settingsOperations = {
         variables: {
             projectId: "ID of the project"
         },
-        query: `mutation DeleteProjectSettingsByProjectId($projectId: String!) {\n  deleteFromSettings(where: { project_id: { eq: $projectId } }) {\n    id\n    project_id\n  }\n}`
+        query: `mutation DeleteProjectSettingsByProjectId($projectId: String!) {
+  deleteFromSettings(where: { project_id: { eq: $projectId } }) {
+    id
+    project_id
+  }
+}`
     }
 }; 

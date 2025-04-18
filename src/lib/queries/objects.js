@@ -8,7 +8,42 @@ export const objectsOperations = {
             projectId: "Optional ID of project to filter by",
             institutionId: "Optional ID of institution to filter by"
         },
-        query: `query ListObjects($projectId: String, $institutionId: String) {\n  result: objects(\n    where: {\n      project_id: { eq: $projectId }\n      institution_id: { eq: $institutionId }\n    }\n  ) {\n    id\n    status\n    created_at\n    updated_at\n    institution_id\n    project_id\n    institution {\n      id\n      name {\n        content\n      }\n    }\n    project {\n      id\n      title {\n        content\n      }\n    }\n    objectsAssets {\n      order\n      asset {\n        id\n        filename\n        formats\n        path\n        type     \n      }\n    }\n    objectsOntologyFields {
+        query: `query ListObjects($projectId: String, $institutionId: String) {
+  result: objects(
+    where: {
+      project_id: { eq: $projectId }
+      institution_id: { eq: $institutionId }
+    }
+  ) {
+    id
+    status
+    created_at
+    updated_at
+    institution_id
+    project_id
+    institution {
+      id
+      name {
+        content
+      }
+    }
+    project {
+      id
+      title {
+        content
+      }
+    }
+    objectsAssets {
+      order
+      asset {
+        id
+        filename
+        formats
+        path
+        type
+      }
+    }
+    objectsOntologyFields {
       value
       ontologyField {
         name {
@@ -16,7 +51,8 @@ export const objectsOperations = {
         }
       }
     }
-  }\n}`
+  }
+}`
     },
 
     // GET BY ID
@@ -27,7 +63,85 @@ export const objectsOperations = {
         variables: {
             objectId: "ID of the object to retrieve"
         },
-        query: `query GetObject($objectId: String!) {\n  result: objects(where: { id: { eq: $objectId } }) {\n    id\n    status\n    created_at\n    updated_at\n    institution_id\n    project_id\n    institution {\n      id\n      name {\n        content\n      }\n    }\n    project {\n      id\n      title {\n        content\n      }\n    }\n    objectsResearchFields {\n      id\n      value\n      vocabulary_id\n      researchField {\n        id\n        name {\n          content\n        }\n        type\n      }\n      vocabulary {\n        id\n        option {\n          content\n          original_language\n          translations {\n            language_code\n            content\n          }\n        }\n        description {\n          content\n          original_language\n          translations {\n            language_code\n            content\n          }\n        }\n      }\n    }\n    objectsOntologyFields {\n      id\n      label\n      value\n      field_id\n      primary\n      ontologyField {\n        id\n        name {\n          content\n        }\n        category {\n          content\n        }\n      }\n    }\n    objectsAssets {\n      id\n      order\n      asset {\n        id\n        filename\n        path\n        type\n      }\n    }\n  }\n}`
+        query: `query GetObject($objectId: String!) {
+  result: objects(where: { id: { eq: $objectId } }) {
+    id
+    status
+    created_at
+    updated_at
+    institution_id
+    project_id
+    institution {
+      id
+      name {
+        content
+      }
+    }
+    project {
+      id
+      title {
+        content
+      }
+    }
+    objectsResearchFields {
+      id
+      value
+      vocabulary_id
+      researchField {
+        id
+        name {
+          content
+        }
+        type
+      }
+      vocabulary {
+        id
+        option {
+          content
+          original_language
+          translations {
+            language_code
+            content
+          }
+        }
+        description {
+          content
+          original_language
+          translations {
+            language_code
+            content
+          }
+        }
+      }
+    }
+    objectsOntologyFields {
+      id
+      label
+      value
+      field_id
+      primary
+      ontologyField {
+        id
+        name {
+          content
+        }
+        category {
+          content
+        }
+      }
+    }
+    objectsAssets {
+      id
+      order
+      asset {
+        id
+        filename
+        path
+        type
+      }
+    }
+  }
+}`
     },
 
     // CREATE
@@ -40,7 +154,24 @@ export const objectsOperations = {
             institutionId: "ID of the institution this object belongs to",
             projectId: "ID of the project this object belongs to"
         },
-        query: `mutation CreateObject($status: String, $institutionId: String!, $projectId: String!) {\n  insertIntoObjects(values: [{\n    status: $status,\n    institution_id: $institutionId,\n    project_id: $projectId\n  }]) {\n    id\n    status\n    created_at\n    updated_at\n    institution_id\n    project_id\n  }\n}`
+        query: `mutation CreateObject($status: String, $institutionId: String!, $projectId: String!) {
+  insertIntoObjects(
+    values: [
+      {
+        status: $status
+        institution_id: $institutionId
+        project_id: $projectId
+      }
+    ]
+  ) {
+    id
+    status
+    created_at
+    updated_at
+    institution_id
+    project_id
+  }
+}`
     },
 
     // UPDATE
@@ -54,7 +185,27 @@ export const objectsOperations = {
             institutionId: "New institution ID for the object (optional)",
             projectId: "New project ID for the object (optional)"
         },
-        query: `mutation UpdateObject(\n  $objectId: String!,\n  $status: String,\n  $institutionId: String,\n  $projectId: String\n) {\n  updateObjects(\n    set: {\n      status: $status,\n      institution_id: $institutionId,\n      project_id: $projectId\n    }\n    where: { id: { eq: $objectId } }\n  ) {\n    id\n    status\n    updated_at\n    institution_id\n    project_id\n  }\n}`
+        query: `mutation UpdateObject(
+  $objectId: String!
+  $status: String
+  $institutionId: String
+  $projectId: String
+) {
+  updateObjects(
+    set: {
+      status: $status
+      institution_id: $institutionId
+      project_id: $projectId
+    }
+    where: { id: { eq: $objectId } }
+  ) {
+    id
+    status
+    updated_at
+    institution_id
+    project_id
+  }
+}`
     },
 
     // DELETE
@@ -68,27 +219,50 @@ export const objectsOperations = {
         mutations: [
             {
                 name: "getObject",
-                query: `query GetObjectForDelete($objectId: String!) {\n  objects(where: { id: { eq: $objectId } }) {\n    id\n  }\n}`,
+                query: `query GetObjectForDelete($objectId: String!) {
+  objects(where: { id: { eq: $objectId } }) {
+    id
+  }
+}`,
                 useVariables: ["objectId"]
             },
             {
                 name: "deleteObjectsAssets",
-                query: `mutation DeleteObjectAssets($objectId: String!) {\n  deleteFromObjects_assets(where: { object_id: { eq: $objectId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteObjectAssets($objectId: String!) {
+  deleteFromObjects_assets(where: { object_id: { eq: $objectId } }) {
+    id
+  }
+}`,
                 useVariables: ["objectId"]
             },
             {
                 name: "deleteObjectsResearchFields",
-                query: `mutation DeleteObjectResearchFields($objectId: String!) {\n  deleteFromObjects_research_fields(where: { object_id: { eq: $objectId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteObjectResearchFields($objectId: String!) {
+  deleteFromObjects_research_fields(where: { object_id: { eq: $objectId } }) {
+    id
+  }
+}`,
                 useVariables: ["objectId"]
             },
             {
                 name: "deleteObjectsOntologyFields",
-                query: `mutation DeleteObjectOntologyFields($objectId: String!) {\n  deleteFromObjects_ontology_fields(where: { object_id: { eq: $objectId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteObjectOntologyFields($objectId: String!) {
+  deleteFromObjects_ontology_fields(where: { object_id: { eq: $objectId } }) {
+    id
+  }
+}`,
                 useVariables: ["objectId"]
             },
             {
                 name: "deleteObject",
-                query: `mutation DeleteObjectFinal($objectId: String!) {\n  deleteFromObjects(where: { id: { eq: $objectId } }) {\n    id\n    status\n    institution_id\n    project_id\n  }\n}`,
+                query: `mutation DeleteObjectFinal($objectId: String!) {
+  deleteFromObjects(where: { id: { eq: $objectId } }) {
+    id
+    status
+    institution_id
+    project_id
+  }
+}`,
                 useVariables: ["objectId"]
             }
         ],
@@ -105,7 +279,22 @@ export const objectsOperations = {
             assetId: "ID of the asset to associate",
             order: "Display order for the asset (optional)"
         },
-        query: `mutation AddAssetToObject($objectId: String!, $assetId: String!, $order: Int) {\n  insertIntoObjects_assets(values: [{\n    object_id: $objectId,\n    asset_id: $assetId,\n    order: $order\n  }]) {\n    id\n    object_id\n    asset_id\n    order\n  }\n}`
+        query: `mutation AddAssetToObject($objectId: String!, $assetId: String!, $order: Int) {
+  insertIntoObjects_assets(
+    values: [
+      {
+        object_id: $objectId
+        asset_id: $assetId
+        order: $order
+      }
+    ]
+  ) {
+    id
+    object_id
+    asset_id
+    order
+  }
+}`
     },
 
     removeAsset: {
@@ -116,7 +305,15 @@ export const objectsOperations = {
             objectId: "ID of the object",
             assetId: "ID of the asset to remove"
         },
-        query: `mutation RemoveAssetFromObject($objectId: String!, $assetId: String!) {\n  deleteFromObjects_assets(\n    where: { \n      object_id: { eq: $objectId },\n      asset_id: { eq: $assetId }\n    }\n  ) {\n    id\n    object_id\n    asset_id\n  }\n}`
+        query: `mutation RemoveAssetFromObject($objectId: String!, $assetId: String!) {
+  deleteFromObjects_assets(
+    where: { object_id: { eq: $objectId }, asset_id: { eq: $assetId } }
+  ) {
+    id
+    object_id
+    asset_id
+  }
+}`
     },
 
     updateAssetOrder: {
@@ -128,7 +325,17 @@ export const objectsOperations = {
             assetId: "ID of the asset",
             order: "New display order for the asset"
         },
-        query: `mutation UpdateAssetOrder($objectId: String!, $assetId: String!, $order: Int!) {\n  updateObjects_assets(\n    set: { order: $order }\n    where: { \n      object_id: { eq: $objectId },\n      asset_id: { eq: $assetId }\n    }\n  ) {\n    id\n    object_id\n    asset_id\n    order\n  }\n}`
+        query: `mutation UpdateAssetOrder($objectId: String!, $assetId: String!, $order: Int!) {
+  updateObjects_assets(
+    set: { order: $order }
+    where: { object_id: { eq: $objectId }, asset_id: { eq: $assetId } }
+  ) {
+    id
+    object_id
+    asset_id
+    order
+  }
+}`
     },
 
     getAssets: {
@@ -138,7 +345,25 @@ export const objectsOperations = {
         variables: {
             objectId: "ID of the object"
         },
-        query: `query GetObjectAssets($objectId: String!) {\n  objects_assets(\n    where: { object_id: { eq: $objectId } }\n    orderBy: { order: ASC }\n  ) {\n    id\n    order\n    asset {\n      id\n      filename\n      path\n      type\n      formats\n      properties\n      created_at\n      updated_at\n    }\n  }\n}`
+        query: `query GetObjectAssets($objectId: String!) {
+  objects_assets(
+    where: { object_id: { eq: $objectId } }
+    orderBy: { order: ASC }
+  ) {
+    id
+    order
+    asset {
+      id
+      filename
+      path
+      type
+      formats
+      properties
+      created_at
+      updated_at
+    }
+  }
+}`
     },
     objectAssignResearchField: {
         type: "mutation",
@@ -150,7 +375,29 @@ export const objectsOperations = {
             value: "Value to store for this field (for free text)",
             vocabularyId: "ID of the vocabulary option (for vocabulary-based fields)"
         },
-        query: `mutation AssignResearchField($objectId: String!, $fieldId: String!, $value: String, $vocabularyId: String) {\n  insertIntoObjects_research_fields(values: [{\n    object_id: $objectId,\n    field_id: $fieldId,\n    value: $value,\n    vocabulary_id: $vocabularyId\n  }]) {\n    id\n    object_id\n    field_id\n    value\n    vocabulary_id\n  }\n}`
+        query: `mutation AssignResearchField(
+  $objectId: String!
+  $fieldId: String!
+  $value: String
+  $vocabularyId: String
+) {
+  insertIntoObjects_research_fields(
+    values: [
+      {
+        object_id: $objectId
+        field_id: $fieldId
+        value: $value
+        vocabulary_id: $vocabularyId
+      }
+    ]
+  ) {
+    id
+    object_id
+    field_id
+    value
+    vocabulary_id
+  }
+}`
     },
     objectUpdateResearchField: {
         type: "mutation",
@@ -162,7 +409,23 @@ export const objectsOperations = {
             value: "New value to store for this field (for free text, optional)",
             vocabularyId: "ID of the vocabulary option (for vocabulary-based fields, optional)"
         },
-        query: `mutation UpdateResearchFieldValue($objectId: String!, $fieldId: String!, $value: String, $vocabularyId: String) {\n  updateObjects_research_fields(\n    set: { \n      value: $value,\n      vocabulary_id: $vocabularyId\n    }\n    where: { \n      object_id: { eq: $objectId },\n      field_id: { eq: $fieldId }\n    }\n  ) {\n    id\n    object_id\n    field_id\n    value\n    vocabulary_id\n  }\n}`
+        query: `mutation UpdateResearchFieldValue(
+  $objectId: String!
+  $fieldId: String!
+  $value: String
+  $vocabularyId: String
+) {
+  updateObjects_research_fields(
+    set: { value: $value, vocabulary_id: $vocabularyId }
+    where: { object_id: { eq: $objectId }, field_id: { eq: $fieldId } }
+  ) {
+    id
+    object_id
+    field_id
+    value
+    vocabulary_id
+  }
+}`
     },
     objectGetResearchFields: {
         type: "query",
@@ -171,6 +434,55 @@ export const objectsOperations = {
         variables: {
             objectId: "ID of the object"
         },
-        query: `query GetObjectResearchFields($objectId: String!) {\n  objects_research_fields(where: { object_id: { eq: $objectId } }) {\n    id\n    value\n    vocabulary_id\n    field_id\n    researchField {\n      id\n      type\n      name {\n        content\n        translations {\n          language_code\n          content\n        }\n      }\n      description {\n        content\n      }\n      vocabularies {\n        id\n        option {\n          content\n          original_language\n          translations {\n            language_code\n            content\n          }\n        }\n        description {\n          content\n          original_language\n          translations {\n            language_code\n            content\n          }\n        }\n      }\n    }\n    vocabulary {\n      id\n      option {\n        content\n      }\n      description {\n        content\n      }\n    }\n  }\n}`
+        query: `query GetObjectResearchFields($objectId: String!) {
+  objects_research_fields(where: { object_id: { eq: $objectId } }) {
+    id
+    value
+    vocabulary_id
+    field_id
+    researchField {
+      id
+      type
+      name {
+        content
+        translations {
+          language_code
+          content
+        }
+      }
+      description {
+        content
+      }
+      vocabularies {
+        id
+        option {
+          content
+          original_language
+          translations {
+            language_code
+            content
+          }
+        }
+        description {
+          content
+          original_language
+          translations {
+            language_code
+            content
+          }
+        }
+      }
+    }
+    vocabulary {
+      id
+      option {
+        content
+      }
+      description {
+        content
+      }
+    }
+  }
+}`
     }
 }; 

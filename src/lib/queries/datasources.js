@@ -12,17 +12,17 @@ export const datasourcesOperations = {
             direction: "Sort direction (asc or desc, default: desc)"
         },
         query: `query ListDatasources(
-    $institutionId: String, 
-    $page: Int, 
-    $pageSize: Int, 
-    $orderBy: String, 
-    $direction: String
-  ) {
+  $institutionId: String
+  $page: Int
+  $pageSize: Int
+  $orderBy: String
+  $direction: String
+) {
   result: datasourcesList(
-    institution_id: $institutionId, 
-    page: $page, 
-    pageSize: $pageSize, 
-    orderBy: $orderBy, 
+    institution_id: $institutionId
+    page: $page
+    pageSize: $pageSize
+    orderBy: $orderBy
     direction: $direction
   ) {
     id
@@ -82,7 +82,55 @@ export const datasourcesOperations = {
         variables: {
             datasourceId: "ID of the datasource to retrieve"
         },
-        query: `query GetDatasource($datasourceId: String!) {\n  result: datasources(where: { id: { eq: $datasourceId } }) {\n    id\n    created_at\n    updated_at\n    institution_id\n    language\n    copyright\n    contact\n    date\n    institution {\n      id\n      name {\n        content\n      }\n    }\n    name {\n      id\n      content\n      original_language\n      translations {\n        id\n        language_code\n        content\n      }\n    }\n    method {\n      id\n      content\n      original_language\n      translations {\n        id\n        language_code\n        content\n      }\n    }\n    notes {\n      id\n      content\n      original_language\n      translations {\n        id\n        language_code\n        content\n      }\n    }\n    # Add counts later if needed via custom resolver\n  }\n}`
+        query: `query GetDatasource($datasourceId: String!) {
+  result: datasources(where: { id: { eq: $datasourceId } }) {
+    id
+    created_at
+    updated_at
+    institution_id
+    language
+    copyright
+    contact
+    date
+    institution {
+      id
+      name {
+        content
+      }
+    }
+    name {
+      id
+      content
+      original_language
+      translations {
+        id
+        language_code
+        content
+      }
+    }
+    method {
+      id
+      content
+      original_language
+      translations {
+        id
+        language_code
+        content
+      }
+    }
+    notes {
+      id
+      content
+      original_language
+      translations {
+        id
+        language_code
+        content
+      }
+    }
+    # Add counts later if needed via custom resolver
+  }
+}`
     },
 
     // CREATE
@@ -104,24 +152,94 @@ export const datasourcesOperations = {
         mutations: [
             {
                 name: "createNameText",
-                query: `mutation CreateDatasourceName($name: String!, $languageCode: String!) {\n  insertIntoTexts(values: [{\n    content: $name,\n    context: "datasources.name",\n    original_language: $languageCode\n  }]) {\n    id\n  }\n}`,
+                query: `mutation CreateDatasourceName($name: String!, $languageCode: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $name
+        context: "datasources.name"
+        original_language: $languageCode
+      }
+    ]
+  ) {
+    id
+  }
+}`,
                 useVariables: ["name", "languageCode"]
             },
             {
                 name: "createMethodText",
-                query: `mutation CreateDatasourceMethod($method: String!, $languageCode: String!) {\n  insertIntoTexts(values: [{\n    content: $method,\n    context: "datasources.method",\n    original_language: $languageCode\n  }]) {\n    id\n  }\n}`,
+                query: `mutation CreateDatasourceMethod($method: String!, $languageCode: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $method
+        context: "datasources.method"
+        original_language: $languageCode
+      }
+    ]
+  ) {
+    id
+  }
+}`,
                 useVariables: ["method", "languageCode"],
                 skipIf: { variableName: "method", isUndefined: true }
             },
             {
                 name: "createNotesText",
-                query: `mutation CreateDatasourceNotes($notes: String!, $languageCode: String!) {\n  insertIntoTexts(values: [{\n    content: $notes,\n    context: "datasources.notes",\n    original_language: $languageCode\n  }]) {\n    id\n  }\n}`,
+                query: `mutation CreateDatasourceNotes($notes: String!, $languageCode: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $notes
+        context: "datasources.notes"
+        original_language: $languageCode
+      }
+    ]
+  ) {
+    id
+  }
+}`,
                 useVariables: ["notes", "languageCode"],
                 skipIf: { variableName: "notes", isUndefined: true }
             },
             {
                 name: "createDatasource",
-                query: `mutation CreateDatasourceEntry(\n              $nameId: String!, \n              $methodId: String, \n              $notesId: String, \n              $institutionId: String!, \n              $language: String, \n              $copyright: String, \n              $contact: String, \n              $date: Int\n            ) {\n  insertIntoDatasources(values: [{\n    name_id: $nameId,\n    method_id: $methodId,\n    notes_id: $notesId,\n    institution_id: $institutionId,\n    language: $language,\n    copyright: $copyright,\n    contact: $contact,\n    date: $date\n  }]) {\n    id\n    name_id\n    method_id\n    notes_id\n    institution_id\n    language\n    copyright\n    contact\n    date\n  }\n}`,
+                query: `mutation CreateDatasourceEntry(
+  $nameId: String!
+  $methodId: String
+  $notesId: String
+  $institutionId: String!
+  $language: String
+  $copyright: String
+  $contact: String
+  $date: Int
+) {
+  insertIntoDatasources(
+    values: [
+      {
+        name_id: $nameId
+        method_id: $methodId
+        notes_id: $notesId
+        institution_id: $institutionId
+        language: $language
+        copyright: $copyright
+        contact: $contact
+        date: $date
+      }
+    ]
+  ) {
+    id
+    name_id
+    method_id
+    notes_id
+    institution_id
+    language
+    copyright
+    contact
+    date
+  }
+}`,
                 useVariables: ["institutionId", "language", "copyright", "contact", "date"],
                 mapVariables: {
                     nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
@@ -153,33 +271,69 @@ export const datasourcesOperations = {
         mutations: [
             {
                 name: "getDatasource",
-                query: `query GetDatasourceForUpdate($datasourceId: String!) {\n  datasources(where: { id: { eq: $datasourceId } }) {\n    id name_id method_id notes_id\n  }\n}`,
+                query: `query GetDatasourceForUpdate($datasourceId: String!) {
+  datasources(where: { id: { eq: $datasourceId } }) {
+    id
+    name_id
+    method_id
+    notes_id
+  }
+}`,
                 useVariables: ["datasourceId"]
             },
             {
                 name: "updateName",
-                query: `mutation UpdateDatasourceName($nameId: String!, $name: String!) { updateTexts( set: { content: $name }, where: { id: { eq: $nameId } } ) { id } }`,
+                query: `mutation UpdateDatasourceName($nameId: String!, $name: String!) {
+  updateTexts(set: { content: $name }, where: { id: { eq: $nameId } }) {
+    id
+  }
+}`,
                 useVariables: ["name"],
                 mapVariables: { nameId: { from: "getDatasource", path: "datasources.0.name_id" } },
                 skipIf: { variableName: "name", isUndefined: true }
             },
             {
                 name: "updateMethod",
-                query: `mutation UpdateDatasourceMethod($methodId: String!, $method: String!) { updateTexts( set: { content: $method }, where: { id: { eq: $methodId } } ) { id } }`,
+                query: `mutation UpdateDatasourceMethod($methodId: String!, $method: String!) {
+  updateTexts(set: { content: $method }, where: { id: { eq: $methodId } }) {
+    id
+  }
+}`,
                 useVariables: ["method"],
                 mapVariables: { methodId: { from: "getDatasource", path: "datasources.0.method_id" } },
                 skipIf: { variableName: "method", isUndefined: true }
             },
             {
                 name: "updateNotes",
-                query: `mutation UpdateDatasourceNotes($notesId: String!, $notes: String!) { updateTexts( set: { content: $notes }, where: { id: { eq: $notesId } } ) { id } }`,
+                query: `mutation UpdateDatasourceNotes($notesId: String!, $notes: String!) {
+  updateTexts(set: { content: $notes }, where: { id: { eq: $notesId } }) {
+    id
+  }
+}`,
                 useVariables: ["notes"],
                 mapVariables: { notesId: { from: "getDatasource", path: "datasources.0.notes_id" } },
                 skipIf: { variableName: "notes", isUndefined: true }
             },
             {
                 name: "updateDatasourceFields",
-                query: `mutation UpdateDatasourceDirectFields($datasourceId: String!, $language: String, $contact: String, $date: String, $copyright: String) { updateDatasources( set: { language: $language, contact: $contact, date: $date, copyright: $copyright }, where: { id: { eq: $datasourceId } } ) { id language contact date copyright } }`,
+                query: `mutation UpdateDatasourceDirectFields(
+  $datasourceId: String!
+  $language: String
+  $contact: String
+  $date: String
+  $copyright: String
+) {
+  updateDatasources(
+    set: { language: $language, contact: $contact, date: $date, copyright: $copyright }
+    where: { id: { eq: $datasourceId } }
+  ) {
+    id
+    language
+    contact
+    date
+    copyright
+  }
+}`,
                 useVariables: ["datasourceId", "language", "contact", "date", "copyright"],
                 skipIf: {
                     condition: "AND",
@@ -206,27 +360,53 @@ export const datasourcesOperations = {
         mutations: [
             {
                 name: "getDatasource",
-                query: `query GetDatasourceForDelete($datasourceId: String!) {\n  datasources(where: { id: { eq: $datasourceId } }) {\n    id\n    name_id\n    method_id\n    notes_id\n  }\n}`,
+                query: `query GetDatasourceForDelete($datasourceId: String!) {
+  datasources(where: { id: { eq: $datasourceId } }) {
+    id
+    name_id
+    method_id
+    notes_id
+  }
+}`,
                 useVariables: ["datasourceId"]
             },
             {
                 name: "deleteTemplates",
-                query: `mutation DeleteDatasourceTemplates($datasourceId: String!) {\n  deleteFromTemplates(where: { datasource_id: { eq: $datasourceId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteDatasourceTemplates($datasourceId: String!) {
+  deleteFromTemplates(where: { datasource_id: { eq: $datasourceId } }) {
+    id
+  }
+}`,
                 useVariables: ["datasourceId"]
             },
             {
                 name: "deleteObjectsOntologyFields", // Or potentially update them to null
-                query: `mutation DeleteDatasourceOntologyLinks($datasourceId: String!) {\n  deleteFromObjects_ontology_fields(where: { datasources_id: { eq: $datasourceId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteDatasourceOntologyLinks($datasourceId: String!) {
+  deleteFromObjects_ontology_fields(where: { datasources_id: { eq: $datasourceId } }) {
+    id
+  }
+}`,
                 useVariables: ["datasourceId"]
             },
             {
                 name: "deleteDatasource",
-                query: `mutation DeleteDatasourceFinal($datasourceId: String!) {\n  deleteFromDatasources(where: { id: { eq: $datasourceId } }) {\n    id\n    name_id\n    method_id\n    notes_id\n  }\n}`,
+                query: `mutation DeleteDatasourceFinal($datasourceId: String!) {
+  deleteFromDatasources(where: { id: { eq: $datasourceId } }) {
+    id
+    name_id
+    method_id
+    notes_id
+  }
+}`,
                 useVariables: ["datasourceId"]
             },
             {
                 name: "deleteNameText",
-                query: `mutation DeleteDatasourceNameText($nameId: String!) {\n  deleteFromTexts(where: { id: { eq: $nameId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteDatasourceNameText($nameId: String!) {
+  deleteFromTexts(where: { id: { eq: $nameId } }) {
+    id
+  }
+}`,
                 mapVariables: {
                     nameId: { from: "getDatasource", path: "datasources.0.name_id" }
                 },
@@ -234,7 +414,11 @@ export const datasourcesOperations = {
             },
             {
                 name: "deleteMethodText",
-                query: `mutation DeleteDatasourceMethodText($methodId: String!) {\n  deleteFromTexts(where: { id: { eq: $methodId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteDatasourceMethodText($methodId: String!) {
+  deleteFromTexts(where: { id: { eq: $methodId } }) {
+    id
+  }
+}`,
                 mapVariables: {
                     methodId: { from: "getDatasource", path: "datasources.0.method_id" }
                 },
@@ -242,7 +426,11 @@ export const datasourcesOperations = {
             },
             {
                 name: "deleteNotesText",
-                query: `mutation DeleteDatasourceNotesText($notesId: String!) {\n  deleteFromTexts(where: { id: { eq: $notesId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteDatasourceNotesText($notesId: String!) {
+  deleteFromTexts(where: { id: { eq: $notesId } }) {
+    id
+  }
+}`,
                 mapVariables: {
                     notesId: { from: "getDatasource", path: "datasources.0.notes_id" }
                 },

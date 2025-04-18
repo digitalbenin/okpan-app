@@ -3,7 +3,13 @@ export const interfaceLanguagesOperations = {
         type: "query",
         name: "List Interface Languages",
         description: "Lists all supported interface languages",
-        query: `{\n  result: interface_languages {\n    id\n    code\n    name\n  }\n}`
+        query: `{
+  result: interface_languages {
+    id
+    code
+    name
+  }
+}`
     },
     create: {
         type: "mutation",
@@ -13,7 +19,13 @@ export const interfaceLanguagesOperations = {
             code: "Language code (e.g., 'en', 'es')",
             name: "Language name (e.g., 'English', 'Spanish')"
         },
-        query: `mutation CreateInterfaceLanguage($code: String!, $name: String!) {\n  insertIntoInterface_languages(values: [{\n    code: $code,\n    name: $name\n  }]) {\n    id\n    code\n    name\n  }\n}`
+        query: `mutation CreateInterfaceLanguage($code: String!, $name: String!) {
+  insertIntoInterface_languages(values: [{ code: $code, name: $name }]) {
+    id
+    code
+    name
+  }
+}`
     },
     delete: {
         type: "mutation",
@@ -22,6 +34,11 @@ export const interfaceLanguagesOperations = {
         variables: {
             code: "Language code to delete"
         },
-        query: `mutation DeleteInterfaceLanguage($code: String!) {\n  deleteFromInterface_languages(where: { code: { eq: $code } }) {\n    code\n    name\n  }\n}`
+        query: `mutation DeleteInterfaceLanguage($code: String!) {
+  deleteFromInterface_languages(where: { code: { eq: $code } }) {
+    code
+    name
+  }
+}`
     }
 }; 

@@ -3,7 +3,15 @@ export const interfaceTranslationsOperations = {
         type: "query",
         name: "List Interface Translations",
         description: "Retrieves all interface translations",
-        query: `{\n  result: interface_translations {\n    id\n    locale\n    namespace\n    key\n    value\n  }\n}`
+        query: `{
+  result: interface_translations {
+    id
+    locale
+    namespace
+    key
+    value
+  }
+}`
     },
     getByLocale: {
         type: "query",
@@ -12,7 +20,14 @@ export const interfaceTranslationsOperations = {
         variables: {
             locale: "Language code for the translations"
         },
-        query: `query GetInterfaceTranslations($locale: String!) {\n  result:interface_translations(where: { locale: { eq: $locale } }) {\n    id\n    namespace\n    key\n    value\n  }\n}`
+        query: `query GetInterfaceTranslations($locale: String!) {
+  result: interface_translations(where: { locale: { eq: $locale } }) {
+    id
+    namespace
+    key
+    value
+  }
+}`
     },
     create: {
         type: "mutation",
@@ -24,7 +39,29 @@ export const interfaceTranslationsOperations = {
             key: "Translation key",
             value: "Translated content"
         },
-        query: `mutation CreateInterfaceTranslation($locale: String!, $namespace: String!, $key: String!, $value: String!) {\n  insertIntoInterface_translations(values: [{\n    locale: $locale,\n    namespace: $namespace,\n    key: $key,\n    value: $value\n  }]) {\n    id\n    locale\n    namespace\n    key\n    value\n  }\n}`
+        query: `mutation CreateInterfaceTranslation(
+  $locale: String!
+  $namespace: String!
+  $key: String!
+  $value: String!
+) {
+  insertIntoInterface_translations(
+    values: [
+      {
+        locale: $locale
+        namespace: $namespace
+        key: $key
+        value: $value
+      }
+    ]
+  ) {
+    id
+    locale
+    namespace
+    key
+    value
+  }
+}`
     },
     update: {
         type: "mutation",
@@ -34,7 +71,15 @@ export const interfaceTranslationsOperations = {
             id: "ID of the translation to update",
             value: "New translated content (optional)"
         },
-        query: `mutation UpdateInterfaceTranslation($id: String!, $value: String) {\n  updateInterface_translations(\n    set: { value: $value }\n    where: { id: { eq: $id } }\n  ) {\n    id\n    value\n  }\n}`
+        query: `mutation UpdateInterfaceTranslation($id: String!, $value: String) {
+  updateInterface_translations(
+    set: { value: $value }
+    where: { id: { eq: $id } }
+  ) {
+    id
+    value
+  }
+}`
     },
     delete: {
         type: "mutation",
@@ -43,7 +88,11 @@ export const interfaceTranslationsOperations = {
         variables: {
             id: "ID of the translation to delete"
         },
-        query: `mutation DeleteInterfaceTranslation($id: String!) {\n  deleteFromInterface_translations(where: { id: { eq: $id } }) {\n    id\n  }\n}`
+        query: `mutation DeleteInterfaceTranslation($id: String!) {
+  deleteFromInterface_translations(where: { id: { eq: $id } }) {
+    id
+  }
+}`
     },
     import: {
         type: "mutation",
@@ -52,6 +101,16 @@ export const interfaceTranslationsOperations = {
         variables: {
             translations: "Array of translations to import"
         },
-        query: `mutation ImportInterfaceTranslations($translations: [Interface_translationsInsertInput!]!) {\n  insertIntoInterface_translations(values: $translations) {\n    id\n    locale\n    namespace\n    key\n    value\n  }\n}`
+        query: `mutation ImportInterfaceTranslations(
+  $translations: [Interface_translationsInsertInput!]!
+) {
+  insertIntoInterface_translations(values: $translations) {
+    id
+    locale
+    namespace
+    key
+    value
+  }
+}`
     }
 }; 

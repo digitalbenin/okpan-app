@@ -12,7 +12,44 @@ export const logsOperations = {
             toDate: "Filter by date range (end timestamp)",
             search: "Search in log messages"
         },
-        query: `query ListLogs($page: Int!, $pageSize: Int!, $level: String, $action: String, $fromDate: String, $toDate: String, $search: String) {\n  result: logs(\n    limit: $pageSize\n    offset: $page\n    where: {\n      level: { eq: $level }\n      action: { eq: $action }\n      created_at: { gte: $fromDate, lte: $toDate }\n      message: { like: $search }\n    }\n  ) {\n    id\n    created_at\n    level\n    action\n    message\n  }\n  \n  # Get total count for pagination\n  count: logs(\n    where: {\n      level: { eq: $level }\n      action: { eq: $action }\n      created_at: { gte: $fromDate, lte: $toDate }\n      message: { like: $search }\n    }\n  ) {\n    id\n  }\n}`
+        query: `query ListLogs(
+  $page: Int!
+  $pageSize: Int!
+  $level: String
+  $action: String
+  $fromDate: String
+  $toDate: String
+  $search: String
+) {
+  result: logs(
+    limit: $pageSize
+    offset: $page
+    where: {
+      level: { eq: $level }
+      action: { eq: $action }
+      created_at: { gte: $fromDate, lte: $toDate }
+      message: { like: $search }
+    }
+  ) {
+    id
+    created_at
+    level
+    action
+    message
+  }
+
+  # Get total count for pagination
+  count: logs(
+    where: {
+      level: { eq: $level }
+      action: { eq: $action }
+      created_at: { gte: $fromDate, lte: $toDate }
+      message: { like: $search }
+    }
+  ) {
+    id
+  }
+}`
     },
     create: {
         type: "mutation",
@@ -23,7 +60,19 @@ export const logsOperations = {
             action: "The action that triggered the log",
             message: "Log message content"
         },
-        query: `mutation CreateLog($level: String!, $action: String!, $message: String!) {\n  insertIntoLogs(values: [{\n    level: $level,\n    action: $action,\n    message: $message\n  }]) {\n    id\n    created_at\n    level\n    action\n    message\n  }\n}`
+        query: `mutation CreateLog($level: String!, $action: String!, $message: String!) {
+  insertIntoLogs(
+    values: [
+      { level: $level, action: $action, message: $message }
+    ]
+  ) {
+    id
+    created_at
+    level
+    action
+    message
+  }
+}`
     },
     delete: {
         type: "mutation",
@@ -32,7 +81,11 @@ export const logsOperations = {
         variables: {
             id: "ID of the log to delete"
         },
-        query: `mutation DeleteLog($id: String!) {\n  deleteFromLogs(where: { id: { eq: $id } }) {\n    id\n  }\n}`
+        query: `mutation DeleteLog($id: String!) {
+  deleteFromLogs(where: { id: { eq: $id } }) {
+    id
+  }
+}`
     },
     clear: {
         type: "mutation",
@@ -44,6 +97,21 @@ export const logsOperations = {
             fromDate: "Filter by start date",
             toDate: "Filter by end date"
         },
-        query: `mutation ClearLogs($level: String, $action: String, $fromDate: String, $toDate: String) {\n  deleteFromLogs(\n    where: {\n      level: { eq: $level }\n      action: { eq: $action }\n      created_at: { gte: $fromDate, lte: $toDate }\n    }\n  ) {\n    id\n  }\n}`
+        query: `mutation ClearLogs(
+  $level: String
+  $action: String
+  $fromDate: String
+  $toDate: String
+) {
+  deleteFromLogs(
+    where: {
+      level: { eq: $level }
+      action: { eq: $action }
+      created_at: { gte: $fromDate, lte: $toDate }
+    }
+  ) {
+    id
+  }
+}`
     }
 }; 

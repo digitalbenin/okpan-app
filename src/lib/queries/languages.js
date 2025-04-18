@@ -7,7 +7,13 @@ export const languagesOperations = {
             code: "Language code (e.g., 'en', 'es')",
             name: "Language name (e.g., 'English', 'Spanish')"
         },
-        query: `mutation CreateContentLanguage($code: String!, $name: String!) {\n  insertIntoLanguages(values: [{\n    code: $code,\n    name: $name\n  }]) {\n    id\n    code\n    name\n  }\n}`
+        query: `mutation CreateContentLanguage($code: String!, $name: String!) {
+  insertIntoLanguages(values: [{ code: $code, name: $name }]) {
+    id
+    code
+    name
+  }
+}`
     },
     delete: {
         type: "mutation",
@@ -16,13 +22,24 @@ export const languagesOperations = {
         variables: {
             code: "Language code to delete"
         },
-        query: `mutation DeleteContentLanguage($code: String!) {\n  deleteFromLanguages(where: { code: { eq: $code } }) {\n    code\n    name\n  }\n}`
+        query: `mutation DeleteContentLanguage($code: String!) {
+  deleteFromLanguages(where: { code: { eq: $code } }) {
+    code
+    name
+  }
+}`
     },
     list: {
         type: "query",
         name: "List Content Languages",
         description: "Lists all supported content languages",
-        query: `{\n  result: languages {\n    id\n    code\n    name\n  }\n}`
+        query: `{
+  result: languages {
+    id
+    code
+    name
+  }
+}`
     },
     listByProject: {
         type: "query",
@@ -31,6 +48,15 @@ export const languagesOperations = {
         variables: {
             projectId: "ID of the project"
         },
-        query: `query GetProjectLanguages($projectId: String!) {\n  result: project_languages(where: { project_id: { eq: $projectId } }) {\n    language_code\n    is_default\n    language {\n      code\n      name\n    }\n  }\n}`
+        query: `query GetProjectLanguages($projectId: String!) {
+  result: project_languages(where: { project_id: { eq: $projectId } }) {
+    language_code
+    is_default
+    language {
+      code
+      name
+    }
+  }
+}`
     }
 }; 

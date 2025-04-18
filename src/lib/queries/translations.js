@@ -8,7 +8,22 @@ export const translationsOperations = {
             languageCode: "Language code for the translation",
             content: "Translated content"
         },
-        query: `mutation CreateTranslation($textId: String!, $languageCode: String!, $content: String!) {\n  insertIntoTranslations(values: [{\n    text_id: $textId,\n    language_code: $languageCode,\n    content: $content\n  }]) {\n    id\n    content\n    language_code\n    text_id\n  }\n}`
+        query: `mutation CreateTranslation($textId: String!, $languageCode: String!, $content: String!) {
+  insertIntoTranslations(
+    values: [
+      {
+        text_id: $textId
+        language_code: $languageCode
+        content: $content
+      }
+    ]
+  ) {
+    id
+    content
+    language_code
+    text_id
+  }
+}`
     },
     update: {
         type: "mutation",
@@ -18,6 +33,16 @@ export const translationsOperations = {
             id: "ID of the translation to update",
             content: "New translated content"
         },
-        query: `mutation UpdateTranslation($id: String!, $content: String) {\n  updateTranslations(\n    set: { content: $content }\n    where: { id: { eq: $id } }\n  ) {\n    id\n    content\n    language_code\n    text_id\n  }\n}`
+        query: `mutation UpdateTranslation($id: String!, $content: String) {
+  updateTranslations(
+    set: { content: $content }
+    where: { id: { eq: $id } }
+  ) {
+    id
+    content
+    language_code
+    text_id
+  }
+}`
     }
 }; 

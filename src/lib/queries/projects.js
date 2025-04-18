@@ -12,17 +12,54 @@ export const projectsOperations = {
         mutations: [
             {
                 name: "createTitle",
-                query: `mutation CreateProjectTitle($projectName: String!, $languageCode: String!) {\n  insertIntoTexts(values: [{\n    content: $projectName,\n    context: "project.title",\n    original_language: $languageCode\n  }]) {\n    id\n  }\n}`,
+                query: `mutation CreateProjectTitle($projectName: String!, $languageCode: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $projectName
+        context: "project.title"
+        original_language: $languageCode
+      }
+    ]
+  ) {
+    id
+  }
+}`,
                 useVariables: ["projectName", "languageCode"]
             },
             {
                 name: "createDescription",
-                query: `mutation CreateProjectDescription($description: String!, $languageCode: String!) {\n  insertIntoTexts(values: [{\n    content: $description,\n    context: "project.description",\n    original_language: $languageCode\n  }]) {\n    id\n  }\n}`,
+                query: `mutation CreateProjectDescription($description: String!, $languageCode: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $description
+        context: "project.description"
+        original_language: $languageCode
+      }
+    ]
+  ) {
+    id
+  }
+}`,
                 useVariables: ["description", "languageCode"]
             },
             {
                 name: "createProject",
-                query: `mutation CreateProjectEntry($titleId: String!, $descriptionId: String!) {\n  insertIntoProject(values: [{\n    title_id: $titleId,\n    description_id: $descriptionId\n  }]) {\n    id\n    title_id\n    description_id\n  }\n}`,
+                query: `mutation CreateProjectEntry($titleId: String!, $descriptionId: String!) {
+  insertIntoProject(
+    values: [
+      {
+        title_id: $titleId
+        description_id: $descriptionId
+      }
+    ]
+  ) {
+    id
+    title_id
+    description_id
+  }
+}`,
                 mapVariables: {
                     titleId: { from: "createTitle", path: "insertIntoTexts.0.id" },
                     descriptionId: { from: "createDescription", path: "insertIntoTexts.0.id" }
@@ -30,7 +67,21 @@ export const projectsOperations = {
             },
             {
                 name: "addDefaultLanguage",
-                query: `mutation AddDefaultLanguage($projectId: String!, $languageCode: String!) {\n  insertIntoProject_languages(values: [{\n    project_id: $projectId,\n    language_code: $languageCode,\n    is_default: 1\n  }]) {\n    project_id\n    language_code\n    is_default\n  }\n}`,
+                query: `mutation AddDefaultLanguage($projectId: String!, $languageCode: String!) {
+  insertIntoProject_languages(
+    values: [
+      {
+        project_id: $projectId
+        language_code: $languageCode
+        is_default: 1
+      }
+    ]
+  ) {
+    project_id
+    language_code
+    is_default
+  }
+}`,
                 useVariables: ["languageCode"],
                 mapVariables: {
                     projectId: { from: "createProject", path: "insertIntoProject.0.id" }
@@ -53,12 +104,26 @@ export const projectsOperations = {
         mutations: [
             {
                 name: "getProject",
-                query: `query GetProjectForUpdate($projectId: String!) {\n  project(where: { id: { eq: $projectId } }) {\n    id\n    title_id\n    description_id\n  }\n}`,
+                query: `query GetProjectForUpdate($projectId: String!) {
+  project(where: { id: { eq: $projectId } }) {
+    id
+    title_id
+    description_id
+  }
+}`,
                 useVariables: ["projectId"]
             },
             {
                 name: "updateTitle",
-                query: `mutation UpdateProjectTitle($titleId: String!, $title: String!) {\n  updateTexts(\n    set: { content: $title }\n    where: { id: { eq: $titleId } }\n  ) {\n    id\n    content\n  }\n}`,
+                query: `mutation UpdateProjectTitle($titleId: String!, $title: String!) {
+  updateTexts(
+    set: { content: $title }
+    where: { id: { eq: $titleId } }
+  ) {
+    id
+    content
+  }
+}`,
                 useVariables: ["title"],
                 mapVariables: {
                     titleId: { from: "getProject", path: "project.0.title_id" }
@@ -67,7 +132,15 @@ export const projectsOperations = {
             },
             {
                 name: "updateDescription",
-                query: `mutation UpdateProjectDescription($descriptionId: String!, $description: String!) {\n  updateTexts(\n    set: { content: $description }\n    where: { id: { eq: $descriptionId } }\n  ) {\n    id\n    content\n  }\n}`,
+                query: `mutation UpdateProjectDescription($descriptionId: String!, $description: String!) {
+  updateTexts(
+    set: { content: $description }
+    where: { id: { eq: $descriptionId } }
+  ) {
+    id
+    content
+  }
+}`,
                 useVariables: ["description"],
                 mapVariables: {
                     descriptionId: { from: "getProject", path: "project.0.description_id" }
@@ -89,32 +162,60 @@ export const projectsOperations = {
         mutations: [
             {
                 name: "getProject",
-                query: `query GetProjectForDelete($projectId: String!) {\n  project(where: { id: { eq: $projectId } }) {\n    id\n    title_id\n    description_id\n  }\n}`,
+                query: `query GetProjectForDelete($projectId: String!) {
+  project(where: { id: { eq: $projectId } }) {
+    id
+    title_id
+    description_id
+  }
+}`,
                 useVariables: ["projectId"]
             },
             {
                 name: "deleteProjectLanguages",
-                query: `mutation DeleteProjectLanguages($projectId: String!) {\n  deleteFromProject_languages(where: { project_id: { eq: $projectId } }) {\n    project_id\n  }\n}`,
+                query: `mutation DeleteProjectLanguages($projectId: String!) {
+  deleteFromProject_languages(where: { project_id: { eq: $projectId } }) {
+    project_id
+  }
+}`,
                 useVariables: ["projectId"]
             },
             {
                 name: "deleteInstitutions",
-                query: `mutation DeleteProjectInstitutions($projectId: String!) {\n  deleteFromInstitutions(where: { project_id: { eq: $projectId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteProjectInstitutions($projectId: String!) {
+  deleteFromInstitutions(where: { project_id: { eq: $projectId } }) {
+    id
+  }
+}`,
                 useVariables: ["projectId"]
             },
             {
                 name: "deleteObjects",
-                query: `mutation DeleteProjectObjects($projectId: String!) {\n  deleteFromObjects(where: { project_id: { eq: $projectId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteProjectObjects($projectId: String!) {
+  deleteFromObjects(where: { project_id: { eq: $projectId } }) {
+    id
+  }
+}`,
                 useVariables: ["projectId"]
             },
             {
                 name: "deleteProject",
-                query: `mutation DeleteProjectFinal($projectId: String!) {\n  deleteFromProject(where: { id: { eq: $projectId } }) {\n    id\n    title_id\n    description_id\n  }\n}`,
+                query: `mutation DeleteProjectFinal($projectId: String!) {
+  deleteFromProject(where: { id: { eq: $projectId } }) {
+    id
+    title_id
+    description_id
+  }
+}`,
                 useVariables: ["projectId"]
             },
             {
                 name: "deleteTitleText",
-                query: `mutation DeleteProjectTitleText($titleId: String!) {\n  deleteFromTexts(where: { id: { eq: $titleId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteProjectTitleText($titleId: String!) {
+  deleteFromTexts(where: { id: { eq: $titleId } }) {
+    id
+  }
+}`,
                 mapVariables: {
                     titleId: { from: "getProject", path: "project.0.title_id" }
                 },
@@ -122,7 +223,11 @@ export const projectsOperations = {
             },
             {
                 name: "deleteDescriptionText",
-                query: `mutation DeleteProjectDescriptionText($descriptionId: String!) {\n  deleteFromTexts(where: { id: { eq: $descriptionId } }) {\n    id\n  }\n}`,
+                query: `mutation DeleteProjectDescriptionText($descriptionId: String!) {
+  deleteFromTexts(where: { id: { eq: $descriptionId } }) {
+    id
+  }
+}`,
                 mapVariables: {
                     descriptionId: { from: "getProject", path: "project.0.description_id" }
                 },
@@ -140,7 +245,38 @@ export const projectsOperations = {
         variables: {
             projectId: "ID of the project to retrieve"
         },
-        query: `query GetProjectById($projectId: String!) {\n  result: projectById(project_id: $projectId) {\n    id\n    created_at\n    updated_at\n    title_id\n    description_id\n    title {\n      id\n      content\n      original_language\n      translations {\n        id\n        content\n        language_code      \n      }\n    }\n    description {\n      id\n      content\n      original_language\n      translations {\n        id\n        content\n        language_code\n      }\n    }\n    institutionsCount\n    objectsCount\n    assetsCount\n  }\n}`
+        query: `query GetProjectById($projectId: String!) {
+  result: projectById(project_id: $projectId) {
+    id
+    created_at
+    updated_at
+    title_id
+    description_id
+    title {
+      id
+      content
+      original_language
+      translations {
+        id
+        content
+        language_code
+      }
+    }
+    description {
+      id
+      content
+      original_language
+      translations {
+        id
+        content
+        language_code
+      }
+    }
+    institutionsCount
+    objectsCount
+    assetsCount
+  }
+}`
     },
 
     // LIST - Using the custom resolver from graphqlDefs.js
@@ -148,7 +284,38 @@ export const projectsOperations = {
         type: "query",
         name: "List Projects With Counts",
         description: "Retrieves all projects with their aggregated counts",
-        query: `{\n  result: projectsList {\n    id\n    created_at\n    updated_at\n    title_id\n    description_id\n    title {\n      id\n      content\n      original_language\n      translations {\n        id\n        content\n        language_code      \n      }\n    }\n    description {\n      id\n      content\n      original_language\n      translations {\n        id\n        content\n        language_code\n      }\n    }\n    institutionsCount\n    objectsCount\n    assetsCount\n  }\n}`
+        query: `{
+  result: projectsList {
+    id
+    created_at
+    updated_at
+    title_id
+    description_id
+    title {
+      id
+      content
+      original_language
+      translations {
+        id
+        content
+        language_code
+      }
+    }
+    description {
+      id
+      content
+      original_language
+      translations {
+        id
+        content
+        language_code
+      }
+    }
+    institutionsCount
+    objectsCount
+    assetsCount
+  }
+}`
     },
 
     // Add Language to Project
@@ -161,7 +328,21 @@ export const projectsOperations = {
             languageCode: "Code of the language to add",
             isDefault: "Whether this is the default language (0 or 1)"
         },
-        query: `mutation AddProjectLanguage($projectId: String!, $languageCode: String!, $isDefault: Int!) {\n  insertIntoProject_languages(values: [{\n    project_id: $projectId,\n    language_code: $languageCode,\n    is_default: $isDefault\n  }]) {\n    project_id\n    language_code\n    is_default\n  }\n}`
+        query: `mutation AddProjectLanguage($projectId: String!, $languageCode: String!, $isDefault: Int!) {
+  insertIntoProject_languages(
+    values: [
+      {
+        project_id: $projectId
+        language_code: $languageCode
+        is_default: $isDefault
+      }
+    ]
+  ) {
+    project_id
+    language_code
+    is_default
+  }
+}`
     },
 
     // Remove Language from Project
@@ -173,7 +354,14 @@ export const projectsOperations = {
             projectId: "ID of the project",
             languageCode: "Code of the language to remove"
         },
-        query: `mutation RemoveProjectLanguage($projectId: String!, $languageCode: String!) {\n  deleteFromProject_languages(\n    where: { \n      project_id: { eq: $projectId },\n      language_code: { eq: $languageCode }\n    }\n  ) {\n    project_id\n    language_code\n  }\n}`
+        query: `mutation RemoveProjectLanguage($projectId: String!, $languageCode: String!) {
+  deleteFromProject_languages(
+    where: { project_id: { eq: $projectId }, language_code: { eq: $languageCode } }
+  ) {
+    project_id
+    language_code
+  }
+}`
     },
 
     // Set Default Language
@@ -185,6 +373,23 @@ export const projectsOperations = {
             projectId: "ID of the project",
             languageCode: "Code of the language to set as default"
         },
-        query: `mutation SetProjectDefaultLanguage($projectId: String!, $languageCode: String!) {\n  # First, set all languages for this project to non-default\n  updateAllToNonDefault: updateProject_languages(\n    set: { is_default: 0 }\n    where: { project_id: { eq: $projectId } }\n  ) {\n    project_id\n  }\n  # Then, set the specified language as default\n  setNewDefault: updateProject_languages(\n    set: { is_default: 1 }\n    where: { \n      project_id: { eq: $projectId },\n      language_code: { eq: $languageCode }\n    }\n  ) {\n    project_id\n    language_code\n    is_default\n  }\n}`
+        query: `mutation SetProjectDefaultLanguage($projectId: String!, $languageCode: String!) {
+  # First, set all languages for this project to non-default
+  updateAllToNonDefault: updateProject_languages(
+    set: { is_default: 0 }
+    where: { project_id: { eq: $projectId } }
+  ) {
+    project_id
+  }
+  # Then, set the specified language as default
+  setNewDefault: updateProject_languages(
+    set: { is_default: 1 }
+    where: { project_id: { eq: $projectId }, language_code: { eq: $languageCode } }
+  ) {
+    project_id
+    language_code
+    is_default
+  }
+}`
     }
 }; 
