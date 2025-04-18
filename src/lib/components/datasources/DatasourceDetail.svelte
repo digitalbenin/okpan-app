@@ -83,7 +83,18 @@
             languageContent = datasource.language ?? "";
             contactContent = datasource.contact ?? "";
             copyrightContent = datasource.copyright ?? "";
-            dateString = epochToYYYYMMDD(datasource.date);
+
+            // --- Add Logging Here ---
+            const rawDateValue = datasource.date;
+            console.log(
+                `[$effect sync] Raw date value from prop: ${rawDateValue}, type: ${typeof rawDateValue}`,
+            );
+            const convertedDateString = epochToYYYYMMDD(rawDateValue);
+            console.log(
+                `[$effect sync] Result from epochToYYYYMMDD: ${convertedDateString}`,
+            );
+            dateString = convertedDateString;
+            // --- End Logging ---
 
             // Sync translatable using temp objects for robustness
             let tempName = {};

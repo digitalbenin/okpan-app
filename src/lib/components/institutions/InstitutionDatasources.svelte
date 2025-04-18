@@ -154,6 +154,18 @@
                 const newlyFetchedDatasource =
                     refetchResponse.result?.[0] ?? null;
 
+                // --- Add Logging Here ---
+                console.log(
+                    "[handleDatasourceSave] Refetched datasource:",
+                    JSON.stringify(newlyFetchedDatasource, null, 2), // Log the whole object
+                );
+                if (newlyFetchedDatasource) {
+                    console.log(
+                        `[handleDatasourceSave] Refetched date value: ${newlyFetchedDatasource.date}, type: ${typeof newlyFetchedDatasource.date}`,
+                    );
+                }
+                // --- End Logging ---
+
                 // --- MODIFICATION: Update selectedDatasource directly ---
                 selectedDatasource = newlyFetchedDatasource;
                 console.log(
@@ -175,11 +187,10 @@
                         console.log(
                             `Updating main list via map + SPREAD for id ${id}`,
                         );
-                        datasources = datasources.map(
-                            (ds) =>
-                                ds.id === id
-                                    ? { ...newlyFetchedDatasource }
-                                    : ds, // <-- Use spread { ... }
+                        datasources = datasources.map((ds) =>
+                            ds.id === id
+                                ? { ...ds, ...newlyFetchedDatasource }
+                                : ds,
                         );
                         console.log(
                             `[After Map] Snapshot of datasources array:`,
