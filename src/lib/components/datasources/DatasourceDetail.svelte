@@ -1,80 +1,374 @@
 <script>
+    import { createEventDispatcher, getContext } from "svelte";
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
+    import BaseDate from "$lib/components/base/BaseDate.svelte";
+    import { Tabs } from "melt/builders";
+    import { epochToYYYYMMDD } from "$lib/utils/dates.js";
 
+    // --- REVERT Prop definition ---
     let { datasource } = $props();
 
-    // Change derived to state for editing and use bind:value
-    let nameContent = $state(datasource?.name?.content ?? "");
-    let methodContent = $state(datasource?.method?.content ?? "");
-    let contactContent = $state(datasource?.contact ?? "");
-    let notesContent = $state(datasource?.notes?.content ?? "");
-    let languageContent = $state(datasource?.language ?? "");
-    let dateValue = $state(datasource?.date); // Use raw date value initially
-    // TODO: Consider how to handle date input/parsing if needed for saving
+    const projectLanguages = getContext("projectLanguages") || [];
+
+    // --- State variable to track the ID of the datasource processed by the effect ---
+    let previousDatasourceId = $state(null);
+
+    // --- RESTORE Internal State ---
+    let nameContent = $state({});
+    let methodContent = $state({});
+    let notesContent = $state({});
+    let languageContent = $state("");
+    let contactContent = $state("");
+    let copyrightContent = $state("");
+    let dateString = $state("");
+
+    // --- Keep Tab State ---
+    let activeLanguageCode = $state("");
+    let defaultLanguageCode = $state("");
+
+    // --- Keep Tabs builder ---
+    const tabs = new Tabs({
+        value: () => activeLanguageCode,
+        onValueChange: (v) => {
+            if (v) activeLanguageCode = v;
+        },
+    });
+
+    // --- RESTORE Effect to sync prop to internal state (with GUARD) ---
+    $effect(() => {
+        const currentId = datasource?.id;
+        console.log(
+            `[$effect sync] Current prop ID: ${currentId}, Previous processed ID: ${previousDatasourceId}`,
+        );
+
+        // --- GUARD CLAUSE ---
+        // If the ID is the same as the last one we processed, or if the current ID is null/undefined, do nothing.
+        if (!currentId || currentId === previousDatasourceId) {
+            console.log(
+                "[$effect sync] Skipping full state update - ID is null or unchanged.",
+            );
+            return; // Exit the effect early
+        }
+
+        console.log(
+            "[$effect sync] Datasource ID changed, proceeding with state update.",
+        );
+
+        // --- Existing logic to update internal state based on `datasource` ---
+        if (datasource && projectLanguages && projectLanguages.length > 0) {
+            // Determine default and active language first
+            const defaultLang = projectLanguages.find(
+                (lang) => lang.is_default,
+            );
+            const newDefaultLangCode = defaultLang
+                ? defaultLang.language_code
+                : projectLanguages[0].language_code;
+            defaultLanguageCode = newDefaultLangCode; // Update state
+
+            if (
+                !activeLanguageCode ||
+                !projectLanguages.some(
+                    (l) => l.language_code === activeLanguageCode,
+                )
+            ) {
+                activeLanguageCode = newDefaultLangCode;
+            }
+            tabs.value = activeLanguageCode;
+            console.log(
+                `[$effect sync] Default: ${newDefaultLangCode}, Active: ${activeLanguageCode}`,
+            );
+
+            // Sync non-translatable
+            languageContent = datasource.language ?? "";
+            contactContent = datasource.contact ?? "";
+            copyrightContent = datasource.copyright ?? "";
+            dateString = epochToYYYYMMDD(datasource.date);
+
+            // Sync translatable using temp objects for robustness
+            let tempName = {};
+            let tempMethod = {};
+            let tempNotes = {};
+            projectLanguages.forEach((lang) => {
+                const code = lang.language_code;
+                const isDefault = code === newDefaultLangCode;
+
+                tempName[code] =
+                    (isDefault && datasource.name?.content) ||
+                    datasource.name?.translations?.find(
+                        (t) => t.language_code === code,
+                    )?.content ||
+                    "";
+                tempMethod[code] =
+                    (isDefault && datasource.method?.content) ||
+                    datasource.method?.translations?.find(
+                        (t) => t.language_code === code,
+                    )?.content ||
+                    "";
+                tempNotes[code] =
+                    (isDefault && datasource.notes?.content) ||
+                    datasource.notes?.translations?.find(
+                        (t) => t.language_code === code,
+                    )?.content ||
+                    "";
+            });
+            nameContent = tempName;
+            methodContent = tempMethod;
+            notesContent = tempNotes;
+            console.log(
+                "[$effect sync] State updated based on new datasource prop:",
+            );
+        } else {
+            // Reset if datasource is null
+            nameContent = {};
+            methodContent = {};
+            notesContent = {};
+            languageContent = "";
+            contactContent = "";
+            copyrightContent = "";
+            dateString = "";
+            defaultLanguageCode = "";
+            activeLanguageCode = "";
+            console.log(
+                "[$effect sync] Datasource prop is null, resetting state.",
+            );
+        }
+
+        // --- Update the tracked ID *after* successfully processing ---
+        previousDatasourceId = currentId;
+        console.log(
+            `[$effect sync] Updated previousDatasourceId to: ${previousDatasourceId}`,
+        );
+    });
+
+    const dispatch = createEventDispatcher();
+
+    // --- REVERT handleSave to read from internal state ---
+    function handleSave() {
+        if (!datasource?.id || !defaultLanguageCode || !projectLanguages) {
+            console.error("Missing data for save.");
+            return;
+        }
+
+        // Convert dateString back to object
+        let dateValue = null;
+        if (dateString) {
+            const parsedDate = new Date(dateString);
+            if (!isNaN(parsedDate.getTime())) {
+                dateValue = parsedDate;
+            }
+        }
+
+        // Prepare translations payload from internal state
+        const nameTrans = [];
+        const methodTrans = [];
+        const notesTrans = [];
+        projectLanguages.forEach((lang) => {
+            const langCode = lang.language_code;
+            if (langCode !== defaultLanguageCode) {
+                // Find original ID if it exists in the original datasource prop
+                const originalNameTrans = datasource.name?.translations?.find(
+                    (t) => t.language_code === langCode,
+                );
+                const originalMethodTrans =
+                    datasource.method?.translations?.find(
+                        (t) => t.language_code === langCode,
+                    );
+                const originalNotesTrans = datasource.notes?.translations?.find(
+                    (t) => t.language_code === langCode,
+                );
+
+                // Add if content exists in state
+                if (nameContent[langCode] !== undefined) {
+                    nameTrans.push({
+                        id: originalNameTrans?.id, // Pass original ID if exists
+                        language_code: langCode,
+                        content: nameContent[langCode] || "",
+                    });
+                }
+                if (methodContent[langCode] !== undefined) {
+                    methodTrans.push({
+                        id: originalMethodTrans?.id,
+                        language_code: langCode,
+                        content: methodContent[langCode] || "",
+                    });
+                }
+                if (notesContent[langCode] !== undefined) {
+                    notesTrans.push({
+                        id: originalNotesTrans?.id,
+                        language_code: langCode,
+                        content: notesContent[langCode] || "",
+                    });
+                }
+            }
+        });
+
+        const updatedDataPayload = {
+            datasourceId: datasource.id,
+            language: languageContent, // From state
+            contact: contactContent, // From state
+            copyright: copyrightContent, // From state
+            date: dateValue ? dateValue.toISOString() : null, // From state (via dateString)
+            name: nameContent[defaultLanguageCode] || "", // From state
+            method: methodContent[defaultLanguageCode] || "", // From state
+            notes: notesContent[defaultLanguageCode] || "", // From state
+            // Pass original text IDs from the prop
+            original_name_id: datasource.name?.id,
+            original_method_id: datasource.method?.id,
+            original_notes_id: datasource.notes?.id,
+            // Pass prepared translations
+            nameTranslations: nameTrans.filter((t) => t.content !== undefined),
+            methodTranslations: methodTrans.filter(
+                (t) => t.content !== undefined,
+            ),
+            notesTranslations: notesTrans.filter(
+                (t) => t.content !== undefined,
+            ),
+        };
+
+        Object.keys(updatedDataPayload).forEach(
+            (key) =>
+                updatedDataPayload[key] === undefined &&
+                delete updatedDataPayload[key],
+        );
+
+        console.log(
+            "Dispatching save event with data from state:",
+            updatedDataPayload,
+        );
+        dispatch("save", { id: datasource.id, data: updatedDataPayload });
+    }
+
+    function handleDelete() {
+        if (!datasource?.id) {
+            console.error("Datasource ID is missing, cannot delete.");
+            return;
+        }
+        console.log(`Placeholder: Deleting datasource ${datasource.id}`);
+        dispatch("delete", { id: datasource.id });
+    }
 </script>
 
-<div class="p-2">
+<div class="p-2 datasource-detail-form">
     <h5 id="datasource-detail-title" class="mb-4">Edit information</h5>
 
-    <!-- Name (Title) -->
-    <div class="mb-3">
-        <BaseInput
-            label="Title of the import"
-            bind:value={nameContent}
-            placeholder="Datasource name"
-        />
-    </div>
+    <!-- Language Tabs -->
+    {#if projectLanguages && projectLanguages.length > 0}
+        <div {...tabs.triggerList} class="nav nav-tabs mb-3" role="tablist">
+            {#each projectLanguages as lang}
+                {@const langCode = lang.language_code}
+                <button
+                    {...tabs.getTrigger(langCode)}
+                    type="button"
+                    class="nav-link {lang.is_default ? 'fw-bold' : ''}"
+                    role="tab"
+                    aria-selected={activeLanguageCode === langCode}
+                    data-active={activeLanguageCode === langCode
+                        ? ""
+                        : undefined}
+                >
+                    {lang.language?.name || lang.language_code}
+                    {#if lang.is_default}<span
+                            class="badge bg-secondary ms-1 small">Default</span
+                        >{/if}
+                </button>
+            {/each}
+        </div>
 
-    <!-- Date of transfer -->
-    <div class="mb-3">
-        <!-- Note: Inputting raw timestamp might be confusing. Consider a date picker later -->
-        <BaseInput
-            label="Date of transfer *"
-            type="text"
-            bind:value={dateValue}
-            placeholder="Timestamp"
-        />
-    </div>
+        <!-- Tab Content -->
+        {#each projectLanguages as lang}
+            {@const langCode = lang.language_code}
+            {@const langName = lang.language?.name || lang.language_code}
+            <div {...tabs.getContent(langCode)} class="pt-2">
+                <div class="d-flex flex-column gap-3">
+                    <!-- REVERT Binding to internal state -->
+                    <BaseInput
+                        label="Title of the import"
+                        bind:value={nameContent[langCode]}
+                        placeholder={`Enter title in ${langName}...`}
+                    />
+                    <BaseInput
+                        label="Method of transfer *"
+                        bind:value={methodContent[langCode]}
+                        placeholder={`Enter transfer method in ${langName}...`}
+                    />
+                    <BaseTextArea
+                        label="Notes"
+                        bind:value={notesContent[langCode]}
+                        placeholder={`Enter notes in ${langName}...`}
+                        rows={4}
+                        maxLength={500}
+                    />
+                </div>
+            </div>
+        {/each}
 
-    <!-- Language -->
-    <div class="mb-3">
+        <hr class="my-4" />
+    {/if}
+
+    <!-- Non-Translatable Fields - REVERT Binding to internal state -->
+    <div class="d-flex flex-column gap-3">
+        <!-- Date of transfer -->
+        <BaseDate label="Date of transfer *" bind:value={dateString} />
+        <!-- Language -->
         <BaseInput
-            label="Language *"
+            label="Original Language *"
             bind:value={languageContent}
-            placeholder="Language code"
+            placeholder="Language code (e.g., en)"
         />
-    </div>
-
-    <!-- Method of transfer -->
-    <div class="mb-3">
+        <!-- Contact -->
         <BaseInput
-            label="Method of transfer *"
-            bind:value={methodContent}
-            placeholder="Transfer method"
-        />
-    </div>
-
-    <!-- Contact -->
-    <div class="mb-3">
-        <BaseInput
-            label="Name of the person/department/contact of the institution"
+            label="Contact person/department"
             bind:value={contactContent}
             placeholder="Contact person/department"
         />
-    </div>
-
-    <!-- Notes -->
-    <div class="mb-3">
-        <BaseTextArea
-            label="Notes"
-            bind:value={notesContent}
-            placeholder="Notes about this data transfer"
-            rows={4}
+        <!-- Copyright -->
+        <BaseInput
+            label="Copyright"
+            bind:value={copyrightContent}
+            placeholder="Copyright information"
         />
     </div>
 </div>
 
+<!-- Buttons remain the same -->
+<div class="d-flex justify-content-end gap-2 mt-4 p-2">
+    <button type="button" class="btn btn-danger" onclick={handleDelete}
+        >Delete</button
+    >
+    <button type="button" class="btn btn-success" onclick={handleSave}
+        >Save Changes</button
+    >
+</div>
+
 <style>
-    /* Add any specific styles if needed */
+    /* Style Melt UI tabs using data attributes */
+    [data-melt-tabs-trigger] {
+        background: none;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem 0.25rem 0 0;
+        cursor: pointer;
+        border-bottom: 1px solid transparent;
+        margin-bottom: -1px;
+    }
+    [data-melt-tabs-trigger][data-state="active"] {
+        border: 1px solid #dee2e6;
+        border-bottom-color: white;
+        background-color: white;
+        color: var(--bs-nav-tabs-link-active-color, #495057);
+    }
+    [data-melt-tabs-trigger]:not([data-state="active"]) {
+        color: var(--bs-nav-link-color, #0d6efd);
+    }
+    [data-melt-tabs-trigger]:hover:not([data-state="active"]) {
+        border-color: var(--bs-border-color-translucent, #dee2e6);
+        color: var(--bs-nav-link-hover-color, #0a58ca);
+    }
+    .nav-tabs {
+        border-bottom: 1px solid #dee2e6;
+    }
+    .datasource-detail-form :global(label.form-label) {
+        font-weight: bold;
+    }
 </style>

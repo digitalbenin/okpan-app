@@ -3,57 +3,55 @@
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
+    import BaseDate from "$lib/components/base/BaseDate.svelte";
+    import { epochToYYYYMMDD } from "$lib/utils/dates.js";
 
-    export let asset; // The asset object passed as a prop
+    let { asset } = $props();
 
     const dispatch = createEventDispatcher();
 
-    // Function to format date (could be moved to a utility)
-    function formatDate(dateString) {
-        if (!dateString) return "N/A";
-        try {
-            const date = new Date(parseInt(dateString));
-            return date.toLocaleString(); // More detailed format
-        } catch (e) {
-            console.error("Error parsing date:", e);
-            return "Invalid Date";
-        }
-    }
+    // Create derived state for formatted dates
+    let createdAtFormatted = $derived(
+        asset?.created_at ? epochToYYYYMMDD(asset.created_at) : "",
+    );
 
-    // Function to get the best image format (similar to InstitutionAssets)
-    function getImageSrc(asset) {
-        if (!asset || !asset.formats) return asset?.path || null;
+    // Function to get the best image format
+    function getImageSrc(currentAsset) {
+        if (!currentAsset || !currentAsset.formats)
+            return currentAsset?.path || null;
         try {
             const formats =
-                typeof asset.formats === "string"
-                    ? JSON.parse(asset.formats)
-                    : asset.formats;
-            // Prefer larger formats for detail view
+                typeof currentAsset.formats === "string"
+                    ? JSON.parse(currentAsset.formats)
+                    : currentAsset.formats;
             return (
-                formats.lg ||
-                formats.md ||
-                formats.original ||
-                asset.path ||
+                formats?.lg ||
+                formats?.md ||
+                formats?.original ||
+                currentAsset.path ||
                 null
             );
         } catch (e) {
             console.error("Error parsing formats:", e);
-            return asset.path || null;
+            return currentAsset?.path || null; // Added null check
         }
     }
 
-    // Function to determine if an asset is linked (similar to InstitutionAssets)
-    function isAssetLinked(asset) {
-        return asset.objectsAssets && asset.objectsAssets.length > 0;
+    // Function to determine if an asset is linked
+    function isAssetLinked(currentAsset) {
+        return !!(
+            currentAsset?.objectsAssets && currentAsset.objectsAssets.length > 0
+        );
     }
 
     function handleDelete() {
-        // TODO: Implement deletion logic
-        // Needs confirmation and likely an API call
-        console.log("Delete asset:", asset.id);
-        alert(`Deletion for asset ${asset.id} not implemented yet.`);
-        // Optionally close the panel after deletion attempt
-        // dispatch('close');
+        if (asset?.id) {
+            // Null check
+            console.log("Delete asset:", asset.id);
+            alert(`Deletion for asset ${asset.id} not implemented yet.`);
+        } else {
+            console.error("Cannot delete: Asset ID is missing.");
+        }
     }
 </script>
 
@@ -66,6 +64,10 @@
                     : null}
                 alt={asset.filename || "Asset Preview"}
                 class="img-fluid rounded"
+                width={asset.width || 300}
+                height={asset.height || 300}
+                placeholder="/placeholder.png"
+                ratio="1x1"
                 objectFit="contain"
                 style="max-height: 300px;"
             />
@@ -77,10 +79,10 @@
                 <div class="asset-detail-label">Status</div>
                 <div class="asset-detail-value">
                     {#if isAssetLinked(asset)}
-                        <BaseBadge text="Linked" class="bg-success" />
+                        <BaseBadge value="Linked" class="bg-success" />
                     {:else}
                         <BaseBadge
-                            text="Not linked"
+                            value="Not linked"
                             class="bg-warning text-dark"
                         />
                     {/if}
@@ -90,17 +92,19 @@
             <div class="asset-detail-row">
                 <div class="asset-detail-label">ID</div>
                 <div class="asset-detail-value">{asset.id || "N/A"}</div>
+                <!-- Null check handled by || -->
             </div>
 
             <div class="asset-detail-row">
                 <div class="asset-detail-label">Type</div>
                 <div class="asset-detail-value">{asset.type || "N/A"}</div>
+                <!-- Null check handled by || -->
             </div>
 
             <div class="asset-detail-row">
                 <div class="asset-detail-label">Size</div>
                 <div class="asset-detail-value">
-                    {asset.size
+                    {asset.size != null // Explicit null/undefined check for size
                         ? (asset.size / 1024).toFixed(2) + " KB"
                         : "N/A"}
                 </div>
@@ -109,7 +113,7 @@
             <div class="asset-detail-row">
                 <div class="asset-detail-label">Dimensions</div>
                 <div class="asset-detail-value">
-                    {asset.width && asset.height
+                    {asset.width != null && asset.height != null // Explicit null/undefined checks
                         ? `${asset.width} x ${asset.height}`
                         : "N/A"}
                 </div>
@@ -118,14 +122,7 @@
             <div class="asset-detail-row">
                 <div class="asset-detail-label">Uploaded</div>
                 <div class="asset-detail-value">
-                    {formatDate(asset.created_at)}
-                </div>
-            </div>
-
-            <div class="asset-detail-row">
-                <div class="asset-detail-label">Updated</div>
-                <div class="asset-detail-value">
-                    {formatDate(asset.updated_at)}
+                    {createdAtFormatted || "N/A"}
                 </div>
             </div>
 

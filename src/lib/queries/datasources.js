@@ -133,63 +133,62 @@ export const datasourcesOperations = {
         query: null
     },
 
-    // UPDATE
+    // UPDATE (Reverted to complex version handling only default texts)
     update: {
         type: "mutation",
-        name: "Update Datasource",
-        description: "Updates an existing datasource by ID",
+        name: "Update Datasource with Texts",
+        description: "Updates an existing datasource, including its related text fields for the default language",
         variables: {
             datasourceId: "ID of the datasource to update",
+            // Direct fields
+            language: "New language code (optional)",
+            contact: "New contact info (optional)",
+            date: "New date as ISO string (optional)",
+            copyright: "New copyright info (optional)",
+            // Text fields (content for default language)
             name: "New name content (optional)",
             method: "New method content (optional)",
-            notes: "New notes content (optional)",
-            institutionId: "New institution ID (optional)",
-            language: "New language (optional)",
-            copyright: "New copyright (optional)",
-            contact: "New contact (optional)",
-            date: "New date (optional)"
+            notes: "New notes content (optional)"
         },
         mutations: [
             {
                 name: "getDatasource",
-                query: `query GetDatasourceForUpdate($datasourceId: String!) {\n  datasources(where: { id: { eq: $datasourceId } }) {\n    id\n    name_id\n    method_id\n    notes_id\n    institution_id\n    language\n    copyright\n    contact\n    date\n  }\n}`,
+                query: `query GetDatasourceForUpdate($datasourceId: String!) {\n  datasources(where: { id: { eq: $datasourceId } }) {\n    id name_id method_id notes_id\n  }\n}`,
                 useVariables: ["datasourceId"]
             },
             {
                 name: "updateName",
-                query: `mutation UpdateDatasourceName($nameId: String!, $name: String!) {\n  updateTexts(\n    set: { content: $name }\n    where: { id: { eq: $nameId } }\n  ) {\n    id\n    content\n  }\n}`,
+                query: `mutation UpdateDatasourceName($nameId: String!, $name: String!) { updateTexts( set: { content: $name }, where: { id: { eq: $nameId } } ) { id } }`,
                 useVariables: ["name"],
-                mapVariables: {
-                    nameId: { from: "getDatasource", path: "datasources.0.name_id" }
-                },
+                mapVariables: { nameId: { from: "getDatasource", path: "datasources.0.name_id" } },
                 skipIf: { variableName: "name", isUndefined: true }
             },
             {
                 name: "updateMethod",
-                query: `mutation UpdateDatasourceMethod($methodId: String!, $method: String!) {\n  updateTexts(\n    set: { content: $method }\n    where: { id: { eq: $methodId } }\n  ) {\n    id\n    content\n  }\n}`,
+                query: `mutation UpdateDatasourceMethod($methodId: String!, $method: String!) { updateTexts( set: { content: $method }, where: { id: { eq: $methodId } } ) { id } }`,
                 useVariables: ["method"],
-                mapVariables: {
-                    methodId: { from: "getDatasource", path: "datasources.0.method_id" }
-                },
+                mapVariables: { methodId: { from: "getDatasource", path: "datasources.0.method_id" } },
                 skipIf: { variableName: "method", isUndefined: true }
             },
             {
                 name: "updateNotes",
-                query: `mutation UpdateDatasourceNotes($notesId: String!, $notes: String!) {\n  updateTexts(\n    set: { content: $notes }\n    where: { id: { eq: $notesId } }\n  ) {\n    id\n    content\n  }\n}`,
+                query: `mutation UpdateDatasourceNotes($notesId: String!, $notes: String!) { updateTexts( set: { content: $notes }, where: { id: { eq: $notesId } } ) { id } }`,
                 useVariables: ["notes"],
-                mapVariables: {
-                    notesId: { from: "getDatasource", path: "datasources.0.notes_id" }
-                },
+                mapVariables: { notesId: { from: "getDatasource", path: "datasources.0.notes_id" } },
                 skipIf: { variableName: "notes", isUndefined: true }
             },
             {
                 name: "updateDatasourceFields",
-                query: `mutation UpdateDatasourceFields(\n              $datasourceId: String!, \n              $institutionId: String, \n              $language: String, \n              $copyright: String, \n              $contact: String, \n              $date: Int\n            ) {\n  updateDatasources(\n    set: { \n      institution_id: $institutionId,\n      language: $language,\n      copyright: $copyright,\n      contact: $contact,\n      date: $date\n    }\n    where: { id: { eq: $datasourceId } }\n  ) {\n    id\n    institution_id\n    language\n    copyright\n    contact\n    date\n    updated_at\n  }\n}`,
-                useVariables: ["datasourceId", "institutionId", "language", "copyright", "contact", "date"],
-                // Skip update if all optional fields are undefined
+                query: `mutation UpdateDatasourceDirectFields($datasourceId: String!, $language: String, $contact: String, $date: String, $copyright: String) { updateDatasources( set: { language: $language, contact: $contact, date: $date, copyright: $copyright }, where: { id: { eq: $datasourceId } } ) { id language contact date copyright } }`,
+                useVariables: ["datasourceId", "language", "contact", "date", "copyright"],
                 skipIf: {
-                    variableNames: ["institutionId", "language", "copyright", "contact", "date"],
-                    areAllUndefined: true
+                    condition: "AND",
+                    variables: [
+                        { variableName: "language", isUndefined: true },
+                        { variableName: "contact", isUndefined: true },
+                        { variableName: "date", isUndefined: true },
+                        { variableName: "copyright", isUndefined: true }
+                    ]
                 }
             }
         ],
