@@ -1,7 +1,6 @@
 <script>
   import { goto } from "$app/navigation";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
-  import BaseButton from "../base/BaseButton.svelte";
   import { epochToDate } from "$lib/utils/dates";
 
   let { projects } = $props();
@@ -17,8 +16,10 @@
     projects.filter(
       (project) =>
         project.title.content.toLowerCase().includes(search.toLowerCase()) ||
-        project.description.content.toLowerCase().includes(search.toLowerCase())
-    )
+        project.description.content
+          .toLowerCase()
+          .includes(search.toLowerCase()),
+    ),
   );
 </script>
 

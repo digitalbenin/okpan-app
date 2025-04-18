@@ -171,10 +171,6 @@
         };
     });
 
-    $inspect("titleContent", titleContent);
-    $inspect("descriptionContent", descriptionContent);
-    $inspect("languages", languages);
-
     // Handle default language change
     function updateDefaultLanguage(newDefault) {
         if (newDefault !== defaultLangCode) {

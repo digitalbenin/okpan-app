@@ -1,9 +1,12 @@
 <script>
     import { getContext } from "svelte";
 
-    export let paths = []; // Additional path segments: [{label: 'Path Label', href: '/optional/custom/url'}]
-    export let current = ""; // Current page name (last item, not clickable)
-    export let projectHidden = false; // Option to hide the project home link (for project homepage itself)
+    // Define props using $props() rune
+    let {
+        paths = [], // Additional path segments: [{label: 'Path Label', href: '/optional/custom/url'}]
+        current = "", // Current page name (last item, not clickable)
+        projectHidden = false, // Option to hide the project home link (for project homepage itself)
+    } = $props();
 
     // Get project context
     const projectId = getContext("projectId");
