@@ -1,5 +1,5 @@
 <script>
-    import { getContext, onMount, onDestroy } from "svelte";
+    import { getContext } from "svelte";
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
@@ -12,62 +12,33 @@
     const assets = getContext("assets") || [];
 
     // Display mode state
-    let displayMode = "grid"; // 'grid' or 'list'
+    let displayMode = $state("grid"); // 'grid' or 'list'
 
     // Selected asset state
-    let selectedAssetId = null;
-    let selectedAsset = null;
+    let selectedAssetId = $state(null);
+    let selectedAsset = $state(null);
     let closeContentTimeout = null; // Added to manage timeout
 
-    // Subscribe to URL changes
-    let pageUnsubscribe;
+    // --- New $effect for URL Synchronization ---
+    $effect(() => {
+        const urlAssetId = $page.url.searchParams.get("assetId");
 
-    onMount(() => {
-        pageUnsubscribe = page.subscribe((currentPage) => {
-            const urlAssetId = currentPage.url.searchParams.get("assetId");
+        // Convert null/undefined to string for comparison if needed, or handle nulls directly
+        const currentSelectedIdStr = selectedAssetId
+            ? String(selectedAssetId)
+            : null;
+        const currentUrlIdStr = urlAssetId ? String(urlAssetId) : null;
 
-            // Convert null to undefined for comparison, or keep as string
-            const currentSelectedId = selectedAssetId
-                ? String(selectedAssetId)
-                : undefined;
-            const currentUrlId = urlAssetId ? String(urlAssetId) : undefined;
-
-            if (currentUrlId && currentUrlId !== currentSelectedId) {
-                // URL has an ID, and it's different from the current state, or state is null -> Open/switch panel
-                console.log(
-                    `URL change detected: Opening/switching to asset ${currentUrlId}`,
-                );
-                showAssetDetail(currentUrlId, false); // Don't push state if triggered by URL
-            } else if (!currentUrlId && currentSelectedId) {
-                // URL has no ID, but state does -> Close panel
-                console.log(
-                    `URL change detected: Closing asset ${currentSelectedId}`,
-                );
-                closeAssetDetail(false); // Don't push state if triggered by URL
-            }
-            // Handle case where URL and state match (no change needed)
-            // Handle case where both are null/undefined (no change needed)
-        });
-
-        // Check initial URL state on mount
-        const initialAssetId = $page.url.searchParams.get("assetId");
-        if (initialAssetId) {
-            console.log(
-                `Initial mount: Found assetId ${initialAssetId} in URL`,
-            );
-            showAssetDetail(initialAssetId, false);
+        if (currentUrlIdStr && currentUrlIdStr !== currentSelectedIdStr) {
+            // URL has an ID, and it's different from the current state -> Open/switch panel
+            showAssetDetail(currentUrlIdStr, false); // Don't push state again if triggered by URL
+        } else if (!currentUrlIdStr && currentSelectedIdStr) {
+            // URL has no ID, but state does -> Close panel
+            closeAssetDetail(false); // Don't push state again if triggered by URL
         }
+        // If URL and state match, or both are null, do nothing.
     });
-
-    onDestroy(() => {
-        if (pageUnsubscribe) {
-            pageUnsubscribe();
-        }
-        // Clear timeout on component destroy to prevent memory leaks
-        if (closeContentTimeout) {
-            clearTimeout(closeContentTimeout);
-        }
-    });
+    // --- End $effect ---
 
     // Function to find asset by ID
     function findAssetById(id) {
@@ -87,9 +58,6 @@
         const newAssetId = asset ? String(asset.id) : null;
 
         if (newAssetId && newAssetId !== selectedAssetId) {
-            console.log(
-                `Showing asset detail for ID: ${newAssetId}, updateUrl: ${updateUrl}`,
-            );
             selectedAssetId = newAssetId;
             selectedAsset = asset;
             // The panel will open reactively based on selectedAssetId
@@ -98,9 +66,6 @@
                 const currentPath = $page.url.pathname;
                 const currentParams = new URLSearchParams($page.url.search);
                 currentParams.set("assetId", newAssetId);
-                console.log(
-                    `Updating URL: ${currentPath}?${currentParams.toString()}`,
-                );
                 goto(`${currentPath}?${currentParams.toString()}`, {
                     keepfocus: true,
                     noscroll: true,
@@ -108,16 +73,12 @@
                 });
             }
         } else if (!newAssetId) {
-            console.warn(`Asset with ID ${assetId} not found.`);
             closeAssetDetail(true); // Close if asset not found
         }
     }
 
     // Function to close asset detail panel
     function closeAssetDetail(updateUrl = true) {
-        console.log(
-            `Closing asset detail. Current ID: ${selectedAssetId}, updateUrl: ${updateUrl}`,
-        );
         if (selectedAssetId !== null) {
             const idToRemove = selectedAssetId;
             selectedAssetId = null; // Start panel closing animation immediately
@@ -133,9 +94,6 @@
                 // Only set asset to null if the panel wasn't reopened for the same ID in the meantime
                 // (selectedAssetId being null is the check that close is still intended)
                 if (selectedAssetId === null) {
-                    console.log(
-                        `Timeout: Removing asset content for ID: ${idToRemove}`,
-                    );
                     selectedAsset = null;
                 }
                 closeContentTimeout = null; // Clear the timeout ID variable
@@ -147,7 +105,6 @@
                 currentParams.delete("assetId");
                 const newSearch = currentParams.toString();
                 const newUrl = `${currentPath}${newSearch ? "?" + newSearch : ""}`;
-                console.log(`Updating URL: ${newUrl}`);
                 goto(newUrl, {
                     keepfocus: true,
                     noscroll: true,
@@ -189,7 +146,6 @@
                 return formats.sm || formats.original;
             }
         } catch (e) {
-            console.error("Error parsing formats:", e);
             return asset.path || null;
         }
     }
@@ -208,19 +164,23 @@
         <div class="d-flex align-items-center gap-2">
             <span class="me-2">Display as:</span>
             <div class="btn-group" role="group">
+                <!-- Using BaseButton again -->
                 <BaseButton
                     icon="grid-3x3-gap-fill"
                     class="btn btn-sm {displayMode === 'grid'
                         ? 'btn-primary'
                         : 'btn-outline-secondary'}"
                     onClick={() => (displayMode = "grid")}
+                    aria-label="Grid view"
                 />
+                <!-- Using BaseButton again -->
                 <BaseButton
                     icon="list-ul"
                     class="btn btn-sm {displayMode === 'list'
                         ? 'btn-primary'
                         : 'btn-outline-secondary'}"
                     onClick={() => (displayMode = "list")}
+                    aria-label="List view"
                 />
             </div>
         </div>

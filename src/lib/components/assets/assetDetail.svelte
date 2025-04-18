@@ -1,14 +1,10 @@
 <script>
-    import { createEventDispatcher } from "svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
-    import BaseDate from "$lib/components/base/BaseDate.svelte";
     import { epochToYYYYMMDD } from "$lib/utils/dates.js";
 
     let { asset } = $props();
-
-    const dispatch = createEventDispatcher();
 
     // Create derived state for formatted dates
     let createdAtFormatted = $derived(

@@ -9,17 +9,11 @@
         getDatasource,
     } from "$lib/stores/DatasourcesUtils.js";
 
-    // --- Use $state for reactivity ---
     let datasources = $state(getContext("datasources") || []);
 
-    // Placeholder for search query
-    let searchQuery = "";
-
-    // Placeholder for sorting
     let sortColumn = "name"; // 'name' or 'date'
     let sortDirection = "asc"; // 'asc' or 'desc'
 
-    // --- State for Side Panel ---
     let selectedDatasourceId = $state(null);
     let selectedDatasource = $state(null);
     let closeContentTimeout = null;
@@ -47,7 +41,7 @@
         }
     }
 
-    function closeDatasourceDetail(updateUrl = true) {
+    function closeDatasourceDetail() {
         console.log(`Closing detail (URL update disabled)`);
         if (selectedDatasourceId !== null) {
             const idToRemove = selectedDatasourceId;
@@ -56,9 +50,6 @@
             if (closeContentTimeout) clearTimeout(closeContentTimeout);
             closeContentTimeout = setTimeout(() => {
                 if (selectedDatasourceId === null) {
-                    console.log(
-                        `Timeout: Removing datasource content for ID: ${idToRemove}`,
-                    );
                     selectedDatasource = null;
                 }
                 closeContentTimeout = null;
@@ -69,14 +60,8 @@
     async function handleDatasourceSave(event) {
         const { id, data } = event.detail;
         if (!id) {
-            console.error("Cannot save: Datasource ID is missing.");
-            alert("Cannot save: Datasource ID is missing.");
             return;
         }
-        console.log(
-            `Attempting to save datasource ${id} with comprehensive data:`,
-            data,
-        );
 
         let updateResponse = null;
         try {
@@ -86,44 +71,15 @@
                 "Caught detailed error during updateDatasource call:",
                 err,
             );
-            let alertMessage =
-                "An unexpected error occurred during save. Check the developer console for details.";
-            if (err && err.message) {
-                alertMessage = `Error during save: ${err.message}. See console for more details.`;
-            }
-            if (
-                err &&
-                err.graphqlErrors &&
-                Array.isArray(err.graphqlErrors) &&
-                err.graphqlErrors.length > 0
-            ) {
-                const gqlErrorMsg = err.graphqlErrors[0]?.message;
-                if (gqlErrorMsg) {
-                    alertMessage = `GraphQL Error: ${gqlErrorMsg}. See console for full details.`;
-                }
-            }
-            alert(alertMessage);
             return;
         }
-
-        if (!updateResponse) {
-            console.error(
-                "handleDatasourceSave: updateDatasource returned null or undefined!",
-            );
-            alert(
-                "An unexpected error occurred: Update operation did not respond correctly.",
-            );
-            return;
-        }
-
+        if (!updateResponse) return;
         if (updateResponse.error) {
             console.error(
                 "Failed to save datasource completely:",
                 updateResponse.error,
             );
-            alert(`Error saving datasource: ${updateResponse.error}`);
         } else {
-            console.log("Save successful. Refetching single item...");
             let refetchResponse = null;
             try {
                 refetchResponse = await getDatasource(id, fetch);
@@ -131,9 +87,6 @@
                 console.error(
                     "Caught error during getDatasource refetch call:",
                     err,
-                );
-                alert(
-                    "Datasource saved, but an unexpected error occurred while refreshing the view.",
                 );
                 return;
             }
@@ -147,54 +100,18 @@
                     "Failed to refetch updated datasource:",
                     refetchResponse?.error,
                 );
-                alert(
-                    "Datasource saved, but failed to refresh view. Please close and reopen the detail panel.",
-                );
             } else {
                 const newlyFetchedDatasource =
                     refetchResponse.result?.[0] ?? null;
 
-                // --- Add Logging Here ---
-                console.log(
-                    "[handleDatasourceSave] Refetched datasource:",
-                    JSON.stringify(newlyFetchedDatasource, null, 2), // Log the whole object
-                );
-                if (newlyFetchedDatasource) {
-                    console.log(
-                        `[handleDatasourceSave] Refetched date value: ${newlyFetchedDatasource.date}, type: ${typeof newlyFetchedDatasource.date}`,
-                    );
-                }
-                // --- End Logging ---
-
-                // --- MODIFICATION: Update selectedDatasource directly ---
                 selectedDatasource = newlyFetchedDatasource;
-                console.log(
-                    "Updated selectedDatasource directly (snapshot):",
-                    $state.snapshot(selectedDatasource),
-                );
-
-                // --- ALSO: Update the main list for the table view ---
-                // --- DIAGNOSTIC: Temporarily comment out list update ---
-                // --- RE-ENABLE List Update ---
-                // /*
                 if (newlyFetchedDatasource) {
                     const index = datasources.findIndex((ds) => ds.id === id); // Find index (needed for logging/check)
                     if (index !== -1) {
-                        console.log(
-                            `[Before Map] Snapshot of datasources array:`,
-                            $state.snapshot(datasources),
-                        );
-                        console.log(
-                            `Updating main list via map + SPREAD for id ${id}`,
-                        );
                         datasources = datasources.map((ds) =>
                             ds.id === id
                                 ? { ...ds, ...newlyFetchedDatasource }
                                 : ds,
-                        );
-                        console.log(
-                            `[After Map] Snapshot of datasources array:`,
-                            $state.snapshot(datasources),
                         );
                     } else {
                         console.warn(
@@ -203,11 +120,7 @@
                     }
                 } else {
                     datasources = datasources.filter((ds) => ds.id !== id);
-                    console.log(
-                        "Refetch returned null, removing from list and setting selected to null.",
-                    );
                 }
-                // */
             }
         }
     }
@@ -218,11 +131,6 @@
             showDatasourceDetail(datasourceId);
         }
     }
-    // --- End State for Side Panel ---
-
-    // --- Restore derived state ---
-    // COMMENT OUT $derived for now
-    // let filteredAndSortedDatasources = $derived(datasources);
 
     function toggleSort(column) {
         if (sortColumn === column) {

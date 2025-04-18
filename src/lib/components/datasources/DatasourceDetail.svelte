@@ -38,22 +38,10 @@
     // --- RESTORE Effect to sync prop to internal state (with GUARD) ---
     $effect(() => {
         const currentId = datasource?.id;
-        console.log(
-            `[$effect sync] Current prop ID: ${currentId}, Previous processed ID: ${previousDatasourceId}`,
-        );
 
-        // --- GUARD CLAUSE ---
-        // If the ID is the same as the last one we processed, or if the current ID is null/undefined, do nothing.
         if (!currentId || currentId === previousDatasourceId) {
-            console.log(
-                "[$effect sync] Skipping full state update - ID is null or unchanged.",
-            );
             return; // Exit the effect early
         }
-
-        console.log(
-            "[$effect sync] Datasource ID changed, proceeding with state update.",
-        );
 
         // --- Existing logic to update internal state based on `datasource` ---
         if (datasource && projectLanguages && projectLanguages.length > 0) {
@@ -75,9 +63,6 @@
                 activeLanguageCode = newDefaultLangCode;
             }
             tabs.value = activeLanguageCode;
-            console.log(
-                `[$effect sync] Default: ${newDefaultLangCode}, Active: ${activeLanguageCode}`,
-            );
 
             // Sync non-translatable
             languageContent = datasource.language ?? "";
@@ -86,17 +71,9 @@
 
             // --- Add Logging Here ---
             const rawDateValue = datasource.date;
-            console.log(
-                `[$effect sync] Raw date value from prop: ${rawDateValue}, type: ${typeof rawDateValue}`,
-            );
             const convertedDateString = epochToYYYYMMDD(rawDateValue);
-            console.log(
-                `[$effect sync] Result from epochToYYYYMMDD: ${convertedDateString}`,
-            );
             dateString = convertedDateString;
-            // --- End Logging ---
 
-            // Sync translatable using temp objects for robustness
             let tempName = {};
             let tempMethod = {};
             let tempNotes = {};
@@ -126,9 +103,6 @@
             nameContent = tempName;
             methodContent = tempMethod;
             notesContent = tempNotes;
-            console.log(
-                "[$effect sync] State updated based on new datasource prop:",
-            );
         } else {
             // Reset if datasource is null
             nameContent = {};
@@ -140,16 +114,8 @@
             dateString = "";
             defaultLanguageCode = "";
             activeLanguageCode = "";
-            console.log(
-                "[$effect sync] Datasource prop is null, resetting state.",
-            );
         }
-
-        // --- Update the tracked ID *after* successfully processing ---
         previousDatasourceId = currentId;
-        console.log(
-            `[$effect sync] Updated previousDatasourceId to: ${previousDatasourceId}`,
-        );
     });
 
     const dispatch = createEventDispatcher();
@@ -157,7 +123,6 @@
     // --- REVERT handleSave to read from internal state ---
     function handleSave() {
         if (!datasource?.id || !defaultLanguageCode || !projectLanguages) {
-            console.error("Missing data for save.");
             return;
         }
 
@@ -243,10 +208,6 @@
                 delete updatedDataPayload[key],
         );
 
-        console.log(
-            "Dispatching save event with data from state:",
-            updatedDataPayload,
-        );
         dispatch("save", { id: datasource.id, data: updatedDataPayload });
     }
 
@@ -255,7 +216,6 @@
             console.error("Datasource ID is missing, cannot delete.");
             return;
         }
-        console.log(`Placeholder: Deleting datasource ${datasource.id}`);
         dispatch("delete", { id: datasource.id });
     }
 </script>

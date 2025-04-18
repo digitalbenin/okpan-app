@@ -6,21 +6,12 @@
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
     import { Tabs } from "melt/builders";
 
-    // Props: formData is now bindable, managed by parent.
-    // errors is bindable for parent to potentially pass validation errors.
-    // projectLanguages is needed for tabs/iteration.
     let {
         projectLanguages = $bindable(getContext("projectLanguages") || []),
         formData = $bindable({}), // Parent provides and manages this reactive object
         errors = $bindable({}), // Parent can pass down errors
     } = $props();
 
-    // Log context values for debugging (can be removed later)
-    console.log("InstitutionData component loaded (Simple Mode)");
-    console.log("Context projectLanguages:", projectLanguages);
-
-    // Initialize tab state directly from parent's default language preference if possible,
-    // or just the first language. Relies on formData having the structure.
     let activeLanguageCode = $state(null);
 
     // Instantiate the Tabs builder
@@ -47,10 +38,6 @@
                 : projectLanguages[0].language_code;
             activeLanguageCode = initialLangCode;
             tabs.value = initialLangCode;
-            console.log(
-                "[Effect Init Tab Simple] Set initial activeLanguageCode:",
-                initialLangCode,
-            );
         }
     });
 
