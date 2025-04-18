@@ -4,6 +4,7 @@
   import { updateProject, getProject } from "$lib/stores/ProjectsUtils.js";
   import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
   import { Tabs } from "melt/builders";
+  import { goto } from "$app/navigation";
 
   let project = getContext("project");
 
@@ -299,13 +300,18 @@
     <BaseButton class="btn btn-sm btn-primary" text="Data Editor" />
     <BaseButton class="btn btn-sm btn-primary" text="Data Explorer" />
   </div>
+  -->
 
   <div class="d-flex gap-1">
     <BaseButton
       class="btn btn-sm btn-dark"
       icon="table"
       text="Data Structure"
+      onClick={() => {
+        goto(`/projects/${project.id}/data-structure`);
+      }}
     />
+    <!--
     <BaseButton class="btn btn-sm btn-dark" icon="download" text="Export" />
     <BaseButton class="btn btn-sm btn-dark" icon="gear" text="Settings" />
     <BaseButton
@@ -313,8 +319,8 @@
       icon="question-circle"
       text="Help"
     />
+    -->
   </div>
-  -->
 </div>
 
 <!-- Edit Project Modal -->
