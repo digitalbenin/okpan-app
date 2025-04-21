@@ -3,6 +3,24 @@
 
     let { data } = $props(); // Access data loaded from +page.js
     // $inspect(data); // Keep inspect if helpful for debugging
+    $effect(() => {
+        console.log("[+page.svelte] Data prop updated:", structuredClone(data));
+        console.log("[+page.svelte] Research Fields:", data?.researchFields);
+        console.log("[+page.svelte] Ontology Fields:", data?.ontologyFields);
+    });
+
+    // --- State for Search ---
+    let researchSearchTerm = $state("");
+    let ontologySearchTerm = $state("");
+
+    // --- Filtered Research Fields (Derived State) ---
+    const filteredResearchFields = $derived.by(() => {
+        const searchTerm = researchSearchTerm.toLowerCase();
+        if (!searchTerm) return data.researchFields || []; // Return all if search is empty
+        return (data.researchFields || []).filter((field) =>
+            field.name?.content?.toLowerCase().includes(searchTerm),
+        );
+    });
 
     // --- Group Ontology Fields (Derived State) ---
     const groupedOntologyFields = $derived.by(() => {
@@ -16,6 +34,25 @@
             groups[category].push(field);
         }
         return groups;
+    });
+
+    // --- Filtered Ontology Fields (Derived State) ---
+    const filteredOntologyGroups = $derived.by(() => {
+        const searchTerm = ontologySearchTerm.toLowerCase();
+        if (!searchTerm) return groupedOntologyFields; // Return all groups if search is empty
+
+        const filteredGroups = {};
+        for (const [category, fields] of Object.entries(
+            groupedOntologyFields,
+        )) {
+            const filteredFields = fields.filter((field) =>
+                field.name?.content?.toLowerCase().includes(searchTerm),
+            );
+            if (filteredFields.length > 0) {
+                filteredGroups[category] = filteredFields;
+            }
+        }
+        return filteredGroups;
     });
 
     // TODO: Implement actual edit/info actions
@@ -34,11 +71,15 @@
             <h2 class="h2 mb-0">Research fields</h2>
             <div class="col-3">
                 <!-- Using col-3 for search width -->
-                <BaseInput type="search" placeholder="Search..." disabled />
+                <BaseInput
+                    type="search"
+                    placeholder="Search..."
+                    bind:value={researchSearchTerm}
+                />
             </div>
         </header>
         <div class="d-flex flex-wrap gap-2">
-            {#each data.researchFields || [] as field (field.id)}
+            {#each filteredResearchFields as field (field.id)}
                 <div
                     class="border rounded p-2 d-flex flex-row justify-content-between align-items-center bg-light text-dark"
                     style="min-width: 200px;"
@@ -62,7 +103,11 @@
                 </div>
             {:else}
                 <p class="text-muted">
-                    No research fields found for this project.
+                    {#if researchSearchTerm}
+                        No research fields match your search criteria.
+                    {:else}
+                        No research fields found for this project.
+                    {/if}
                 </p>
             {/each}
         </div>
@@ -74,37 +119,51 @@
         <header class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="h2 mb-0">Default fields</h2>
             <div class="col-3">
-                <BaseInput type="search" placeholder="Search..." disabled />
+                <BaseInput
+                    type="search"
+                    placeholder="Search..."
+                    bind:value={ontologySearchTerm}
+                />
             </div>
         </header>
-        {#each Object.entries(groupedOntologyFields) as [category, fields] (category)}
-            <div class="mb-3">
-                <h6 class="h6 text-secondary mt-4 mb-2 pb-1">
-                    {category}
-                </h6>
-                <div class="d-flex flex-wrap gap-2">
-                    {#each fields as field (field.id)}
-                        <div
-                            class="border rounded p-2 d-flex flex-row justify-content-between align-items-center bg-light text-dark"
-                            style="min-width: 200px;"
-                        >
-                            <span class="flex-grow-1 me-2"
-                                >{field.name?.content || "Unnamed Field"}</span
-                            >
-                            <div class="d-flex gap-1">
-                                <button
-                                    class="btn btn-link p-1 text-secondary lh-1"
-                                    title={field.description?.content ||
-                                        "No description"}
-                                    onclick={() => showInfo(field)}>ⓘ</button
-                                >
-                            </div>
-                        </div>
-                    {/each}
-                </div>
-            </div>
+        {#if Object.keys(filteredOntologyGroups).length === 0}
+            <p class="text-muted">
+                {#if ontologySearchTerm}
+                    No default fields match your search criteria.
+                {:else}
+                    No default fields found.
+                {/if}
+            </p>
         {:else}
-            <p class="text-muted">No default fields found.</p>
-        {/each}
+            {#each Object.entries(filteredOntologyGroups) as [category, fields] (category)}
+                <div class="mb-3">
+                    <h6 class="h6 text-secondary mt-4 mb-2 pb-1">
+                        {category}
+                    </h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {#each fields as field (field.id)}
+                            <div
+                                class="border rounded p-2 d-flex flex-row justify-content-between align-items-center bg-light text-dark"
+                                style="min-width: 200px;"
+                            >
+                                <span class="flex-grow-1 me-2"
+                                    >{field.name?.content ||
+                                        "Unnamed Field"}</span
+                                >
+                                <div class="d-flex gap-1">
+                                    <button
+                                        class="btn btn-link p-1 text-secondary lh-1"
+                                        title={field.description?.content ||
+                                            "No description"}
+                                        onclick={() => showInfo(field)}
+                                        >ⓘ</button
+                                    >
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+            {/each}
+        {/if}
     </section>
 </div>
