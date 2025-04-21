@@ -1,6 +1,7 @@
 import { browser } from '$app/environment';
 import { getResearchFields } from '$lib/stores/ResearchFieldsUtils.js';
 import { getOntologyFields } from '$lib/stores/OntologyFieldsUtils.js';
+import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
 /** @type {import('./$types').PageLoad} */
 export async function load({ params, fetch }) {
@@ -10,10 +11,13 @@ export async function load({ params, fetch }) {
 
     console.log(`Loading data for @data-structure in project ${projectId}...`);
 
+    const { getAvaliableLocalesForProject } = getContentLanguageStore();
+
     // Fetch data in parallel
-    const [researchFieldsResponse, ontologyFieldsResponse] = await Promise.all([
+    const [researchFieldsResponse, ontologyFieldsResponse, projectLanguages] = await Promise.all([
         getResearchFields(projectId, undefined, undefined), // Fetch all research fields for the project
-        getOntologyFields(undefined, undefined) // Fetch all ontology fields (no project ID needed based on query file)
+        getOntologyFields(undefined, undefined), // Fetch all ontology fields (no project ID needed based on query file)
+        getAvaliableLocalesForProject(projectId) // Added fetch for languages
     ]);
 
     // Extract results directly from the properties of the returned data object
@@ -36,10 +40,12 @@ export async function load({ params, fetch }) {
 
     console.log("Fetched research fields:", researchFields);
     console.log("Fetched ontology fields:", ontologyFields);
+    console.log("Fetched project languages:", projectLanguages);
 
     return {
         researchFields,
         ontologyFields,
+        projectLanguages,
         projectId // Pass projectId for context if needed
     };
 } 
