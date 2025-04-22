@@ -64,10 +64,11 @@ export const updateObjectResearchFields = async (objectId, changes) => {
             const params = {
                 objectId: objectId,
                 fieldId: change.id,
-                value: change.value
+                value: change.value,
+                vocabularyId: change.vocabularyId
             };
 
-            console.log(`Updating research field ${change.id} with value: ${change.value}`);
+            console.log(`Updating research field ${change.id} with value: ${change.value}${change.vocabularyId ? `, vocabularyId: ${change.vocabularyId}` : ''}`);
             try {
                 const response = await executeQuery('objects', 'objectUpdateResearchField', params);
                 console.log(`Raw response from updating field ${change.id}:`, JSON.stringify(response));

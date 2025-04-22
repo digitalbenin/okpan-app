@@ -40,9 +40,11 @@ export const researchFieldsOperations = {
     vocabularies {
       id
       option {
+        id  
         content
       }
       description {
+        id
         content
       }
     }

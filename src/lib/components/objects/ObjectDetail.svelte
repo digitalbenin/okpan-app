@@ -1,5 +1,5 @@
 <script>
-    import { createEventDispatcher } from "svelte";
+    import { createEventDispatcher, getContext } from "svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
@@ -7,6 +7,9 @@
     import BaseSelect from "$lib/components/base/BaseSelect.svelte";
 
     let { object } = $props();
+
+    // Get research fields from context
+    const researchFields = getContext("researchFields") || [];
 
     const dispatch = createEventDispatcher();
 
@@ -18,6 +21,16 @@
 
     // Keep a reference to the previous field values to avoid circular updates
     let previousFieldValues = $state({});
+
+    // Ensure field values always have a default value
+    let safeFieldValues = $derived({
+        ...Object.fromEntries(
+            Object.entries(fieldValues).map(([key, value]) => [
+                key,
+                value || "",
+            ]),
+        ),
+    });
 
     // Detect when object changes to reset edited fields
     $effect(() => {
@@ -33,19 +46,20 @@
             const values = {};
             object.objectsResearchFields.forEach((field, index) => {
                 const fieldId = field.id || `field-${index}`;
-                values[fieldId] = field.value || "";
+
+                // Ensure we have default values
+                if (field.vocabulary_id) {
+                    // For vocabulary fields, show the vocabulary ID
+                    values[fieldId] = field.vocabulary_id || "";
+                } else {
+                    // Otherwise use the value directly
+                    values[fieldId] = field.value || "";
+                }
             });
+
             fieldValues = values;
             previousFieldValues = { ...values };
             console.log("Field values initialized:", values);
-
-            // Debug log for field structure
-            if (object.objectsResearchFields[0]) {
-                console.log(
-                    "First research field structure:",
-                    JSON.stringify(object.objectsResearchFields[0], null, 2),
-                );
-            }
         } else {
             console.log("No research fields found for object:", object?.id);
             fieldValues = {};
@@ -59,58 +73,72 @@
         return Object.keys(editedFields).length > 0;
     }
 
-    // Update edited fields when a field value changes
-    function fieldValueChanged(fieldId, newValue) {
-        if (!object?.objectsResearchFields) {
-            console.warn(
-                "Cannot change field value: No research fields available",
-            );
-            return;
-        }
+    // Simpler function to handle input changes
+    function handleInputChange(fieldId, value) {
+        if (!fieldId) return;
 
-        // Find the original field by either id or the generated field-index ID
-        const isGeneratedId = fieldId.startsWith("field-");
+        // Find the original field
+        const originalField = object.objectsResearchFields.find(
+            (f, index) => (f.id || `field-${index}`) === fieldId,
+        );
 
-        const originalField = object.objectsResearchFields.find((f, index) => {
-            if (isGeneratedId && !f.id) {
-                return `field-${index}` === fieldId;
-            }
-            return f.id === fieldId;
-        });
+        if (!originalField) return;
 
-        if (originalField) {
-            const originalValue = originalField.value || "";
+        // Compare with original value - for vocabulary fields, compare with vocabulary_id
+        const originalValue =
+            originalField.vocabulary_id || originalField.value || "";
 
-            if (newValue !== originalValue) {
-                // Track this as a change
-                editedFields[fieldId] = newValue;
-            } else {
-                // Remove from edited fields if value is back to original
-                const newEditedFields = { ...editedFields };
-                delete newEditedFields[fieldId];
-                editedFields = newEditedFields;
-            }
+        if (value !== originalValue) {
+            // Track this as a change
+            editedFields[fieldId] = value;
+        } else {
+            // If it matches the original, remove from edited fields
+            delete editedFields[fieldId];
+            editedFields = { ...editedFields }; // Trigger reactivity
         }
     }
 
-    // A more controlled effect to watch field value changes
-    $effect(() => {
-        // Only run if we have field values to watch
-        if (Object.keys(fieldValues).length === 0) return;
+    // Get the research field definition from the context
+    function getResearchFieldDef(fieldId) {
+        if (!object?.objectsResearchFields) return null;
 
-        // Compare current values with previous values
-        const fieldIds = Object.keys(fieldValues);
-        for (const fieldId of fieldIds) {
-            const currentValue = fieldValues[fieldId];
-            const prevValue = previousFieldValues[fieldId];
+        const objField = object.objectsResearchFields.find(
+            (f) => f.field_id === fieldId,
+        );
+        if (!objField) return null;
 
-            if (currentValue !== prevValue) {
-                fieldValueChanged(fieldId, currentValue);
-                // Update previous value to prevent loops
-                previousFieldValues[fieldId] = currentValue;
-            }
+        return researchFields.find((rf) => rf.id === objField.field_id);
+    }
+
+    // Get field type safely with fallbacks
+    function getFieldType(field) {
+        return field?.researchField?.type?.toLowerCase() || "free_text";
+    }
+
+    // Get options for select/multiselect fields in a format select can use
+    function getFieldOptions(field) {
+        // Get field definition by field_id
+        const fieldDef = researchFields.find(
+            (rf) => rf.id === field.researchField?.id,
+        );
+
+        if (!fieldDef?.vocabularies?.length) {
+            return [];
         }
-    });
+
+        // Format the vocabularies to work with HTML select
+        return fieldDef.vocabularies.map((vocab) => ({
+            id: vocab.id,
+            label: vocab.option?.content || "Unnamed option",
+        }));
+    }
+
+    // Helper to determine if field should use a select
+    function shouldUseSelect(field) {
+        // First check field type
+        const fieldType = getFieldType(field);
+        return fieldType === "vocabulary" || fieldType === "multiselect";
+    }
 
     // Function to get object title from mapped ontology field
     function getObjectTitle(currentObject) {
@@ -196,84 +224,53 @@
 
         const changes = [];
 
-        // Collect all field changes, ensuring we use the correct ID
+        // Collect all field changes
         for (const editedFieldKey in editedFields) {
-            // Find the original field data based on the key used in editedFields
-            // This key could be the actual ID or the generated field-${index}
-            const isGeneratedKey = editedFieldKey.startsWith("field-");
+            // Find the original field data
             const originalFieldData = object.objectsResearchFields.find(
-                (f, index) => {
-                    if (isGeneratedKey && !f.id) {
-                        // Match based on index if the key is generated and the field has no ID
-                        return `field-${index}` === editedFieldKey;
-                    }
-                    // Otherwise, match based on the actual field ID
-                    return f.id === editedFieldKey;
-                },
+                (f, index) => (f.id || `field-${index}`) === editedFieldKey,
             );
 
-            if (originalFieldData && originalFieldData.id) {
-                // We found the corresponding field and it has a database ID
-                changes.push({
-                    id: originalFieldData.id, // Use the ACTUAL database ID
-                    value: editedFields[editedFieldKey],
-                });
-            } else {
-                // Log an error if we can't find the original field or it lacks an ID
-                // This shouldn't happen if initialization is correct, but good for safety
-                console.error(
-                    `Could not find original field data or ID for key: ${editedFieldKey}. Cannot save this change.`,
-                    originalFieldData,
-                );
+            if (originalFieldData?.id) {
+                const editedValue = editedFields[editedFieldKey];
+
+                // Check if this is a vocabulary field
+                const isVocabularyField = shouldUseSelect(originalFieldData);
+
+                if (isVocabularyField) {
+                    // For vocabulary fields, save the ID as vocabularyId
+                    // Only set value if it's not a vocabulary selection
+                    changes.push({
+                        id: originalFieldData.id,
+                        value: editedValue ? null : originalFieldData.value,
+                        vocabularyId: editedValue || null, // If empty, set to null
+                    });
+                } else {
+                    // For regular fields, save as value
+                    changes.push({
+                        id: originalFieldData.id,
+                        value: editedValue,
+                        vocabularyId: null,
+                    });
+                }
             }
         }
 
-        if (changes.length === 0 && Object.keys(editedFields).length > 0) {
-            console.error(
-                "Attempted to save, but no valid changes could be constructed.",
-            );
-            // Optionally, show a user-facing error here
-            return; // Don't dispatch if no valid changes were found
+        if (changes.length === 0) {
+            console.error("No valid changes to save");
+            return;
         }
 
-        // Dispatch save event with correctly structured changes
+        console.log("Saving changes:", changes);
+
+        // Dispatch save event
         dispatch("save", {
             objectId: object.id,
             changes: changes,
         });
 
-        // Clear edited fields after dispatching save
+        // Clear edited fields after saving
         editedFields = {};
-    }
-
-    // Function to handle field value changes
-    async function handleFieldChange(fieldId, value) {
-        if (!fieldId) {
-            console.error("Field ID is undefined");
-            return;
-        }
-
-        // First update the fieldValues reactively
-        fieldValues[fieldId] = value;
-        fieldValues = fieldValues; // Trigger reactivity
-
-        // Find the original field to compare with
-        const originalField = object.objectsResearchFields.find(
-            (f) => (f.id || "") === fieldId,
-        );
-        if (!originalField) {
-            console.error(`Could not find field with ID ${fieldId}`);
-            return;
-        }
-
-        // Check if the value has changed from the original
-        if (value !== (originalField.value || "")) {
-            editedFields[fieldId] = value;
-        } else {
-            // If it matches the original value, remove it from edited fields
-            delete editedFields[fieldId];
-        }
-        editedFields = editedFields; // Trigger reactivity
     }
 </script>
 
@@ -340,7 +337,7 @@
             {#if object.objectsResearchFields && object.objectsResearchFields.length > 0}
                 <div class="research-fields-form">
                     {#each [...object.objectsResearchFields].sort((a, b) => a.order - b.order) as field, index (field.id || `field-${index}`)}
-                        <div class="field mb-2">
+                        <div class="field mb-3">
                             <label
                                 for={field.id || `field-${index}`}
                                 class="font-medium block mb-1"
@@ -349,13 +346,70 @@
                                     ""}</label
                             >
 
-                            <BaseInput
-                                id={field.id || `field-${index}`}
-                                class="input w-full"
-                                bind:value={
-                                    fieldValues[field.id || `field-${index}`]
-                                }
-                            />
+                            <!-- Use standard HTML select for vocabulary fields -->
+                            {#if shouldUseSelect(field)}
+                                {@const options = getFieldOptions(field)}
+                                {#if options.length > 0}
+                                    <select
+                                        id={field.id || `field-${index}`}
+                                        class="form-select w-full"
+                                        value={fieldValues[
+                                            field.id || `field-${index}`
+                                        ] || ""}
+                                        on:change={(e) =>
+                                            handleInputChange(
+                                                field.id || `field-${index}`,
+                                                e.target.value,
+                                            )}
+                                    >
+                                        <option value=""
+                                            >-- Select option --</option
+                                        >
+                                        {#each options as option}
+                                            <option value={option.id}
+                                                >{option.label}</option
+                                            >
+                                        {/each}
+                                    </select>
+                                {:else}
+                                    <!-- Fallback text input when options aren't available -->
+                                    <BaseInput
+                                        id={field.id || `field-${index}`}
+                                        class="input w-full"
+                                        value={fieldValues[
+                                            field.id || `field-${index}`
+                                        ] || ""}
+                                        on:input={(e) =>
+                                            handleInputChange(
+                                                field.id || `field-${index}`,
+                                                e.target.value,
+                                            )}
+                                        placeholder="Enter value..."
+                                    />
+                                    <!-- Show vocabulary information if a vocabulary is selected -->
+                                    {#if field.vocabulary_id}
+                                        <div class="text-xs text-blue-600 mt-1">
+                                            Selected vocabulary: {field
+                                                .vocabulary?.option?.content ||
+                                                "Unknown option"}
+                                        </div>
+                                    {/if}
+                                {/if}
+                            {:else}
+                                <BaseInput
+                                    id={field.id || `field-${index}`}
+                                    class="input w-full"
+                                    value={fieldValues[
+                                        field.id || `field-${index}`
+                                    ] || ""}
+                                    on:input={(e) =>
+                                        handleInputChange(
+                                            field.id || `field-${index}`,
+                                            e.target.value,
+                                        )}
+                                    placeholder="Enter value..."
+                                />
+                            {/if}
                         </div>
                     {/each}
                 </div>
