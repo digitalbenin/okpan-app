@@ -1,7 +1,11 @@
 <script>
     import { getContext } from "svelte";
+    import { page } from "$app/stores";
+    import { goto } from "$app/navigation";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import SidePanel from "$lib/components/common/SidePanel.svelte";
+    import ObjectDetail from "$lib/components/objects/ObjectDetail.svelte";
 
     // Get data from context
     const objects = getContext("objects") || [];
@@ -90,6 +94,109 @@
 
     // Computed property for filtered objects (implement actual filtering later)
     let filteredObjects = $derived(objects); // TODO: Add filtering logic
+
+    // Selected object state
+    let selectedObjectId = $state(null);
+    let selectedObject = $state(null);
+    let closeContentTimeout = null;
+
+    // Function to find object by ID
+    function findObjectById(id) {
+        return (
+            objects.find((object) => String(object.id) === String(id)) || null
+        );
+    }
+
+    // Function to show object detail panel
+    function showObjectDetail(objectId, updateUrl = true) {
+        // Clear any pending timeout to remove content
+        if (closeContentTimeout) {
+            clearTimeout(closeContentTimeout);
+            closeContentTimeout = null;
+        }
+
+        const object = findObjectById(objectId);
+        const newObjectId = object ? String(object.id) : null;
+
+        if (newObjectId && newObjectId !== selectedObjectId) {
+            selectedObjectId = newObjectId;
+            selectedObject = object;
+
+            if (updateUrl) {
+                const currentPath = $page.url.pathname;
+                const currentParams = new URLSearchParams($page.url.search);
+                currentParams.set("objectId", newObjectId);
+                goto(`${currentPath}?${currentParams.toString()}`, {
+                    keepfocus: true,
+                    noscroll: true,
+                    replaceState: false,
+                });
+            }
+        } else if (!newObjectId) {
+            closeObjectDetail(true); // Close if object not found
+        }
+    }
+
+    // Function to close object detail panel
+    function closeObjectDetail(updateUrl = true) {
+        if (selectedObjectId !== null) {
+            const idToRemove = selectedObjectId;
+            selectedObjectId = null; // Start panel closing animation immediately
+
+            // Clear any existing timeout before setting a new one
+            if (closeContentTimeout) {
+                clearTimeout(closeContentTimeout);
+            }
+
+            // Set timeout to remove the content *after* the animation
+            closeContentTimeout = setTimeout(() => {
+                if (selectedObjectId === null) {
+                    selectedObject = null;
+                }
+                closeContentTimeout = null;
+            }, 310); // Matches CSS transition duration + small buffer
+
+            if (updateUrl) {
+                const currentPath = $page.url.pathname;
+                const currentParams = new URLSearchParams($page.url.search);
+                currentParams.delete("objectId");
+                const newSearch = currentParams.toString();
+                const newUrl = `${currentPath}${newSearch ? "?" + newSearch : ""}`;
+                goto(newUrl, {
+                    keepfocus: true,
+                    noscroll: true,
+                    replaceState: false,
+                });
+            }
+        }
+    }
+
+    // URL Synchronization
+    $effect(() => {
+        const urlObjectId = $page.url.searchParams.get("objectId");
+
+        // Convert null/undefined to string for comparison if needed
+        const currentSelectedIdStr = selectedObjectId
+            ? String(selectedObjectId)
+            : null;
+        const currentUrlIdStr = urlObjectId ? String(urlObjectId) : null;
+
+        if (currentUrlIdStr && currentUrlIdStr !== currentSelectedIdStr) {
+            // URL has an ID, and it's different from the current state -> Open/switch panel
+            showObjectDetail(currentUrlIdStr, false); // Don't push state again if triggered by URL
+        } else if (!currentUrlIdStr && currentSelectedIdStr) {
+            // URL has no ID, but state does -> Close panel
+            closeObjectDetail(false); // Don't push state again if triggered by URL
+        }
+        // If URL and state match, or both are null, do nothing.
+    });
+
+    // Keyboard handler for accessible clicks
+    function handleObjectKeyPress(event, objectId) {
+        if (event.key === "Enter" || event.key === " ") {
+            showObjectDetail(objectId);
+        }
+    }
 </script>
 
 <div class="container-fluid">
@@ -158,7 +265,15 @@
         >
             {#each filteredObjects as object (object.id)}
                 <div class="col">
-                    <div class="card h-100">
+                    <div
+                        class="card h-100"
+                        role="button"
+                        tabindex="0"
+                        style="cursor: pointer;"
+                        onclick={() => showObjectDetail(object.id)}
+                        onkeydown={(event) =>
+                            handleObjectKeyPress(event, object.id)}
+                    >
                         <BaseImage
                             src={getObjectImageUrl(object)}
                             alt={getObjectTitle(object)}
@@ -213,7 +328,14 @@
                         </tr>
                     {:else}
                         {#each filteredObjects as object (object.id)}
-                            <tr>
+                            <tr
+                                role="button"
+                                tabindex="0"
+                                style="cursor: pointer;"
+                                onclick={() => showObjectDetail(object.id)}
+                                onkeydown={(event) =>
+                                    handleObjectKeyPress(event, object.id)}
+                            >
                                 <td>
                                     <BaseImage
                                         src={getObjectImageUrl(object)}
@@ -256,3 +378,37 @@
         </div>
     {/if}
 </div>
+
+<!-- Side Panel for Object Detail -->
+<SidePanel
+    isOpen={!!selectedObjectId}
+    on:close={() => closeObjectDetail(true)}
+    position="right"
+    width="500px"
+    aria-labelledby="objectDetailTitle"
+>
+    <div
+        slot="header"
+        class="d-flex align-items-center justify-content-between"
+    >
+        <div class="d-flex align-items-center gap-2">
+            <BaseButton
+                icon="chevron-right"
+                onClick={() => closeObjectDetail(true)}
+                class="btn btn-light border-1 px-2 me-2 rounded-0 border-dark text-decoration-none text-dark"
+                aria-label="Close object detail"
+            />
+            <h5 id="objectDetailTitle" class="mb-0 text-break">
+                {selectedObject
+                    ? getObjectTitle(selectedObject)
+                    : "Object Detail"}
+            </h5>
+        </div>
+    </div>
+
+    {#if selectedObject}
+        <ObjectDetail object={selectedObject} />
+    {:else}
+        <p>Loading...</p>
+    {/if}
+</SidePanel>

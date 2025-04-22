@@ -1,18 +1,14 @@
 <script>
-    import { invalidate } from "$app/navigation"; // No longer needed
-    import { setContext } from "svelte"; // Keep removed
     import BaseInput from "$lib/components/base/BaseInput.svelte"; // Keep for structure
     import SidePanel from "$lib/components/common/SidePanel.svelte"; // Added
     import ResearchFieldDetail from "$lib/components/research_fields/ResearchFieldDetail.svelte"; // Added
-    // TODO: Import utility functions for updating/fetching research fields (e.g., from ResearchFieldsUtils.js)
-    // import { updateResearchField, getResearchField } from "$lib/stores/ResearchFieldsUtils.js";
-    // --- Added Imports ---
+
     import {
         updateResearchField,
         getResearchFieldById,
         deleteResearchField,
     } from "$lib/stores/ResearchFieldsUtils.js";
-    // --- End Added Imports ---
+    import BaseButton from "$lib/components/base/BaseButton.svelte";
 
     let { data } = $props(); // Access data loaded from +page.js
     // $inspect(data); // Keep inspect if helpful for debugging
@@ -23,11 +19,6 @@
     $effect(() => {
         localResearchFields = data.researchFields || [];
     });
-    // --- End Local State ---
-
-    // --- Provide project languages via context --- Removed again, using props ---
-    // setContext("projectLanguages", data.projectLanguages || []);
-    // --- End Removed Section ---
 
     // --- State for Search --- (uses localResearchFields now via filteredResearchFields)
     let researchSearchTerm = $state("");
@@ -260,17 +251,21 @@
                         >{field.name?.content || "Unnamed Field"}</span
                     >
                     <div class="d-flex gap-1">
-                        <button
-                            class="btn btn-link p-1 text-secondary lh-1"
+                        <BaseButton
+                            text=""
+                            icon="info-circle"
+                            class="btn btn-link text-dark text-decoration-none p-1 text-secondary lh-1"
                             title={field.description?.content ||
                                 "No description"}
-                            onclick={() => showInfo(field)}>ⓘ</button
-                        >
-                        <button
-                            class="btn btn-link p-1 text-secondary lh-1"
+                            onClick={() => showInfo(field)}
+                        />
+                        <BaseButton
+                            text=""
+                            icon="pencil"
+                            class="btn btn-link text-dark text-decoration-none p-1 text-secondary lh-1"
                             title="Edit field"
-                            onclick={() => editField(field.id)}>✎</button
-                        >
+                            onClick={() => editField(field.id)}
+                        />
                     </div>
                 </div>
             {:else}
@@ -323,13 +318,14 @@
                                         "Unnamed Field"}</span
                                 >
                                 <div class="d-flex gap-1">
-                                    <button
-                                        class="btn btn-link p-1 text-secondary lh-1"
+                                    <BaseButton
+                                        text=""
+                                        icon="info-circle"
+                                        class="btn btn-link text-dark text-decoration-none p-1 text-secondary lh-1"
                                         title={field.description?.content ||
                                             "No description"}
-                                        onclick={() => showInfo(field)}
-                                        >ⓘ</button
-                                    >
+                                        onClick={() => showInfo(field)}
+                                    />
                                 </div>
                             </div>
                         {/each}
@@ -353,15 +349,13 @@
         class="d-flex align-items-center justify-content-between"
     >
         <div class="d-flex align-items-center gap-2">
-            <button
-                type="button"
-                onclick={closeResearchFieldDetail}
+            <BaseButton
+                text=""
+                icon="chevron-right"
+                onClick={closeResearchFieldDetail}
                 class="btn btn-light border-1 px-2 me-2 rounded-0 border-dark text-decoration-none text-dark"
                 aria-label="Close research field detail"
-            >
-                <i class="bi bi-chevron-right"></i>
-                <!-- Or appropriate icon -->
-            </button>
+            />
             <h5 id="researchFieldDetailTitle" class="mb-0 text-break">
                 {selectedResearchField?.name?.content ||
                     "Research Field Detail"}
