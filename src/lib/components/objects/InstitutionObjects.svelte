@@ -6,10 +6,17 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import SidePanel from "$lib/components/common/SidePanel.svelte";
     import ObjectDetail from "$lib/components/objects/ObjectDetail.svelte";
+    import {
+        updateObjectResearchFields,
+        getObjectById,
+    } from "$lib/stores/ObjectsUtils.js";
 
     // Get data from context
     const objects = getContext("objects") || [];
     // const assets = getContext("assets") || []; // No longer needed here
+
+    // Mutable array of objects that can be updated
+    let objectsList = $state(objects);
 
     // Function to get object title from mapped ontology field
     function getObjectTitle(object) {
@@ -93,7 +100,7 @@
     let displayMode = $state("grid"); // 'grid' or 'list'
 
     // Computed property for filtered objects (implement actual filtering later)
-    let filteredObjects = $derived(objects); // TODO: Add filtering logic
+    let filteredObjects = $derived(objectsList); // Now derived from mutable objectsList
 
     // Selected object state
     let selectedObjectId = $state(null);
@@ -108,32 +115,59 @@
     }
 
     // Function to show object detail panel
-    function showObjectDetail(objectId, updateUrl = true) {
+    async function showObjectDetail(objectId, updateUrl = true) {
         // Clear any pending timeout to remove content
         if (closeContentTimeout) {
             clearTimeout(closeContentTimeout);
             closeContentTimeout = null;
         }
 
-        const object = findObjectById(objectId);
-        const newObjectId = object ? String(object.id) : null;
+        // First get the basic object from our local list
+        const basicObject = findObjectById(objectId);
+        const newObjectId = basicObject ? String(basicObject.id) : null;
 
-        if (newObjectId && newObjectId !== selectedObjectId) {
-            selectedObjectId = newObjectId;
-            selectedObject = object;
-
-            if (updateUrl) {
-                const currentPath = $page.url.pathname;
-                const currentParams = new URLSearchParams($page.url.search);
-                currentParams.set("objectId", newObjectId);
-                goto(`${currentPath}?${currentParams.toString()}`, {
-                    keepfocus: true,
-                    noscroll: true,
-                    replaceState: false,
-                });
-            }
-        } else if (!newObjectId) {
+        if (!newObjectId) {
             closeObjectDetail(true); // Close if object not found
+            return;
+        }
+
+        if (newObjectId !== selectedObjectId) {
+            // Set the ID immediately to show loading state
+            selectedObjectId = newObjectId;
+
+            try {
+                // Then fetch the complete object data with research fields
+                const response = await getObjectById(newObjectId);
+
+                if (response.error) {
+                    console.error(
+                        "Error fetching object details:",
+                        response.error,
+                    );
+                    alert(`Error loading object details: ${response.error}`);
+                    // Fall back to basic object data
+                    selectedObject = basicObject;
+                } else {
+                    // Use the complete object data
+                    selectedObject = response.result;
+                    console.log("Loaded complete object data:", selectedObject);
+                }
+
+                if (updateUrl) {
+                    const currentPath = $page.url.pathname;
+                    const currentParams = new URLSearchParams($page.url.search);
+                    currentParams.set("objectId", newObjectId);
+                    goto(`${currentPath}?${currentParams.toString()}`, {
+                        keepfocus: true,
+                        noscroll: true,
+                        replaceState: false,
+                    });
+                }
+            } catch (error) {
+                console.error("Exception loading object details:", error);
+                // Fall back to basic object data
+                selectedObject = basicObject;
+            }
         }
     }
 
@@ -195,6 +229,74 @@
     function handleObjectKeyPress(event, objectId) {
         if (event.key === "Enter" || event.key === " ") {
             showObjectDetail(objectId);
+        }
+    }
+
+    // Function to handle saving object changes
+    async function handleObjectSave(event) {
+        const { objectId, changes } = event.detail;
+
+        if (!objectId || !changes || changes.length === 0) {
+            console.error("Invalid save data");
+            return;
+        }
+
+        console.log(
+            `Saving ${changes.length} field changes for object ${objectId}`,
+        );
+
+        // Find the object to update
+        if (!selectedObject) {
+            console.error("No selected object found");
+            return;
+        }
+
+        try {
+            // Save changes to the database
+            const result = await updateObjectResearchFields(objectId, changes);
+
+            if (result.error) {
+                console.error("Error saving changes:", result.error);
+                return;
+            }
+
+            console.log("Database update successful:", result);
+
+            // Create updated research fields by applying changes
+            const updatedFields =
+                selectedObject.objectsResearchFields?.map((field) => {
+                    const change = changes.find((c) => c.id === field.id);
+                    if (change) {
+                        // Create a new field object with updated value
+                        return { ...field, value: change.value };
+                    }
+                    return field;
+                }) || [];
+
+            // Create new object with updated fields
+            const updatedObject = {
+                ...selectedObject,
+                objectsResearchFields: updatedFields,
+            };
+
+            // Update selected object
+            selectedObject = updatedObject;
+
+            // Update object in the list
+            const index = objectsList.findIndex((obj) => obj.id === objectId);
+            if (index !== -1) {
+                // Create a new list with the updated object
+                const newList = [...objectsList];
+                newList[index] = updatedObject;
+                objectsList = newList;
+            }
+
+            // Show success message
+            console.log(
+                `Object "${getObjectTitle(updatedObject)}" updated successfully!`,
+            );
+        } catch (error) {
+            console.error("Error during save:", error);
         }
     }
 </script>
@@ -407,7 +509,7 @@
     </div>
 
     {#if selectedObject}
-        <ObjectDetail object={selectedObject} />
+        <ObjectDetail object={selectedObject} on:save={handleObjectSave} />
     {:else}
         <p>Loading...</p>
     {/if}
