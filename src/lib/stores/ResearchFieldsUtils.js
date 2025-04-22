@@ -5,7 +5,10 @@ import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 // Fetch all research fields for a specific project
 export const getResearchFields = async (projectId, page, pageSize, fetchFn) => {
     // Assuming 'research_fields' is the section and 'list' is the operation
-    const params = { projectId };
+    const params = {
+        projectId,
+        include_vocabularies: true // Add parameter to include vocabularies
+    };
     if (page !== undefined) params.page = page;
     if (pageSize !== undefined) params.pageSize = pageSize;
     const response = await executeQuery('research_fields', 'list', params, fetchFn);
@@ -21,7 +24,10 @@ export const getResearchFieldById = async (fieldId, fetchFn) => {
     console.log(`Refetching research field with ID: ${fieldId}`);
 
     // Assuming 'research_fields' is the section and 'getById' is the operation
-    const response = await executeQuery('research_fields', 'getById', { fieldId }, fetchFn);
+    const response = await executeQuery('research_fields', 'getById', {
+        fieldId,
+        include_vocabularies: true // Add parameter to include vocabularies
+    }, fetchFn);
     console.log("Raw response from getById executeQuery:", response);
 
     // Check response existence

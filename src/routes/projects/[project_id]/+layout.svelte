@@ -4,11 +4,11 @@
   let { children, data } = $props();
 
   let project = $state(data.project);
+  let projectLanguages = $state(data.projectLanguages);
+  let researchFields = $state(data.researchFields);
   setContext("project", project);
-  $inspect(project);
-  let projectLanguages = $derived(project?.projectLanguages || []);
   setContext("projectLanguages", projectLanguages);
-  console.log("Layout setting projectLanguages context:", projectLanguages);
+  setContext("researchFields", researchFields);
 </script>
 
 <ProjectHeader />
