@@ -38,6 +38,50 @@ export const getObjectById = async (objectId) => {
     }
 };
 
+// Function to update object status
+export const updateObjectStatus = async (objectId, status) => {
+    if (!objectId) {
+        console.error("Invalid object ID for status update");
+        return { error: "Invalid object ID" };
+    }
+
+    if (!status) {
+        console.error("Invalid status value for update");
+        return { error: "Invalid status value" };
+    }
+
+    try {
+        console.log(`Updating status for object ${objectId} to "${status}"`);
+
+        // Call the existing update operation from objects.js
+        const response = await executeQuery('objects', 'update', {
+            objectId: objectId,
+            status: status
+        });
+
+        if (response.error) {
+            console.error("Error updating object status:", response.error);
+            return { error: response.error };
+        }
+
+        // Extract the result data
+        let resultData = null;
+        if (response.updateObjects && Array.isArray(response.updateObjects) && response.updateObjects.length > 0) {
+            resultData = response.updateObjects[0];
+        }
+
+        console.log("Status update response:", response);
+
+        return {
+            result: resultData || { id: objectId, status: status },
+            error: null
+        };
+    } catch (error) {
+        console.error("Exception in updateObjectStatus:", error);
+        return { error: error.message || "Unknown error updating object status" };
+    }
+};
+
 // Function to update object research fields
 export const updateObjectResearchFields = async (objectId, changes) => {
     if (!objectId || !changes || changes.length === 0) {

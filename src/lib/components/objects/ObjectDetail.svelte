@@ -2,149 +2,112 @@
     import { createEventDispatcher, getContext } from "svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
-    import BaseBadge from "$lib/components/base/BaseBadge.svelte";
     import BaseInput from "$lib/components/base/BaseInput.svelte";
+    import BaseToggle from "$lib/components/base/BaseToggle.svelte";
     import BaseSelect from "$lib/components/base/BaseSelect.svelte";
 
     let { object } = $props();
-
-    // Get research fields from context
     const researchFields = getContext("researchFields") || [];
-
     const dispatch = createEventDispatcher();
 
-    // Create a simple map to track field changes
+    // State management
     let editedFields = $state({});
-
-    // Track field values for each research field
     let fieldValues = $state({});
+    let statusValue = $state(false);
+    let originalStatus = $state("");
+    let statusChanged = $state(false);
 
-    // Keep a reference to the previous field values to avoid circular updates
-    let previousFieldValues = $state({});
-
-    // Ensure field values always have a default value
-    let safeFieldValues = $derived({
-        ...Object.fromEntries(
-            Object.entries(fieldValues).map(([key, value]) => [
-                key,
-                value || "",
-            ]),
-        ),
-    });
-
-    // Detect when object changes to reset edited fields
+    // Initialize when object changes
     $effect(() => {
         if (
             object &&
             object.objectsResearchFields &&
             object.objectsResearchFields.length > 0
         ) {
-            // Reset edits tracking
             editedFields = {};
+            statusChanged = false;
 
-            // Initialize field values
             const values = {};
             object.objectsResearchFields.forEach((field, index) => {
                 const fieldId = field.id || `field-${index}`;
-
-                // Ensure we have default values
-                if (field.vocabulary_id) {
-                    // For vocabulary fields, show the vocabulary ID
-                    values[fieldId] = field.vocabulary_id || "";
-                } else {
-                    // Otherwise use the value directly
-                    values[fieldId] = field.value || "";
-                }
+                values[fieldId] = field.vocabulary_id || field.value || "";
             });
 
+            // Set status toggle
+            originalStatus = getObjectStatus(object).toLowerCase();
+            statusValue = originalStatus === "completed";
+
             fieldValues = values;
-            previousFieldValues = { ...values };
-            console.log("Field values initialized:", values);
         } else {
-            console.log("No research fields found for object:", object?.id);
             fieldValues = {};
-            previousFieldValues = {};
             editedFields = {};
+            statusChanged = false;
         }
     });
 
-    // Simple function to check if any fields have changed
+    // Check if any fields have changed
     function hasChanges() {
-        return Object.keys(editedFields).length > 0;
+        return Object.keys(editedFields).length > 0 || statusChanged;
     }
 
-    // Updated function to handle input changes - properly handling both free text and vocabulary fields
+    // Handle status toggle change
+    function handleStatusChange(event) {
+        const newCompleted = event.target.checked;
+        statusValue = newCompleted;
+        statusChanged = newCompleted
+            ? originalStatus !== "completed"
+            : originalStatus === "completed";
+    }
+
+    // Handle input field changes
     function handleInputChange(fieldId, value) {
         if (!fieldId) return;
 
-        // Find the original field
         const originalField = object.objectsResearchFields.find(
             (f, index) => (f.id || `field-${index}`) === fieldId,
         );
 
         if (!originalField) return;
 
-        // Determine if this is a vocabulary field
         const isVocabularyField = shouldUseSelect(originalField);
-
-        // Compare with the appropriate original value based on field type
         const originalValue = isVocabularyField
             ? originalField.vocabulary_id || ""
             : originalField.value || "";
 
         if (value !== originalValue) {
-            // Track this as a change
             editedFields[fieldId] = value;
         } else {
-            // If it matches the original, remove from edited fields
             delete editedFields[fieldId];
             editedFields = { ...editedFields }; // Trigger reactivity
         }
     }
 
-    // Get the research field definition from the context
-    function getResearchFieldDef(fieldId) {
-        if (!object?.objectsResearchFields) return null;
-
-        const objField = object.objectsResearchFields.find(
-            (f) => f.field_id === fieldId,
-        );
-        if (!objField) return null;
-
-        return researchFields.find((rf) => rf.id === objField.field_id);
-    }
-
-    // Get field type safely with fallbacks
+    // Helper to determine field type
     function getFieldType(field) {
         return field?.researchField?.type?.toLowerCase() || "free_text";
     }
 
-    // Get options for select/multiselect fields in a format select can use
+    // Get options for select fields
     function getFieldOptions(field) {
-        // Get field definition by field_id
         const fieldDef = researchFields.find(
             (rf) => rf.id === field.researchField?.id,
         );
 
-        if (!fieldDef?.vocabularies?.length) {
-            return [];
-        }
+        if (!fieldDef?.vocabularies?.length) return [];
 
-        // Format the vocabularies to work with HTML select
         return fieldDef.vocabularies.map((vocab) => ({
             id: vocab.id,
             label: vocab.option?.content || "Unnamed option",
         }));
     }
 
-    // Helper to determine if field should use a select
+    // Check if field should use select
     function shouldUseSelect(field) {
-        // First check field type
         const fieldType = getFieldType(field);
         return fieldType === "vocabulary" || fieldType === "multiselect";
     }
 
-    // Function to get object title from mapped ontology field
+    // Get object title
     function getObjectTitle(currentObject) {
         if (currentObject?.objectsOntologyFields) {
             const titleField = currentObject.objectsOntologyFields.find(
@@ -152,14 +115,12 @@
                     field.ontologyField?.name?.content?.toLowerCase() ===
                     "object id",
             );
-            if (titleField && titleField.value) {
-                return titleField.value;
-            }
+            if (titleField?.value) return titleField.value;
         }
         return currentObject?.id || "Unknown ID";
     }
 
-    // Function to get object type (designation) from mapped ontology field
+    // Get object type
     function getObjectType(currentObject) {
         if (currentObject?.objectsOntologyFields) {
             const designationField = currentObject.objectsOntologyFields.find(
@@ -177,19 +138,12 @@
         return currentObject?.status || "unknown status";
     }
 
-    // Function to find image URL from the object's linked assets
+    // Get object image URL
     function getObjectImageUrl(currentObject) {
-        if (
-            !currentObject?.objectsAssets ||
-            currentObject.objectsAssets.length === 0
-        ) {
-            return null;
-        }
+        if (!currentObject?.objectsAssets?.length) return null;
 
         const firstObjectAsset = currentObject.objectsAssets[0];
-        if (!firstObjectAsset || !firstObjectAsset.asset) {
-            return null;
-        }
+        if (!firstObjectAsset?.asset) return null;
 
         const asset = firstObjectAsset.asset;
         let imageUrl = null;
@@ -203,7 +157,6 @@
 
                 imageUrl = formats.md || formats.lg || formats.original || null;
             } catch (e) {
-                console.error("Error parsing asset formats:", e);
                 imageUrl = asset.path || null;
             }
         } else {
@@ -215,10 +168,7 @@
 
     function handleDelete() {
         if (object?.id) {
-            console.log("Delete object:", object.id);
-            // alert(`Deletion for object ${object.id} not implemented yet.`); // Removed alert
-        } else {
-            console.error("Cannot delete: Object ID is missing.");
+            dispatch("delete", { objectId: object.id });
         }
     }
 
@@ -228,58 +178,49 @@
 
         const changes = [];
 
-        // Collect all field changes
+        // Collect field changes
         for (const editedFieldKey in editedFields) {
-            // Find the original field data
             const originalFieldData = object.objectsResearchFields.find(
                 (f, index) => (f.id || `field-${index}`) === editedFieldKey,
             );
 
             if (originalFieldData?.id) {
                 const editedValue = editedFields[editedFieldKey];
-
-                // Check if this is a vocabulary field
                 const isVocabularyField = shouldUseSelect(originalFieldData);
 
-                if (isVocabularyField) {
-                    // For vocabulary fields, save the ID as vocabularyId
-                    changes.push({
-                        id: originalFieldData.id,
-                        value: null, // Free text value should be null for vocabulary fields
-                        vocabularyId: editedValue || null, // If empty, set to null
-                    });
-                } else {
-                    // For free text fields, save as value and ensure vocabularyId is null
-                    changes.push({
-                        id: originalFieldData.id,
-                        value: editedValue,
-                        vocabularyId: null,
-                    });
-                }
+                changes.push({
+                    id: originalFieldData.id,
+                    value: isVocabularyField ? null : editedValue,
+                    vocabularyId: isVocabularyField
+                        ? editedValue || null
+                        : null,
+                });
             }
         }
 
-        if (changes.length === 0) {
-            console.error("No valid changes to save");
-            return;
-        }
-
-        console.log("Saving changes:", changes);
-
-        // Dispatch save event
-        dispatch("save", {
+        // Prepare event data
+        const saveData = {
             objectId: object.id,
             changes: changes,
-        });
+        };
+
+        // Add status change if modified
+        if (statusChanged) {
+            saveData.statusChange = statusValue ? "completed" : "in progress";
+        }
+
+        // Dispatch save event
+        dispatch("save", saveData);
 
         // Clear edited fields after saving
         editedFields = {};
+        statusChanged = false;
     }
 </script>
 
 {#if object}
-    <div class="object-detail-container">
-        <!-- Object Image (if available) -->
+    <div class="position-relative d-flex flex-column h-100">
+        <!-- Object Image -->
         {#if getObjectImageUrl(object)}
             <div class="mb-3 text-center">
                 <BaseImage
@@ -293,89 +234,74 @@
             </div>
         {/if}
 
-        <!-- Object Details -->
-        <div class="object-details-grid px-2">
-            <div class="object-detail-row">
-                <div class="object-detail-label">ID</div>
-                <div class="object-detail-value">{object.id || "N/A"}</div>
-            </div>
+        <!-- Scrollable Content -->
+        <div class="flex-grow-1 overflow-y-auto" style="padding-bottom: 50px;">
+            <div class="fs-6">
+                <h4 class="mt-3 mb-2">Research Fields</h4>
+                {#if object.objectsResearchFields && object.objectsResearchFields.length > 0}
+                    <div class="pe-1">
+                        {#each [...object.objectsResearchFields].sort((a, b) => a.order - b.order) as field, index (field.id || `field-${index}`)}
+                            <div class="field mb-3">
+                                <label
+                                    for={field.id || `field-${index}`}
+                                    class="field-label d-block mb-1"
+                                    >{field.researchField?.name?.content ||
+                                        field.researchField?.name ||
+                                        ""}</label
+                                >
 
-            <div class="object-detail-row">
-                <div class="object-detail-label">Object ID</div>
-                <div class="object-detail-value">{getObjectTitle(object)}</div>
-            </div>
-
-            {#if getObjectType(object)}
-                <div class="object-detail-row">
-                    <div class="object-detail-label">Designation</div>
-                    <div class="object-detail-value">
-                        {getObjectType(object)}
-                    </div>
-                </div>
-            {/if}
-
-            <div class="object-detail-row">
-                <div class="object-detail-label">Status</div>
-                <div class="object-detail-value">
-                    {#if getObjectStatus(object).toLowerCase() === "completed"}
-                        <BaseBadge text="Completed" class="bg-success" />
-                    {:else if getObjectStatus(object).toLowerCase() === "in progress"}
-                        <BaseBadge
-                            text="In progress"
-                            class="bg-warning text-dark"
-                        />
-                    {:else}
-                        <BaseBadge
-                            text={getObjectStatus(object)}
-                            class="bg-secondary"
-                        />
-                    {/if}
-                </div>
-            </div>
-
-            <hr class="my-3" />
-
-            <!-- Display all research fields as editable inputs -->
-            <h6 class="mt-3 mb-2">Research Fields</h6>
-            {#if object.objectsResearchFields && object.objectsResearchFields.length > 0}
-                <div class="research-fields-form">
-                    {#each [...object.objectsResearchFields].sort((a, b) => a.order - b.order) as field, index (field.id || `field-${index}`)}
-                        <div class="field mb-3">
-                            <label
-                                for={field.id || `field-${index}`}
-                                class="font-medium block mb-1"
-                                >{field.researchField?.name?.content ||
-                                    field.researchField?.name ||
-                                    ""}</label
-                            >
-
-                            <!-- Use standard HTML select for vocabulary fields -->
-                            {#if shouldUseSelect(field)}
-                                {@const options = getFieldOptions(field)}
-                                {#if options.length > 0}
-                                    <select
-                                        id={field.id || `field-${index}`}
-                                        class="form-select w-full"
-                                        value={fieldValues[
-                                            field.id || `field-${index}`
-                                        ] || ""}
-                                        on:change={(e) =>
-                                            handleInputChange(
-                                                field.id || `field-${index}`,
-                                                e.target.value,
-                                            )}
-                                    >
-                                        <option value=""
-                                            >-- Select option --</option
-                                        >
-                                        {#each options as option}
-                                            <option value={option.id}
-                                                >{option.label}</option
+                                {#if shouldUseSelect(field)}
+                                    {@const options = getFieldOptions(field)}
+                                    {#if options.length > 0}
+                                        {@const fieldId =
+                                            field.id || `field-${index}`}
+                                        <BaseSelect
+                                            id={fieldId}
+                                            {options}
+                                            valueId={fieldValues[fieldId] || ""}
+                                            idKey="id"
+                                            labelKey="label"
+                                            placeholder="-- Select option --"
+                                            onChange={(e) => {
+                                                fieldValues[fieldId] =
+                                                    e.target.value;
+                                                handleInputChange(
+                                                    fieldId,
+                                                    e.target.value,
+                                                );
+                                            }}
+                                        />
+                                    {:else}
+                                        <BaseInput
+                                            id={field.id || `field-${index}`}
+                                            class="input w-full"
+                                            value={fieldValues[
+                                                field.id || `field-${index}`
+                                            ] || ""}
+                                            onInput={(e) => {
+                                                fieldValues[
+                                                    field.id || `field-${index}`
+                                                ] = e.target.value;
+                                                handleInputChange(
+                                                    field.id ||
+                                                        `field-${index}`,
+                                                    e.target.value,
+                                                );
+                                            }}
+                                            placeholder="Enter value..."
+                                        />
+                                        {#if field.vocabulary_id}
+                                            <div
+                                                class="text-xs text-blue-600 mt-1"
                                             >
-                                        {/each}
-                                    </select>
+                                                Selected vocabulary: {field
+                                                    .vocabulary?.option
+                                                    ?.content ||
+                                                    "Unknown option"}
+                                            </div>
+                                        {/if}
+                                    {/if}
                                 {:else}
-                                    <!-- Fallback text input when options aren't available -->
                                     <BaseInput
                                         id={field.id || `field-${index}`}
                                         class="input w-full"
@@ -393,57 +319,47 @@
                                         }}
                                         placeholder="Enter value..."
                                     />
-                                    <!-- Show vocabulary information if a vocabulary is selected -->
-                                    {#if field.vocabulary_id}
-                                        <div class="text-xs text-blue-600 mt-1">
-                                            Selected vocabulary: {field
-                                                .vocabulary?.option?.content ||
-                                                "Unknown option"}
-                                        </div>
-                                    {/if}
                                 {/if}
-                            {:else}
-                                <BaseInput
-                                    id={field.id || `field-${index}`}
-                                    class="input w-full"
-                                    value={fieldValues[
-                                        field.id || `field-${index}`
-                                    ] || ""}
-                                    onInput={(e) => {
-                                        fieldValues[
-                                            field.id || `field-${index}`
-                                        ] = e.target.value;
-                                        handleInputChange(
-                                            field.id || `field-${index}`,
-                                            e.target.value,
-                                        );
-                                    }}
-                                    placeholder="Enter value..."
-                                />
-                            {/if}
-                        </div>
-                    {/each}
-                </div>
-            {:else}
-                <p class="text-muted">No research fields available.</p>
-            {/if}
+                            </div>
+                        {/each}
+                    </div>
+                {:else}
+                    <p class="text-muted">No research fields available.</p>
+                {/if}
+            </div>
         </div>
 
-        <!-- Actions -->
-        <div class="mt-4 d-flex justify-content-end gap-2">
-            <BaseButton
-                text="Save"
-                icon="save"
-                class="btn btn-primary btn-sm"
-                disabled={!hasChanges()}
-                onClick={handleSave}
-            />
-            <BaseButton
-                text="Delete"
-                icon="trash"
-                class="btn btn-danger btn-sm"
-                onClick={handleDelete}
-            />
+        <!-- Actions - Fixed at bottom -->
+        <div
+            class="position-absolute bottom-0 start-0 end-0 bg-white border-top z-3"
+            style="padding-top: 0.125rem;"
+        >
+            <div class="d-flex justify-content-between align-items-center p-2">
+                <div class="d-flex align-items-center">
+                    <span class="me-2 pe-2">Mark as:</span>
+                    <BaseToggle
+                        value={statusValue}
+                        label={statusValue ? "Completed" : "In progress"}
+                        labelPosition="right"
+                        onChange={handleStatusChange}
+                    />
+                </div>
+                <div class="d-flex gap-2">
+                    <BaseButton
+                        text="Save"
+                        icon="save"
+                        class="btn btn-primary btn-sm"
+                        disabled={!hasChanges()}
+                        onClick={handleSave}
+                    />
+                    <BaseButton
+                        text="Delete"
+                        icon="trash"
+                        class="btn btn-danger btn-sm"
+                        onClick={handleDelete}
+                    />
+                </div>
+            </div>
         </div>
     </div>
 {:else}
@@ -451,34 +367,10 @@
 {/if}
 
 <style>
-    .object-detail-container {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-
-    .object-details-grid {
-        font-size: 0.9rem;
-        margin-bottom: 1rem;
-    }
-
-    .object-detail-row {
-        margin-bottom: 0.75rem;
-    }
-
-    .object-detail-label {
-        font-weight: bold;
-        display: block;
-        margin-bottom: 0.1rem;
-    }
-
     .object-detail-value {
         word-break: break-word;
     }
-
-    .research-fields-form {
-        max-height: 400px;
-        overflow-y: auto;
-        padding-right: 5px;
+    .field-label {
+        font-size: 0.7rem;
     }
 </style>

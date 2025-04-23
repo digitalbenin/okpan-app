@@ -20,10 +20,10 @@
     const colors = ["Red", "Blue", "Green", "Yellow", "Purple"];
     const sizes = ["Small", "Medium", "Large"];
     const alignments = ["Left", "Center", "Right"];
-    let selectedFruit = $state("");
-    let selectedColors = $state(null);
-    let selectedSize = $state("");
-    let selectedAlignment = $state("");
+    let selectedFruit = $state("Apple");
+    let selectedColors = $state(["Red", "Blue"]);
+    let selectedSize = $state("Medium");
+    let selectedAlignment = $state("Center");
 
     $inspect("fruit:", selectedFruit);
     $inspect("colors:", selectedColors);

@@ -8,6 +8,7 @@
     import ObjectDetail from "$lib/components/objects/ObjectDetail.svelte";
     import {
         updateObjectResearchFields,
+        updateObjectStatus,
         getObjectById,
     } from "$lib/stores/ObjectsUtils.js";
 
@@ -234,15 +235,16 @@
 
     // Function to handle saving object changes
     async function handleObjectSave(event) {
-        const { objectId, changes } = event.detail;
+        const { objectId, changes, statusChange } = event.detail;
 
-        if (!objectId || !changes || changes.length === 0) {
-            console.error("Invalid save data");
+        if (!objectId) {
+            console.error("Invalid save data: Missing objectId");
             return;
         }
 
         console.log(
-            `Saving ${changes.length} field changes for object ${objectId}`,
+            `Saving ${changes?.length || 0} field changes for object ${objectId}`,
+            statusChange ? `and status change to "${statusChange}"` : "",
         );
 
         // Find the object to update
@@ -252,49 +254,91 @@
         }
 
         try {
-            // Save changes to the database
-            const result = await updateObjectResearchFields(objectId, changes);
+            let fieldUpdateSuccess = true;
+            let statusUpdateSuccess = true;
 
-            if (result.error) {
-                console.error("Error saving changes:", result.error);
-                return;
+            // Save field changes to the database if there are any
+            if (changes && changes.length > 0) {
+                const fieldResult = await updateObjectResearchFields(
+                    objectId,
+                    changes,
+                );
+
+                if (fieldResult.error) {
+                    console.error(
+                        "Error saving field changes:",
+                        fieldResult.error,
+                    );
+                    fieldUpdateSuccess = false;
+                } else {
+                    console.log(
+                        "Database field update successful:",
+                        fieldResult,
+                    );
+
+                    // Create updated research fields by applying changes
+                    const updatedFields =
+                        selectedObject.objectsResearchFields?.map((field) => {
+                            const change = changes.find(
+                                (c) => c.id === field.id,
+                            );
+                            if (change) {
+                                // Create a new field object with updated value
+                                return { ...field, value: change.value };
+                            }
+                            return field;
+                        }) || [];
+
+                    // Create new object with updated fields
+                    selectedObject = {
+                        ...selectedObject,
+                        objectsResearchFields: updatedFields,
+                    };
+                }
             }
 
-            console.log("Database update successful:", result);
+            // Update status if changed using our new function
+            if (statusChange) {
+                console.log(`Updating status to: ${statusChange}`);
 
-            // Create updated research fields by applying changes
-            const updatedFields =
-                selectedObject.objectsResearchFields?.map((field) => {
-                    const change = changes.find((c) => c.id === field.id);
-                    if (change) {
-                        // Create a new field object with updated value
-                        return { ...field, value: change.value };
-                    }
-                    return field;
-                }) || [];
+                const statusResult = await updateObjectStatus(
+                    objectId,
+                    statusChange,
+                );
 
-            // Create new object with updated fields
-            const updatedObject = {
-                ...selectedObject,
-                objectsResearchFields: updatedFields,
-            };
+                if (statusResult.error) {
+                    console.error("Error updating status:", statusResult.error);
+                    statusUpdateSuccess = false;
+                } else {
+                    console.log("Status update successful:", statusResult);
 
-            // Update selected object
-            selectedObject = updatedObject;
+                    // Update the selected object's status
+                    selectedObject = {
+                        ...selectedObject,
+                        status: statusChange,
+                    };
+                }
+            }
 
             // Update object in the list
             const index = objectsList.findIndex((obj) => obj.id === objectId);
             if (index !== -1) {
                 // Create a new list with the updated object
                 const newList = [...objectsList];
-                newList[index] = updatedObject;
+                newList[index] = selectedObject;
                 objectsList = newList;
             }
 
             // Show success message
-            console.log(
-                `Object "${getObjectTitle(updatedObject)}" updated successfully!`,
-            );
+            if (fieldUpdateSuccess && statusUpdateSuccess) {
+                console.log(
+                    `Object "${getObjectTitle(selectedObject)}" updated successfully!`,
+                );
+            } else {
+                console.warn(
+                    `Object "${getObjectTitle(selectedObject)}" updated with some errors.`,
+                );
+            }
         } catch (error) {
             console.error("Error during save:", error);
         }

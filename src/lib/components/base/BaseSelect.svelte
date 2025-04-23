@@ -13,15 +13,74 @@
         id = crypto.randomUUID(),
         disabled = false,
         multiple = false,
+        onChange = null,
+        idKey = null,
+        labelKey = null,
+        valueId = $bindable(null),
     } = $props();
 
+    const useIdLabelMode = $derived.by(() => !!idKey && !!labelKey);
+
+    // Process options for display
+    const processedOptions = $derived.by(() => {
+        if (!useIdLabelMode) return options;
+        return options.map((opt) => opt[labelKey]);
+    });
+
+    // Track the display value separately from the select component
+    let displayValue = $state(value);
+
+    // Handle ID-to-value conversion for initial load and when valueId changes
+    $effect(() => {
+        if (useIdLabelMode && valueId !== null && valueId !== undefined) {
+            const option = options.find((opt) => opt[idKey] === valueId);
+            if (option) {
+                displayValue = option[labelKey];
+                value = option[labelKey];
+            }
+        }
+    });
+
+    // Update displayValue when value changes
+    $effect(() => {
+        if (value !== null && value !== undefined) {
+            displayValue = value;
+        }
+    });
+
+    // Create the select with simple configuration
     const select = new Select({
-        onValueChange: (v) =>
-            multiple ? (value = v.size ? Array.from(v) : null) : (value = v),
+        onValueChange: (v) => {
+            // Convert selection to appropriate value format
+            const newValue =
+                multiple && v instanceof Set && v.size ? Array.from(v) : v;
+
+            // Update both value and display value
+            value = newValue;
+            displayValue = newValue;
+
+            // Handle ID/label mode
+            if (useIdLabelMode && newValue) {
+                const option = options.find(
+                    (opt) => opt[labelKey] === newValue,
+                );
+                if (option) {
+                    valueId = option[idKey];
+                }
+            }
+
+            // Call onChange if provided
+            if (onChange) {
+                const eventValue = useIdLabelMode
+                    ? { target: { value: valueId, displayValue: newValue } }
+                    : { target: { value: newValue } };
+                onChange(eventValue);
+            }
+        },
         multiple,
     });
 
-    // Helper to check if an option is selected
+    // Simple selected check
     const isSelected = (option) => {
         if (!select.value) return false;
         if (multiple) {
@@ -32,15 +91,24 @@
         return option === select.value;
     };
 
-    // Helper to get display text
+    // Display text uses our tracked displayValue
     const getDisplayText = () => {
-        if (multiple) {
-            const vals = select.value.size
-                ? Array.from(select.value).filter((a) => a)
-                : null;
-            return vals?.length ? vals.join(", ") : placeholder;
+        if (displayValue === null || displayValue === undefined) {
+            return placeholder;
         }
-        return select.value || placeholder;
+
+        if (multiple) {
+            if (displayValue instanceof Set) {
+                const values = Array.from(displayValue);
+                return values.length ? values.join(", ") : placeholder;
+            } else if (Array.isArray(displayValue)) {
+                return displayValue.length
+                    ? displayValue.join(", ")
+                    : placeholder;
+            }
+        }
+
+        return displayValue || placeholder;
     };
 </script>
 
@@ -75,7 +143,7 @@
                 {...select.content}
                 class="position-absolute mt-1 shadow-sm bg-white border rounded-2 py-1 z-1 m-0 w-100"
             >
-                {#each options as option}
+                {#each processedOptions as option}
                     <div
                         {...select.getOption(option)}
                         class="px-3 py-1 cursor-pointer d-flex align-items-center gap-2 {isSelected(
@@ -132,7 +200,7 @@
             {...select.content}
             class="position-absolute mt-1 shadow-sm bg-white border rounded-2 py-1 z-1 m-0 w-100"
         >
-            {#each options as option}
+            {#each processedOptions as option}
                 <div
                     {...select.getOption(option)}
                     class="px-3 py-1 cursor-pointer d-flex align-items-center gap-2 {isSelected(

@@ -7,7 +7,15 @@
         class: customClass = "",
         style: customStyle = "",
         id = crypto.randomUUID(),
+        onChange = null,
     } = $props();
+
+    // Handle value changes
+    function handleChange(event) {
+        if (onChange) {
+            onChange(event);
+        }
+    }
 </script>
 
 <div
@@ -25,6 +33,7 @@
             {id}
             bind:checked={value}
             {disabled}
+            on:change={handleChange}
         />
     </div>
     {#if label && labelPosition === "right"}
