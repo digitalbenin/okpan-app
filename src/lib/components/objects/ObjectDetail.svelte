@@ -73,7 +73,7 @@
         return Object.keys(editedFields).length > 0;
     }
 
-    // Simpler function to handle input changes
+    // Updated function to handle input changes - properly handling both free text and vocabulary fields
     function handleInputChange(fieldId, value) {
         if (!fieldId) return;
 
@@ -84,9 +84,13 @@
 
         if (!originalField) return;
 
-        // Compare with original value - for vocabulary fields, compare with vocabulary_id
-        const originalValue =
-            originalField.vocabulary_id || originalField.value || "";
+        // Determine if this is a vocabulary field
+        const isVocabularyField = shouldUseSelect(originalField);
+
+        // Compare with the appropriate original value based on field type
+        const originalValue = isVocabularyField
+            ? originalField.vocabulary_id || ""
+            : originalField.value || "";
 
         if (value !== originalValue) {
             // Track this as a change
@@ -239,14 +243,13 @@
 
                 if (isVocabularyField) {
                     // For vocabulary fields, save the ID as vocabularyId
-                    // Only set value if it's not a vocabulary selection
                     changes.push({
                         id: originalFieldData.id,
-                        value: editedValue ? null : originalFieldData.value,
+                        value: null, // Free text value should be null for vocabulary fields
                         vocabularyId: editedValue || null, // If empty, set to null
                     });
                 } else {
-                    // For regular fields, save as value
+                    // For free text fields, save as value and ensure vocabularyId is null
                     changes.push({
                         id: originalFieldData.id,
                         value: editedValue,
@@ -379,11 +382,15 @@
                                         value={fieldValues[
                                             field.id || `field-${index}`
                                         ] || ""}
-                                        on:input={(e) =>
+                                        onInput={(e) => {
+                                            fieldValues[
+                                                field.id || `field-${index}`
+                                            ] = e.target.value;
                                             handleInputChange(
                                                 field.id || `field-${index}`,
                                                 e.target.value,
-                                            )}
+                                            );
+                                        }}
                                         placeholder="Enter value..."
                                     />
                                     <!-- Show vocabulary information if a vocabulary is selected -->
@@ -402,11 +409,15 @@
                                     value={fieldValues[
                                         field.id || `field-${index}`
                                     ] || ""}
-                                    on:input={(e) =>
+                                    onInput={(e) => {
+                                        fieldValues[
+                                            field.id || `field-${index}`
+                                        ] = e.target.value;
                                         handleInputChange(
                                             field.id || `field-${index}`,
                                             e.target.value,
-                                        )}
+                                        );
+                                    }}
                                     placeholder="Enter value..."
                                 />
                             {/if}
@@ -424,8 +435,8 @@
                 text="Save"
                 icon="save"
                 class="btn btn-primary btn-sm"
-                onClick={handleSave}
                 disabled={!hasChanges()}
+                onClick={handleSave}
             />
             <BaseButton
                 text="Delete"

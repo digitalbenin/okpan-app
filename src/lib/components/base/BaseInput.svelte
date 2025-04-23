@@ -11,6 +11,8 @@
         style: customStyle = "",
         id = crypto.randomUUID(),
         disabled = false,
+        onChange = null,
+        onInput = null,
     } = $props();
 
     // Validate type
@@ -40,6 +42,8 @@
             {disabled}
             min={validatedType === "number" ? min : undefined}
             max={validatedType === "number" ? max : undefined}
+            on:change={onChange}
+            on:input={onInput}
         />
     </div>
 {:else}
@@ -52,6 +56,8 @@
         {disabled}
         min={validatedType === "number" ? min : undefined}
         max={validatedType === "number" ? max : undefined}
+        on:change={onChange}
+        on:input={onInput}
     />
 {/if}
 
