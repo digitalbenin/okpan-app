@@ -168,20 +168,13 @@
             }
           }
 
-          // Filter out null/empty values that might have been returned from the database
-          parsedTitleTranslations = parsedTitleTranslations.filter(
-            (t) => t && t.language_code,
-          );
-          parsedDescTranslations = parsedDescTranslations.filter(
-            (t) => t && t.language_code,
-          );
-
+          // Find translations for this language
           const titleTranslation = parsedTitleTranslations.find(
-            (t) => t.language_code === lang.language_code,
+            (t) => t?.language_code === lang.language_code,
           );
 
           const descTranslation = parsedDescTranslations.find(
-            (t) => t.language_code === lang.language_code,
+            (t) => t?.language_code === lang.language_code,
           );
 
           // Handle title translation

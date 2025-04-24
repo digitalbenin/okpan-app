@@ -10,14 +10,23 @@ An Electron application for managing collections, built with:
 ## Project Structure
 ```
 ├── src/
-│   ├── backend/         # Electron main process
-│   ├── db/             # Database related files
-│   │   ├── schema.js   # Drizzle schema
-│   │   └── init.js     # Database initialization
-│   ├── lib/            # Shared components
-│   └── routes/         # SvelteKit routes
-├── out/                # Compiled output
-└── build/             # SvelteKit build
+│   ├── assets/          # Application assets
+│   ├── backend/         # Electron main process code
+│   ├── db/              # Database related files
+│   │   ├── migrations/  # SQL migration files
+│   │   ├── scripts/     # Database utility scripts
+│   │   ├── schema.js    # Database schema definition
+│   │   ├── seed.js      # Database seeding script
+│   │   └── init.js      # Database initialization
+│   ├── lib/             # Shared utilities and components
+│   │   ├── components/  # UI components
+│   │   ├── queries/     # GraphQL queries
+│   │   ├── stores/      # Svelte stores
+│   │   └── utils/       # Utility functions
+│   ├── preload/         # Electron preload scripts
+│   └── routes/          # SvelteKit routes
+├── build/               # SvelteKit build output
+└── out/                 # Electron build output
 ```
 
 
@@ -47,11 +56,36 @@ Start the development server:
 npm start
 ```
 
+### Database Management
+
+1. **Initialize the database**:
+   ```bash
+   npm run db:push
+   ```
+   This creates the database with the schema defined in your project.
+
+2. **Seed the database**:
+   ```bash
+   npm run db:seed
+   ```
+   This populates the database with initial data. Note that this process will create a folder of images for the project. In case you need to reset, this image folder must be deleted manually.
+
+3. **Set up search functionality**:
+   ```bash
+   npm run db:search-setup
+   ```
+   This creates and configures the full-text search index for institutions, including setting up the required tables, triggers, and populating the search index with institution data and translations.
+
+4. **Complete database setup (all-in-one)**:
+   ```bash
+   npm run db:setup-all
+   ```
+   This unified command runs all three steps above in sequence (push schema, seed data, and setup search).
+
 ### Development Tools
 
 - `npm run db:studio` - Launch Drizzle Studio to view/edit database
-- `npm run db:push` - Push schema changes to database
-- `npm run db:generate` - Generate migration files
+
 
 ## Building
 

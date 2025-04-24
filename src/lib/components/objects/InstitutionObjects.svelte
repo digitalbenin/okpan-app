@@ -175,7 +175,7 @@
     // Function to close object detail panel
     function closeObjectDetail(updateUrl = true) {
         if (selectedObjectId !== null) {
-            const idToRemove = selectedObjectId;
+            //const idToRemove = selectedObjectId;
             selectedObjectId = null; // Start panel closing animation immediately
 
             // Clear any existing timeout before setting a new one
