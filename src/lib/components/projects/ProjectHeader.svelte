@@ -67,10 +67,10 @@
         } else {
           // Find translations
           const titleTranslation = currentProject.title.translations?.find(
-            (t) => t.language_code === lang.language_code,
+            (t) => t.language_code === lang.language_code
           );
           const descTranslation = currentProject.description.translations?.find(
-            (t) => t.language_code === lang.language_code,
+            (t) => t.language_code === lang.language_code
           );
 
           editTitle[lang.language_code] = titleTranslation?.content || "";
@@ -130,7 +130,7 @@
       // Verify that we have valid text IDs before proceeding with translations
       if (!project.title_id || !project.description_id) {
         console.warn(
-          "Missing valid text IDs for project. Skipping translations.",
+          "Missing valid text IDs for project. Skipping translations."
         );
       } else {
         // Now handle translations for non-default languages
@@ -168,13 +168,20 @@
             }
           }
 
-          // Find translations for this language
+          // Filter out null/empty values that might have been returned from the database
+          parsedTitleTranslations = parsedTitleTranslations.filter(
+            (t) => t && t.language_code
+          );
+          parsedDescTranslations = parsedDescTranslations.filter(
+            (t) => t && t.language_code
+          );
+
           const titleTranslation = parsedTitleTranslations.find(
-            (t) => t?.language_code === lang.language_code,
+            (t) => t.language_code === lang.language_code
           );
 
           const descTranslation = parsedDescTranslations.find(
-            (t) => t?.language_code === lang.language_code,
+            (t) => t.language_code === lang.language_code
           );
 
           // Handle title translation
@@ -185,7 +192,7 @@
               const result = await addTranslation(
                 project.title_id,
                 lang.language_code,
-                titleContent,
+                titleContent
               );
             }
           }
@@ -198,7 +205,7 @@
               const result = await addTranslation(
                 project.description_id,
                 lang.language_code,
-                descContent,
+                descContent
               );
             }
           }

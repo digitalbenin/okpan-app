@@ -9,6 +9,8 @@
   import FlexRender from "$lib/components/table/flex-render.svelte";
   import TableLink from "$lib/components/table/TableLink.svelte";
   import BaseBadge from "$lib/components/base/BaseBadge.svelte";
+  import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import IndeterminateCheckbox from "$lib/components/table/IntermediateCheckbox.svelte";
 
   let { institutions, count } = $props();
 
@@ -21,7 +23,17 @@
     ["page-size"]: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 1,
+      defaultValue: 3,
+    },
+    orderBy: {
+      encode: (value) => value,
+      decode: (value) => value,
+      defaultValue: "name",
+    },
+    direction: {
+      encode: (value) => value,
+      decode: (value) => value,
+      defaultValue: "asc",
     },
   });
 
@@ -30,13 +42,49 @@
       pageIndex: params.page - 1,
       pageSize: params["page-size"],
     },
-    sorting: [],
+    sorting: [{ id: params.orderBy, desc: params.direction === "desc" }],
+    rowSelection: {},
   });
+
+  function nextPage() {
+    params.page++;
+    state.pagination.pageIndex++;
+    table.nextPage();
+  }
+  function previousPage() {
+    params.page--;
+    state.pagination.pageIndex--;
+    table.previousPage();
+  }
+  function goToPage(pageIndex) {
+    params.page = pageIndex + 1;
+    state.pagination.pageIndex = pageIndex;
+    table.setPageIndex(pageIndex);
+  }
 
   const colHelp = createColumnHelper();
 
   const columnDefs = [
+    colHelp.accessor((row) => row.id, {
+      id: "select",
+      header: ({ table }) => {
+        return renderComponent(IndeterminateCheckbox, {
+          checked: table.getIsAllRowsSelected(),
+          indeterminate: table.getIsSomeRowsSelected(),
+          onchange: table.getToggleAllRowsSelectedHandler(),
+        });
+      },
+      cell: ({ row }) => {
+        return renderComponent(IndeterminateCheckbox, {
+          checked: row.getIsSelected(),
+          disabled: !row.getCanSelect(),
+          indeterminate: row.getIsSomeSelected(),
+          onchange: row.getToggleSelectedHandler(),
+        });
+      },
+    }),
     colHelp.accessor((row) => row.name.content + " - " + row.country.content, {
+      id: "name",
       header: "Name",
       cell: ({ cell, row }) =>
         renderComponent(TableLink, {
@@ -72,9 +120,15 @@
     },
     columns: columnDefs,
     getCoreRowModel: getCoreRowModel(),
-    manualPagination: false, //turn off client-side pagination
-    manualSorting: false,
+    manualPagination: true, //turn off client-side pagination
+    manualSorting: true,
+    enableRowSelection: true,
     rowCount: count,
+    enableSortingRemoval: false,
+    getRowId: (row) => row.id,
+    onPaginationChange: () => {
+      // table.setRowSelection({});
+    },
     onSortingChange: (updater) => {
       if (updater instanceof Function) {
         state.sorting = updater(state.sorting);
@@ -83,18 +137,23 @@
       }
 
       // update query params
-      // if (state.sorting.length) {
-      //   params.sort = state.sorting
-      //     .map((sort) => `${sort.id}:${sort.desc ? "desc" : "asc"}`)
-      //     .join(",");
-      // } else {
-      //   params.sort = null;
-      // }
+      if (state.sorting.length) {
+        params.sortBy = state.sorting[0].id;
+        params.direction = state.sorting[0].desc ? "desc" : "asc";
+      }
+    },
+    onRowSelectionChange: (updater) => {
+      if (updater instanceof Function) {
+        state.rowSelection = updater(state.rowSelection);
+      } else {
+        state.rowSelection = updater;
+      }
     },
     get state() {
       return state;
     },
   });
+  $inspect(state);
 </script>
 
 <div class="table-responsive">
@@ -107,16 +166,32 @@
         {#each table.getHeaderGroups() as headerGroup}
           {#each headerGroup.headers as header}
             <th class="border-0">
-              <div onclick={header.column.getToggleSortingHandler()}>
+              {#if header.id !== "select"}
+                <button
+                  onclick={header.column.getToggleSortingHandler()}
+                  class="btn btn-dark btn-sm d-flex align-items-center"
+                >
+                  <FlexRender
+                    content={header.column.columnDef.header}
+                    context={header.getContext()}
+                  />
+                  {#if header.column.getIsSorted()}
+                    <i
+                      class="ms-1 bi bi-sort-alpha-{header.column
+                        .getIsSorted()
+                        .toString() === 'asc'
+                        ? 'down'
+                        : 'up'}"
+                    ></i>
+                  {:else}
+                    <i class="ms-1 bi bi-dash"></i>
+                  {/if}
+                </button>
+              {:else}
                 <FlexRender
                   content={header.column.columnDef.header}
                   context={header.getContext()}
                 />
-              </div>
-              {#if header.column.getIsSorted().toString() === "asc"}
-                🔼
-              {:else if header.column.getIsSorted().toString() === "desc"}
-                🔽
               {/if}
             </th>
           {/each}
@@ -150,13 +225,7 @@
 <nav aria-label="pagination">
   <ul class="pagination pagination-sm">
     <li class="page-item" class:disabled={!table.getCanPreviousPage()}>
-      <button
-        class="page-link"
-        onclick={() => {
-          params.page--;
-          state.pagination.pageIndex--;
-        }}>Prev</button
-      >
+      <button class="page-link" onclick={() => previousPage()}>Prev</button>
     </li>
     {#each Array.from({ length: table.getPageCount() }, (_, i) => i) as pageIndex}
       <li
@@ -166,8 +235,7 @@
         <button
           class="page-link"
           onclick={() => {
-            params.page = pageIndex + 1;
-            state.pagination.pageIndex = pageIndex;
+            goToPage(pageIndex);
           }}>{pageIndex + 1}</button
         >
       </li>
@@ -177,8 +245,7 @@
       <button
         class="page-link"
         onclick={() => {
-          params.page++;
-          state.pagination.pageIndex++;
+          nextPage();
         }}>Next</button
       >
     </li>
