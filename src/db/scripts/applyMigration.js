@@ -33,12 +33,34 @@ async function applyMigration() {
         const migrationPath = path.resolve(__dirname, '../migrations/001_create_institutions_search.sql');
         const sqlContent = fs.readFileSync(migrationPath, 'utf8');
 
+        // First, let's handle the CREATE VIRTUAL TABLE statement separately to ensure it's processed correctly
+        if (!ftsTableExists) {
+            console.log('Creating FTS table...');
+            const ftsTableSql = sqlContent.split(';')[0] + ';'; // Extract just the first statement which should be the CREATE VIRTUAL TABLE
+
+            try {
+                await client.execute({ sql: ftsTableSql });
+                console.log('Created FTS virtual table successfully');
+            } catch (err) {
+                console.error(`Failed to create FTS table: ${err.message}`);
+                // If we can't create the table, we might as well stop
+                throw new Error('Cannot continue without creating the FTS table');
+            }
+        } else {
+            console.log('FTS table already exists, skipping table creation');
+        }
+
+        // Now handle the trigger statements
+        console.log('Setting up triggers...');
         // Extract individual statements properly - handle CREATE TRIGGER blocks correctly
         let statements = [];
         let currentStatement = '';
         let inTriggerBlock = false;
 
-        for (const line of sqlContent.split('\n')) {
+        // Skip the CREATE VIRTUAL TABLE statement since we've already handled it
+        const sqlContentWithoutCreateTable = sqlContent.substring(sqlContent.indexOf(';') + 1);
+
+        for (const line of sqlContentWithoutCreateTable.split('\n')) {
             // Skip comment lines
             if (line.trim().startsWith('--')) continue;
 
@@ -70,32 +92,7 @@ async function applyMigration() {
             }
         }
 
-        if (ftsTableExists) {
-            console.log('FTS table already exists, skipping table creation');
-            // Filter out the CREATE VIRTUAL TABLE statement if table exists
-            statements = statements.filter(stmt => !stmt.includes('CREATE VIRTUAL TABLE'));
-        } else {
-            console.log('Creating FTS table and triggers...');
-
-            // Make sure we execute the CREATE TABLE statement first if it doesn't exist
-            const createTableStmt = statements.find(stmt => stmt.includes('CREATE VIRTUAL TABLE'));
-            if (createTableStmt) {
-                try {
-                    await client.execute({ sql: createTableStmt });
-                    console.log('Created FTS virtual table successfully');
-                } catch (err) {
-                    console.error(`Failed to create FTS table: ${err.message}`);
-                    // If we can't create the table, we might as well stop
-                    throw new Error('Cannot continue without creating the FTS table');
-                }
-
-                // Remove the CREATE TABLE statement from the list so we don't try again
-                statements = statements.filter(stmt => !stmt.includes('CREATE VIRTUAL TABLE'));
-            }
-        }
-
         // Execute remaining statements (triggers)
-        console.log('Setting up triggers...');
         for (const statement of statements) {
             if (statement.trim() === '') continue;
 
