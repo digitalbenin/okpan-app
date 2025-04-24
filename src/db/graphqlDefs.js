@@ -414,13 +414,36 @@ export function createGraphQLSchema(db) {
                     query = query.where(sql`(${sql.raw(orConditions)})`);
                 }
             } else if (args.search && args.search.trim() && !matchingInstitutionIds) {
+                // Join with the texts tables if not already joined
+                const searchNameTexts = aliasedTable(dbSchema.texts, 'search_name_texts');
+                const searchDescTexts = aliasedTable(dbSchema.texts, 'search_desc_texts');
+                const searchCountryTexts = aliasedTable(dbSchema.texts, 'search_country_texts');
+                const searchLocationTexts = aliasedTable(dbSchema.texts, 'search_location_texts');
+
+                query = query.leftJoin(
+                    searchNameTexts,
+                    eq(dbSchema.institutions.name_id, searchNameTexts.id)
+                )
+                    .leftJoin(
+                        searchDescTexts,
+                        eq(dbSchema.institutions.description_id, searchDescTexts.id)
+                    )
+                    .leftJoin(
+                        searchCountryTexts,
+                        eq(dbSchema.institutions.country_id, searchCountryTexts.id)
+                    )
+                    .leftJoin(
+                        searchLocationTexts,
+                        eq(dbSchema.institutions.location_id, searchLocationTexts.id)
+                    );
+
                 // Fallback to basic LIKE search if FTS failed
                 const searchTerm = `%${args.search.trim()}%`;
                 query = query.where(sql`
-                    ${nameTexts.content} LIKE ${searchTerm}
-                    OR ${descriptionTexts.content} LIKE ${searchTerm}
-                    OR ${locationTexts.content} LIKE ${searchTerm}
-                    OR ${countryTexts.content} LIKE ${searchTerm}
+                    ${searchNameTexts.content} LIKE ${searchTerm}
+                    OR ${searchDescTexts.content} LIKE ${searchTerm}
+                    OR ${searchCountryTexts.content} LIKE ${searchTerm}
+                    OR ${searchLocationTexts.content} LIKE ${searchTerm}
                 `);
             }
 
@@ -543,30 +566,35 @@ export function createGraphQLSchema(db) {
                 }
             } else if (args.search && args.search.trim() && !matchingInstitutionIds) {
                 // Join with the texts tables if not already joined
+                const searchNameTexts = aliasedTable(dbSchema.texts, 'search_name_texts');
+                const searchDescTexts = aliasedTable(dbSchema.texts, 'search_desc_texts');
+                const searchCountryTexts = aliasedTable(dbSchema.texts, 'search_country_texts');
+                const searchLocationTexts = aliasedTable(dbSchema.texts, 'search_location_texts');
+
                 query = query.leftJoin(
-                    dbSchema.texts.as('search_name_texts'),
-                    eq(dbSchema.institutions.name_id, sql`search_name_texts.id`)
+                    searchNameTexts,
+                    eq(dbSchema.institutions.name_id, searchNameTexts.id)
                 )
                     .leftJoin(
-                        dbSchema.texts.as('search_desc_texts'),
-                        eq(dbSchema.institutions.description_id, sql`search_desc_texts.id`)
+                        searchDescTexts,
+                        eq(dbSchema.institutions.description_id, searchDescTexts.id)
                     )
                     .leftJoin(
-                        dbSchema.texts.as('search_country_texts'),
-                        eq(dbSchema.institutions.country_id, sql`search_country_texts.id`)
+                        searchCountryTexts,
+                        eq(dbSchema.institutions.country_id, searchCountryTexts.id)
                     )
                     .leftJoin(
-                        dbSchema.texts.as('search_location_texts'),
-                        eq(dbSchema.institutions.location_id, sql`search_location_texts.id`)
+                        searchLocationTexts,
+                        eq(dbSchema.institutions.location_id, searchLocationTexts.id)
                     );
 
                 // Fallback to basic LIKE search if FTS failed
                 const searchTerm = `%${args.search.trim()}%`;
                 query = query.where(sql`
-                    search_name_texts.content LIKE ${searchTerm}
-                    OR search_desc_texts.content LIKE ${searchTerm}
-                    OR search_country_texts.content LIKE ${searchTerm}
-                    OR search_location_texts.content LIKE ${searchTerm}
+                    ${searchNameTexts.content} LIKE ${searchTerm}
+                    OR ${searchDescTexts.content} LIKE ${searchTerm}
+                    OR ${searchCountryTexts.content} LIKE ${searchTerm}
+                    OR ${searchLocationTexts.content} LIKE ${searchTerm}
                 `);
             }
 
