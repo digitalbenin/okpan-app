@@ -1,4 +1,5 @@
 <script>
+  import { queryParameters } from "sveltekit-search-params";
   import ProjectOverview from "$lib/components/projects/ProjectOverview.svelte";
   import Table from "$lib/components/institutions/Table.svelte";
   import { setContext } from "svelte";
@@ -6,10 +7,11 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
 
   const { data } = $props();
-  $inspect("data project", data);
 
   // Set project languages in context so they can be accessed by child components
   //setContext("projectLanguages", data.projectLanguages);
+  $inspect(data);
+  const params = queryParameters();
 </script>
 
 <ProjectOverview />
@@ -22,7 +24,10 @@
 
         <div class="ms-auto d-flex gap-2">
           <div class="col-auto">
-            <BaseInput type="text" placeholder="Search for institutions"
+            <BaseInput
+              type="text"
+              placeholder="Search for institutions"
+              bind:value={params.search}
             ></BaseInput>
           </div>
           <BaseButton
@@ -39,11 +44,12 @@
           ></BaseButton>
         </div>
       </div>
-
-      <Table
-        institutions={data.institutions.result}
-        count={data.institutions.count}
-      />
+      {#if data.institutions && data.institutions.count > 0}
+        <Table
+          institutions={data.institutions.result}
+          count={data.institutions.count}
+        />
+      {/if}
     </div>
   </div>
 </div>

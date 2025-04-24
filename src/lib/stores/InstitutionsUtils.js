@@ -4,8 +4,8 @@ import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
-export const getProjectInstitutions = async (projectId, page, pageSize, orderBy, direction, fetchFn) => {
-    const response = await executeQuery('institutions', 'list', { projectId, page, pageSize, orderBy, direction }, fetchFn);
+export const getProjectInstitutions = async (projectId, page, pageSize, orderBy, direction, search) => {
+    const response = await executeQuery('institutions', 'list', { projectId, page, pageSize, orderBy, direction, search });
     return response;
 };
 

@@ -222,32 +222,34 @@
     </tbody>
   </table>
 </div>
-<nav aria-label="pagination">
-  <ul class="pagination pagination-sm">
-    <li class="page-item" class:disabled={!table.getCanPreviousPage()}>
-      <button class="page-link" onclick={() => previousPage()}>Prev</button>
-    </li>
-    {#each Array.from({ length: table.getPageCount() }, (_, i) => i) as pageIndex}
-      <li
-        class="page-item"
-        class:active={pageIndex === state.pagination.pageIndex}
-      >
+{#if institutions.length !== count}
+  <nav aria-label="pagination">
+    <ul class="pagination pagination-sm">
+      <li class="page-item" class:disabled={!table.getCanPreviousPage()}>
+        <button class="page-link" onclick={() => previousPage()}>Prev</button>
+      </li>
+      {#each Array.from({ length: table.getPageCount() }, (_, i) => i) as pageIndex}
+        <li
+          class="page-item"
+          class:active={pageIndex === state.pagination.pageIndex}
+        >
+          <button
+            class="page-link"
+            onclick={() => {
+              goToPage(pageIndex);
+            }}>{pageIndex + 1}</button
+          >
+        </li>
+      {/each}
+
+      <li class="page-item" class:disabled={!table.getCanNextPage()}>
         <button
           class="page-link"
           onclick={() => {
-            goToPage(pageIndex);
-          }}>{pageIndex + 1}</button
+            nextPage();
+          }}>Next</button
         >
       </li>
-    {/each}
-
-    <li class="page-item" class:disabled={!table.getCanNextPage()}>
-      <button
-        class="page-link"
-        onclick={() => {
-          nextPage();
-        }}>Next</button
-      >
-    </li>
-  </ul>
-</nav>
+    </ul>
+  </nav>
+{/if}
