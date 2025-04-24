@@ -316,30 +316,6 @@ export function createGraphQLSchema(db) {
             }
         ],
         resolve: async (source, args, context, info) => {
-            // Check if we need to use the search index
-            let matchingInstitutionIds = null;
-            if (args.search && args.search.trim()) {
-                const searchTerm = args.search.trim();
-                const searchQuery = `${searchTerm}*`;
-
-                try {
-                    const ftsQuery = sql`
-                        SELECT DISTINCT institution_id 
-                        FROM institutions_search 
-                        WHERE institutions_search MATCH ${searchQuery}
-                        ${args.languageCode ? sql` AND language_code = ${args.languageCode}` : sql``}
-                    `;
-
-                    const searchResults = await db.all(ftsQuery);
-
-                    if (searchResults && searchResults.length > 0) {
-                        matchingInstitutionIds = searchResults.map(row => row.institution_id);
-                    }
-                } catch (error) {
-                    console.error('Error executing FTS search:', error);
-                }
-            }
-
             // Create aliases for the texts tables
             const nameTexts = aliasedTable(dbSchema.texts, 'name_texts');
             const descriptionTexts = aliasedTable(dbSchema.texts, 'description_texts');
@@ -371,7 +347,7 @@ export function createGraphQLSchema(db) {
                 'assets_count'
             );
 
-            // Build the base query
+            // Start building the base query with all necessary joins for display
             let query = db.select({
                 id: dbSchema.institutions.id,
                 created_at: dbSchema.institutions.created_at,
@@ -400,56 +376,42 @@ export function createGraphQLSchema(db) {
                 .leftJoin(countryTexts, eq(dbSchema.institutions.country_id, countryTexts.id))
                 .leftJoin(countryTranslations, eq(countryTexts.id, countryTranslations.text_id));
 
-            // Apply search filter if we have matching institution IDs
-            if (matchingInstitutionIds && matchingInstitutionIds.length > 0) {
-                if (matchingInstitutionIds.length === 1) {
-                    // For a single ID, use equality
-                    query = query.where(eq(dbSchema.institutions.id, matchingInstitutionIds[0]));
-                } else {
-                    // For multiple IDs, create a direct SQL OR condition with fully qualified column names
-                    // Use institutions table name to avoid ambiguous column error
-                    const orConditions = matchingInstitutionIds.map(id =>
-                        `"institutions"."id" = '${id}'`
-                    ).join(' OR ');
-                    query = query.where(sql`(${sql.raw(orConditions)})`);
-                }
-            } else if (args.search && args.search.trim() && !matchingInstitutionIds) {
-                // Join with the texts tables if not already joined
-                const searchNameTexts = aliasedTable(dbSchema.texts, 'search_name_texts');
-                const searchDescTexts = aliasedTable(dbSchema.texts, 'search_desc_texts');
-                const searchCountryTexts = aliasedTable(dbSchema.texts, 'search_country_texts');
-                const searchLocationTexts = aliasedTable(dbSchema.texts, 'search_location_texts');
-
-                query = query.leftJoin(
-                    searchNameTexts,
-                    eq(dbSchema.institutions.name_id, searchNameTexts.id)
-                )
-                    .leftJoin(
-                        searchDescTexts,
-                        eq(dbSchema.institutions.description_id, searchDescTexts.id)
-                    )
-                    .leftJoin(
-                        searchCountryTexts,
-                        eq(dbSchema.institutions.country_id, searchCountryTexts.id)
-                    )
-                    .leftJoin(
-                        searchLocationTexts,
-                        eq(dbSchema.institutions.location_id, searchLocationTexts.id)
-                    );
-
-                // Fallback to basic LIKE search if FTS failed
-                const searchTerm = `%${args.search.trim()}%`;
-                query = query.where(sql`
-                    ${searchNameTexts.content} LIKE ${searchTerm}
-                    OR ${searchDescTexts.content} LIKE ${searchTerm}
-                    OR ${searchCountryTexts.content} LIKE ${searchTerm}
-                    OR ${searchLocationTexts.content} LIKE ${searchTerm}
-                `);
-            }
-
-            // Apply project_id filter if provided
+            // Apply the project_id filter if specified
             if (args.project_id) {
                 query = query.where(eq(dbSchema.institutions.project_id, args.project_id));
+            }
+
+            // Apply search filter if provided
+            if (args.search && args.search.trim()) {
+                const searchTerm = args.search.trim();
+                const searchQuery = `${searchTerm}*`;
+
+                try {
+                    // Create a subquery to get matching institution IDs
+                    const searchSubquery = db
+                        .select({ id: sql`s.institution_id` })
+                        .from(sql`institutions_search s`)
+                        .where(sql`s.institutions_search MATCH ${searchQuery}`)
+                        .as('search_results');
+
+                    if (args.languageCode) {
+                        searchSubquery.where(sql`s.language_code = ${args.languageCode}`);
+                    }
+
+                    // Join the main query with the search results
+                    query = query.where(
+                        sql`${dbSchema.institutions.id} IN (
+                            SELECT s.institution_id 
+                            FROM institutions_search s
+                            WHERE s.institutions_search MATCH ${searchQuery}
+                            ${args.languageCode ? sql`AND s.language_code = ${args.languageCode}` : sql``}
+                        )`
+                    );
+                } catch (error) {
+                    console.error('Error building FTS search:', error);
+                    // If search fails, return no results
+                    return [];
+                }
             }
 
             // Apply ordering
@@ -479,7 +441,7 @@ export function createGraphQLSchema(db) {
                 .offset(args.page * args.pageSize)
                 .groupBy(dbSchema.institutions.id);
 
-            // Execute the paginated query
+            // Execute the query
             const institutions = await query.execute();
 
             // Process translations
@@ -523,83 +485,36 @@ export function createGraphQLSchema(db) {
             }
         ],
         resolve: async (source, args, context, info) => {
-            // Check if we need to use the search index
-            let matchingInstitutionIds = null;
+            // Start with a basic count query
+            let query = db
+                .select({ count: sql`count(*)` })
+                .from(dbSchema.institutions);
+
+            // Apply project_id filter if specified
+            if (args.project_id) {
+                query = query.where(eq(dbSchema.institutions.project_id, args.project_id));
+            }
+
+            // Apply search filter if provided
             if (args.search && args.search.trim()) {
                 const searchTerm = args.search.trim();
                 const searchQuery = `${searchTerm}*`;
 
                 try {
-                    const ftsQuery = sql`
-                        SELECT DISTINCT institution_id 
-                        FROM institutions_search 
-                        WHERE institutions_search MATCH ${searchQuery}
-                        ${args.languageCode ? sql` AND language_code = ${args.languageCode}` : sql``}
-                    `;
-
-                    const searchResults = await db.all(ftsQuery);
-
-                    if (searchResults && searchResults.length > 0) {
-                        matchingInstitutionIds = searchResults.map(row => row.institution_id);
-                    }
-                } catch (error) {
-                    console.error('Error executing FTS search:', error);
-                }
-            }
-
-            let query = db
-                .select({ count: sql`count(*)` })
-                .from(dbSchema.institutions);
-
-            // Apply search filter if we have matching institution IDs
-            if (matchingInstitutionIds && matchingInstitutionIds.length > 0) {
-                if (matchingInstitutionIds.length === 1) {
-                    // For a single ID, use equality
-                    query = query.where(eq(dbSchema.institutions.id, matchingInstitutionIds[0]));
-                } else {
-                    // For multiple IDs, create a direct SQL OR condition with fully qualified column names
-                    // Use institutions table name to avoid ambiguous column error
-                    const orConditions = matchingInstitutionIds.map(id =>
-                        `"institutions"."id" = '${id}'`
-                    ).join(' OR ');
-                    query = query.where(sql`(${sql.raw(orConditions)})`);
-                }
-            } else if (args.search && args.search.trim() && !matchingInstitutionIds) {
-                // Join with the texts tables if not already joined
-                const searchNameTexts = aliasedTable(dbSchema.texts, 'search_name_texts');
-                const searchDescTexts = aliasedTable(dbSchema.texts, 'search_desc_texts');
-                const searchCountryTexts = aliasedTable(dbSchema.texts, 'search_country_texts');
-                const searchLocationTexts = aliasedTable(dbSchema.texts, 'search_location_texts');
-
-                query = query.leftJoin(
-                    searchNameTexts,
-                    eq(dbSchema.institutions.name_id, searchNameTexts.id)
-                )
-                    .leftJoin(
-                        searchDescTexts,
-                        eq(dbSchema.institutions.description_id, searchDescTexts.id)
-                    )
-                    .leftJoin(
-                        searchCountryTexts,
-                        eq(dbSchema.institutions.country_id, searchCountryTexts.id)
-                    )
-                    .leftJoin(
-                        searchLocationTexts,
-                        eq(dbSchema.institutions.location_id, searchLocationTexts.id)
+                    // Add a WHERE condition to filter by institutions that match the search term
+                    query = query.where(
+                        sql`${dbSchema.institutions.id} IN (
+                            SELECT s.institution_id 
+                            FROM institutions_search s
+                            WHERE s.institutions_search MATCH ${searchQuery}
+                            ${args.languageCode ? sql`AND s.language_code = ${args.languageCode}` : sql``}
+                        )`
                     );
-
-                // Fallback to basic LIKE search if FTS failed
-                const searchTerm = `%${args.search.trim()}%`;
-                query = query.where(sql`
-                    ${searchNameTexts.content} LIKE ${searchTerm}
-                    OR ${searchDescTexts.content} LIKE ${searchTerm}
-                    OR ${searchCountryTexts.content} LIKE ${searchTerm}
-                    OR ${searchLocationTexts.content} LIKE ${searchTerm}
-                `);
-            }
-
-            if (args.project_id) {
-                query = query.where(eq(dbSchema.institutions.project_id, args.project_id));
+                } catch (error) {
+                    console.error('Error building FTS search for count:', error);
+                    // If search fails, return zero
+                    return 0;
+                }
             }
 
             const result = await query.execute();
