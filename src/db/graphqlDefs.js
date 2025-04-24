@@ -384,20 +384,10 @@ export function createGraphQLSchema(db) {
             // Apply search filter if provided
             if (args.search && args.search.trim()) {
                 const searchTerm = args.search.trim();
-                const searchQuery = `${searchTerm}*`;
+                // Use double quotes for exact phrase matching
+                const searchQuery = `content:${searchTerm}*`;
 
                 try {
-                    // Create a subquery to get matching institution IDs
-                    const searchSubquery = db
-                        .select({ id: sql`s.institution_id` })
-                        .from(sql`institutions_search s`)
-                        .where(sql`s.institutions_search MATCH ${searchQuery}`)
-                        .as('search_results');
-
-                    if (args.languageCode) {
-                        searchSubquery.where(sql`s.language_code = ${args.languageCode}`);
-                    }
-
                     // Join the main query with the search results
                     query = query.where(
                         sql`${dbSchema.institutions.id} IN (
@@ -498,7 +488,8 @@ export function createGraphQLSchema(db) {
             // Apply search filter if provided
             if (args.search && args.search.trim()) {
                 const searchTerm = args.search.trim();
-                const searchQuery = `${searchTerm}*`;
+                // Use double quotes for exact phrase matching
+                const searchQuery = `content:${searchTerm}*`;
 
                 try {
                     // Add a WHERE condition to filter by institutions that match the search term
