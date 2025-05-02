@@ -123,7 +123,9 @@
     manualPagination: true, //turn off client-side pagination
     manualSorting: true,
     enableRowSelection: true,
-    rowCount: count,
+    get rowCount() {
+      return count;
+    },
     enableSortingRemoval: false,
     getRowId: (row) => row.id,
     onPaginationChange: () => {
