@@ -254,7 +254,7 @@ export const assets = sqliteTable('assets', {
     type: text('type'),
     formats: text('formats', { mode: 'json' }),
     properties: text('properties', { mode: 'json' }),
-    institution_id: text('institution_id').references(() => institutions.id),
+    institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
     project_id: text('project_id').references(() => project.id)
 });
 
@@ -276,7 +276,7 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
 export const objects = sqliteTable('objects', {
     ...commonFields,
     status: text('status'),
-    institution_id: text('institution_id').references(() => institutions.id),
+    institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
     project_id: text('project_id').references(() => project.id)
 });
 
@@ -299,7 +299,7 @@ export const objectsRelations = relations(objects, ({ one, many }) => ({
 export const datasources = sqliteTable('datasources', {
     ...commonFields,
     name_id: text('name_id').references(() => texts.id),
-    institution_id: text('institution_id').references(() => institutions.id),
+    institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
     language: text('language'),
     copyright: text('copyright'),
     method_id: text('method_id').references(() => texts.id),
