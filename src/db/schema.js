@@ -333,8 +333,8 @@ export const datasourcesRelations = relations(datasources, ({ one, many }) => ({
 // Assets Institutions junction table
 export const assets_institutions = sqliteTable('assets_institutions', {
     ...commonFields,
-    asset_id: text('asset_id').references(() => assets.id),
-    institution_id: text('institution_id').references(() => institutions.id),
+    asset_id: text('asset_id').references(() => assets.id, { onDelete: 'cascade' }),
+    institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
     rule: text('rule')
 });
 
@@ -379,7 +379,7 @@ export const vocabulariesRelations = relations(vocabularies, ({ one }) => ({
 // Objects Research Fields junction table
 export const objects_research_fields = sqliteTable('objects_research_fields', {
     ...commonFields,
-    object_id: text('object_id').references(() => objects.id),
+    object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
     field_id: text('field_id').references(() => research_fields.id),
     vocabulary_id: text('vocabulary_id').references(() => vocabularies.id),
     value: text('value')
@@ -432,7 +432,7 @@ export const objects_ontology_fields = sqliteTable('objects_ontology_fields', {
     ...commonFields,
     label: text('label'),
     value: text('value'),
-    object_id: text('object_id').references(() => objects.id),
+    object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
     field_id: text('field_id').references(() => ontology_fields.id),
     datasources_id: text('datasources_id').references(() => datasources.id),
     primary: integer('primary')
@@ -493,8 +493,8 @@ export const importsRelations = relations(imports, ({ one }) => ({
 // Objects Assets junction table
 export const objects_assets = sqliteTable('objects_assets', {
     ...commonFields,
-    asset_id: text('asset_id').references(() => assets.id),
-    object_id: text('object_id').references(() => objects.id),
+    asset_id: text('asset_id').references(() => assets.id, { onDelete: 'cascade' }),
+    object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
     order: integer('order')
 });
 

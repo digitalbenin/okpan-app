@@ -436,33 +436,6 @@ export const institutionsOperations = {
         useVariables: ["institutionId"]
       },
       {
-        name: "deleteObjects",
-        query: `mutation DeleteInstitutionObjects($institutionId: String!) {
-  deleteFromObjects(where: { institution_id: { eq: $institutionId } }) {
-    id
-  }
-}`,
-        useVariables: ["institutionId"]
-      },
-      {
-        name: "deleteDatasources",
-        query: `mutation DeleteInstitutionDatasources($institutionId: String!) {
-  deleteFromDatasources(where: { institution_id: { eq: $institutionId } }) {
-    id
-  }
-}`,
-        useVariables: ["institutionId"]
-      },
-      {
-        name: "deleteAssetsRelations",
-        query: `mutation DeleteInstitutionAssetsRelations($institutionId: String!) {
-  deleteFromAssets_institutions(where: { institution_id: { eq: $institutionId } }) {
-    id
-  }
-}`,
-        useVariables: ["institutionId"]
-      },
-      {
         name: "deleteInstitution",
         query: `mutation DeleteInstitutionFinal($institutionId: String!) {
   deleteFromInstitutions(where: { id: { eq: $institutionId } }) {
