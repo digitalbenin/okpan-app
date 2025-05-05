@@ -6,8 +6,7 @@
     import { Tabs } from "melt/builders";
     import { epochToYYYYMMDD } from "$lib/utils/dates.js";
 
-    // --- REVERT Prop definition ---
-    let { datasource } = $props();
+    let { datasource, onDeleteRequest = () => {} } = $props();
 
     const projectLanguages = getContext("projectLanguages") || [];
 
@@ -216,7 +215,7 @@
             console.error("Datasource ID is missing, cannot delete.");
             return;
         }
-        dispatch("delete", { id: datasource.id });
+        onDeleteRequest(datasource.id);
     }
 </script>
 

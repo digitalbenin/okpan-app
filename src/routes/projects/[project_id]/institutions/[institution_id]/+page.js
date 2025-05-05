@@ -9,6 +9,7 @@ export const load = async ({ params, depends }) => {
     if (!browser) return;
     depends('app:objects')
     depends('app:assets')
+    depends('app:datasources')
 
     const projectId = params.project_id;
     const institutionId = params.institution_id;

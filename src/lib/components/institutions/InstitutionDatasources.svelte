@@ -4,9 +4,11 @@
     import { epochToDate } from "$lib/utils/dates";
     import SidePanel from "$lib/components/common/SidePanel.svelte";
     import DatasourceDetail from "$lib/components/datasources/DatasourceDetail.svelte";
+    import BaseModal from "$lib/components/base/BaseModal.svelte";
     import {
         updateDatasource,
         getDatasource,
+        deleteDatasource,
     } from "$lib/stores/DatasourcesUtils.js";
 
     let datasources = $state(getContext("datasources") || []);
@@ -17,6 +19,10 @@
     let selectedDatasourceId = $state(null);
     let selectedDatasource = $state(null);
     let closeContentTimeout = null;
+
+    // Modal state for datasource deletion
+    let isDeleteDatasourceModalOpen = $state(false);
+    let datasourceIdToDelete = $state(null);
 
     function findDatasourceById(id) {
         // Finds from the const context array
@@ -123,6 +129,46 @@
                 }
             }
         }
+    }
+
+    // Request handler from child component to open modal
+    function handleDatasourceDeleteRequest(datasourceId) {
+        if (datasourceId) {
+            datasourceIdToDelete = datasourceId;
+            isDeleteDatasourceModalOpen = true;
+        } else {
+            console.error("Delete request received without Datasource ID.");
+        }
+    }
+
+    // Function called when deletion is confirmed in the modal
+    async function confirmDatasourceDelete() {
+        if (!datasourceIdToDelete) {
+            console.error(
+                "Cannot confirm delete: datasourceIdToDelete is null",
+            );
+            isDeleteDatasourceModalOpen = false;
+            return;
+        }
+
+        const result = await deleteDatasource(datasourceIdToDelete);
+
+        if (result.error) {
+            console.error("Error deleting datasource:", result.error);
+            alert(`Error deleting datasource: ${result.error}`); // Optional alert
+        } else {
+            console.log("Datasource deleted successfully:", result);
+            // Remove from local list
+            datasources = datasources.filter(
+                (ds) => ds.id !== datasourceIdToDelete,
+            );
+            // Close the detail panel
+            closeDatasourceDetail(true);
+        }
+
+        // Reset modal state
+        isDeleteDatasourceModalOpen = false;
+        datasourceIdToDelete = null;
     }
 
     // Keyboard handler for accessible clicks
@@ -300,8 +346,47 @@
         <DatasourceDetail
             datasource={selectedDatasource}
             on:save={handleDatasourceSave}
+            onDeleteRequest={handleDatasourceDeleteRequest}
         />
     {:else}
         <p>Loading...</p>
     {/if}
 </SidePanel>
+
+{#snippet header()}
+    Confirm Deletion
+{/snippet}
+
+{#snippet body()}
+    Are you sure you want to delete this data source? This action cannot be
+    undone.
+{/snippet}
+
+{#snippet actions()}
+    <div class="d-flex justify-content-end gap-2">
+        <BaseButton
+            text="Cancel"
+            class="btn btn-secondary btn-sm"
+            onClick={() => {
+                isDeleteDatasourceModalOpen = false;
+                datasourceIdToDelete = null;
+            }}
+        />
+        <BaseButton
+            text="Confirm Delete"
+            class="btn btn-danger btn-sm"
+            onClick={confirmDatasourceDelete}
+        />
+    </div>
+{/snippet}
+
+<!-- Render the datasource delete modal -->
+{#if isDeleteDatasourceModalOpen}
+    <BaseModal
+        bind:isOpen={isDeleteDatasourceModalOpen}
+        size="md"
+        {header}
+        {body}
+        {actions}
+    />
+{/if}
