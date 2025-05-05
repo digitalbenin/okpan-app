@@ -6,9 +6,9 @@
     import BaseToggle from "$lib/components/base/BaseToggle.svelte";
     import BaseSelect from "$lib/components/base/BaseSelect.svelte";
 
-    let { object } = $props();
+    let { object, onDelete = null, onSave = null } = $props();
     const researchFields = getContext("researchFields") || [];
-    const dispatch = createEventDispatcher();
+    //const dispatch = createEventDispatcher();
 
     // State management
     let editedFields = $state({});
@@ -168,7 +168,11 @@
 
     function handleDelete() {
         if (object?.id) {
-            dispatch("delete", { objectId: object.id });
+            if (onDelete) {
+                onDelete(object.id);
+            } else {
+                console.error("Delete handler not provided to ObjectDetail.");
+            }
         }
     }
 
@@ -209,8 +213,14 @@
             saveData.statusChange = statusValue ? "completed" : "in progress";
         }
 
-        // Dispatch save event
-        dispatch("save", saveData);
+        // Call the onSave handler passed from the parent
+        if (onSave) {
+            onSave(saveData);
+        } else {
+            console.error(
+                "Save handler (onSave prop) not provided to ObjectDetail.",
+            );
+        }
 
         // Clear edited fields after saving
         editedFields = {};

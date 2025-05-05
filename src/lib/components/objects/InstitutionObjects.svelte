@@ -10,6 +10,7 @@
         updateObjectResearchFields,
         updateObjectStatus,
         getObjectById,
+        deleteObject,
     } from "$lib/stores/ObjectsUtils.js";
 
     // Get data from context
@@ -111,7 +112,8 @@
     // Function to find object by ID
     function findObjectById(id) {
         return (
-            objects.find((object) => String(object.id) === String(id)) || null
+            objectsList.find((object) => String(object.id) === String(id)) ||
+            null
         );
     }
 
@@ -234,8 +236,8 @@
     }
 
     // Function to handle saving object changes
-    async function handleObjectSave(event) {
-        const { objectId, changes, statusChange } = event.detail;
+    async function handleObjectSave(saveData) {
+        const { objectId, changes, statusChange } = saveData;
 
         if (!objectId) {
             console.error("Invalid save data: Missing objectId");
@@ -341,6 +343,31 @@
             }
         } catch (error) {
             console.error("Error during save:", error);
+        }
+    }
+
+    // Function to handle object deletion
+    async function handleObjectDelete(objectId) {
+        if (!objectId) {
+            console.error("Invalid delete data: Missing objectId");
+            return;
+        }
+
+        const result = await deleteObject(objectId);
+
+        if (result.error) {
+            console.error("Error deleting object:", result.error);
+            alert(`Error deleting object: ${result.error}`);
+        } else {
+            console.log("Object deleted successfully:", result);
+
+            // Remove the deleted object from the local list
+            objectsList = objectsList.filter((obj) => obj.id !== objectId);
+
+            // Close the detail panel
+            closeObjectDetail(true);
+
+            console.log("Object removed from list and panel closed.");
         }
     }
 </script>
@@ -553,7 +580,11 @@
     </div>
 
     {#if selectedObject}
-        <ObjectDetail object={selectedObject} on:save={handleObjectSave} />
+        <ObjectDetail
+            object={selectedObject}
+            onSave={handleObjectSave}
+            onDelete={handleObjectDelete}
+        />
     {:else}
         <p>Loading...</p>
     {/if}
