@@ -6,10 +6,15 @@
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import AssetDetail from "$lib/components/assets/assetDetail.svelte";
-    import SidePanel from "$lib/components/common/SidePanel.svelte"; // Import the new SidePanel
+    import SidePanel from "$lib/components/common/SidePanel.svelte";
+    import BaseModal from "$lib/components/base/BaseModal.svelte";
+    import { deleteAsset } from "$lib/stores/AssetsUtils.js";
 
     // Get assets from context
-    const assets = getContext("assets") || [];
+    const initialAssets = getContext("assets") || [];
+
+    // Local reactive state for assets
+    let assetsList = $state(initialAssets);
 
     // Display mode state
     let displayMode = $state("grid"); // 'grid' or 'list'
@@ -18,6 +23,10 @@
     let selectedAssetId = $state(null);
     let selectedAsset = $state(null);
     let closeContentTimeout = null; // Added to manage timeout
+
+    // Modal state for asset deletion
+    let isDeleteAssetModalOpen = $state(false);
+    let assetIdToDelete = $state(null);
 
     // --- New $effect for URL Synchronization ---
     $effect(() => {
@@ -43,7 +52,9 @@
     // Function to find asset by ID
     function findAssetById(id) {
         // Assuming asset IDs are numbers or strings that need comparison
-        return assets.find((asset) => String(asset.id) === String(id)) || null;
+        return (
+            assetsList.find((asset) => String(asset.id) === String(id)) || null
+        );
     }
 
     // Function to show asset detail panel
@@ -119,6 +130,44 @@
         // Check if the asset has any objectsAssets relations
         // If it has at least one, it's linked to an object
         return asset.objectsAssets && asset.objectsAssets.length > 0;
+    }
+
+    // Request handler from child component to open modal
+    function handleAssetDeleteRequest(assetId) {
+        if (assetId) {
+            assetIdToDelete = assetId;
+            isDeleteAssetModalOpen = true;
+        } else {
+            console.error("Delete request received without Asset ID.");
+        }
+    }
+
+    // Function called when deletion is confirmed in the modal
+    async function confirmAssetDelete() {
+        if (!assetIdToDelete) {
+            console.error("Cannot confirm delete: assetIdToDelete is null");
+            isDeleteAssetModalOpen = false;
+            return;
+        }
+
+        const result = await deleteAsset(assetIdToDelete);
+
+        if (result.error) {
+            console.error("Error deleting asset:", result.error);
+            alert(`Error deleting asset: ${result.error}`); // Keep alert for now
+        } else {
+            console.log("Asset deleted successfully:", result);
+            // Remove from local list
+            assetsList = assetsList.filter(
+                (asset) => asset.id !== assetIdToDelete,
+            );
+            // Close the detail panel
+            closeAssetDetail(true);
+        }
+
+        // Reset modal state
+        isDeleteAssetModalOpen = false;
+        assetIdToDelete = null;
     }
 
     // Format date for display
@@ -236,7 +285,7 @@
     <!-- Assets Grid -->
     {#if displayMode === "grid"}
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-5 g-3">
-            {#if assets.length === 0}
+            {#if assetsList.length === 0}
                 <div class="col-12 text-center py-5">
                     <p class="text-muted">
                         No assets found for this institution.
@@ -246,7 +295,7 @@
                     </button>
                 </div>
             {:else}
-                {#each assets as asset, i}
+                {#each assetsList as asset, i}
                     <div
                         class="col"
                         role="button"
@@ -310,7 +359,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {#if assets.length === 0}
+                    {#if assetsList.length === 0}
                         <tr>
                             <td colspan="5" class="text-center py-4">
                                 <p class="text-muted">
@@ -322,7 +371,7 @@
                             </td>
                         </tr>
                     {:else}
-                        {#each assets as asset, i}
+                        {#each assetsList as asset, i}
                             <tr
                                 role="button"
                                 tabindex="0"
@@ -398,12 +447,52 @@
 
     {#if selectedAsset}
         <!-- Pass the selected asset to AssetDetail component -->
-        <AssetDetail asset={selectedAsset} />
+        <AssetDetail
+            asset={selectedAsset}
+            onDeleteRequest={handleAssetDeleteRequest}
+        />
         <!-- No need for on:close here as SidePanel handles it -->
     {:else}
         <!-- Optional: Placeholder or loading state inside the panel before asset is loaded -->
         <p>Loading...</p>
     {/if}
 </SidePanel>
+
+{#snippet header()}
+    Confirm Deletion
+{/snippet}
+
+{#snippet body()}
+    Are you sure you want to delete this asset? This action cannot be undone.
+{/snippet}
+
+{#snippet actions()}
+    <div class="d-flex justify-content-end gap-2">
+        <BaseButton
+            text="Cancel"
+            class="btn btn-secondary btn-sm"
+            onClick={() => {
+                isDeleteAssetModalOpen = false;
+                assetIdToDelete = null;
+            }}
+        />
+        <BaseButton
+            text="Confirm Delete"
+            class="btn btn-danger btn-sm"
+            onClick={confirmAssetDelete}
+        />
+    </div>
+{/snippet}
+
+<!-- Render the asset delete modal -->
+{#if isDeleteAssetModalOpen}
+    <BaseModal
+        bind:isOpen={isDeleteAssetModalOpen}
+        size="md"
+        {header}
+        {body}
+        {actions}
+    />
+{/if}
 
 <!-- Removed Bootstrap Offcanvas HTML -->

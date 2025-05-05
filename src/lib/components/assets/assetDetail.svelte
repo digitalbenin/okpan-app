@@ -4,7 +4,7 @@
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
     import { epochToYYYYMMDD } from "$lib/utils/dates.js";
 
-    let { asset } = $props();
+    let { asset, onDeleteRequest = () => {} } = $props();
 
     // Create derived state for formatted dates
     let createdAtFormatted = $derived(
@@ -40,11 +40,10 @@
         );
     }
 
+    // Updated to call parent handler
     function handleDelete() {
         if (asset?.id) {
-            // Null check
-            console.log("Delete asset:", asset.id);
-            alert(`Deletion for asset ${asset.id} not implemented yet.`);
+            onDeleteRequest(asset.id); // Call parent's request handler
         } else {
             console.error("Cannot delete: Asset ID is missing.");
         }

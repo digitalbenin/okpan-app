@@ -8,6 +8,7 @@ import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte
 export const load = async ({ params, depends }) => {
     if (!browser) return;
     depends('app:objects')
+    depends('app:assets')
 
     const projectId = params.project_id;
     const institutionId = params.institution_id;
