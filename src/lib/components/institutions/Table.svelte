@@ -11,6 +11,8 @@
   import BaseBadge from "$lib/components/base/BaseBadge.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import IndeterminateCheckbox from "$lib/components/table/IntermediateCheckbox.svelte";
+  import { deleteInstitution } from "$lib/stores/InstitutionsUtils.js";
+  import BaseModal from "$lib/components/base/BaseModal.svelte";
 
   let { institutions, count } = $props();
 
@@ -45,6 +47,10 @@
     sorting: [{ id: params.orderBy, desc: params.direction === "desc" }],
     rowSelection: {},
   });
+
+  // State for modal
+  let showDeleteModal = $state(false);
+  let institutionToDeleteId = $state(null);
 
   function nextPage() {
     params.page++;
@@ -112,6 +118,22 @@
         return status;
       },
     }),
+    colHelp.display({
+      id: "actions",
+      header: null, // No header for this column
+      cell: ({ row }) => {
+        return renderComponent(BaseButton, {
+          text: "Delete",
+          icon: "trash",
+          class: "btn btn-danger btn-sm",
+          onClick: async () => {
+            // Call the delete function with the institution ID
+            console.log("Deleting institution:", row.original.id);
+            confirmDelete(row.original.id);
+          },
+        });
+      },
+    }),
   ];
 
   const table = createSvelteTable({
@@ -156,6 +178,24 @@
     },
   });
   $inspect(state);
+
+  // Function to open the confirmation modal
+  function confirmDelete(institutionId) {
+    institutionToDeleteId = institutionId;
+    showDeleteModal = true;
+  }
+
+  // Function to handle the actual deletion after confirmation
+  async function handleConfirmDelete() {
+    if (institutionToDeleteId) {
+      console.log("Confirmed deletion for:", institutionToDeleteId);
+      await deleteInstitution(institutionToDeleteId);
+      // TODO: The parent component needs to refetch the data to refresh the table
+      // after a successful deletion, as this component doesn't have access to the loading function.
+      showDeleteModal = false;
+      institutionToDeleteId = null;
+    }
+  }
 </script>
 
 <div class="table-responsive">
@@ -189,7 +229,7 @@
                     <i class="ms-1 bi bi-dash"></i>
                   {/if}
                 </button>
-              {:else}
+              {:else if header.id !== "actions"}{:else}
                 <FlexRender
                   content={header.column.columnDef.header}
                   context={header.getContext()}
@@ -255,3 +295,31 @@
     </ul>
   </nav>
 {/if}
+
+<!-- Delete Confirmation Modal -->
+<BaseModal bind:isOpen={showDeleteModal}>
+  {#snippet header()}
+    Confirm Deletion
+  {/snippet}
+
+  {#snippet body()}
+    <p>Are you sure you want to delete this institution?</p>
+    <p>
+      All related data (objects, assets, datasources, etc.) will also be
+      permanently deleted.
+    </p>
+  {/snippet}
+
+  {#snippet actions()}
+    <BaseButton
+      text="Cancel"
+      class="btn btn-secondary"
+      onClick={() => (showDeleteModal = false)}
+    />
+    <BaseButton
+      text="Delete"
+      class="btn btn-danger"
+      onClick={handleConfirmDelete}
+    />
+  {/snippet}
+</BaseModal>
