@@ -5,8 +5,9 @@ import { getObjects } from '$lib/stores/ObjectsUtils.js';
 import { getDatasources as fetchDatasources } from '$lib/stores/DatasourcesUtils.js';
 import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
-export const load = async ({ params, fetch }) => {
+export const load = async ({ params, depends }) => {
     if (!browser) return;
+    depends('app:objects')
 
     const projectId = params.project_id;
     const institutionId = params.institution_id;
@@ -16,11 +17,11 @@ export const load = async ({ params, fetch }) => {
 
     // Load all data in parallel for better performance
     const [institutionData, assetsData, objectsData, projectLanguages, datasourcesResponse] = await Promise.all([
-        getInstitution(institutionId, fetch),
-        getAssets(projectId, institutionId, fetch),
-        getObjects(projectId, institutionId, fetch),
-        getAvaliableLocalesForProject(projectId, fetch),
-        fetchDatasources(projectId, institutionId, fetch)
+        getInstitution(institutionId),
+        getAssets(projectId, institutionId),
+        getObjects(projectId, institutionId),
+        getAvaliableLocalesForProject(projectId),
+        fetchDatasources(projectId, institutionId)
     ]);
 
     // Extract the actual datasources array from the response

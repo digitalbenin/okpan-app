@@ -54,6 +54,7 @@ export const updateObjectStatus = async (objectId, status) => {
     if (response.updateObjects && Array.isArray(response.updateObjects) && response.updateObjects.length > 0) {
         resultData = response.updateObjects[0];
     }
+    invalidate("app:objects");
 
     return {
         result: resultData || { id: objectId, status: status },

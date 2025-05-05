@@ -3,7 +3,6 @@ import {
     languages, project, project_languages, institutions, texts, objects, assets,
     objects_assets, research_fields, vocabularies, objects_research_fields,
     ontology_fields, datasources, objects_ontology_fields,
-    interface_languages, interface_translations
 } from './schema.js';
 import { v4 as uuidv4 } from 'uuid';
 import { sql } from 'drizzle-orm';
@@ -15,7 +14,7 @@ import { handleImportAssets } from '../backend/handlers/assetHandlers.js';
 // Configuration constants for seed cardinality
 const SEED_CONFIG = {
     INSTITUTIONS_COUNT: 5,              // Number of institutions to create
-    OBJECTS_PER_INSTITUTION: 3,         // Number of objects per institution
+    OBJECTS_PER_INSTITUTION: 8,         // Number of objects per institution
     RESEARCH_FIELDS_COUNT: 10,           // Total number of research fields
     MULTISELECT_FIELDS_COUNT: 3,         // Number of multiselect research fields (out of total)
     VOCABULARY_OPTIONS_PER_FIED: 3,     // Number of vocabulary options per multiselect field
