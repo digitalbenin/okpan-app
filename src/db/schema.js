@@ -355,7 +355,7 @@ export const vocabularies = sqliteTable('vocabularies', {
     ...commonFields,
     option_id: text('option_id').references(() => texts.id),
     description_id: text('description_id').references(() => texts.id),
-    main_asset: text('main_asset'),
+    main_asset_id: text('main_asset_id').references(() => assets.id),
     other_assets: text('other_assets', { mode: 'json' }),
     field_id: text('field_id').references(() => research_fields.id)
 });
@@ -373,6 +373,10 @@ export const vocabulariesRelations = relations(vocabularies, ({ one }) => ({
     description: one(texts, {
         fields: [vocabularies.description_id],
         references: [texts.id]
+    }),
+    mainAsset: one(assets, {
+        fields: [vocabularies.main_asset_id],
+        references: [assets.id]
     })
 }));
 

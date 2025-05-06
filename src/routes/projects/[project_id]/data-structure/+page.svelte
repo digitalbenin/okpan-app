@@ -71,6 +71,7 @@
     // --- State for Research Field Detail --- Added ---
     let selectedResearchFieldId = $state(null);
     let selectedResearchField = $state(null);
+    let isLoadingDetail = $state(false); // Added for loading state
     let closeContentTimeout = $state(null); // Reuse timeout logic pattern
 
     // --- Uses local state now ---
@@ -81,21 +82,64 @@
         );
     }
 
-    function showResearchFieldDetail(fieldId) {
+    async function showResearchFieldDetail(fieldId) {
+        // Made async
         if (closeContentTimeout) {
             clearTimeout(closeContentTimeout);
             closeContentTimeout = null;
         }
-        const field = findResearchFieldById(fieldId); // Now uses local state
-        const newFieldId = field ? String(field.id) : null;
+        // Find by ID in the current list primarily for ID validation,
+        // but the full fetch will get the complete data.
+        const initialFieldCheck = findResearchFieldById(fieldId);
+        const newFieldId = initialFieldCheck
+            ? String(initialFieldCheck.id)
+            : null;
 
         if (newFieldId && newFieldId !== selectedResearchFieldId) {
-            console.log(`Showing research field detail for ${newFieldId}`);
+            console.log(`Fetching research field detail for ${newFieldId}`);
             selectedResearchFieldId = newFieldId;
-            selectedResearchField = field;
+            selectedResearchField = null; // Clear previous field data
+            isLoadingDetail = true;
+
+            try {
+                const response = await getResearchFieldById(newFieldId, fetch);
+                if (response && response.result && response.result.length > 0) {
+                    selectedResearchField = response.result[0]; // Assign fetched detailed data
+                    console.log(
+                        "Fetched details snapshot:",
+                        $state.snapshot(selectedResearchField),
+                    );
+                } else if (response && response.error) {
+                    console.error(
+                        `Error fetching research field ${newFieldId}:`,
+                        response.error,
+                    );
+                    selectedResearchField = null;
+                    // Optionally, keep panel open with error or close it
+                    // For now, it stays open but empty/shows error if component handles it
+                } else {
+                    console.warn(
+                        `Research field ${newFieldId} not found via getResearchFieldById or empty result.`,
+                    );
+                    selectedResearchField = null;
+                }
+            } catch (err) {
+                console.error(
+                    `Exception fetching research field ${newFieldId}:`,
+                    err,
+                );
+                selectedResearchField = null;
+            } finally {
+                isLoadingDetail = false;
+            }
+        } else if (newFieldId && newFieldId === selectedResearchFieldId) {
+            // Field already selected, do nothing or maybe re-focus panel
+            console.log(`Field ${newFieldId} is already selected.`);
         } else if (!newFieldId) {
-            console.warn(`Research field ${fieldId} not found.`);
-            closeResearchFieldDetail(); // Close if not found
+            console.warn(
+                `Research field with ID ${fieldId} not found in local list.`,
+            );
+            closeResearchFieldDetail(); // Close if not found initially
         }
     }
 
@@ -223,7 +267,7 @@
         showResearchFieldDetail(fieldId); // Updated
     }
     function showInfo(field) {
-        console.log("Show info for field:", field);
+        console.log("Show info for field snapshot:", $state.snapshot(field));
     }
 </script>
 
@@ -338,37 +382,23 @@
 
 <!-- Side Panel for Research Field Detail -->
 <SidePanel
+    title="Research Field Details"
     isOpen={!!selectedResearchFieldId}
     on:close={closeResearchFieldDetail}
-    position="right"
-    aria-labelledby="researchFieldDetailTitle"
+    isLoading={isLoadingDetail}
 >
-    <div
-        slot="header"
-        class="d-flex align-items-center justify-content-between"
-    >
-        <div class="d-flex align-items-center gap-2">
-            <BaseButton
-                text=""
-                icon="chevron-right"
-                onClick={closeResearchFieldDetail}
-                class="btn btn-light border-1 px-2 me-2 rounded-0 border-dark text-decoration-none text-dark"
-                aria-label="Close research field detail"
-            />
-            <h5 id="researchFieldDetailTitle" class="mb-0 text-break">
-                {selectedResearchField?.name?.content ||
-                    "Research Field Detail"}
-            </h5>
-        </div>
-    </div>
     {#if selectedResearchField}
         <ResearchFieldDetail
-            researchField={selectedResearchField}
+            bind:researchField={selectedResearchField}
             projectLanguages={data.projectLanguages}
             on:save={handleResearchFieldSave}
             on:delete={handleResearchFieldDelete}
         />
-    {:else}
-        <p class="p-3">Loading...</p>
+    {:else if isLoadingDetail}
+        <div class="p-3 text-center">Loading details...</div>
+    {:else if selectedResearchFieldId && !selectedResearchField}
+        <div class="p-3 text-center text-danger">
+            Could not load details for the selected research field.
+        </div>
     {/if}
 </SidePanel>

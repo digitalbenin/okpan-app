@@ -100,11 +100,18 @@ const seed = async () => {
             description_id: projectDescriptionId
         }).returning();
 
+        // Ensure projectRecord is valid and contains the ID
+        if (!projectRecord || projectRecord.length === 0 || !projectRecord[0].id) {
+            console.error("Failed to create project or retrieve its ID.");
+            throw new Error("Project creation failed during seeding.");
+        }
+        const mainProjectId = projectRecord[0].id;
+
         await Promise.all([
-            db.insert(project_languages).values({ id: uuidv4(), project_id: projectRecord.id, language_code: englishLang.code, is_default: 1 }),
-            db.insert(project_languages).values({ id: uuidv4(), project_id: projectRecord.id, language_code: italianLang.code, is_default: 0 })
+            db.insert(project_languages).values({ id: uuidv4(), project_id: mainProjectId, language_code: englishLang.code, is_default: 1 }),
+            db.insert(project_languages).values({ id: uuidv4(), project_id: mainProjectId, language_code: italianLang.code, is_default: 0 })
         ]);
-        console.log(`Project '${projectTitleId ? await db.select().from(texts).where(sql`${texts.id} = ${projectTitleId}`).then(r => r[0].content) : 'N/A'}' and languages seeded.`);
+        console.log(`Project '${projectTitleId ? await db.select().from(texts).where(sql`${texts.id} = ${projectTitleId}`).then(r => r[0]?.content || 'N/A') : 'N/A'}' and languages seeded.`);
 
         // --- 2. Ontology Fields & Categories (redefined based on images) ---
         const categoryMap = {
@@ -226,7 +233,7 @@ const seed = async () => {
                 name_id: nameId,
                 location_id: locationId,
                 country_id: countryId,
-                project_id: projectRecord.id,
+                project_id: mainProjectId,
                 links: JSON.stringify(processedLinks), // Store the processed links
                 website: instData.links?.find(l => l.title?.toLowerCase() === 'website')?.url || null,
                 status: 'in progress' // Default status
@@ -276,7 +283,7 @@ const seed = async () => {
             id: uuidv4(),
             name_id: edoRfNameId,
             description_id: edoRfDescId,
-            project_id: projectRecord.id,
+            project_id: mainProjectId,
             type: 'multiselect'
         }).returning();
 
@@ -295,7 +302,7 @@ const seed = async () => {
                     const assetInstitutionIdForVocab = null; // Ensures project-level asset
                     console.log(`INFO: Vocabulary asset '${edoData.asset}' found in 'edo_images'. Importing as project-level.`);
 
-                    const assetData = { path: [localAssetPath], isDirectory: false, projectId: projectRecord.id, institutionId: assetInstitutionIdForVocab };
+                    const assetData = { path: [localAssetPath], isDirectory: false, projectId: mainProjectId, institutionId: assetInstitutionIdForVocab };
                     try {
                         const importResult = await handleImportAssets(null, assetData);
                         if (importResult && importResult.createdAssets && importResult.createdAssets.length > 0) {
@@ -316,7 +323,7 @@ const seed = async () => {
                 option_id: nameId,
                 description_id: descriptionId,
                 field_id: edoResearchField.id,
-                main_asset: newAssetId
+                main_asset_id: newAssetId
             }).returning();
             edoVocabularyMap.set(edoData.id, dbVocabulary.id);
         }
@@ -333,7 +340,7 @@ const seed = async () => {
             const [dbObject] = await db.insert(dbObjects).values({
                 id: uuidv4(), // Generate new UUID for the object
                 institution_id: newInstitutionId,
-                project_id: projectRecord.id,
+                project_id: mainProjectId,
                 status: 'in progress' // Default status
             }).returning();
 
@@ -359,7 +366,7 @@ const seed = async () => {
                     if (imgData.asset) {
                         const localImgPath = await findAssetPath(imgData.asset);
                         if (localImgPath) {
-                            const assetData = { path: [localImgPath], isDirectory: false, projectId: projectRecord.id, institutionId: newInstitutionId };
+                            const assetData = { path: [localImgPath], isDirectory: false, projectId: mainProjectId, institutionId: newInstitutionId };
                             try {
                                 const importResult = await handleImportAssets(null, assetData);
                                 if (importResult && importResult.createdAssets && importResult.createdAssets.length > 0) {

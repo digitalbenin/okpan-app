@@ -47,6 +47,13 @@ export const researchFieldsOperations = {
         id
         content
       }
+      mainAsset {
+        id
+        filename
+        path
+        type
+      }
+      other_assets
     }
   }
 }`
@@ -93,7 +100,13 @@ export const researchFieldsOperations = {
     }
     vocabularies {
       id
-      main_asset
+      mainAsset {
+        id
+        filename
+        formats
+        path
+        type
+      }
       other_assets
       option {
         id

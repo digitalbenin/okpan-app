@@ -2,6 +2,7 @@
     import { createEventDispatcher } from "svelte";
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
+    import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { Tabs } from "melt/builders";
 
     // --- Prop definition ---
@@ -14,6 +15,7 @@
     let nameContent = $state({});
     let descriptionContent = $state({});
     let typeContent = $state(""); // Research field 'type' is not translatable per schema
+    let expandedVocabularies = $state({}); // Added for Read more/less
 
     // --- Keep Tab State ---
     let activeLanguageCode = $state("");
@@ -176,6 +178,34 @@
         }
         dispatch("delete", { id: researchField.id });
     }
+
+    // Helper function to get the URL for a vocabulary's main asset
+    function getVocabularyAssetUrl(asset) {
+        if (!asset) return null;
+        let imageUrl = null;
+
+        if (asset.formats && typeof asset.formats === "object") {
+            // Prefer smaller formats first for thumbnails
+            imageUrl =
+                asset.formats.sm ||
+                asset.formats.md ||
+                asset.formats.lg ||
+                asset.formats.original;
+        }
+        // Fallback to path if formats didn't yield a URL
+        if (!imageUrl) {
+            imageUrl = asset.path;
+        }
+
+        return imageUrl ? `media://${imageUrl}` : null;
+    }
+
+    // Helper function to toggle vocabulary description expansion
+    function toggleVocabularyExpansion(vocabId) {
+        expandedVocabularies[vocabId] = !expandedVocabularies[vocabId];
+    }
+
+    const DESCRIPTION_TRUNCATE_LENGTH = 140;
 </script>
 
 <div class="p-2 research-field-detail-form">
@@ -258,6 +288,73 @@
         />
         <!-- Add other non-translatable fields here if needed -->
     </div>
+
+    <!-- Vocabulary Section -->
+    {#if researchField?.vocabularies && researchField.vocabularies.length > 0}
+        <hr class="my-4" />
+        <h6 class="h6 text-secondary mt-4 mb-3 pb-1">Vocabulary</h6>
+        <div class="list-group list-group-flush vocabulary-list">
+            {#each researchField.vocabularies as vocabulary (vocabulary.id)}
+                {@const originalDescription =
+                    vocabulary.description?.content || "No description."}
+                {@const isLongDescription =
+                    originalDescription.length > DESCRIPTION_TRUNCATE_LENGTH}
+                {@const isExpanded = !!expandedVocabularies[vocabulary.id]}
+                {@const displayDescription =
+                    isLongDescription && !isExpanded
+                        ? originalDescription.substring(
+                              0,
+                              DESCRIPTION_TRUNCATE_LENGTH,
+                          ) + "..."
+                        : originalDescription}
+
+                <div
+                    class="list-group-item d-flex align-items-start gap-3 px-0 py-2"
+                >
+                    {#if vocabulary.mainAsset}
+                        <BaseImage
+                            src={getVocabularyAssetUrl(vocabulary.mainAsset)}
+                            alt={vocabulary.option?.content ||
+                                "Vocabulary image"}
+                            width={75}
+                            height={75}
+                            objectFit="cover"
+                            customClass="rounded flex-shrink-0"
+                            ratio="1x1"
+                        />
+                    {:else}
+                        <div
+                            class="bg-light rounded flex-shrink-0 d-flex align-items-center justify-content-center"
+                            style="width: 75px; height: 75px; font-size: 2rem; color: #ccc;"
+                        >
+                            <i class="bi bi-image"></i>
+                        </div>
+                    {/if}
+                    <div class="flex-grow-1">
+                        <strong class="d-block mb-1"
+                            >{vocabulary.option?.content ||
+                                "Unnamed Option"}</strong
+                        >
+                        <small class="text-muted d-block">
+                            {displayDescription}
+                            {#if isLongDescription}
+                                <button
+                                    type="button"
+                                    class="btn btn-link btn-sm p-0 ms-1 align-baseline"
+                                    onclick={() =>
+                                        toggleVocabularyExpansion(
+                                            vocabulary.id,
+                                        )}
+                                >
+                                    {isExpanded ? "Read less" : "Read more..."}
+                                </button>
+                            {/if}
+                        </small>
+                    </div>
+                </div>
+            {/each}
+        </div>
+    {/if}
 </div>
 
 <!-- Action Buttons -->
@@ -299,5 +396,8 @@
     }
     .research-field-detail-form :global(label.form-label) {
         font-weight: bold;
+    }
+    .vocabulary-list .list-group-item:last-child {
+        border-bottom: none; /* Optional: remove border from last item if using list-group-flush */
     }
 </style>
