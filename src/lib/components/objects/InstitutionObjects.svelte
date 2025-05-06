@@ -26,7 +26,7 @@
     if (object.objectsOntologyFields) {
       const titleField = object.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "object id"
+          field.ontologyField?.name?.content?.toLowerCase() === "object id",
       );
       if (titleField && titleField.value) {
         return titleField.value;
@@ -41,7 +41,7 @@
     if (object.objectsOntologyFields) {
       const designationField = object.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "designation"
+          field.ontologyField?.name?.content?.toLowerCase() === "designation",
       );
       // Return the value if found, otherwise null
       return designationField?.value || null;
@@ -242,7 +242,7 @@
 
     console.log(
       `Saving ${changes?.length || 0} field changes for object ${objectId}`,
-      statusChange ? `and status change to "${statusChange}"` : ""
+      statusChange ? `and status change to "${statusChange}"` : "",
     );
 
     // Find the object to update
@@ -316,11 +316,11 @@
       // Show success message
       if (fieldUpdateSuccess && statusUpdateSuccess) {
         console.log(
-          `Object "${getObjectTitle(selectedObject)}" updated successfully!`
+          `Object "${getObjectTitle(selectedObject)}" updated successfully!`,
         );
       } else {
         console.warn(
-          `Object "${getObjectTitle(selectedObject)}" updated with some errors.`
+          `Object "${getObjectTitle(selectedObject)}" updated with some errors.`,
         );
       }
     } catch (error) {
@@ -543,7 +543,6 @@
   isOpen={!!selectedObjectId}
   on:close={() => closeObjectDetail(true)}
   position="right"
-  width="500px"
   aria-labelledby="objectDetailTitle"
 >
   <div slot="header" class="d-flex align-items-center justify-content-between">

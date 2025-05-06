@@ -1,14 +1,18 @@
 <script>
-    import { createEventDispatcher, onMount, onDestroy } from "svelte";
+    import { createEventDispatcher } from "svelte";
     import { fade } from "svelte/transition";
 
-    export let isOpen = false;
-    export let position = "right"; // 'left' or 'right'
-    export let width = "400px"; // Default width, can be customized
-    export let closeOnBackdropClick = true;
-    export let closeOnEscape = true;
+    let {
+        isOpen = $bindable(),
+        position = "right",
+        closeOnBackdropClick = true,
+        closeOnEscape = true,
+    } = $props();
 
     const dispatch = createEventDispatcher();
+
+    // Internal state for dynamic width
+    let currentWidth = $state("650px"); // Default or initial width
 
     function close() {
         dispatch("close");
@@ -52,7 +56,7 @@
 <div
     class="side-panel {position}"
     class:panel-open={isOpen}
-    style="width: {width};"
+    style="width: {currentWidth};"
     role="dialog"
     aria-modal={isOpen ? "true" : "false"}
     aria-hidden={!isOpen}

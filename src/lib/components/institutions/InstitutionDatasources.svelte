@@ -323,7 +323,6 @@
     isOpen={!!selectedDatasourceId}
     on:close={() => closeDatasourceDetail(true)}
     position="right"
-    width="500px"
     aria-labelledby="datasourceDetailTitle"
 >
     <div

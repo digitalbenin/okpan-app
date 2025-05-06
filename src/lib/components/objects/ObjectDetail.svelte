@@ -337,6 +337,49 @@
                     <p class="text-muted">No research fields available.</p>
                 {/if}
             </div>
+
+            <!-- Institution Data Section -->
+            <div class="mt-4">
+                <h4 class="mb-2">Institution Data</h4>
+                {#if object.objectsOntologyFields && object.objectsOntologyFields.length > 0}
+                    <div class="d-flex flex-column gap-1">
+                        <!-- Header Row -->
+                        <div
+                            class="d-flex fw-bold bg-light border-bottom border-2 py-2 px-1"
+                        >
+                            <div class="col-4 text-break">Linked Field</div>
+                            <div class="col-3 text-break">
+                                Institution Field
+                            </div>
+                            <div class="col-5 text-break">Value</div>
+                        </div>
+                        <!-- Data Rows -->
+                        {#each object.objectsOntologyFields as ontologyField (ontologyField.id)}
+                            <div class="d-flex border-bottom py-1 px-1">
+                                <div
+                                    class="col-4 text-break"
+                                    title={ontologyField.ontologyField
+                                        ?.description?.content ||
+                                        "No description"}
+                                >
+                                    <span class="badge bg-secondary">
+                                        {ontologyField.ontologyField?.name
+                                            ?.content || "N/A"}
+                                    </span>
+                                </div>
+                                <div class="col-3 text-break">
+                                    {ontologyField.label || "N/A"}
+                                </div>
+                                <div class="col-5 text-break">
+                                    {ontologyField.value || "N/A"}
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {:else}
+                    <p class="text-muted">No institution data available.</p>
+                {/if}
+            </div>
         </div>
 
         <!-- Actions - Fixed at bottom -->

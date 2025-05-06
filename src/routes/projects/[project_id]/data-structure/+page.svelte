@@ -341,7 +341,6 @@
     isOpen={!!selectedResearchFieldId}
     on:close={closeResearchFieldDetail}
     position="right"
-    width="500px"
     aria-labelledby="researchFieldDetailTitle"
 >
     <div

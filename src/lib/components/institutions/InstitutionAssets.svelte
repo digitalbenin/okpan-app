@@ -424,7 +424,6 @@
     isOpen={!!selectedAssetId}
     on:close={() => closeAssetDetail(true)}
     position="right"
-    width="500px"
     aria-labelledby="assetDetailTitle"
 >
     <div
