@@ -256,8 +256,6 @@
                 </div>
             </div>
         {/each}
-
-        <hr class="my-4" />
     {:else if projectLanguages && projectLanguages.length === 1}
         {@const langCode = projectLanguages[0].language_code}
         {@const langName = projectLanguages[0].language?.name || langCode}
@@ -276,7 +274,6 @@
                 maxLength={500}
             />
         </div>
-        <hr class="my-4" />
     {/if}
 
     <!-- Non-Translatable Fields - Binding to internal state -->
@@ -291,8 +288,7 @@
 
     <!-- Vocabulary Section -->
     {#if researchField?.vocabularies && researchField.vocabularies.length > 0}
-        <hr class="my-4" />
-        <h6 class="h6 text-secondary mt-4 mb-3 pb-1">Vocabulary</h6>
+        <h6 class="h6 fw-bold text-dark mt-5 mb-1 pb-1">Vocabulary</h6>
         <div class="list-group list-group-flush vocabulary-list">
             {#each researchField.vocabularies as vocabulary (vocabulary.id)}
                 {@const originalDescription =
