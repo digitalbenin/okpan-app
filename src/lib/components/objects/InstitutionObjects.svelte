@@ -550,7 +550,7 @@
       <BaseButton
         icon="chevron-right"
         onClick={() => closeObjectDetail(true)}
-        class="btn btn-light border-1 px-2 me-2 rounded-0 border-dark text-decoration-none text-dark"
+        class="btn btn-light"
         aria-label="Close object detail"
       />
       <h5 id="objectDetailTitle" class="mb-0 text-break">
