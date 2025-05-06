@@ -162,8 +162,9 @@
 
       // update query params
       if (state.sorting.length) {
-        params.sortBy = state.sorting[0].id;
+        params.orderBy = state.sorting[0].id;
         params.direction = state.sorting[0].desc ? "desc" : "asc";
+        console.log("Sorting changed:", params.orderBy, params.direction);
       }
     },
     onRowSelectionChange: (updater) => {
