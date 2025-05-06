@@ -1,6 +1,7 @@
 # DB Connection Tool (Electron)
 
 An Electron application for managing collections, built with:
+
 - Electron
 - SvelteKit
 - Drizzle ORM
@@ -8,6 +9,7 @@ An Electron application for managing collections, built with:
 - GraphQL
 
 ## Project Structure
+
 ```
 ├── src/
 │   ├── assets/          # Application assets
@@ -29,17 +31,18 @@ An Electron application for managing collections, built with:
 └── out/                 # Electron build output
 ```
 
-
 ## Setup
 
 1. Clone and install dependencies:
+
    ```bash
    git clone <repository-url>
    cd db-connection-tool
-   npm install
+   yarn install
    ```
 
 2. Create a `.env` file in the project root:
+
    ```
    DB_FILE_NAME=src/db/local.db
    ```
@@ -52,6 +55,7 @@ An Electron application for managing collections, built with:
 ## Development
 
 Start the development server:
+
 ```bash
 npm start
 ```
@@ -59,21 +63,27 @@ npm start
 ### Database Management
 
 1. **Initialize the database**:
+
    ```bash
    npm run db:push
    ```
+
    This creates the database with the schema defined in your project.
 
 2. **Seed the database**:
+
    ```bash
    npm run db:seed
    ```
+
    This populates the database with initial data. Note that this process will create a folder of images for the project. In case you need to reset, this image folder must be deleted manually.
 
 3. **Set up search functionality**:
+
    ```bash
    npm run db:search-setup
    ```
+
    This creates and configures the full-text search index for institutions, including setting up the required tables, triggers, and populating the search index with institution data and translations.
 
 4. **Complete database setup (all-in-one)**:
@@ -86,10 +96,10 @@ npm start
 
 - `npm run db:studio` - Launch Drizzle Studio to view/edit database
 
-
 ## Building
 
 Create a production build:
+
 ```bash
 npm run make
 ```
@@ -99,11 +109,13 @@ npm run make
 ### Common Issues
 
 1. **Database not found**
+
    - Make sure you've created the `.env` file with the correct DB_FILE_NAME
    - Run `npm run db:push` to create the database
    - Check if the database directory exists
 
 2. **GraphQL queries not working**
+
    - Use the "Show Schema" button in the app to see available queries and mutations
    - Make sure your query syntax matches the schema exactly
    - Check the developer console (F12) for detailed error messages
@@ -112,4 +124,3 @@ npm run make
    - Make sure all dependencies are installed with `npm install`
    - Try deleting the `node_modules` folder and running `npm install` again
    - Check if all required ports are available
-
