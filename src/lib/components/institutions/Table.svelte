@@ -209,7 +209,7 @@
         {#each table.getHeaderGroups() as headerGroup}
           {#each headerGroup.headers as header}
             <th class="border-0">
-              {#if header.id !== "select"}
+              {#if header.id !== "select" && header.id !== "actions"}
                 <button
                   onclick={header.column.getToggleSortingHandler()}
                   class="btn btn-dark btn-sm d-flex align-items-center"
@@ -230,7 +230,7 @@
                     <i class="ms-1 bi bi-dash"></i>
                   {/if}
                 </button>
-              {:else if header.id !== "actions"}{:else}
+              {:else}
                 <FlexRender
                   content={header.column.columnDef.header}
                   context={header.getContext()}
