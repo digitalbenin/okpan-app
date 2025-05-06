@@ -94,7 +94,7 @@ const seed = async () => {
         const projectTitleId = await createTextEntry('Digital Benin Archive (Seeded from JSON)', 'project.title', englishLang.code);
         const projectDescriptionId = await createTextEntry('A collection of Benin artifacts and their histories, seeded from JSON data provided in the seed_data folder.', 'project.description', englishLang.code);
 
-        const [projectRecord] = await db.insert(project).values({
+        const projectRecord = await db.insert(project).values({
             id: uuidv4(),
             title_id: projectTitleId,
             description_id: projectDescriptionId
@@ -106,11 +106,13 @@ const seed = async () => {
         ]);
         console.log(`Project '${projectTitleId ? await db.select().from(texts).where(sql`${texts.id} = ${projectTitleId}`).then(r => r[0].content) : 'N/A'}' and languages seeded.`);
 
-        // --- 2. Ontology Fields & Categories (reusing structure from original seed.js) ---
+        // --- 2. Ontology Fields & Categories (redefined based on images) ---
         const categoryMap = {
-            "basic": "Basic Information", "physical": "Physical Attributes", "creation": "Creation Information",
-            "history": "Historical Context", "acquisition": "Acquisition Details", "management": "Collection Management",
-            "references": "References & Documentation"
+            "object_information": "Object Information",
+            "object_production": "Object Production",
+            "provenance": "Provenance",
+            "object_context": "Object Context",
+            "institution_context": "Institution Context"
         };
         const categoryTextEntries = {};
         for (const [key, value] of Object.entries(categoryMap)) {
@@ -123,41 +125,50 @@ const seed = async () => {
         }
 
         const ontologyFieldsList = [
-            { name: "object id", description: "Unique identifier for the artifact.", category: "basic" },
-            { name: "designation", description: "Official title or name.", category: "basic" },
-            { name: "description", description: "Brief summary of the artifact.", category: "basic" },
-            { name: "object type", description: "Category or type of artifact.", category: "basic" },
-            { name: "object count", description: "Number of items in the artifact group.", category: "basic" },
-            { name: "material", description: "Substance(s) used to create the artifact.", category: "physical" },
-            { name: "dimensions", description: "Size measurements (height, width, depth).", category: "physical" },
-            { name: "weight", description: "Weight of the artifact.", category: "physical" },
-            { name: "colour", description: "Dominant colors of the artifact.", category: "physical" },
-            { name: "condition", description: "Current state of preservation.", category: "physical" },
-            { name: "date made", description: "When the artifact was created.", category: "creation" },
-            { name: "producer", description: "Creator or maker of the artifact.", category: "creation" },
-            { name: "production technique", description: "Method used to create the artifact.", category: "creation" },
-            { name: "production place", description: "Location where the artifact was made.", category: "creation" },
-            { name: "iconography", description: "Symbols and imagery depicted.", category: "creation" },
-            { name: "inscriptions", description: "Any text or markings on the artifact.", category: "creation" },
-            { name: "prior owner", description: "Previous owner of the artifact.", category: "history" },
-            { name: "prior owner role", description: "Role or title of the previous owner.", category: "history" },
-            { name: "provenance", description: "Artifact's history and ownership record.", category: "history" },
-            { name: "event", description: "Historical event associated with the artifact.", category: "history" },
-            { name: "reign associated name", description: "Name of a ruler or figure linked to the artifact.", category: "history" },
-            { name: "ethnic attribution", description: "Cultural or ethnic origin.", category: "history" },
-            { name: "date collected", description: "When the artifact was acquired.", category: "acquisition" },
-            { name: "place collected", description: "Location where the artifact was found.", category: "acquisition" },
-            { name: "department and institution", description: "Museum or department housing the artifact.", category: "acquisition" },
-            { name: "accession date", description: "Date the artifact was added to the collection.", category: "acquisition" },
-            { name: "accession method", description: "How the artifact was acquired.", category: "acquisition" },
-            { name: "notes", description: "Additional remarks or observations.", category: "management" },
-            { name: "exhibition history", description: "Past exhibitions featuring the artifact.", category: "management" },
-            { name: "display status", description: "Current display status (on display, in storage, etc.).", category: "management" },
-            { name: "legal status", description: "Legal ownership and rights.", category: "management" },
-            { name: "license", description: "Usage rights and permissions.", category: "management" },
-            { name: "bibliography", description: "References and sources related to the artifact.", category: "references" },
-            { name: "images", description: "Visual representations of the artifact.", category: "references" },
-            { name: "weblink", description: "Online link for more information.", category: "references" }
+            // Object Information
+            { name: "object id", description: "Unique identifier for the artifact.", category: "object_information" },
+            { name: "designation", description: "Official title or name.", category: "object_information" },
+            { name: "description", description: "Brief summary of the artifact.", category: "object_information" },
+            { name: "object type", description: "Category or type of artifact.", category: "object_information" },
+            { name: "object count", description: "Number of items in the artifact group.", category: "object_information" },
+            { name: "material", description: "Substance(s) used to create the artifact.", category: "object_information" },
+            { name: "dimensions", description: "Size measurements (height, width, depth).", category: "object_information" },
+            { name: "weight", description: "Weight of the artifact.", category: "object_information" },
+            { name: "colour", description: "Dominant colors of the artifact.", category: "object_information" },
+            { name: "iconography", description: "Symbols and imagery depicted.", category: "object_information" },
+            { name: "inscriptions", description: "Any text or markings on the artifact.", category: "object_information" },
+
+            // Object Production
+            { name: "date made", description: "When the artifact was created.", category: "object_production" },
+            { name: "producer", description: "Creator or maker of the artifact.", category: "object_production" },
+            { name: "production technique", description: "Method used to create the artifact.", category: "object_production" },
+            { name: "production place", description: "Location where the artifact was made.", category: "object_production" },
+
+            // Provenance
+            { name: "prior source", description: "Previous source of the artifact.", category: "provenance" },
+            { name: "prior source role", description: "Role or title of the previous owner. (Prior Source Role in image)", category: "provenance" },
+            { name: "provenance", description: "Artifact's history and ownership record.", category: "provenance" },
+            { name: "event", description: "Historical event associated with the artifact.", category: "provenance" },
+            { name: "date collected", description: "When the artifact was acquired.", category: "provenance" },
+            { name: "place collected", description: "Location where the artifact was found.", category: "provenance" },
+
+            // Object Context
+            { name: "reign associated name", description: "Name of a ruler or figure linked to the artifact.", category: "object_context" },
+            { name: "ethnic attribution", description: "Cultural or ethnic origin.", category: "object_context" },
+
+            // Institution Context
+            { name: "department and institution", description: "Museum or department housing the artifact.", category: "institution_context" },
+            { name: "accession date", description: "Date the artifact was added to the collection.", category: "institution_context" },
+            { name: "accession method", description: "How the artifact was acquired.", category: "institution_context" },
+            { name: "notes", description: "Additional remarks or observations.", category: "institution_context" },
+            { name: "exhibition history", description: "Past exhibitions featuring the artifact.", category: "institution_context" },
+            { name: "display status", description: "Current display status (on display, in storage, etc.).", category: "institution_context" },
+            { name: "legal status", description: "Legal ownership and rights.", category: "institution_context" },
+            { name: "condition", description: "Current state of preservation.", category: "institution_context" },
+            { name: "license", description: "Usage rights and permissions.", category: "institution_context" },
+            { name: "bibliography", description: "References and sources related to the artifact.", category: "institution_context" },
+            { name: "images", description: "Visual representations of the artifact.", category: "institution_context" },
+            { name: "weblink", description: "Online link for more information.", category: "institution_context" }
         ];
 
         const ontologyFieldsByName = new Map();
