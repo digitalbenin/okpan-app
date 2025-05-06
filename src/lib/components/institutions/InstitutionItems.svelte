@@ -1,4 +1,5 @@
 <script>
+  import { page } from "$app/state";
   import { getContext } from "svelte";
   import { Tabs } from "melt/builders";
   import InstitutionAssets from "./InstitutionAssets.svelte";
@@ -25,7 +26,7 @@
 <div class="container-fluid">
   <div class="row">
     <div class="col">
-      <ul class="nav nav-underline" {...tabs.triggerList}>
+      <ul class="nav nav-underline border-bottom" {...tabs.triggerList}>
         {#each tabsList as tab}
           <li class="nav-item">
             <div
@@ -40,7 +41,7 @@
         {/each}
       </ul>
 
-      <div {...tabs.getContent("objects")} class="py-4">
+      <div {...tabs.getContent("objects")} class="py-3">
         <InstitutionObjects />
       </div>
 
