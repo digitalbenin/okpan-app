@@ -2,12 +2,12 @@ import { executeQuery, partialUpdate } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
 
 // Fetch all data sources for a specific institution within a project
-export const getDatasources = async (projectId, institutionId, fetchFn) => {
+export const getDatasources = async (projectId, institutionId) => {
     if (!projectId || !institutionId) {
         return { result: [], error: "Project ID and Institution ID are required" };
     }
     const params = { institutionId };
-    const response = await executeQuery('datasources', 'list', params, fetchFn);
+    const response = await executeQuery('datasources', 'list', params);
 
     if (!response) {
         return { result: [], error: "Internal error fetching datasources" };
@@ -19,12 +19,12 @@ export const getDatasources = async (projectId, institutionId, fetchFn) => {
 };
 
 // Get a single datasource by ID
-export const getDatasource = async (datasourceId, fetchFn) => {
+export const getDatasource = async (datasourceId) => {
     if (!datasourceId) {
         return { result: null, error: "Missing Datasource ID" };
     }
     const variables = { datasourceId };
-    const response = await executeQuery('datasources', 'getById', variables, fetchFn);
+    const response = await executeQuery('datasources', 'getById', variables);
 
     if (!response || response.error || !response.result) {
         return { result: null, error: response?.error || "Failed to fetch datasource" };
@@ -33,7 +33,7 @@ export const getDatasource = async (datasourceId, fetchFn) => {
 };
 
 // Function to update a datasource, including translations orchestration
-export const updateDatasource = async (datasourceId, updatedData, fetchFn) => {
+export const updateDatasource = async (datasourceId, updatedData) => {
     if (!datasourceId) {
         return { result: null, error: "Missing Datasource ID" };
     }
@@ -86,7 +86,7 @@ export const updateDatasource = async (datasourceId, updatedData, fetchFn) => {
             }
 
             try {
-                const transResponse = await executeQuery('translations', operation, variables, fetchFn);
+                const transResponse = await executeQuery('translations', operation, variables);
 
                 if (!transResponse || transResponse.error) {
                     throw new Error(JSON.stringify(transResponse?.error || `Failed to ${operation} ${fieldName} translation for ${language_code}`));

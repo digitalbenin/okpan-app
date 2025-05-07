@@ -5,6 +5,7 @@
     import SidePanel from "$lib/components/common/SidePanel.svelte";
     import DatasourceDetail from "$lib/components/datasources/DatasourceDetail.svelte";
     import BaseModal from "$lib/components/base/BaseModal.svelte";
+    import DatasourceMapping from "$lib/components/datasources/DatasourceMapping.svelte";
     import {
         updateDatasource,
         getDatasource,
@@ -23,6 +24,11 @@
     // Modal state for datasource deletion
     let isDeleteDatasourceModalOpen = $state(false);
     let datasourceIdToDelete = $state(null);
+
+    // State for Datasource Mapping SidePanel
+    let isMappingPanelOpen = $state(false);
+    let mappingDatasource = $state(null); // Datasource for which mapping is being viewed/edited
+    let preparedMappings = $state([]);
 
     function findDatasourceById(id) {
         // Finds from the const context array
@@ -60,6 +66,120 @@
                 }
                 closeContentTimeout = null;
             }, 310);
+        }
+    }
+
+    // Function to prepare mappings for the DatasourceMapping component
+    async function prepareAndShowMappings(datasourceId) {
+        isMappingPanelOpen = true; // Open panel early, show loading state
+        mappingDatasource = null; // Reset previous
+        preparedMappings = []; // Reset previous
+
+        const { result: ds, error } = await getDatasource(datasourceId, fetch); // Use fetch from SvelteKit
+
+        if (error || !ds) {
+            console.error(
+                `Error fetching datasource ${datasourceId} for mapping:`,
+                error,
+            );
+            // Optionally, show an error message in the panel
+            mappingDatasource = { name: { content: "Error loading" } }; // Basic error display
+            isMappingPanelOpen = true; // Ensure it's open to show error or becomes visible
+            return;
+        }
+
+        console.log(
+            "Fetched datasource data for mapping panel:",
+            JSON.stringify(ds, null, 2),
+        );
+
+        const datasourceObject = ds && ds.length > 0 ? ds[0] : null;
+
+        if (!datasourceObject) {
+            console.error(
+                `Error: Datasource object not found in response from getDatasource for ID ${datasourceId}.`,
+            );
+            mappingDatasource = {
+                name: { content: "Error: Data unavailable" },
+            };
+            preparedMappings = [];
+            isMappingPanelOpen = true;
+            return;
+        }
+
+        mappingDatasource = datasourceObject;
+        console.log(
+            "Using datasource object:",
+            JSON.stringify(datasourceObject, null, 2),
+        );
+
+        // --- Refined mapping preparation logic ---
+        if (
+            datasourceObject.objectsOntologyFields &&
+            datasourceObject.objectsOntologyFields.length > 0
+        ) {
+            const mappingsMap = new Map();
+
+            for (const oof of datasourceObject.objectsOntologyFields) {
+                const institutionField = oof.label || "Unknown Field";
+                const ontologyFieldName =
+                    oof.ontologyField?.name?.content || "Unlinked";
+                const mappingKey = `${institutionField}:::${ontologyFieldName}`; // Composite key for grouping
+
+                if (!mappingsMap.has(mappingKey)) {
+                    mappingsMap.set(mappingKey, {
+                        id: oof.id, // Use first oof.id for this group; consider if a more stable group ID is needed
+                        institutionField: institutionField,
+                        previewValues: [],
+                        ontologyFieldName: ontologyFieldName,
+                        isPrimary: !!oof.primary, // Take primary status from first encountered oof in group
+                        // This might need adjustment if multiple oofs in a group can have different primary statuses
+                    });
+                }
+
+                const existingMapping = mappingsMap.get(mappingKey);
+                if (oof.value && existingMapping.previewValues.length < 5) {
+                    existingMapping.previewValues.push(oof.value);
+                }
+                // If an oof with primary=true is found, this group becomes primary.
+                if (oof.primary) {
+                    existingMapping.isPrimary = true;
+                }
+            }
+            preparedMappings = Array.from(mappingsMap.values());
+        } else {
+            preparedMappings = [];
+        }
+        // --- End of refined mapping preparation logic ---
+    }
+
+    function closeMappingPanel() {
+        isMappingPanelOpen = false;
+        // mappingDatasource = null; // Optional: clear if not needed when panel is closed
+        // preparedMappings = [];
+    }
+
+    async function handleUpdateMappingPrimary(event) {
+        const { id, primary } = event.detail;
+        console.log(
+            `TODO: Update primary status for mapping ID ${id} to ${primary}`,
+        );
+        // Find the mapping in preparedMappings and update its state for immediate UI feedback
+        const mappingIndex = preparedMappings.findIndex((m) => m.id === id);
+        if (mappingIndex !== -1) {
+            // Create a new array with the updated item for reactivity
+            const updatedMappings = [...preparedMappings];
+            updatedMappings[mappingIndex] = {
+                ...updatedMappings[mappingIndex],
+                isPrimary: primary,
+            };
+            preparedMappings = updatedMappings;
+
+            // TODO: Here we would call a utility function to persist this change to the backend,
+            // similar to `updateDatasource`. It would likely take `id` (of objects_ontology_fields)
+            // and the new `primary` status.
+            // e.g., await updateObjectsOntologyFieldPrimary(id, primary);
+            // And then potentially refetch or update local state more formally.
         }
     }
 
@@ -305,7 +425,7 @@
                                     icon="link-45deg"
                                     class="btn btn-sm btn-outline-secondary text-dark"
                                     onClick={() => {
-                                        /* TODO: Implement modify mapping */
+                                        prepareAndShowMappings(datasource.id);
                                     }}
                                     size="sm"
                                 />
@@ -349,6 +469,41 @@
         />
     {:else}
         <p>Loading...</p>
+    {/if}
+</SidePanel>
+
+<!-- Side Panel for Datasource Mapping -->
+<SidePanel
+    isOpen={isMappingPanelOpen}
+    on:close={closeMappingPanel}
+    position="right"
+    aria-labelledby="datasourceMappingPanelTitle"
+>
+    <div
+        slot="header"
+        class="d-flex align-items-center justify-content-between"
+    >
+        <div class="d-flex align-items-center gap-2">
+            <BaseButton
+                icon="chevron-right"
+                onClick={closeMappingPanel}
+                class="btn btn-light border-1 px-2 me-2 rounded-0 border-dark text-decoration-none text-dark"
+                aria-label="Close mapping panel"
+            />
+            <h5 id="datasourceMappingPanelTitle" class="mb-0 text-break">
+                Field Mappings
+            </h5>
+        </div>
+    </div>
+    {#if mappingDatasource && preparedMappings}
+        <DatasourceMapping
+            mappings={preparedMappings}
+            on:updateMappingPrimary={handleUpdateMappingPrimary}
+        />
+    {:else if !mappingDatasource}
+        <p class="p-3 text-muted">Select a datasource to see its mappings.</p>
+    {:else}
+        <p class="p-3">Loading mappings...</p>
     {/if}
 </SidePanel>
 

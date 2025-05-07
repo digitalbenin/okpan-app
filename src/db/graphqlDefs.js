@@ -418,6 +418,15 @@ export function createGraphQLSchema(db) {
                 case 'name':
                     orderByField = nameTexts.content;
                     break;
+                case 'objectsCount':
+                    orderByField = sql`objectsCount`;
+                    break;
+                case 'datasourcesCount':
+                    orderByField = sql`datasourcesCount`;
+                    break;
+                case 'assetsCount':
+                    orderByField = sql`assetsCount`;
+                    break;
                 default:
                     orderByField = dbSchema.institutions.created_at;
             }
