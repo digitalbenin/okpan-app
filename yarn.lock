@@ -2007,6 +2007,11 @@ depd@2.0.0:
   resolved "https://registry.yarnpkg.com/depd/-/depd-2.0.0.tgz#b696163cc757560d09cf22cc8fad1571b79e76df"
   integrity sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==
 
+dequal@^2.0.3:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/dequal/-/dequal-2.0.3.tgz#2644214f1997d39ed0ee0ece72335490a7ac67be"
+  integrity sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==
+
 destroy@1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/destroy/-/destroy-1.2.0.tgz#4803735509ad8be552934c67df614f94e66fa015"
@@ -3409,12 +3414,13 @@ media-typer@0.3.0:
   resolved "https://registry.yarnpkg.com/media-typer/-/media-typer-0.3.0.tgz#8710d7af0aa626f8fffa1ce00168545263255748"
   integrity sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==
 
-melt@^0.17.0:
-  version "0.17.0"
-  resolved "https://registry.yarnpkg.com/melt/-/melt-0.17.0.tgz#cfb602ac7ede15e5ff466ea5b304b200323e3567"
-  integrity sha512-efVL7+sOab3+lx965q1CZVdJzVDeRWiq+/PKa0B/PN8xbdWTBVE0Y7FkuhbEkxCmpJq5J3bdr1NJLZovzI1vrw==
+melt@^0.30.1:
+  version "0.30.1"
+  resolved "https://registry.yarnpkg.com/melt/-/melt-0.30.1.tgz#85999ba5f8b1626db0d9b2c7bad7afc62dfba584"
+  integrity sha512-Z3X3IMknWSbXFlzQA6On18kdGf1a+Kgqu/TxxvchjGGiS3RINd96PrlLU2Bl/SOxF+UWLLYmH1fohwiMz9UsQQ==
   dependencies:
     "@floating-ui/dom" "^1.6.13"
+    dequal "^2.0.3"
     jest-axe "^9.0.0"
     nanoid "^5.0.9"
     runed "^0.23.3"

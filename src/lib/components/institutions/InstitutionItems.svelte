@@ -19,7 +19,7 @@
   ];
 
   const tabs = new Tabs({
-    defaultValue: "assets", // Set assets as the default selected tab
+    value: "objects",
   });
 </script>
 

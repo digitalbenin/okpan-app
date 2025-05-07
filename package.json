@@ -62,7 +62,7 @@
     "drizzle-zod": "^0.7.0",
     "graphql": "^16.10.0",
     "graphql-tools": "^9.0.13",
-    "melt": "^0.17.0",
+    "melt": "^0.30.1",
     "sharp": "^0.33.5",
     "sveltekit-i18n": "^2.4.2",
     "uuid": "^11.1.0",
