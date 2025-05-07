@@ -10,7 +10,6 @@
     <ProjectsList projects={data.projects} />
   </div>
   <div class="col">
-    create project
     <ProjectCreate />
   </div>
 </div>

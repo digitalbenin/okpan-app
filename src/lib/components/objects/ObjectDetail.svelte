@@ -9,6 +9,8 @@
   let { object, onDelete = null, onSave = null } = $props();
   const researchFields = getContext("researchFields") || [];
 
+  $inspect(object);
+
   // State management
   let editedFields = $state({});
   let fieldValues = $state({});
@@ -226,15 +228,43 @@
     <!-- Object Image -->
     <div class="d-flex bg-light align-items-start justify-content-between">
       {#if getObjectImageUrl(object)}
-        <div class="text-center p-3">
+        <div class="text-center p-3 col-6">
           <BaseImage
             src={getObjectImageUrl(object)}
             alt={getObjectTitle(object)}
             class="img-fluid rounded"
-            ratio="1x1"
             objectFit="contain"
             style="max-height: 300px;"
           />
+        </div>
+      {/if}
+      {#if object.objectsAssets && object.objectsAssets.length > 1}
+        <div
+          class="d-flex flex-wrap gap-2 overflow-y-auto mt-3"
+          style="max-height: 300px;"
+        >
+          {#each object.objectsAssets.slice(1) as asset}
+            <div>
+              <img
+                src="media://{asset.asset.path}"
+                alt={asset.id}
+                width="60"
+                height="60"
+                class="object-fit-cover rounded"
+              />
+            </div>
+          {/each}
+          {#each object.objectsAssets as asset}
+            <div>
+              <img
+                src="media://{asset.asset.path}"
+                alt={asset.id}
+                width="60"
+                height="60"
+                class="object-fit-cover rounded"
+              />
+            </div>
+          {/each}
         </div>
       {/if}
       <div class="p-2 mt-3 me-2 rounded bg-secondary">
