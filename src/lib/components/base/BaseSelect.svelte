@@ -141,7 +141,8 @@
 
             <div
                 {...select.content}
-                class="position-absolute mt-1 shadow-sm bg-white border rounded-2 py-1 z-1 m-0 w-100"
+                class="position-absolute mt-1 shadow-sm bg-white border rounded-2 py-1 z-1 m-0"
+                style="max-height: 220px; overflow-y: auto;"
             >
                 {#each processedOptions as option}
                     <div
@@ -198,7 +199,8 @@
 
         <div
             {...select.content}
-            class="position-absolute mt-1 shadow-sm bg-white border rounded-2 py-1 z-1 m-0 w-100"
+            class="position-absolute mt-1 shadow-sm bg-white border rounded-2 py-1 z-1 m-0"
+            style="max-height: 220px; overflow-y: auto;"
         >
             {#each processedOptions as option}
                 <div
@@ -241,5 +243,8 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+    .form-select {
+        background: none !important;
     }
 </style>
