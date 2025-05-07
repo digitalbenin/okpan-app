@@ -477,6 +477,7 @@
     isOpen={isMappingPanelOpen}
     on:close={closeMappingPanel}
     position="right"
+    width="900px"
     aria-labelledby="datasourceMappingPanelTitle"
 >
     <div

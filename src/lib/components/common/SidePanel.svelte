@@ -7,12 +7,13 @@
     position = "right",
     closeOnBackdropClick = true,
     closeOnEscape = true,
+    width = null, // New prop for custom width
   } = $props();
 
   const dispatch = createEventDispatcher();
 
-  // Internal state for dynamic width
-  let currentWidth = $state("650px"); // Default or initial width
+  // currentWidth is now derived from the width prop or uses a default
+  let currentWidth = $derived(width ? width : "650px");
 
   function close() {
     dispatch("close");

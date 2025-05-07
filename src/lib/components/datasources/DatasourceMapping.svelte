@@ -14,12 +14,17 @@
     let { mappings = [] } = $props();
 
     const dispatch = createEventDispatcher();
+    let expandedPreviews = $state({});
 
     function handlePrimaryToggle(mappingId, newPrimaryState) {
         dispatch("updateMappingPrimary", {
             id: mappingId,
             primary: newPrimaryState,
         });
+    }
+
+    function togglePreviewExpansion(mappingId) {
+        expandedPreviews[mappingId] = !expandedPreviews[mappingId];
     }
 </script>
 
@@ -54,27 +59,71 @@
                 </thead>
                 <tbody>
                     {#each mappings as mapping (mapping.id)}
+                        {@const isExpanded = !!expandedPreviews[mapping.id]}
                         <tr>
                             <td>{mapping.institutionField || "-"}</td>
                             <td>
                                 {#if mapping.previewValues && mapping.previewValues.length > 0}
-                                    <ul class="list-unstyled mb-0 small">
-                                        {#each mapping.previewValues.slice(0, 5) as pv}
-                                            <li
-                                                title={pv}
-                                                class="text-truncate mb-1"
-                                                style="max-width: 220px;"
+                                    <div class="d-flex align-items-start">
+                                        <div class="flex-grow-1">
+                                            {#if isExpanded}
+                                                <!-- Expanded View -->
+                                                <ul class="list-unstyled mb-0">
+                                                    {#each mapping.previewValues.slice(0, 5) as pv, i}
+                                                        <li
+                                                            title={pv}
+                                                            class="mb-1"
+                                                            style="word-break: break-all; white-space: normal;"
+                                                        >
+                                                            {pv}
+                                                        </li>
+                                                    {/each}
+                                                    {#if mapping.previewValues.length > 5}
+                                                        <li
+                                                            class="text-muted mb-1"
+                                                        >
+                                                            ...and {mapping
+                                                                .previewValues
+                                                                .length - 5} more
+                                                        </li>
+                                                    {/if}
+                                                </ul>
+                                            {:else}
+                                                <!-- Collapsed View -->
+                                                <span
+                                                    class="d-inline-block text-truncate"
+                                                    style="max-width: 180px;"
+                                                    title={mapping
+                                                        .previewValues[0]}
+                                                >
+                                                    {mapping.previewValues[0]}
+                                                </span>
+                                            {/if}
+                                        </div>
+                                        {#if mapping.previewValues.length > 0}
+                                            <!-- Show button only if there are values to potentially expand -->
+                                            <button
+                                                type="button"
+                                                class="btn btn-link btn-sm p-0 ms-2 flex-shrink-0"
+                                                onclick={() =>
+                                                    togglePreviewExpansion(
+                                                        mapping.id,
+                                                    )}
+                                                aria-label={isExpanded
+                                                    ? "Collapse previews"
+                                                    : "Expand previews"}
+                                                title={isExpanded
+                                                    ? "Collapse"
+                                                    : "Expand"}
                                             >
-                                                {pv}
-                                            </li>
-                                        {/each}
-                                        {#if mapping.previewValues.length > 5}
-                                            <li class="text-muted mb-1">
-                                                ...and {mapping.previewValues
-                                                    .length - 5} more
-                                            </li>
+                                                <i
+                                                    class="bi text-dark {isExpanded
+                                                        ? 'bi-chevron-up'
+                                                        : 'bi-chevron-down'}"
+                                                ></i>
+                                            </button>
                                         {/if}
-                                    </ul>
+                                    </div>
                                 {:else}
                                     <span class="text-muted small fst-italic"
                                         >No previews available</span
