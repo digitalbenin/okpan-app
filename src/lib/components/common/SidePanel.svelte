@@ -66,7 +66,7 @@
   <div class="panel-header">
     <slot name="header"></slot>
   </div>
-  <div class="panel-content">
+  <div class="panel-content px-3">
     <slot></slot>
   </div>
   <!-- <div class="panel-footer">
