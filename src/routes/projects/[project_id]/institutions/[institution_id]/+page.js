@@ -44,7 +44,7 @@ export const load = async ({ params, depends }) => {
         institution,
         assets,
         objects,
-        datasources, // Return the array directly
+        datasources,
         projectId,
         institutionId,
         projectLanguages

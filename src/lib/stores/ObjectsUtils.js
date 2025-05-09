@@ -132,3 +132,20 @@ export const deleteObject = async (objectId) => {
     invalidate("app:objects");
     return result;
 };
+
+// Function to unlink an asset from an object
+export const unlinkAssetFromObject = async (objectId, assetId) => {
+    if (!objectId || !assetId) {
+        return { error: "Invalid objectId or assetId for unlinkAssetFromObject" };
+    }
+    const result = await executeQuery('objects', 'removeAsset', { objectId, assetId });
+
+    if (result.error) {
+        return { error: result.error };
+    }
+    // Invalidate caches to reflect the change
+    invalidate("app:objects"); // Invalidate objects as their asset list changes
+    invalidate("app:assets");  // Invalidate assets as their linked status changes
+
+    return { result: result.deleteFromObjects_assets, error: null };
+};

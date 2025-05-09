@@ -4,7 +4,11 @@
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
     import { epochToYYYYMMDD } from "$lib/utils/dates.js";
 
-    let { asset, onDeleteRequest = () => {} } = $props();
+    let {
+        asset,
+        onDeleteRequest = () => {},
+        onUnlinkRequest = (objectId, assetId) => {},
+    } = $props();
 
     // Create derived state for formatted dates
     let createdAtFormatted = $derived(
@@ -48,6 +52,14 @@
             console.error("Cannot delete: Asset ID is missing.");
         }
     }
+
+    function handleUnlink(objectId, assetId) {
+        if (!objectId || !assetId) {
+            console.error("Missing objectId or assetId for unlinking.");
+            return;
+        }
+        onUnlinkRequest(objectId, assetId); // Call the prop function
+    }
 </script>
 
 {#if asset}
@@ -71,15 +83,29 @@
         <!-- Asset Details using divs -->
         <div class="asset-details-grid px-2">
             <div class="asset-detail-row">
-                <div class="asset-detail-label">Status</div>
-                <div class="asset-detail-value">
+                <div class="asset-detail-label">Link Status</div>
+                <div class="asset-detail-value d-flex align-items-center gap-2">
                     {#if isAssetLinked(asset)}
-                        <BaseBadge value="Linked" class="bg-success" />
+                        {@const linkedObjectId =
+                            asset.objectsAssets[0]?.object_id}
+                        {#if linkedObjectId}
+                            <BaseBadge value="Linked" class="bg-primary" />
+
+                            <BaseButton
+                                text="Unlink"
+                                class="btn btn-link text-danger btn-sm p-0 ms-2 px-1"
+                                onClick={() =>
+                                    handleUnlink(linkedObjectId, asset.id)}
+                                title="Unlink asset from object"
+                            />
+                        {:else}
+                            <BaseBadge
+                                value="Linked (ID missing)"
+                                class="bg-warning text-dark"
+                            />
+                        {/if}
                     {:else}
-                        <BaseBadge
-                            value="Not linked"
-                            class="bg-warning text-dark"
-                        />
+                        <BaseBadge value="Unlinked" class="bg-secondary" />
                     {/if}
                 </div>
             </div>

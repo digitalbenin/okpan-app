@@ -9,6 +9,7 @@
     import SidePanel from "$lib/components/common/SidePanel.svelte";
     import BaseModal from "$lib/components/base/BaseModal.svelte";
     import { deleteAsset } from "$lib/stores/AssetsUtils.js";
+    import { unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
 
     // Get assets from context
     const initialAssets = getContext("assets") || [];
@@ -27,6 +28,10 @@
     // Modal state for asset deletion
     let isDeleteAssetModalOpen = $state(false);
     let assetIdToDelete = $state(null);
+
+    // Modal state for asset unlinking
+    let isUnlinkConfirmModalOpen = $state(false);
+    let unlinkDetails = $state({ objectId: null, assetId: null });
 
     // --- New $effect for URL Synchronization ---
     $effect(() => {
@@ -142,6 +147,16 @@
         }
     }
 
+    // Adjusted to accept objectId and assetId directly
+    function handleAssetUnlinkRequest(objectId, assetId) {
+        if (objectId && assetId) {
+            unlinkDetails = { objectId, assetId };
+            isUnlinkConfirmModalOpen = true;
+        } else {
+            console.error("Unlink request received with missing IDs.");
+        }
+    }
+
     // Function called when deletion is confirmed in the modal
     async function confirmAssetDelete() {
         if (!assetIdToDelete) {
@@ -168,6 +183,51 @@
         // Reset modal state
         isDeleteAssetModalOpen = false;
         assetIdToDelete = null;
+    }
+
+    // Function called when unlinking is confirmed in the modal
+    async function confirmAssetUnlink() {
+        if (!unlinkDetails.objectId || !unlinkDetails.assetId) {
+            console.error("Cannot confirm unlink: Missing objectId or assetId");
+            isUnlinkConfirmModalOpen = false;
+            return;
+        }
+
+        const result = await unlinkAssetFromObject(
+            unlinkDetails.objectId,
+            unlinkDetails.assetId,
+        );
+
+        if (result.error) {
+            console.error("Error unlinking asset:", result.error);
+            alert(`Error unlinking asset: ${result.error}`); // Keep alert for now
+        } else {
+            console.log("Asset unlinked successfully:", result.result);
+            const targetAssetIndex = assetsList.findIndex(
+                (a) => a.id === unlinkDetails.assetId,
+            );
+            if (targetAssetIndex !== -1) {
+                const updatedAsset = { ...assetsList[targetAssetIndex] };
+                updatedAsset.objectsAssets = updatedAsset.objectsAssets.filter(
+                    (oa) => oa.object_id !== unlinkDetails.objectId,
+                );
+                const newAssetsList = [...assetsList];
+                newAssetsList[targetAssetIndex] = updatedAsset;
+                assetsList = newAssetsList;
+
+                // If the currently selected asset is the one unlinked, update its details
+                if (
+                    selectedAsset &&
+                    selectedAsset.id === unlinkDetails.assetId
+                ) {
+                    selectedAsset = updatedAsset;
+                }
+            }
+        }
+
+        // Reset modal state
+        isUnlinkConfirmModalOpen = false;
+        unlinkDetails = { objectId: null, assetId: null };
     }
 
     // Format date for display
@@ -449,6 +509,7 @@
         <AssetDetail
             asset={selectedAsset}
             onDeleteRequest={handleAssetDeleteRequest}
+            onUnlinkRequest={handleAssetUnlinkRequest}
         />
         <!-- No need for on:close here as SidePanel handles it -->
     {:else}
@@ -461,11 +522,11 @@
     Confirm Deletion
 {/snippet}
 
-{#snippet body()}
+{#snippet deleteBody()}
     Are you sure you want to delete this asset? This action cannot be undone.
 {/snippet}
 
-{#snippet actions()}
+{#snippet deleteActions()}
     <div class="d-flex justify-content-end gap-2">
         <BaseButton
             text="Cancel"
@@ -489,8 +550,45 @@
         bind:isOpen={isDeleteAssetModalOpen}
         size="md"
         {header}
-        {body}
-        {actions}
+        body={deleteBody}
+        actions={deleteActions}
+    />
+{/if}
+
+{#snippet unlinkHeader()}
+    Confirm Unlink
+{/snippet}
+
+{#snippet unlinkBody()}
+    Are you sure you want to unlink this asset from the object?
+{/snippet}
+
+{#snippet unlinkActions()}
+    <div class="d-flex justify-content-end gap-2">
+        <BaseButton
+            text="Cancel"
+            class="btn btn-secondary btn-sm"
+            onClick={() => {
+                isUnlinkConfirmModalOpen = false;
+                unlinkDetails = { objectId: null, assetId: null };
+            }}
+        />
+        <BaseButton
+            text="Confirm Unlink"
+            class="btn btn-danger btn-sm"
+            onClick={confirmAssetUnlink}
+        />
+    </div>
+{/snippet}
+
+<!-- Render the asset unlink modal -->
+{#if isUnlinkConfirmModalOpen}
+    <BaseModal
+        bind:isOpen={isUnlinkConfirmModalOpen}
+        size="md"
+        header={unlinkHeader}
+        body={unlinkBody}
+        actions={unlinkActions}
     />
 {/if}
 

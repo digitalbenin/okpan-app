@@ -5,7 +5,7 @@
 
   const { data } = $props();
   // Extract all needed data from the load function
-  const {
+  let {
     institution,
     objects,
     assets,
