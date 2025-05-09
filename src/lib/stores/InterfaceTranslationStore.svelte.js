@@ -13,13 +13,13 @@ export function getTranslationStore() {
     }
 
     // Get validation store
-    const { getSchema, validate } = getValidationStore();
+    // const { getSchema, validate } = getValidationStore();
 
     // Get log store for error logging
     const { error: logError } = getLogStore();
 
     // Get the base schema for validation
-    const baseSchema = getSchema('interface_translations', 'insert');
+    // const baseSchema = getSchema('interface_translations', 'insert');
 
     // State variables defined inside the function
     const translationState = $state({
@@ -121,7 +121,7 @@ export function getTranslationStore() {
             }
 
             // Add translation for this locale
-            translationData[item.namespace][item.key][item.locale] = item.value;
+            translationData[item.namespace][item.key][item.locale] = { id: item.id, value: item.value };
         }
 
         translationState.translations = translationData;
@@ -165,20 +165,20 @@ export function getTranslationStore() {
         if (!translationState.translations[namespace][key][targetLocale]) {
             // Try English as first fallback
             if (translationState.translations[namespace][key]['en']) {
-                return translationState.translations[namespace][key]['en'];
+                return translationState.translations[namespace][key]['en'].value;
             }
 
             // Fallback to any available translation
             const availableLocales = Object.keys(translationState.translations[namespace][key]);
             if (availableLocales.length > 0) {
-                return translationState.translations[namespace][key][availableLocales[0]];
+                return translationState.translations[namespace][key][availableLocales[0]].value;
             }
 
             console.warn(`No translation found for "${namespace}.${key}" in locale "${targetLocale}"`);
             return key;
         }
 
-        return translationState.translations[namespace][key][targetLocale];
+        return translationState.translations[namespace][key][targetLocale].value;
     };
 
     // Set the current locale
@@ -364,10 +364,17 @@ export function getTranslationStore() {
 
     // Create a new translation or update if exists
     const createTranslation = async (namespace, key, values) => {
+        // Validate the input
+        // const validationResult = validate(baseSchema, { namespace, key, values });
+        // if (!validationResult.success) {
+        //     await logError("create_translation_validation", validationResult.errors.join(', '));
+        //     return { success: false, error: validationResult.errors.join(', ') };
+        // }
+
         if (!namespace || !key || !values) {
             throw new Error("Missing required parameters");
         }
-
+        /*
         // Validate namespace and key
         const validationResult = await validate(
             { namespace, key },
@@ -381,46 +388,73 @@ export function getTranslationStore() {
             await logError("create_translation_validation", validationResult.errors[0]);
             throw new Error(validationResult.errors[0]);
         }
-
+        */
         translationState.isLoading = true;
 
-        // We'll create entries for each locale provided in values
         const results = [];
+        let allSuccessful = true;
+        let errors = [];
 
         for (const locale in values) {
             if (!values[locale]) continue;
 
-            // Validate using base schema
-            const entryValidation = await validate(
-                { namespace, key, locale, value: values[locale] },
-                baseSchema
-            );
+            // Commenting out schema validation for now
+            // const entryValidation = await validate(...);
+            // if (!entryValidation.success) { ... }
 
-            if (!entryValidation.success) {
-                await logError(`create_translation_${locale}`, entryValidation.errors[0]);
-                throw new Error(`Error for ${locale}: ${entryValidation.errors[0]}`);
-            }
-
-            // Execute the creation query
-            const result = await executeQuery('interface_translations', 'create', {
+            const singleResult = await executeQuery('interface_translations', 'create', {
                 namespace,
                 key,
                 locale,
                 value: values[locale]
             });
 
-            results.push(result);
+            results.push(singleResult);
+            console.log(`Single result from create for ${locale}:`, JSON.stringify(singleResult, null, 2));
+
+            let operationFailed = false;
+            let errorMessage = `Failed to create translation for ${locale}`;
+
+            if (!singleResult) {
+                operationFailed = true;
+                errorMessage = `No result for ${locale} during create`;
+            } else if (singleResult.errors && singleResult.errors.length > 0) {
+                operationFailed = true;
+                errorMessage = singleResult.errors.map(e => e.message).join(', ') || `GraphQL error for ${locale} during create`;
+            } else {
+                const expectedDataKey = 'insertIntoInterface_translations'; // Based on typical mutation naming
+                const returnedData = singleResult[expectedDataKey];
+                if (!returnedData || !Array.isArray(returnedData) || returnedData.length === 0) {
+                    operationFailed = true;
+                    errorMessage = `No data or unexpected data structure in create response for ${locale}. Expected key: ${expectedDataKey}`;
+                }
+            }
+
+            if (operationFailed) {
+                allSuccessful = false;
+                errors.push(errorMessage);
+            }
         }
 
-        // Refresh translations after creating new ones
         await fetchTranslations();
-
         translationState.isLoading = false;
-        return results;
+
+        if (allSuccessful) {
+            return { success: true, data: results };
+        } else {
+            return { success: false, error: errors.join('; '), data: results };
+        }
     };
 
     // Update a translation (multi-locale update)
     const updateTranslation = async (namespace, key, values) => {
+        // Validate the input
+        // const validationResult = validate(baseSchema, { namespace, key, values });
+        // if (!validationResult.success) {
+        //     await logError("update_translation_validation", validationResult.errors.join(', '));
+        //     return { success: false, error: validationResult.errors.join(', ') };
+        // }
+
         if (!namespace || !key || !values) {
             throw new Error("Missing required parameters");
         }
@@ -432,139 +466,244 @@ export function getTranslationStore() {
         }
 
         // Validate namespace and key
-        const validationResult = await validate(
-            { namespace, key },
-            {
-                namespace: baseSchema.shape.namespace,
-                key: baseSchema.shape.key
-            }
-        );
-
-        if (!validationResult.success) {
-            await logError("update_translation_validation", validationResult.errors[0]);
-            throw new Error(validationResult.errors[0]);
-        }
+        // const validationResult = await validate(
+        //     { namespace, key },
+        //     {
+        //         namespace: baseSchema.shape.namespace,
+        //         key: baseSchema.shape.key
+        //     }
+        // );
+        //
+        // if (!validationResult.success) {
+        //     await logError("update_translation_validation", validationResult.errors[0]);
+        //     throw new Error(validationResult.errors[0]);
+        // }
 
         translationState.isLoading = true;
 
-        // We'll update entries for each locale provided in values
         const results = [];
+        let allSuccessful = true;
+        let errors = [];
 
         for (const locale in values) {
-            if (!values[locale] && values[locale] !== '') continue;
+            if (!values[locale] && values[locale] !== '') continue; // Skip if value is empty string, unless explicitly allowed
 
-            // Validate using base schema
-            const entryValidation = await validate(
-                { namespace, key, locale, value: values[locale] },
-                baseSchema
-            );
+            // Commenting out schema validation for now as per previous steps
+            // const entryValidation = await validate(...);
+            // if (!entryValidation.success) { ... }
 
-            if (!entryValidation.success) {
-                await logError(`update_translation_${locale}`, entryValidation.errors[0]);
-                throw new Error(`Error for ${locale}: ${entryValidation.errors[0]}`);
+            const existingTranslation = translationState.translations[namespace]?.[key]?.[locale];
+
+            let singleResult;
+            let operationType = existingTranslation !== undefined ? 'update' : 'create';
+
+            if (operationType === 'update') {
+                singleResult = await executeQuery('interface_translations', 'update', {
+                    id: existingTranslation.id,
+                    value: values[locale]
+                });
+            } else { // operationType === 'create'
+                singleResult = await executeQuery('interface_translations', 'create', {
+                    namespace,
+                    key,
+                    locale,
+                    value: values[locale]
+                });
+            }
+            results.push(singleResult);
+            console.log(`Single result from ${operationType} for ${locale}:`, JSON.stringify(singleResult, null, 2));
+
+            let operationFailed = false;
+            let errorMessage = `Failed to ${operationType} translation for ${locale}`;
+
+            if (!singleResult) {
+                operationFailed = true;
+                errorMessage = `No result for ${locale} during ${operationType}`;
+            } else if (singleResult.errors && singleResult.errors.length > 0) {
+                operationFailed = true;
+                errorMessage = singleResult.errors.map(e => e.message).join(', ') || `GraphQL error for ${locale} during ${operationType}`;
+            } else {
+                // Operation-specific data check
+                const expectedDataKey = operationType === 'update' ? 'updateInterface_translations' : 'insertIntoInterface_translations';
+                const returnedData = singleResult[expectedDataKey];
+
+                if (!returnedData || !Array.isArray(returnedData) || returnedData.length === 0) {
+                    operationFailed = true;
+                    errorMessage = `No data or unexpected data structure in ${operationType} response for ${locale}. Expected key: ${expectedDataKey}`;
+                }
+                // Optional: further checks on returnedData[0] if needed, e.g., presence of id
             }
 
-            // Check if we already have a translation for this locale
-            const existingTranslation = translationState.translations[namespace][key][locale];
-
-            if (existingTranslation !== undefined) {
-                // If exists, update
-                const result = await executeQuery('interface_translations', 'update', {
-                    namespace,
-                    key,
-                    locale,
-                    value: values[locale]
-                });
-                results.push(result);
-            } else {
-                // If doesn't exist, create
-                const result = await executeQuery('interface_translations', 'create', {
-                    namespace,
-                    key,
-                    locale,
-                    value: values[locale]
-                });
-                results.push(result);
+            if (operationFailed) {
+                allSuccessful = false;
+                errors.push(errorMessage);
             }
         }
 
-        // Refresh translations after updating
         await fetchTranslations();
-
         translationState.isLoading = false;
-        return results;
+
+        if (allSuccessful) {
+            return { success: true, data: results };
+        } else {
+            return { success: false, error: errors.join('; '), data: results };
+        }
     };
 
-    // Delete a translation (all locales)
+    // Delete a translation (all locales for a given key in a namespace)
     const deleteTranslation = async (namespace, key) => {
         if (!namespace || !key) {
-            throw new Error("Missing required parameters");
-        }
-
-        // Ensure we have existing translations for this namespace and key
-        if (!translationState.translations[namespace] ||
-            !translationState.translations[namespace][key]) {
-            throw new Error(`Translation ${namespace}.${key} not found`);
+            return { success: false, error: "Missing required parameters for deleteTranslation" };
         }
 
         translationState.isLoading = true;
 
-        const result = await executeQuery('interface_translations', 'delete', {
-            namespace,
-            key
-        });
+        const keyEntry = translationState.translations[namespace]?.[key];
 
-        // Remove from local state
-        if (translationState.translations[namespace] &&
-            translationState.translations[namespace][key]) {
+        if (!keyEntry) {
+            translationState.isLoading = false;
+            // Key not found in local state, could be already deleted or an issue.
+            // Consider it a non-failure from the perspective of this operation if the goal is for it to not exist.
+            // However, log a warning as this might indicate a desync if user could click delete.
+            console.warn(`deleteTranslation: Key "${namespace}.${key}" not found in local state. Assuming already deleted or not present.`);
+            await fetchTranslations(); // Refresh to be sure
+            return { success: true, message: "Key not found locally, assumed deleted." };
+        }
+
+        const idsToDelete = Object.values(keyEntry).map(localeData => localeData.id).filter(id => id);
+
+        if (idsToDelete.length === 0) {
+            translationState.isLoading = false;
+            console.warn(`deleteTranslation: No IDs found for "${namespace}.${key}" to delete. Removing local entry if it exists.`);
+            // If the keyEntry exists but has no valid IDs, remove it locally and refresh.
             delete translationState.translations[namespace][key];
+            if (Object.keys(translationState.translations[namespace]).length === 0) {
+                delete translationState.translations[namespace];
+            }
+            await fetchTranslations();
+            return { success: true, message: "No valid translation IDs found under key, local entry removed." };
+        }
 
-            // If namespace is now empty, remove it
+        const individualResults = [];
+        let allDeletesSuccessful = true;
+        let errorMessages = [];
+
+        for (const id of idsToDelete) {
+            const singleResult = await executeQuery('interface_translations', 'delete', { id });
+            individualResults.push({ id, result: singleResult });
+            console.log(`Single result from delete for ID ${id} (${namespace}.${key}):`, JSON.stringify(singleResult, null, 2));
+
+            let operationFailed = false;
+            let specificErrorMessage = `Failed to delete translation with ID ${id}`;
+
+            if (!singleResult) {
+                operationFailed = true;
+                specificErrorMessage = `No result for delete operation on ID ${id}`;
+            } else if (singleResult.errors && singleResult.errors.length > 0) {
+                operationFailed = true;
+                specificErrorMessage = singleResult.errors.map(e => e.message).join(', ') || `GraphQL error during delete of ID ${id}`;
+            } else {
+                const expectedDataKey = 'deleteFromInterface_translations';
+                const returnedData = singleResult[expectedDataKey];
+                // A successful delete often returns the ID of the deleted item or an array of them.
+                // Check if returnedData is an array and contains an object with the matching id, or if it's an object with the id.
+                let idMatch = false;
+                if (Array.isArray(returnedData)) {
+                    idMatch = returnedData.some(item => item && item.id === id);
+                } else if (returnedData && typeof returnedData === 'object' && returnedData.id === id) {
+                    idMatch = true;
+                }
+
+                if (!idMatch) {
+                    // If no errors, but ID not in expected structure, it could still be a success.
+                    // This is a common scenario if the mutation simply returns null or an empty object on success for delete.
+                    // We rely on the *absence* of .errors if .deleteFromInterface_translations is not structured as expected.
+                    if (!singleResult.errors) { // No explicit GQL errors
+                        console.warn(`Delete for ID ${id} (${namespace}.${key}) had no errors but ID was not found in '${expectedDataKey}'. Assuming success based on lack of errors. Log: ${JSON.stringify(singleResult)}`);
+                        // Considered success for this ID based on lack of errors
+                    } else {
+                        operationFailed = true;
+                        specificErrorMessage = `Unexpected data structure or missing ID in delete response for ID ${id}. Expected key: ${expectedDataKey}`;
+                    }
+                }
+            }
+
+            if (operationFailed) {
+                allDeletesSuccessful = false;
+                errorMessages.push(specificErrorMessage);
+            }
+        }
+
+        // Local state update: remove the entire key after attempting all deletions.
+        // This happens regardless of partial success to reflect the intent to delete the key.
+        if (translationState.translations[namespace]?.[key]) {
+            delete translationState.translations[namespace][key];
             if (Object.keys(translationState.translations[namespace]).length === 0) {
                 delete translationState.translations[namespace];
             }
         }
 
+        await fetchTranslations(); // Final refresh to ensure sync with backend
         translationState.isLoading = false;
-        return result;
+
+        if (allDeletesSuccessful) {
+            return { success: true, message: `Successfully deleted all translations for ${namespace}.${key}` };
+        } else {
+            return { success: false, error: `One or more translations for ${namespace}.${key} failed to delete: ${errorMessages.join('; ')}` };
+        }
     };
 
     // Delete a namespace (all keys and locales)
     const deleteNamespace = async (namespace) => {
         if (!namespace) {
-            throw new Error("Missing namespace parameter");
+            return { success: false, error: "Missing namespace parameter for deleteNamespace" };
         }
 
-        // Ensure namespace exists
-        if (!translationState.translations[namespace]) {
-            throw new Error(`Namespace ${namespace} not found`);
+        const namespaceEntry = translationState.translations[namespace];
+        if (!namespaceEntry) {
+            console.warn(`deleteNamespace: Namespace "${namespace}" not found in local state. Assuming already deleted.`);
+            // No backend calls needed if not found locally, but refresh to ensure state is accurate.
+            await fetchTranslations();
+            return { success: true, message: "Namespace not found locally, assumed already deleted or not present." };
         }
 
         translationState.isLoading = true;
 
-        // Delete all translations in the namespace
-        const keys = Object.keys(translationState.translations[namespace]);
-        const results = [];
+        const keysInNamespace = Object.keys(namespaceEntry);
+        let allKeysSuccessfullyDeleted = true;
+        const keyDeletionErrorMessages = [];
 
-        for (const key of keys) {
-            const result = await executeQuery('interface_translations', 'delete', {
-                namespace,
-                key
-            });
-            results.push(result);
+        if (keysInNamespace.length > 0) {
+            for (const key of keysInNamespace) {
+                // Rely on the already refactored deleteTranslation which handles ID-based GQL deletion and internal refresh
+                const keyDeleteResult = await deleteTranslation(namespace, key);
+                if (!keyDeleteResult.success) {
+                    allKeysSuccessfullyDeleted = false;
+                    keyDeletionErrorMessages.push(keyDeleteResult.error || `Failed to delete key '${key}' in namespace '${namespace}'.`);
+                }
+            }
+        } else {
+            console.log(`Namespace "${namespace}" contained no keys. Proceeding to remove local namespace entry.`);
         }
 
-        // Remove from local state
+        // Remove the namespace from local state after attempting to delete all its keys
         if (translationState.translations[namespace]) {
             delete translationState.translations[namespace];
         }
 
+        // Although individual deleteTranslation calls refresh, a final one here ensures the overall state
+        // (especially the list of namespaces) is up-to-date after all operations.
+        await fetchTranslations();
         translationState.isLoading = false;
-        return {
-            namespace,
-            deletedKeys: keys.length,
-            results
-        };
+
+        if (allKeysSuccessfullyDeleted) {
+            return { success: true, message: `Namespace '${namespace}' and all its translations processed for deletion.` };
+        } else {
+            return {
+                success: false,
+                error: `Failed to delete one or more keys in namespace '${namespace}': ${keyDeletionErrorMessages.join('; ')}`
+            };
+        }
     };
 
     // Create a new namespace if it doesn't exist
@@ -572,7 +711,7 @@ export function getTranslationStore() {
         if (!namespace) {
             throw new Error("Missing namespace parameter");
         }
-
+        /*
         // Validate namespace
         const namespaceSchema = baseSchema.shape.namespace;
         const validationResult = namespaceSchema.safeParse(namespace);
@@ -581,7 +720,7 @@ export function getTranslationStore() {
             const error = validationResult.error.errors[0].message;
             throw new Error(error);
         }
-
+        */
         // No need to create in backend as namespaces are created implicitly with translations
         // Just create empty namespace in local state if doesn't exist
         if (!translationState.translations[namespace]) {

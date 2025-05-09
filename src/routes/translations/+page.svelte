@@ -34,6 +34,9 @@
     let editingTranslation = $state(null);
     let editedValues = $state({});
 
+    $inspect(interfaceTranslations);
+    $inspect(translationStore.translationState.translations);
+
     // Get API queries
     const languagesQuery =
         API_SECTIONS.interface_languages.operations.list.query;
@@ -64,12 +67,15 @@
                         translationStore.translationState.translations,
                     ).flatMap(([namespace, keys]) =>
                         Object.entries(keys).flatMap(([key, locales]) =>
-                            Object.entries(locales).map(([locale, value]) => ({
-                                namespace,
-                                key,
-                                locale,
-                                value,
-                            })),
+                            Object.entries(locales).map(
+                                ([locale, localeData]) => ({
+                                    namespace,
+                                    key,
+                                    locale,
+                                    value: localeData.value,
+                                    id: localeData.id,
+                                }),
+                            ),
                         ),
                     );
 
@@ -209,11 +215,10 @@
                 newTranslationKey,
                 newTranslationValues,
             );
-            if (!result.success) throw new Error(result.error);
+            if (!result.success)
+                throw new Error(result.error || "Failed to add translation");
 
             toggleAddTranslationModal();
-            // Refresh translations
-            await translationStore.refreshTranslations();
             addToast({
                 data: {
                     title: t("common.success", { fallback: "Success" }),
@@ -258,12 +263,11 @@
                 editingTranslation,
                 editedValues,
             );
-            if (!result.success) throw new Error(result.error);
+            if (!result.success)
+                throw new Error(result.error || "Update operation failed");
 
             editingTranslation = null;
             editedValues = {};
-            // Refresh translations
-            await translationStore.refreshTranslations();
             addToast({
                 data: {
                     title: t("common.success", { fallback: "Success" }),
@@ -307,10 +311,9 @@
         try {
             isLoading = true;
             const result = await deleteTranslation(currentNamespace, key);
-            if (!result.success) throw new Error(result.error);
+            if (!result.success)
+                throw new Error(result.error || "Failed to delete translation");
 
-            // Refresh translations
-            await translationStore.refreshTranslations();
             addToast({
                 data: {
                     title: t("common.success", { fallback: "Success" }),
@@ -348,17 +351,22 @@
         try {
             isLoading = true;
             const result = await deleteNamespace(namespace);
-            if (!result.success) throw new Error(result.error);
+            if (!result.success) {
+                throw new Error(
+                    result.error ||
+                        `Failed to delete namespace '${namespace}'.`,
+                );
+            }
 
             if (currentNamespace === namespace) currentNamespace = "";
-            // Refresh translations
-            await translationStore.refreshTranslations();
             addToast({
                 data: {
                     title: t("common.success", { fallback: "Success" }),
-                    description: t("translations.namespace_deleted", {
-                        fallback: "Namespace deleted",
-                    }),
+                    description:
+                        result.message ||
+                        t("translations.namespace_deleted", {
+                            fallback: "Namespace deleted",
+                        }),
                     type: "success",
                 },
             });
