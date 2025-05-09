@@ -26,7 +26,7 @@
     if (object.objectsOntologyFields) {
       const titleField = object.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "object id",
+          field.ontologyField?.name?.content?.toLowerCase() === "object id"
       );
       if (titleField && titleField.value) {
         return titleField.value;
@@ -41,7 +41,7 @@
     if (object.objectsOntologyFields) {
       const designationField = object.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "designation",
+          field.ontologyField?.name?.content?.toLowerCase() === "designation"
       );
       // Return the value if found, otherwise null
       return designationField?.value || null;
@@ -242,7 +242,7 @@
 
     console.log(
       `Saving ${changes?.length || 0} field changes for object ${objectId}`,
-      statusChange ? `and status change to "${statusChange}"` : "",
+      statusChange ? `and status change to "${statusChange}"` : ""
     );
 
     // Find the object to update
@@ -316,11 +316,11 @@
       // Show success message
       if (fieldUpdateSuccess && statusUpdateSuccess) {
         console.log(
-          `Object "${getObjectTitle(selectedObject)}" updated successfully!`,
+          `Object "${getObjectTitle(selectedObject)}" updated successfully!`
         );
       } else {
         console.warn(
-          `Object "${getObjectTitle(selectedObject)}" updated with some errors.`,
+          `Object "${getObjectTitle(selectedObject)}" updated with some errors.`
         );
       }
     } catch (error) {
@@ -397,6 +397,7 @@
         text="Add new object"
         icon="plus-lg"
         class="btn btn-sm btn-primary"
+        disabled
         onClick={() => {
           /* TODO: Implement add action */
         }}
@@ -405,6 +406,7 @@
         text="Import data"
         icon="upload"
         class="btn btn-sm btn-primary"
+        disabled
         onClick={() => {
           /* TODO: Implement import action */
         }}
@@ -413,7 +415,7 @@
   </div>
 
   <!-- Control Row 2: Filter -->
-  <div class="mb-4">
+  <!-- <div class="mb-4">
     <BaseButton
       text="Filter by status"
       icon="filter"
@@ -423,8 +425,8 @@
         /* TODO: Implement filter action */
       }}
     />
-    <!-- TODO: Add dropdown/modal for filtering -->
-  </div>
+   
+  </div> -->
 
   <!-- Grid/List Content -->
   {#if displayMode === "grid"}
@@ -477,10 +479,18 @@
       <table class="table table-hover align-middle">
         <thead>
           <tr>
-            <th scope="col" style="width: 80px;">Preview</th>
-            <th scope="col">Object ID</th>
-            <th scope="col">Designation</th>
-            <th scope="col">Status</th>
+            <th scope="col" style="width: 80px;"
+              ><button class="btn btn-sm btn-dark">Preview</button></th
+            >
+            <th scope="col"
+              ><button class="btn btn-sm btn-dark">Object ID</button></th
+            >
+            <th scope="col"
+              ><button class="btn btn-sm btn-dark">Designation</button></th
+            >
+            <th scope="col"
+              ><button class="btn btn-sm btn-dark">Status</button></th
+            >
           </tr>
         </thead>
         <tbody>
