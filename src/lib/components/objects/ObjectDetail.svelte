@@ -9,14 +9,14 @@
   let { object, onDelete = null, onSave = null } = $props();
   const researchFields = getContext("researchFields") || [];
 
-  $inspect(object);
-
   // State management
   let editedFields = $state({});
   let fieldValues = $state({});
   let statusValue = $state(false);
   let originalStatus = $state("");
   let statusChanged = $state(false);
+  let selectedImage = $state(object.objectsAssets[0]);
+  $inspect(selectedImage);
 
   // Initialize when object changes
   $effect(() => {
@@ -226,48 +226,43 @@
 {#if object}
   <div class="position-relative d-flex flex-column h-100">
     <!-- Object Image -->
-    <div class="d-flex bg-light align-items-start justify-content-between">
-      {#if getObjectImageUrl(object)}
-        <div class="text-center p-3 col-6">
-          <BaseImage
-            src={getObjectImageUrl(object)}
-            alt={getObjectTitle(object)}
-            class="img-fluid rounded"
-            objectFit="contain"
-            style="max-height: 300px;"
-          />
-        </div>
-      {/if}
+    <div class="d-flex bg-light align-items-start">
+      <div class="text-center p-3 col-6">
+        <BaseImage
+          src="media://{selectedImage.asset.path}"
+          alt={selectedImage.id}
+          class="img-fluid rounded"
+          objectFit="contain"
+          style="max-height: 300px;"
+        />
+      </div>
+
       {#if object.objectsAssets && object.objectsAssets.length > 1}
         <div
           class="d-flex flex-wrap gap-2 overflow-y-auto mt-3"
           style="max-height: 300px;"
         >
-          {#each object.objectsAssets.slice(1) as asset}
-            <div>
-              <img
-                src="media://{asset.asset.path}"
-                alt={asset.id}
-                width="60"
-                height="60"
-                class="object-fit-cover rounded"
-              />
-            </div>
-          {/each}
           {#each object.objectsAssets as asset}
-            <div>
+            <div
+              role="button"
+              tabindex="0"
+              onkeydown={() => {}}
+              onclick={() => (selectedImage = asset)}
+              class:border={asset.id === selectedImage.id}
+              class="rounded overflow-hidden border-dark p-1"
+            >
               <img
                 src="media://{asset.asset.path}"
                 alt={asset.id}
                 width="60"
                 height="60"
-                class="object-fit-cover rounded"
+                class="object-fit-contain"
               />
             </div>
           {/each}
         </div>
       {/if}
-      <div class="p-2 mt-3 me-2 rounded bg-secondary">
+      <div class="ms-auto p-2 mt-3 me-2 rounded bg-secondary">
         <button class="btn btn-outline-light btn-sm border-0" aria-label="add">
           <i class="bi bi-plus"></i></button
         >
