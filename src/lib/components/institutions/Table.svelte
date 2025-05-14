@@ -19,12 +19,12 @@
   const params = queryParameters();
 
   let sortingState = $derived([
-    { id: params.orderBy, desc: params.direction === "desc" },
+    { id: params.iOrderBy, desc: params.iDirection === "desc" },
   ]);
 
   let paginationState = $derived({
-    pageIndex: params.page - 1,
-    pageSize: params["page-size"],
+    pageIndex: params.iPage - 1,
+    pageSize: params.iPageSize,
   });
 
   let rowSelectionState = $state({});
@@ -137,8 +137,8 @@
       }
 
       if (pagination) {
-        params.page = pagination.pageIndex + 1;
-        params["page-size"] = pagination.pageSize;
+        params.iPage = pagination.pageIndex + 1;
+        params.iPageSize = pagination.pageSize;
       }
     },
     onSortingChange: (updater) => {
@@ -155,8 +155,8 @@
       }
 
       if (sorting.length) {
-        params.orderBy = sorting[0].id;
-        params.direction = sorting[0].desc ? "desc" : "asc";
+        params.iOrderBy = sorting[0].id;
+        params.iDirection = sorting[0].desc ? "desc" : "asc";
       }
     },
     onRowSelectionChange: (updater) => {
@@ -264,7 +264,7 @@
     </tbody>
   </table>
 </div>
-{#if institutions.length !== count && params["page-size"]}
+{#if institutions.length !== count && params.iPageSize}
   <nav aria-label="pagination">
     <ul class="pagination pagination-sm">
       <li class="page-item" class:disabled={!table.getCanPreviousPage()}>

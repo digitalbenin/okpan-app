@@ -8,22 +8,22 @@
   const { data } = $props();
 
   const params = queryParameters({
-    page: {
+    iPage: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
       defaultValue: 1,
     },
-    ["page-size"]: {
+    iPageSize: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
       defaultValue: 3,
     },
-    orderBy: {
+    iOrderBy: {
       encode: (value) => value,
       decode: (value) => value,
       defaultValue: "name",
     },
-    direction: {
+    iDirection: {
       encode: (value) => value,
       decode: (value) => value,
       defaultValue: "asc",
@@ -44,7 +44,7 @@
             <BaseInput
               type="text"
               placeholder="Search for institutions"
-              bind:value={params.search}
+              bind:value={params.iSearch}
             ></BaseInput>
           </div>
           <BaseButton
