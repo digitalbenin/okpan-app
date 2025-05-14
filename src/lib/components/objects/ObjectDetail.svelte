@@ -6,7 +6,17 @@
   import BaseToggle from "$lib/components/base/BaseToggle.svelte";
   import BaseSelect from "$lib/components/base/BaseSelect.svelte";
 
-  let { object, onDelete = null, onSave = null } = $props();
+  let {
+    object,
+    onDelete = null,
+    onSave = null,
+    onUnlinkAssetRequest = (details) => {
+      console.warn(
+        "ObjectDetail: onUnlinkAssetRequest prop not provided.",
+        details,
+      );
+    },
+  } = $props();
   const researchFields = getContext("researchFields") || [];
 
   // State management
@@ -39,10 +49,31 @@
       statusValue = originalStatus === "completed";
 
       fieldValues = values;
+
+      // Initialize or update selectedImage if object or its assets change
+      // This ensures selectedImage is up-to-date if the object prop itself changes.
+      if (object.objectsAssets && object.objectsAssets.length > 0) {
+        const currentSelectedIsValid =
+          selectedImage &&
+          object.objectsAssets.some((a) => a.id === selectedImage.id);
+        if (!currentSelectedIsValid) {
+          selectedImage = object.objectsAssets[0];
+        }
+      } else {
+        selectedImage = null;
+      }
     } else {
       fieldValues = {};
       editedFields = {};
       statusChanged = false;
+      // Reset selectedImage if object becomes invalid or has no assets
+      if (
+        !object ||
+        !object.objectsAssets ||
+        object.objectsAssets.length === 0
+      ) {
+        selectedImage = null;
+      }
     }
   });
 
@@ -65,7 +96,7 @@
     if (!fieldId) return;
 
     const originalField = object.objectsResearchFields.find(
-      (f, index) => (f.id || `field-${index}`) === fieldId
+      (f, index) => (f.id || `field-${index}`) === fieldId,
     );
 
     if (!originalField) return;
@@ -91,7 +122,7 @@
   // Get options for select fields
   function getFieldOptions(field) {
     const fieldDef = researchFields.find(
-      (rf) => rf.id === field.researchField?.id
+      (rf) => rf.id === field.researchField?.id,
     );
 
     if (!fieldDef?.vocabularies?.length) return [];
@@ -113,7 +144,7 @@
     if (currentObject?.objectsOntologyFields) {
       const titleField = currentObject.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "object id"
+          field.ontologyField?.name?.content?.toLowerCase() === "object id",
       );
       if (titleField?.value) return titleField.value;
     }
@@ -125,7 +156,7 @@
     if (currentObject?.objectsOntologyFields) {
       const designationField = currentObject.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "designation"
+          field.ontologyField?.name?.content?.toLowerCase() === "designation",
       );
       return designationField?.value || null;
     }
@@ -184,7 +215,7 @@
     // Collect field changes
     for (const editedFieldKey in editedFields) {
       const originalFieldData = object.objectsResearchFields.find(
-        (f, index) => (f.id || `field-${index}`) === editedFieldKey
+        (f, index) => (f.id || `field-${index}`) === editedFieldKey,
       );
 
       if (originalFieldData?.id) {
@@ -221,6 +252,25 @@
     editedFields = {};
     statusChanged = false;
   }
+
+  // --- Asset Unlinking Functions - Modified ---
+  function requestAssetUnlink(assetLinkEntry) {
+    if (object?.id && assetLinkEntry?.asset?.id) {
+      const unlinkDetails = {
+        objectId: object.id,
+        assetId: assetLinkEntry.asset.id,
+        assetFilename: assetLinkEntry.asset.filename || "this asset",
+      };
+      onUnlinkAssetRequest(unlinkDetails); // Call the prop function
+    } else {
+      console.error(
+        "Cannot initiate unlink: missing object ID or asset ID from selected image.",
+        object,
+        assetLinkEntry,
+      );
+    }
+  }
+  // --- End Asset Unlinking Functions ---
 </script>
 
 {#if object}
@@ -228,13 +278,27 @@
     <!-- Object Image -->
     <div class="d-flex bg-light align-items-start">
       <div class="text-center p-3 col-6">
-        <BaseImage
-          src="media://{selectedImage.asset.path}"
-          alt={selectedImage.id}
-          class="img-fluid rounded"
-          objectFit="contain"
-          style="max-height: 300px;"
-        />
+        {#if selectedImage && selectedImage.asset}
+          <BaseImage
+            src="media://{selectedImage.asset.path}"
+            alt={selectedImage.asset.filename || selectedImage.id}
+            class="img-fluid rounded"
+            objectFit="contain"
+            style="max-height: 300px;"
+          />
+          <div class="mt-2">
+            <BaseButton
+              text="Unlink from this Object"
+              class="btn btn-link text-danger btn-sm p-0"
+              onClick={() => requestAssetUnlink(selectedImage)}
+              title="Unlink this asset from the current object"
+            />
+          </div>
+        {:else if object.objectsAssets && object.objectsAssets.length > 0}
+          <p class="text-muted p-5">Select an image thumbnail to view.</p>
+        {:else}
+          <p class="text-muted p-5">No assets linked to this object.</p>
+        {/if}
       </div>
 
       {#if object.objectsAssets && object.objectsAssets.length > 1}
@@ -310,7 +374,7 @@
                           e.target.value;
                         handleInputChange(
                           field.id || `field-${index}`,
-                          e.target.value
+                          e.target.value,
                         );
                       }}
                       placeholder="Enter value..."
@@ -332,7 +396,7 @@
                         e.target.value;
                       handleInputChange(
                         field.id || `field-${index}`,
-                        e.target.value
+                        e.target.value,
                       );
                     }}
                     placeholder="Enter value..."

@@ -7,9 +7,9 @@ import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte
 
 export const load = async ({ params, depends }) => {
     if (!browser) return;
-    depends('app:objects')
-    depends('app:assets')
-    depends('app:datasources')
+    console.log("loading institution data");
+    depends('custom:objects', 'custom:assets', 'custom:datasources')
+
 
     const projectId = params.project_id;
     const institutionId = params.institution_id;
@@ -34,11 +34,15 @@ export const load = async ({ params, depends }) => {
         // Potentially return an error state or show a notification
     }
 
+    console.log("institution data loaded", assetsData);
+
     // Assuming getAssets, getObjects, getInstitution return data directly or handle errors internally
     // Adjust if they actually return { result: ..., error: ... }
     const institution = institutionData; // Assuming direct return
     const assets = assetsData || [];      // Assuming direct return, provide fallback
     const objects = objectsData || [];     // Assuming direct return, provide fallback
+
+
 
     return {
         institution,

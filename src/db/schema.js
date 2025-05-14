@@ -140,6 +140,7 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     researchFields: many(research_fields),
     settings: one(settings),
     assets: many(assets),
+    genericAssets: many(genericAssets),
     title: one(texts, {
         fields: [project.title_id],
         references: [texts.id]
@@ -272,6 +273,27 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
     objectsAssets: many(objects_assets)
 }));
 
+// GenericAssets table - for assets not linked to institutions, but to projects and other entities like vocabularies
+export const genericAssets = sqliteTable('generic_assets', {
+    ...commonFields,
+    filename: text('filename'),
+    path: text('path'),
+    type: text('type'),
+    formats: text('formats', { mode: 'json' }),
+    properties: text('properties', { mode: 'json' }),
+    project_id: text('project_id').references(() => project.id) // No institution_id
+});
+
+// GenericAssets relations
+export const genericAssetsRelations = relations(genericAssets, ({ one, many }) => ({
+    project: one(project, {
+        fields: [genericAssets.project_id],
+        references: [project.id]
+    }),
+    // This allows querying from a genericAsset to all vocabularies where it is the main_asset_id
+    vocabulariesAsMain: many(vocabularies)
+}));
+
 // Objects table
 export const objects = sqliteTable('objects', {
     ...commonFields,
@@ -355,7 +377,7 @@ export const vocabularies = sqliteTable('vocabularies', {
     ...commonFields,
     option_id: text('option_id').references(() => texts.id),
     description_id: text('description_id').references(() => texts.id),
-    main_asset_id: text('main_asset_id').references(() => assets.id),
+    main_asset_id: text('main_asset_id').references(() => genericAssets.id),
     other_assets: text('other_assets', { mode: 'json' }),
     field_id: text('field_id').references(() => research_fields.id)
 });
@@ -374,9 +396,9 @@ export const vocabulariesRelations = relations(vocabularies, ({ one }) => ({
         fields: [vocabularies.description_id],
         references: [texts.id]
     }),
-    mainAsset: one(assets, {
+    mainAsset: one(genericAssets, {
         fields: [vocabularies.main_asset_id],
-        references: [assets.id]
+        references: [genericAssets.id]
     })
 }));
 

@@ -1,6 +1,7 @@
 import { db } from './init.js';
 import {
     languages, project, project_languages, institutions, texts, objects as dbObjects, assets,
+    genericAssets,
     objects_assets, research_fields, vocabularies, objects_research_fields,
     ontology_fields, datasources as dbDatasources, objects_ontology_fields,
 } from './schema.js';
@@ -302,7 +303,13 @@ const seed = async () => {
                     const assetInstitutionIdForVocab = null; // Ensures project-level asset
                     console.log(`INFO: Vocabulary asset '${edoData.asset}' found in 'edo_images'. Importing as project-level.`);
 
-                    const assetData = { path: [localAssetPath], isDirectory: false, projectId: mainProjectId, institutionId: assetInstitutionIdForVocab };
+                    const assetData = {
+                        path: [localAssetPath],
+                        isDirectory: false,
+                        projectId: mainProjectId,
+                        institutionId: assetInstitutionIdForVocab,
+                        isGenericAsset: true // Mark as generic asset
+                    };
                     try {
                         const importResult = await handleImportAssets(null, assetData);
                         if (importResult && importResult.createdAssets && importResult.createdAssets.length > 0) {
@@ -366,7 +373,13 @@ const seed = async () => {
                     if (imgData.asset) {
                         const localImgPath = await findAssetPath(imgData.asset);
                         if (localImgPath) {
-                            const assetData = { path: [localImgPath], isDirectory: false, projectId: mainProjectId, institutionId: newInstitutionId };
+                            const assetData = {
+                                path: [localImgPath],
+                                isDirectory: false,
+                                projectId: mainProjectId,
+                                institutionId: newInstitutionId,
+                                isGenericAsset: false // Mark as non-generic (institution) asset
+                            };
                             try {
                                 const importResult = await handleImportAssets(null, assetData);
                                 if (importResult && importResult.createdAssets && importResult.createdAssets.length > 0) {

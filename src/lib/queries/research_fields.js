@@ -363,7 +363,7 @@ export const researchFieldsOperations = {
         option_id: $optionId
         description_id: $descriptionId
         field_id: $fieldId
-        main_asset: $mainAsset
+        main_asset_id: $mainAsset
         other_assets: $otherAssets
       }
     ]
@@ -372,7 +372,7 @@ export const researchFieldsOperations = {
     option_id
     description_id
     field_id
-    main_asset
+    main_asset_id
     other_assets
   }
 }`,

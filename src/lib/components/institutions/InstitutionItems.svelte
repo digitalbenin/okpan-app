@@ -6,10 +6,12 @@
   import InstitutionObjects from "../objects/InstitutionObjects.svelte";
   import InstitutionDatasources from "./InstitutionDatasources.svelte";
 
+  let { onActionCompletesDataRefresh = () => {} } = $props();
+
   // Get data from context
-  const objects = getContext("objects") || [];
-  const assets = getContext("assets") || [];
-  const datasources = getContext("datasources") || [];
+  let objects = getContext("objects") || [];
+  let assets = getContext("assets") || [];
+  let datasources = getContext("datasources") || [];
 
   // Configure tabs with real counts
   let tabsList = [
@@ -42,7 +44,7 @@
       </ul>
 
       <div {...tabs.getContent("objects")} class="py-3">
-        <InstitutionObjects />
+        <InstitutionObjects {onActionCompletesDataRefresh} />
       </div>
 
       <div {...tabs.getContent("assets")}>

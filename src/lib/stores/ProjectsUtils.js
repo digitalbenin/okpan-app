@@ -24,19 +24,19 @@ export const getProject = async (projectId) => {
         // Try to extract directly from existing fields
         const project = result.result;
 
-        console.log("Processing project data:", JSON.stringify(project, null, 2));
+        //console.log("Processing project data:", JSON.stringify(project, null, 2));
 
         // Add direct references to the IDs if not already present
         if (!project.title_id && project.title) {
             // Use a safe method to get the ID
             project.title_id = project.title.id;
-            console.log("Extracted title_id:", project.title_id);
+            //console.log("Extracted title_id:", project.title_id);
         }
 
         if (!project.description_id && project.description) {
             // Use a safe method to get the ID
             project.description_id = project.description.id;
-            console.log("Extracted description_id:", project.description_id);
+            //console.log("Extracted description_id:", project.description_id);
         }
 
         // Additional check for translations array - ensure it's properly initialized

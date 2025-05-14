@@ -1,7 +1,7 @@
 <script>
   import { getContext } from "svelte";
   import { page } from "$app/stores";
-  import { goto } from "$app/navigation";
+  import { goto, invalidateAll } from "$app/navigation";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import SidePanel from "$lib/components/common/SidePanel.svelte";
@@ -12,11 +12,14 @@
     updateObjectStatus,
     getObjectById,
     deleteObject,
+    unlinkAssetFromObject,
   } from "$lib/stores/ObjectsUtils.js";
 
   // Get data from context
   const objects = getContext("objects") || [];
   // const assets = getContext("assets") || []; // No longer needed here
+
+  let { onActionCompletesDataRefresh = () => {} } = $props(); // Added new prop
 
   // Mutable array of objects that can be updated
   let objectsList = $state(objects);
@@ -108,6 +111,14 @@
   let isDeleteModalOpen = $state(false);
   let objectIdToDelete = $state(null);
   let closeContentTimeout = null;
+
+  // State for unlink asset modal
+  let isUnlinkAssetModalOpen = $state(false);
+  let assetToUnlinkDetails = $state({
+    objectId: null,
+    assetId: null,
+    assetFilename: "",
+  });
 
   // Function to find object by ID
   function findObjectById(id) {
@@ -365,6 +376,69 @@
     isDeleteModalOpen = false;
     objectIdToDelete = null;
   }
+
+  // --- Asset Unlinking Functions ---
+  function handleUnlinkAssetRequest(details) {
+    assetToUnlinkDetails = details;
+    isUnlinkAssetModalOpen = true;
+  }
+
+  async function confirmAndUnlinkAsset() {
+    if (!assetToUnlinkDetails.objectId || !assetToUnlinkDetails.assetId) {
+      console.error(
+        "Cannot confirm asset unlink: Missing objectId or assetId.",
+      );
+      isUnlinkAssetModalOpen = false;
+      return;
+    }
+
+    const result = await unlinkAssetFromObject(
+      assetToUnlinkDetails.objectId,
+      assetToUnlinkDetails.assetId,
+    );
+
+    if (result.error) {
+      console.error("Error unlinking asset from object:", result.error);
+      // TODO: Show user-friendly error (e.g., toast)
+      alert(`Error unlinking asset: ${result.error.message || result.error}`); // Placeholder
+    } else {
+      console.log(
+        `Asset '${assetToUnlinkDetails.assetFilename}' unlinked successfully from object '${assetToUnlinkDetails.objectId}'.`,
+      );
+      // TODO: Show user-friendly success message (e.g., toast)
+      onActionCompletesDataRefresh(); // Called the new prop
+
+      if (
+        selectedObject &&
+        selectedObject.id === assetToUnlinkDetails.objectId
+      ) {
+        selectedObject.objectsAssets = selectedObject.objectsAssets.filter(
+          (oa) => oa.asset.id !== assetToUnlinkDetails.assetId,
+        );
+        // ObjectDetail's selectedImage will update via its own $effect
+        // when its 'object' prop's 'objectsAssets' array changes.
+      }
+
+      // Update the object in the main objectsList
+      const objectIndex = objectsList.findIndex(
+        (obj) => obj.id === assetToUnlinkDetails.objectId,
+      );
+      if (objectIndex !== -1) {
+        const updatedObjectInList = { ...objectsList[objectIndex] };
+        if (updatedObjectInList.objectsAssets) {
+          updatedObjectInList.objectsAssets =
+            updatedObjectInList.objectsAssets.filter(
+              (oa) => oa.asset.id !== assetToUnlinkDetails.assetId,
+            );
+        }
+        const newObjectsList = [...objectsList];
+        newObjectsList[objectIndex] = updatedObjectInList;
+        objectsList = newObjectsList;
+      }
+    }
+    isUnlinkAssetModalOpen = false;
+  }
+  // --- End Asset Unlinking Functions ---
 </script>
 
 <div class="container-fluid">
@@ -574,6 +648,7 @@
       object={selectedObject}
       onSave={handleObjectSave}
       onDelete={handleObjectDelete}
+      onUnlinkAssetRequest={handleUnlinkAssetRequest}
     />
   {:else}
     <p>Loading...</p>
@@ -614,5 +689,42 @@
     {header}
     {body}
     {actions}
+  />
+{/if}
+
+<!-- Modal and Snippets for Asset Unlink Confirmation -->
+{#snippet unlinkObjectAssetHeader()}
+  Confirm Unlink Asset
+{/snippet}
+
+{#snippet unlinkObjectAssetBody()}
+  Are you sure you want to unlink the asset "{assetToUnlinkDetails.assetFilename ||
+    "this asset"}" from this object?
+{/snippet}
+
+{#snippet unlinkObjectAssetActions()}
+  <div class="d-flex justify-content-end gap-2">
+    <BaseButton
+      text="Cancel"
+      class="btn btn-secondary btn-sm"
+      onClick={() => {
+        isUnlinkAssetModalOpen = false;
+      }}
+    />
+    <BaseButton
+      text="Confirm Unlink"
+      class="btn btn-danger btn-sm"
+      onClick={confirmAndUnlinkAsset}
+    />
+  </div>
+{/snippet}
+
+{#if isUnlinkAssetModalOpen}
+  <BaseModal
+    bind:isOpen={isUnlinkAssetModalOpen}
+    size="md"
+    header={unlinkObjectAssetHeader}
+    body={unlinkObjectAssetBody}
+    actions={unlinkObjectAssetActions}
   />
 {/if}

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import sharp from 'sharp';
 import { db } from '../../db/init.js';
-import { assets } from '../../db/schema.js';
+import { assets, genericAssets } from '../../db/schema.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -52,6 +52,13 @@ const handleImportAssets = async (event, data) => {
     if (!data.projectId) {
         throw new Error("Project ID is required");
     }
+    // data.isGenericAsset will determine the target table.
+    // If data.isGenericAsset is true, institutionId should be null or undefined.
+    // If data.isGenericAsset is false or undefined, institutionId is expected for 'assets' table.
+    if (data.isGenericAsset && data.institutionId) {
+        console.warn("Warning: isGenericAsset is true, but institutionId is provided. institutionId will be ignored for generic assets.");
+    }
+
 
     //check if folder with projectid is present, otherwise create it
     const projectFolder = path.join(assetPath, data.projectId);
@@ -74,13 +81,14 @@ const handleImportAssets = async (event, data) => {
 
                 const asset = {
                     project_id: data?.projectId,
-                    institution_id: data?.institutionId,
+                    // Conditionally set institution_id only if not a generic asset
+                    institution_id: data.isGenericAsset ? undefined : data?.institutionId,
                     path: formats?.original || path.join(projectFolder, file),
                     filename: path.basename(file),
                     type: assetType,
                     formats: formats || null
                 }
-                const newAsset = await saveAssetToDb(asset)
+                const newAsset = await saveAssetToDb(asset, data.isGenericAsset)
                 createdAssets.push(newAsset);
 
                 progress++;
@@ -104,14 +112,15 @@ const handleImportAssets = async (event, data) => {
                     formats = await makeAVIF(file, projectFolder);
                     const asset = {
                         project_id: data?.projectId,
-                        institution_id: data?.institutionId,
+                        // Conditionally set institution_id only if not a generic asset
+                        institution_id: data.isGenericAsset ? undefined : data?.institutionId,
                         path: formats.original,
                         filename: path.basename(file),
                         type: assetType,
                         formats
                     }
                     console.log("saving asset to db", asset)
-                    const newAsset = await saveAssetToDb(asset)
+                    const newAsset = await saveAssetToDb(asset, data.isGenericAsset)
                     createdAssets.push(newAsset);
                 }
                 progress++;
@@ -160,15 +169,17 @@ const makeAVIF = async (imagePath, destPath) => {
     };
 }
 
-const saveAssetToDb = async (asset) => {
-    try {
-        console.log("saving asset to db", asset)
-        const res = await db.insert(assets).values(asset).returning();
-        return res[0]; // Return the first (and only) created asset object
-    } catch (error) {
-        console.error("error saving asset to db", error)
-        throw new Error("Error saving asset to db")
-    }
+const saveAssetToDb = async (assetData, isGeneric) => {
+    console.log("Saving asset to DB:", assetData, "Is generic:", isGeneric);
+    const table = isGeneric ? genericAssets : assets;
+    const [newAsset] = await db.insert(table).values({
+        id: uuidv4(),
+        ...assetData,
+        // Ensure institution_id is explicitly set to null if it's undefined and not a generic asset
+        // For generic assets, institution_id should not be part of assetData passed here if schema doesn't have it
+        institution_id: isGeneric ? undefined : (assetData.institution_id || null),
+    }).returning();
+    return newAsset;
 }
 
 export { handleImportAssets, getProgress }
