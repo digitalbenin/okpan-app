@@ -16,55 +16,30 @@
 
   let { institutions, count } = $props();
 
-  const params = queryParameters({
-    page: {
-      encode: (value) => value.toString(),
-      decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 1,
-    },
-    ["page-size"]: {
-      encode: (value) => value.toString(),
-      decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 3,
-    },
-    orderBy: {
-      encode: (value) => value,
-      decode: (value) => value,
-      defaultValue: "name",
-    },
-    direction: {
-      encode: (value) => value,
-      decode: (value) => value,
-      defaultValue: "asc",
-    },
+  const params = queryParameters();
+
+  let sortingState = $derived([
+    { id: params.orderBy, desc: params.direction === "desc" },
+  ]);
+
+  let paginationState = $derived({
+    pageIndex: params.page - 1,
+    pageSize: params["page-size"],
   });
 
-  let state = $state({
-    pagination: {
-      pageIndex: params.page - 1,
-      pageSize: params["page-size"],
-    },
-    sorting: [{ id: params.orderBy, desc: params.direction === "desc" }],
-    rowSelection: {},
-  });
+  let rowSelectionState = $state({});
 
   // State for modal
   let showDeleteModal = $state(false);
   let institutionToDeleteId = $state(null);
 
   function nextPage() {
-    params.page++;
-    state.pagination.pageIndex++;
     table.nextPage();
   }
   function previousPage() {
-    params.page--;
-    state.pagination.pageIndex--;
     table.previousPage();
   }
   function goToPage(pageIndex) {
-    params.page = pageIndex + 1;
-    state.pagination.pageIndex = pageIndex;
     table.setPageIndex(pageIndex);
   }
 
@@ -150,35 +125,59 @@
     },
     enableSortingRemoval: false,
     getRowId: (row) => row.id,
-    onPaginationChange: () => {
-      // table.setRowSelection({});
-    },
-    onSortingChange: (updater) => {
+    onPaginationChange: (updater) => {
+      let pagination = {
+        pageIndex: paginationState.pageIndex,
+        pageSize: paginationState.pageSize,
+      };
       if (updater instanceof Function) {
-        state.sorting = updater(state.sorting);
+        pagination = updater(pagination);
       } else {
-        state.sorting = updater;
+        pagination = updater;
       }
 
-      // update query params
-      if (state.sorting.length) {
-        params.orderBy = state.sorting[0].id;
-        params.direction = state.sorting[0].desc ? "desc" : "asc";
-        console.log("Sorting changed:", params.orderBy, params.direction);
+      if (pagination) {
+        params.page = pagination.pageIndex + 1;
+        params["page-size"] = pagination.pageSize;
+      }
+    },
+    onSortingChange: (updater) => {
+      let sorting = [
+        {
+          id: sortingState[0].id,
+          desc: sortingState[0].desc,
+        },
+      ];
+      if (updater instanceof Function) {
+        sorting = updater(sorting);
+      } else {
+        sorting = updater;
+      }
+
+      if (sorting.length) {
+        params.orderBy = sorting[0].id;
+        params.direction = sorting[0].desc ? "desc" : "asc";
       }
     },
     onRowSelectionChange: (updater) => {
       if (updater instanceof Function) {
-        state.rowSelection = updater(state.rowSelection);
+        rowSelectionState = updater(rowSelectionState);
       } else {
-        state.rowSelection = updater;
+        rowSelectionState = updater;
       }
     },
-    get state() {
-      return state;
+    state: {
+      get pagination() {
+        return paginationState;
+      },
+      get sorting() {
+        return sortingState;
+      },
+      get rowSelection() {
+        return rowSelectionState;
+      },
     },
   });
-  $inspect(state);
 
   // Function to open the confirmation modal
   function confirmDelete(institutionId) {
@@ -265,16 +264,16 @@
     </tbody>
   </table>
 </div>
-{#if institutions.length !== count}
+{#if institutions.length !== count && params["page-size"]}
   <nav aria-label="pagination">
     <ul class="pagination pagination-sm">
       <li class="page-item" class:disabled={!table.getCanPreviousPage()}>
         <button class="page-link" onclick={() => previousPage()}>Prev</button>
       </li>
-      {#each Array.from({ length: table.getPageCount() }, (_, i) => i) as pageIndex}
+      {#each Array.from({ length: Math.ceil(count / paginationState.pageSize) }, (_, i) => i) as pageIndex}
         <li
           class="page-item"
-          class:active={pageIndex === state.pagination.pageIndex}
+          class:active={pageIndex === paginationState.pageIndex}
         >
           <button
             class="page-link"
