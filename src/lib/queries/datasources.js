@@ -133,6 +133,7 @@ export const datasourcesOperations = {
       label
       value
       primary
+      default_description
       ontologyField {
         id
         name {

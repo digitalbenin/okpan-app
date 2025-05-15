@@ -121,6 +121,7 @@ export const objectsOperations = {
       value
       field_id
       primary
+      default_description
       ontologyField {
         id
         name {

@@ -461,7 +461,8 @@ export const objects_ontology_fields = sqliteTable('objects_ontology_fields', {
     object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
     field_id: text('field_id').references(() => ontology_fields.id),
     datasources_id: text('datasources_id').references(() => datasources.id),
-    primary: integer('primary')
+    primary: integer('primary'),
+    default_description: integer('default_description')
 });
 
 // Objects Ontology Fields relations

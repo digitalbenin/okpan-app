@@ -80,7 +80,7 @@
     if (error || !ds) {
       console.error(
         `Error fetching datasource ${datasourceId} for mapping:`,
-        error
+        error,
       );
       // Optionally, show an error message in the panel
       mappingDatasource = { name: { content: "Error loading" } }; // Basic error display
@@ -88,16 +88,11 @@
       return;
     }
 
-    console.log(
-      "Fetched datasource data for mapping panel:",
-      JSON.stringify(ds, null, 2)
-    );
-
     const datasourceObject = ds && ds.length > 0 ? ds[0] : null;
 
     if (!datasourceObject) {
       console.error(
-        `Error: Datasource object not found in response from getDatasource for ID ${datasourceId}.`
+        `Error: Datasource object not found in response from getDatasource for ID ${datasourceId}.`,
       );
       mappingDatasource = {
         name: { content: "Error: Data unavailable" },
@@ -108,10 +103,6 @@
     }
 
     mappingDatasource = datasourceObject;
-    console.log(
-      "Using datasource object:",
-      JSON.stringify(datasourceObject, null, 2)
-    );
 
     // --- Refined mapping preparation logic ---
     if (
@@ -132,8 +123,8 @@
             institutionField: institutionField,
             previewValues: [],
             ontologyFieldName: ontologyFieldName,
+            default_description: !!oof.default_description,
             isPrimary: !!oof.primary, // Take primary status from first encountered oof in group
-            // This might need adjustment if multiple oofs in a group can have different primary statuses
           });
         }
 
@@ -155,14 +146,12 @@
 
   function closeMappingPanel() {
     isMappingPanelOpen = false;
-    // mappingDatasource = null; // Optional: clear if not needed when panel is closed
-    // preparedMappings = [];
   }
 
   async function handleUpdateMappingPrimary(event) {
     const { id, primary } = event.detail;
     console.log(
-      `TODO: Update primary status for mapping ID ${id} to ${primary}`
+      `TODO: Update primary status for mapping ID ${id} to ${primary}`,
     );
     // Find the mapping in preparedMappings and update its state for immediate UI feedback
     const mappingIndex = preparedMappings.findIndex((m) => m.id === id);
@@ -200,7 +189,7 @@
     if (updateResponse.error) {
       console.error(
         "Failed to save datasource completely:",
-        updateResponse.error
+        updateResponse.error,
       );
     } else {
       let refetchResponse = null;
@@ -218,7 +207,7 @@
       ) {
         console.error(
           "Failed to refetch updated datasource:",
-          refetchResponse?.error
+          refetchResponse?.error,
         );
       } else {
         const newlyFetchedDatasource = refetchResponse.result?.[0] ?? null;
@@ -228,11 +217,11 @@
           const index = datasources.findIndex((ds) => ds.id === id); // Find index (needed for logging/check)
           if (index !== -1) {
             datasources = datasources.map((ds) =>
-              ds.id === id ? { ...ds, ...newlyFetchedDatasource } : ds
+              ds.id === id ? { ...ds, ...newlyFetchedDatasource } : ds,
             );
           } else {
             console.warn(
-              `Datasource ${id} not found in list after refetch (map).`
+              `Datasource ${id} not found in list after refetch (map).`,
             );
           }
         } else {

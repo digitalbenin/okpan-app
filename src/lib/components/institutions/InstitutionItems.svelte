@@ -6,8 +6,6 @@
   import InstitutionObjects from "./InstitutionObjects.svelte";
   import InstitutionDatasources from "./InstitutionDatasources.svelte";
 
-  let { onActionCompletesDataRefresh = () => {} } = $props();
-
   // Get data from context
   let objects = getContext("objects") || [];
   let assets = getContext("assets") || [];
@@ -44,7 +42,7 @@
       </ul>
 
       <div {...tabs.getContent("objects")} class="py-3">
-        <InstitutionObjects {onActionCompletesDataRefresh} />
+        <InstitutionObjects />
       </div>
 
       <div {...tabs.getContent("assets")}>

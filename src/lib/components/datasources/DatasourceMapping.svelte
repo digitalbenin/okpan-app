@@ -1,25 +1,39 @@
 <script>
     import BaseToggle from "$lib/components/base/BaseToggle.svelte";
-    import { createEventDispatcher } from "svelte";
 
-    // Props
-    // Expected structure for each item in 'mappings':
-    // {
-    //   id: string, // Unique ID for this mapping instance (e.g., a composite key or specific record ID)
-    //   institutionField: string, // The label from the source data (objects_ontology_fields.label)
-    //   previewValues: string[], // Array of up to 5 sample values (objects_ontology_fields.value)
-    //   ontologyFieldName: string, // Name of the linked ontology term (ontology_fields.name.content)
-    //   isPrimary: boolean // Whether this mapping is primary (objects_ontology_fields.primary)
-    // }
-    let { mappings = [] } = $props();
+    // onUpdatePrimary: (detail: { id: string, primary: boolean }) => void
+    // onUpdateDefaultDescription: (detail: { id: string, default_description: boolean }) => void
+    let {
+        mappings = [],
+        onUpdatePrimary = (detail) => {
+            console.warn("onUpdatePrimary prop not provided", detail);
+        },
+        onUpdateDefaultDescription = (detail) => {
+            console.warn(
+                "onUpdateDefaultDescription prop not provided",
+                detail,
+            );
+        },
+    } = $props();
 
-    const dispatch = createEventDispatcher();
+    $inspect("mappings", mappings);
+
     let expandedPreviews = $state({});
 
     function handlePrimaryToggle(mappingId, newPrimaryState) {
-        dispatch("updateMappingPrimary", {
+        onUpdatePrimary({
             id: mappingId,
             primary: newPrimaryState,
+        });
+    }
+
+    function handleDefaultDescriptionToggle(
+        mappingId,
+        newDefaultDescriptionState,
+    ) {
+        onUpdateDefaultDescription({
+            id: mappingId,
+            default_description: newDefaultDescriptionState,
         });
     }
 
@@ -54,6 +68,11 @@
                             scope="col"
                             class="text-center fw-semibold"
                             style="width: 15%;">Primary</th
+                        >
+                        <th
+                            scope="col"
+                            class="text-center fw-semibold"
+                            style="width: 15%;">Default Description</th
                         >
                     </tr>
                 </thead>
@@ -145,6 +164,18 @@
                                         )}
                                     label={null}
                                     id={`primary-toggle-${mapping.id}`}
+                                />
+                            </td>
+                            <td class="text-center">
+                                <BaseToggle
+                                    value={!!mapping.default_description}
+                                    onChange={(event) =>
+                                        handleDefaultDescriptionToggle(
+                                            mapping.id,
+                                            event.target.checked,
+                                        )}
+                                    label={null}
+                                    id={`default-description-toggle-${mapping.id}`}
                                 />
                             </td>
                         </tr>

@@ -337,6 +337,9 @@ const seed = async () => {
         console.log(`Edo Designation research field and ${edoDesignationsData.length} vocabularies seeded.`);
 
         // --- 7. Seed Objects ---
+        // Define which ontology fields are considered "description-like"
+        const descriptionOntologyFieldNames = new Set(['description', 'designation']);
+
         for (const objData of objectsData) {
             const newInstitutionId = institutionMap.get(objData.institution);
             if (!newInstitutionId) {
@@ -420,6 +423,13 @@ const seed = async () => {
                         const ontologyFieldDbId = ontologyFieldsByName.get(targetOntologyFieldName);
 
                         if (ontologyFieldDbId && fieldValuePair.value !== null && typeof fieldValuePair.value !== "undefined" && String(fieldValuePair.value).trim() !== "") {
+
+                            // Determine if this should be the default description
+                            let isDefaultDescription = 0;
+                            if (descriptionOntologyFieldNames.has(targetOntologyFieldName)) {
+                                isDefaultDescription = 1;
+                            }
+
                             await db.insert(objects_ontology_fields).values({
                                 id: uuidv4(),
                                 object_id: dbObject.id,
@@ -427,7 +437,8 @@ const seed = async () => {
                                 datasources_id: newDataSourceId,
                                 label: sourceFieldName, // Store original field name as label
                                 value: String(fieldValuePair.value),
-                                primary: fieldValuePair.primary ? 1 : 0
+                                primary: fieldValuePair.primary ? 1 : 0,
+                                default_description: isDefaultDescription // Populate the new field
                             });
                         } else {
                             if (!ontologyFieldDbId) console.warn(`Ontology field ID for '${targetOntologyFieldName}' not found for object ${objData.id}, field '${sourceFieldName}'.`);
