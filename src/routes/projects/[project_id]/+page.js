@@ -11,7 +11,7 @@ export const load = async ({ params, url, depends }) => {
     const search = url.searchParams.get('iSearch')
     const projectId = params.project_id
 
-    const institutions = await getProjectInstitutions(projectId, +page - 1, +pageSize || 10, orderBy, direction, search);
+    const institutions = await getProjectInstitutions(projectId, +page - 1, +pageSize, orderBy, direction, search);
 
     return {
         institutions
