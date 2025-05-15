@@ -1,7 +1,7 @@
 <script>
   import { queryParameters } from "sveltekit-search-params";
   import ProjectOverview from "$lib/components/projects/ProjectOverview.svelte";
-  import Table from "$lib/components/institutions/Table.svelte";
+  import InstitutionsTable from "$lib/components/institutions/InstitutionsTable.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
 
@@ -62,7 +62,7 @@
         </div>
       </div>
       {#if data.institutions && data.institutions.count > 0}
-        <Table
+        <InstitutionsTable
           institutions={data.institutions.result}
           count={data.institutions.count || 0}
         />
