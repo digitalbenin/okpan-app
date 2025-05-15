@@ -3,7 +3,7 @@
   import { getContext } from "svelte";
   import { Tabs } from "melt/builders";
   import InstitutionAssets from "./InstitutionAssets.svelte";
-  import InstitutionObjects from "../objects/InstitutionObjects.svelte";
+  import InstitutionObjects from "./InstitutionObjects.svelte";
   import InstitutionDatasources from "./InstitutionDatasources.svelte";
 
   let { onActionCompletesDataRefresh = () => {} } = $props();
