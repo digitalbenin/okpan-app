@@ -1,57 +1,72 @@
 import { browser } from '$app/environment';
 import { getInstitution } from "$lib/stores/InstitutionsUtils.js";
-import { getAssets } from "$lib/stores/AssetsUtils.js";
-import { getObjects } from '$lib/stores/ObjectsUtils.js';
+import { getAssets, getTotalAssetsForInstitution } from "$lib/stores/AssetsUtils.js";
+import { getObjects, getTotalObjectsForInstitution } from '$lib/stores/ObjectsUtils.js';
 import { getDatasources as fetchDatasources } from '$lib/stores/DatasourcesUtils.js';
 import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
 export const load = async ({ params, depends }) => {
     if (!browser) return;
-    console.log("loading institution data");
-    depends('app:objects', 'app:assets', 'app:datasources')
-
+    console.log("loading institution page data for:", params.institution_id);
+    depends('app:objects', 'app:assets', 'app:datasources', 'app:institution');
 
     const projectId = params.project_id;
     const institutionId = params.institution_id;
 
+    // Initial parameters for paginated lists (can be adjusted or made dynamic later)
+    const initialPageOptions = {
+        page: 0,
+        pageSize: 10, // Default page size
+        // You can add other default filters here if needed, e.g., initial search term, type
+        projectId,
+        institutionId
+    };
+
     // Get content language store to fetch project languages
     const { getAvaliableLocalesForProject } = getContentLanguageStore();
 
-    // Load all data in parallel for better performance
-    const [institutionData, assetsData, objectsData, projectLanguages, datasourcesResponse] = await Promise.all([
+    // Load all data in parallel
+    const [
+        institutionData,
+        initialAssetsData,
+        totalInstitutionAssetsData,
+        initialObjectsData,
+        totalInstitutionObjectsData,
+        projectLanguages,
+        datasourcesResponse // Assuming fetchDatasources will also return { items, totalCount }
+    ] = await Promise.all([
         getInstitution(institutionId),
-        getAssets(projectId, institutionId),
-        getObjects(projectId, institutionId),
+        getAssets(initialPageOptions), // For initial filtered/paginated list and its filtered count
+        getTotalAssetsForInstitution(projectId, institutionId), // For total unfiltered assets in this institution
+        getObjects(initialPageOptions), // For initial filtered/paginated list and its filtered count
+        getTotalObjectsForInstitution(projectId, institutionId), // For total unfiltered objects in this institution
         getAvaliableLocalesForProject(projectId),
         fetchDatasources(projectId, institutionId)
     ]);
 
-    // Extract the actual datasources array from the response
-    const datasources = datasourcesResponse?.result || [];
-    // Log errors if any
-    if (datasourcesResponse?.error) {
-        console.error("Error fetching datasources in +page.js:", datasourcesResponse.error);
-        // Potentially return an error state or show a notification
-    }
 
-    console.log("institution data loaded", assetsData);
+    console.log("Institution page data fully loaded for:", institutionId);
 
-    // Assuming getAssets, getObjects, getInstitution return data directly or handle errors internally
-    // Adjust if they actually return { result: ..., error: ... }
-    const institution = institutionData; // Assuming direct return
-    const assets = assetsData || [];      // Assuming direct return, provide fallback
-    const objects = objectsData || [];     // Assuming direct return, provide fallback
+    const res = {
+        institution: institutionData?.result || institutionData, // Adjust based on getInstitution's actual return
 
+        assets: {
+            items: initialAssetsData?.items || [],
+            filteredCount: initialAssetsData?.totalCount || 0,
+            institutionTotal: totalInstitutionAssetsData?.totalCount || 0
+        },
+        objects: {
+            items: initialObjectsData?.items || [],
+            filteredCount: initialObjectsData?.totalCount || 0,
+            institutionTotal: totalInstitutionObjectsData?.totalCount || 0
+        },
 
-
-    return {
-        institution,
-        assets,
-        objects,
-        datasources,
         projectId,
         institutionId,
-        projectLanguages
-    }
+        datasources: datasourcesResponse?.result || [],
+        projectLanguages: projectLanguages?.result || projectLanguages || [] // Adjust as per getAvaliableLocalesForProject's return
+    };
+    console.log("institution page data loaded", res);
+    return res;
 };
 

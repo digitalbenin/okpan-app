@@ -1,9 +1,9 @@
 <script>
-  import { getContext } from "svelte";
   import {
     updateInstitution,
     getInstitution,
   } from "$lib/stores/InstitutionsUtils.js";
+  import { page } from "$app/state";
   import BaseBadge from "$lib/components/base/BaseBadge.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
@@ -12,13 +12,9 @@
   import InstitutionData from "./InstitutionData.svelte";
   import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
-  // Get data from context initially
-  const initialInstitution = getContext("institution");
-  const institutionId = getContext("institutionId");
-  const projectLanguages = getContext("projectLanguages");
-
-  // Use reactive state for the institution data being displayed and edited locally
-  let institution = $state(initialInstitution);
+  let institution = $derived(page.data.institution);
+  let institutionId = $derived(page.data.institution.id);
+  let projectLanguages = $derived(page.data.projectLanguages);
 
   // Get content language store for translations
   const { addTranslation, updateTranslation } = getContentLanguageStore();
@@ -268,11 +264,12 @@
         await Promise.all(translationPromises);
       }
 
-      // 4. Manual Refresh of local state
+      /*  // 4. Manual Refresh of local state
       const updatedInstitutionData = await getInstitution(institutionId);
       if (updatedInstitutionData) {
         institution = updatedInstitutionData;
       }
+      */
 
       showEditModal = false;
       addToast({

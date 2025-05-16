@@ -3,55 +3,74 @@ export const objectsOperations = {
   list: {
     type: "query",
     name: "List Objects",
-    description: "Retrieves all objects with optional filtering by project or institution",
+    description: "Retrieves all objects with optional filtering, pagination, and sorting, along with the total count of filtered items.",
     variables: {
       projectId: "Optional ID of project to filter by",
-      institutionId: "Optional ID of institution to filter by"
+      institutionId: "Optional ID of institution to filter by",
+      search: "Optional search term for status (case-insensitive)",
+      page: "Optional page number for pagination (0-based, default 0)",
+      pageSize: "Optional number of items per page (default 10)",
+      orderBy: "Optional field to order by (created_at, updated_at, status; default created_at)",
+      direction: "Optional sort direction (asc or desc; default desc)"
     },
-    query: `query ListObjects($projectId: String, $institutionId: String) {
-  result: objects(
-    where: {
-      project_id: { eq: $projectId }
-      institution_id: { eq: $institutionId }
-    }
+    query: `query ListObjects(
+  $projectId: String
+  $institutionId: String
+  $search: String
+  $page: Int
+  $pageSize: Int
+  $orderBy: String
+  $direction: String
+) {
+  result: objectsList(
+    project_id: $projectId
+    institution_id: $institutionId
+    search: $search
+    page: $page
+    pageSize: $pageSize
+    orderBy: $orderBy
+    direction: $direction
   ) {
-    id
-    status
-    created_at
-    updated_at
-    institution_id
-    project_id
-    institution {
+    items {
       id
-      name {
-        content
-      }
-    }
-    project {
-      id
-      title {
-        content
-      }
-    }
-    objectsAssets {
-      order
-      asset {
+      status
+      created_at
+      updated_at
+      institution_id
+      project_id
+      institution {
         id
-        filename
-        formats
-        path
-        type
-      }
-    }
-    objectsOntologyFields {
-      id
-      value
-      ontologyField {
         name {
           content
         }
       }
+      project {
+        id
+        title {
+          content
+        }
+      }
+      objectsAssets {
+        order
+        asset {
+          id
+          filename
+          formats
+          path
+          type
+        }
+      }
+      objectsOntologyFields {
+        id
+        value
+        ontologyField {
+          name {
+            content
+          }
+        }
+      }
     }
+    totalCount
   }
 }`
   },

@@ -5,9 +5,22 @@ import { invalidate } from "$app/navigation";
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
-export const getObjects = async (projectId, institutionId) => {
-    const result = await executeQuery('objects', 'list', { projectId, institutionId });
-    return result.result;
+
+export const getObjects = async (options) => {
+    const result = await executeQuery('objects', 'list', options);
+    if (result && result.result) {
+        return { items: result.result.items || [], totalCount: result.result.totalCount || 0 };
+    }
+    return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch objects or unexpected response structure") };
+};
+
+
+export const getTotalObjectsForInstitution = async (projectId, institutionId) => {
+    const result = await executeQuery('objects', 'list', { projectId, institutionId, pageSize: 1, page: 0 });
+    if (result && result.result && typeof result.result.totalCount === 'number') {
+        return { totalCount: result.result.totalCount };
+    }
+    return { totalCount: 0, error: result?.error || new Error("Failed to fetch total objects count or unexpected response structure") };
 };
 
 // Function to get a single object by ID with complete data including research fields

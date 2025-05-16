@@ -1,5 +1,5 @@
 <script>
-    import { getContext } from "svelte";
+    import { page as pageData } from "$app/state";
 
     // Define props using $props() rune
     let {
@@ -9,8 +9,7 @@
     } = $props();
 
     // Get project context
-    const projectId = getContext("projectId");
-
+    const projectId = $derived(pageData.data.project.id);
     // Construct the base project URL
     const projectUrl = `/projects/${projectId}`;
 </script>

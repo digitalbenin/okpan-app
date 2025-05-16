@@ -52,7 +52,7 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         (mainUpdateVariables[key] === undefined || mainUpdateVariables[key] === null) && delete mainUpdateVariables[key]
     );
 
-    const mainUpdateResponse = await executeQuery('datasources', 'update', mainUpdateVariables, fetchFn);
+    const mainUpdateResponse = await executeQuery('datasources', 'update', mainUpdateVariables);
 
     if (!mainUpdateResponse || mainUpdateResponse.error) {
         const errorMessage = mainUpdateResponse?.error?.message || (Array.isArray(mainUpdateResponse?.error) ? mainUpdateResponse.error[0]?.message : mainUpdateResponse?.error);

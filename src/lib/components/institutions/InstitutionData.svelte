@@ -1,13 +1,12 @@
 <script>
-    import { getContext } from "svelte";
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseSelect from "$lib/components/base/BaseSelect.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
     import { Tabs } from "melt/builders";
-
+    import { page as pageData } from "$app/state";
     let {
-        projectLanguages = $bindable(getContext("projectLanguages") || []),
+        projectLanguages = $bindable(pageData.data.projectLanguages),
         formData = $bindable({}), // Parent provides and manages this reactive object
         errors = $bindable({}), // Parent can pass down errors
     } = $props();

@@ -1,12 +1,12 @@
 <script>
-  import { getContext } from "svelte";
+  import { page as pageData } from "$app/state";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { updateProject, getProject } from "$lib/stores/ProjectsUtils.js";
   import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
   import { Tabs } from "melt/builders";
   import { goto } from "$app/navigation";
 
-  let project = getContext("project");
+  let project = $derived(pageData.data.project);
 
   // Get content language store to work with translations
   const { getAvaliableLocalesForProject, addTranslation, updateTranslation } =
@@ -67,10 +67,10 @@
         } else {
           // Find translations
           const titleTranslation = currentProject.title.translations?.find(
-            (t) => t.language_code === lang.language_code
+            (t) => t.language_code === lang.language_code,
           );
           const descTranslation = currentProject.description.translations?.find(
-            (t) => t.language_code === lang.language_code
+            (t) => t.language_code === lang.language_code,
           );
 
           editTitle[lang.language_code] = titleTranslation?.content || "";
@@ -125,12 +125,12 @@
       }
 
       // Update our project reference with latest data
-      project = updatedProject;
+      //project = updatedProject;
 
       // Verify that we have valid text IDs before proceeding with translations
       if (!project.title_id || !project.description_id) {
         console.warn(
-          "Missing valid text IDs for project. Skipping translations."
+          "Missing valid text IDs for project. Skipping translations.",
         );
       } else {
         // Now handle translations for non-default languages
@@ -170,18 +170,18 @@
 
           // Filter out null/empty values that might have been returned from the database
           parsedTitleTranslations = parsedTitleTranslations.filter(
-            (t) => t && t.language_code
+            (t) => t && t.language_code,
           );
           parsedDescTranslations = parsedDescTranslations.filter(
-            (t) => t && t.language_code
+            (t) => t && t.language_code,
           );
 
           const titleTranslation = parsedTitleTranslations.find(
-            (t) => t.language_code === lang.language_code
+            (t) => t.language_code === lang.language_code,
           );
 
           const descTranslation = parsedDescTranslations.find(
-            (t) => t.language_code === lang.language_code
+            (t) => t.language_code === lang.language_code,
           );
 
           // Handle title translation
@@ -192,7 +192,7 @@
               const result = await addTranslation(
                 project.title_id,
                 lang.language_code,
-                titleContent
+                titleContent,
               );
             }
           }
@@ -205,7 +205,7 @@
               const result = await addTranslation(
                 project.description_id,
                 lang.language_code,
-                descContent
+                descContent,
               );
             }
           }
@@ -213,8 +213,8 @@
       }
 
       // Refresh project data after all updates
-      const finalProject = await getProject(project.id);
-      project = finalProject;
+      //const finalProject = await getProject(project.id);
+      //project = finalProject;
 
       // Close modal
       closeModal();

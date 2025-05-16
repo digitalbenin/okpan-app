@@ -14,7 +14,7 @@ export const load = async ({ params }) => {
     const researchFields = researchFieldsResponse?.result || [];
     const projectLanguages = await getAvaliableLocalesForProject(params.project_id);
     // Log research fields with their vocabularies to console
-    console.log("Research fields with vocabularies:", researchFields);
+    console.log("Project data:", projectLanguages, researchFields, project);
 
     return {
         project,

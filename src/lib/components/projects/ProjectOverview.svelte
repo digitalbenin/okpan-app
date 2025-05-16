@@ -1,6 +1,6 @@
 <script>
-  import { getContext } from "svelte";
-  const project = getContext("project");
+  import { page as pageData } from "$app/state";
+  const project = pageData.data.project;
   const cards = $derived.by(() => {
     return [
       { title: "Institutions", value: project.institutionsCount || 0 },

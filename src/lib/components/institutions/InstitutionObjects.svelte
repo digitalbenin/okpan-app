@@ -1,5 +1,5 @@
 <script>
-  import { getContext } from "svelte";
+  import { page as pageData } from "$app/state";
   import { page } from "$app/stores";
   import { goto, invalidateAll } from "$app/navigation";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
@@ -16,11 +16,7 @@
   } from "$lib/stores/ObjectsUtils.js";
 
   // Get data from context
-  const objects = getContext("objects") || [];
-  // const assets = getContext("assets") || [];
-
-  // Mutable array of objects that can be updated
-  let objectsList = $state(objects);
+  let objectsList = $derived(pageData.data.objects.items);
 
   // Function to get object title from mapped ontology field
   function getObjectTitle(object) {
@@ -313,15 +309,6 @@
         }
       }
 
-      // Update object in the list
-      const index = objectsList.findIndex((obj) => obj.id === objectId);
-      if (index !== -1) {
-        // Create a new list with the updated object
-        const newList = [...objectsList];
-        newList[index] = selectedObject;
-        objectsList = newList;
-      }
-
       // Show success message
       if (fieldUpdateSuccess && statusUpdateSuccess) {
         console.log(
@@ -364,7 +351,7 @@
     } else {
       console.log("Object deleted successfully:", result);
       // Remove the deleted object from the local list IMMEDIATELY
-      objectsList = objectsList.filter((obj) => obj.id !== objectIdToDelete);
+      //objectsList = objectsList.filter((obj) => obj.id !== objectIdToDelete);
 
       // Close the detail panel
       closeObjectDetail(true);
@@ -410,25 +397,6 @@
         selectedObject.objectsAssets = selectedObject.objectsAssets.filter(
           (oa) => oa.asset.id !== assetToUnlinkDetails.assetId,
         );
-        // ObjectDetail's selectedImage will update via its own $effect
-        // when its 'object' prop's 'objectsAssets' array changes.
-      }
-
-      // Update the object in the main objectsList
-      const objectIndex = objectsList.findIndex(
-        (obj) => obj.id === assetToUnlinkDetails.objectId,
-      );
-      if (objectIndex !== -1) {
-        const updatedObjectInList = { ...objectsList[objectIndex] };
-        if (updatedObjectInList.objectsAssets) {
-          updatedObjectInList.objectsAssets =
-            updatedObjectInList.objectsAssets.filter(
-              (oa) => oa.asset.id !== assetToUnlinkDetails.assetId,
-            );
-        }
-        const newObjectsList = [...objectsList];
-        newObjectsList[objectIndex] = updatedObjectInList;
-        objectsList = newObjectsList;
       }
     }
     isUnlinkAssetModalOpen = false;
@@ -482,20 +450,6 @@
       />
     </div>
   </div>
-
-  <!-- Control Row 2: Filter -->
-  <!-- <div class="mb-4">
-    <BaseButton
-      text="Filter by status"
-      icon="filter"
-      iconPosition="right"
-      class="btn btn-sm btn-dark"
-      onClick={() => {
-        /* TODO: Implement filter action */
-      }}
-    />
-   
-  </div> -->
 
   <!-- Grid/List Content -->
   {#if displayMode === "grid"}

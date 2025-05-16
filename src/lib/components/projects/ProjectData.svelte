@@ -2,11 +2,11 @@
     import { Tabs } from "melt/builders";
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
-    import { getContext } from "svelte";
+    import { page as pageData } from "$app/state";
 
     // Get data from context if available
-    const projectFromContext = getContext("project");
-    const projectLanguagesFromContext = getContext("projectLanguages");
+    let projectFromContext = pageData.data.project;
+    let projectLanguagesFromContext = pageData.data.projectLanguages;
 
     let {
         languages = $bindable(projectLanguagesFromContext || []),

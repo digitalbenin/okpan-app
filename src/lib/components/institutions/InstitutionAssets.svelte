@@ -11,9 +11,7 @@
     import { deleteAsset } from "$lib/stores/AssetsUtils.js";
     import { unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
 
-    // Get assets from context
-    //let initialAssets = getContext("assets") || [];
-    let assetsList = $derived(pageData.data.assets);
+    let assetsList = $derived(pageData.data.assets.items);
 
     // Display mode state
     let displayMode = $state("grid"); // 'grid' or 'list'

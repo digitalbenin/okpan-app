@@ -1,14 +1,14 @@
 <script>
-    import { createEventDispatcher, getContext } from "svelte";
+    import { createEventDispatcher } from "svelte";
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
     import BaseDate from "$lib/components/base/BaseDate.svelte";
     import { Tabs } from "melt/builders";
     import { epochToYYYYMMDD } from "$lib/utils/dates.js";
-
+    import { page as pageData } from "$app/state";
     let { datasource, onDeleteRequest = () => {} } = $props();
 
-    const projectLanguages = getContext("projectLanguages") || [];
+    let projectLanguages = $derived(pageData.data.projectLanguages);
 
     // --- State variable to track the ID of the datasource processed by the effect ---
     let previousDatasourceId = $state(null);

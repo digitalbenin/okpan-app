@@ -1,5 +1,5 @@
 <script>
-  import { getContext } from "svelte";
+  import { page as pageData } from "$app/state";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { epochToDate } from "$lib/utils/dates";
   import SidePanel from "$lib/components/common/SidePanel.svelte";
@@ -12,7 +12,7 @@
     deleteDatasource,
   } from "$lib/stores/DatasourcesUtils.js";
 
-  let datasources = $state(getContext("datasources") || []);
+  let datasources = $derived(pageData.data.datasources);
 
   let sortColumn = "name"; // 'name' or 'date'
   let sortDirection = "asc"; // 'asc' or 'desc'
@@ -209,7 +209,7 @@
           "Failed to refetch updated datasource:",
           refetchResponse?.error,
         );
-      } else {
+      } /*else {
         const newlyFetchedDatasource = refetchResponse.result?.[0] ?? null;
 
         selectedDatasource = newlyFetchedDatasource;
@@ -227,7 +227,7 @@
         } else {
           datasources = datasources.filter((ds) => ds.id !== id);
         }
-      }
+      }*/
     }
   }
 
@@ -257,7 +257,7 @@
     } else {
       console.log("Datasource deleted successfully:", result);
       // Remove from local list
-      datasources = datasources.filter((ds) => ds.id !== datasourceIdToDelete);
+      //datasources = datasources.filter((ds) => ds.id !== datasourceIdToDelete);
       // Close the detail panel
       closeDatasourceDetail(true);
     }

@@ -1,5 +1,5 @@
 <script>
-  import { getContext } from "svelte";
+  import { page as pageData } from "$app/state";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
@@ -17,7 +17,7 @@
       );
     },
   } = $props();
-  const researchFields = getContext("researchFields") || [];
+  const researchFields = pageData.data.researchFields;
 
   // State management
   let editedFields = $state({});

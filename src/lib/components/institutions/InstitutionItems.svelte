@@ -1,20 +1,19 @@
 <script>
   import { page } from "$app/state";
-  import { getContext } from "svelte";
   import { Tabs } from "melt/builders";
   import InstitutionAssets from "./InstitutionAssets.svelte";
   import InstitutionObjects from "./InstitutionObjects.svelte";
   import InstitutionDatasources from "./InstitutionDatasources.svelte";
 
   // Get data from context
-  let objects = getContext("objects") || [];
-  let assets = getContext("assets") || [];
-  let datasources = getContext("datasources") || [];
+  let objects = $derived(page.data.objects);
+  let assets = $derived(page.data.assets);
+  let datasources = $derived(page.data.datasources);
 
   // Configure tabs with real counts
   let tabsList = [
-    { id: "objects", label: `Objects (${objects.length})` },
-    { id: "assets", label: `Assets (${assets.length})` },
+    { id: "objects", label: `Objects (${objects.institutionTotal})` },
+    { id: "assets", label: `Assets (${assets.institutionTotal})` },
     { id: "datasources", label: `Data sources (${datasources.length})` },
   ];
 
