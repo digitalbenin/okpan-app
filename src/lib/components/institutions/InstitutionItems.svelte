@@ -1,4 +1,5 @@
 <script>
+  import { queryParameters, ssp } from "sveltekit-search-params";
   import { page } from "$app/state";
   import { Tabs } from "melt/builders";
   import InstitutionAssets from "./InstitutionAssets.svelte";
@@ -10,6 +11,8 @@
   let assets = $derived(page.data.assets);
   let datasources = $derived(page.data.datasources);
 
+  const params = queryParameters();
+
   // Configure tabs with real counts
   let tabsList = [
     { id: "objects", label: `Objects (${objects.institutionTotal})` },
@@ -18,7 +21,10 @@
   ];
 
   const tabs = new Tabs({
-    value: "objects",
+    value: params.iView || "objects",
+    onValueChange: (value) => {
+      params.iView = value;
+    },
   });
 </script>
 
@@ -27,7 +33,7 @@
     <div class="col">
       <ul class="nav nav-underline border-bottom" {...tabs.triggerList}>
         {#each tabsList as tab}
-          <li class="nav-item">
+          <li class="nav-item cursor-pointer">
             <div
               class="nav-link"
               class:active={tab.id === tabs.value}
