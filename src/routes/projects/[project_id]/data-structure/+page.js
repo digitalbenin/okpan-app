@@ -4,9 +4,9 @@ import { getOntologyFields } from '$lib/stores/OntologyFieldsUtils.js';
 import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
 /** @type {import('./$types').PageLoad} */
-export async function load({ params, fetch }) {
+export async function load({ params, depends }) {
     if (!browser) return {}; // Return empty object on server, client-side fetch will populate
-
+    depends('app:research-fields', 'app:ontology-fields', 'app:content-language');
     const projectId = params.project_id;
 
     console.log(`Loading data for @data-structure in project ${projectId}...`);

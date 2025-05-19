@@ -14,11 +14,7 @@
     // $inspect(data); // Keep inspect if helpful for debugging
 
     // --- Local Reactive State for Research Fields ---
-    let localResearchFields = $state(data.researchFields || []);
-    // Keep local state in sync if the prop changes (e.g., initial load or HMR)
-    $effect(() => {
-        localResearchFields = data.researchFields || [];
-    });
+    let localResearchFields = $derived(data.researchFields || []);
 
     // --- State for Search --- (uses localResearchFields now via filteredResearchFields)
     let researchSearchTerm = $state("");
@@ -190,7 +186,7 @@
                         "Failed to refetch updated research field:",
                         refetchResponse?.error,
                     );
-                } else {
+                } /* else {
                     const newlyFetchedField =
                         refetchResponse.result?.[0] ?? null;
                     if (newlyFetchedField) {
@@ -216,7 +212,7 @@
                         if (selectedResearchFieldId === id)
                             closeResearchFieldDetail();
                     }
-                }
+                }*/
             }
         } catch (err) {
             console.error(
@@ -245,11 +241,6 @@
                 );
                 // Optionally show user feedback
             } else {
-                console.log("Research field deleted successfully.");
-                // --- Update local reactive state ---
-                localResearchFields = localResearchFields.filter(
-                    (rf) => rf.id !== id,
-                );
                 // --- End update ---
                 closeResearchFieldDetail(); // Close panel after successful delete
             }

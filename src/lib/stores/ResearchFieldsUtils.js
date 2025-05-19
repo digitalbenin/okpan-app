@@ -132,7 +132,7 @@ export const updateResearchField = async (fieldId, updateData) => {
             error: errorMessage
         };
     }
-    invalidate("app:research_fields");
+    invalidate("app:research-fields");
 
     return {
         result: { mainUpdate: mainUpdateResponse?.result, translationResults },
@@ -145,6 +145,6 @@ export const deleteResearchField = async (fieldId) => {
     // TODO: Consider cascading deletes for related texts/translations if necessary
     // Assuming 'research_fields' is the section and 'delete' is the operation
     const result = await executeQuery('research_fields', 'delete', { fieldId });
-    invalidate("app:research_fields");
+    invalidate("app:research-fields");
     return result;
 }; 
