@@ -112,6 +112,7 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         };
     }
 
+    invalidate("app:datasources");
     return {
         result: { mainUpdate: mainUpdateResponse?.result, translationResults },
         error: null

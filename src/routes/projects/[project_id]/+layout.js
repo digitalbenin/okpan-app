@@ -3,9 +3,9 @@ import { getProject } from "$lib/stores/ProjectsUtils.js";
 import { getResearchFields } from "$lib/stores/ResearchFieldsUtils.js";
 import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
-
-export const load = async ({ params }) => {
+export const load = async ({ params, depends }) => {
     if (!browser) return;
+    depends('app:projects', 'app:research_fields', 'app:content_languages');
     const project = await getProject(params.project_id);
     const { getAvaliableLocalesForProject } = getContentLanguageStore();
 

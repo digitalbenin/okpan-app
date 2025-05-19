@@ -1,7 +1,7 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
 import { API_SECTIONS } from "$lib/queries/index.js";
-
+import { invalidate } from "$app/navigation";
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
@@ -142,6 +142,7 @@ export const createProject = async (project) => {
         }
     }
 
+    invalidate("app:projects");
     // Return the new project data
     return {
         id: projectId,
@@ -175,6 +176,7 @@ export const updateProject = async (projectId, project) => {
     // Use executeQuery which handles errors, logging, and notifications
     const result = await executeQuery('projects', 'update', params);
 
+    invalidate("app:projects");
     // Return the result with the project ID for convenience
     return {
         ...result,
@@ -187,21 +189,29 @@ export const updateProject = async (projectId, project) => {
 
 export const deleteProject = async (projectId) => {
     // Use executeQuery which handles errors, logging, and notifications
-    return await executeQuery('projects', 'delete', { projectId });
+    const result = await executeQuery('projects', 'delete', { projectId });
+    invalidate("app:projects");
+    return result;
 };
 
 export const addLanguageToProject = async (projectId, languageCode) => {
     // Use executeQuery which handles errors, logging, and notifications
-    return await executeQuery('projects', 'addLanguage', { projectId, languageCode });
+    const result = await executeQuery('projects', 'addLanguage', { projectId, languageCode });
+    invalidate("app:projects");
+    return result;
 };
 
 export const removeLanguageFromProject = async (projectId, languageCode) => {
     // Use executeQuery which handles errors, logging, and notifications
-    return await executeQuery('projects', 'removeLanguage', { projectId, languageCode });
+    const result = await executeQuery('projects', 'removeLanguage', { projectId, languageCode });
+    invalidate("app:projects");
+    return result;
 };
 
 export const setLanguageAsDefault = async (projectId, languageCode) => {
     // Use executeQuery which handles errors, logging, and notifications
-    return await executeQuery('projects', 'setDefaultLanguage', { projectId, languageCode });
+    const result = await executeQuery('projects', 'setDefaultLanguage', { projectId, languageCode });
+    invalidate("app:projects");
+    return result;
 };
 

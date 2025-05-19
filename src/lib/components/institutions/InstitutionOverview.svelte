@@ -2,6 +2,7 @@
   import {
     updateInstitution,
     getInstitution,
+    // updateTextContent, // Removed: No longer used directly here
   } from "$lib/stores/InstitutionsUtils.js";
   import { page } from "$app/state";
   import BaseBadge from "$lib/components/base/BaseBadge.svelte";
@@ -152,18 +153,22 @@
     }
 
     try {
-      // 1. Prepare payload for main update (default lang texts + status)
-      const updatePayload = {
+      // 1. Prepare a consolidated payload for updateInstitution
+      const institutionUpdatePayload = {
         status: formDataForEdit.status,
+        // Default language content
         name: formDataForEdit.name[defaultLangCode]?.trim() || "",
         location: formDataForEdit.location[defaultLangCode]?.trim() || "",
         country: formDataForEdit.country[defaultLangCode]?.trim() || "",
         description: formDataForEdit.description[defaultLangCode]?.trim() || "",
+        // Links should be passed as a JSON string
         links: JSON.stringify(formDataForEdit.links || []),
       };
 
-      await updateInstitution(institutionId, updatePayload);
+      // Call the refactored updateInstitution
+      await updateInstitution(institutionId, institutionUpdatePayload);
 
+      // 2. Handle translations for secondary languages (existing logic remains)
       const translationPromises = [];
       const secondaryLanguages = projectLanguages.filter(
         (lang) => !lang.is_default,
@@ -174,7 +179,7 @@
 
         // Process Name Translation
         const nameVal = formDataForEdit.name[langCode]?.trim() || "";
-        const nameMainId = institution.name?.id;
+        const nameMainId = institution.name?.id; // Relies on institution object having name.id
         const nameExistingTranslationId = getExistingTranslationId(
           "name",
           langCode,
@@ -186,7 +191,8 @@
               updateTranslation(nameExistingTranslationId, nameVal),
             );
           } else {
-            /* Optional: delete */
+            // Optional: delete translation if value is empty
+            // translationPromises.push(deleteTranslation(nameExistingTranslationId));
           }
         } else if (nameVal && nameMainId) {
           translationPromises.push(
@@ -194,14 +200,13 @@
           );
         }
 
-        // Process Location Translation (similar logic)
+        // Process Location Translation
         const locVal = formDataForEdit.location[langCode]?.trim() || "";
         const locMainId = institution.location?.id;
         const locExistingTranslationId = getExistingTranslationId(
           "location",
           langCode,
         );
-
         if (locExistingTranslationId) {
           if (locVal) {
             translationPromises.push(
@@ -214,14 +219,13 @@
           translationPromises.push(addTranslation(locMainId, langCode, locVal));
         }
 
-        // Process Country Translation (similar logic)
+        // Process Country Translation
         const countryVal = formDataForEdit.country[langCode]?.trim() || "";
         const countryMainId = institution.country?.id;
         const countryExistingTranslationId = getExistingTranslationId(
           "country",
           langCode,
         );
-
         if (countryExistingTranslationId) {
           if (countryVal) {
             translationPromises.push(
@@ -243,7 +247,6 @@
           "description",
           langCode,
         );
-
         if (descExistingTranslationId) {
           if (descVal) {
             translationPromises.push(
@@ -259,17 +262,9 @@
         }
       });
 
-      // 3. Execute all translation promises
       if (translationPromises.length > 0) {
         await Promise.all(translationPromises);
       }
-
-      /*  // 4. Manual Refresh of local state
-      const updatedInstitutionData = await getInstitution(institutionId);
-      if (updatedInstitutionData) {
-        institution = updatedInstitutionData;
-      }
-      */
 
       showEditModal = false;
       addToast({

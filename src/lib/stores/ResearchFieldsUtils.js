@@ -1,5 +1,5 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
-
+import { invalidate } from "$app/navigation";
 // Note: Replace 'researchFields', 'list', 'getById', etc., with your actual GraphQL section and operation names.
 
 // Fetch all research fields for a specific project
@@ -45,15 +45,16 @@ export const getResearchFieldById = async (fieldId) => {
 };
 
 // Create a new research field (initial implementation, may need translation handling)
-export const createResearchField = async (fieldData, fetchFn) => {
+export const createResearchField = async (fieldData) => {
     // TODO: Handle initial text/translation creation if needed upon creation
     // Assuming 'research_fields' is the section and 'create' is the operation
-    const result = await executeQuery('research_fields', 'create', fieldData, fetchFn);
+    const result = await executeQuery('research_fields', 'create', fieldData);
+    invalidate("app:research_fields");
     return result;
 };
 
 // Update a research field, including translations orchestration
-export const updateResearchField = async (fieldId, updateData, fetchFn) => {
+export const updateResearchField = async (fieldId, updateData) => {
     if (!fieldId) {
         return { result: null, error: "Missing Research Field ID" };
     }
@@ -69,7 +70,7 @@ export const updateResearchField = async (fieldId, updateData, fetchFn) => {
         (mainUpdateVariables[key] === undefined || mainUpdateVariables[key] === null) && delete mainUpdateVariables[key]
     );
 
-    const mainUpdateResponse = await executeQuery('research_fields', 'update', mainUpdateVariables, fetchFn);
+    const mainUpdateResponse = await executeQuery('research_fields', 'update', mainUpdateVariables);
 
     if (!mainUpdateResponse || mainUpdateResponse.error) {
         const errorMessage = mainUpdateResponse?.error?.message || (Array.isArray(mainUpdateResponse?.error) ? mainUpdateResponse.error[0]?.message : mainUpdateResponse?.error) || "Unknown error during main update";
@@ -131,6 +132,7 @@ export const updateResearchField = async (fieldId, updateData, fetchFn) => {
             error: errorMessage
         };
     }
+    invalidate("app:research_fields");
 
     return {
         result: { mainUpdate: mainUpdateResponse?.result, translationResults },
@@ -139,9 +141,10 @@ export const updateResearchField = async (fieldId, updateData, fetchFn) => {
 };
 
 // Delete a research field
-export const deleteResearchField = async (fieldId, fetchFn) => {
+export const deleteResearchField = async (fieldId) => {
     // TODO: Consider cascading deletes for related texts/translations if necessary
     // Assuming 'research_fields' is the section and 'delete' is the operation
-    const result = await executeQuery('research_fields', 'delete', { fieldId }, fetchFn);
+    const result = await executeQuery('research_fields', 'delete', { fieldId });
+    invalidate("app:research_fields");
     return result;
 }; 

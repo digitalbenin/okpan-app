@@ -1,6 +1,6 @@
 import { buildSchema } from 'drizzle-graphql';
 import { sql, eq, aliasedTable, countDistinct } from 'drizzle-orm';
-import { GraphQLList, GraphQLNonNull, GraphQLScalarType, Kind, GraphQLObjectType, GraphQLInt } from 'graphql';
+import { GraphQLList, GraphQLNonNull, GraphQLScalarType, Kind, GraphQLObjectType, GraphQLInt, GraphQLError } from 'graphql';
 import * as dbSchema from './schema';
 
 export function createGraphQLSchema(db) {
@@ -8,21 +8,74 @@ export function createGraphQLSchema(db) {
     const GraphQLJSON = new GraphQLScalarType({
         name: 'JSON',
         description: 'The `JSON` scalar type represents JSON values as specified by ECMA-404',
-        serialize(value) {
-            return value; // Return the value directly
-        },
-        parseValue(value) {
-            return typeof value === 'string' ? JSON.parse(value) : value;
-        },
-        parseLiteral(ast) {
-            if (ast.kind === Kind.STRING) {
+        serialize(valueFromResolver) { // Value from resolver/DB output to client
+            if (typeof valueFromResolver === 'string') {
                 try {
-                    return JSON.parse(ast.value);
+                    return JSON.parse(valueFromResolver); // Ensure client gets a parsed object
                 } catch (e) {
-                    return null;
+                    // If DB string isn't valid JSON or resolver returned non-JSON string for other reasons
+                    // Log error and return null or throw, depending on desired strictness
+                    console.error("GraphQLJSON.serialize: Error parsing string from resolver/DB: ", e);
+                    return null; // Or throw new GraphQLError('Failed to serialize JSON from resolver.');
                 }
             }
-            return null;
+            // If it's already an object (e.g., Drizzle parsed it, or resolver built it), pass through.
+            return valueFromResolver;
+        },
+        parseValue(inputValueFromClient) { // Value from client variables to resolver
+            // Since the $links variable is JSON!, inputValueFromClient will be the JS object/array.
+            // Drizzle's text({ mode: 'json' }) expects a string for insertion.
+            try {
+                return JSON.stringify(inputValueFromClient);
+            } catch (e) {
+                throw new GraphQLError('Failed to stringify JSON value for resolver: ' + e.message);
+            }
+        },
+        parseLiteral(ast) { // Value from query literal to resolver
+            // This helper converts an AST node to its JavaScript value, then stringifies it.
+            function astToValue(node) {
+                switch (node.kind) {
+                    case Kind.STRING: // A string literal could be pre-stringified JSON or just a string
+                        // For safety, if it's a string, try parsing. If it fails, it's not JSON.
+                        // If it parses, it means it was a string *containing* JSON, which is unusual for a JSON literal.
+                        // More commonly, for a JSON scalar, object/list literals are used.
+                        // For now, assume a string literal IS the content, to be stringified if not already part of a larger structure.
+                        // This part is tricky; typically one might expect ObjectValue or ListValue for JSON literals.
+                        // If a string is passed, it implies it's a simple JSON string value like "\"my string\""
+                        // or it is the *content* of what should be stringified.
+                        // Let's assume it IS the JSON string content for Drizzle if it's a simple string literal.
+                        try {
+                            JSON.parse(node.value); // Validate if it's a JSON string
+                            return node.value; // Return the string itself if it's already valid JSON string
+                        } catch (e) {
+                            // If it's not a valid JSON string, then it's a plain string to be encoded *as* a JSON string.
+                            return JSON.stringify(node.value);
+                        }
+                    case Kind.BOOLEAN:
+                        return node.value;
+                    case Kind.INT:
+                    case Kind.FLOAT:
+                        return parseFloat(node.value);
+                    case Kind.OBJECT:
+                        return Object.fromEntries(node.fields.map(field => [field.name.value, astToValue(field.value)]));
+                    case Kind.LIST:
+                        return node.values.map(astToValue);
+                    case Kind.NULL:
+                        return null;
+                    default:
+                        return undefined; // Or throw for unhandled kinds
+                }
+            }
+            const jsValue = astToValue(ast);
+            if (typeof jsValue === 'undefined') {
+                throw new GraphQLError('Could not parse literal to a valid JS value for JSON: ' + ast.kind);
+            }
+            // The resolver expects a string for Drizzle's text({ mode: 'json' })
+            try {
+                return JSON.stringify(jsValue);
+            } catch (e) {
+                throw new GraphQLError('Failed to stringify parsed literal for JSON: ' + e.message);
+            }
         }
     });
 
@@ -1206,6 +1259,7 @@ export function createGraphQLSchema(db) {
 
     return { schema: drizzleResult.schema, resolvers: drizzleResult.resolvers };
 };
+
 
 
 

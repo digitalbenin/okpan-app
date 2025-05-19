@@ -1,5 +1,5 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
-
+import { invalidate } from "$app/navigation";
 
 export const getOntologyFields = async (page, pageSize) => {
     // Assuming 'ontology_fields' is the section and 'list' is the operation
@@ -27,11 +27,13 @@ export const updateOntologyField = async (fieldId, updateData) => {
     // Assuming 'ontology_fields' is the section and 'update' is the operation
     // Consider using partialUpdate if available and appropriate
     const result = await executeQuery('ontology_fields', 'update', params);
+    invalidate("app:ontology_fields");
     return result;
 };
 
 export const deleteOntologyField = async (fieldId) => {
     // Assuming 'ontology_fields' is the section and 'delete' is the operation
     const result = await executeQuery('ontology_fields', 'delete', { fieldId });
+    invalidate("app:ontology_fields");
     return result;
 }; 

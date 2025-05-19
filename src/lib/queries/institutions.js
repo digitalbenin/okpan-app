@@ -293,18 +293,18 @@ export const institutionsOperations = {
       country: "New country content (optional)",
       location: "New location content (optional)",
       status: "New status (optional)",
-      links: "New links array (optional)"
+      links: "New links array (optional, should be JSON)"
     },
     mutations: [
       {
         name: "getInstitution",
         query: `query GetInstitutionForUpdate($institutionId: String!) {
-  institutions(where: { id: { eq: $institutionId } }) {
+  institution: institutionById(institution_id: $institutionId) {
     id
-    name_id
-    description_id
-    country_id
-    location_id
+    name { id }
+    description { id }
+    country { id }
+    location { id }
     status
     links
   }
@@ -324,7 +324,7 @@ export const institutionsOperations = {
 }`,
         useVariables: ["name"],
         mapVariables: {
-          nameId: { from: "getInstitution", path: "institutions.0.name_id" }
+          nameId: { from: "getInstitution", path: "institution.name.id" }
         },
         skipIf: { variableName: "name", isUndefined: true }
       },
@@ -341,7 +341,7 @@ export const institutionsOperations = {
 }`,
         useVariables: ["description"],
         mapVariables: {
-          descriptionId: { from: "getInstitution", path: "institutions.0.description_id" }
+          descriptionId: { from: "getInstitution", path: "institution.description.id" }
         },
         skipIf: { variableName: "description", isUndefined: true }
       },
@@ -358,7 +358,7 @@ export const institutionsOperations = {
 }`,
         useVariables: ["country"],
         mapVariables: {
-          countryId: { from: "getInstitution", path: "institutions.0.country_id" }
+          countryId: { from: "getInstitution", path: "institution.country.id" }
         },
         skipIf: { variableName: "country", isUndefined: true }
       },
@@ -375,7 +375,7 @@ export const institutionsOperations = {
 }`,
         useVariables: ["location"],
         mapVariables: {
-          locationId: { from: "getInstitution", path: "institutions.0.location_id" }
+          locationId: { from: "getInstitution", path: "institution.location.id" }
         },
         skipIf: { variableName: "location", isUndefined: true }
       },
@@ -395,7 +395,7 @@ export const institutionsOperations = {
       },
       {
         name: "updateLinks",
-        query: `mutation UpdateInstitutionLinks($institutionId: String!, $links: String!) {
+        query: `mutation UpdateInstitutionLinks($institutionId: String!, $links: JSON!) {
   updateInstitutions(
     set: { links: $links }
     where: { id: { eq: $institutionId } }

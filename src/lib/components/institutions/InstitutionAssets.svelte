@@ -12,13 +12,13 @@
     import { unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
 
     let assetsList = $derived(pageData.data.assets.items);
+    let selectedAssetId = $derived($page.url.searchParams.get("assetId"));
+    let selectedAsset = $derived(
+        assetsList.find((asset) => asset.id === selectedAssetId),
+    );
 
     // Display mode state
     let displayMode = $state("grid"); // 'grid' or 'list'
-
-    // Selected asset state
-    let selectedAssetId = $state(null);
-    let selectedAsset = $state(null);
     let closeContentTimeout = null; // Added to manage timeout
 
     // Modal state for asset deletion
@@ -29,7 +29,6 @@
     let isUnlinkConfirmModalOpen = $state(false);
     let unlinkDetails = $state({ objectId: null, assetId: null });
 
-    // --- New $effect for URL Synchronization ---
     $effect(() => {
         const urlAssetId = $page.url.searchParams.get("assetId");
 
@@ -48,7 +47,6 @@
         }
         // If URL and state match, or both are null, do nothing.
     });
-    // --- End $effect ---
 
     // Function to find asset by ID
     function findAssetById(id) {
@@ -70,10 +68,6 @@
         const newAssetId = asset ? String(asset.id) : null;
 
         if (newAssetId && newAssetId !== selectedAssetId) {
-            selectedAssetId = newAssetId;
-            selectedAsset = asset;
-            // The panel will open reactively based on selectedAssetId
-
             if (updateUrl) {
                 const currentPath = $page.url.pathname;
                 const currentParams = new URLSearchParams($page.url.search);
@@ -92,9 +86,7 @@
     // Function to close asset detail panel
     function closeAssetDetail(updateUrl = true) {
         if (selectedAssetId !== null) {
-            const idToRemove = selectedAssetId;
-            selectedAssetId = null; // Start panel closing animation immediately
-            // Panel closes reactively via isOpen={!!selectedAssetId}
+            $page.url.searchParams.delete("assetId");
 
             // Clear any existing timeout before setting a new one
             if (closeContentTimeout) {
@@ -103,11 +95,6 @@
 
             // Set timeout to remove the content *after* the animation
             closeContentTimeout = setTimeout(() => {
-                // Only set asset to null if the panel wasn't reopened for the same ID in the meantime
-                // (selectedAssetId being null is the check that close is still intended)
-                if (selectedAssetId === null) {
-                    selectedAsset = null;
-                }
                 closeContentTimeout = null; // Clear the timeout ID variable
             }, 310); // Matches CSS transition duration + small buffer
 
@@ -169,9 +156,10 @@
         } else {
             closeAssetDetail(true);
         }
-        invalidateAll();
         // Reset modal state
+
         isDeleteAssetModalOpen = false;
+        closeAssetDetail(true);
         assetIdToDelete = null;
     }
 
@@ -193,26 +181,6 @@
             alert(`Error unlinking asset: ${result.error}`); // Keep alert for now
         } else {
             console.log("Asset unlinked successfully:", result.result);
-            /*const targetAssetIndex = assetsList.findIndex(
-                (a) => a.id === unlinkDetails.assetId,
-            );
-            if (targetAssetIndex !== -1) {
-                const updatedAsset = { ...assetsList[targetAssetIndex] };
-                updatedAsset.objectsAssets = updatedAsset.objectsAssets.filter(
-                    (oa) => oa.object_id !== unlinkDetails.objectId,
-                );
-                const newAssetsList = [...assetsList];
-                newAssetsList[targetAssetIndex] = updatedAsset;
-                //assetsList = newAssetsList;
-
-                // If the currently selected asset is the one unlinked, update its details
-                if (
-                    selectedAsset &&
-                    selectedAsset.id === unlinkDetails.assetId
-                ) {
-                    selectedAsset = updatedAsset;
-                }
-            }*/
         }
 
         // Reset modal state

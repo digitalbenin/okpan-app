@@ -3,8 +3,8 @@
 import { browser } from "$app/environment";
 import { getProjects } from "$lib/stores/ProjectsUtils";
 
-
-export const load = async () => {
+export const load = async ({ depends }) => {
+    depends('app:projects');
     // const { fetchLanguages } = getContentLanguageStore();
     // const { getProjects } = getProjectStore();
     // const languages = await fetchLanguages();

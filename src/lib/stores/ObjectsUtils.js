@@ -131,6 +131,7 @@ export const updateObjectResearchFields = async (objectId, changes) => {
             error: errors.join("; ")
         };
     }
+    invalidate("app:objects");
 
     return { results, error: null };
 };
