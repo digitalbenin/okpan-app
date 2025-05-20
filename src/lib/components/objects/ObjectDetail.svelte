@@ -1,10 +1,14 @@
 <script>
-  import { page as pageData } from "$app/state";
+  import { page } from "$app/state";
+  import { goto, preloadData, pushState, replaceState } from "$app/navigation";
+  import { getContext } from "svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseToggle from "$lib/components/base/BaseToggle.svelte";
   import BaseSelect from "$lib/components/base/BaseSelect.svelte";
+  import { invalidate, invalidateAll } from "$app/navigation";
+  import { updateObjectStatus } from "$lib/stores/ObjectsUtils.js";
 
   let {
     object,
@@ -13,11 +17,11 @@
     onUnlinkAssetRequest = (details) => {
       console.warn(
         "ObjectDetail: onUnlinkAssetRequest prop not provided.",
-        details,
+        details
       );
     },
   } = $props();
-  const researchFields = pageData.data.researchFields;
+  const researchFields = page.data.researchFields;
 
   // State management
   let editedFields = $state({});
@@ -26,7 +30,6 @@
   let originalStatus = $state("");
   let statusChanged = $state(false);
   let selectedImage = $state(object.objectsAssets[0]);
-  $inspect(selectedImage);
 
   // Initialize when object changes
   $effect(() => {
@@ -96,7 +99,7 @@
     if (!fieldId) return;
 
     const originalField = object.objectsResearchFields.find(
-      (f, index) => (f.id || `field-${index}`) === fieldId,
+      (f, index) => (f.id || `field-${index}`) === fieldId
     );
 
     if (!originalField) return;
@@ -122,7 +125,7 @@
   // Get options for select fields
   function getFieldOptions(field) {
     const fieldDef = researchFields.find(
-      (rf) => rf.id === field.researchField?.id,
+      (rf) => rf.id === field.researchField?.id
     );
 
     if (!fieldDef?.vocabularies?.length) return [];
@@ -144,7 +147,7 @@
     if (currentObject?.objectsOntologyFields) {
       const titleField = currentObject.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "object id",
+          field.ontologyField?.name?.content?.toLowerCase() === "object id"
       );
       if (titleField?.value) return titleField.value;
     }
@@ -156,7 +159,7 @@
     if (currentObject?.objectsOntologyFields) {
       const designationField = currentObject.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "designation",
+          field.ontologyField?.name?.content?.toLowerCase() === "designation"
       );
       return designationField?.value || null;
     }
@@ -206,6 +209,38 @@
     }
   }
 
+  async function handleSaveNew() {
+    const statusResult = await updateObjectStatus(
+      object.id,
+      statusValue ? "completed" : "in progress"
+    );
+
+    if (statusResult.error) {
+      console.error("Error updating status:", statusResult.error);
+      statusUpdateSuccess = false;
+    } else {
+      console.log("Status update successful:", statusResult);
+
+      // await invalidate("custom:objects");
+      const href = `${page.url.pathname}/objects/${object.id}`;
+
+      const result = await preloadData(href);
+
+      if (result.type === "loaded" && result.status === 200) {
+        // replaceState(href, { selected: result.data });
+        goto(page.url.pathname, {
+          state: { selected: result.data },
+          replaceState: true,
+          keepFocus: true,
+          invalidate: ["custom:objects"],
+        });
+      } else {
+        // something bad happened! try navigating
+        goto(href);
+      }
+    }
+  }
+
   // Handle save button click
   function handleSave() {
     if (!object?.id || !hasChanges()) return;
@@ -215,7 +250,7 @@
     // Collect field changes
     for (const editedFieldKey in editedFields) {
       const originalFieldData = object.objectsResearchFields.find(
-        (f, index) => (f.id || `field-${index}`) === editedFieldKey,
+        (f, index) => (f.id || `field-${index}`) === editedFieldKey
       );
 
       if (originalFieldData?.id) {
@@ -266,7 +301,7 @@
       console.error(
         "Cannot initiate unlink: missing object ID or asset ID from selected image.",
         object,
-        assetLinkEntry,
+        assetLinkEntry
       );
     }
   }
@@ -374,7 +409,7 @@
                           e.target.value;
                         handleInputChange(
                           field.id || `field-${index}`,
-                          e.target.value,
+                          e.target.value
                         );
                       }}
                       placeholder="Enter value..."
@@ -396,7 +431,7 @@
                         e.target.value;
                       handleInputChange(
                         field.id || `field-${index}`,
-                        e.target.value,
+                        e.target.value
                       );
                     }}
                     placeholder="Enter value..."
@@ -468,7 +503,7 @@
             icon="save"
             class="btn btn-primary btn-sm"
             disabled={!hasChanges()}
-            onClick={handleSave}
+            onClick={handleSaveNew}
           />
           <BaseButton
             text="Delete"

@@ -1,10 +1,12 @@
 <script>
-  import { page as pageData } from "$app/state";
-  import { page } from "$app/stores";
-  import { goto, invalidateAll } from "$app/navigation";
+  import ObjectPage from "../../../routes/projects/[project_id]/institutions/[institution_id]/objects/[object_id]/+page.svelte";
+  import { page } from "$app/state";
+  import { goto, invalidateAll, preloadData, pushState } from "$app/navigation";
+  import LinkShallow from "$lib/components/common/LinkShallow.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import SidePanel from "$lib/components/common/SidePanel.svelte";
+  import SidePanelNew from "$lib/components/common/SidePanelNew.svelte";
   import ObjectDetail from "$lib/components/objects/ObjectDetail.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import {
@@ -16,14 +18,14 @@
   } from "$lib/stores/ObjectsUtils.js";
 
   // Get data from context
-  let objectsList = $derived(pageData.data.objects.items);
+  let objectsList = $derived(page.data.objects.items);
 
   // Function to get object title from mapped ontology field
   function getObjectTitle(object) {
     if (object.objectsOntologyFields) {
       const titleField = object.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "object id",
+          field.ontologyField?.name?.content?.toLowerCase() === "object id"
       );
       if (titleField && titleField.value) {
         return titleField.value;
@@ -38,7 +40,7 @@
     if (object.objectsOntologyFields) {
       const designationField = object.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "designation",
+          field.ontologyField?.name?.content?.toLowerCase() === "designation"
       );
       // Return the value if found, otherwise null
       return designationField?.value || null;
@@ -158,8 +160,8 @@
         }
 
         if (updateUrl) {
-          const currentPath = $page.url.pathname;
-          const currentParams = new URLSearchParams($page.url.search);
+          const currentPath = page.url.pathname;
+          const currentParams = new URLSearchParams(page.url.search);
           currentParams.set("objectId", newObjectId);
           goto(`${currentPath}?${currentParams.toString()}`, {
             keepfocus: true,
@@ -195,8 +197,8 @@
       }, 310); // Matches CSS transition duration + small buffer
 
       if (updateUrl) {
-        const currentPath = $page.url.pathname;
-        const currentParams = new URLSearchParams($page.url.search);
+        const currentPath = page.url.pathname;
+        const currentParams = new URLSearchParams(page.url.search);
         currentParams.delete("objectId");
         const newSearch = currentParams.toString();
         const newUrl = `${currentPath}${newSearch ? "?" + newSearch : ""}`;
@@ -211,7 +213,7 @@
 
   // URL Synchronization
   $effect(() => {
-    const urlObjectId = $page.url.searchParams.get("objectId");
+    const urlObjectId = page.url.searchParams.get("objectId");
 
     // Convert null/undefined to string for comparison if needed
     const currentSelectedIdStr = selectedObjectId
@@ -247,7 +249,7 @@
 
     console.log(
       `Saving ${changes?.length || 0} field changes for object ${objectId}`,
-      statusChange ? `and status change to "${statusChange}"` : "",
+      statusChange ? `and status change to "${statusChange}"` : ""
     );
 
     // Find the object to update
@@ -312,11 +314,11 @@
       // Show success message
       if (fieldUpdateSuccess && statusUpdateSuccess) {
         console.log(
-          `Object "${getObjectTitle(selectedObject)}" updated successfully!`,
+          `Object "${getObjectTitle(selectedObject)}" updated successfully!`
         );
       } else {
         console.warn(
-          `Object "${getObjectTitle(selectedObject)}" updated with some errors.`,
+          `Object "${getObjectTitle(selectedObject)}" updated with some errors.`
         );
       }
     } catch (error) {
@@ -371,7 +373,7 @@
   async function confirmAndUnlinkAsset() {
     if (!assetToUnlinkDetails.objectId || !assetToUnlinkDetails.assetId) {
       console.error(
-        "Cannot confirm asset unlink: Missing objectId or assetId.",
+        "Cannot confirm asset unlink: Missing objectId or assetId."
       );
       isUnlinkAssetModalOpen = false;
       return;
@@ -379,7 +381,7 @@
 
     const result = await unlinkAssetFromObject(
       assetToUnlinkDetails.objectId,
-      assetToUnlinkDetails.assetId,
+      assetToUnlinkDetails.assetId
     );
 
     if (result.error) {
@@ -388,14 +390,14 @@
       alert(`Error unlinking asset: ${result.error.message || result.error}`); // Placeholder
     } else {
       console.log(
-        `Asset '${assetToUnlinkDetails.assetFilename}' unlinked successfully from object '${assetToUnlinkDetails.objectId}'.`,
+        `Asset '${assetToUnlinkDetails.assetFilename}' unlinked successfully from object '${assetToUnlinkDetails.objectId}'.`
       );
       if (
         selectedObject &&
         selectedObject.id === assetToUnlinkDetails.objectId
       ) {
         selectedObject.objectsAssets = selectedObject.objectsAssets.filter(
-          (oa) => oa.asset.id !== assetToUnlinkDetails.assetId,
+          (oa) => oa.asset.id !== assetToUnlinkDetails.assetId
         );
       }
     }
@@ -456,16 +458,13 @@
     <div
       class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4"
     >
-      {#each filteredObjects as object (object.id)}
+      {#each objectsList as object (object.id)}
         <div class="col">
-          <div
-            class="card h-100"
-            role="button"
-            tabindex="0"
-            style="cursor: pointer;"
-            onclick={() => showObjectDetail(object.id)}
-            onkeydown={(event) => handleObjectKeyPress(event, object.id)}
+          <LinkShallow href="{page.url.pathname}/objects/{object.id}"
+            >vaiiiii</LinkShallow
           >
+          <!-- <a href="{page.url.pathname}/objects/{object.id}">via</a> -->
+          <div class="card h-100">
             <BaseImage
               src={getObjectImageUrl(object)}
               alt={getObjectTitle(object)}
@@ -572,7 +571,14 @@
 </div>
 
 <!-- Side Panel for Object Detail -->
-<SidePanel
+
+<SidePanelNew show={page.state?.selected}>
+  {#snippet offcanvasBody()}
+    <ObjectPage data={page.state.selected} />
+  {/snippet}
+</SidePanelNew>
+
+<!-- <SidePanel
   isOpen={!!selectedObjectId}
   on:close={() => closeObjectDetail(true)}
   position="right"
@@ -602,7 +608,7 @@
   {:else}
     <p>Loading...</p>
   {/if}
-</SidePanel>
+</SidePanel> -->
 
 {#snippet header()}
   Confirm Deletion

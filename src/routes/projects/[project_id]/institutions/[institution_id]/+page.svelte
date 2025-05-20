@@ -1,4 +1,6 @@
 <script>
+  import { page } from "$app/state";
+  import { afterNavigate } from "$app/navigation";
   import { queryParameters, ssp } from "sveltekit-search-params";
   import InstitutionOverview from "$lib/components/institutions/InstitutionOverview.svelte";
   import InstitutionItems from "$lib/components/institutions/InstitutionItems.svelte";

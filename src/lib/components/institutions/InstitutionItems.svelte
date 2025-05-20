@@ -46,7 +46,7 @@
         {/each}
       </ul>
 
-      <div {...tabs.getContent("objects")} class="py-3">
+      <div {...tabs.getContent("objects")}>
         <InstitutionObjects />
       </div>
 
