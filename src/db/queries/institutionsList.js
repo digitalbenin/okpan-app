@@ -9,6 +9,7 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
     addCountField(drizzleResult, 'InstitutionsSelectItem', 'assetsCount');
     addCountField(drizzleResult, 'InstitutionsSelectItem', 'datasourcesCount');
     addCountField(drizzleResult, 'InstitutionsSelectItem', 'totalCount');
+    addCountField(drizzleResult, 'InstitutionsSelectItem', 'previewImages', drizzleResult.schema._typeMap.JSON);
 
     return {
         name: 'institutionsList',
@@ -103,7 +104,41 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                 links: dbSchema.institutions.links,
                 objectsCount: sql`COALESCE(${objectsSubquery.objects_count}, 0)`.as('objectsCount'),
                 datasourcesCount: sql`COALESCE(${datasourcesSubquery.datasources_count}, 0)`.as('datasourcesCount'),
-                assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount')
+                assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount'),
+                previewImages: sql`COALESCE((
+                    SELECT json_group_array(json(preview.formats)) 
+                    FROM (
+                        SELECT a.formats
+                        FROM (
+                            SELECT o.id, o.created_at
+                            FROM objects o
+                            WHERE o.institution_id = ${dbSchema.institutions.id}
+                            ORDER BY o.created_at DESC
+                            LIMIT 3
+                        ) top_objects
+                        JOIN objects_assets oa ON top_objects.id = oa.object_id
+                        JOIN assets a ON oa.asset_id = a.id  
+                        WHERE (LOWER(a.type) LIKE '%image%' 
+                               OR LOWER(a.filename) LIKE '%.jpg'
+                               OR LOWER(a.filename) LIKE '%.png'
+                               OR LOWER(a.filename) LIKE '%.jpeg' 
+                               OR LOWER(a.filename) LIKE '%.avif'
+                               OR LOWER(a.filename) LIKE '%.webp')
+                            AND oa."order" = (
+                                SELECT MIN(oa2."order")
+                                FROM objects_assets oa2
+                                JOIN assets a2 ON oa2.asset_id = a2.id
+                                WHERE oa2.object_id = top_objects.id
+                                    AND (LOWER(a2.type) LIKE '%image%' 
+                                         OR LOWER(a2.filename) LIKE '%.jpg'
+                                         OR LOWER(a2.filename) LIKE '%.png'
+                                         OR LOWER(a2.filename) LIKE '%.jpeg' 
+                                         OR LOWER(a2.filename) LIKE '%.avif'
+                                         OR LOWER(a2.filename) LIKE '%.webp')
+                            )
+                        ORDER BY top_objects.created_at DESC
+                    ) preview
+                ), '[]')`.as('previewImages')
             })
                 .from(dbSchema.institutions)
                 .leftJoin(objectsSubquery, eq(dbSchema.institutions.id, objectsSubquery.institution_id))
@@ -188,7 +223,7 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
             // Process translations
             const results = processTranslations(institutions, ['name', 'description', 'location', 'country']);
 
-            // Explicitly parse the links JSON for each institution
+            // Explicitly parse the links and preview images JSON for each institution
             results.forEach(institution => {
                 if (institution.links && typeof institution.links === 'string') {
                     try {
@@ -197,6 +232,17 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                         console.error(`Error parsing links for institution ${institution.id}:`, e);
                         institution.links = [];
                     }
+                }
+
+                if (institution.previewImages && typeof institution.previewImages === 'string') {
+                    try {
+                        institution.previewImages = JSON.parse(institution.previewImages);
+                    } catch (e) {
+                        console.error(`Error parsing preview images for institution ${institution.id}:`, e);
+                        institution.previewImages = [];
+                    }
+                } else if (!institution.previewImages) {
+                    institution.previewImages = [];
                 }
             });
 
