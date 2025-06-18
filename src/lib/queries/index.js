@@ -12,6 +12,7 @@ import { ontologyFieldsOperations } from './ontology_fields';
 import { schemaOperations } from './schema';
 import { settingsOperations } from './settings';
 import { datasourcesOperations } from './datasources';
+import { entitySearchOperations } from './entitySearch';
 
 export const API_SECTIONS = {
     interface_languages: {
@@ -66,10 +67,15 @@ export const API_SECTIONS = {
         name: "Project Settings",
         operations: settingsOperations
     },
+    entity_search: {
+        name: "Entity Search",
+        operations: entitySearchOperations
+    },
     schema: {
         name: "GraphQL Schema",
         operations: schemaOperations // Note: schema operations is an array
     }
+
 };
 
 export default API_SECTIONS; 

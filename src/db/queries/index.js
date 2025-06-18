@@ -9,4 +9,5 @@ export { createInstitutionsCountQuery } from './institutionsCount';
 export { createInstitutionByIdQuery } from './institutionById';
 export { createDatasourcesListQuery } from './datasourcesList';
 export { createObjectsListQuery } from './objectsList';
-export { createAssetsListQuery } from './assetsList'; 
+export { createAssetsListQuery } from './assetsList';
+export { createEntitySearchQuery } from './entitySearch'; 

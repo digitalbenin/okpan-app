@@ -9,7 +9,8 @@ import {
     createInstitutionByIdQuery,
     createDatasourcesListQuery,
     createObjectsListQuery,
-    createAssetsListQuery
+    createAssetsListQuery,
+    createEntitySearchQuery
 } from './queries';
 
 export function createGraphQLSchema(db) {
@@ -62,6 +63,7 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Query._fields.datasourcesList = createDatasourcesListQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.objectsList = createObjectsListQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.assetsList = createAssetsListQuery(db, drizzleResult);
+    drizzleResult.schema._typeMap.Query._fields.entitySearch = createEntitySearchQuery(db, drizzleResult);
 
     return { schema: drizzleResult.schema, resolvers: drizzleResult.resolvers };
 };
