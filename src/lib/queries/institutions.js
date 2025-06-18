@@ -131,6 +131,7 @@ export const institutionsOperations = {
     objectsCount
     datasourcesCount
     assetsCount
+    previewImages
   }
   count: institutionsCount(project_id: $projectId, search: $search, languageCode: $languageCode)
 }`
