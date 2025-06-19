@@ -7,6 +7,8 @@ export const createProjectByIdQuery = (db, drizzleResult) => {
     addCountField(drizzleResult, 'ProjectSelectItem', 'institutionsCount');
     addCountField(drizzleResult, 'ProjectSelectItem', 'objectsCount');
     addCountField(drizzleResult, 'ProjectSelectItem', 'assetsCount');
+    addCountField(drizzleResult, 'ProjectSelectItem', 'completedObjectsCount');
+    addCountField(drizzleResult, 'ProjectSelectItem', 'linkedAssetsCount');
 
     return {
         name: 'projectById',
@@ -52,6 +54,28 @@ export const createProjectByIdQuery = (db, drizzleResult) => {
                 'assets_count'
             );
 
+            // Create subquery for completed objects
+            const completedObjectsSubquery = db
+                .select({
+                    project_id: dbSchema.objects.project_id,
+                    completed_objects_count: sql`count(*)`.as('completed_objects_count')
+                })
+                .from(dbSchema.objects)
+                .where(eq(dbSchema.objects.status, 'completed'))
+                .groupBy(dbSchema.objects.project_id)
+                .as('completed_objects_subquery');
+
+            // Create subquery for linked assets (assets that are linked to objects)
+            const linkedAssetsSubquery = db
+                .select({
+                    project_id: dbSchema.assets.project_id,
+                    linked_assets_count: sql`count(DISTINCT ${dbSchema.assets.id})`.as('linked_assets_count')
+                })
+                .from(dbSchema.assets)
+                .innerJoin(dbSchema.objects_assets, eq(dbSchema.assets.id, dbSchema.objects_assets.asset_id))
+                .groupBy(dbSchema.assets.project_id)
+                .as('linked_assets_subquery');
+
             // Execute the query
             const projects = await db.select({
                 id: dbSchema.project.id,
@@ -61,7 +85,9 @@ export const createProjectByIdQuery = (db, drizzleResult) => {
                 title: createTextFieldWithTranslations(titleTexts, titleTranslations),
                 institutionsCount: sql`COALESCE(${institutionsSubquery.institutions_count}, 0)`.as('institutionsCount'),
                 objectsCount: sql`COALESCE(${objectsSubquery.objects_count}, 0)`.as('objectsCount'),
-                assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount')
+                assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount'),
+                completedObjectsCount: sql`COALESCE(${completedObjectsSubquery.completed_objects_count}, 0)`.as('completedObjectsCount'),
+                linkedAssetsCount: sql`COALESCE(${linkedAssetsSubquery.linked_assets_count}, 0)`.as('linkedAssetsCount')
             })
                 .from(dbSchema.project)
                 .where(eq(dbSchema.project.id, args.project_id))
@@ -72,6 +98,8 @@ export const createProjectByIdQuery = (db, drizzleResult) => {
                 .leftJoin(institutionsSubquery, eq(dbSchema.project.id, institutionsSubquery.project_id))
                 .leftJoin(objectsSubquery, eq(dbSchema.project.id, objectsSubquery.project_id))
                 .leftJoin(assetsSubquery, eq(dbSchema.project.id, assetsSubquery.project_id))
+                .leftJoin(completedObjectsSubquery, eq(dbSchema.project.id, completedObjectsSubquery.project_id))
+                .leftJoin(linkedAssetsSubquery, eq(dbSchema.project.id, linkedAssetsSubquery.project_id))
                 .groupBy(dbSchema.project.id)
                 .execute();
 
