@@ -13,6 +13,7 @@ import { schemaOperations } from './schema';
 import { settingsOperations } from './settings';
 import { datasourcesOperations } from './datasources';
 import { entitySearchOperations } from './entitySearch';
+import { actionsOperations } from './actions';
 
 export const API_SECTIONS = {
     interface_languages: {
@@ -70,6 +71,10 @@ export const API_SECTIONS = {
     entity_search: {
         name: "Entity Search",
         operations: entitySearchOperations
+    },
+    actions: {
+        name: "Actions",
+        operations: actionsOperations
     },
     schema: {
         name: "GraphQL Schema",

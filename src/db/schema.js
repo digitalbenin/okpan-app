@@ -543,4 +543,27 @@ export const logs = sqliteTable('logs', {
     level: text('level').notNull().default('error'), // e.g., 'error', 'warn', 'info', 'debug'
     action: text('action').notNull(), // The action that triggered the log
     message: text('message').notNull(), // The log message
-}); 
+});
+
+export const actions = sqliteTable('actions', {
+    ...commonFields,
+    project_id: text('project_id').references(() => project.id),
+    user_id: text('user_id'),
+    client_id: text('client_id'),
+    action_type: text('action_type').notNull(),
+    entity_type: text('entity_type').notNull(),
+    entity_id: text('entity_id'),
+    changes: text('changes', { mode: 'json' }),
+    yjs_update: blob('yjs_update'),
+    parent_action_id: text('parent_action_id')
+});
+export const actionsRelations = relations(actions, ({ one }) => ({
+    project: one(project, {
+        fields: [actions.project_id],
+        references: [project.id]
+    }),
+    parentAction: one(actions, {
+        fields: [actions.parent_action_id],
+        references: [actions.id]
+    })
+})); 
