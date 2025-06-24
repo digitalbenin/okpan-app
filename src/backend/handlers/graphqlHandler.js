@@ -1,185 +1,174 @@
 import { graphql, parse } from 'graphql';
 import { actions } from '../../db/schema.js';
 
-/**
- * Extracts mutation fields from GraphQL operation
- */
-const extractMutationFields = (op) => {
-    if (!op?.selectionSet?.selections) return [];
+// Extract mutation field names from GraphQL operation
+const extractMutationFields = (op) =>
+    op?.selectionSet?.selections?.filter(s => s.kind === 'Field')?.map(s => s.name.value) ?? [];
 
-    return op.selectionSet.selections
-        .filter(selection => selection.kind === 'Field')
-        .map(selection => selection.name.value);
+// Get mutation metadata from GraphQL schema
+const getMutationInfo = (fieldName, schema) => {
+    const mutationType = schema.getType('Mutation');
+    const field = mutationType.getFields()[fieldName];
+
+    // Get return type
+    let returnType = field.type;
+    while (returnType.ofType) returnType = returnType.ofType;
+
+    // Get entity type from drizzle mappings
+    const entityType = schema._drizzleTypes?.[returnType.name] || 'unknown';
+
+    // Determine action type from field name
+    let actionType = 'CREATE';
+    if (fieldName.includes('delete') || fieldName.includes('remove')) actionType = 'DELETE';
+    else if (fieldName.includes('update')) actionType = 'UPDATE';
+    else if (fieldName.includes('insert') || fieldName.includes('create')) actionType = 'CREATE';
+
+    return { actionType, entityType };
 };
 
-/**
- * Parses mutation name to extract action type and entity type
- */
-const parseMutationName = (name) => {
-    // Handle junction table operations like deleteFromObjects_assets, addToObjects_assets
-    const junctionMatch = /^(add|remove|delete)(From|To)([A-Z][a-zA-Z]*)_([a-zA-Z]+)/i.exec(name);
-    if (junctionMatch) {
-        const [, action, preposition, table1, table2] = junctionMatch;
-        return {
-            actionType: action.toUpperCase() === 'REMOVE' ? 'DELETE' : action.toUpperCase(),
-            entityType: `${table1.toLowerCase()}_${table2.toLowerCase()}`
-        };
-    }
+// Extract entity ID from mutation result
+const extractEntityId = (fieldResult) =>
+    Array.isArray(fieldResult) ? fieldResult[0]?.id ?? null : fieldResult?.id ?? null;
 
-    // Handle regular operations like createObjects, updateInstitutions
-    const regularMatch = /^(create|update|delete|add|remove)([A-Z][a-zA-Z]*)/i.exec(name);
-    if (regularMatch) {
-        return {
-            actionType: regularMatch[1].toUpperCase(),
-            entityType: regularMatch[2].replace(/s$/, '').toLowerCase()
-        };
-    }
+// Compare before/after entities and extract changed fields
+const getChangedFields = (variables, currentEntity, fieldResult) => {
+    if (!currentEntity) return variables;
 
-    return null;
-};
+    const afterEntity = Array.isArray(fieldResult) ? fieldResult[0] : fieldResult;
+    if (!afterEntity) return variables;
 
-/**
- * Fetches current values for UPDATE mutations before execution
- */
-const fetchCurrentValues = async (mutationFields, variables, db) => {
-    const currentValues = {};
+    const changes = {};
 
-    for (const name of mutationFields) {
-        const parsed = parseMutationName(name);
-        if (!parsed || parsed.actionType !== 'UPDATE') continue;
+    // Compare fields that exist in both entities
+    for (const fieldName in afterEntity) {
+        if (fieldName === 'id' || fieldName === 'created_at' || fieldName === 'updated_at') continue;
 
-        try {
-            if (name === 'updateTexts') {
-                const textId = Object.values(variables).find(v =>
-                    typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i)
-                );
-                if (textId) {
-                    const currentText = await db.query.texts.findFirst({
-                        where: (texts, { eq }) => eq(texts.id, textId)
-                    });
-                    if (currentText) {
-                        currentValues[name] = currentText.content;
+        const beforeValue = currentEntity[fieldName];
+        const afterValue = afterEntity[fieldName];
+
+        // Normalize both values for comparison (handle JSON strings vs parsed objects)
+        let normalizedBefore = beforeValue;
+
+        // If before value is a JSON string, parse it for comparison
+        if (typeof beforeValue === 'string' && (beforeValue.startsWith('[') || beforeValue.startsWith('{'))) {
+            try {
+                normalizedBefore = JSON.parse(beforeValue);
+            } catch (e) {
+                // Not JSON, keep as string
+            }
+        }
+
+        const beforeStr = JSON.stringify(normalizedBefore);
+        const afterStr = JSON.stringify(afterValue);
+
+        if (beforeStr !== afterStr) {
+            // Find corresponding variable by matching the NEW value (afterValue)
+            for (const [varName, varValue] of Object.entries(variables)) {
+                if (varName.endsWith('Id')) continue;
+
+                let variableMatches = false;
+
+                // Direct comparison
+                if (JSON.stringify(varValue) === afterStr) {
+                    variableMatches = true;
+                }
+                // Handle JSON string variables
+                else if (typeof varValue === 'string') {
+                    try {
+                        const parsedVarValue = JSON.parse(varValue);
+                        if (JSON.stringify(parsedVarValue) === afterStr) {
+                            variableMatches = true;
+                        }
+                    } catch (e) {
+                        // Not JSON, continue
                     }
                 }
-            } else if (name === 'updateInstitutions') {
-                const institutionId = variables.institutionId;
-                if (institutionId) {
-                    const currentInstitution = await db.query.institutions.findFirst({
-                        where: (institutions, { eq }) => eq(institutions.id, institutionId)
-                    });
-                    if (currentInstitution) {
-                        currentValues[name] = {
-                            status: currentInstitution.status,
-                            links: currentInstitution.links
-                        };
-                    }
+
+                if (variableMatches) {
+                    changes[varName] = varValue;
+                    break;
                 }
             }
-        } catch (error) {
-            console.error(`Error fetching current values for ${name}:`, error);
         }
     }
 
-    return currentValues;
+    return Object.keys(changes).length > 0 ? changes : null;
 };
 
-/**
- * Extracts entity ID from mutation result
- */
-const extractEntityId = (fieldResult) => {
-    if (!fieldResult) return null;
-
-    if (Array.isArray(fieldResult)) {
-        return fieldResult[0]?.id || null;
-    }
-
-    if (typeof fieldResult === 'object' && fieldResult.id) {
-        return fieldResult.id;
-    }
-
-    return null;
-};
-
-/**
- * Checks if UPDATE mutation actually changed data
- */
-const hasActualChanges = (name, variables, currentValue) => {
-    if (name === 'updateTexts' && currentValue !== undefined) {
-        const newContent = Object.entries(variables)
-            .find(([key, value]) => !key.endsWith('Id') && typeof value === 'string')?.[1];
-        return newContent && newContent !== currentValue;
-    }
-
-    if (name === 'updateInstitutions' && currentValue) {
-        if (variables.status && variables.status !== currentValue.status) {
-            return true;
-        }
-        if (variables.links && JSON.stringify(variables.links) !== JSON.stringify(currentValue.links)) {
-            return true;
-        }
-        return false;
-    }
-
-    // For other cases, assume changes occurred
-    return true;
-};
-
-/**
- * Creates action record for CRDT synchronization
- */
-const createActionRecord = (name, actionType, entityType, entityId, variables, fieldResult, context) => {
-    const changeRecord = {
+// Create action record for database
+const createActionRecord = (name, actionType, entityType, entityId, changedFields, context) => ({
+    user_id: context?.userId || null,
+    project_id: context?.projectId || null,
+    action_type: actionType,
+    entity_type: entityType,
+    entity_id: entityId,
+    changes: JSON.stringify({
         mutation_name: name,
-        variables: variables,
+        variables: changedFields,
         timestamp: Date.now()
-    };
+    }),
+    client_id: context?.clientId || null,
+    yjs_update: context?.yjsUpdate || null,
+    parent_action_id: context?.parentActionId || null
+});
 
-    return {
-        user_id: context?.userId || null,
-        project_id: context?.projectId || null,
-        action_type: actionType,
-        entity_type: entityType,
-        entity_id: entityId,
-        changes: JSON.stringify(changeRecord),
-        client_id: context?.clientId || null,
-        yjs_update: context?.yjsUpdate || null,
-        parent_action_id: context?.parentActionId || null
-    };
+// Fetch pre-execution entities for UPDATE operations
+const fetchPreExecutionEntities = async (mutationFields, variables, db) => {
+    const preExecutionEntities = {};
+
+    for (const name of mutationFields) {
+        if (!name.startsWith('update')) continue;
+
+        // Find entity ID in variables
+        const entityId = Object.values(variables).find(v =>
+            typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i)
+        );
+
+        if (!entityId) continue;
+
+        // Search across all tables to find the entity
+        const tableNames = Object.keys(db.query);
+        for (const tableName of tableNames) {
+            try {
+                const found = await db.query[tableName].findFirst({
+                    where: (entity, { eq }) => eq(entity.id, entityId)
+                });
+                if (found) {
+                    preExecutionEntities[name] = found;
+                    break;
+                }
+            } catch (error) {
+                // Continue to next table
+            }
+        }
+    }
+
+    return preExecutionEntities;
 };
 
-/**
- * Processes mutations and creates action logs
- */
-const processMutationActions = async (op, result, variables, context, currentValues, db) => {
-    const mutationFields = extractMutationFields(op);
+// Process mutation results and create action logs
+const processMutationActions = async (mutationFields, result, variables, context, db, preExecutionEntities, schema) => {
     const actionRows = [];
 
     for (const name of mutationFields) {
-        const parsed = parseMutationName(name);
-        if (!parsed) continue;
-
-        const { actionType, entityType } = parsed;
         const fieldResult = result.data[name];
+        if (!fieldResult || (Array.isArray(fieldResult) && fieldResult.length === 0)) continue;
+
+        const { actionType, entityType } = getMutationInfo(name, schema);
         const entityId = extractEntityId(fieldResult);
 
-        // Skip if no rows were affected
-        if (!fieldResult || (Array.isArray(fieldResult) && fieldResult.length === 0)) {
-            continue;
-        }
+        if (actionType === 'UPDATE' && entityId && preExecutionEntities[name]) {
+            const changedFields = getChangedFields(variables, preExecutionEntities[name], fieldResult);
+            if (!changedFields) continue; // No changes detected
 
-        // For UPDATE operations, check for actual changes
-        if (actionType === 'UPDATE') {
-            const currentValue = currentValues[name];
-            if (!hasActualChanges(name, variables, currentValue)) {
-                continue;
-            }
+            actionRows.push(createActionRecord(name, actionType, entityType, entityId, changedFields, context));
+        } else {
+            // For CREATE/DELETE or UPDATE without pre-execution data
+            actionRows.push(createActionRecord(name, actionType, entityType, entityId, variables, context));
         }
-
-        const actionRecord = createActionRecord(name, actionType, entityType, entityId, variables, fieldResult, context);
-        actionRows.push(actionRecord);
     }
 
-    // Save action records
+    // Save action logs
     if (actionRows.length > 0) {
         try {
             await db.insert(actions).values(actionRows).execute();
@@ -189,22 +178,21 @@ const processMutationActions = async (op, result, variables, context, currentVal
     }
 };
 
-/**
- * Handler for executing GraphQL queries
- */
+// Main GraphQL handler
 export const handleGraphQL = async (event, { query, variables, context }, { schema, resolvers, db }) => {
     try {
         const parsed = parse(query);
         const op = parsed.definitions.find(d => d.kind === 'OperationDefinition');
+        const isMutation = op?.operation === 'mutation';
 
-        // For mutations, fetch current values before execution
-        let currentValues = {};
-        if (op?.operation === 'mutation') {
+        // Fetch pre-execution entities for mutations
+        let preExecutionEntities = {};
+        if (isMutation) {
             const mutationFields = extractMutationFields(op);
-            currentValues = await fetchCurrentValues(mutationFields, variables, db);
+            preExecutionEntities = await fetchPreExecutionEntities(mutationFields, variables, db);
         }
 
-        // Execute GraphQL operation
+        // Execute GraphQL query/mutation
         const result = await graphql({
             schema,
             source: query,
@@ -214,11 +202,11 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
         });
 
         // Process mutation actions for logging
-        if (!result.errors && op?.operation === 'mutation' && result.data) {
-            await processMutationActions(op, result, variables, context, currentValues, db);
+        if (!result.errors && isMutation && result.data) {
+            const mutationFields = extractMutationFields(op);
+            await processMutationActions(mutationFields, result, variables, context, db, preExecutionEntities, schema);
         }
 
-        // Return result
         if (result.errors) {
             console.error('GraphQL errors:', result.errors);
             return { success: false, errors: result.errors };
