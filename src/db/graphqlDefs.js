@@ -19,6 +19,24 @@ export function createGraphQLSchema(db) {
         relationsDepthLimit: 4
     });
 
+    // Store the drizzle type mappings in the schema for later use
+    // Extract type to table mapping from the actual GraphQL type names
+    const typeToTableMap = {};
+    for (const typeName in drizzleResult.schema._typeMap) {
+        if (typeName.endsWith('Item') || typeName.endsWith('SelectItem')) {
+            // Extract table name from type name
+            let tableName = typeName.replace(/SelectItem$|Item$/, '');
+
+            // Convert camelCase to snake_case for table names
+            // GenericAssets -> generic_assets, InterfaceLanguages -> interface_languages
+            tableName = tableName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+
+            typeToTableMap[typeName] = tableName;
+        }
+    }
+
+    drizzleResult.schema._drizzleTypes = typeToTableMap;
+
     // Add the JSON scalar type to the schema
     drizzleResult.schema._typeMap.JSON = GraphQLJSON;
 
