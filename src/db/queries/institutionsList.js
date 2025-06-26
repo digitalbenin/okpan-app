@@ -53,6 +53,11 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                 type: drizzleResult.schema._typeMap.String,
                 description: 'Sort direction (asc or desc)',
                 defaultValue: 'desc'
+            },
+            {
+                name: 'status',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Filter institutions by status'
             }
         ],
         resolve: async (source, args, context, info) => {
@@ -156,6 +161,11 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
             // Apply the project_id filter if specified
             if (args.project_id) {
                 query = query.where(eq(dbSchema.institutions.project_id, args.project_id));
+            }
+
+            // Apply the status filter if specified
+            if (args.status) {
+                query = query.where(eq(dbSchema.institutions.status, args.status));
             }
 
             // Apply search filter if provided

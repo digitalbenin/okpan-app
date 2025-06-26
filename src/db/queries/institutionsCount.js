@@ -20,6 +20,11 @@ export const createInstitutionsCountQuery = (db, drizzleResult) => {
                 name: 'languageCode',
                 type: drizzleResult.schema._typeMap.String,
                 description: 'Filter search results by language code (optional)'
+            },
+            {
+                name: 'status',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Filter institutions by status'
             }
         ],
         resolve: async (source, args, context, info) => {
@@ -31,6 +36,11 @@ export const createInstitutionsCountQuery = (db, drizzleResult) => {
             // Apply project_id filter if specified
             if (args.project_id) {
                 query = query.where(eq(dbSchema.institutions.project_id, args.project_id));
+            }
+
+            // Apply status filter if specified
+            if (args.status) {
+                query = query.where(eq(dbSchema.institutions.status, args.status));
             }
 
             // Apply search filter if provided
