@@ -33,6 +33,11 @@ export const createObjectsListQuery = (db, drizzleResult) => {
                 description: 'Search term to filter objects by status (case-insensitive)'
             },
             {
+                name: 'status',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Filter objects by status'
+            },
+            {
                 name: 'page',
                 type: drizzleResult.schema._typeMap.Int,
                 description: 'Page number for pagination (0-based)',
@@ -102,6 +107,9 @@ export const createObjectsListQuery = (db, drizzleResult) => {
             }
             if (args.institution_id) {
                 conditions.push(eq(dbSchema.objects.institution_id, args.institution_id));
+            }
+            if (args.status) {
+                conditions.push(eq(dbSchema.objects.status, args.status));
             }
             if (args.search && args.search.trim()) {
                 conditions.push(sql`lower(${dbSchema.objects.status}) LIKE ${'%' + args.search.trim().toLowerCase() + '%'}`);

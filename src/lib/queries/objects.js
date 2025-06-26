@@ -7,6 +7,7 @@ export const objectsOperations = {
     variables: {
       projectId: "Optional ID of project to filter by",
       institutionId: "Optional ID of institution to filter by",
+      status: "Optional status to filter objects by",
       search: "Optional search term for status (case-insensitive)",
       page: "Optional page number for pagination (0-based, default 0)",
       pageSize: "Optional number of items per page (default 10)",
@@ -16,6 +17,7 @@ export const objectsOperations = {
     query: `query ListObjects(
   $projectId: String
   $institutionId: String
+  $status: String
   $search: String
   $page: Int
   $pageSize: Int
@@ -25,6 +27,7 @@ export const objectsOperations = {
   result: objectsList(
     project_id: $projectId
     institution_id: $institutionId
+    status: $status
     search: $search
     page: $page
     pageSize: $pageSize

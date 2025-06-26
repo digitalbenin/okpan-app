@@ -71,6 +71,7 @@ export const institutionsOperations = {
       projectId: "Optional ID of project to filter by",
       search: "Optional search term to filter institutions by name, description, country, or location",
       languageCode: "Optional language code to filter search results",
+      status: "Optional status to filter institutions by",
       page: "Page number for pagination (0-based)",
       pageSize: "Number of items per page",
       orderBy: "Field to order by (created_at, updated_at, name)",
@@ -80,6 +81,7 @@ export const institutionsOperations = {
   $projectId: String
   $search: String
   $languageCode: String
+  $status: String
   $page: Int = 0
   $pageSize: Int = 10
   $orderBy: String = "created_at"
@@ -89,6 +91,7 @@ export const institutionsOperations = {
     project_id: $projectId
     search: $search
     languageCode: $languageCode
+    status: $status
     page: $page
     pageSize: $pageSize
     orderBy: $orderBy
@@ -133,7 +136,7 @@ export const institutionsOperations = {
     assetsCount
     previewImages
   }
-  count: institutionsCount(project_id: $projectId, search: $search, languageCode: $languageCode)
+  count: institutionsCount(project_id: $projectId, search: $search, languageCode: $languageCode, status: $status)
 }`
   },
 
@@ -145,10 +148,11 @@ export const institutionsOperations = {
     variables: {
       projectId: "Optional ID of project to filter by",
       search: "Optional search term to filter institutions",
-      languageCode: "Optional language code to filter search results"
+      languageCode: "Optional language code to filter search results",
+      status: "Optional status to filter institutions by"
     },
-    query: `query CountInstitutions($projectId: String, $search: String, $languageCode: String) {
-  result: institutionsCount(project_id: $projectId, search: $search, languageCode: $languageCode)
+    query: `query CountInstitutions($projectId: String, $search: String, $languageCode: String, $status: String) {
+  result: institutionsCount(project_id: $projectId, search: $search, languageCode: $languageCode, status: $status)
 }`
   },
 
