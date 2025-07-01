@@ -15,6 +15,7 @@ import { handleExportTranslations, handleImportTranslations } from './handlers/t
 import { handleGraphQL } from './handlers/graphqlHandler.js';
 import { handlePing, handleFileDialog } from './handlers/systemHandlers.js';
 import { handleImportAssets } from './handlers/assetHandlers.js';
+import { suggestObjectMatches } from './handlers/assetMappingHandler.js';
 
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
@@ -39,6 +40,16 @@ ipcMain.handle('import-assets', (event, data) =>
   handleImportAssets(event, data)
 );
 ipcMain.handle('open-file-dialog', handleFileDialog);
+
+// Asset mapping handlers
+ipcMain.handle('suggest-object-matches', async (event, assets, options) => {
+  try {
+    return await suggestObjectMatches(assets, options);
+  } catch (error) {
+    console.error('Error in suggest-object-matches:', error);
+    throw error;
+  }
+});
 
 // Handler for reading file content
 ipcMain.handle('read-file', async (event, filePath) => {

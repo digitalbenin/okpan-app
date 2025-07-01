@@ -13,5 +13,6 @@ contextBridge.exposeInMainWorld('api', {
     clearLogs: (filters) => ipcRenderer.invoke('clear-logs', filters),
     importAssets: (data) => ipcRenderer.invoke('import-assets', data),
     openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options),
-    readFile: (filePath) => ipcRenderer.invoke('read-file', filePath)
+    readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
+    suggestObjectMatches: (assets, options) => ipcRenderer.invoke('suggest-object-matches', assets, options)
 });
