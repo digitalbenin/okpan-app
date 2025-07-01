@@ -60,6 +60,7 @@
     "drizzle-graphql": "^0.8.5",
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "^0.7.0",
+    "fuse.js": "^7.1.0",
     "graphql": "^16.10.0",
     "graphql-tools": "^9.0.13",
     "melt": "^0.30.1",
