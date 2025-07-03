@@ -1,5 +1,6 @@
 import { graphql, parse } from 'graphql';
 import { actions } from '../../db/schema.js';
+import { getClientId } from '../../db/init.js';
 
 // Extract mutation field names from GraphQL operation
 const extractMutationFields = (op) =>
@@ -96,21 +97,25 @@ const getChangedFields = (variables, currentEntity, fieldResult) => {
 };
 
 // Create action record for database
-const createActionRecord = (name, actionType, entityType, entityId, changedFields, context) => ({
-    user_id: context?.userId || null,
-    project_id: context?.projectId || null,
-    action_type: actionType,
-    entity_type: entityType,
-    entity_id: entityId,
-    changes: JSON.stringify({
-        mutation_name: name,
-        variables: changedFields,
-        timestamp: Date.now()
-    }),
-    client_id: context?.clientId || null,
-    yjs_update: context?.yjsUpdate || null,
-    parent_action_id: context?.parentActionId || null
-});
+const createActionRecord = async (name, actionType, entityType, entityId, changedFields, context) => {
+    const clientId = context?.clientId || await getClientId();
+
+    return {
+        user_id: context?.userId || null,
+        project_id: context?.projectId || null,
+        action_type: actionType,
+        entity_type: entityType,
+        entity_id: entityId,
+        changes: JSON.stringify({
+            mutation_name: name,
+            variables: changedFields,
+            timestamp: Date.now()
+        }),
+        client_id: clientId,
+        yjs_update: context?.yjsUpdate || null,
+        parent_action_id: context?.parentActionId || null
+    };
+};
 
 // Fetch pre-execution entities for UPDATE operations
 const fetchPreExecutionEntities = async (mutationFields, variables, db) => {
@@ -161,10 +166,10 @@ const processMutationActions = async (mutationFields, result, variables, context
             const changedFields = getChangedFields(variables, preExecutionEntities[name], fieldResult);
             if (!changedFields) continue; // No changes detected
 
-            actionRows.push(createActionRecord(name, actionType, entityType, entityId, changedFields, context));
+            actionRows.push(await createActionRecord(name, actionType, entityType, entityId, changedFields, context));
         } else {
             // For CREATE/DELETE or UPDATE without pre-execution data
-            actionRows.push(createActionRecord(name, actionType, entityType, entityId, variables, context));
+            actionRows.push(await createActionRecord(name, actionType, entityType, entityId, variables, context));
         }
     }
 

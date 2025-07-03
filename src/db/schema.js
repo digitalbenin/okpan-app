@@ -557,6 +557,17 @@ export const actions = sqliteTable('actions', {
     yjs_update: blob('yjs_update'),
     parent_action_id: text('parent_action_id')
 });
+
+// Global Settings table - singleton table (only one row ever)
+export const globalSettings = sqliteTable('global_settings', {
+    id: integer('id').primaryKey().notNull().default(1), // Always 1 to enforce singleton
+    client_id: text('client_id').notNull().unique(),
+    app_version: text('app_version'),
+    initialized_at: integer('initialized_at', { mode: 'timestamp_ms' })
+        .notNull()
+        .default(sql`CURRENT_TIMESTAMP`)
+});
+
 export const actionsRelations = relations(actions, ({ one }) => ({
     project: one(project, {
         fields: [actions.project_id],

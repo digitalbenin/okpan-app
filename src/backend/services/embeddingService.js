@@ -84,7 +84,7 @@ class EmbeddingService {
     }
 
     // For similarity comparison during CSV/JSON imports
-    async findSimilarFields(csvFieldName, ontologyFields, threshold = 0.65) {
+    async findSimilarFields(csvFieldName, ontologyFields, threshold = 0.1) {
         // Slightly higher threshold for Arctic v2 due to better quality
         if (!csvFieldName || !ontologyFields || ontologyFields.length === 0) {
             return [];
