@@ -10,6 +10,7 @@ import { sql } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { handleImportAssets } from '../backend/handlers/assetHandlers.js';
+import { embeddingService } from '../backend/services/embeddingService.js';
 
 // --- Configuration & Argument Parsing ---
 const DEFAULT_SEED_DATA_PATH = path.join(process.cwd(), 'src', 'db', 'seed_data');
@@ -196,6 +197,47 @@ const seed = async () => {
             ontologyFieldsByName.set(field.name.toLowerCase(), dbField.id);
         }
         console.log(`${ontologyFieldsList.length} ontology fields seeded.`);
+
+        // --- Compute Embeddings for Ontology Fields ---
+        console.log('Computing embeddings for ontology fields...');
+        try {
+            await embeddingService.initialize();
+
+            let embeddingCount = 0;
+            for (const fieldId of ontologyFieldsByName.values()) {
+                const fieldWithTexts = await db
+                    .select({
+                        field_id: ontology_fields.id,
+                        name_content: texts.content,
+                        description_content: texts.content
+                    })
+                    .from(ontology_fields)
+                    .leftJoin(texts, sql`${ontology_fields.name_id} = ${texts.id}`)
+                    .where(sql`${ontology_fields.id} = ${fieldId}`)
+                    .execute();
+
+                if (fieldWithTexts.length > 0) {
+                    const field = fieldWithTexts[0];
+                    const embedding = await embeddingService.computeOntologyFieldEmbedding(
+                        field.name_content,
+                        field.description_content
+                    );
+
+                    if (embedding) {
+                        await db
+                            .update(ontology_fields)
+                            .set({ embeddings: embedding })
+                            .where(sql`${ontology_fields.id} = ${fieldId}`)
+                            .execute();
+                        embeddingCount++;
+                    }
+                }
+            }
+            console.log(`${embeddingCount} embeddings computed successfully.`);
+        } catch (error) {
+            console.warn('Warning: Failed to compute embeddings during seeding:', error.message);
+            console.log('You can compute them later using: window.api.computeAllMissingEmbeddings()');
+        }
 
         // --- 3. Load JSON Data ---
         const baseDataPath = seedDataPath;

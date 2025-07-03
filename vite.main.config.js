@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 // https://vitejs.dev/config
 export default defineConfig({
     optimizeDeps: {
-        exclude: ['@libsql/client', '@libsql/win32-x64-msvc', 'sharp']
+        exclude: ['@libsql/client', '@libsql/win32-x64-msvc', 'sharp', '@xenova/transformers', 'onnxruntime-node']
     },
     build: {
         outDir: '.vite',
@@ -20,6 +20,9 @@ export default defineConfig({
                 'sharp',
                 '@libsql/client',
                 '@libsql/win32-x64-msvc',
+                '@xenova/transformers',
+                'onnxruntime-node',
+                /^onnxruntime.*/,
                 /^graphql\/.*/  // Ensure all graphql subpaths are treated as external
             ],
             input: {

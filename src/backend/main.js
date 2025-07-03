@@ -16,6 +16,10 @@ import { handleGraphQL } from './handlers/graphqlHandler.js';
 import { handlePing, handleFileDialog } from './handlers/systemHandlers.js';
 import { handleImportAssets } from './handlers/assetHandlers.js';
 import { suggestObjectMatches } from './handlers/assetMappingHandler.js';
+import { suggestFieldMappings } from './handlers/importHandler.js';
+import { embeddingService } from './services/embeddingService.js';
+import { ontology_fields, texts } from '../db/schema.js';
+import { eq, sql, isNull } from 'drizzle-orm';
 
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
@@ -47,6 +51,53 @@ ipcMain.handle('suggest-object-matches', async (event, assets, options) => {
     return await suggestObjectMatches(assets, options);
   } catch (error) {
     console.error('Error in suggest-object-matches:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('suggest-field-mappings', async (event, csvFieldNames, options) => {
+  try {
+    return await suggestFieldMappings(csvFieldNames, options);
+  } catch (error) {
+    console.error('Error in suggest-field-mappings:', error);
+    throw error;
+  }
+});
+
+// Embedding handlers
+ipcMain.handle('compute-all-missing-embeddings', async (event) => {
+  try {
+    const fieldsWithoutEmbeddings = await db
+      .select({
+        field_id: ontology_fields.id,
+        name_content: texts.content,
+        description_content: texts.content
+      })
+      .from(ontology_fields)
+      .leftJoin(texts, eq(ontology_fields.name_id, texts.id))
+      .where(isNull(ontology_fields.embeddings))
+      .execute();
+
+    await embeddingService.initialize();
+
+    for (const field of fieldsWithoutEmbeddings) {
+      const embedding = await embeddingService.computeOntologyFieldEmbedding(
+        field.name_content,
+        field.description_content
+      );
+
+      if (embedding) {
+        await db
+          .update(ontology_fields)
+          .set({ embeddings: embedding })
+          .where(eq(ontology_fields.id, field.field_id))
+          .execute();
+      }
+    }
+
+    return fieldsWithoutEmbeddings.length;
+  } catch (error) {
+    console.error('Error computing embeddings:', error);
     throw error;
   }
 });
