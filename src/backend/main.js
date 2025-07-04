@@ -13,7 +13,7 @@ import { createGraphQLSchema } from '../db/graphqlDefs.js';
 // Import handlers
 import { handleExportTranslations, handleImportTranslations } from './handlers/translationHandlers.js';
 import { handleGraphQL } from './handlers/graphqlHandler.js';
-import { handlePing, handleFileDialog } from './handlers/systemHandlers.js';
+import { handlePing, handleFileDialog, handleStructuredDataImport } from './handlers/systemHandlers.js';
 import { handleImportAssets } from './handlers/assetHandlers.js';
 import { suggestObjectMatches } from './handlers/assetMappingHandler.js';
 import { suggestFieldMappings } from './handlers/importHandler.js';
@@ -44,6 +44,7 @@ ipcMain.handle('import-assets', (event, data) =>
   handleImportAssets(event, data)
 );
 ipcMain.handle('open-file-dialog', handleFileDialog);
+ipcMain.handle('import-structured-data', handleStructuredDataImport);
 
 // Asset mapping handlers
 ipcMain.handle('suggest-object-matches', async (event, assets, options) => {

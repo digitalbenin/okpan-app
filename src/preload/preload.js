@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
     importAssets: (data) => ipcRenderer.invoke('import-assets', data),
     openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options),
     readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
+    importStructuredData: (options) => ipcRenderer.invoke('import-structured-data', options),
     suggestObjectMatches: (assets, options) => ipcRenderer.invoke('suggest-object-matches', assets, options),
     suggestFieldMappings: (csvFieldNames, options) => ipcRenderer.invoke('suggest-field-mappings', csvFieldNames, options),
 
