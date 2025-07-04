@@ -25,14 +25,15 @@
   });
 </script>
 
-{#if label}
-  <div
-    class={`${labelPosition === "left" ? "d-flex align-items-center gap-3" : ""}`}
-    style={customStyle}
-  >
-    <label class="form-label mb-0" for={id}>
-      {label}
-    </label>
+<div class="row g-3 align-items-center">
+  {#if label}
+    <div class="col-auto">
+      <label class="col-form-label" for={id}>
+        {label}
+      </label>
+    </div>
+  {/if}
+  <div class="col-auto">
     <input
       {id}
       type={validatedType}
@@ -42,28 +43,8 @@
       {disabled}
       min={validatedType === "number" ? min : undefined}
       max={validatedType === "number" ? max : undefined}
-      on:change={onChange}
-      on:input={onInput}
+      {onChange}
+      {onInput}
     />
   </div>
-{:else}
-  <input
-    type={validatedType}
-    bind:value
-    class={`form-control ${customClass}`}
-    style={customStyle}
-    {placeholder}
-    {disabled}
-    min={validatedType === "number" ? min : undefined}
-    max={validatedType === "number" ? max : undefined}
-    on:change={onChange}
-    on:input={onInput}
-  />
-{/if}
-
-<style>
-  /* When label is on the left, make it take minimum width needed */
-  .d-flex label {
-    flex-shrink: 0;
-  }
-</style>
+</div>

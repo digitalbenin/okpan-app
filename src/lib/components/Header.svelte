@@ -50,7 +50,7 @@
 </script>
 
 <header
-  class="navbar navbar-expand-lg navbar-light bg-danger-subtle border-bottom py-2"
+  class="sticky-top navbar navbar-expand-lg navbar-light bg-danger-subtle border-bottom py-2"
 >
   <div class="container-fluid">
     <div class="d-flex align-items-center">
@@ -71,6 +71,8 @@
       onClick={goHome}
       class="navbar-brand mx-auto btn btn-link border-0"
     />
+
+    <a href="/debug" class="btn btn-link">debug</a>
 
     <div class="d-flex align-items-center">
       <!-- Language selector -->
