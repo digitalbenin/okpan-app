@@ -1,18 +1,18 @@
 <script>
-  //   import { AlertDialog } from "bits-ui";
+  import { AlertDialog } from "bits-ui";
 
-  //   let {
-  //     open = $bindable(false),
-  //     children,
-  //     buttonText,
-  //     contentProps,
-  //     title,
-  //     description,
-  //     ...restProps
-  //   } = $props();
+  let {
+    open = $bindable(false),
+    children,
+    buttonText,
+    contentProps,
+    title,
+    description,
+    ...restProps
+  } = $props();
 </script>
 
-<!-- <AlertDialog.Root bind:open {...restProps}>
+<AlertDialog.Root bind:open {...restProps}>
   <AlertDialog.Trigger>
     {buttonText}
   </AlertDialog.Trigger>
@@ -30,4 +30,4 @@
       <AlertDialog.Action>Confirm</AlertDialog.Action>
     </AlertDialog.Content>
   </AlertDialog.Portal>
-</AlertDialog.Root> -->
+</AlertDialog.Root>
