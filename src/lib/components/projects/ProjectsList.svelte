@@ -2,13 +2,14 @@
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import { formatDate } from "$lib/utils/dates";
-  // import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
+  import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   const { projects = [] } = $props();
   const { t, translationState } = getTranslationStore();
 
   let search = $state("");
+  let newProjectOpen = $state(false);
 
   const filteredProjects = $derived(
     projects.filter(
@@ -17,6 +18,10 @@
         project.description.content.toLowerCase().includes(search.toLowerCase())
     )
   );
+
+  function openNewProjectModal() {
+    newProjectOpen = true;
+  }
 
   $inspect(projects, "projects");
 </script>
@@ -31,7 +36,7 @@
         bind:value={search}
         placeholder={t("common.search", { fallback: "Search" })}
       />
-      <button class="btn btn-primary"
+      <button class="btn btn-primary" onclick={() => openNewProjectModal()}
         >{t("common.new-project", { fallback: "Create a new project" })}</button
       >
     </div>
@@ -87,6 +92,14 @@
     >
   </div>
 {/if}
+<BaseAlertDialog bind:open={newProjectOpen}>
+  {#snippet title()}
+    Create a new project
+  {/snippet}
+  {#snippet description()}
+    <ProjectCreate></ProjectCreate>
+  {/snippet}
+</BaseAlertDialog>
 
 <style>
   .emptyProjectChip {
