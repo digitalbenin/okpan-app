@@ -182,6 +182,7 @@ export const institutionsRelations = relations(institutions, ({ one, many }) => 
     assets: many(assets),
     objects: many(objects),
     datasources: many(datasources),
+    templates: many(templates),
     assetsInstitutions: many(assets_institutions),
     name: one(texts, {
         fields: [institutions.name_id],
@@ -486,14 +487,18 @@ export const templates = sqliteTable('templates', {
     ...commonFields,
     name: text('name'),
     description: text('description'),
-    institutions: text('institutions', { mode: 'json' }),
     config: text('config', { mode: 'json' }),
+    institution_id: text('institution_id').references(() => institutions.id),
     datasource_id: text('datasource_id').references(() => datasources.id),
     asset_map_rule: text('asset_map_rule')
 });
 
 // Templates relations
 export const templatesRelations = relations(templates, ({ one, many }) => ({
+    institution: one(institutions, {
+        fields: [templates.institution_id],
+        references: [institutions.id]
+    }),
     datasource: one(datasources, {
         fields: [templates.datasource_id],
         references: [datasources.id]
