@@ -503,5 +503,42 @@ export const institutionsOperations = {
       }
     ],
     query: null
+  },
+
+  // ===== BULK OPERATIONS =====
+  bulkUpdate: {
+    type: "mutation",
+    name: "Bulk Update Institutions",
+    description: "Updates multiple institutions using a single optimized query",
+    variables: {
+      updates: "Array of institution updates with id and fields to update"
+    },
+    query: `mutation BulkUpdateInstitutions($updates: [JSON!]!) {
+      bulkUpdateInstitutions(updates: $updates) {
+        id
+        name_id
+        description_id
+        country_id
+        location_id
+        status
+        updated_at
+      }
+    }`
+  },
+
+  bulkDelete: {
+    type: "mutation",
+    name: "Bulk Delete Institutions",
+    description: "Deletes multiple institutions by IDs",
+    variables: {
+      ids: "Array of institution IDs to delete"
+    },
+    query: `mutation BulkDeleteInstitutions($ids: [String!]!) {
+      bulkDeleteInstitutions(ids: $ids) {
+        id
+        name_id
+        project_id
+      }
+    }`
   }
 }; 

@@ -487,7 +487,7 @@ export const templates = sqliteTable('templates', {
     ...commonFields,
     name: text('name'),
     config: text('config', { mode: 'json' }),
-    institution_id: text('institution_id').references(() => institutions.id),
+    institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
     datasource_id: text('datasource_id').references(() => datasources.id),
     asset_map_rule: text('asset_map_rule')
 });

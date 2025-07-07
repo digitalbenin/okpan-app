@@ -7,6 +7,8 @@ export { createProjectByIdQuery } from './projectById';
 export { createInstitutionsListQuery } from './institutionsList';
 export { createInstitutionsCountQuery } from './institutionsCount';
 export { createInstitutionByIdQuery } from './institutionById';
+export { createInstitutionsBulkUpdateMutation } from './institutionsBulkUpdate';
+export { createInstitutionsBulkDeleteMutation } from './institutionsBulkDelete';
 export { createDatasourcesListQuery } from './datasourcesList';
 export { createObjectsListQuery } from './objectsList';
 export { createAssetsListQuery } from './assetsList';
