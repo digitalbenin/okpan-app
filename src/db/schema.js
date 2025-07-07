@@ -486,7 +486,6 @@ export const objectsOntologyFieldsRelations = relations(objects_ontology_fields,
 export const templates = sqliteTable('templates', {
     ...commonFields,
     name: text('name'),
-    description: text('description'),
     config: text('config', { mode: 'json' }),
     institution_id: text('institution_id').references(() => institutions.id),
     datasource_id: text('datasource_id').references(() => datasources.id),
