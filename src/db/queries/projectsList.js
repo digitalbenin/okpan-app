@@ -14,11 +14,13 @@ export const createProjectsListQuery = (db, drizzleResult) => {
         type: new GraphQLList(new GraphQLNonNull(drizzleResult.schema._typeMap.ProjectSelectItem)),
         args: [],
         resolve: async (source, args, context, info) => {
-            // Create aliases for the texts and translations tables
+            // Create aliases for the texts, translations, and languages tables
             const descriptionTexts = aliasedTable(dbSchema.texts, 'description_texts');
             const titleTexts = aliasedTable(dbSchema.texts, 'title_texts');
             const titleTranslations = aliasedTable(dbSchema.translations, 'title_translations');
             const descriptionTranslations = aliasedTable(dbSchema.translations, 'description_translations');
+            const titleLanguages = aliasedTable(dbSchema.languages, 'title_languages');
+            const descriptionLanguages = aliasedTable(dbSchema.languages, 'description_languages');
 
             // Create count subqueries
             const institutionsSubquery = createCountSubquery(
@@ -47,8 +49,8 @@ export const createProjectsListQuery = (db, drizzleResult) => {
                 id: dbSchema.project.id,
                 created_at: dbSchema.project.created_at,
                 updated_at: dbSchema.project.updated_at,
-                description: createTextFieldWithTranslations(descriptionTexts, descriptionTranslations),
-                title: createTextFieldWithTranslations(titleTexts, titleTranslations),
+                description: createTextFieldWithTranslations(descriptionTexts, descriptionTranslations, descriptionLanguages),
+                title: createTextFieldWithTranslations(titleTexts, titleTranslations, titleLanguages),
                 institutionsCount: sql`COALESCE(${institutionsSubquery.institutions_count}, 0)`.as('institutionsCount'),
                 objectsCount: sql`COALESCE(${objectsSubquery.objects_count}, 0)`.as('objectsCount'),
                 assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount')
@@ -56,8 +58,10 @@ export const createProjectsListQuery = (db, drizzleResult) => {
                 .from(dbSchema.project)
                 .leftJoin(descriptionTexts, eq(dbSchema.project.description_id, descriptionTexts.id))
                 .leftJoin(descriptionTranslations, eq(descriptionTexts.id, descriptionTranslations.text_id))
+                .leftJoin(descriptionLanguages, eq(descriptionTranslations.language_id, descriptionLanguages.id))
                 .leftJoin(titleTexts, eq(dbSchema.project.title_id, titleTexts.id))
                 .leftJoin(titleTranslations, eq(titleTexts.id, titleTranslations.text_id))
+                .leftJoin(titleLanguages, eq(titleTranslations.language_id, titleLanguages.id))
                 .leftJoin(institutionsSubquery, eq(dbSchema.project.id, institutionsSubquery.project_id))
                 .leftJoin(objectsSubquery, eq(dbSchema.project.id, objectsSubquery.project_id))
                 .leftJoin(assetsSubquery, eq(dbSchema.project.id, assetsSubquery.project_id))

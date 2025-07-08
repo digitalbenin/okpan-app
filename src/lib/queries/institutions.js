@@ -17,41 +17,61 @@ export const institutionsOperations = {
     name {
       id
       content
-      original_language
+      original_language_id
       translations {
         id
-        language_code
+        language_id
         content
+        language {
+          id
+          code
+          name
+        }
       }
     }
     description {
       id
       content
-      original_language
+      original_language_id
       translations {
         id
-        language_code
+        language_id
         content
+        language {
+          id
+          code
+          name
+        }
       }
     }
     location {
       id
       content
-      original_language
+      original_language_id
       translations {
         id
-        language_code
+        language_id
         content
+        language {
+          id
+          code
+          name
+        }
       }
     }
     country {
       id
       content
-      original_language
+      original_language_id
       translations {
         id
-        language_code
+        language_id
         content
+        language {
+          id
+          code
+          name
+        }
       }
     }
     links
@@ -106,28 +126,48 @@ export const institutionsOperations = {
       content
       translations {
         content
-        language_code
+        language_id
+        language {
+          id
+          code
+          name
+        }
       }
     }
     description {
       content
       translations {
         content
-        language_code
+        language_id
+        language {
+          id
+          code
+          name
+        }
       }
     }
     location {
       content
       translations {
         content
-        language_code
+        language_id
+        language {
+          id
+          code
+          name
+        }
       }
     }
     country {
       content
       translations {
         content
-        language_code
+        language_id
+        language {
+          id
+          code
+          name
+        }
       }
     }
     links
@@ -163,7 +203,7 @@ export const institutionsOperations = {
     description: "Creates a new institution linked to a project",
     variables: {
       projectId: "ID of the project to link the institution to",
-      languageCode: "Language code for the initial text",
+      languageId: "Language ID for the initial text",
       institutionName: "Name of the institution",
       institutionDescription: "Description of the institution",
       country: "Country of the institution",
@@ -173,13 +213,13 @@ export const institutionsOperations = {
     mutations: [
       {
         name: "createNameText",
-        query: `mutation CreateInstitutionName($institutionName: String!, $languageCode: String!) {
+        query: `mutation CreateInstitutionName($institutionName: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
         content: $institutionName
         context: "institutions.name"
-        original_language: $languageCode
+        original_language_id: $languageId
       }
     ]
   ) {
@@ -187,17 +227,17 @@ export const institutionsOperations = {
     content
   }
 }`,
-        useVariables: ["institutionName", "languageCode"]
+        useVariables: ["institutionName", "languageId"]
       },
       {
         name: "createDescriptionText",
-        query: `mutation CreateInstitutionDescription($institutionDescription: String!, $languageCode: String!) {
+        query: `mutation CreateInstitutionDescription($institutionDescription: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
         content: $institutionDescription
         context: "institutions.description"
-        original_language: $languageCode
+        original_language_id: $languageId
       }
     ]
   ) {
@@ -205,17 +245,17 @@ export const institutionsOperations = {
     content
   }
 }`,
-        useVariables: ["institutionDescription", "languageCode"]
+        useVariables: ["institutionDescription", "languageId"]
       },
       {
         name: "createCountryText",
-        query: `mutation CreateInstitutionCountry($country: String!, $languageCode: String!) {
+        query: `mutation CreateInstitutionCountry($country: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
         content: $country
         context: "institutions.country"
-        original_language: $languageCode
+        original_language_id: $languageId
       }
     ]
   ) {
@@ -223,17 +263,17 @@ export const institutionsOperations = {
     content
   }
 }`,
-        useVariables: ["country", "languageCode"]
+        useVariables: ["country", "languageId"]
       },
       {
         name: "createLocationText",
-        query: `mutation CreateInstitutionLocation($location: String!, $languageCode: String!) {
+        query: `mutation CreateInstitutionLocation($location: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
         content: $location
         context: "institutions.location"
-        original_language: $languageCode
+        original_language_id: $languageId
       }
     ]
   ) {
@@ -241,7 +281,7 @@ export const institutionsOperations = {
     content
   }
 }`,
-        useVariables: ["location", "languageCode"]
+        useVariables: ["location", "languageId"]
       },
       {
         name: "createInstitution",
@@ -298,7 +338,8 @@ export const institutionsOperations = {
       country: "New country content (optional)",
       location: "New location content (optional)",
       status: "New status (optional)",
-      links: "New links array (optional, should be JSON)"
+      links: "New links array (optional, should be JSON)",
+      languageId: "Default language ID for creating new text entries (optional)"
     },
     mutations: [
       {
@@ -331,7 +372,44 @@ export const institutionsOperations = {
         mapVariables: {
           nameId: { from: "getInstitution", path: "institution.name.id" }
         },
-        skipIf: { variableName: "name", isUndefined: true }
+        skipIf: { variableName: "nameId", isUndefined: true }
+      },
+      {
+        name: "createDescription",
+        query: `mutation CreateInstitutionDescription($description: String!, $languageId: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $description
+        context: "institutions.description"
+        original_language_id: $languageId
+      }
+    ]
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["description", "languageId"],
+        skipIf: { variableName: "description", isUndefined: true },
+        onlyIf: { from: "getInstitution", path: "institution.description", isNull: true }
+      },
+      {
+        name: "linkDescription",
+        query: `mutation LinkInstitutionDescription($institutionId: String!, $descriptionId: String!) {
+  updateInstitutions(
+    set: { description_id: $descriptionId }
+    where: { id: { eq: $institutionId } }
+  ) {
+    id
+    description_id
+  }
+}`,
+        useVariables: ["institutionId"],
+        mapVariables: {
+          descriptionId: { from: "createDescription", path: "insertIntoTexts.0.id" }
+        },
+        skipIf: { variableName: "descriptionId", isUndefined: true }
       },
       {
         name: "updateDescription",
@@ -348,7 +426,7 @@ export const institutionsOperations = {
         mapVariables: {
           descriptionId: { from: "getInstitution", path: "institution.description.id" }
         },
-        skipIf: { variableName: "description", isUndefined: true }
+        skipIf: { variableName: "descriptionId", isUndefined: true }
       },
       {
         name: "updateCountry",
@@ -365,7 +443,7 @@ export const institutionsOperations = {
         mapVariables: {
           countryId: { from: "getInstitution", path: "institution.country.id" }
         },
-        skipIf: { variableName: "country", isUndefined: true }
+        skipIf: { variableName: "countryId", isUndefined: true }
       },
       {
         name: "updateLocation",
@@ -382,7 +460,7 @@ export const institutionsOperations = {
         mapVariables: {
           locationId: { from: "getInstitution", path: "institution.location.id" }
         },
-        skipIf: { variableName: "location", isUndefined: true }
+        skipIf: { variableName: "locationId", isUndefined: true }
       },
       {
         name: "updateStatus",

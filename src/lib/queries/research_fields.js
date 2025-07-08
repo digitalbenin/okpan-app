@@ -16,18 +16,18 @@ export const researchFieldsOperations = {
     name {
       id
       content
-      original_language
+      original_language_id
       translations {
-        language_code
+        language_id
         content
       }
     }
     description {
       id
       content
-      original_language
+      original_language_id
       translations {
-        language_code
+        language_id
         content
       }
     }
@@ -75,20 +75,20 @@ export const researchFieldsOperations = {
     name {
       id
       content
-      original_language
+      original_language_id
       translations {
         id
-        language_code
+        language_id
         content
       }
     }
     description {
       id
       content
-      original_language
+      original_language_id
       translations {
         id
-        language_code
+        language_id
         content
       }
     }
@@ -111,18 +111,18 @@ export const researchFieldsOperations = {
       option {
         id
         content
-        original_language
+        original_language_id
         translations {
-          language_code
+          language_id
           content
         }
       }
       description {
         id
         content
-        original_language
+        original_language_id
         translations {
-          language_code
+          language_id
           content
         }
       }
@@ -136,7 +136,7 @@ export const researchFieldsOperations = {
     description: "Creates a new research field with name and description",
     variables: {
       projectId: "ID of the project this field belongs to",
-      languageCode: "Language code for the initial text",
+      languageId: "Language ID for the initial text",
       name: "Name of the research field",
       description: "Description of the research field",
       type: "Type of the research field"
@@ -144,13 +144,13 @@ export const researchFieldsOperations = {
     mutations: [
       {
         name: "createNameText",
-        query: `mutation CreateResearchFieldName($name: String!, $languageCode: String!) {
+        query: `mutation CreateResearchFieldName($name: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
         content: $name
         context: "research_fields.name"
-        original_language: $languageCode
+        original_language_id: $languageId
       }
     ]
   ) {
@@ -158,17 +158,17 @@ export const researchFieldsOperations = {
     content
   }
 }`,
-        useVariables: ["name", "languageCode"]
+        useVariables: ["name", "languageId"]
       },
       {
         name: "createDescriptionText",
-        query: `mutation CreateResearchFieldDescription($description: String!, $languageCode: String!) {
+        query: `mutation CreateResearchFieldDescription($description: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
         content: $description
         context: "research_fields.description"
-        original_language: $languageCode
+        original_language_id: $languageId
       }
     ]
   ) {
@@ -176,7 +176,7 @@ export const researchFieldsOperations = {
     content
   }
 }`,
-        useVariables: ["description", "languageCode"]
+        useVariables: ["description", "languageId"]
       },
       {
         name: "createResearchField",
@@ -250,7 +250,7 @@ export const researchFieldsOperations = {
         mapVariables: {
           nameId: { from: "getResearchField", path: "research_fields.0.name_id" }
         },
-        skipIf: { variableName: "name", isUndefined: true }
+        skipIf: { variableName: "nameId", isUndefined: true }
       },
       {
         name: "updateDescription",
@@ -267,7 +267,7 @@ export const researchFieldsOperations = {
         mapVariables: {
           descriptionId: { from: "getResearchField", path: "research_fields.0.description_id" }
         },
-        skipIf: { variableName: "description", isUndefined: true }
+        skipIf: { variableName: "descriptionId", isUndefined: true }
       },
       {
         name: "updateType",
@@ -307,7 +307,7 @@ export const researchFieldsOperations = {
     description: "Adds a vocabulary option to a research field",
     variables: {
       fieldId: "ID of the research field",
-      languageCode: "Language code for the text",
+      languageId: "Language ID for the text",
       option: "Option text content",
       description: "Description text content",
       mainAsset: "Main asset identifier (optional)",
@@ -316,37 +316,37 @@ export const researchFieldsOperations = {
     mutations: [
       {
         name: "createOptionText",
-        query: `mutation CreateVocabularyOption($option: String!, $languageCode: String!) {
+        query: `mutation CreateVocabularyOption($option: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
         content: $option
         context: "vocabularies.option"
-        original_language: $languageCode
+        original_language_id: $languageId
       }
     ]
   ) {
     id
   }
 }`,
-        useVariables: ["option", "languageCode"]
+        useVariables: ["option", "languageId"]
       },
       {
         name: "createDescriptionText",
-        query: `mutation CreateVocabularyDescription($description: String!, $languageCode: String!) {
+        query: `mutation CreateVocabularyDescription($description: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
         content: $description
         context: "vocabularies.description"
-        original_language: $languageCode
+        original_language_id: $languageId
       }
     ]
   ) {
     id
   }
 }`,
-        useVariables: ["description", "languageCode"]
+        useVariables: ["description", "languageId"]
       },
       {
         name: "createVocabulary",

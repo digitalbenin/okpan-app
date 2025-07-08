@@ -121,17 +121,17 @@ export const objectsOperations = {
         id
         option {
           content
-          original_language
+          original_language_id
           translations {
-            language_code
+            language_id
             content
           }
         }
         description {
           content
-          original_language
+          original_language_id
           translations {
-            language_code
+            language_id
             content
           }
         }
@@ -468,7 +468,7 @@ export const objectsOperations = {
       name {
         content
         translations {
-          language_code
+          language_id
           content
         }
       }
@@ -479,17 +479,17 @@ export const objectsOperations = {
         id
         option {
           content
-          original_language
+          original_language_id
           translations {
-            language_code
+            language_id
             content
           }
         }
         description {
           content
-          original_language
+          original_language_id
           translations {
-            language_code
+            language_id
             content
           }
         }

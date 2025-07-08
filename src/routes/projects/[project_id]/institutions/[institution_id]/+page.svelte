@@ -8,7 +8,6 @@
   const params = queryParameters({
     iView: ssp.string("objects"),
   });
-  $inspect(page.state);
 </script>
 
 <div class="p-3">

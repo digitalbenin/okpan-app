@@ -66,7 +66,7 @@
       return null;
     }
     const translation = institution[fieldName].translations.find(
-      (t) => t.language_code === langCode,
+      (t) => t.language?.code === langCode,
     );
     return translation ? translation.id : null;
   }
@@ -87,8 +87,8 @@
 
     // Populate with default language content
     const defaultLangCode =
-      projectLanguages.find((l) => l.is_default)?.language_code ||
-      projectLanguages[0]?.language_code;
+      projectLanguages.find((l) => l.is_default)?.code ||
+      projectLanguages[0]?.code;
     if (defaultLangCode) {
       initialFormData.name[defaultLangCode] = institution?.name?.content || "";
       initialFormData.location[defaultLangCode] =
@@ -101,29 +101,29 @@
 
     // Populate with translations
     projectLanguages.forEach((lang) => {
-      const langCode = lang.language_code;
+      const langCode = lang.code;
       if (!initialFormData.name[langCode]) {
         // Avoid overwriting default
         const nameTrans = institution?.name?.translations?.find(
-          (t) => t.language_code === langCode,
+          (t) => t.language?.code === langCode,
         );
         initialFormData.name[langCode] = nameTrans?.content || "";
       }
       if (!initialFormData.location[langCode]) {
         const locTrans = institution?.location?.translations?.find(
-          (t) => t.language_code === langCode,
+          (t) => t.language?.code === langCode,
         );
         initialFormData.location[langCode] = locTrans?.content || "";
       }
       if (!initialFormData.country[langCode]) {
         const countryTrans = institution?.country?.translations?.find(
-          (t) => t.language_code === langCode,
+          (t) => t.language?.code === langCode,
         );
         initialFormData.country[langCode] = countryTrans?.content || "";
       }
       if (!initialFormData.description[langCode]) {
         const descTrans = institution?.description?.translations?.find(
-          (t) => t.language_code === langCode,
+          (t) => t.language?.code === langCode,
         );
         initialFormData.description[langCode] = descTrans?.content || "";
       }
@@ -141,7 +141,7 @@
     formErrors = {};
 
     const defaultLang = projectLanguages.find((l) => l.is_default);
-    const defaultLangCode = defaultLang?.language_code;
+    const defaultLangCode = defaultLang?.code;
 
     if (!defaultLangCode || !formDataForEdit.name[defaultLangCode]?.trim()) {
       formErrors = {
@@ -163,6 +163,8 @@
         description: formDataForEdit.description[defaultLangCode]?.trim() || "",
         // Links should be passed as a JSON string
         links: JSON.stringify(formDataForEdit.links || []),
+        // Include the default language ID for creating new text entries
+        languageId: defaultLang?.id,
       };
 
       // Call the refactored updateInstitution
@@ -175,7 +177,7 @@
       );
 
       secondaryLanguages.forEach((lang) => {
-        const langCode = lang.language_code;
+        const langCode = lang.code;
 
         // Process Name Translation
         const nameVal = formDataForEdit.name[langCode]?.trim() || "";

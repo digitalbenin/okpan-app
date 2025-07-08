@@ -44,15 +44,13 @@
                 (lang) => lang.is_default,
             );
             const newDefaultLangCode = defaultLang
-                ? defaultLang.language_code
-                : projectLanguages[0].language_code;
+                ? defaultLang.code
+                : projectLanguages[0].code;
             defaultLanguageCode = newDefaultLangCode; // Update state
 
             if (
                 !activeLanguageCode ||
-                !projectLanguages.some(
-                    (l) => l.language_code === activeLanguageCode,
-                )
+                !projectLanguages.some((l) => l.code === activeLanguageCode)
             ) {
                 activeLanguageCode = newDefaultLangCode;
             }
@@ -65,7 +63,7 @@
             let tempName = {};
             let tempDescription = {};
             projectLanguages.forEach((lang) => {
-                const code = lang.language_code;
+                const code = lang.code;
                 const isDefault = code === newDefaultLangCode;
 
                 // Extract content for the default language directly
@@ -73,13 +71,13 @@
                 tempName[code] =
                     (isDefault && researchField.name?.content) ||
                     researchField.name?.translations?.find(
-                        (t) => t.language_code === code,
+                        (t) => t.language?.code === code,
                     )?.content ||
                     "";
                 tempDescription[code] =
                     (isDefault && researchField.description?.content) ||
                     researchField.description?.translations?.find(
-                        (t) => t.language_code === code,
+                        (t) => t.language?.code === code,
                     )?.content ||
                     "";
             });
@@ -110,7 +108,7 @@
         const nameTrans = [];
         const descriptionTrans = [];
         projectLanguages.forEach((lang) => {
-            const langCode = lang.language_code;
+            const langCode = lang.code;
             if (langCode !== defaultLanguageCode) {
                 // Find original translation ID if it exists in the original prop
                 const originalNameTrans =
@@ -215,7 +213,7 @@
     {#if projectLanguages && projectLanguages.length > 1}
         <div {...tabs.triggerList} class="nav nav-tabs mb-3" role="tablist">
             {#each projectLanguages as lang}
-                {@const langCode = lang.language_code}
+                {@const langCode = lang.code}
                 <button
                     {...tabs.getTrigger(langCode)}
                     type="button"
@@ -226,7 +224,7 @@
                         ? ""
                         : undefined}
                 >
-                    {lang.language?.name || lang.language_code}
+                    {lang.name || lang.code}
                     {#if lang.is_default}<span
                             class="badge bg-secondary ms-1 small">Default</span
                         >{/if}
@@ -236,8 +234,8 @@
 
         <!-- Tab Content -->
         {#each projectLanguages as lang}
-            {@const langCode = lang.language_code}
-            {@const langName = lang.language?.name || lang.language_code}
+            {@const langCode = lang.code}
+            {@const langName = lang.name || lang.code}
             <div {...tabs.getContent(langCode)} class="pt-2">
                 <div class="d-flex flex-column gap-3">
                     <!-- Binding to internal state per language -->
@@ -257,7 +255,7 @@
             </div>
         {/each}
     {:else if projectLanguages && projectLanguages.length === 1}
-        {@const langCode = projectLanguages[0].language_code}
+        {@const langCode = projectLanguages[0].code}
         {@const langName = projectLanguages[0].language?.name || langCode}
         <div class="d-flex flex-column gap-3">
             <!-- Binding to internal state for single language -->
