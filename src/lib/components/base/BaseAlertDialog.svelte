@@ -9,6 +9,7 @@
     contentProps,
     title,
     description,
+    size = "",
     ...restProps
   } = $props();
 </script>
@@ -31,7 +32,9 @@
       {#snippet child({ props, open })}
         {#if open}
           <div {...props} class="modal d-block" transition:fade>
-            <div class="modal-dialog">
+            <div
+              class={`modal-dialog modal-dialog-scrollable ${size ? ` modal-${size}` : ""}`}
+            >
               <div class="modal-content">
                 <AlertDialog.Title class="modal-header">
                   <h1 class="modal-title fs-5">{@render title()}</h1>
