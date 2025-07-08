@@ -107,7 +107,7 @@ export const updateResearchField = async (fieldId, updateData) => {
             }
 
             try {
-                const transResponse = await executeQuery('translations', operation, variables, fetchFn);
+                const transResponse = await executeQuery('translations', operation, variables);
                 if (!transResponse || transResponse.error) {
                     throw new Error(transResponse?.error?.message || JSON.stringify(transResponse?.error) || `Failed to ${operation} ${fieldName} translation for language ${language_id}`);
                 }

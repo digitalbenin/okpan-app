@@ -113,25 +113,25 @@
                 // Find original translation ID if it exists in the original prop
                 const originalNameTrans =
                     researchField.name?.translations?.find(
-                        (t) => t.language_code === langCode,
+                        (t) => t.language?.code === langCode,
                     );
                 const originalDescriptionTrans =
                     researchField.description?.translations?.find(
-                        (t) => t.language_code === langCode,
+                        (t) => t.language?.code === langCode,
                     );
 
                 // Add if content exists in state for this language
                 if (nameContent[langCode] !== undefined) {
                     nameTrans.push({
                         id: originalNameTrans?.id, // Pass original ID if exists
-                        language_code: langCode,
+                        language_id: lang.id, // Use language ID instead of language code
                         content: nameContent[langCode] || "",
                     });
                 }
                 if (descriptionContent[langCode] !== undefined) {
                     descriptionTrans.push({
                         id: originalDescriptionTrans?.id,
-                        language_code: langCode,
+                        language_id: lang.id, // Use language ID instead of language code
                         content: descriptionContent[langCode] || "",
                     });
                 }

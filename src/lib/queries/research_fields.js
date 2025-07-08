@@ -80,6 +80,11 @@ export const researchFieldsOperations = {
         id
         language_id
         content
+        language {
+          id
+          code
+          name
+        }
       }
     }
     description {
@@ -90,6 +95,11 @@ export const researchFieldsOperations = {
         id
         language_id
         content
+        language {
+          id
+          code
+          name
+        }
       }
     }
     project {
