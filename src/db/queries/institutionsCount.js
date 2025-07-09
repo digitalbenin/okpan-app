@@ -50,13 +50,29 @@ export const createInstitutionsCountQuery = (db, drizzleResult) => {
                 const searchQuery = `content:${searchTerm}*`;
 
                 try {
+                    // If languageCode is provided, find the corresponding language_id within the project
+                    let languageFilter = sql``;
+                    if (args.languageCode && args.project_id) {
+                        // Find the language_id for this code in the project
+                        const projectLanguage = await db.select({
+                            id: dbSchema.languages.id
+                        })
+                            .from(dbSchema.languages)
+                            .where(sql`${dbSchema.languages.project_id} = ${args.project_id} AND ${dbSchema.languages.code} = ${args.languageCode}`)
+                            .limit(1);
+
+                        if (projectLanguage.length > 0) {
+                            languageFilter = sql`AND s.language_id = ${projectLanguage[0].id}`;
+                        }
+                    }
+
                     // Add a WHERE condition to filter by institutions that match the search term
                     query = query.where(
                         sql`${dbSchema.institutions.id} IN (
                             SELECT s.institution_id 
                             FROM institutions_search s
                             WHERE s.institutions_search MATCH ${searchQuery}
-                            ${args.languageCode ? sql`AND s.language_code = ${args.languageCode}` : sql``}
+                            ${languageFilter}
                         )`
                     );
                 } catch (error) {

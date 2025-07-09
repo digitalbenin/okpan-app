@@ -8,6 +8,7 @@
     tabindex="-1"
     id="offcanvasExample"
     aria-labelledby="offcanvasExampleLabel"
+    style="--bs-offcanvas-width:600px;"
   >
     <div class="offcanvas-header">
       <h5 class="offcanvas-title" id="offcanvasExampleLabel">title</h5>

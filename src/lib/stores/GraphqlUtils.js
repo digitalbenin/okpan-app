@@ -70,22 +70,17 @@ export async function executeMultiStepMutation(mutations, params) {
         throw new Error("Invalid mutation chain");
     }
 
+    console.log('=== MULTI-STEP MUTATION ===');
+    console.log('Input params:', JSON.stringify(params, null, 2));
+    console.log('Total mutations:', mutations.length);
+
     // Store intermediate results for using in subsequent steps
     const results = {};
     const finalResults = {};
 
     for (let i = 0; i < mutations.length; i++) {
         const mutation = mutations[i];
-
-        // Skip this step if the skipIf condition is met
-        if (mutation.skipIf) {
-            const { variableName, isUndefined } = mutation.skipIf;
-
-            if ((isUndefined && params[variableName] === undefined) ||
-                (!isUndefined && params[variableName] !== undefined)) {
-                continue;
-            }
-        }
+        console.log(`\n--- Step ${i + 1}: ${mutation.name} ---`);
 
         // Prepare variables for this step
         const stepVariables = {};
@@ -123,9 +118,63 @@ export async function executeMultiStepMutation(mutations, params) {
             }
         }
 
+        // Check onlyIf condition first (run step ONLY if condition is met)
+        if (mutation.onlyIf) {
+            const { from, path, isNull } = mutation.onlyIf;
+            console.log(`Checking onlyIf: from=${from}, path=${path}, isNull=${isNull}`);
+
+            if (results[from]) {
+                let value = results[from];
+                const pathParts = path.split('.');
+
+                for (const part of pathParts) {
+                    if (value === undefined || value === null) break;
+                    value = value[part];
+                }
+
+                console.log(`onlyIf value at ${path} =`, value);
+
+                if (isNull && value !== null) {
+                    console.log('SKIPPING mutation due to onlyIf condition (value is not null)');
+                    continue;
+                } else if (!isNull && value === null) {
+                    console.log('SKIPPING mutation due to onlyIf condition (value is null)');
+                    continue;
+                }
+            }
+        }
+
+        // Skip this step if the skipIf condition is met (check AFTER variable mapping)
+        if (mutation.skipIf) {
+            const { variableName, isUndefined, isEmpty } = mutation.skipIf;
+            console.log(`Checking skipIf: variableName=${variableName}, isUndefined=${isUndefined}, isEmpty=${isEmpty}`);
+            console.log(`stepVariables[${variableName}] =`, stepVariables[variableName]);
+
+            let shouldSkip = false;
+
+            if (isUndefined !== undefined) {
+                shouldSkip = (isUndefined && stepVariables[variableName] === undefined) ||
+                    (!isUndefined && stepVariables[variableName] !== undefined);
+            }
+
+            if (isEmpty !== undefined) {
+                const value = stepVariables[variableName];
+                const valueIsEmpty = value === undefined || value === null || value === '';
+                shouldSkip = shouldSkip || (isEmpty && valueIsEmpty) || (!isEmpty && !valueIsEmpty);
+            }
+
+            if (shouldSkip) {
+                console.log('SKIPPING mutation due to skipIf condition');
+                continue;
+            }
+        }
+
+        console.log('Step variables:', JSON.stringify(stepVariables, null, 2));
+
         // Execute this step
         try {
             const result = await performQuery({ name: mutation.name, query: mutation.query }, stepVariables);
+            console.log('Step result:', JSON.stringify(result, null, 2));
             results[mutation.name] = result;
             Object.assign(finalResults, result);
         } catch (error) {

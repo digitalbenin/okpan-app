@@ -99,14 +99,34 @@ export const createCountSubquery = (db, table, foreignKeyField, countAlias) => {
 };
 
 // Helper function to create a text field with translations
-export const createTextFieldWithTranslations = (textTable, translationsTable) => {
+export const createTextFieldWithTranslations = (textTable, translationsTable, languagesTable = null) => {
+    // If languagesTable is provided, include language information
+    if (languagesTable) {
+        return {
+            content: textTable.content,
+            id: textTable.id,
+            original_language_id: textTable.original_language_id,
+            translations: sql`json_group_array(json_object(
+                'id', ${translationsTable.id},
+                'language_id', ${translationsTable.language_id},
+                'content', ${translationsTable.content},
+                'language', json_object(
+                    'id', ${languagesTable.id},
+                    'code', ${languagesTable.code},
+                    'name', ${languagesTable.name}
+                )
+            ))`.as('translations')
+        };
+    }
+
+    // Fallback to original behavior if no languagesTable provided
     return {
         content: textTable.content,
         id: textTable.id,
-        original_language: textTable.original_language,
+        original_language_id: textTable.original_language_id,
         translations: sql`json_group_array(json_object(
             'id', ${translationsTable.id},
-            'language_code', ${translationsTable.language_code},
+            'language_id', ${translationsTable.language_id},
             'content', ${translationsTable.content}
         ))`.as('translations')
     };
@@ -123,16 +143,17 @@ export const processTranslations = (items, fields) => {
 
                     // Filter out null entries and duplicates
                     translations = translations
-                        .filter(t => t.language_code && t.content) // Keep entries with language_code and content
+                        .filter(t => t.language_id && t.content) // Keep entries with language_id and content
                         .filter((t, index, self) =>
-                            index === self.findIndex(s => s.language_code === t.language_code)
+                            index === self.findIndex(s => s.language_id === t.language_id)
                         );
 
                     // Make sure id field isn't null to avoid GraphQL errors
                     translations = translations.map(t => ({
-                        id: t.id || `temp_${field}_${t.language_code}`, // Fallback ID to avoid null
-                        language_code: t.language_code,
-                        content: t.content
+                        id: t.id || `temp_${field}_${t.language_id}`, // Fallback ID to avoid null
+                        language_id: t.language_id,
+                        content: t.content,
+                        language: t.language // Preserve language object if present
                     }));
 
                     item[field].translations = translations.length > 0 ? translations : [];

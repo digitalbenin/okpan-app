@@ -52,6 +52,11 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
             const methodTranslations = aliasedTable(dbSchema.translations, 'method_translations');
             const notesTranslations = aliasedTable(dbSchema.translations, 'notes_translations');
 
+            // Create aliases for the languages tables
+            const nameLanguages = aliasedTable(dbSchema.languages, 'name_languages');
+            const methodLanguages = aliasedTable(dbSchema.languages, 'method_languages');
+            const notesLanguages = aliasedTable(dbSchema.languages, 'notes_languages');
+
             // Create subquery to count distinct objects linked via ontology fields
             const objectsOntologyFieldsSubquery = db
                 .select({
@@ -75,9 +80,9 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 copyright: dbSchema.datasources.copyright,
                 contact: dbSchema.datasources.contact,
                 date: dbSchema.datasources.date,
-                name: createTextFieldWithTranslations(nameTexts, nameTranslations),
-                method: createTextFieldWithTranslations(methodTexts, methodTranslations),
-                notes: createTextFieldWithTranslations(notesTexts, notesTranslations),
+                name: createTextFieldWithTranslations(nameTexts, nameTranslations, nameLanguages),
+                method: createTextFieldWithTranslations(methodTexts, methodTranslations, methodLanguages),
+                notes: createTextFieldWithTranslations(notesTexts, notesTranslations, notesLanguages),
                 // Include the object count, defaulting to 0 if no objects are linked
                 objectsCount: sql`COALESCE(${objectsOntologyFieldsSubquery.objects_count}, 0)`.as('objectsCount')
             })
@@ -87,10 +92,13 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 // Joins for translated fields
                 .leftJoin(nameTexts, eq(dbSchema.datasources.name_id, nameTexts.id))
                 .leftJoin(nameTranslations, eq(nameTexts.id, nameTranslations.text_id))
+                .leftJoin(nameLanguages, eq(nameTranslations.language_id, nameLanguages.id))
                 .leftJoin(methodTexts, eq(dbSchema.datasources.method_id, methodTexts.id))
                 .leftJoin(methodTranslations, eq(methodTexts.id, methodTranslations.text_id))
+                .leftJoin(methodLanguages, eq(methodTranslations.language_id, methodLanguages.id))
                 .leftJoin(notesTexts, eq(dbSchema.datasources.notes_id, notesTexts.id))
-                .leftJoin(notesTranslations, eq(notesTexts.id, notesTranslations.text_id));
+                .leftJoin(notesTranslations, eq(notesTexts.id, notesTranslations.text_id))
+                .leftJoin(notesLanguages, eq(notesTranslations.language_id, notesLanguages.id));
 
             // Apply institution_id filter if provided
             if (args.institution_id) {

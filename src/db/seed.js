@@ -1,6 +1,6 @@
 import { db } from './init.js';
 import {
-    languages, project, project_languages, institutions, texts, objects, assets,
+    languages, project, institutions, texts, objects, assets,
     objects_assets, research_fields, vocabularies, objects_research_fields,
     ontology_fields, datasources, objects_ontology_fields,
 } from './schema.js';
@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import https from 'https';
 import { handleImportAssets } from '../backend/handlers/assetHandlers.js';
+import { eq } from 'drizzle-orm';
 
 // Configuration constants for seed cardinality
 const SEED_CONFIG = {
@@ -68,51 +69,49 @@ const seed = async () => {
             fs.mkdirSync(tempDir, { recursive: true });
         }
 
-        // Create languages
+        // Create project first (without text references)
+        const [projectRecord] = await db.insert(project).values({
+            title_id: null, // Will be updated later
+            description_id: null // Will be updated later
+        }).returning();
+
+        // Create project-specific languages
         const [english, italian] = await Promise.all([
             db.insert(languages).values({
+                project_id: projectRecord.id,
                 code: 'en',
-                name: 'English'
+                name: 'English',
+                is_default: 1
             }).returning(),
             db.insert(languages).values({
+                project_id: projectRecord.id,
                 code: 'it',
-                name: 'Italian'
+                name: 'Italian',
+                is_default: 0
             }).returning()
         ]);
 
-        // Create project texts
+        // Create project texts with correct language references
         const [titleText, descriptionText] = await Promise.all([
             db.insert(texts).values({
                 content: 'Sample Project',
                 context: 'project.title',
-                original_language: english[0].code
+                original_language_id: english[0].id
             }).returning(),
             db.insert(texts).values({
                 content: 'A sample project for testing',
                 context: 'project.description',
-                original_language: english[0].code
+                original_language_id: english[0].id
             }).returning()
         ]);
 
-        // Create project
-        const [projectRecord] = await db.insert(project).values({
-            title_id: titleText[0].id,
-            description_id: descriptionText[0].id
-        }).returning();
-
-        // Link languages to project
-        await Promise.all([
-            db.insert(project_languages).values({
-                project_id: projectRecord.id,
-                language_code: english[0].code,
-                is_default: 1
-            }),
-            db.insert(project_languages).values({
-                project_id: projectRecord.id,
-                language_code: italian[0].code,
-                is_default: 0
+        // Update project with text references
+        await db.update(project)
+            .set({
+                title_id: titleText[0].id,
+                description_id: descriptionText[0].id
             })
-        ]);
+            .where(eq(project.id, projectRecord.id));
 
         // Create ontology field categories
         const categoryMap = {
@@ -131,7 +130,7 @@ const seed = async () => {
             const categoryText = await db.insert(texts).values({
                 content: value,
                 context: `ontology.category.${key}`,
-                original_language: english[0].code
+                original_language_id: english[0].id
             }).returning();
 
             // Debug logging to see what's coming back
@@ -206,12 +205,12 @@ const seed = async () => {
                 db.insert(texts).values({
                     content: field.name,
                     context: 'ontology_fields.name',
-                    original_language: english[0].code
+                    original_language_id: english[0].id
                 }).returning(),
                 db.insert(texts).values({
                     content: field.description,
                     context: 'ontology_fields.description',
-                    original_language: english[0].code
+                    original_language_id: english[0].id
                 }).returning()
             ]);
 
@@ -270,22 +269,22 @@ const seed = async () => {
                 db.insert(texts).values({
                     content: `Institution ${i + 1}`,
                     context: 'institutions.name',
-                    original_language: english[0].code
+                    original_language_id: english[0].id
                 }).returning(),
                 db.insert(texts).values({
                     content: `Description for Institution ${i + 1}`,
                     context: 'institutions.description',
-                    original_language: english[0].code
+                    original_language_id: english[0].id
                 }).returning(),
                 db.insert(texts).values({
                     content: 'Italy',
                     context: 'institutions.country',
-                    original_language: english[0].code
+                    original_language_id: english[0].id
                 }).returning(),
                 db.insert(texts).values({
                     content: `Location ${i + 1}`,
                     context: 'institutions.location',
-                    original_language: english[0].code
+                    original_language_id: english[0].id
                 }).returning()
             ]);
 
@@ -307,9 +306,9 @@ const seed = async () => {
             let datasource = null;
             try {
                 const [dsNameText, dsMethodText, dsNotesText] = await Promise.all([
-                    db.insert(texts).values({ content: `Institution ${i + 1} Catalog`, context: 'datasources.name', original_language: english[0].code }).returning(),
-                    db.insert(texts).values({ content: 'Manual Entry', context: 'datasources.method', original_language: english[0].code }).returning(),
-                    db.insert(texts).values({ content: 'Primary data source for this institution.', context: 'datasources.notes', original_language: english[0].code }).returning()
+                    db.insert(texts).values({ content: `Institution ${i + 1} Catalog`, context: 'datasources.name', original_language_id: english[0].id }).returning(),
+                    db.insert(texts).values({ content: 'Manual Entry', context: 'datasources.method', original_language_id: english[0].id }).returning(),
+                    db.insert(texts).values({ content: 'Primary data source for this institution.', context: 'datasources.notes', original_language_id: english[0].id }).returning()
                 ]);
 
                 // Check if texts were created successfully
@@ -322,7 +321,7 @@ const seed = async () => {
                     method_id: dsMethodText[0].id,
                     notes_id: dsNotesText[0].id,
                     institution_id: institution.id,
-                    language: english[0].code,
+                    language_id: english[0].id,
                     copyright: `© ${new Date().getFullYear()} Institution ${i + 1}`,
                     contact: `curator@institution${i + 1}.example.com`,
                     date: new Date()
@@ -357,12 +356,12 @@ const seed = async () => {
                 db.insert(texts).values({
                     content: `Research Field ${i + 1}`,
                     context: 'research_fields.name',
-                    original_language: english[0].code
+                    original_language_id: english[0].id
                 }).returning(),
                 db.insert(texts).values({
                     content: `Description for Research Field ${i + 1}`,
                     context: 'research_fields.description',
-                    original_language: english[0].code
+                    original_language_id: english[0].id
                 }).returning()
             ]);
 
@@ -380,12 +379,12 @@ const seed = async () => {
                         db.insert(texts).values({
                             content: `Option ${j + 1} for Field ${i + 1}`,
                             context: 'vocabularies.option',
-                            original_language: english[0].code
+                            original_language_id: english[0].id
                         }).returning(),
                         db.insert(texts).values({
                             content: `Description for Option ${j + 1} of Field ${i + 1}`,
                             context: 'vocabularies.description',
-                            original_language: english[0].code
+                            original_language_id: english[0].id
                         }).returning()
                     ]);
 

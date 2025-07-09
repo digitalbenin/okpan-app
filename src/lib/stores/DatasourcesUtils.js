@@ -69,7 +69,7 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         translationResults[fieldName] = [];
 
         for (const trans of translationsArray) {
-            const { id: originalTranslationId, language_code, content } = trans;
+            const { id: originalTranslationId, language_id, content } = trans;
             let operation = null;
             let variables = {};
 
@@ -80,7 +80,7 @@ export const updateDatasource = async (datasourceId, updatedData) => {
                 operation = 'create';
                 variables = {
                     textId: textId,
-                    languageCode: language_code,
+                    languageId: language_id,
                     content: content
                 };
             }
@@ -89,11 +89,11 @@ export const updateDatasource = async (datasourceId, updatedData) => {
                 const transResponse = await executeQuery('translations', operation, variables);
 
                 if (!transResponse || transResponse.error) {
-                    throw new Error(JSON.stringify(transResponse?.error || `Failed to ${operation} ${fieldName} translation for ${language_code}`));
+                    throw new Error(JSON.stringify(transResponse?.error || `Failed to ${operation} ${fieldName} translation for language ${language_id}`));
                 }
                 translationResults[fieldName].push(transResponse.result);
             } catch (err) {
-                translationErrors.push(`Failed to ${operation} ${fieldName} for ${language_code}: ${err.message}`);
+                translationErrors.push(`Failed to ${operation} ${fieldName} for language ${language_id}: ${err.message}`);
             }
         }
     };

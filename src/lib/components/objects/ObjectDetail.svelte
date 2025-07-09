@@ -210,30 +210,30 @@
   }
 
   async function handleSaveNew() {
+    console.log("Saving changes...");
     const statusResult = await updateObjectStatus(
       object.id,
       statusValue ? "completed" : "in progress"
     );
-
     if (statusResult.error) {
       console.error("Error updating status:", statusResult.error);
       statusUpdateSuccess = false;
     } else {
       console.log("Status update successful:", statusResult);
-
-      // await invalidate("custom:objects");
       const href = `${page.url.pathname}/objects/${object.id}`;
-
       const result = await preloadData(href);
+      console.log("Preload result:", result);
 
       if (result.type === "loaded" && result.status === 200) {
         // replaceState(href, { selected: result.data });
-        goto(page.url.pathname, {
-          state: { selected: result.data },
-          replaceState: true,
-          keepFocus: true,
-          invalidate: ["custom:objects"],
-        });
+        await invalidate("app:objects");
+        replaceState(href, { selected: result.data });
+        // goto(page.url.pathname, {
+        //   state: { selected: result.data },
+        //   replaceState: true,
+        //   keepFocus: true,
+        //   invalidate: ["custom:objects"],
+        // });
       } else {
         // something bad happened! try navigating
         goto(href);

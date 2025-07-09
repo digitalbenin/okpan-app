@@ -1,12 +1,11 @@
 import { db } from './init.js';
 import {
-    languages, project, project_languages, institutions, texts, objects as dbObjects, assets,
-    genericAssets,
+    languages, project, institutions, texts, objects, assets,
     objects_assets, research_fields, vocabularies, objects_research_fields,
-    ontology_fields, datasources as dbDatasources, objects_ontology_fields,
+    ontology_fields, datasources, objects_ontology_fields
 } from './schema.js';
 import { v4 as uuidv4 } from 'uuid';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { handleImportAssets } from '../backend/handlers/assetHandlers.js';
@@ -51,15 +50,15 @@ const readJsonData = async (filePath) => {
 };
 
 // Helper function to create a text entry
-const createTextEntry = async (content, context, languageCode) => {
-    if (content === null || typeof content === 'undefined' || content.trim() === '') {
+const createTextEntry = async (content, context, languageId) => {
+    if (!content || typeof content !== 'string' || content.trim() === '') {
         return null;
     }
     const [textEntry] = await db.insert(texts).values({
         id: uuidv4(),
         content: content,
         context: context,
-        original_language: languageCode
+        original_language_id: languageId
     }).returning();
     return textEntry?.id || null;
 };
@@ -85,21 +84,12 @@ const seed = async () => {
     try {
         console.log('Starting seeding process from JSON data...');
 
-        // --- 1. Basic Setup (Languages, Project) ---
-        const [englishLangRes, italianLangRes] = await Promise.all([
-            db.insert(languages).values({ code: 'en', name: 'English', id: uuidv4() }).returning(),
-            db.insert(languages).values({ code: 'it', name: 'Italian', id: uuidv4() }).returning()
-        ]);
-        const englishLang = englishLangRes[0];
-        const italianLang = italianLangRes[0];
-
-        const projectTitleId = await createTextEntry('Digital Benin Archive (Seeded from JSON)', 'project.title', englishLang.code);
-        const projectDescriptionId = await createTextEntry('A collection of Benin artifacts and their histories, seeded from JSON data provided in the seed_data folder.', 'project.description', englishLang.code);
-
+        // --- 1. Basic Setup (Project and Languages) ---
+        // Create project first
         const projectRecord = await db.insert(project).values({
             id: uuidv4(),
-            title_id: projectTitleId,
-            description_id: projectDescriptionId
+            title_id: null,
+            description_id: null
         }).returning();
 
         // Ensure projectRecord is valid and contains the ID
@@ -109,11 +99,39 @@ const seed = async () => {
         }
         const mainProjectId = projectRecord[0].id;
 
-        await Promise.all([
-            db.insert(project_languages).values({ id: uuidv4(), project_id: mainProjectId, language_code: englishLang.code, is_default: 1 }),
-            db.insert(project_languages).values({ id: uuidv4(), project_id: mainProjectId, language_code: italianLang.code, is_default: 0 })
+        // Create project-specific languages
+        const [englishLangRes, italianLangRes] = await Promise.all([
+            db.insert(languages).values({
+                id: uuidv4(),
+                project_id: mainProjectId,
+                code: 'en',
+                name: 'English',
+                is_default: 1
+            }).returning(),
+            db.insert(languages).values({
+                id: uuidv4(),
+                project_id: mainProjectId,
+                code: 'it',
+                name: 'Italian',
+                is_default: 0
+            }).returning()
         ]);
-        console.log(`Project '${projectTitleId ? await db.select().from(texts).where(sql`${texts.id} = ${projectTitleId}`).then(r => r[0]?.content || 'N/A') : 'N/A'}' and languages seeded.`);
+        const englishLang = englishLangRes[0];
+        const italianLang = italianLangRes[0];
+
+        // Create project texts with language IDs
+        const projectTitleId = await createTextEntry('Digital Benin Archive (Seeded from JSON)', 'project.title', englishLang.id);
+        const projectDescriptionId = await createTextEntry('A collection of Benin artifacts and their histories, seeded from JSON data provided in the seed_data folder.', 'project.description', englishLang.id);
+
+        // Update project with text references
+        await db.update(project)
+            .set({
+                title_id: projectTitleId,
+                description_id: projectDescriptionId
+            })
+            .where(eq(project.id, mainProjectId));
+
+        console.log(`Project and languages seeded.`);
 
         // --- 2. Ontology Fields & Categories (redefined based on images) ---
         const categoryMap = {
@@ -125,7 +143,7 @@ const seed = async () => {
         };
         const categoryTextEntries = {};
         for (const [key, value] of Object.entries(categoryMap)) {
-            const categoryTextId = await createTextEntry(value, `ontology.category.${key}`, englishLang.code);
+            const categoryTextId = await createTextEntry(value, `ontology.category.${key}`, englishLang.id);
             if (categoryTextId) {
                 categoryTextEntries[key] = categoryTextId;
             } else {
@@ -182,8 +200,8 @@ const seed = async () => {
 
         const ontologyFieldsByName = new Map();
         for (const field of ontologyFieldsList) {
-            const nameId = await createTextEntry(field.name, 'ontology_fields.name', englishLang.code);
-            const descriptionId = await createTextEntry(field.description, 'ontology_fields.description', englishLang.code);
+            const nameId = await createTextEntry(field.name, 'ontology_fields.name', englishLang.id);
+            const descriptionId = await createTextEntry(field.description, 'ontology_fields.description', englishLang.id);
             const categoryId = categoryTextEntries[field.category];
             if (!nameId || !descriptionId || !categoryId) {
                 throw new Error(`Failed to create text entries for ontology field ${field.name}`);
@@ -250,9 +268,9 @@ const seed = async () => {
         // --- 4. Seed Institutions ---
         const institutionMap = new Map();
         for (const instData of institutionsData) {
-            const nameId = await createTextEntry(instData.name, 'institutions.name', englishLang.code);
+            const nameId = await createTextEntry(instData.name, 'institutions.name', englishLang.id);
             const locationString = instData.location || "";
-            const locationId = await createTextEntry(locationString, 'institutions.location', englishLang.code);
+            const locationId = await createTextEntry(locationString, 'institutions.location', englishLang.id);
 
             let countryName = "Unknown";
             if (locationString) {
@@ -261,7 +279,7 @@ const seed = async () => {
                     countryName = parts[parts.length - 1].trim();
                 }
             }
-            const countryId = await createTextEntry(countryName, 'institutions.country', englishLang.code);
+            const countryId = await createTextEntry(countryName, 'institutions.country', englishLang.id);
 
             let processedLinks = [];
             if (instData.links && Array.isArray(instData.links)) {
@@ -294,10 +312,10 @@ const seed = async () => {
                 continue;
             }
             const dsName = `Data source for ${institutionsData.find(i => i.id === dsData.institution)?.name || dsData.institution}`;
-            const nameId = await createTextEntry(dsName, 'datasources.name', englishLang.code);
-            const methodId = await createTextEntry(dsData.method, 'datasources.method', englishLang.code);
+            const nameId = await createTextEntry(dsName, 'datasources.name', englishLang.id);
+            const methodId = await createTextEntry(dsData.method, 'datasources.method', englishLang.id);
 
-            const [dbDataSource] = await db.insert(dbDatasources).values({
+            const [dbDataSource] = await db.insert(datasources).values({
                 id: uuidv4(),
                 name_id: nameId,
                 institution_id: newInstitutionId,
@@ -319,8 +337,8 @@ const seed = async () => {
         console.log(`${dataSourceMap.size} data sources seeded.`);
 
         // --- 6. Seed Research Field (Edo Designation) and Vocabularies ---
-        const edoRfNameId = await createTextEntry("Edo Designation", 'research_fields.name', englishLang.code);
-        const edoRfDescId = await createTextEntry("Vocabulary for Edo designations of objects.", 'research_fields.description', englishLang.code);
+        const edoRfNameId = await createTextEntry("Edo Designation", 'research_fields.name', englishLang.id);
+        const edoRfDescId = await createTextEntry("Vocabulary for Edo designations of objects.", 'research_fields.description', englishLang.id);
 
         const [edoResearchField] = await db.insert(research_fields).values({
             id: uuidv4(),
@@ -332,8 +350,8 @@ const seed = async () => {
 
         const edoVocabularyMap = new Map(); // Map old Edo ID to new vocabulary DB ID
         for (const edoData of edoDesignationsData) {
-            const nameId = await createTextEntry(edoData.name, 'vocabularies.option', englishLang.code);
-            const descriptionId = await createTextEntry(edoData.description, 'vocabularies.description', englishLang.code);
+            const nameId = await createTextEntry(edoData.name, 'vocabularies.option', englishLang.id);
+            const descriptionId = await createTextEntry(edoData.description, 'vocabularies.description', englishLang.id);
             let newAssetId = null;
             if (edoData.asset) {
                 // For vocabulary assets from edo_designations.json, specifically look only in the 'edo_images' subfolder.
@@ -389,7 +407,7 @@ const seed = async () => {
                 continue;
             }
 
-            const [dbObject] = await db.insert(dbObjects).values({
+            const [dbObject] = await db.insert(objects).values({
                 id: uuidv4(), // Generate new UUID for the object
                 institution_id: newInstitutionId,
                 project_id: mainProjectId,

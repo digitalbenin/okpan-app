@@ -4,7 +4,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS institutions_search USING FTS5(
   text_id,
   field_name,  -- 'name', 'description', 'country', 'location'
   content,
-  language_code,
+  language_id,
   tokenize='porter unicode61'
 );
 
@@ -35,14 +35,14 @@ BEGIN
   -- Update all institutions_search entries that reference this text
   UPDATE institutions_search 
   SET content = NEW.content
-  WHERE text_id = NEW.id AND language_code = NEW.original_language;
+  WHERE text_id = NEW.id AND language_id = NEW.original_language_id;
 END;
 
 -- Trigger for when a new translation is added
 CREATE TRIGGER IF NOT EXISTS translation_insert AFTER INSERT ON translations
 BEGIN
   -- Find institutions that reference this text and add to search index
-  INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_code)
+  INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
   SELECT 
     i.id,
     NEW.text_id,
@@ -53,7 +53,7 @@ BEGIN
       WHEN i.location_id = NEW.text_id THEN 'location'
     END,
     NEW.content,
-    NEW.language_code
+    NEW.language_id
   FROM institutions i
   WHERE i.name_id = NEW.text_id OR i.description_id = NEW.text_id 
      OR i.country_id = NEW.text_id OR i.location_id = NEW.text_id;
@@ -65,12 +65,12 @@ BEGIN
   -- Update all institutions_search entries that reference this translation
   UPDATE institutions_search 
   SET content = NEW.content
-  WHERE text_id = NEW.text_id AND language_code = NEW.language_code;
+  WHERE text_id = NEW.text_id AND language_id = NEW.language_id;
 END;
 
 -- Trigger for when a translation is deleted
 CREATE TRIGGER IF NOT EXISTS translation_delete AFTER DELETE ON translations
 BEGIN
   DELETE FROM institutions_search 
-  WHERE text_id = OLD.text_id AND language_code = OLD.language_code;
+  WHERE text_id = OLD.text_id AND language_id = OLD.language_id;
 END; 

@@ -7,42 +7,49 @@ export const projectsOperations = {
     variables: {
       projectName: "Name of the project",
       description: "Description of the project",
-      languageCode: "Language code for the initial text"
+      languageCode: "Language code for the initial language",
+      languageName: "Language name for the initial language"
     },
     mutations: [
       {
         name: "createTitle",
-        query: `mutation CreateProjectTitle($projectName: String!, $languageCode: String!) {
+        query: `mutation CreateProjectTitle($projectName: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
         content: $projectName
         context: "project.title"
-        original_language: $languageCode
+        original_language_id: $languageId
       }
     ]
   ) {
     id
   }
 }`,
-        useVariables: ["projectName", "languageCode"]
+        useVariables: ["projectName"],
+        mapVariables: {
+          languageId: { from: "createLanguage", path: "insertIntoLanguages.0.id" }
+        }
       },
       {
         name: "createDescription",
-        query: `mutation CreateProjectDescription($description: String!, $languageCode: String!) {
+        query: `mutation CreateProjectDescription($description: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
         content: $description
         context: "project.description"
-        original_language: $languageCode
+        original_language_id: $languageId
       }
     ]
   ) {
     id
   }
 }`,
-        useVariables: ["description", "languageCode"]
+        useVariables: ["description"],
+        mapVariables: {
+          languageId: { from: "createLanguage", path: "insertIntoLanguages.0.id" }
+        }
       },
       {
         name: "createProject",
@@ -66,23 +73,26 @@ export const projectsOperations = {
         }
       },
       {
-        name: "addDefaultLanguage",
-        query: `mutation AddDefaultLanguage($projectId: String!, $languageCode: String!) {
-  insertIntoProject_languages(
+        name: "createLanguage",
+        query: `mutation CreateProjectLanguage($projectId: String!, $languageCode: String!, $languageName: String!) {
+  insertIntoLanguages(
     values: [
       {
         project_id: $projectId
-        language_code: $languageCode
+        code: $languageCode
+        name: $languageName
         is_default: 1
       }
     ]
   ) {
+    id
     project_id
-    language_code
+    code
+    name
     is_default
   }
 }`,
-        useVariables: ["languageCode"],
+        useVariables: ["languageCode", "languageName"],
         mapVariables: {
           projectId: { from: "createProject", path: "insertIntoProject.0.id" }
         }
@@ -174,7 +184,8 @@ export const projectsOperations = {
       {
         name: "deleteProjectLanguages",
         query: `mutation DeleteProjectLanguages($projectId: String!) {
-  deleteFromProject_languages(where: { project_id: { eq: $projectId } }) {
+  deleteFromLanguages(where: { project_id: { eq: $projectId } }) {
+    id
     project_id
   }
 }`,
@@ -255,21 +266,31 @@ export const projectsOperations = {
     title {
       id
       content
-      original_language
+      original_language_id
       translations {
         id
         content
-        language_code
+        language_id
+        language {
+          id
+          code
+          name
+        }
       }
     }
     description {
       id
       content
-      original_language
+      original_language_id
       translations {
         id
         content
-        language_code
+        language_id
+        language {
+          id
+          code
+          name
+        }
       }
     }
     institutionsCount
@@ -296,21 +317,31 @@ export const projectsOperations = {
     title {
       id
       content
-      original_language
+      original_language_id
       translations {
         id
         content
-        language_code
+        language_id
+        language {
+          id
+          code
+          name
+        }
       }
     }
     description {
       id
       content
-      original_language
+      original_language_id
       translations {
         id
         content
-        language_code
+        language_id
+        language {
+          id
+          code
+          name
+        }
       }
     }
     institutionsCount
@@ -328,20 +359,24 @@ export const projectsOperations = {
     variables: {
       projectId: "ID of the project",
       languageCode: "Code of the language to add",
+      languageName: "Name of the language to add",
       isDefault: "Whether this is the default language (0 or 1)"
     },
-    query: `mutation AddProjectLanguage($projectId: String!, $languageCode: String!, $isDefault: Int!) {
-  insertIntoProject_languages(
+    query: `mutation AddProjectLanguage($projectId: String!, $languageCode: String!, $languageName: String!, $isDefault: Int!) {
+  insertIntoLanguages(
     values: [
       {
         project_id: $projectId
-        language_code: $languageCode
+        code: $languageCode
+        name: $languageName
         is_default: $isDefault
       }
     ]
   ) {
+    id
     project_id
-    language_code
+    code
+    name
     is_default
   }
 }`
@@ -353,15 +388,15 @@ export const projectsOperations = {
     name: "Remove Language from Project",
     description: "Removes a language from a project",
     variables: {
-      projectId: "ID of the project",
-      languageCode: "Code of the language to remove"
+      languageId: "ID of the language to remove"
     },
-    query: `mutation RemoveProjectLanguage($projectId: String!, $languageCode: String!) {
-  deleteFromProject_languages(
-    where: { project_id: { eq: $projectId }, language_code: { eq: $languageCode } }
+    query: `mutation RemoveProjectLanguage($languageId: String!) {
+  deleteFromLanguages(
+    where: { id: { eq: $languageId } }
   ) {
+    id
     project_id
-    language_code
+    code
   }
 }`
   },
@@ -373,23 +408,25 @@ export const projectsOperations = {
     description: "Sets the default language for a project",
     variables: {
       projectId: "ID of the project",
-      languageCode: "Code of the language to set as default"
+      languageId: "ID of the language to set as default"
     },
-    query: `mutation SetProjectDefaultLanguage($projectId: String!, $languageCode: String!) {
+    query: `mutation SetProjectDefaultLanguage($projectId: String!, $languageId: String!) {
   # First, set all languages for this project to non-default
-  updateAllToNonDefault: updateProject_languages(
+  updateAllToNonDefault: updateLanguages(
     set: { is_default: 0 }
     where: { project_id: { eq: $projectId } }
   ) {
+    id
     project_id
   }
   # Then, set the specified language as default
-  setNewDefault: updateProject_languages(
+  setNewDefault: updateLanguages(
     set: { is_default: 1 }
-    where: { project_id: { eq: $projectId }, language_code: { eq: $languageCode } }
+    where: { id: { eq: $languageId } }
   ) {
+    id
     project_id
-    language_code
+    code
     is_default
   }
 }`

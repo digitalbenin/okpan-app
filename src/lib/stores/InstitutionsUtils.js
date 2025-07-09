@@ -19,9 +19,9 @@ export const getInstitution = async (institutionId, fetchFn) => {
 
 export const updateInstitution = async (institutionId, updateData) => {
 
-    // Add institutionId to the update params
+    // Add institutionId to the update params (using 'id' to match GraphQL operation)
     const params = {
-        institutionId,
+        id: institutionId,
         ...updateData
     };
 

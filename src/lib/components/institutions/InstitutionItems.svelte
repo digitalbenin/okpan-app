@@ -22,6 +22,7 @@
 
   const tabs = new Tabs({
     value: params.iView || "objects",
+    value: "objects",
     onValueChange: (value) => {
       params.iView = value;
     },

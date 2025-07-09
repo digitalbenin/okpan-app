@@ -49,15 +49,13 @@
                 (lang) => lang.is_default,
             );
             const newDefaultLangCode = defaultLang
-                ? defaultLang.language_code
-                : projectLanguages[0].language_code;
+                ? defaultLang.code
+                : projectLanguages[0].code;
             defaultLanguageCode = newDefaultLangCode; // Update state
 
             if (
                 !activeLanguageCode ||
-                !projectLanguages.some(
-                    (l) => l.language_code === activeLanguageCode,
-                )
+                !projectLanguages.some((l) => l.code === activeLanguageCode)
             ) {
                 activeLanguageCode = newDefaultLangCode;
             }
@@ -77,25 +75,25 @@
             let tempMethod = {};
             let tempNotes = {};
             projectLanguages.forEach((lang) => {
-                const code = lang.language_code;
+                const code = lang.code;
                 const isDefault = code === newDefaultLangCode;
 
                 tempName[code] =
                     (isDefault && datasource.name?.content) ||
                     datasource.name?.translations?.find(
-                        (t) => t.language_code === code,
+                        (t) => t.language?.code === code,
                     )?.content ||
                     "";
                 tempMethod[code] =
                     (isDefault && datasource.method?.content) ||
                     datasource.method?.translations?.find(
-                        (t) => t.language_code === code,
+                        (t) => t.language?.code === code,
                     )?.content ||
                     "";
                 tempNotes[code] =
                     (isDefault && datasource.notes?.content) ||
                     datasource.notes?.translations?.find(
-                        (t) => t.language_code === code,
+                        (t) => t.language?.code === code,
                     )?.content ||
                     "";
             });
@@ -139,44 +137,48 @@
         const methodTrans = [];
         const notesTrans = [];
         projectLanguages.forEach((lang) => {
-            const langCode = lang.language_code;
+            const langCode = lang.code;
             if (langCode !== defaultLanguageCode) {
                 // Find original ID if it exists in the original datasource prop
                 const originalNameTrans = datasource.name?.translations?.find(
-                    (t) => t.language_code === langCode,
+                    (t) => t.language?.code === langCode,
                 );
                 const originalMethodTrans =
                     datasource.method?.translations?.find(
-                        (t) => t.language_code === langCode,
+                        (t) => t.language?.code === langCode,
                     );
                 const originalNotesTrans = datasource.notes?.translations?.find(
-                    (t) => t.language_code === langCode,
+                    (t) => t.language?.code === langCode,
                 );
 
                 // Add if content exists in state
                 if (nameContent[langCode] !== undefined) {
                     nameTrans.push({
                         id: originalNameTrans?.id, // Pass original ID if exists
-                        language_code: langCode,
+                        language_id: lang.id, // Use language ID instead of language code
                         content: nameContent[langCode] || "",
                     });
                 }
                 if (methodContent[langCode] !== undefined) {
                     methodTrans.push({
                         id: originalMethodTrans?.id,
-                        language_code: langCode,
+                        language_id: lang.id, // Use language ID instead of language code
                         content: methodContent[langCode] || "",
                     });
                 }
                 if (notesContent[langCode] !== undefined) {
                     notesTrans.push({
                         id: originalNotesTrans?.id,
-                        language_code: langCode,
+                        language_id: lang.id, // Use language ID instead of language code
                         content: notesContent[langCode] || "",
                     });
                 }
             }
         });
+
+        const defaultLang =
+            projectLanguages.find((lang) => lang.is_default) ||
+            projectLanguages[0];
 
         const updatedDataPayload = {
             datasourceId: datasource.id,
@@ -191,6 +193,8 @@
             original_name_id: datasource.name?.id,
             original_method_id: datasource.method?.id,
             original_notes_id: datasource.notes?.id,
+            // Always use default language for main text records
+            languageId: defaultLang?.id,
             // Pass prepared translations
             nameTranslations: nameTrans.filter((t) => t.content !== undefined),
             methodTranslations: methodTrans.filter(
@@ -226,7 +230,7 @@
     {#if projectLanguages && projectLanguages.length > 0}
         <div {...tabs.triggerList} class="nav nav-tabs mb-3" role="tablist">
             {#each projectLanguages as lang}
-                {@const langCode = lang.language_code}
+                {@const langCode = lang.code}
                 <button
                     {...tabs.getTrigger(langCode)}
                     type="button"
@@ -237,7 +241,7 @@
                         ? ""
                         : undefined}
                 >
-                    {lang.language?.name || lang.language_code}
+                    {lang.name || lang.code}
                     {#if lang.is_default}<span
                             class="badge bg-secondary ms-1 small">Default</span
                         >{/if}
@@ -247,8 +251,8 @@
 
         <!-- Tab Content -->
         {#each projectLanguages as lang}
-            {@const langCode = lang.language_code}
-            {@const langName = lang.language?.name || lang.language_code}
+            {@const langCode = lang.code}
+            {@const langName = lang.name || lang.code}
             <div {...tabs.getContent(langCode)} class="pt-2">
                 <div class="d-flex flex-column gap-3">
                     <!-- REVERT Binding to internal state -->

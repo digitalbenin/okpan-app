@@ -7,7 +7,6 @@ import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte
 
 export const load = async ({ params, depends }) => {
     if (!browser) return;
-    console.log("loading institution page data for:", params.institution_id);
     depends('app:objects', 'app:assets', 'app:datasources', 'app:institutions');
 
     const projectId = params.project_id;
@@ -44,9 +43,6 @@ export const load = async ({ params, depends }) => {
         fetchDatasources(projectId, institutionId)
     ]);
 
-
-    console.log("Institution page data fully loaded for:", institutionId);
-
     const res = {
         institution: institutionData?.result || institutionData, // Adjust based on getInstitution's actual return
 
@@ -66,7 +62,6 @@ export const load = async ({ params, depends }) => {
         datasources: datasourcesResponse?.result || [],
         projectLanguages: projectLanguages?.result || projectLanguages || [] // Adjust as per getAvaliableLocalesForProject's return
     };
-    console.log("institution page data loaded", res);
     return res;
 };
 

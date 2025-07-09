@@ -15,22 +15,25 @@ const commonFields = {
 
 // Translation Schema
 
-// Languages table
+// Project-specific Languages table (formerly project_languages)
 export const languages = sqliteTable('languages', {
     ...commonFields,
-    code: text('code').notNull().unique(), // e.g., 'en', 'es', 'fr'
+    project_id: text('project_id')
+        .notNull()
+        .references(() => project.id),
+    code: text('code').notNull(), // e.g., 'en', 'es', 'fr'
     name: text('name').notNull(), // e.g., 'English', 'Spanish', 'French'
+    is_default: integer('is_default').notNull().default(0)
 });
-
 
 // Texts table - stores original texts
 export const texts = sqliteTable('texts', {
     ...commonFields,
     content: text('content').notNull(),
     context: text('context').notNull(), // e.g., 'project.title', 'institutions.name'
-    original_language: text('original_language')
+    original_language_id: text('original_language_id')
         .notNull()
-        .references(() => languages.code)
+        .references(() => languages.id)
 });
 
 // Translations table - stores translated content
@@ -39,17 +42,17 @@ export const translations = sqliteTable('translations', {
     text_id: text('text_id')
         .notNull()
         .references(() => texts.id),
-    language_code: text('language_code')
+    language_id: text('language_id')
         .notNull()
-        .references(() => languages.code),
+        .references(() => languages.id),
     content: text('content').notNull()
 });
 
 // Translation Relations
 export const textsRelations = relations(texts, ({ one, many }) => ({
     originalLanguage: one(languages, {
-        fields: [texts.original_language],
-        references: [languages.code]
+        fields: [texts.original_language_id],
+        references: [languages.id]
     }),
     translations: many(translations)
 }));
@@ -60,20 +63,26 @@ export const translationsRelations = relations(translations, ({ one }) => ({
         references: [texts.id]
     }),
     language: one(languages, {
-        fields: [translations.language_code],
-        references: [languages.code]
+        fields: [translations.language_id],
+        references: [languages.id]
     })
 }));
 
+// Languages relations
+export const languagesRelations = relations(languages, ({ one, many }) => ({
+    project: one(project, {
+        fields: [languages.project_id],
+        references: [project.id]
+    }),
+    textsAsOriginal: many(texts),
+    translations: many(translations)
+}));
 
 export const interface_languages = sqliteTable('interface_languages', {
     ...commonFields,
     code: text('code').notNull().unique(), // e.g., 'en', 'es', 'fr'
     name: text('name').notNull() // e.g., 'English', 'Spanish', 'French'
 });
-
-
-
 
 // Interface Translations table - stores UI translations
 export const interface_translations = sqliteTable('interface_translations', {
@@ -109,31 +118,7 @@ export const project = sqliteTable('project', {
     exports: text('exports', { mode: 'json' })
 });
 
-// Project Languages junction table
-export const project_languages = sqliteTable('project_languages', {
-    ...commonFields,
-    project_id: text('project_id')
-        .notNull()
-        .references(() => project.id),
-    language_code: text('language_code')
-        .notNull()
-        .references(() => languages.code),
-    is_default: integer('is_default').notNull().default(0)
-});
-
-// Project Languages relations
-export const projectLanguagesRelations = relations(project_languages, ({ one }) => ({
-    project: one(project, {
-        fields: [project_languages.project_id],
-        references: [project.id]
-    }),
-    language: one(languages, {
-        fields: [project_languages.language_code],
-        references: [languages.code]
-    })
-}));
-
-// Update project relations to include languages
+// Project relations
 export const projectRelations = relations(project, ({ many, one }) => ({
     institutions: many(institutions),
     objects: many(objects),
@@ -141,6 +126,7 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     settings: one(settings),
     assets: many(assets),
     genericAssets: many(genericAssets),
+    languages: many(languages),
     title: one(texts, {
         fields: [project.title_id],
         references: [texts.id]
@@ -148,13 +134,7 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     description: one(texts, {
         fields: [project.description_id],
         references: [texts.id]
-    }),
-    projectLanguages: many(project_languages)
-}));
-
-// Update languages relations to include projects
-export const languagesRelations = relations(languages, ({ many }) => ({
-    projectLanguages: many(project_languages)
+    })
 }));
 
 // Institutions table

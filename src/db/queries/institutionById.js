@@ -37,6 +37,12 @@ export const createInstitutionByIdQuery = (db, drizzleResult) => {
             const locationTranslations = aliasedTable(dbSchema.translations, 'location_translations');
             const countryTranslations = aliasedTable(dbSchema.translations, 'country_translations');
 
+            // Create aliases for the languages tables
+            const nameLanguages = aliasedTable(dbSchema.languages, 'name_languages');
+            const descriptionLanguages = aliasedTable(dbSchema.languages, 'description_languages');
+            const locationLanguages = aliasedTable(dbSchema.languages, 'location_languages');
+            const countryLanguages = aliasedTable(dbSchema.languages, 'country_languages');
+
             // Create count subqueries
             const objectsSubquery = createCountSubquery(
                 db,
@@ -65,10 +71,10 @@ export const createInstitutionByIdQuery = (db, drizzleResult) => {
                 created_at: dbSchema.institutions.created_at,
                 updated_at: dbSchema.institutions.updated_at,
                 project_id: dbSchema.institutions.project_id,
-                name: createTextFieldWithTranslations(nameTexts, nameTranslations),
-                description: createTextFieldWithTranslations(descriptionTexts, descriptionTranslations),
-                location: createTextFieldWithTranslations(locationTexts, locationTranslations),
-                country: createTextFieldWithTranslations(countryTexts, countryTranslations),
+                name: createTextFieldWithTranslations(nameTexts, nameTranslations, nameLanguages),
+                description: createTextFieldWithTranslations(descriptionTexts, descriptionTranslations, descriptionLanguages),
+                location: createTextFieldWithTranslations(locationTexts, locationTranslations, locationLanguages),
+                country: createTextFieldWithTranslations(countryTexts, countryTranslations, countryLanguages),
                 status: dbSchema.institutions.status,
                 links: dbSchema.institutions.links,
                 objectsCount: sql`COALESCE(${objectsSubquery.objects_count}, 0)`.as('objectsCount'),
@@ -82,12 +88,16 @@ export const createInstitutionByIdQuery = (db, drizzleResult) => {
                 .leftJoin(assetsSubquery, eq(dbSchema.institutions.id, assetsSubquery.institution_id))
                 .leftJoin(nameTexts, eq(dbSchema.institutions.name_id, nameTexts.id))
                 .leftJoin(nameTranslations, eq(nameTexts.id, nameTranslations.text_id))
+                .leftJoin(nameLanguages, eq(nameTranslations.language_id, nameLanguages.id))
                 .leftJoin(descriptionTexts, eq(dbSchema.institutions.description_id, descriptionTexts.id))
                 .leftJoin(descriptionTranslations, eq(descriptionTexts.id, descriptionTranslations.text_id))
+                .leftJoin(descriptionLanguages, eq(descriptionTranslations.language_id, descriptionLanguages.id))
                 .leftJoin(locationTexts, eq(dbSchema.institutions.location_id, locationTexts.id))
                 .leftJoin(locationTranslations, eq(locationTexts.id, locationTranslations.text_id))
+                .leftJoin(locationLanguages, eq(locationTranslations.language_id, locationLanguages.id))
                 .leftJoin(countryTexts, eq(dbSchema.institutions.country_id, countryTexts.id))
                 .leftJoin(countryTranslations, eq(countryTexts.id, countryTranslations.text_id))
+                .leftJoin(countryLanguages, eq(countryTranslations.language_id, countryLanguages.id))
                 .groupBy(dbSchema.institutions.id);
 
             // Execute the query

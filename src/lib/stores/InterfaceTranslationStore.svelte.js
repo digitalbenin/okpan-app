@@ -146,19 +146,19 @@ export function getTranslationStore() {
     };
 
     // Get a translation by namespace, key and locale
-    const getTranslation = (namespace, key, locale = null) => {
+    const getTranslation = (namespace, key, locale = null, fallback = null) => {
         const targetLocale = locale || translationState.currentLocale;
 
         // Check if namespace exists
         if (!translationState.translations[namespace]) {
             console.warn(`Namespace "${namespace}" not found`);
-            return key;
+            return fallback || key;
         }
 
         // Check if key exists in namespace
         if (!translationState.translations[namespace][key]) {
             console.warn(`Key "${key}" not found in namespace "${namespace}"`);
-            return key;
+            return fallback || key;
         }
 
         // Check if translation exists for locale
@@ -175,7 +175,7 @@ export function getTranslationStore() {
             }
 
             console.warn(`No translation found for "${namespace}.${key}" in locale "${targetLocale}"`);
-            return key;
+            return fallback || key;
         }
 
         return translationState.translations[namespace][key][targetLocale].value;
@@ -749,13 +749,16 @@ export function getTranslationStore() {
             translationKey = parts.slice(1).join('.');
         }
 
-        // Get the translation
-        let text = getTranslation(namespace, translationKey);
+        // Extract fallback from params if provided
+        const { fallback, ...otherParams } = params || {};
 
-        // Replace parameters in the translation
-        if (params && Object.keys(params).length > 0) {
-            Object.keys(params).forEach(param => {
-                text = text.replace(new RegExp(`{{${param}}}`, 'g'), params[param]);
+        // Get the translation with fallback value
+        let text = getTranslation(namespace, translationKey, null, fallback);
+
+        // Replace parameters in the translation (excluding fallback)
+        if (otherParams && Object.keys(otherParams).length > 0) {
+            Object.keys(otherParams).forEach(param => {
+                text = text.replace(new RegExp(`{{${param}}}`, 'g'), otherParams[param]);
             });
         }
 
