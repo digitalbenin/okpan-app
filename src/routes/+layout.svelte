@@ -9,7 +9,7 @@
   let { children } = $props();
 </script>
 
-<Header />
+<!-- <Header /> -->
 
 {@render children()}
 <BaseToast />
