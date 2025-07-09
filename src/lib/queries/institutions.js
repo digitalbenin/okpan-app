@@ -202,10 +202,10 @@ export const institutionsOperations = {
     name: "Create Institution",
     description: "Creates a new institution linked to a project",
     variables: {
-      projectId: "ID of the project to link the institution to",
-      languageId: "Language ID for the initial text",
-      institutionName: "Name of the institution",
-      institutionDescription: "Description of the institution",
+      project_id: "ID of the project to link the institution to",
+      languageId: "Language ID for the initial text (from project's available languages)",
+      name: "Name of the institution",
+      description: "Description of the institution",
       country: "Country of the institution",
       location: "Location of the institution",
       status: "Status of the institution"
@@ -213,11 +213,11 @@ export const institutionsOperations = {
     mutations: [
       {
         name: "createNameText",
-        query: `mutation CreateInstitutionName($institutionName: String!, $languageId: String!) {
+        query: `mutation CreateInstitutionName($name: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
-        content: $institutionName
+        content: $name
         context: "institutions.name"
         original_language_id: $languageId
       }
@@ -227,15 +227,15 @@ export const institutionsOperations = {
     content
   }
 }`,
-        useVariables: ["institutionName", "languageId"]
+        useVariables: ["name", "languageId"]
       },
       {
         name: "createDescriptionText",
-        query: `mutation CreateInstitutionDescription($institutionDescription: String!, $languageId: String!) {
+        query: `mutation CreateInstitutionDescription($description: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
-        content: $institutionDescription
+        content: $description
         context: "institutions.description"
         original_language_id: $languageId
       }
@@ -245,7 +245,7 @@ export const institutionsOperations = {
     content
   }
 }`,
-        useVariables: ["institutionDescription", "languageId"]
+        useVariables: ["description", "languageId"]
       },
       {
         name: "createCountryText",
@@ -290,7 +290,7 @@ export const institutionsOperations = {
   $descriptionId: String!
   $countryId: String!
   $locationId: String!
-  $projectId: String!
+  $project_id: String!
   $status: String
 ) {
   insertIntoInstitutions(
@@ -300,7 +300,7 @@ export const institutionsOperations = {
         description_id: $descriptionId
         country_id: $countryId
         location_id: $locationId
-        project_id: $projectId
+        project_id: $project_id
         status: $status
       }
     ]
@@ -314,7 +314,7 @@ export const institutionsOperations = {
     status
   }
 }`,
-        useVariables: ["projectId", "status"],
+        useVariables: ["project_id", "status"],
         mapVariables: {
           nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
           descriptionId: { from: "createDescriptionText", path: "insertIntoTexts.0.id" },
@@ -332,7 +332,7 @@ export const institutionsOperations = {
     name: "Update Institution",
     description: "Updates an existing institution by ID",
     variables: {
-      institutionId: "ID of the institution to update",
+      id: "ID of the institution to update",
       name: "New name content (optional)",
       description: "New description content (optional)",
       country: "New country content (optional)",
@@ -344,8 +344,8 @@ export const institutionsOperations = {
     mutations: [
       {
         name: "getInstitution",
-        query: `query GetInstitutionForUpdate($institutionId: String!) {
-  institution: institutionById(institution_id: $institutionId) {
+        query: `query GetInstitutionForUpdate($id: String!) {
+  institution: institutionById(institution_id: $id) {
     id
     name { id }
     description { id }
@@ -355,7 +355,7 @@ export const institutionsOperations = {
     links
   }
 }`,
-        useVariables: ["institutionId"]
+        useVariables: ["id"]
       },
       {
         name: "updateName",
@@ -372,7 +372,7 @@ export const institutionsOperations = {
         mapVariables: {
           nameId: { from: "getInstitution", path: "institution.name.id" }
         },
-        skipIf: { variableName: "nameId", isUndefined: true }
+        skipIf: { variableName: "nameId", isEmpty: true }
       },
       {
         name: "createDescription",
@@ -396,16 +396,16 @@ export const institutionsOperations = {
       },
       {
         name: "linkDescription",
-        query: `mutation LinkInstitutionDescription($institutionId: String!, $descriptionId: String!) {
+        query: `mutation LinkInstitutionDescription($id: String!, $descriptionId: String!) {
   updateInstitutions(
     set: { description_id: $descriptionId }
-    where: { id: { eq: $institutionId } }
+    where: { id: { eq: $id } }
   ) {
     id
     description_id
   }
 }`,
-        useVariables: ["institutionId"],
+        useVariables: ["id"],
         mapVariables: {
           descriptionId: { from: "createDescription", path: "insertIntoTexts.0.id" }
         },
@@ -426,7 +426,44 @@ export const institutionsOperations = {
         mapVariables: {
           descriptionId: { from: "getInstitution", path: "institution.description.id" }
         },
-        skipIf: { variableName: "descriptionId", isUndefined: true }
+        skipIf: { variableName: "descriptionId", isEmpty: true }
+      },
+      {
+        name: "createCountry",
+        query: `mutation CreateInstitutionCountry($country: String!, $languageId: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $country
+        context: "institutions.country"
+        original_language_id: $languageId
+      }
+    ]
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["country", "languageId"],
+        skipIf: { variableName: "country", isUndefined: true },
+        onlyIf: { from: "getInstitution", path: "institution.country", isNull: true }
+      },
+      {
+        name: "linkCountry",
+        query: `mutation LinkInstitutionCountry($id: String!, $countryId: String!) {
+  updateInstitutions(
+    set: { country_id: $countryId }
+    where: { id: { eq: $id } }
+  ) {
+    id
+    country_id
+  }
+}`,
+        useVariables: ["id"],
+        mapVariables: {
+          countryId: { from: "createCountry", path: "insertIntoTexts.0.id" }
+        },
+        skipIf: { variableName: "countryId", isUndefined: true }
       },
       {
         name: "updateCountry",
@@ -443,7 +480,44 @@ export const institutionsOperations = {
         mapVariables: {
           countryId: { from: "getInstitution", path: "institution.country.id" }
         },
-        skipIf: { variableName: "countryId", isUndefined: true }
+        skipIf: { variableName: "countryId", isEmpty: true }
+      },
+      {
+        name: "createLocation",
+        query: `mutation CreateInstitutionLocation($location: String!, $languageId: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $location
+        context: "institutions.location"
+        original_language_id: $languageId
+      }
+    ]
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["location", "languageId"],
+        skipIf: { variableName: "location", isUndefined: true },
+        onlyIf: { from: "getInstitution", path: "institution.location", isNull: true }
+      },
+      {
+        name: "linkLocation",
+        query: `mutation LinkInstitutionLocation($id: String!, $locationId: String!) {
+  updateInstitutions(
+    set: { location_id: $locationId }
+    where: { id: { eq: $id } }
+  ) {
+    id
+    location_id
+  }
+}`,
+        useVariables: ["id"],
+        mapVariables: {
+          locationId: { from: "createLocation", path: "insertIntoTexts.0.id" }
+        },
+        skipIf: { variableName: "locationId", isUndefined: true }
       },
       {
         name: "updateLocation",
@@ -460,35 +534,35 @@ export const institutionsOperations = {
         mapVariables: {
           locationId: { from: "getInstitution", path: "institution.location.id" }
         },
-        skipIf: { variableName: "locationId", isUndefined: true }
+        skipIf: { variableName: "locationId", isEmpty: true }
       },
       {
         name: "updateStatus",
-        query: `mutation UpdateInstitutionStatus($institutionId: String!, $status: String!) {
+        query: `mutation UpdateInstitutionStatus($id: String!, $status: String!) {
   updateInstitutions(
     set: { status: $status }
-    where: { id: { eq: $institutionId } }
+    where: { id: { eq: $id } }
   ) {
     id
     status
   }
 }`,
-        useVariables: ["institutionId", "status"],
-        skipIf: { variableName: "status", isUndefined: true }
+        useVariables: ["id", "status"],
+        skipIf: { variableName: "status", isEmpty: true }
       },
       {
         name: "updateLinks",
-        query: `mutation UpdateInstitutionLinks($institutionId: String!, $links: JSON!) {
+        query: `mutation UpdateInstitutionLinks($id: String!, $links: JSON!) {
   updateInstitutions(
     set: { links: $links }
-    where: { id: { eq: $institutionId } }
+    where: { id: { eq: $id } }
   ) {
     id
     links
   }
 }`,
-        useVariables: ["institutionId", "links"],
-        skipIf: { variableName: "links", isUndefined: true }
+        useVariables: ["id", "links"],
+        skipIf: { variableName: "links", isEmpty: true }
       }
     ],
     query: null
@@ -500,13 +574,13 @@ export const institutionsOperations = {
     name: "Delete Institution",
     description: "Deletes an institution by ID",
     variables: {
-      institutionId: "ID of the institution to delete"
+      id: "ID of the institution to delete"
     },
     mutations: [
       {
         name: "getInstitution",
-        query: `query GetInstitutionForDelete($institutionId: String!) {
-  institutions(where: { id: { eq: $institutionId } }) {
+        query: `query GetInstitutionForDelete($id: String!) {
+  institutions(where: { id: { eq: $id } }) {
     id
     name_id
     description_id
@@ -516,12 +590,12 @@ export const institutionsOperations = {
     links
   }
 }`,
-        useVariables: ["institutionId"]
+        useVariables: ["id"]
       },
       {
         name: "deleteInstitution",
-        query: `mutation DeleteInstitutionFinal($institutionId: String!) {
-  deleteFromInstitutions(where: { id: { eq: $institutionId } }) {
+        query: `mutation DeleteInstitutionFinal($id: String!) {
+  deleteFromInstitutions(where: { id: { eq: $id } }) {
     id
     name_id
     description_id
@@ -529,7 +603,7 @@ export const institutionsOperations = {
     location_id
   }
 }`,
-        useVariables: ["institutionId"]
+        useVariables: ["id"]
       },
       {
         name: "deleteNameText",
@@ -581,5 +655,42 @@ export const institutionsOperations = {
       }
     ],
     query: null
+  },
+
+  // ===== BULK OPERATIONS =====
+  bulkUpdate: {
+    type: "mutation",
+    name: "Bulk Update Institutions",
+    description: "Updates multiple institutions using a single optimized query",
+    variables: {
+      updates: "Array of institution updates with id and fields to update"
+    },
+    query: `mutation BulkUpdateInstitutions($updates: [JSON!]!) {
+      bulkUpdateInstitutions(updates: $updates) {
+        id
+        name_id
+        description_id
+        country_id
+        location_id
+        status
+        updated_at
+      }
+    }`
+  },
+
+  bulkDelete: {
+    type: "mutation",
+    name: "Bulk Delete Institutions",
+    description: "Deletes multiple institutions by IDs",
+    variables: {
+      ids: "Array of institution IDs to delete"
+    },
+    query: `mutation BulkDeleteInstitutions($ids: [String!]!) {
+      bulkDeleteInstitutions(ids: $ids) {
+        id
+        name_id
+        project_id
+      }
+    }`
   }
 }; 

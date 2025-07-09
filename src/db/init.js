@@ -1,8 +1,11 @@
 import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema.js';
+import { globalSettings } from './schema.js';
+import { eq } from 'drizzle-orm';
 import { dirname } from 'path';
 import fs from 'fs';
+import { randomUUID } from 'crypto';
 
 // Get the database path from env
 const dbPath = process.env.DB_FILE_NAME || 'src/db/local.db';
@@ -24,5 +27,41 @@ const client = createClient({
 
 // Create Drizzle instance with schema
 const db = drizzle(client, { schema });
+
+// Initialize global settings (singleton)
+const initializeGlobalSettings = async () => {
+    try {
+        // Check if global settings already exist
+        const existing = await db.select().from(globalSettings).where(eq(globalSettings.id, 1)).limit(1);
+
+        if (existing.length === 0) {
+            // Create the singleton row with UUID
+            await db.insert(globalSettings).values({
+                id: 1, // Enforce singleton
+                client_id: randomUUID(),
+                app_version: process.env.npm_package_version || '1.0.0'
+            });
+            console.log('Global settings initialized with new client_id');
+        } else {
+            console.log('Global settings already exist, client_id:', existing[0].client_id);
+        }
+    } catch (error) {
+        console.error('Error initializing global settings:', error);
+    }
+};
+
+// Helper function to get client ID
+export const getClientId = async () => {
+    try {
+        const settings = await db.select().from(globalSettings).where(eq(globalSettings.id, 1)).limit(1);
+        return settings[0]?.client_id || null;
+    } catch (error) {
+        console.error('Error getting client_id:', error);
+        return null;
+    }
+};
+
+// Initialize on startup
+initializeGlobalSettings();
 
 export { db };

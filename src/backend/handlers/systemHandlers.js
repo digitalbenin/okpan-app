@@ -1,4 +1,7 @@
 import { dialog } from 'electron';
+import { parse } from 'csv-parse/sync';
+import * as XLSX from 'xlsx';
+import fs from 'fs/promises';
 
 /**
  * Handler for ping requests
@@ -51,4 +54,152 @@ export const handleFileDialog = async (event, options) => {
         // Return an error structure consistent with a cancelled dialog
         return { canceled: true, filePaths: [] };
     }
-}; 
+};
+
+/**
+ * Handler for importing structured data files (JSON, CSV, TSV, XLSX)
+ * @param {Event} event - The IPC event
+ * @param {Object} options - Dialog options
+ * @param {string} options.title - Dialog title
+ * @param {boolean} options.multiple - Whether to allow multiple file selection
+ * @param {string} options.separator - Custom separator for CSV/TSV files (default: auto-detect)
+ * @returns {Promise<Object>} Result with parsed data or error
+ */
+export const handleStructuredDataImport = async (event, options = {}) => {
+    const filters = [
+        { name: 'JSON Files', extensions: ['json'] },
+        { name: 'CSV Files', extensions: ['csv'] },
+        { name: 'TSV Files', extensions: ['tsv'] },
+        { name: 'Excel Files', extensions: ['xlsx', 'xls'] },
+        { name: 'All Supported', extensions: ['json', 'csv', 'tsv', 'xlsx', 'xls'] }
+    ];
+
+    const dialogOptions = {
+        title: options.title || 'Select Data File',
+        properties: [
+            'openFile',
+            ...(options.multiple ? ['multiSelections'] : [])
+        ],
+        filters
+    };
+
+    try {
+        const result = await dialog.showOpenDialog(dialogOptions);
+
+        if (result.canceled || !result.filePaths?.length) {
+            return { success: false, canceled: true, data: null };
+        }
+
+        const filePaths = result.filePaths;
+        const parsedFiles = [];
+
+        for (const filePath of filePaths) {
+            try {
+                const parsedData = await parseStructuredFile(filePath, options.separator);
+                parsedFiles.push({
+                    filePath,
+                    fileName: filePath.split(/[/\\]/).pop(),
+                    ...parsedData
+                });
+            } catch (error) {
+                console.error(`Error parsing file ${filePath}:`, error);
+                parsedFiles.push({
+                    filePath,
+                    fileName: filePath.split(/[/\\]/).pop(),
+                    success: false,
+                    error: error.message,
+                    data: null,
+                    format: 'unknown'
+                });
+            }
+        }
+
+        return {
+            success: true,
+            canceled: false,
+            data: options.multiple ? parsedFiles : parsedFiles[0]
+        };
+
+    } catch (error) {
+        console.error("Error in structured data import:", error);
+        return {
+            success: false,
+            canceled: false,
+            error: error.message,
+            data: null
+        };
+    }
+};
+
+/**
+ * Parse a structured data file based on its extension
+ * @param {string} filePath - Path to the file
+ * @param {string} separator - Custom separator for CSV/TSV files
+ * @returns {Promise<Object>} Parsed data with format info
+ */
+async function parseStructuredFile(filePath, separator) {
+    const extension = filePath.split('.').pop().toLowerCase();
+    const fileContent = await fs.readFile(filePath, 'utf-8');
+
+    switch (extension) {
+        case 'json':
+            return {
+                success: true,
+                format: 'json',
+                data: JSON.parse(fileContent),
+                error: null
+            };
+
+        case 'csv':
+            const csvData = parse(fileContent, {
+                columns: true,
+                skip_empty_lines: true,
+                trim: true,
+                delimiter: separator || ','
+            });
+            return {
+                success: true,
+                format: 'csv',
+                data: csvData,
+                error: null
+            };
+
+        case 'tsv':
+            const tsvData = parse(fileContent, {
+                columns: true,
+                skip_empty_lines: true,
+                trim: true,
+                delimiter: separator || '\t'
+            });
+            return {
+                success: true,
+                format: 'tsv',
+                data: tsvData,
+                error: null
+            };
+
+        case 'xlsx':
+        case 'xls':
+            // For Excel files, we need to read as binary
+            const binaryContent = await fs.readFile(filePath);
+            const workbook = XLSX.read(binaryContent, { type: 'buffer' });
+
+            // Get the first sheet
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+
+            // Convert to JSON
+            const excelData = XLSX.utils.sheet_to_json(sheet);
+
+            return {
+                success: true,
+                format: extension,
+                data: excelData,
+                error: null,
+                sheets: workbook.SheetNames // Include available sheet names
+            };
+
+        default:
+            throw new Error(`Unsupported file format: ${extension}`);
+    }
+} 

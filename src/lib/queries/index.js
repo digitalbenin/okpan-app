@@ -14,6 +14,7 @@ import { settingsOperations } from './settings';
 import { datasourcesOperations } from './datasources';
 import { entitySearchOperations } from './entitySearch';
 import { actionsOperations } from './actions';
+import { templatesOperations } from './templates';
 
 export const API_SECTIONS = {
     interface_languages: {
@@ -39,6 +40,10 @@ export const API_SECTIONS = {
     datasources: {
         name: "Datasources",
         operations: datasourcesOperations
+    },
+    templates: {
+        name: "Templates",
+        operations: templatesOperations
     },
     translations: {
         name: "Translations",

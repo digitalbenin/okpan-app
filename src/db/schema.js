@@ -162,6 +162,7 @@ export const institutionsRelations = relations(institutions, ({ one, many }) => 
     assets: many(assets),
     objects: many(objects),
     datasources: many(datasources),
+    templates: many(templates),
     assetsInstitutions: many(assets_institutions),
     name: one(texts, {
         fields: [institutions.name_id],
@@ -465,15 +466,18 @@ export const objectsOntologyFieldsRelations = relations(objects_ontology_fields,
 export const templates = sqliteTable('templates', {
     ...commonFields,
     name: text('name'),
-    description: text('description'),
-    institutions: text('institutions', { mode: 'json' }),
     config: text('config', { mode: 'json' }),
+    institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
     datasource_id: text('datasource_id').references(() => datasources.id),
     asset_map_rule: text('asset_map_rule')
 });
 
 // Templates relations
 export const templatesRelations = relations(templates, ({ one, many }) => ({
+    institution: one(institutions, {
+        fields: [templates.institution_id],
+        references: [institutions.id]
+    }),
     datasource: one(datasources, {
         fields: [templates.datasource_id],
         references: [datasources.id]
@@ -537,6 +541,17 @@ export const actions = sqliteTable('actions', {
     yjs_update: blob('yjs_update'),
     parent_action_id: text('parent_action_id')
 });
+
+// Global Settings table - singleton table (only one row ever)
+export const globalSettings = sqliteTable('global_settings', {
+    id: integer('id').primaryKey().notNull().default(1), // Always 1 to enforce singleton
+    client_id: text('client_id').notNull().unique(),
+    app_version: text('app_version'),
+    initialized_at: integer('initialized_at', { mode: 'timestamp_ms' })
+        .notNull()
+        .default(sql`CURRENT_TIMESTAMP`)
+});
+
 export const actionsRelations = relations(actions, ({ one }) => ({
     project: one(project, {
         fields: [actions.project_id],

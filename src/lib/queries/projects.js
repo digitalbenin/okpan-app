@@ -138,7 +138,7 @@ export const projectsOperations = {
         mapVariables: {
           titleId: { from: "getProject", path: "project.0.title_id" }
         },
-        skipIf: { variableName: "titleId", isUndefined: true }
+        skipIf: { variableName: "title", isUndefined: true }
       },
       {
         name: "updateDescription",
@@ -155,7 +155,7 @@ export const projectsOperations = {
         mapVariables: {
           descriptionId: { from: "getProject", path: "project.0.description_id" }
         },
-        skipIf: { variableName: "descriptionId", isUndefined: true }
+        skipIf: { variableName: "description", isUndefined: true }
       }
     ],
     query: null
