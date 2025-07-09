@@ -71,6 +71,7 @@
   <SidebarMenu items={actionsLinks} pathname={page.url.pathname} />
   <h5>Other</h5>
   <SidebarMenu items={otherLinks} pathname={page.url.pathname} />
+  <a href="/debug" class="btn btn-link">debug</a>
 </div>
 
 <style>

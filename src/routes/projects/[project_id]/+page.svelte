@@ -1,38 +1,40 @@
 <script>
-  import { queryParameters } from "sveltekit-search-params";
+  // import { queryParameters } from "sveltekit-search-params";
   import ProjectOverview from "$lib/components/projects/ProjectOverview.svelte";
-  import InstitutionsTable from "$lib/components/institutions/InstitutionsTable.svelte";
-  import BaseInput from "$lib/components/base/BaseInput.svelte";
-  import BaseButton from "$lib/components/base/BaseButton.svelte";
+  // import InstitutionsTable from "$lib/components/institutions/InstitutionsTable.svelte";
+  // import BaseInput from "$lib/components/base/BaseInput.svelte";
+  // import BaseButton from "$lib/components/base/BaseButton.svelte";
 
   const { data } = $props();
 
-  const params = queryParameters({
-    iPage: {
-      encode: (value) => value.toString(),
-      decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 1,
-    },
-    iPageSize: {
-      encode: (value) => value.toString(),
-      decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 3,
-    },
-    iOrderBy: {
-      encode: (value) => value,
-      decode: (value) => value,
-      defaultValue: "name",
-    },
-    iDirection: {
-      encode: (value) => value,
-      decode: (value) => value,
-      defaultValue: "asc",
-    },
-  });
+  // const params = queryParameters({
+  //   iPage: {
+  //     encode: (value) => value.toString(),
+  //     decode: (value) => (value ? parseInt(value) : null),
+  //     defaultValue: 1,
+  //   },
+  //   iPageSize: {
+  //     encode: (value) => value.toString(),
+  //     decode: (value) => (value ? parseInt(value) : null),
+  //     defaultValue: 3,
+  //   },
+  //   iOrderBy: {
+  //     encode: (value) => value,
+  //     decode: (value) => value,
+  //     defaultValue: "name",
+  //   },
+  //   iDirection: {
+  //     encode: (value) => value,
+  //     decode: (value) => value,
+  //     defaultValue: "asc",
+  //   },
+  // });
+
+  $inspect(data.institutions);
 </script>
 
 <ProjectOverview />
-
+<!-- 
 <div class="container-fluid mt-5">
   <div class="row">
     <div class="col-12">
@@ -69,4 +71,4 @@
       {/if}
     </div>
   </div>
-</div>
+</div> -->

@@ -5,8 +5,8 @@ import { invalidate } from "$app/navigation";
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
-export const getProjectInstitutions = async (projectId, page, pageSize, orderBy, direction, search) => {
-    const response = await executeQuery('institutions', 'list', { projectId, page, pageSize, orderBy, direction, search });
+export const getProjectInstitutions = async (options) => {
+    const response = await executeQuery('institutions', 'list', options);
 
     return response;
 };

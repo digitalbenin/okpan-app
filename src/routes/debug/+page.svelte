@@ -1,4 +1,5 @@
 <script>
+  import Header from "$lib/components/Header.svelte";
   import { goto } from "$app/navigation";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
@@ -7,6 +8,7 @@
   const { translationState, t, refreshTranslations } = getTranslationStore();
 </script>
 
+<Header></Header>
 <div class="container-fluid py-4">
   <div class="d-flex flex-column gap-0">
     <BaseButton
