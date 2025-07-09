@@ -1,4 +1,77 @@
-<div class="sidebar h-100 bg-light overflow-y-auto">my stuff</div>
+<script>
+  import { page } from "$app/state";
+  import SidebarMenu from "$lib/components/projects/SidebarMenu.svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  const { t } = getTranslationStore();
+
+  const projectLinks = $derived([
+    {
+      label: t("menu.overview", { fallback: "Overview" }),
+      url: `/projects/${page.data.project.id}`,
+      icon: "house-door-fill",
+    },
+    {
+      label: t("menu.institutions", { fallback: "Institutions" }),
+      url: `/projects/${page.data.project.id}/institutions`,
+      icon: "bank2",
+    },
+    {
+      label: t("menu.objects", { fallback: "Objects" }),
+      url: `/projects/${page.data.project.id}/objects`,
+      icon: "box",
+    },
+  ]);
+
+  const actionsLinks = $derived([
+    {
+      label: t("menu.add-institution", { fallback: "Add Institution" }),
+      url: `/projects/${page.data.project.id}/institutions/add`,
+      icon: "plus-lg",
+    },
+    {
+      label: t("menu.add-object", { fallback: "Add Object" }),
+      url: `/projects/${page.data.project.id}/objects/add`,
+      icon: "plus-lg",
+    },
+    {
+      label: t("menu.add-media", { fallback: "Add Media" }),
+      url: `/projects/${page.data.project.id}/media/add`,
+      icon: "plus-lg",
+    },
+    {
+      label: t("menu.import-data", { fallback: "Import Data" }),
+      url: `/projects/${page.data.project.id}/import`,
+      icon: "box-arrow-in-right",
+    },
+  ]);
+
+  const otherLinks = $derived([
+    {
+      label: t("menu.data-structure", { fallback: "Data Structure" }),
+      url: `/projects/${page.data.project.id}/data-structure`,
+      icon: "table",
+    },
+    {
+      label: t("menu.export", { fallback: "Export" }),
+      url: `/projects/${page.data.project.id}/export`,
+      icon: "box-arrow-left",
+    },
+    {
+      label: t("menu.settings", { fallback: "Settings" }),
+      url: `/projects/${page.data.project.id}/settings`,
+      icon: "gear-fill",
+    },
+  ]);
+</script>
+
+<div class="sidebar h-100 border-end overflow-y-auto p-3">
+  <h5>{page.data.project.title.content}</h5>
+  <SidebarMenu items={projectLinks} pathname={page.url.pathname} />
+  <h5>Actions</h5>
+  <SidebarMenu items={actionsLinks} pathname={page.url.pathname} />
+  <h5>Other</h5>
+  <SidebarMenu items={otherLinks} pathname={page.url.pathname} />
+</div>
 
 <style>
   .sidebar {
