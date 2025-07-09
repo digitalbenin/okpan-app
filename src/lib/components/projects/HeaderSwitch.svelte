@@ -2,7 +2,6 @@
   import { page } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   const { t } = getTranslationStore();
-  $inspect(page.url.pathname);
 </script>
 
 <div class="d-flex text-bg-dark rounded p-1 gap-2">
