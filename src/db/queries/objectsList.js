@@ -80,14 +80,14 @@ export const createObjectsListQuery = (db, drizzleResult) => {
                 inst_id: dbSchema.institutions.id,
                 inst_name_text_id: institutionNameTexts.id,
                 inst_name_text_content: institutionNameTexts.content,
-                inst_name_text_original_language: institutionNameTexts.original_language,
-                inst_name_translations: sql`json_group_array(json_object('id', ${institutionNameTranslations.id}, 'language_code', ${institutionNameTranslations.language_code}, 'content', ${institutionNameTranslations.content}))`.append(sql`FILTER (WHERE ${institutionNameTranslations.id} IS NOT NULL)`).as('inst_name_translations_json'),
+                inst_name_text_original_language_id: institutionNameTexts.original_language_id,
+                inst_name_translations: sql`json_group_array(json_object('id', ${institutionNameTranslations.id}, 'language_id', ${institutionNameTranslations.language_id}, 'content', ${institutionNameTranslations.content}))`.append(sql`FILTER (WHERE ${institutionNameTranslations.id} IS NOT NULL)`).as('inst_name_translations_json'),
 
                 proj_id: dbSchema.project.id,
                 proj_title_text_id: projectTitleTexts.id,
                 proj_title_text_content: projectTitleTexts.content,
-                proj_title_text_original_language: projectTitleTexts.original_language,
-                proj_title_translations: sql`json_group_array(json_object('id', ${projectTitleTranslations.id}, 'language_code', ${projectTitleTranslations.language_code}, 'content', ${projectTitleTranslations.content}))`.append(sql`FILTER (WHERE ${projectTitleTranslations.id} IS NOT NULL)`).as('proj_title_translations_json'),
+                proj_title_text_original_language_id: projectTitleTexts.original_language_id,
+                proj_title_translations: sql`json_group_array(json_object('id', ${projectTitleTranslations.id}, 'language_id', ${projectTitleTranslations.language_id}, 'content', ${projectTitleTranslations.content}))`.append(sql`FILTER (WHERE ${projectTitleTranslations.id} IS NOT NULL)`).as('proj_title_translations_json'),
 
                 objects_assets_json: sql`(SELECT json_group_array(json_object('order', oa."order", 'asset_id', oa.asset_id, 'asset_filename', a.filename, 'asset_formats', a.formats, 'asset_path', a.path, 'asset_type', a.type, 'asset_real_id', a.id)) FROM ${dbSchema.objects_assets} oa JOIN ${dbSchema.assets} a ON oa.asset_id = a.id WHERE oa.object_id = ${dbSchema.objects.id})`.as('objects_assets_json'),
                 objects_ontology_fields_json: sql`(SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'ontology_field_name_id', ot.name_id, 'ontology_field_name_content', ot_name_texts.content )) FROM ${dbSchema.objects_ontology_fields} oof JOIN ${dbSchema.ontology_fields} ot ON oof.field_id = ot.id JOIN ${dbSchema.texts} ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = ${dbSchema.objects.id})`.as('objects_ontology_fields_json'),
@@ -149,7 +149,7 @@ export const createObjectsListQuery = (db, drizzleResult) => {
                     name: {
                         id: item.inst_name_text_id,
                         content: item.inst_name_text_content,
-                        original_language: item.inst_name_text_original_language,
+                        original_language_id: item.inst_name_text_original_language_id,
                         translations: JSON.parse(item.inst_name_translations_json || '[]').filter(t => t.id !== null) // Ensure translations array integrity
                     }
                 } : null;
@@ -159,7 +159,7 @@ export const createObjectsListQuery = (db, drizzleResult) => {
                     title: {
                         id: item.proj_title_text_id,
                         content: item.proj_title_text_content,
-                        original_language: item.proj_title_text_original_language,
+                        original_language_id: item.proj_title_text_original_language_id,
                         translations: JSON.parse(item.proj_title_translations_json || '[]').filter(t => t.id !== null)
                     }
                 } : null;

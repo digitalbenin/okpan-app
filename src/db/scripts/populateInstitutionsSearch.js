@@ -38,7 +38,7 @@ export async function populateInstitutionsSearchIndex(client, db) {
             // Get the original text content
             const texts = await db.select({
                 content: sql`content`,
-                language: sql`original_language`
+                language_id: sql`original_language_id`
             })
                 .from(sql`texts`)
                 .where(sql`id = ${id}`);
@@ -46,25 +46,25 @@ export async function populateInstitutionsSearchIndex(client, db) {
             if (texts.length > 0) {
                 // Add main text to search index
                 await client.execute({
-                    sql: `INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_code) 
+                    sql: `INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id) 
                           VALUES (?, ?, ?, ?, ?)`,
-                    args: [institution.id, id, field, texts[0].content, texts[0].language]
+                    args: [institution.id, id, field, texts[0].content, texts[0].language_id]
                 });
                 indexedCount++;
 
                 // Add translations to search index
                 const translations = await db.select({
                     content: sql`content`,
-                    language: sql`language_code`
+                    language_id: sql`language_id`
                 })
                     .from(sql`translations`)
                     .where(sql`text_id = ${id}`);
 
                 for (const translation of translations) {
                     await client.execute({
-                        sql: `INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_code) 
+                        sql: `INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id) 
                               VALUES (?, ?, ?, ?, ?)`,
-                        args: [institution.id, id, field, translation.content, translation.language]
+                        args: [institution.id, id, field, translation.content, translation.language_id]
                     });
                     indexedCount++;
                 }

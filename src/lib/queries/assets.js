@@ -49,10 +49,10 @@ export const assetsOperations = {
         name {
           id
           content
-          original_language
+          original_language_id
           translations {
             id
-            language_code
+            language_id
             content
           }
         }
@@ -62,10 +62,10 @@ export const assetsOperations = {
         title {
           id
           content
-          original_language
+          original_language_id
           translations {
             id
-            language_code
+            language_id
             content
           }
         }

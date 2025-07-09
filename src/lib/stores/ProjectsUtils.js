@@ -85,57 +85,64 @@ export const createProject = async (project) => {
 
     const projectName = project.title.content;
     const description = project.description.content;
-    const languageCode = defaultLang.language_code;
+    const languageCode = defaultLang.code;
+    const languageName = defaultLang.name;
 
     // Get mutations from the API_SECTIONS
     const mutations = API_SECTIONS.projects.operations.create.mutations;
 
-    // Step 1: Create title
-    const titleResult = await performCustomMutation(mutations[0], {
-        projectName,
-        languageCode,
-    });
-    const titleId = titleResult.insertIntoTexts[0].id;
-
-    // Step 2: Create description
-    const descriptionResult = await performCustomMutation(mutations[1], {
-        description,
-        languageCode,
-    });
-    const descriptionId = descriptionResult.insertIntoTexts[0].id;
-
-    // Step 3: Create project
+    // Step 1: Create project first
     const projectResult = await performCustomMutation(mutations[2], {
-        titleId,
-        descriptionId,
+        // We'll need to create empty project first, then update with text IDs
     });
     const projectId = projectResult.insertIntoProject[0].id;
 
-    // Step 4: Add default language
-    await performCustomMutation(mutations[3], {
+    // Step 2: Create language for the project
+    const languageResult = await performCustomMutation(mutations[3], {
         projectId,
         languageCode,
+        languageName,
+    });
+    const languageId = languageResult.insertIntoLanguages[0].id;
+
+    // Step 3: Create title
+    const titleResult = await performCustomMutation(mutations[0], {
+        projectName,
+        languageId,
+    });
+    const titleId = titleResult.insertIntoTexts[0].id;
+
+    // Step 4: Create description
+    const descriptionResult = await performCustomMutation(mutations[1], {
+        description,
+        languageId,
+    });
+    const descriptionId = descriptionResult.insertIntoTexts[0].id;
+
+    // Step 5: Update project with text IDs
+    await updateProject(projectId, {
+        title: { content: projectName },
+        description: { content: description }
     });
 
-    // Step 5: Add translations if any (both for title and description)
+    // Step 6: Add translations if any (both for title and description)
     if (project.title.translations?.length || project.description.translations?.length) {
-        // Add title translations
+        // For each translation, we need to find or create the corresponding language
         for (const translation of project.title.translations || []) {
-            if (translation.content) {
+            if (translation.content && translation.language_id) {
                 await executeQuery('translations', 'create', {
                     textId: titleId,
-                    languageCode: translation.language_code,
+                    languageId: translation.language_id,
                     content: translation.content,
                 });
             }
         }
 
-        // Add description translations
         for (const translation of project.description.translations || []) {
-            if (translation.content) {
+            if (translation.content && translation.language_id) {
                 await executeQuery('translations', 'create', {
                     textId: descriptionId,
-                    languageCode: translation.language_code,
+                    languageId: translation.language_id,
                     content: translation.content,
                 });
             }
@@ -194,23 +201,28 @@ export const deleteProject = async (projectId) => {
     return result;
 };
 
-export const addLanguageToProject = async (projectId, languageCode) => {
+export const addLanguageToProject = async (projectId, languageCode, languageName, isDefault = 0) => {
     // Use executeQuery which handles errors, logging, and notifications
-    const result = await executeQuery('projects', 'addLanguage', { projectId, languageCode });
+    const result = await executeQuery('projects', 'addLanguage', {
+        projectId,
+        languageCode,
+        languageName,
+        isDefault
+    });
     invalidate("app:projects");
     return result;
 };
 
-export const removeLanguageFromProject = async (projectId, languageCode) => {
+export const removeLanguageFromProject = async (languageId) => {
     // Use executeQuery which handles errors, logging, and notifications
-    const result = await executeQuery('projects', 'removeLanguage', { projectId, languageCode });
+    const result = await executeQuery('projects', 'removeLanguage', { languageId });
     invalidate("app:projects");
     return result;
 };
 
-export const setLanguageAsDefault = async (projectId, languageCode) => {
+export const setLanguageAsDefault = async (projectId, languageId) => {
     // Use executeQuery which handles errors, logging, and notifications
-    const result = await executeQuery('projects', 'setDefaultLanguage', { projectId, languageCode });
+    const result = await executeQuery('projects', 'setDefaultLanguage', { projectId, languageId });
     invalidate("app:projects");
     return result;
 };

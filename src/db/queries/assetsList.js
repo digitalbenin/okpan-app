@@ -86,15 +86,15 @@ export const createAssetsListQuery = (db, drizzleResult) => {
                 inst_id: dbSchema.institutions.id,
                 inst_name_text_id: institutionNameTexts.id,
                 inst_name_text_content: institutionNameTexts.content,
-                inst_name_text_original_language: institutionNameTexts.original_language,
-                inst_name_translations_json: sql`json_group_array(json_object('id', ${institutionNameTranslations.id}, 'language_code', ${institutionNameTranslations.language_code}, 'content', ${institutionNameTranslations.content}))`.append(sql`FILTER (WHERE ${institutionNameTranslations.id} IS NOT NULL)`).as('inst_name_translations_json'),
+                inst_name_text_original_language_id: institutionNameTexts.original_language_id,
+                inst_name_translations_json: sql`json_group_array(json_object('id', ${institutionNameTranslations.id}, 'language_id', ${institutionNameTranslations.language_id}, 'content', ${institutionNameTranslations.content}))`.append(sql`FILTER (WHERE ${institutionNameTranslations.id} IS NOT NULL)`).as('inst_name_translations_json'),
 
                 // Project related fields
                 proj_id: dbSchema.project.id,
                 proj_title_text_id: projectTitleTexts.id,
                 proj_title_text_content: projectTitleTexts.content,
-                proj_title_text_original_language: projectTitleTexts.original_language,
-                proj_title_translations_json: sql`json_group_array(json_object('id', ${projectTitleTranslations.id}, 'language_code', ${projectTitleTranslations.language_code}, 'content', ${projectTitleTranslations.content}))`.append(sql`FILTER (WHERE ${projectTitleTranslations.id} IS NOT NULL)`).as('proj_title_translations_json'),
+                proj_title_text_original_language_id: projectTitleTexts.original_language_id,
+                proj_title_translations_json: sql`json_group_array(json_object('id', ${projectTitleTranslations.id}, 'language_id', ${projectTitleTranslations.language_id}, 'content', ${projectTitleTranslations.content}))`.append(sql`FILTER (WHERE ${projectTitleTranslations.id} IS NOT NULL)`).as('proj_title_translations_json'),
                 objects_assets_json: sql`COALESCE( (SELECT json_group_array(json_object('id', oa.id, 'object_id', oa.object_id, 'object', json_object('id', o.id, 'status', o.status))) FROM ${dbSchema.objects_assets} oa JOIN ${dbSchema.objects} o ON oa.object_id = o.id WHERE oa.asset_id = ${dbSchema.assets.id}), '[]' )`.as('objects_assets_json'),
             })
                 .from(dbSchema.assets)
@@ -174,7 +174,7 @@ export const createAssetsListQuery = (db, drizzleResult) => {
                     name: {
                         id: item.inst_name_text_id,
                         content: item.inst_name_text_content,
-                        original_language: item.inst_name_text_original_language,
+                        original_language_id: item.inst_name_text_original_language_id,
                         translations: JSON.parse(item.inst_name_translations_json || '[]').filter(t => t && t.id !== null)
                     }
                 } : null;
@@ -184,7 +184,7 @@ export const createAssetsListQuery = (db, drizzleResult) => {
                     title: {
                         id: item.proj_title_text_id,
                         content: item.proj_title_text_content,
-                        original_language: item.proj_title_text_original_language,
+                        original_language_id: item.proj_title_text_original_language_id,
                         translations: JSON.parse(item.proj_title_translations_json || '[]').filter(t => t && t.id !== null)
                     }
                 } : null;

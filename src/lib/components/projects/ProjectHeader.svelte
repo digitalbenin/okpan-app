@@ -59,22 +59,21 @@
       projectLanguages.forEach((lang) => {
         // Set default values from current content
         if (lang.is_default) {
-          editTitle[lang.language_code] = currentProject.title.content;
-          editDescription[lang.language_code] =
-            currentProject.description.content;
+          editTitle[lang.code] = currentProject.title.content;
+          editDescription[lang.code] = currentProject.description.content;
           // Set default active tab
-          activeLanguageCode = lang.language_code;
+          activeLanguageCode = lang.code;
         } else {
           // Find translations
           const titleTranslation = currentProject.title.translations?.find(
-            (t) => t.language_code === lang.language_code,
+            (t) => t.language?.code === lang.code,
           );
           const descTranslation = currentProject.description.translations?.find(
-            (t) => t.language_code === lang.language_code,
+            (t) => t.language?.code === lang.code,
           );
 
-          editTitle[lang.language_code] = titleTranslation?.content || "";
-          editDescription[lang.language_code] = descTranslation?.content || "";
+          editTitle[lang.code] = titleTranslation?.content || "";
+          editDescription[lang.code] = descTranslation?.content || "";
         }
       });
 
@@ -104,8 +103,8 @@
       }
 
       // Get the title and description from the default language
-      const titleContent = editTitle[defaultLang.language_code];
-      const descContent = editDescription[defaultLang.language_code];
+      const titleContent = editTitle[defaultLang.code];
+      const descContent = editDescription[defaultLang.code];
 
       // Update the project with new content for default language
       const updateResult = await updateProject(project.id, {
@@ -138,8 +137,8 @@
           // Skip default language as we've already updated it
           if (lang.is_default) continue;
 
-          const titleContent = editTitle[lang.language_code];
-          const descContent = editDescription[lang.language_code];
+          const titleContent = editTitle[lang.code];
+          const descContent = editDescription[lang.code];
 
           // Find existing translations if any
           // Ensure we're accessing the translations correctly
@@ -170,18 +169,18 @@
 
           // Filter out null/empty values that might have been returned from the database
           parsedTitleTranslations = parsedTitleTranslations.filter(
-            (t) => t && t.language_code,
+            (t) => t && t.language?.code,
           );
           parsedDescTranslations = parsedDescTranslations.filter(
-            (t) => t && t.language_code,
+            (t) => t && t.language?.code,
           );
 
           const titleTranslation = parsedTitleTranslations.find(
-            (t) => t.language_code === lang.language_code,
+            (t) => t.language?.code === lang.code,
           );
 
           const descTranslation = parsedDescTranslations.find(
-            (t) => t.language_code === lang.language_code,
+            (t) => t.language?.code === lang.code,
           );
 
           // Handle title translation
@@ -191,7 +190,7 @@
             } else {
               const result = await addTranslation(
                 project.title_id,
-                lang.language_code,
+                lang.code,
                 titleContent,
               );
             }
@@ -204,7 +203,7 @@
             } else {
               const result = await addTranslation(
                 project.description_id,
-                lang.language_code,
+                lang.code,
                 descContent,
               );
             }
@@ -353,10 +352,10 @@
             {#each projectLanguages as lang}
               <button
                 class="nav-link {lang.is_default ? 'fw-bold' : ''}"
-                {...tabs.getTrigger(lang.language_code)}
-                class:active={activeLanguageCode === lang.language_code}
+                {...tabs.getTrigger(lang.code)}
+                class:active={activeLanguageCode === lang.code}
               >
-                {lang.language?.name || lang.language_code}
+                {lang.name || lang.code}
                 {#if lang.is_default}
                   <span class="badge bg-primary ms-1">Default</span>
                 {/if}
@@ -365,29 +364,27 @@
           </div>
 
           {#each projectLanguages as lang}
-            <div {...tabs.getContent(lang.language_code)}>
+            <div {...tabs.getContent(lang.code)}>
               <div class="mb-3">
-                <label for="title-{lang.language_code}" class="form-label"
-                  >Title</label
-                >
+                <label for="title-{lang.code}" class="form-label">Title</label>
                 <input
                   type="text"
                   class="form-control"
-                  id="title-{lang.language_code}"
-                  bind:value={editTitle[lang.language_code]}
+                  id="title-{lang.code}"
+                  bind:value={editTitle[lang.code]}
                   placeholder="Project title"
                   required={lang.is_default}
                 />
               </div>
 
               <div class="mb-3">
-                <label for="description-{lang.language_code}" class="form-label"
+                <label for="description-{lang.code}" class="form-label"
                   >Description</label
                 >
                 <textarea
                   class="form-control"
-                  id="description-{lang.language_code}"
-                  bind:value={editDescription[lang.language_code]}
+                  id="description-{lang.code}"
+                  bind:value={editDescription[lang.code]}
                   rows="3"
                   placeholder="Project description"
                   required={lang.is_default}

@@ -185,11 +185,22 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
         const op = parsed.definitions.find(d => d.kind === 'OperationDefinition');
         const isMutation = op?.operation === 'mutation';
 
+        // LOG: GraphQL operation details
+        if (isMutation) {
+            console.log('=== GraphQL MUTATION ===');
+            console.log('Query:', query);
+            console.log('Variables:', JSON.stringify(variables, null, 2));
+
+            const mutationFields = extractMutationFields(op);
+            console.log('Mutation fields:', mutationFields);
+        }
+
         // Fetch pre-execution entities for mutations
         let preExecutionEntities = {};
         if (isMutation) {
             const mutationFields = extractMutationFields(op);
             preExecutionEntities = await fetchPreExecutionEntities(mutationFields, variables, db);
+            console.log('Pre-execution entities:', JSON.stringify(preExecutionEntities, null, 2));
         }
 
         // Execute GraphQL query/mutation
@@ -200,6 +211,19 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
             variableValues: variables,
             contextValue: { db }
         });
+
+        // LOG: GraphQL result
+        if (isMutation) {
+            console.log('=== GraphQL RESULT ===');
+            console.log('Success:', !result.errors);
+            if (result.errors) {
+                console.log('Errors:', JSON.stringify(result.errors, null, 2));
+            }
+            if (result.data) {
+                console.log('Data:', JSON.stringify(result.data, null, 2));
+            }
+            console.log('======================');
+        }
 
         // Process mutation actions for logging
         if (!result.errors && isMutation && result.data) {

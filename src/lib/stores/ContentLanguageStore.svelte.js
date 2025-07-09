@@ -106,6 +106,14 @@ export function getContentLanguageStore() {
     const addTranslation = async (textId, languageCode, content) => {
         contentLanguageState.isLoading = true;
 
+        // Find the language ID for the given language code
+        const language = contentLanguageState.projectLanguages.find(lang => lang.code === languageCode);
+        if (!language) {
+            await logError("add_translation", `Language with code "${languageCode}" not found`);
+            contentLanguageState.isLoading = false;
+            throw new Error(`Language with code "${languageCode}" not found`);
+        }
+
         // Validate the input data
         const validationResult = await validate({
             textId,
@@ -119,10 +127,10 @@ export function getContentLanguageStore() {
             throw new Error(validationResult.errors[0]);
         }
 
-        // Execute the query to create the translation
+        // Execute the query to create the translation with languageId instead of languageCode
         const result = await executeQuery('translations', 'create', {
             textId,
-            languageCode,
+            languageId: language.id,  // Use languageId instead of languageCode
             content
         });
 

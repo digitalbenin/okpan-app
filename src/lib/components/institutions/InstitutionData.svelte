@@ -33,8 +33,8 @@
                 (lang) => lang.is_default,
             );
             const initialLangCode = defaultLang
-                ? defaultLang.language_code
-                : projectLanguages[0].language_code;
+                ? defaultLang.code
+                : projectLanguages[0].code;
             activeLanguageCode = initialLangCode;
             tabs.value = initialLangCode;
         }
@@ -71,7 +71,7 @@
         <!-- Language Tabs (Melt UI - Keep as is) -->
         <div {...tabs.triggerList} class="nav nav-tabs mb-3" role="tablist">
             {#each projectLanguages as lang}
-                {@const langCode = lang.language_code}
+                {@const langCode = lang.code}
                 <button
                     {...tabs.getTrigger(langCode)}
                     type="button"
@@ -82,7 +82,7 @@
                         ? ""
                         : undefined}
                 >
-                    {lang.language?.name || lang.language_code}
+                    {lang.name || lang.code}
                     {#if lang.is_default}
                         <span class="badge bg-primary ms-1">Default</span>
                     {/if}
@@ -92,7 +92,7 @@
 
         <!-- Tab Content -->
         {#each projectLanguages as lang}
-            {@const langCode = lang.language_code}
+            {@const langCode = lang.code}
             <div {...tabs.getContent(langCode)}>
                 <div class="d-flex flex-column gap-3">
                     <!-- Arrange Name and Location in columns -->
@@ -103,14 +103,14 @@
                                 bind:value={formData.name[langCode]}
                                 error={lang.is_default ? errors.name : null}
                                 required={lang.is_default}
-                                placeholder={`Enter name in ${lang.language?.name || langCode}...`}
+                                placeholder={`Enter name in ${lang.name || langCode}...`}
                             />
                         </div>
                         <div class="col-md-6">
                             <BaseInput
                                 label="Location"
                                 bind:value={formData.location[langCode]}
-                                placeholder={`Enter location in ${lang.language?.name || langCode}...`}
+                                placeholder={`Enter location in ${lang.name || langCode}...`}
                             />
                         </div>
                     </div>
@@ -120,7 +120,7 @@
                         <BaseTextArea
                             label="Description"
                             bind:value={formData.description[langCode]}
-                            placeholder={`Enter description in ${lang.language?.name || langCode}...`}
+                            placeholder={`Enter description in ${lang.name || langCode}...`}
                             rows={4}
                         />
                     </div>
@@ -130,7 +130,7 @@
                         <BaseInput
                             label="Country"
                             bind:value={formData.country[langCode]}
-                            placeholder={`Enter country in ${lang.language?.name || langCode}...`}
+                            placeholder={`Enter country in ${lang.name || langCode}...`}
                         />
                     </div>
                 </div>
