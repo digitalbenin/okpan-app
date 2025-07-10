@@ -17,7 +17,8 @@ export const load = async ({ params, url, depends }) => {
     const objects = await getObjects({ projectId: params.project_id, orderBy: 'updated_at', direction: 'desc', pageSize: 5 });
     const objectsInProgress = await getObjects({ projectId: params.project_id, orderBy: 'updated_at', direction: 'desc', pageSize: 5, status: 'in progress' });
     const institutions = await getProjectInstitutions({ projectId: params.project_id, page: 0, pageSize: 5, orderBy: 'created_at', direction: 'desc' });
-    const actions = await getActions({ projectId: params.project_id, limit: 10 });
+    // const actions = await getActions({ projectId: params.project_id, limit: 10 }); the correct one
+    const actions = await getActions();
     return {
         objects,
         objectsInProgress,

@@ -5,8 +5,9 @@
 
   import ObjectsWidget from "$lib/components/overview/ObjectsWidget.svelte";
   import StatsWidget from "$lib/components/overview/StatsWidget.svelte";
+  import InstitutionWidget from "$lib/components/overview/InstitutionWidget.svelte";
+  import ActionWidget from "$lib/components/overview/ActionWidget.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import InstitutionWidget from "../../../lib/components/overview/InstitutionWidget.svelte";
   const { t } = getTranslationStore();
 
   const { data } = $props();
@@ -34,7 +35,7 @@
   //   },
   // });
 
-  $inspect(data.institutions);
+  $inspect(data.actions);
   const stats = $derived([
     {
       label: t("common.objects", { fallback: "Objects" }),
@@ -77,7 +78,9 @@
     <div class="col-5">
       <InstitutionWidget institutions={data.institutions.result} />
     </div>
-    <div class="col-7">actions</div>
+    <div class="col-7">
+      <ActionWidget actions={data.actions.items} />
+    </div>
   </div>
 </div>
 
