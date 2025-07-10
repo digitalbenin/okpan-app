@@ -1,10 +1,12 @@
 <script>
   // import { queryParameters } from "sveltekit-search-params";
-  import ProjectOverview from "$lib/components/projects/ProjectOverview.svelte";
   // import InstitutionsTable from "$lib/components/institutions/InstitutionsTable.svelte";
-  // import BaseInput from "$lib/components/base/BaseInput.svelte";
-  // import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import ProjectOverview from "$lib/components/projects/ProjectOverview.svelte";
+
   import ObjectsWidget from "$lib/components/overview/ObjectsWidget.svelte";
+  import StatsWidget from "$lib/components/overview/StatsWidget.svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  const { t } = getTranslationStore();
 
   const { data } = $props();
 
@@ -31,7 +33,29 @@
   //   },
   // });
 
-  $inspect(data.objects);
+  $inspect(data.project);
+  const stats = $derived([
+    {
+      label: t("common.objects", { fallback: "Objects" }),
+      value: data.project.objectsCount,
+      percentage: data.project.completedObjectsCount,
+      labelPercentage: t("common.objects-percentage", {
+        fallback: "of objects completed",
+      }),
+    },
+    {
+      label: t("commo.assets", { fallback: "Assets" }),
+      value: data.project.assetsCount,
+      percentage: data.project.linkedAssetsCount,
+      labelPercentage: t("common.assets-percentage", {
+        fallback: "of assets linked to objects",
+      }),
+    },
+    {
+      label: t("common.institutions", { fallback: "Institutions" }),
+      value: data.institutions.count,
+    },
+  ]);
 </script>
 
 <div class="container-fluid bg-light">
@@ -46,7 +70,7 @@
         objectsInProgress={data.objectsInProgress.items}
       />
     </div>
-    <div class="col-3">stats</div>
+    <div class="col-3"><StatsWidget {stats} /></div>
   </div>
   <div class="row">
     <div class="col-5">
