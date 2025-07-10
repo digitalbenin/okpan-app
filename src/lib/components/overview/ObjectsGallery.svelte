@@ -5,7 +5,7 @@
   const { objects, title, url } = $props();
 </script>
 
-<div>
+<div class="border-top mb-3 pt-2">
   <div class="d-flex justify-content-between px-3 align-items-center mb-2">
     <div>{title}</div>
     <div>
