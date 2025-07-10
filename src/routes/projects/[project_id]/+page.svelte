@@ -4,6 +4,7 @@
   // import InstitutionsTable from "$lib/components/institutions/InstitutionsTable.svelte";
   // import BaseInput from "$lib/components/base/BaseInput.svelte";
   // import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import ObjectsWidget from "$lib/components/overview/ObjectsWidget.svelte";
 
   const { data } = $props();
 
@@ -30,8 +31,34 @@
   //   },
   // });
 
-  $inspect(data.institutions);
+  $inspect(data.objects);
 </script>
+
+<div class="container-fluid bg-light">
+  <div class="row justify-content-center">
+    <div class="col-auto">search</div>
+  </div>
+
+  <div class="row">
+    <div class="col-9">
+      <ObjectsWidget
+        objectsEdited={data.objects.items}
+        objectsInProgress={data.objectsInProgress.items}
+      />
+    </div>
+    <div class="col-3">stats</div>
+  </div>
+  <div class="row">
+    <div class="col-5">
+      {#each data.institutions.result as institution}
+        <a href={`/projects/${data.project.id}/institutions/${institution.id}`}
+          >{institution.name.content}</a
+        >
+      {/each}
+    </div>
+    <div class="col-7">actions</div>
+  </div>
+</div>
 
 <ProjectOverview />
 <!-- 
