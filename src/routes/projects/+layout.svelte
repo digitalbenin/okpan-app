@@ -11,7 +11,9 @@
   </div>
 
   <div class="flex-grow-1 flex-shrink-1 d-flex overflow-hidden">
-    <Sidebar />
+    <div class="flex-grow-0 flex-shrink-0">
+      <Sidebar />
+    </div>
     <div class="flex-grow-1 flex-shrink-1 overflow-y-auto">
       {@render children()}
     </div>
