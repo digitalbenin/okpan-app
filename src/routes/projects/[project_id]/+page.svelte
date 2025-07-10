@@ -1,12 +1,10 @@
 <script>
   // import { queryParameters } from "sveltekit-search-params";
   // import InstitutionsTable from "$lib/components/institutions/InstitutionsTable.svelte";
-  import ProjectOverview from "$lib/components/projects/ProjectOverview.svelte";
-
   import ObjectsWidget from "$lib/components/overview/ObjectsWidget.svelte";
   import StatsWidget from "$lib/components/overview/StatsWidget.svelte";
-  import InstitutionWidget from "$lib/components/overview/InstitutionWidget.svelte";
-  import ActionWidget from "$lib/components/overview/ActionWidget.svelte";
+  import InstitutionsWidget from "$lib/components/overview/InstitutionsWidget.svelte";
+  import ActionsWidget from "$lib/components/overview/ActionsWidget.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   const { t } = getTranslationStore();
 
@@ -35,7 +33,7 @@
   //   },
   // });
 
-  $inspect(data.actions);
+  //TODO: in the api response, put alla stats in a single object and pass directly to the StatsWidget
   const stats = $derived([
     {
       label: t("common.objects", { fallback: "Objects" }),
@@ -60,7 +58,7 @@
   ]);
 </script>
 
-<div class="wrapper container-fluid bg-light">
+<div class="wrapper container-fluid bg-light pb-3">
   <div class="row justify-content-center">
     <div class="col-auto">search</div>
   </div>
@@ -76,10 +74,10 @@
   </div>
   <div class="row">
     <div class="col-5">
-      <InstitutionWidget institutions={data.institutions.result} />
+      <InstitutionsWidget institutions={data.institutions.result} />
     </div>
     <div class="col-7">
-      <ActionWidget actions={data.actions.items} />
+      <ActionsWidget actions={data.actions.items} />
     </div>
   </div>
 </div>

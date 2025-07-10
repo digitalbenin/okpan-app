@@ -33,6 +33,14 @@
           {/each}
         </div>
       {/if}
+    {:else}
+      <div class="col bg-light">
+        <div
+          class="d-flex align-items-center justify-content-center h-100 w-100"
+        >
+          <i class="bi bi-image fs-3 text-secondary"></i>
+        </div>
+      </div>
     {/if}
   </div>
   <div class="info d-flex flex-column overflow-hidden">

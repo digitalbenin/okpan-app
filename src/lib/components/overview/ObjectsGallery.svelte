@@ -1,6 +1,8 @@
 <script>
   import ObjectCard from "./ObjectCard.svelte";
+  import ObjectCardEmpty from "./ObjectCardEmpty.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+
   const { t } = getTranslationStore();
   const { objects, title, url } = $props();
 </script>
@@ -20,6 +22,9 @@
       {#each objects as object}
         <ObjectCard {object}></ObjectCard>
       {/each}
+      {#if objects.length === 0}
+        <ObjectCardEmpty></ObjectCardEmpty>
+      {/if}
     </div>
   </div>
 </div>

@@ -24,5 +24,10 @@
         </div>
       </div>
     {/each}
+    {#if actions.length === 0}
+      <div class="fst-italic">
+        {t("common.no-actions", { fallback: "No actions yet!" })}
+      </div>
+    {/if}
   </div>
 </div>

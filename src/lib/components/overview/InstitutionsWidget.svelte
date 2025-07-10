@@ -2,6 +2,7 @@
   import { page } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import InstitutionCard from "./InstitutionCard.svelte";
+  import InstitutionCardEmpty from "./InstitutionCardEmpty.svelte";
   const { t } = getTranslationStore();
   const { institutions } = $props();
 </script>
@@ -18,4 +19,7 @@
   {#each institutions as institution}
     <InstitutionCard {institution} />
   {/each}
+  {#if institutions.length === 0}
+    <InstitutionCardEmpty />
+  {/if}
 </div>
