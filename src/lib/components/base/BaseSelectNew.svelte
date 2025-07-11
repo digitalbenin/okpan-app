@@ -8,6 +8,7 @@
     portalProps,
     placeholder,
     type = "single",
+    size,
     ...restProps
   } = $props();
 
@@ -27,11 +28,15 @@
 </script>
 
 <Select.Root bind:value {type} {...restProps}>
-  <Select.Trigger class="form-select text-start {restProps.inputClass}">
+  <Select.Trigger
+    class="form-select text-start {restProps.inputClass} {size
+      ? `form-select-${size}`
+      : ''}"
+  >
     {selectedLabel ? selectedLabel : placeholder}
   </Select.Trigger>
   <Select.Portal {...portalProps}>
-    <Select.Content {...contentProps}>
+    <Select.Content {...contentProps} align="start">
       {#snippet child({ wrapperProps, props, open })}
         {#if open}
           <div {...wrapperProps}>
@@ -51,6 +56,8 @@
                       <div
                         class="d-flex align-items-center justify-content-between rounded p-1 cursor-pointer"
                         class:text-bg-light={highlighted}
+                        class:fs-7={size === "sm"}
+                        class:fs-5={size === "lg"}
                       >
                         <div class="text-truncate">{label}</div>
                         {#if selected}

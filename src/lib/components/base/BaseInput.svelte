@@ -2,9 +2,8 @@
   let {
     type = "text",
     value = $bindable(),
-    label = null,
-    labelPosition = "top",
     placeholder = "",
+    icon,
     min = null,
     max = null,
     class: customClass = "",
@@ -13,6 +12,8 @@
     disabled = false,
     onChange = null,
     onInput = null,
+    clearable = false,
+    size,
   } = $props();
 
   // Validate type
@@ -23,28 +24,40 @@
     }
     return type;
   });
+
+  function clearInput() {
+    value = "";
+  }
 </script>
 
-<div class="row g-3 align-items-center">
-  {#if label}
-    <div class="col-auto">
-      <label class="col-form-label" for={id}>
-        {label}
-      </label>
-    </div>
+<div class="input-group {size ? `input-group-${size}` : ''}">
+  {#if icon}
+    <span class="input-group-text bg-white">
+      <i class={`bi bi-${icon}`}></i>
+    </span>
   {/if}
-  <div class="col-auto">
-    <input
-      {id}
-      type={validatedType}
-      bind:value
-      class={`form-control ${customClass}`}
-      {placeholder}
-      {disabled}
-      min={validatedType === "number" ? min : undefined}
-      max={validatedType === "number" ? max : undefined}
-      {onChange}
-      {onInput}
-    />
-  </div>
+  <input
+    {id}
+    type={validatedType}
+    bind:value
+    class={`form-control ${customClass}`}
+    {placeholder}
+    {disabled}
+    min={validatedType === "number" ? min : undefined}
+    max={validatedType === "number" ? max : undefined}
+    {onChange}
+    {onInput}
+  />
+  {#if clearable}
+    <span class="input-group-text bg-white">
+      <button
+        type="button"
+        class="btn p-0 border-0 bg-transparent"
+        onclick={clearInput}
+        aria-label="Clear input"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </span>
+  {/if}
 </div>

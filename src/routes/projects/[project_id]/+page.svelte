@@ -7,32 +7,9 @@
   import ActionsWidget from "$lib/components/overview/ActionsWidget.svelte";
   import SearchWidget from "$lib/components/overview/SearchWidget.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+
   const { t } = getTranslationStore();
-
   const { data } = $props();
-
-  // const params = queryParameters({
-  //   iPage: {
-  //     encode: (value) => value.toString(),
-  //     decode: (value) => (value ? parseInt(value) : null),
-  //     defaultValue: 1,
-  //   },
-  //   iPageSize: {
-  //     encode: (value) => value.toString(),
-  //     decode: (value) => (value ? parseInt(value) : null),
-  //     defaultValue: 3,
-  //   },
-  //   iOrderBy: {
-  //     encode: (value) => value,
-  //     decode: (value) => value,
-  //     defaultValue: "name",
-  //   },
-  //   iDirection: {
-  //     encode: (value) => value,
-  //     decode: (value) => value,
-  //     defaultValue: "asc",
-  //   },
-  // });
 
   //TODO: in the api response, put alla stats in a single object and pass directly to the StatsWidget
   const stats = $derived([
