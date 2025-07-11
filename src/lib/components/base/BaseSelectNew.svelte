@@ -4,10 +4,9 @@
   let {
     value = $bindable(),
     items,
-    contentProps,
+    contentProps = { width: "content" },
     portalProps,
     placeholder,
-    portalDisabled = false,
     type = "single",
     ...restProps
   } = $props();
@@ -25,11 +24,10 @@
       return items.find((item) => item.value === value)?.label;
     }
   });
-  $inspect(value);
 </script>
 
 <Select.Root bind:value {type} {...restProps}>
-  <Select.Trigger class="form-select text-start">
+  <Select.Trigger class="form-select text-start {restProps.inputClass}">
     {selectedLabel ? selectedLabel : placeholder}
   </Select.Trigger>
   <Select.Portal {...portalProps}>
@@ -40,6 +38,7 @@
             <div
               {...props}
               class="content mt-1 shadow-sm bg-white border rounded-2 z-1 p-1"
+              class:anchorWidth={contentProps.width === "anchor"}
             >
               <Select.ScrollUpButton
                 class="border-bottom d-flex justify-content-center"
@@ -76,7 +75,9 @@
 
 <style>
   .content {
-    width: var(--bits-floating-anchor-width);
     max-height: var(--bits-floating-available-height);
+  }
+  .anchorWidth {
+    width: var(--bits-floating-anchor-width);
   }
 </style>

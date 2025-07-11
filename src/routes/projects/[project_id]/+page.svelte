@@ -5,6 +5,7 @@
   import StatsWidget from "$lib/components/overview/StatsWidget.svelte";
   import InstitutionsWidget from "$lib/components/overview/InstitutionsWidget.svelte";
   import ActionsWidget from "$lib/components/overview/ActionsWidget.svelte";
+  import SearchWidget from "$lib/components/overview/SearchWidget.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   const { t } = getTranslationStore();
 
@@ -59,8 +60,12 @@
 </script>
 
 <div class="wrapper container-fluid bg-light pb-3">
-  <div class="row justify-content-center">
-    <div class="col-auto">search</div>
+  <div class="row">
+    <div class="col-7">
+      <div class="my-3">
+        <SearchWidget projectId={data.project.id} />
+      </div>
+    </div>
   </div>
 
   <div class="row mb-3">

@@ -14,7 +14,7 @@
   // Dynamically load locale
   async function loadLocale(locale) {
     try {
-      await import(`dayjs/locale/${locale}.js`);
+      await import(/* @vite-ignore */ `dayjs/locale/${locale}.js`);
       dayjs.locale(locale);
       timeAgo = dayjs(timestamp).fromNow();
     } catch (error) {

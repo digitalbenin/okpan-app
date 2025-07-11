@@ -4544,6 +4544,13 @@ runed@^0.29.0, runed@^0.29.1:
   dependencies:
     esm-env "^1.0.0"
 
+runed@^0.30.0:
+  version "0.30.0"
+  resolved "https://registry.yarnpkg.com/runed/-/runed-0.30.0.tgz#06fab620bb1c5f03fac86f81afb63519043ddcd8"
+  integrity sha512-nUNekgGeBOchR4EKm5uCDziT/52yF+vhYvn98s9eDuEzr86jeFqCZenTEBe2v2t3c90xYfTcQO1WxeeT3qVfQA==
+  dependencies:
+    esm-env "^1.0.0"
+
 sade@^1.8.1:
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/sade/-/sade-1.8.1.tgz#0a78e81d658d394887be57d2a409bf703a3b2701"
