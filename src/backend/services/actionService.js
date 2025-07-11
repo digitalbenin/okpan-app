@@ -186,9 +186,9 @@ export const generateActionMetadata = async (actionType, entityType, entityId, d
                 const parent = await relationship.findParents(entityId, db);
                 if (parent) {
                     return JSON.stringify({
-                        parent_id: parent.id,
-                        parent_type: parent.type,
-                        parent_name: getEntityName(parent.type, parent.entity),
+                        referenced_id: parent.id,
+                        referenced_type: parent.type,
+                        referenced_name: getEntityName(parent.type, parent.entity),
                         action_type: mappedActionType
                     });
                 }
@@ -196,9 +196,9 @@ export const generateActionMetadata = async (actionType, entityType, entityId, d
                 const context = await relationship.findContext(entityId, db);
                 if (context?.textParent) {
                     return JSON.stringify({
-                        parent_id: context.textParent.id,
-                        parent_type: context.textParent.type,
-                        parent_name: getEntityName(context.textParent.type, context.textParent.entity),
+                        referenced_id: context.textParent.id,
+                        referenced_type: context.textParent.type,
+                        referenced_name: getEntityName(context.textParent.type, context.textParent.entity),
                         action_type: mappedActionType
                     });
                 }
@@ -207,9 +207,9 @@ export const generateActionMetadata = async (actionType, entityType, entityId, d
 
                 if (relations) {
                     const metadata = {
-                        parent_id: relations.object_id,
-                        parent_type: 'objects',
-                        parent_name: relations.object_id.slice(-6),
+                        referenced_id: relations.object_id,
+                        referenced_type: 'objects',
+                        referenced_name: relations.object_id.slice(-6),
                         action_type: mappedActionType
                     };
 
@@ -234,9 +234,9 @@ export const generateActionMetadata = async (actionType, entityType, entityId, d
         if (hierarchyFn) {
             const entityData = await hierarchyFn(entityId, db);
             return JSON.stringify({
-                parent_id: entityId,
-                parent_type: entityType,
-                parent_name: getEntityName(entityType, entityData.entity),
+                referenced_id: entityId,
+                referenced_type: entityType,
+                referenced_name: getEntityName(entityType, entityData.entity),
                 action_type: mappedActionType
             });
         }
@@ -258,8 +258,8 @@ export const getPrimaryEntityFromActions = (actionRows) => {
         if (action.metadata && typeof action.metadata === 'string') {
             try {
                 const metadata = JSON.parse(action.metadata);
-                if (metadata.parent_id && metadata.parent_type) {
-                    const key = `${metadata.parent_type}:${metadata.parent_id}`;
+                if (metadata.referenced_id && metadata.referenced_type) {
+                    const key = `${metadata.referenced_type}:${metadata.referenced_id}`;
                     entityCounts[key] = (entityCounts[key] || 0) + 1;
                 }
             } catch (error) {

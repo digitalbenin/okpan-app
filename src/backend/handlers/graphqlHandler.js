@@ -463,6 +463,10 @@ const processMutationActions = async (mutationFields, result, variables, context
                 const clientId = context?.clientId || await getClientId();
                 const projectId = await extractProjectId({}, primaryEntity.entityType, primaryEntity.entityId, db);
 
+                const baseMetadata = await generateActionMetadata('UPDATE', primaryEntity.entityType, primaryEntity.entityId, db);
+                const workflowMetadata = baseMetadata ? JSON.parse(baseMetadata) : {};
+                workflowMetadata.workflow_id = context.workflowId;
+
                 const parentAction = {
                     id: parentActionId,
                     user_id: context?.userId || null,
@@ -474,9 +478,7 @@ const processMutationActions = async (mutationFields, result, variables, context
                     client_id: clientId,
                     yjs_update: null,
                     parent_action_id: null,
-                    metadata: JSON.stringify({
-                        workflow_id: context.workflowId
-                    })
+                    metadata: JSON.stringify(workflowMetadata)
                 };
 
                 // Store workflow and insert parent action
@@ -505,6 +507,11 @@ const processMutationActions = async (mutationFields, result, variables, context
                 const clientId = context?.clientId || await getClientId();
                 const projectId = await extractProjectId({}, primaryEntity.entityType, primaryEntity.entityId, db);
 
+                const baseMetadata = await generateActionMetadata(parentActionType, primaryEntity.entityType, primaryEntity.entityId, db);
+                const parentMetadata = baseMetadata ? JSON.parse(baseMetadata) : {};
+                parentMetadata.mutations = mutationFields;
+                parentMetadata.child_count = actionRows.length;
+
                 const parentAction = {
                     id: parentActionId,
                     user_id: context?.userId || null,
@@ -516,10 +523,7 @@ const processMutationActions = async (mutationFields, result, variables, context
                     client_id: clientId,
                     yjs_update: null,
                     parent_action_id: null,
-                    metadata: JSON.stringify({
-                        mutations: mutationFields,
-                        child_count: actionRows.length
-                    })
+                    metadata: JSON.stringify(parentMetadata)
                 };
 
                 // Link child actions to parent and add parent to rows
