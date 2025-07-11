@@ -1,45 +1,88 @@
-import { interfaceLanguagesOperations } from './interface_languages';
-import { languagesOperations } from './languages';
-import { projectsOperations } from './projects';
-import { institutionsOperations } from './institutions';
-import { objectsOperations } from './objects';
-import { translationsOperations } from './translations';
-import { interfaceTranslationsOperations } from './interface_translations';
-import { logsOperations } from './logs';
-import { assetsOperations } from './assets';
-import { researchFieldsOperations } from './research_fields';
-import { ontologyFieldsOperations } from './ontology_fields';
-import { schemaOperations } from './schema';
-import { settingsOperations } from './settings';
-import { datasourcesOperations } from './datasources';
-import { entitySearchOperations } from './entitySearch';
-import { actionsOperations } from './actions';
-import { templatesOperations } from './templates';
+// Import all query operations
+import { actionsOperations } from './actions.js';
+import { assetsOperations } from './assets.js';
+import { datasourcesOperations } from './datasources.js';
+import { entitySearchOperations } from './entitySearch.js';
+import { genericAssetsOperations } from './genericAssets.js';
+import { institutionsOperations } from './institutions.js';
+import { interfaceLanguagesOperations } from './interface_languages.js';
+import { interfaceTranslationsOperations } from './interface_translations.js';
+import { languagesOperations } from './languages.js';
+import { logsOperations } from './logs.js';
+import { objectsOperations } from './objects.js';
+import { ontologyFieldsOperations } from './ontology_fields.js';
+import { projectsOperations } from './projects.js';
+import { researchFieldsOperations } from './research_fields.js';
+import { schemaOperations } from './schema.js';
+import { settingsOperations } from './settings.js';
+import { templatesOperations } from './templates.js';
+import { translationsOperations } from './translations.js';
 
+// Export API sections organized by entity type
 export const API_SECTIONS = {
-    interface_languages: {
-        name: "Interface Languages",
-        operations: interfaceLanguagesOperations
+    actions: {
+        name: "Actions",
+        operations: actionsOperations
     },
-    languages: {
-        name: "Content Languages",
-        operations: languagesOperations
+    assets: {
+        name: "Assets",
+        operations: assetsOperations
     },
-    projects: {
-        name: "Projects",
-        operations: projectsOperations
+    datasources: {
+        name: "Datasources",
+        operations: datasourcesOperations
+    },
+    entitySearch: {
+        name: "Entity Search",
+        operations: entitySearchOperations
+    },
+    genericAssets: {
+        name: "Generic Assets",
+        operations: genericAssetsOperations
     },
     institutions: {
         name: "Institutions",
         operations: institutionsOperations
     },
+    interface_languages: {
+        name: "Interface Languages",
+        operations: interfaceLanguagesOperations
+    },
+    interface_translations: {
+        name: "Interface Translations",
+        operations: interfaceTranslationsOperations
+    },
+    languages: {
+        name: "Content Languages",
+        operations: languagesOperations
+    },
+    logs: {
+        name: "Logs",
+        operations: logsOperations
+    },
     objects: {
         name: "Objects",
         operations: objectsOperations
     },
-    datasources: {
-        name: "Datasources",
-        operations: datasourcesOperations
+    ontology_fields: {
+        name: "Ontology Fields",
+        operations: ontologyFieldsOperations
+    },
+    projects: {
+        name: "Projects",
+        operations: projectsOperations
+    },
+    research_fields: {
+        name: "Research Fields",
+        operations: researchFieldsOperations
+    },
+    schema: {
+        name: "GraphQL Schema",
+        operations: schemaOperations
+    },
+    settings: {
+        name: "Project Settings",
+        operations: settingsOperations
     },
     templates: {
         name: "Templates",
@@ -48,44 +91,5 @@ export const API_SECTIONS = {
     translations: {
         name: "Translations",
         operations: translationsOperations
-    },
-    interface_translations: {
-        name: "Interface Translations",
-        operations: interfaceTranslationsOperations
-    },
-    logs: {
-        name: "Logs",
-        operations: logsOperations
-    },
-    assets: {
-        name: "Assets",
-        operations: assetsOperations
-    },
-    research_fields: {
-        name: "Research Fields",
-        operations: researchFieldsOperations
-    },
-    ontology_fields: {
-        name: "Ontology Fields",
-        operations: ontologyFieldsOperations
-    },
-    settings: {
-        name: "Project Settings",
-        operations: settingsOperations
-    },
-    entity_search: {
-        name: "Entity Search",
-        operations: entitySearchOperations
-    },
-    actions: {
-        name: "Actions",
-        operations: actionsOperations
-    },
-    schema: {
-        name: "GraphQL Schema",
-        operations: schemaOperations // Note: schema operations is an array
     }
-
-};
-
-export default API_SECTIONS; 
+}; 

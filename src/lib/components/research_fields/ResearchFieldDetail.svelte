@@ -124,14 +124,14 @@
                 if (nameContent[langCode] !== undefined) {
                     nameTrans.push({
                         id: originalNameTrans?.id, // Pass original ID if exists
-                        language_id: lang.id, // Use language ID instead of language code
+                        language_code: langCode, // Use language code for consistency with other entities
                         content: nameContent[langCode] || "",
                     });
                 }
                 if (descriptionContent[langCode] !== undefined) {
                     descriptionTrans.push({
                         id: originalDescriptionTrans?.id,
-                        language_id: lang.id, // Use language ID instead of language code
+                        language_code: langCode, // Use language code for consistency with other entities
                         content: descriptionContent[langCode] || "",
                     });
                 }

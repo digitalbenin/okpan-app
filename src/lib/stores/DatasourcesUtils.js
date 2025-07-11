@@ -1,5 +1,6 @@
 import { executeQuery, partialUpdate } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
+import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
 // Fetch all data sources for a specific institution within a project
 export const getDatasources = async (projectId, institutionId) => {
@@ -52,15 +53,24 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         (mainUpdateVariables[key] === undefined || mainUpdateVariables[key] === null) && delete mainUpdateVariables[key]
     );
 
+    console.log('=== DATASOURCE MAIN UPDATE ===');
+    console.log('Main update variables:', JSON.stringify(mainUpdateVariables, null, 2));
+
     const mainUpdateResponse = await executeQuery('datasources', 'update', mainUpdateVariables);
+
+    console.log('Main update response:', JSON.stringify(mainUpdateResponse, null, 2));
 
     if (!mainUpdateResponse || mainUpdateResponse.error) {
         const errorMessage = mainUpdateResponse?.error?.message || (Array.isArray(mainUpdateResponse?.error) ? mainUpdateResponse.error[0]?.message : mainUpdateResponse?.error);
+        console.error('Main update failed:', errorMessage);
         return { result: null, error: errorMessage || "Unknown error during main update" };
     }
 
+    // 2. Process translations using ContentLanguageStore functions (same as institutions/projects)
     const translationErrors = [];
     const translationResults = {};
+
+    const { addTranslation, updateTranslation } = getContentLanguageStore();
 
     const processTranslations = async (translationsArray, textId, fieldName) => {
         if (!textId || !translationsArray || translationsArray.length === 0) {
@@ -69,31 +79,20 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         translationResults[fieldName] = [];
 
         for (const trans of translationsArray) {
-            const { id: originalTranslationId, language_id, content } = trans;
-            let operation = null;
-            let variables = {};
-
-            if (originalTranslationId) {
-                operation = 'update';
-                variables = { id: originalTranslationId, content: content };
-            } else {
-                operation = 'create';
-                variables = {
-                    textId: textId,
-                    languageId: language_id,
-                    content: content
-                };
-            }
+            const { id: originalTranslationId, language_code, content } = trans;
 
             try {
-                const transResponse = await executeQuery('translations', operation, variables);
-
-                if (!transResponse || transResponse.error) {
-                    throw new Error(JSON.stringify(transResponse?.error || `Failed to ${operation} ${fieldName} translation for language ${language_id}`));
+                if (originalTranslationId) {
+                    // Update existing translation
+                    const result = await updateTranslation(originalTranslationId, content);
+                    translationResults[fieldName].push(result);
+                } else if (content && language_code) {
+                    // Create new translation using language code (same as institutions/projects)
+                    const result = await addTranslation(textId, language_code, content);
+                    translationResults[fieldName].push(result);
                 }
-                translationResults[fieldName].push(transResponse.result);
             } catch (err) {
-                translationErrors.push(`Failed to ${operation} ${fieldName} for language ${language_id}: ${err.message}`);
+                translationErrors.push(`Failed to process ${fieldName} translation for language ${language_code}: ${err.message}`);
             }
         }
     };
@@ -104,8 +103,10 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         processTranslations(updatedData.notesTranslations, updatedData.original_notes_id, 'notes')
     ]);
 
+    // 3. Final Result Aggregation
     if (translationErrors.length > 0) {
         const errorMessage = `Main data saved, but errors occurred during translation updates: ${translationErrors.join('; ')}`;
+        console.warn(errorMessage);
         return {
             result: { mainUpdate: mainUpdateResponse?.result, translationResults },
             error: errorMessage
@@ -117,7 +118,7 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         result: { mainUpdate: mainUpdateResponse?.result, translationResults },
         error: null
     };
-}; // End of updateDatasource function
+};
 
 // Function to delete a datasource
 export const deleteDatasource = async (datasourceId) => {

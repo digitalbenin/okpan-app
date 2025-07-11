@@ -539,7 +539,8 @@ export const actions = sqliteTable('actions', {
     entity_id: text('entity_id'),
     changes: text('changes', { mode: 'json' }),
     yjs_update: blob('yjs_update'),
-    parent_action_id: text('parent_action_id')
+    parent_action_id: text('parent_action_id'),
+    metadata: text('metadata', { mode: 'json' })
 });
 
 // Global Settings table - singleton table (only one row ever)
@@ -561,4 +562,6 @@ export const actionsRelations = relations(actions, ({ one }) => ({
         fields: [actions.parent_action_id],
         references: [actions.id]
     })
-})); 
+}));
+
+

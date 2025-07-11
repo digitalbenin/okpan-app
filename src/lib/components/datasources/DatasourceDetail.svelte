@@ -155,21 +155,21 @@
                 if (nameContent[langCode] !== undefined) {
                     nameTrans.push({
                         id: originalNameTrans?.id, // Pass original ID if exists
-                        language_id: lang.id, // Use language ID instead of language code
+                        language_code: langCode, // Use language code for consistency with other components
                         content: nameContent[langCode] || "",
                     });
                 }
                 if (methodContent[langCode] !== undefined) {
                     methodTrans.push({
                         id: originalMethodTrans?.id,
-                        language_id: lang.id, // Use language ID instead of language code
+                        language_code: langCode, // Use language code for consistency with other components
                         content: methodContent[langCode] || "",
                     });
                 }
                 if (notesContent[langCode] !== undefined) {
                     notesTrans.push({
                         id: originalNotesTrans?.id,
-                        language_id: lang.id, // Use language ID instead of language code
+                        language_code: langCode, // Use language code for consistency with other components
                         content: notesContent[langCode] || "",
                     });
                 }

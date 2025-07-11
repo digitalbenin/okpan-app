@@ -8,13 +8,14 @@ const { error: logError } = getLogStore();
  * Executes a GraphQL query with enhanced error handling
  * @param {Object} query - Query definition with query string and name
  * @param {Object} params - Parameters for the query
+ * @param {Object} context - Optional context for workflow tracking
  * @returns {Promise<Object>} Query result
  * @throws {Error} If the query fails or contains GraphQL errors
  */
-export const performQuery = async (query, params) => {
+export const performQuery = async (query, params, context) => {
     let result = null;
     try {
-        const response = await window.api.executeGraphQL(query.query, params);
+        const response = await window.api.executeGraphQL(query.query, params, context);
         result = response.data;
 
         // Check for GraphQL errors in the response (GraphQL can return data with errors)
@@ -73,6 +74,9 @@ export async function executeMultiStepMutation(mutations, params) {
     console.log('=== MULTI-STEP MUTATION ===');
     console.log('Input params:', JSON.stringify(params, null, 2));
     console.log('Total mutations:', mutations.length);
+
+    // Generate workflow ID for this multi-step operation
+    const workflowId = crypto.randomUUID();
 
     // Store intermediate results for using in subsequent steps
     const results = {};
@@ -171,9 +175,17 @@ export async function executeMultiStepMutation(mutations, params) {
 
         console.log('Step variables:', JSON.stringify(stepVariables, null, 2));
 
-        // Execute this step
+        // Execute this step with workflow context
         try {
-            const result = await performQuery({ name: mutation.name, query: mutation.query }, stepVariables);
+            const context = {
+                workflowId,
+                isMultiStep: true,
+                stepIndex: i,
+                totalSteps: mutations.length,
+                stepName: mutation.name
+            };
+
+            const result = await performQuery({ name: mutation.name, query: mutation.query }, stepVariables, context);
             console.log('Step result:', JSON.stringify(result, null, 2));
             results[mutation.name] = result;
             Object.assign(finalResults, result);
@@ -498,15 +510,16 @@ export async function partialUpdate(section, operation, params = {}) {
  * @param {string} section - API section name
  * @param {string} operation - Operation name within the section
  * @param {Object} params - Parameters for the operation
+ * @param {Object} context - Optional context for workflow tracking
  * @returns {Promise<Object>} Operation result
  */
-export async function executeQuery(section, operation, params = {}) {
+export async function executeQuery(section, operation, params = {}, context = null) {
     if (!section || !operation) {
         throw new Error('Missing section or operation');
     }
 
     if (section === 'custom' && operation === 'mutation' && params.query) {
-        return performQuery(params.query, params.params || {});
+        return performQuery(params.query, params.params || {}, context);
     }
 
     if (!API_SECTIONS[section]) {
@@ -525,7 +538,7 @@ export async function executeQuery(section, operation, params = {}) {
 
     // Otherwise, perform a single query
     // performQuery already handles errors, logging, and notifications
-    return performQuery(queryDef, params);
+    return performQuery(queryDef, params, context);
 }
 
 /**

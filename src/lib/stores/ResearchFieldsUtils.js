@@ -1,5 +1,6 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
+import { getContentLanguageStore } from "./ContentLanguageStore.svelte.js";
 // Note: Replace 'researchFields', 'list', 'getById', etc., with your actual GraphQL section and operation names.
 
 // Fetch all research fields for a specific project
@@ -77,9 +78,11 @@ export const updateResearchField = async (fieldId, updateData) => {
         return { result: null, error: errorMessage };
     }
 
-    // 2. Orchestrate Translation Updates/Creations
+    // 2. Process translations using ContentLanguageStore functions (same as institutions/projects/datasources)
     const translationErrors = [];
     const translationResults = {};
+
+    const { addTranslation, updateTranslation } = getContentLanguageStore();
 
     const processTranslations = async (translationsArray, textId, fieldName) => {
         if (!textId || !translationsArray || translationsArray.length === 0) {
@@ -88,33 +91,20 @@ export const updateResearchField = async (fieldId, updateData) => {
         translationResults[fieldName] = [];
 
         for (const trans of translationsArray) {
-            const { id: originalTranslationId, language_id, content } = trans;
-            let operation = null;
-            let variables = {};
-
-            if (originalTranslationId) {
-                operation = 'update';
-                variables = { id: originalTranslationId, content: content || "" };
-            } else if (content) {
-                operation = 'create';
-                variables = {
-                    textId: textId,
-                    languageId: language_id,
-                    content: content
-                };
-            } else {
-                continue;
-            }
+            const { id: originalTranslationId, language_code, content } = trans;
 
             try {
-                const transResponse = await executeQuery('translations', operation, variables);
-                if (!transResponse || transResponse.error) {
-                    throw new Error(transResponse?.error?.message || JSON.stringify(transResponse?.error) || `Failed to ${operation} ${fieldName} translation for language ${language_id}`);
+                if (originalTranslationId) {
+                    // Update existing translation
+                    const result = await updateTranslation(originalTranslationId, content);
+                    translationResults[fieldName].push(result);
+                } else if (content && language_code) {
+                    // Create new translation using language code (same as institutions/projects/datasources)
+                    const result = await addTranslation(textId, language_code, content);
+                    translationResults[fieldName].push(result);
                 }
-                translationResults[fieldName].push(transResponse.result);
-
             } catch (err) {
-                translationErrors.push(`Failed to ${operation} ${fieldName} for language ${language_id}: ${err.message}`);
+                translationErrors.push(`Failed to process ${fieldName} translation for language ${language_code}: ${err.message}`);
             }
         }
     };

@@ -1,151 +1,237 @@
+// GraphQL handler with action logging
 import { graphql, parse } from 'graphql';
+import { and } from 'drizzle-orm';
 import { actions } from '../../db/schema.js';
 import { getClientId } from '../../db/init.js';
+import {
+    generateActionMetadata,
+    JUNCTION_TABLE_TYPES,
+    IGNORED_FIELDS_FOR_CHANGES,
+    UUID_REGEX,
+    VARIABLE_NAME_MAPPINGS,
+    JUNCTION_RELATION_EXTRACTORS,
+    ENTITIES_WITH_PROJECT_ID,
+    ENTITIES_WITH_INDIRECT_PROJECT_ID,
+    TEXT_PARENT_QUERIES,
+    TEXT_FIELD_ID_VARIABLES,
+    getPrimaryEntityFromActions,
+    getParentActionType
+} from '../services/actionService.js';
 
-// Utility functions for bulk operations
-const isBulkOperation = (mutationName) => mutationName.toLowerCase().includes('bulk');
+// Simple utility functions
+const isBulkOp = (name) => name.toLowerCase().includes('bulk');
+const isUpdate = (name) => name.toLowerCase().includes('update');
+const isDelete = (name) => name.toLowerCase().includes('delete');
+const isCreate = (name) => name.toLowerCase().includes('create') || name.toLowerCase().startsWith('insertinto');
 
-const isUpdateOperation = (mutationName) => mutationName.toLowerCase().includes('update');
-
-const isDeleteOperation = (mutationName) => mutationName.toLowerCase().includes('delete');
-
-const isCreateOperation = (mutationName) => mutationName.toLowerCase().includes('create') || mutationName.toLowerCase().startsWith('insertinto');
-
-const parseBulkVariable = (variable) => {
+const parseJsonVar = (variable) => {
     if (typeof variable === 'string') {
-        try {
-            return JSON.parse(variable);
-        } catch (error) {
-            console.error('Error parsing bulk variable:', error);
-            return variable;
-        }
+        try { return JSON.parse(variable); } catch { return variable; }
     }
     if (Array.isArray(variable) && variable.length === 1 && typeof variable[0] === 'string') {
-        try {
-            return JSON.parse(variable[0]);
-        } catch (error) {
-            console.error('Error parsing bulk variable array:', error);
-            return variable;
-        }
+        try { return JSON.parse(variable[0]); } catch { return variable; }
     }
     return variable;
 };
 
-const extractEntityIdsFromBulkVariables = (variables) => {
-    const entityIds = [];
-
-    if (variables.updates) {
-        const updates = parseBulkVariable(variables.updates);
-        if (Array.isArray(updates)) {
-            entityIds.push(...updates.map(update => {
-                const updateObj = typeof update === 'string' ? JSON.parse(update) : update;
-                return updateObj.id;
-            }).filter(id => id));
-        }
-    }
-
-    if (variables.ids) {
-        const ids = parseBulkVariable(variables.ids);
-        entityIds.push(...(Array.isArray(ids) ? ids : [ids]));
-    }
-
-    // For bulk creates, we don't have entity IDs in variables (they don't exist yet)
-    // Entity IDs will come from the result
-
-    return entityIds;
-};
-
-
-
-// Extract mutation field names from GraphQL operation
 const extractMutationFields = (op) =>
     op?.selectionSet?.selections?.filter(s => s.kind === 'Field')?.map(s => s.name.value) ?? [];
 
-// Get mutation metadata from GraphQL schema
 const getMutationInfo = (fieldName, schema) => {
     const mutationType = schema.getType('Mutation');
     const field = mutationType.getFields()[fieldName];
 
-    // Get return type
     let returnType = field.type;
     while (returnType.ofType) returnType = returnType.ofType;
 
-    // Get entity type from drizzle mappings
     const entityType = schema._drizzleTypes?.[returnType.name] || 'unknown';
+    const lowerName = fieldName.toLowerCase();
 
-    // Determine action type from field name using case-insensitive detection
-    const lowerFieldName = fieldName.toLowerCase();
     let actionType = 'CREATE';
-    if (lowerFieldName.includes('delete') || lowerFieldName.includes('remove')) {
-        actionType = 'DELETE';
-    } else if (lowerFieldName.includes('update')) {
-        actionType = 'UPDATE';
-    } else if (lowerFieldName.includes('insert') || lowerFieldName.includes('create')) {
-        actionType = 'CREATE';
-    }
+    if (lowerName.includes('delete')) actionType = 'DELETE';
+    else if (lowerName.includes('update')) actionType = 'UPDATE';
 
     return { actionType, entityType };
 };
 
-// Extract entity ID from mutation result
-const extractEntityId = (fieldResult) =>
-    Array.isArray(fieldResult) ? fieldResult[0]?.id ?? null : fieldResult?.id ?? null;
+const findEntityIdInVars = (variables) =>
+    Object.values(variables).find(v => typeof v === 'string' && v.match(UUID_REGEX));
 
-// Compare before/after entities and extract changed fields
-const getChangedFields = (variables, currentEntity, fieldResult) => {
-    if (!currentEntity) return variables;
+const getVariableValue = (variables, ...possibleNames) => {
+    for (const name of possibleNames) {
+        if (variables[name]) return variables[name];
+    }
+    return null;
+};
 
-    const afterEntity = Array.isArray(fieldResult) ? fieldResult[0] : fieldResult;
-    if (!afterEntity) return variables;
+// Extract project ID from variables or entity data
+const extractProjectId = async (variables, entityType, entityId, db, preData = null) => {
+    // Try variables first
+    const fromVars = getVariableValue(variables, 'projectId', 'project_id');
+    if (fromVars) return fromVars;
 
-    const changes = {};
+    // Try pre-execution data
+    if (preData?.project_id) return preData.project_id;
+    if (preData?.object?.project_id) return preData.object.project_id;
 
-    // Compare fields that exist in both entities
-    for (const fieldName in afterEntity) {
-        if (fieldName === 'id' || fieldName === 'created_at' || fieldName === 'updated_at') continue;
+    // Database lookups with error handling
+    try {
+        // For junction tables via object lookup
+        if (JUNCTION_TABLE_TYPES.includes(entityType)) {
+            if (preData?.object_id) {
+                const object = await db.query.objects.findFirst({
+                    where: (e, { eq }) => eq(e.id, preData.object_id)
+                });
+                if (object?.project_id) return object.project_id;
+            }
 
-        const beforeValue = currentEntity[fieldName];
-        const afterValue = afterEntity[fieldName];
-
-        // Normalize both values for comparison (handle JSON strings vs parsed objects)
-        let normalizedBefore = beforeValue;
-
-        // If before value is a JSON string, parse it for comparison
-        if (typeof beforeValue === 'string' && (beforeValue.startsWith('[') || beforeValue.startsWith('{'))) {
-            try {
-                normalizedBefore = JSON.parse(beforeValue);
-            } catch (e) {
-                // Not JSON, keep as string
+            if (entityId) {
+                const junction = await JUNCTION_RELATION_EXTRACTORS[entityType]?.(db, entityId);
+                if (junction?.object?.project_id) return junction.object.project_id;
             }
         }
 
-        const beforeStr = JSON.stringify(normalizedBefore);
-        const afterStr = JSON.stringify(afterValue);
+        // For regular entities with project_id
+        if (entityId && ENTITIES_WITH_PROJECT_ID.includes(entityType)) {
+            const entity = await db.query[entityType]?.findFirst({
+                where: (e, { eq }) => eq(e.id, entityId)
+            });
+            if (entity?.project_id) return entity.project_id;
+        }
 
-        if (beforeStr !== afterStr) {
-            // Find corresponding variable by matching the NEW value (afterValue)
+        // Special case: datasources get project_id via their institution
+        if (ENTITIES_WITH_INDIRECT_PROJECT_ID.includes(entityType) && entityId) {
+            if (entityType === 'datasources') {
+                const datasource = await db.query.datasources.findFirst({
+                    where: (e, { eq }) => eq(e.id, entityId),
+                    with: { institution: true }
+                });
+                if (datasource?.institution?.project_id) return datasource.institution.project_id;
+            }
+        }
+
+        // For text entities, find their parent entity and get project_id from there
+        if (entityType === 'texts' && entityId) {
+            for (const { table, fields } of TEXT_PARENT_QUERIES) {
+                for (const field of fields) {
+                    const parent = await db.query[table]?.findFirst({
+                        where: (entity, { eq }) => eq(entity[field], entityId)
+                    });
+                    if (parent) {
+                        // Special case: if parent is a project, use its id as project_id
+                        if (table === 'project') return parent.id;
+                        // Special case: if parent is a datasource, get project_id via institution
+                        if (table === 'datasources') {
+                            const datasourceWithInstitution = await db.query.datasources.findFirst({
+                                where: (e, { eq }) => eq(e.id, parent.id),
+                                with: { institution: true }
+                            });
+                            if (datasourceWithInstitution?.institution?.project_id) {
+                                return datasourceWithInstitution.institution.project_id;
+                            }
+                        }
+                        // For other entities, use their project_id field
+                        if (parent.project_id) return parent.project_id;
+                    }
+                }
+            }
+        }
+
+        // For translation entities, find their text parent and then the text's parent
+        if (entityType === 'translations' && entityId) {
+            const translation = await db.query.translations.findFirst({
+                where: (entity, { eq }) => eq(entity.id, entityId)
+            });
+            if (translation?.text_id) {
+                // Recursively call for the text entity
+                return await extractProjectId({}, 'texts', translation.text_id, db);
+            }
+        }
+    } catch (error) {
+        console.error(`Error extracting project ID for ${entityType}:`, error);
+    }
+
+    return null;
+};
+
+const findJunctionId = async (entityType, variables, db) => {
+    try {
+        let record = null;
+        if (entityType === 'objects_assets') {
+            const objectId = getVariableValue(variables, ...VARIABLE_NAME_MAPPINGS.objectId);
+            const assetId = getVariableValue(variables, ...VARIABLE_NAME_MAPPINGS.assetId);
+
+            if (objectId && assetId) {
+                record = await db.query.objects_assets.findFirst({
+                    where: (e, { eq }) => and(eq(e.object_id, objectId), eq(e.asset_id, assetId))
+                });
+            }
+        } else if (entityType === 'objects_research_fields') {
+            const objectId = getVariableValue(variables, ...VARIABLE_NAME_MAPPINGS.objectId);
+            const fieldId = getVariableValue(variables, ...VARIABLE_NAME_MAPPINGS.fieldId);
+
+            if (objectId && fieldId) {
+                record = await db.query.objects_research_fields.findFirst({
+                    where: (e, { eq }) => and(eq(e.object_id, objectId), eq(e.field_id, fieldId))
+                });
+            }
+        } else if (entityType === 'assets_institutions') {
+            const assetId = getVariableValue(variables, ...VARIABLE_NAME_MAPPINGS.assetId);
+            const institutionId = getVariableValue(variables, ...VARIABLE_NAME_MAPPINGS.institutionId);
+
+            if (assetId && institutionId) {
+                record = await db.query.assets_institutions.findFirst({
+                    where: (e, { eq }) => and(eq(e.asset_id, assetId), eq(e.institution_id, institutionId))
+                });
+            }
+        }
+        return record?.id || null;
+    } catch { return null; }
+};
+
+const findEntityInTables = async (entityId, db) => {
+    const tableNames = Object.keys(db.query);
+    for (const tableName of tableNames) {
+        try {
+            const found = await db.query[tableName].findFirst({
+                where: (e, { eq }) => eq(e.id, entityId)
+            });
+            if (found) return found;
+        } catch { continue; }
+    }
+    return null;
+};
+
+// Get changed fields for updates
+const getChangedFields = (variables, before, after) => {
+    if (!before || !after) return variables;
+
+    const afterEntity = Array.isArray(after) ? after[0] : after;
+    const changes = {};
+
+    for (const fieldName in afterEntity) {
+        if (IGNORED_FIELDS_FOR_CHANGES.includes(fieldName)) continue;
+
+        const beforeValue = before[fieldName];
+        const afterValue = afterEntity[fieldName];
+
+        let normalizedBefore = beforeValue;
+        if (typeof beforeValue === 'string' && (beforeValue.startsWith('[') || beforeValue.startsWith('{'))) {
+            try { normalizedBefore = JSON.parse(beforeValue); } catch { /* ignore */ }
+        }
+
+        if (JSON.stringify(normalizedBefore) !== JSON.stringify(afterValue)) {
             for (const [varName, varValue] of Object.entries(variables)) {
                 if (varName.endsWith('Id')) continue;
 
-                let variableMatches = false;
-
-                // Direct comparison
-                if (JSON.stringify(varValue) === afterStr) {
-                    variableMatches = true;
-                }
-                // Handle JSON string variables
-                else if (typeof varValue === 'string') {
+                let matches = JSON.stringify(varValue) === JSON.stringify(afterValue);
+                if (!matches && typeof varValue === 'string') {
                     try {
-                        const parsedVarValue = JSON.parse(varValue);
-                        if (JSON.stringify(parsedVarValue) === afterStr) {
-                            variableMatches = true;
-                        }
-                    } catch (e) {
-                        // Not JSON, continue
-                    }
+                        matches = JSON.stringify(JSON.parse(varValue)) === JSON.stringify(afterValue);
+                    } catch { /* ignore */ }
                 }
 
-                if (variableMatches) {
+                if (matches) {
                     changes[varName] = varValue;
                     break;
                 }
@@ -156,143 +242,294 @@ const getChangedFields = (variables, currentEntity, fieldResult) => {
     return Object.keys(changes).length > 0 ? changes : null;
 };
 
-// Create action record for database
-const createActionRecord = async (name, actionType, entityType, entityId, changedFields, context) => {
-    const clientId = context?.clientId || await getClientId();
-
-    return {
-        user_id: context?.userId || null,
-        project_id: context?.projectId || null,
-        action_type: actionType,
-        entity_type: entityType,
-        entity_id: entityId,
-        changes: JSON.stringify({
-            mutation_name: name,
-            variables: changedFields,
-            timestamp: Date.now()
-        }),
-        client_id: clientId,
-        yjs_update: context?.yjsUpdate || null,
-        parent_action_id: context?.parentActionId || null
-    };
-};
-
-// Fetch pre-execution entities for UPDATE operations
-const fetchPreExecutionEntities = async (mutationFields, variables, db) => {
-    const preExecutionEntities = {};
+// Fetch pre-execution data for deletes and updates
+const fetchPreExecutionData = async (mutationFields, variables, db, schema) => {
+    const preData = {};
 
     for (const name of mutationFields) {
-        if (!isUpdateOperation(name)) continue;
+        if (!isUpdate(name) && !isDelete(name)) continue;
 
-        let entityIds = [];
+        const { entityType } = getMutationInfo(name, schema);
 
-        if (isBulkOperation(name)) {
-            entityIds = extractEntityIdsFromBulkVariables(variables);
-        } else {
-            // Single entity operation - find entity ID in variables
-            const entityId = Object.values(variables).find(v =>
-                typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i)
-            );
-            if (entityId) {
-                entityIds = [entityId];
-            }
-        }
+        try {
+            let entityIds = [];
 
-        if (entityIds.length === 0) continue;
-
-        // Search across all tables to find the entities
-        const tableNames = Object.keys(db.query);
-        const foundEntities = [];
-
-        for (const tableName of tableNames) {
-            try {
-                for (const entityId of entityIds) {
-                    const found = await db.query[tableName].findFirst({
-                        where: (entity, { eq }) => eq(entity.id, entityId)
-                    });
-                    if (found) {
-                        foundEntities.push(found);
+            if (isBulkOp(name)) {
+                // Extract IDs from bulk variables
+                if (variables.updates) {
+                    const updates = parseJsonVar(variables.updates);
+                    if (Array.isArray(updates)) {
+                        entityIds = updates.map(u => {
+                            const obj = typeof u === 'string' ? JSON.parse(u) : u;
+                            return obj.id;
+                        }).filter(Boolean);
                     }
                 }
-                // If we found entities in this table, no need to check other tables
-                if (foundEntities.length > 0) {
-                    preExecutionEntities[name] = foundEntities.length === 1 ? foundEntities[0] : foundEntities;
-                    break;
+                if (variables.ids) {
+                    const ids = parseJsonVar(variables.ids);
+                    entityIds.push(...(Array.isArray(ids) ? ids : [ids]));
                 }
-            } catch (error) {
-                // Continue to next table
+            } else {
+                // Single entity
+                let entityId = variables.id || findEntityIdInVars(variables);
+
+                // Special handling for text updates that use field-specific ID variables
+                if (!entityId && entityType === 'texts') {
+                    const fieldName = TEXT_FIELD_ID_VARIABLES.find(fieldName => variables[fieldName]);
+                    if (fieldName) entityId = variables[fieldName];
+                }
+
+                // For junction deletes, handle both direct ID and where clause deletes
+                if (isDelete(name) && JUNCTION_TABLE_TYPES.includes(entityType)) {
+                    if (!entityId) {
+                        // No direct ID provided, try to find junction record by component IDs
+                        entityId = await findJunctionId(entityType, variables, db);
+                    } else {
+                        // Check if the provided ID is actually a junction record ID
+                        const junctionRecord = await db.query[entityType].findFirst({
+                            where: (e, { eq }) => eq(e.id, entityId)
+                        });
+
+                        if (!junctionRecord) {
+                            // The ID doesn't exist as a junction record, try to find by component IDs
+                            entityId = await findJunctionId(entityType, variables, db);
+                        }
+                    }
+                }
+
+                if (entityId) entityIds = [entityId];
             }
+
+            if (entityIds.length === 0) continue;
+
+            const foundEntities = [];
+            for (const id of entityIds) {
+                let entity = null;
+
+                // For junction deletes, get with relationships
+                if (isDelete(name) && JUNCTION_TABLE_TYPES.includes(entityType)) {
+                    entity = await JUNCTION_RELATION_EXTRACTORS[entityType]?.(db, id);
+                } else {
+                    entity = await findEntityInTables(id, db);
+                }
+
+                if (entity) foundEntities.push(entity);
+            }
+
+            if (foundEntities.length > 0) {
+                preData[name] = foundEntities.length === 1 ? foundEntities[0] : foundEntities;
+            }
+        } catch (error) {
+            console.error(`Error fetching pre-execution data for ${name}:`, error);
         }
     }
 
-    return preExecutionEntities;
+    return preData;
 };
 
+// Create action record
+const createActionRecord = async (name, actionType, entityType, entityId, variables, context, db, preData = null) => {
+    const clientId = context?.clientId || await getClientId();
+    const projectId = await extractProjectId(variables, entityType, entityId, db, preData);
+    const metadata = await generateActionMetadata(actionType, entityType, entityId, db, preData);
 
+    return {
+        user_id: context?.userId || null,
+        project_id: projectId,
+        action_type: actionType,
+        entity_type: entityType,
+        entity_id: entityId,
+        changes: JSON.stringify({ mutation_name: name, variables, timestamp: Date.now() }),
+        client_id: clientId,
+        yjs_update: context?.yjsUpdate || null,
+        parent_action_id: context?.parentActionId || null,
+        metadata
+    };
+};
 
-// Process mutation results and create action logs
-const processMutationActions = async (mutationFields, result, variables, context, db, preExecutionEntities, schema) => {
+// Process mutations and create action logs
+const processMutationActions = async (mutationFields, result, variables, context, db, preData, schema) => {
     const actionRows = [];
 
     for (const name of mutationFields) {
         const fieldResult = result.data[name];
-        if (!fieldResult || (Array.isArray(fieldResult) && fieldResult.length === 0)) continue;
+
+        if (!fieldResult || (Array.isArray(fieldResult) && fieldResult.length === 0)) {
+            continue;
+        }
 
         const { actionType, entityType } = getMutationInfo(name, schema);
 
-        // Handle bulk operations (mutations that return arrays)
         if (Array.isArray(fieldResult)) {
-            // This is a bulk operation - create one action log per affected entity
-            for (let index = 0; index < fieldResult.length; index++) {
-                const entity = fieldResult[index];
+            // Bulk operation
+            for (let i = 0; i < fieldResult.length; i++) {
+                const entity = fieldResult[i];
                 if (!entity?.id) continue;
 
-                let entityVariables = variables;
+                let entityVars = variables;
+                let preEntityData = null;
 
-                // For bulk updates with pre-execution data, use the same logic as single operations
-                if (actionType === 'UPDATE' && preExecutionEntities[name]) {
-                    const preExecutionEntity = Array.isArray(preExecutionEntities[name])
-                        ? preExecutionEntities[name].find(e => e.id === entity.id)
-                        : preExecutionEntities[name];
+                if (actionType === 'UPDATE' && preData[name]) {
+                    const preEntity = Array.isArray(preData[name])
+                        ? preData[name].find(e => e.id === entity.id)
+                        : preData[name];
 
-                    if (preExecutionEntity) {
-                        const changedFields = getChangedFields(variables, preExecutionEntity, entity);
-                        if (!changedFields) continue; // No changes detected
-                        entityVariables = changedFields;
+                    if (preEntity) {
+                        const changed = getChangedFields(variables, preEntity, entity);
+                        // For text updates, always create action records since GraphQL result only contains ID
+                        if (!changed && entityType !== 'texts') continue;
+                        entityVars = changed || variables; // Use original variables if no changes detected
+                        preEntityData = preEntity;
+                    } else {
+                        // Pre-data exists but specific entity not found - still create action record for text updates
+                        if (entityType === 'texts') {
+                            entityVars = variables;
+                            preEntityData = null;
+                        } else {
+                            continue; // Skip for non-text entities if entity not found in pre-data
+                        }
                     }
-                }
-                // For bulk deletes, create individual actions like single deletes
-                else if (actionType === 'DELETE') {
-                    entityVariables = { id: entity.id };
-                }
-                // For bulk creates, create individual actions like single creates
-                else if (actionType === 'CREATE' && variables.values) {
-                    const values = parseBulkVariable(variables.values);
-                    if (Array.isArray(values) && values[index]) {
-                        // Use the individual entity data directly
-                        entityVariables = values[index];
+                } else if (actionType === 'DELETE') {
+                    entityVars = { id: entity.id };
+                    // For junction deletes, try to get the pre-execution data
+                    if (JUNCTION_TABLE_TYPES.includes(entityType)) {
+                        preEntityData = Array.isArray(preData[name])
+                            ? preData[name].find(e => e.id === entity.id)
+                            : preData[name];
+
+                        // If no pre-data was captured and the result contains junction info, use that
+                        if (!preEntityData && entity.object_id) {
+                            preEntityData = entity;
+                        }
                     }
+                } else if (actionType === 'CREATE' && variables.values) {
+                    const values = parseJsonVar(variables.values);
+                    if (Array.isArray(values) && values[i]) {
+                        entityVars = values[i];
+                    }
+                } else if (actionType === 'UPDATE') {
+                    // Fallback for UPDATE operations without pre-data or other conditions
+                    entityVars = variables;
+                    preEntityData = null;
                 }
 
-                actionRows.push(await createActionRecord(name, actionType, entityType, entity.id, entityVariables, context));
+                const bulkActionRecord = await createActionRecord(name, actionType, entityType, entity.id, entityVars, context, db, preEntityData);
+                actionRows.push(bulkActionRecord);
             }
         } else {
-            // Single entity operation - use existing logic
-            const entityId = fieldResult?.id ?? null;
+            // Single entity
+            const entityId = fieldResult?.id;
+            let preEntityData = null;
 
-            if (actionType === 'UPDATE' && entityId && preExecutionEntities[name]) {
-                const changedFields = getChangedFields(variables, preExecutionEntities[name], fieldResult);
-                if (!changedFields) continue; // No changes detected
-
-                actionRows.push(await createActionRecord(name, actionType, entityType, entityId, changedFields, context));
+            if (actionType === 'UPDATE' && entityId && preData[name]) {
+                const changed = getChangedFields(variables, preData[name], fieldResult);
+                if (!changed) {
+                    continue;
+                }
+                preEntityData = preData[name];
+                const updateActionRecord = await createActionRecord(name, actionType, entityType, entityId, changed, context, db, preEntityData);
+                actionRows.push(updateActionRecord);
             } else {
-                // For CREATE/DELETE or UPDATE without pre-execution data
-                actionRows.push(await createActionRecord(name, actionType, entityType, entityId, variables, context));
+                // For DELETE operations on junction tables, use pre-data or result data
+                if (actionType === 'DELETE' && JUNCTION_TABLE_TYPES.includes(entityType)) {
+                    preEntityData = preData[name];
+
+                    // If no pre-data was captured but the result contains junction info, use that
+                    if (!preEntityData && fieldResult?.object_id) {
+                        preEntityData = fieldResult;
+                    }
+                } else {
+                    preEntityData = preData[name] || null;
+                }
+
+                // For UPDATE operations without pre-data, still create action record
+                // This handles cases like updateTexts where entity ID is in non-standard variable names
+                const singleActionRecord = await createActionRecord(name, actionType, entityType, entityId, variables, context, db, preEntityData);
+                actionRows.push(singleActionRecord);
             }
         }
     }
 
-    // Save action logs
+    // Handle workflow-based parent actions
+    if (actionRows.length > 0 && context?.workflowId) {
+        let parentActionId = activeWorkflows.get(context.workflowId);
+
+        // Create parent action on first mutation step of workflow  
+        if (!parentActionId) {
+            const primaryEntity = getPrimaryEntityFromActions(actionRows);
+
+            if (primaryEntity && primaryEntity.entityType && primaryEntity.entityId) {
+                parentActionId = crypto.randomUUID();
+                const clientId = context?.clientId || await getClientId();
+                const projectId = await extractProjectId({}, primaryEntity.entityType, primaryEntity.entityId, db);
+
+                const parentAction = {
+                    id: parentActionId,
+                    user_id: context?.userId || null,
+                    project_id: projectId,
+                    action_type: 'UPDATE', // Will be determined after all steps
+                    entity_type: primaryEntity.entityType,
+                    entity_id: primaryEntity.entityId,
+                    changes: null,
+                    client_id: clientId,
+                    yjs_update: null,
+                    parent_action_id: null,
+                    metadata: JSON.stringify({
+                        workflow_id: context.workflowId
+                    })
+                };
+
+                // Store workflow and insert parent action
+                activeWorkflows.set(context.workflowId, parentActionId);
+                await db.insert(actions).values([parentAction]).execute();
+            }
+        }
+
+        // Link child actions to parent
+        if (parentActionId) {
+            actionRows.forEach(row => row.parent_action_id = parentActionId);
+        }
+
+        // Clean up workflow on last mutation step (1-based indexing)
+        if (context.stepIndex >= context.totalSteps) {
+            activeWorkflows.delete(context.workflowId);
+        }
+    } else {
+        if (actionRows.length > 0 && mutationFields.length > 1) {
+            // Fallback: Create parent action for single GraphQL operations with multiple fields
+            const primaryEntity = getPrimaryEntityFromActions(actionRows);
+
+            if (primaryEntity) {
+                const parentActionId = crypto.randomUUID();
+                const parentActionType = getParentActionType(actionRows, primaryEntity.entityId);
+                const clientId = context?.clientId || await getClientId();
+                const projectId = await extractProjectId({}, primaryEntity.entityType, primaryEntity.entityId, db);
+
+                const parentAction = {
+                    id: parentActionId,
+                    user_id: context?.userId || null,
+                    project_id: projectId,
+                    action_type: parentActionType,
+                    entity_type: primaryEntity.entityType,
+                    entity_id: primaryEntity.entityId,
+                    changes: null,
+                    client_id: clientId,
+                    yjs_update: null,
+                    parent_action_id: null,
+                    metadata: JSON.stringify({
+                        mutations: mutationFields,
+                        child_count: actionRows.length
+                    })
+                };
+
+                // Link child actions to parent and add parent to rows
+                actionRows.forEach(row => row.parent_action_id = parentActionId);
+                actionRows.unshift(parentAction);
+            }
+        }
+    }
+
+    // Save to database
     if (actionRows.length > 0) {
         try {
             await db.insert(actions).values(actionRows).execute();
@@ -302,6 +539,11 @@ const processMutationActions = async (mutationFields, result, variables, context
     }
 };
 
+// Track active workflows to create parent actions
+const activeWorkflows = new Map();
+
+
+
 // Main GraphQL handler
 export const handleGraphQL = async (event, { query, variables, context }, { schema, resolvers, db }) => {
     try {
@@ -309,14 +551,16 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
         const op = parsed.definitions.find(d => d.kind === 'OperationDefinition');
         const isMutation = op?.operation === 'mutation';
 
-        // Fetch pre-execution entities for mutations
-        let preExecutionEntities = {};
+
+
+        // Get pre-execution data for mutations
+        let preData = {};
         if (isMutation) {
             const mutationFields = extractMutationFields(op);
-            preExecutionEntities = await fetchPreExecutionEntities(mutationFields, variables, db);
+            preData = await fetchPreExecutionData(mutationFields, variables, db, schema);
         }
 
-        // Execute GraphQL query/mutation
+        // Execute GraphQL
         const result = await graphql({
             schema,
             source: query,
@@ -325,10 +569,10 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
             contextValue: { db }
         });
 
-        // Process mutation actions for logging
+        // Process actions for mutations
         if (!result.errors && isMutation && result.data) {
             const mutationFields = extractMutationFields(op);
-            await processMutationActions(mutationFields, result, variables, context, db, preExecutionEntities, schema);
+            await processMutationActions(mutationFields, result, variables, context, db, preData, schema);
         }
 
         if (result.errors) {
@@ -338,7 +582,7 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
 
         return { success: true, data: result.data };
     } catch (error) {
-        console.error('Error executing GraphQL query:', error);
+        console.error('Error executing GraphQL:', error);
         return { success: false, error: error.message };
     }
 }; 

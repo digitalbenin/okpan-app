@@ -139,14 +139,14 @@ export function getContentLanguageStore() {
     };
 
     // Update an existing translation
-    const updateTranslation = async (translationId, content) => {
+    const updateTranslation = async (translationId, content, context = null) => {
         contentLanguageState.isLoading = true;
 
-        // Execute the query to update the translation
+        // Execute the query to update the translation with optional context
         const result = await executeQuery('translations', 'update', {
             id: translationId,
             content
-        });
+        }, context);
 
         contentLanguageState.isLoading = false;
         return result;
