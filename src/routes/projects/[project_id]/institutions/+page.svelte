@@ -4,7 +4,7 @@
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import BaseSelectNew from "../../../../lib/components/base/BaseSelectNew.svelte";
-  import InstitutionsGrid from "../../../../lib/components/institutions/InstitutionsGrid.svelte";
+  import InstitutionsGrid from "$lib/components/institutions/InstitutionsGrid.svelte";
 
   const { t } = getTranslationStore();
 
@@ -17,7 +17,7 @@
     pageSize: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 15,
+      defaultValue: 2,
     },
     orderBy: {
       encode: (value) => value,
@@ -69,8 +69,6 @@
       label: t("common.completed", { fallback: "Completed" }),
     },
   ]);
-
-  $inspect(data.institutions);
 </script>
 
 <div class="container-fluid">
@@ -116,13 +114,26 @@
       >
     </div>
   </div>
-  <div class="border-bottom">
-    {data.institutions.count}
-    {#if data.institutions.count > 1}
-      {t("common.institutions", { fallback: "institutions" })}
-    {:else}
-      {t("common.institution", { fallback: "institution" })}
-    {/if}
-  </div>
-  <InstitutionsGrid institutions={data.institutions.result} />
+  {#if data.institutions.count}
+    <div class="border-bottom mb-3">
+      {data.institutions.count}
+      {#if data.institutions.count > 1}
+        {t("common.institutions", { fallback: "institutions" })}
+      {:else}
+        {t("common.institution", { fallback: "institution" })}
+      {/if}
+    </div>
+    <InstitutionsGrid
+      institutions={data.institutions.result}
+      bind:page={params.page}
+      pageSize={params.pageSize}
+      count={data.institutions.count}
+    />
+  {:else}
+    <div class="text-center fst-italic text-muted mt-5">
+      {t("common.no-institutions-found", {
+        fallback: "No institutions found.",
+      })}
+    </div>
+  {/if}
 </div>
