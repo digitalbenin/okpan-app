@@ -2,20 +2,12 @@ import { executeQuery, partialUpdate } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
 
 // Fetch all data sources for a specific institution within a project
-export const getDatasources = async (projectId, institutionId) => {
-    if (!projectId || !institutionId) {
-        return { result: [], error: "Project ID and Institution ID are required" };
+export const getDatasources = async (options) => {
+    const result = await executeQuery('datasources', 'list', options);
+    if (result && result.result) {
+        return { items: result.result || [], totalCount: result.result.length || 0 };
     }
-    const params = { institutionId };
-    const response = await executeQuery('datasources', 'list', params);
-
-    if (!response) {
-        return { result: [], error: "Internal error fetching datasources" };
-    }
-    if (response.error) {
-        return { result: [], error: response.error };
-    }
-    return { result: response.result || [], error: null };
+    return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch data sources or unexpected response structure") };
 };
 
 // Get a single datasource by ID

@@ -1,9 +1,5 @@
 <script>
-  import {
-    updateInstitution,
-    getInstitution,
-    // updateTextContent, // Removed: No longer used directly here
-  } from "$lib/stores/InstitutionsUtils.js";
+  import { updateInstitution } from "$lib/stores/InstitutionsUtils.js";
   import { page } from "$app/state";
   import BaseBadge from "$lib/components/base/BaseBadge.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
@@ -13,7 +9,7 @@
   import InstitutionData from "./InstitutionData.svelte";
   import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
-  let institution = $derived(page.data.institution);
+  const { institution } = $props();
   let institutionId = $derived(page.data.institution.id);
   let projectLanguages = $derived(page.data.projectLanguages);
 
@@ -66,7 +62,7 @@
       return null;
     }
     const translation = institution[fieldName].translations.find(
-      (t) => t.language?.code === langCode,
+      (t) => t.language?.code === langCode
     );
     return translation ? translation.id : null;
   }
@@ -105,25 +101,25 @@
       if (!initialFormData.name[langCode]) {
         // Avoid overwriting default
         const nameTrans = institution?.name?.translations?.find(
-          (t) => t.language?.code === langCode,
+          (t) => t.language?.code === langCode
         );
         initialFormData.name[langCode] = nameTrans?.content || "";
       }
       if (!initialFormData.location[langCode]) {
         const locTrans = institution?.location?.translations?.find(
-          (t) => t.language?.code === langCode,
+          (t) => t.language?.code === langCode
         );
         initialFormData.location[langCode] = locTrans?.content || "";
       }
       if (!initialFormData.country[langCode]) {
         const countryTrans = institution?.country?.translations?.find(
-          (t) => t.language?.code === langCode,
+          (t) => t.language?.code === langCode
         );
         initialFormData.country[langCode] = countryTrans?.content || "";
       }
       if (!initialFormData.description[langCode]) {
         const descTrans = institution?.description?.translations?.find(
-          (t) => t.language?.code === langCode,
+          (t) => t.language?.code === langCode
         );
         initialFormData.description[langCode] = descTrans?.content || "";
       }
@@ -173,7 +169,7 @@
       // 2. Handle translations for secondary languages (existing logic remains)
       const translationPromises = [];
       const secondaryLanguages = projectLanguages.filter(
-        (lang) => !lang.is_default,
+        (lang) => !lang.is_default
       );
 
       secondaryLanguages.forEach((lang) => {
@@ -184,13 +180,13 @@
         const nameMainId = institution.name?.id; // Relies on institution object having name.id
         const nameExistingTranslationId = getExistingTranslationId(
           "name",
-          langCode,
+          langCode
         );
 
         if (nameExistingTranslationId) {
           if (nameVal) {
             translationPromises.push(
-              updateTranslation(nameExistingTranslationId, nameVal),
+              updateTranslation(nameExistingTranslationId, nameVal)
             );
           } else {
             // Optional: delete translation if value is empty
@@ -198,7 +194,7 @@
           }
         } else if (nameVal && nameMainId) {
           translationPromises.push(
-            addTranslation(nameMainId, langCode, nameVal),
+            addTranslation(nameMainId, langCode, nameVal)
           );
         }
 
@@ -207,12 +203,12 @@
         const locMainId = institution.location?.id;
         const locExistingTranslationId = getExistingTranslationId(
           "location",
-          langCode,
+          langCode
         );
         if (locExistingTranslationId) {
           if (locVal) {
             translationPromises.push(
-              updateTranslation(locExistingTranslationId, locVal),
+              updateTranslation(locExistingTranslationId, locVal)
             );
           } else {
             /* Optional: delete */
@@ -226,19 +222,19 @@
         const countryMainId = institution.country?.id;
         const countryExistingTranslationId = getExistingTranslationId(
           "country",
-          langCode,
+          langCode
         );
         if (countryExistingTranslationId) {
           if (countryVal) {
             translationPromises.push(
-              updateTranslation(countryExistingTranslationId, countryVal),
+              updateTranslation(countryExistingTranslationId, countryVal)
             );
           } else {
             /* Optional: delete */
           }
         } else if (countryVal && countryMainId) {
           translationPromises.push(
-            addTranslation(countryMainId, langCode, countryVal),
+            addTranslation(countryMainId, langCode, countryVal)
           );
         }
 
@@ -247,19 +243,19 @@
         const descMainId = institution.description?.id;
         const descExistingTranslationId = getExistingTranslationId(
           "description",
-          langCode,
+          langCode
         );
         if (descExistingTranslationId) {
           if (descVal) {
             translationPromises.push(
-              updateTranslation(descExistingTranslationId, descVal),
+              updateTranslation(descExistingTranslationId, descVal)
             );
           } else {
             /* Optional: delete */
           }
         } else if (descVal && descMainId) {
           translationPromises.push(
-            addTranslation(descMainId, langCode, descVal),
+            addTranslation(descMainId, langCode, descVal)
           );
         }
       });
@@ -284,19 +280,16 @@
   }
 </script>
 
-<div class="container-fluid mt-4">
-  <div class="mb-3">
-    <Breadcrumb paths={[]} current={institution?.name?.content} />
-  </div>
-  <div class="row mb-4 align-items-center">
+<div class="container-fluid">
+  <div class="row">
     <div class="col">
       <div class="d-flex align-items-center">
-        <BaseButton
+        <!-- <BaseButton
           class="btn btn-sm btn-outline-secondary me-3"
           icon="pencil"
           onClick={openEditModal}
           aria-label="Edit Institution"
-        />
+        /> -->
         <h1 class="m-0 d-inline-block">{institution?.name?.content}</h1>
         <BaseBadge
           text={institution?.status === "in progress"
