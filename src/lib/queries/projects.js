@@ -109,7 +109,10 @@ export const projectsOperations = {
     variables: {
       projectId: "ID of the project to update",
       title: "New title content (optional)",
-      description: "New description content (optional)"
+      description: "New description content (optional)",
+      // Translation arrays
+      titleTranslations: "Array of title translations (optional)",
+      descriptionTranslations: "Array of description translations (optional)"
     },
     mutations: [
       {
@@ -156,6 +159,21 @@ export const projectsOperations = {
           descriptionId: { from: "getProject", path: "project.0.description_id" }
         },
         skipIf: { variableName: "description", isUndefined: true }
+      },
+      // === TRANSLATION PROCESSING STEPS ===
+      {
+        name: "processTitleTranslations",
+        processTranslations: {
+          textIdPath: "getProject.project.0.title_id",
+          translationsParam: "titleTranslations"
+        }
+      },
+      {
+        name: "processDescriptionTranslations",
+        processTranslations: {
+          textIdPath: "getProject.project.0.description_id",
+          translationsParam: "descriptionTranslations"
+        }
       }
     ],
     query: null

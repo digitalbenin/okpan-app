@@ -1,16 +1,15 @@
 <script>
   import { page as pageData } from "$app/state";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
-  import { updateProject, getProject } from "$lib/stores/ProjectsUtils.js";
-  import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
+  import {
+    updateProject,
+    getProject,
+    getProjectLanguages,
+  } from "$lib/stores/ProjectsUtils.js";
   import { Tabs } from "melt/builders";
   import { goto } from "$app/navigation";
 
   let project = $derived(pageData.data.project);
-
-  // Get content language store to work with translations
-  const { getAvaliableLocalesForProject, addTranslation, updateTranslation } =
-    getContentLanguageStore();
 
   // State for project editing
   let projectLanguages = $state([]);
@@ -40,8 +39,8 @@
     isLoading = true;
 
     try {
-      // Get available languages for this project
-      projectLanguages = await getAvaliableLocalesForProject(project.id);
+      // Get available languages for this project directly
+      projectLanguages = await getProjectLanguages(project.id);
 
       // Reset form values
       editTitle = {};
@@ -106,117 +105,104 @@
       const titleContent = editTitle[defaultLang.code];
       const descContent = editDescription[defaultLang.code];
 
-      // Update the project with new content for default language
-      const updateResult = await updateProject(project.id, {
-        title: { content: titleContent },
-        description: { content: descContent },
-      });
+      // Prepare translation arrays for all non-default languages
+      const secondaryLanguages = projectLanguages.filter(
+        (lang) => !lang.is_default,
+      );
 
-      // Fetch updated project to get fresh IDs if they were just created
-      const updatedProject = await getProject(project.id);
+      const titleTranslations = [];
+      const descriptionTranslations = [];
 
-      // Make sure we have the text IDs, either from previous data or newly created texts
-      if (!updatedProject.title_id || !updatedProject.description_id) {
-        const { titleId, descriptionId } = extractProjectIds(updatedProject);
-        updatedProject.title_id = titleId || updateResult?.title_id;
-        updatedProject.description_id =
-          descriptionId || updateResult?.description_id;
-      }
+      // Helper function to get existing translation ID
+      function getExistingTranslationId(fieldName, langCode) {
+        if (
+          !project ||
+          !project[fieldName] ||
+          !project[fieldName].translations
+        ) {
+          return null;
+        }
 
-      // Update our project reference with latest data
-      //project = updatedProject;
+        let translations = project[fieldName].translations;
 
-      // Verify that we have valid text IDs before proceeding with translations
-      if (!project.title_id || !project.description_id) {
-        console.warn(
-          "Missing valid text IDs for project. Skipping translations.",
-        );
-      } else {
-        // Now handle translations for non-default languages
-        for (const lang of projectLanguages) {
-          // Skip default language as we've already updated it
-          if (lang.is_default) continue;
-
-          const titleContent = editTitle[lang.code];
-          const descContent = editDescription[lang.code];
-
-          // Find existing translations if any
-          // Ensure we're accessing the translations correctly
-          const titleTranslations = project.title?.translations || [];
-          const descTranslations = project.description?.translations || [];
-
-          // Make sure we properly parse JSON if it's in string format
-          let parsedTitleTranslations = titleTranslations;
-          let parsedDescTranslations = descTranslations;
-
-          if (typeof titleTranslations === "string") {
-            try {
-              parsedTitleTranslations = JSON.parse(titleTranslations);
-            } catch (e) {
-              console.warn("Failed to parse title translations:", e);
-              parsedTitleTranslations = [];
-            }
-          }
-
-          if (typeof descTranslations === "string") {
-            try {
-              parsedDescTranslations = JSON.parse(descTranslations);
-            } catch (e) {
-              console.warn("Failed to parse desc translations:", e);
-              parsedDescTranslations = [];
-            }
-          }
-
-          // Filter out null/empty values that might have been returned from the database
-          parsedTitleTranslations = parsedTitleTranslations.filter(
-            (t) => t && t.language?.code,
-          );
-          parsedDescTranslations = parsedDescTranslations.filter(
-            (t) => t && t.language?.code,
-          );
-
-          const titleTranslation = parsedTitleTranslations.find(
-            (t) => t.language?.code === lang.code,
-          );
-
-          const descTranslation = parsedDescTranslations.find(
-            (t) => t.language?.code === lang.code,
-          );
-
-          // Handle title translation
-          if (titleContent && titleContent.trim()) {
-            if (titleTranslation?.id) {
-              await updateTranslation(titleTranslation.id, titleContent);
-            } else {
-              const result = await addTranslation(
-                project.title_id,
-                lang.code,
-                titleContent,
-              );
-            }
-          }
-
-          // Handle description translation
-          if (descContent && descContent.trim()) {
-            if (descTranslation?.id) {
-              await updateTranslation(descTranslation.id, descContent);
-            } else {
-              const result = await addTranslation(
-                project.description_id,
-                lang.code,
-                descContent,
-              );
-            }
+        // Handle string format translations
+        if (typeof translations === "string") {
+          try {
+            translations = JSON.parse(translations);
+          } catch (e) {
+            console.warn(`Failed to parse ${fieldName} translations:`, e);
+            translations = [];
           }
         }
+
+        // Filter out null/empty values
+        translations = translations.filter((t) => t && t.language?.code);
+
+        const translation = translations.find(
+          (t) => t.language?.code === langCode,
+        );
+        return translation ? translation.id : null;
       }
 
-      // Refresh project data after all updates
-      //const finalProject = await getProject(project.id);
-      //project = finalProject;
+      secondaryLanguages.forEach((lang) => {
+        const langCode = lang.code;
 
-      // Close modal
-      closeModal();
+        // Prepare title translations
+        const titleVal = editTitle[langCode]?.trim() || "";
+        const titleExistingTranslationId = getExistingTranslationId(
+          "title",
+          langCode,
+        );
+        if (titleVal || titleExistingTranslationId) {
+          titleTranslations.push({
+            id: titleExistingTranslationId,
+            language_code: langCode,
+            content: titleVal || null,
+          });
+        }
+
+        // Prepare description translations
+        const descVal = editDescription[langCode]?.trim() || "";
+        const descExistingTranslationId = getExistingTranslationId(
+          "description",
+          langCode,
+        );
+        if (descVal || descExistingTranslationId) {
+          descriptionTranslations.push({
+            id: descExistingTranslationId,
+            language_code: langCode,
+            content: descVal || null,
+          });
+        }
+      });
+
+      // Prepare unified payload for updateProject
+      const projectUpdatePayload = {
+        title: { content: titleContent },
+        description: { content: descContent },
+        // Translation arrays
+        titleTranslations: titleTranslations.filter(
+          (t) => t.content !== undefined,
+        ),
+        descriptionTranslations: descriptionTranslations.filter(
+          (t) => t.content !== undefined,
+        ),
+      };
+
+      console.log("=== PROJECT UPDATE PAYLOAD ===");
+      console.log("Full payload:", projectUpdatePayload);
+
+      // Call the unified updateProject function
+      const result = await updateProject(project.id, projectUpdatePayload);
+
+      if (result.error) {
+        console.error("Error updating project:", result.error);
+        // Handle error appropriately - could show toast or alert
+      } else {
+        console.log("Project updated successfully");
+        // Close modal on success
+        closeModal();
+      }
     } catch (error) {
       console.error("Failed to save project changes:", error);
     } finally {

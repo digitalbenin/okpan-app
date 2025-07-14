@@ -71,6 +71,11 @@ export const getProject = async (projectId) => {
     return result.result;
 };
 
+export const getProjectLanguages = async (projectId) => {
+    const result = await executeQuery('languages', 'listByProject', { projectId });
+    return result.result || [];
+};
+
 export const createProject = async (project) => {
     // Validate the incoming project data
     if (!project.languages || !project.title || !project.description) {
@@ -164,34 +169,46 @@ async function performCustomMutation(mutation, params) {
     return await executeQuery('custom', 'mutation', { query: queryObj, params });
 }
 
-export const updateProject = async (projectId, project) => {
-    // Validate the project data using our schema
-    const validationResult = await validate(project, projectUpdateSchema);
-
-    if (!validationResult.success) {
-        throw new Error(validationResult.errors[0]);
+// Function to update a project, including translations orchestration
+export const updateProject = async (projectId, updatedData) => {
+    if (!projectId) {
+        return { result: null, error: "Missing Project ID" };
     }
 
-    // Prepare the parameters for the multi-step mutation
-    // Extract content from nested objects to match the expected format
-    const params = {
-        projectId,
-        title: project.title?.content,
-        description: project.description?.content
+    console.log('=== PROJECT UNIFIED UPDATE ===');
+    console.log('Update parameters:', JSON.stringify(updatedData, null, 2));
+
+    // Prepare all parameters for the multi-step mutation
+    const updateParams = {
+        projectId: projectId,
+        // Text content for default language
+        title: updatedData.title?.content,
+        description: updatedData.description?.content,
+        // Translation arrays
+        titleTranslations: updatedData.titleTranslations,
+        descriptionTranslations: updatedData.descriptionTranslations
     };
 
-    // Use executeQuery which handles errors, logging, and notifications
-    const result = await executeQuery('projects', 'update', params);
+    // Remove undefined values to prevent GraphQL errors
+    Object.keys(updateParams).forEach(key => {
+        if (updateParams[key] === undefined) {
+            delete updateParams[key];
+        }
+    });
 
+    console.log('Final parameters for projects update:', updateParams);
+
+    // Execute the multi-step mutation
+    const result = await executeQuery('projects', 'update', updateParams);
+
+    if (result.error) {
+        console.error('Project update error:', result.error);
+        return { result: null, error: result.error };
+    }
+
+    console.log('Project update completed successfully');
     invalidate("app:projects");
-    // Return the result with the project ID for convenience
-    return {
-        ...result,
-        id: projectId,
-        // If result contains any useful data, ensure we pass it back
-        title_id: result?.title_id,
-        description_id: result?.description_id
-    };
+    return { result: result.result, error: null };
 };
 
 export const deleteProject = async (projectId) => {
