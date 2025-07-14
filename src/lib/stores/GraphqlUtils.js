@@ -71,9 +71,10 @@ export async function executeMultiStepMutation(mutations, params) {
         throw new Error("Invalid mutation chain");
     }
 
-    console.log('=== MULTI-STEP MUTATION ===');
+    console.log('=== MULTI-STEP MUTATION START ===');
     console.log('Input params:', JSON.stringify(params, null, 2));
     console.log('Total mutations:', mutations.length);
+    console.log('Mutation names:', mutations.map(m => m.name));
 
     // Generate workflow ID for this multi-step operation
     const workflowId = crypto.randomUUID();
@@ -85,6 +86,31 @@ export async function executeMultiStepMutation(mutations, params) {
     for (let i = 0; i < mutations.length; i++) {
         const mutation = mutations[i];
         console.log(`\n--- Step ${i + 1}: ${mutation.name} ---`);
+        console.log('Mutation config:', {
+            hasProcessTranslations: !!mutation.processTranslations,
+            hasUseVariables: !!mutation.useVariables,
+            hasMapVariables: !!mutation.mapVariables,
+            hasSkipIf: !!mutation.skipIf,
+            hasOnlyIf: !!mutation.onlyIf
+        });
+
+        // Handle translation processing step
+        if (mutation.processTranslations) {
+            console.log('This is a translation processing step!');
+            const context = {
+                workflowId,
+                isMultiStep: true,
+                stepIndex: i,
+                totalSteps: mutations.length,
+                stepName: mutation.name
+            };
+            const translationResult = await processTranslationStep(mutation, params, results, context);
+            if (translationResult !== null) {
+                results[mutation.name] = translationResult;
+                Object.assign(finalResults, translationResult);
+            }
+            continue;
+        }
 
         // Prepare variables for this step
         const stepVariables = {};
@@ -196,6 +222,167 @@ export async function executeMultiStepMutation(mutations, params) {
     }
 
     return finalResults;
+}
+
+/**
+ * Process a translation step by handling an array of translations
+ * @param {Object} mutation - The translation processing step configuration
+ * @param {Object} params - Original parameters
+ * @param {Object} results - Results from previous steps
+ * @param {Object} context - Workflow context for this multi-step operation
+ * @returns {Promise<Object|null>} Translation processing results
+ */
+async function processTranslationStep(mutation, params, results, context) {
+    const { processTranslations } = mutation;
+    const { textIdPath, translationsParam } = processTranslations;
+
+    console.log(`=== PROCESSING TRANSLATION STEP: ${mutation.name} ===`);
+    console.log(`textIdPath: ${textIdPath}`);
+    console.log(`translationsParam: ${translationsParam}`);
+    console.log(`params keys:`, Object.keys(params));
+    console.log(`results keys:`, Object.keys(results));
+    console.log(`context:`, context);
+
+    // Get the text ID from previous results
+    let textId = null;
+    if (textIdPath) {
+        const pathParts = textIdPath.split('.');
+        let value = results;
+        console.log(`Traversing path ${textIdPath}...`);
+        for (const part of pathParts) {
+            console.log(`  - Checking part '${part}' in:`, value);
+            if (value === undefined || value === null) break;
+            value = value[part];
+        }
+        textId = value;
+        console.log(`Resolved textId: ${textId}`);
+    }
+
+    // Get the translations array from params
+    const translations = params[translationsParam];
+    console.log(`Translations for ${translationsParam}:`, translations);
+
+    if (!translations || !Array.isArray(translations) || translations.length === 0) {
+        console.log(`No translations found for ${translationsParam}, skipping`);
+        return null;
+    }
+
+    if (!textId) {
+        console.warn(`No text ID found at path ${textIdPath}, skipping translations`);
+        return null;
+    }
+
+    console.log(`Processing ${translations.length} translations for text ID: ${textId}`);
+
+    const translationResults = [];
+    const errors = [];
+
+    // Process each translation
+    for (const translation of translations) {
+        const { id: translationId, language_code, content } = translation;
+        console.log(`Processing translation:`, { translationId, language_code, content });
+
+        try {
+            if (translationId) {
+                console.log(`Updating existing translation ${translationId} with context:`, context);
+                // Update existing translation
+                const result = await performQuery(
+                    { name: 'updateTranslation', query: getUpdateTranslationQuery() },
+                    { id: translationId, content },
+                    context
+                );
+                console.log(`Update translation result:`, result);
+                translationResults.push({ operation: 'update', result });
+            } else if (content && language_code) {
+                console.log(`Creating new translation for language ${language_code} with context:`, context);
+                // Create new translation - need to convert language_code to language_id
+                const languageResult = await performQuery(
+                    { name: 'getLanguageByCode', query: getLanguageByCodeQuery() },
+                    { code: language_code },
+                    context
+                );
+                console.log(`Language lookup result:`, languageResult);
+
+                if (languageResult?.result && languageResult.result.length > 0) {
+                    const languageId = languageResult.result[0].id;
+                    console.log(`Found language ID ${languageId} for code ${language_code}`);
+                    const result = await performQuery(
+                        { name: 'createTranslation', query: getCreateTranslationQuery() },
+                        { textId, languageId, content },
+                        context
+                    );
+                    console.log(`Create translation result:`, result);
+                    translationResults.push({ operation: 'create', result });
+                }
+            }
+        } catch (err) {
+            console.error(`Error processing translation:`, err);
+            errors.push(`Failed to process translation for language ${language_code}: ${err.message}`);
+        }
+    }
+
+    const result = {
+        translationResults,
+        errors: errors.length > 0 ? errors : null,
+        processedCount: translationResults.length
+    };
+
+    console.log(`=== TRANSLATION STEP COMPLETE: ${mutation.name} ===`);
+    console.log(`Result:`, result);
+
+    return result;
+}
+
+/**
+ * Get the update translation query
+ */
+function getUpdateTranslationQuery() {
+    return `mutation UpdateTranslation($id: String!, $content: String!) {
+  updateTranslations(
+    set: { content: $content }
+    where: { id: { eq: $id } }
+  ) {
+    id
+    content
+    language_id
+    text_id
+  }
+}`;
+}
+
+/**
+ * Get the create translation query
+ */
+function getCreateTranslationQuery() {
+    return `mutation CreateTranslation($textId: String!, $languageId: String!, $content: String!) {
+  insertIntoTranslations(
+    values: [
+      {
+        text_id: $textId
+        language_id: $languageId
+        content: $content
+      }
+    ]
+  ) {
+    id
+    content
+    language_id
+    text_id
+  }
+}`;
+}
+
+/**
+ * Get the language by code query
+ */
+function getLanguageByCodeQuery() {
+    return `query GetLanguageByCode($code: String!) {
+  result: languages(where: { code: { eq: $code } }) {
+    id
+    code
+    name
+  }
+}`;
 }
 
 /**

@@ -1,6 +1,5 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
-import { getContentLanguageStore } from "./ContentLanguageStore.svelte.js";
 // Note: Replace 'researchFields', 'list', 'getById', etc., with your actual GraphQL section and operation names.
 
 // Fetch all research fields for a specific project
@@ -60,74 +59,69 @@ export const updateResearchField = async (fieldId, updateData) => {
         return { result: null, error: "Missing Research Field ID" };
     }
 
-    // 1. Prepare and execute the main update (non-translatable type + default text)
-    const mainUpdateVariables = {
+    // Prepare all parameters for the multi-step mutation
+    const updateParams = {
         fieldId: fieldId,
+        // Direct fields
         type: updateData.type,
-        name: updateData.name, // Default language name
-        description: updateData.description // Default language description
+        // Text content for default language
+        name: updateData.name,
+        description: updateData.description,
+        // Translation arrays
+        nameTranslations: updateData.nameTranslations,
+        descriptionTranslations: updateData.descriptionTranslations
     };
-    Object.keys(mainUpdateVariables).forEach(key =>
-        (mainUpdateVariables[key] === undefined || mainUpdateVariables[key] === null) && delete mainUpdateVariables[key]
+
+    // Remove undefined values to prevent GraphQL errors
+    Object.keys(updateParams).forEach(key =>
+        (updateParams[key] === undefined || updateParams[key] === null) && delete updateParams[key]
     );
 
-    const mainUpdateResponse = await executeQuery('research_fields', 'update', mainUpdateVariables);
+    console.log('=== RESEARCH FIELD UNIFIED UPDATE ===');
+    console.log('Update parameters:', JSON.stringify(updateParams, null, 2));
 
-    if (!mainUpdateResponse || mainUpdateResponse.error) {
-        const errorMessage = mainUpdateResponse?.error?.message || (Array.isArray(mainUpdateResponse?.error) ? mainUpdateResponse.error[0]?.message : mainUpdateResponse?.error) || "Unknown error during main update";
-        return { result: null, error: errorMessage };
-    }
+    try {
+        // Execute the multi-step mutation that includes translation processing
+        const result = await executeQuery('research_fields', 'update', updateParams);
 
-    // 2. Process translations using ContentLanguageStore functions (same as institutions/projects/datasources)
-    const translationErrors = [];
-    const translationResults = {};
+        console.log('Multi-step update result:', JSON.stringify(result, null, 2));
 
-    const { addTranslation, updateTranslation } = getContentLanguageStore();
-
-    const processTranslations = async (translationsArray, textId, fieldName) => {
-        if (!textId || !translationsArray || translationsArray.length === 0) {
-            return;
+        if (!result || result.error) {
+            const errorMessage = result?.error?.message ||
+                (Array.isArray(result?.error) ? result.error[0]?.message : result?.error) ||
+                "Unknown error during update";
+            console.error('Update failed:', errorMessage);
+            return { result: null, error: errorMessage };
         }
-        translationResults[fieldName] = [];
 
-        for (const trans of translationsArray) {
-            const { id: originalTranslationId, language_code, content } = trans;
-
-            try {
-                if (originalTranslationId) {
-                    // Update existing translation
-                    const result = await updateTranslation(originalTranslationId, content);
-                    translationResults[fieldName].push(result);
-                } else if (content && language_code) {
-                    // Create new translation using language code (same as institutions/projects/datasources)
-                    const result = await addTranslation(textId, language_code, content);
-                    translationResults[fieldName].push(result);
-                }
-            } catch (err) {
-                translationErrors.push(`Failed to process ${fieldName} translation for language ${language_code}: ${err.message}`);
-            }
+        // Check for translation errors in the result
+        const translationErrors = [];
+        if (result.processNameTranslations?.errors) {
+            translationErrors.push(...result.processNameTranslations.errors);
         }
-    };
+        if (result.processDescriptionTranslations?.errors) {
+            translationErrors.push(...result.processDescriptionTranslations.errors);
+        }
 
-    await Promise.all([
-        processTranslations(updateData.nameTranslations, updateData.original_name_id, 'name'),
-        processTranslations(updateData.descriptionTranslations, updateData.original_description_id, 'description')
-    ]);
+        invalidate("app:research-fields");
 
-    // 3. Final Result Aggregation
-    if (translationErrors.length > 0) {
-        const errorMessage = `Main data saved, but errors occurred during translation updates: ${translationErrors.join('; ')}`;
+        if (translationErrors.length > 0) {
+            const errorMessage = `Main data saved, but errors occurred during translation updates: ${translationErrors.join('; ')}`;
+            console.warn(errorMessage);
+            return {
+                result: result,
+                error: errorMessage
+            };
+        }
+
         return {
-            result: { mainUpdate: mainUpdateResponse?.result, translationResults },
-            error: errorMessage
+            result: result,
+            error: null
         };
+    } catch (error) {
+        console.error('Error during research field update:', error);
+        return { result: null, error: error.message };
     }
-    invalidate("app:research-fields");
-
-    return {
-        result: { mainUpdate: mainUpdateResponse?.result, translationResults },
-        error: null
-    };
 };
 
 // Delete a research field

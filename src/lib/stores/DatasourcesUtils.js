@@ -1,6 +1,5 @@
 import { executeQuery, partialUpdate } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
-import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
 // Fetch all data sources for a specific institution within a project
 export const getDatasources = async (projectId, institutionId) => {
@@ -39,85 +38,77 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         return { result: null, error: "Missing Datasource ID" };
     }
 
-    const mainUpdateVariables = {
+    // Prepare all parameters for the multi-step mutation
+    const updateParams = {
         datasourceId: datasourceId,
+        // Direct fields
         language: updatedData.language,
         contact: updatedData.contact,
         copyright: updatedData.copyright,
         date: updatedData.date,
+        // Text content for default language
         name: updatedData.name,
         method: updatedData.method,
-        notes: updatedData.notes
+        notes: updatedData.notes,
+        // Translation arrays
+        nameTranslations: updatedData.nameTranslations,
+        methodTranslations: updatedData.methodTranslations,
+        notesTranslations: updatedData.notesTranslations
     };
-    Object.keys(mainUpdateVariables).forEach(key =>
-        (mainUpdateVariables[key] === undefined || mainUpdateVariables[key] === null) && delete mainUpdateVariables[key]
+
+    // Remove undefined values to prevent GraphQL errors
+    Object.keys(updateParams).forEach(key =>
+        (updateParams[key] === undefined || updateParams[key] === null) && delete updateParams[key]
     );
 
-    console.log('=== DATASOURCE MAIN UPDATE ===');
-    console.log('Main update variables:', JSON.stringify(mainUpdateVariables, null, 2));
+    console.log('=== DATASOURCE UNIFIED UPDATE ===');
+    console.log('Update parameters:', JSON.stringify(updateParams, null, 2));
 
-    const mainUpdateResponse = await executeQuery('datasources', 'update', mainUpdateVariables);
+    try {
+        // Execute the multi-step mutation that includes translation processing
+        const result = await executeQuery('datasources', 'update', updateParams);
 
-    console.log('Main update response:', JSON.stringify(mainUpdateResponse, null, 2));
+        console.log('Multi-step update result:', JSON.stringify(result, null, 2));
 
-    if (!mainUpdateResponse || mainUpdateResponse.error) {
-        const errorMessage = mainUpdateResponse?.error?.message || (Array.isArray(mainUpdateResponse?.error) ? mainUpdateResponse.error[0]?.message : mainUpdateResponse?.error);
-        console.error('Main update failed:', errorMessage);
-        return { result: null, error: errorMessage || "Unknown error during main update" };
-    }
-
-    // 2. Process translations using ContentLanguageStore functions (same as institutions/projects)
-    const translationErrors = [];
-    const translationResults = {};
-
-    const { addTranslation, updateTranslation } = getContentLanguageStore();
-
-    const processTranslations = async (translationsArray, textId, fieldName) => {
-        if (!textId || !translationsArray || translationsArray.length === 0) {
-            return;
+        if (!result || result.error) {
+            const errorMessage = result?.error?.message ||
+                (Array.isArray(result?.error) ? result.error[0]?.message : result?.error) ||
+                "Unknown error during update";
+            console.error('Update failed:', errorMessage);
+            return { result: null, error: errorMessage };
         }
-        translationResults[fieldName] = [];
 
-        for (const trans of translationsArray) {
-            const { id: originalTranslationId, language_code, content } = trans;
-
-            try {
-                if (originalTranslationId) {
-                    // Update existing translation
-                    const result = await updateTranslation(originalTranslationId, content);
-                    translationResults[fieldName].push(result);
-                } else if (content && language_code) {
-                    // Create new translation using language code (same as institutions/projects)
-                    const result = await addTranslation(textId, language_code, content);
-                    translationResults[fieldName].push(result);
-                }
-            } catch (err) {
-                translationErrors.push(`Failed to process ${fieldName} translation for language ${language_code}: ${err.message}`);
-            }
+        // Check for translation errors in the result
+        const translationErrors = [];
+        if (result.processNameTranslations?.errors) {
+            translationErrors.push(...result.processNameTranslations.errors);
         }
-    };
+        if (result.processMethodTranslations?.errors) {
+            translationErrors.push(...result.processMethodTranslations.errors);
+        }
+        if (result.processNotesTranslations?.errors) {
+            translationErrors.push(...result.processNotesTranslations.errors);
+        }
 
-    await Promise.all([
-        processTranslations(updatedData.nameTranslations, updatedData.original_name_id, 'name'),
-        processTranslations(updatedData.methodTranslations, updatedData.original_method_id, 'method'),
-        processTranslations(updatedData.notesTranslations, updatedData.original_notes_id, 'notes')
-    ]);
+        invalidate("app:datasources");
 
-    // 3. Final Result Aggregation
-    if (translationErrors.length > 0) {
-        const errorMessage = `Main data saved, but errors occurred during translation updates: ${translationErrors.join('; ')}`;
-        console.warn(errorMessage);
+        if (translationErrors.length > 0) {
+            const errorMessage = `Main data saved, but errors occurred during translation updates: ${translationErrors.join('; ')}`;
+            console.warn(errorMessage);
+            return {
+                result: result,
+                error: errorMessage
+            };
+        }
+
         return {
-            result: { mainUpdate: mainUpdateResponse?.result, translationResults },
-            error: errorMessage
+            result: result,
+            error: null
         };
+    } catch (error) {
+        console.error('Error during datasource update:', error);
+        return { result: null, error: error.message };
     }
-
-    invalidate("app:datasources");
-    return {
-        result: { mainUpdate: mainUpdateResponse?.result, translationResults },
-        error: null
-    };
 };
 
 // Function to delete a datasource

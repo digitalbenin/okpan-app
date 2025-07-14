@@ -230,7 +230,10 @@ export const researchFieldsOperations = {
       fieldId: "ID of the research field to update",
       name: "New name content (optional)",
       description: "New description content (optional)",
-      type: "New field type (optional)"
+      type: "New field type (optional)",
+      // Translation arrays
+      nameTranslations: "Array of name translations (optional)",
+      descriptionTranslations: "Array of description translations (optional)"
     },
     mutations: [
       {
@@ -292,6 +295,21 @@ export const researchFieldsOperations = {
 }`,
         useVariables: ["fieldId", "type"],
         skipIf: { variableName: "type", isUndefined: true }
+      },
+      // === TRANSLATION PROCESSING STEPS ===
+      {
+        name: "processNameTranslations",
+        processTranslations: {
+          textIdPath: "getResearchField.research_fields.0.name_id",
+          translationsParam: "nameTranslations"
+        }
+      },
+      {
+        name: "processDescriptionTranslations",
+        processTranslations: {
+          textIdPath: "getResearchField.research_fields.0.description_id",
+          translationsParam: "descriptionTranslations"
+        }
       }
     ],
     query: null

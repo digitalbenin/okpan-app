@@ -296,7 +296,7 @@ export const datasourcesOperations = {
   // UPDATE (Reverted to complex version handling only default texts)
   update: {
     type: "mutation",
-    name: "Update Datasource with Texts",
+    name: "Update Datasource",
     description: "Updates an existing datasource, including its related text fields for the default language",
     variables: {
       datasourceId: "ID of the datasource to update",
@@ -309,7 +309,11 @@ export const datasourcesOperations = {
       name: "New name content (optional)",
       method: "New method content (optional)",
       notes: "New notes content (optional)",
-      languageId: "Default language ID for creating new text entries (optional)"
+      languageId: "Default language ID for creating new text entries (optional)",
+      // Translation arrays
+      nameTranslations: "Array of name translations (optional)",
+      methodTranslations: "Array of method translations (optional)",
+      notesTranslations: "Array of notes translations (optional)"
     },
     mutations: [
       {
@@ -435,6 +439,28 @@ export const datasourcesOperations = {
             { variableName: "date", isUndefined: true },
             { variableName: "copyright", isUndefined: true }
           ]
+        }
+      },
+      // === TRANSLATION PROCESSING STEPS ===
+      {
+        name: "processNameTranslations",
+        processTranslations: {
+          textIdPath: "getDatasource.datasources.0.name_id",
+          translationsParam: "nameTranslations"
+        }
+      },
+      {
+        name: "processMethodTranslations",
+        processTranslations: {
+          textIdPath: "getDatasource.datasources.0.method_id",
+          translationsParam: "methodTranslations"
+        }
+      },
+      {
+        name: "processNotesTranslations",
+        processTranslations: {
+          textIdPath: "getDatasource.datasources.0.notes_id",
+          translationsParam: "notesTranslations"
         }
       }
     ],
