@@ -11,14 +11,10 @@
   import Breadcrumb from "$lib/components/projects/Breadcrumb.svelte";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
   import InstitutionData from "./InstitutionData.svelte";
-  import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
   let institution = $derived(page.data.institution);
   let institutionId = $derived(page.data.institution.id);
   let projectLanguages = $derived(page.data.projectLanguages);
-
-  // Get content language store for translations
-  const { addTranslation, updateTranslation } = getContentLanguageStore();
 
   // Modal state
   let showEditModal = $state(false);
@@ -153,7 +149,92 @@
     }
 
     try {
-      // 1. Prepare a consolidated payload for updateInstitution
+      // Prepare translation arrays for all non-default languages
+      const secondaryLanguages = projectLanguages.filter(
+        (lang) => !lang.is_default,
+      );
+
+      const nameTranslations = [];
+      const descriptionTranslations = [];
+      const countryTranslations = [];
+      const locationTranslations = [];
+
+      // Helper function to get existing translation ID
+      function getExistingTranslationId(fieldName, langCode) {
+        if (
+          !institution ||
+          !institution[fieldName] ||
+          !institution[fieldName].translations
+        ) {
+          return null;
+        }
+        const translation = institution[fieldName].translations.find(
+          (t) => t.language?.code === langCode,
+        );
+        return translation ? translation.id : null;
+      }
+
+      secondaryLanguages.forEach((lang) => {
+        const langCode = lang.code;
+
+        // Prepare name translations
+        const nameVal = formDataForEdit.name[langCode]?.trim() || "";
+        const nameExistingTranslationId = getExistingTranslationId(
+          "name",
+          langCode,
+        );
+        if (nameVal || nameExistingTranslationId) {
+          nameTranslations.push({
+            id: nameExistingTranslationId,
+            language_code: langCode,
+            content: nameVal || null,
+          });
+        }
+
+        // Prepare description translations
+        const descVal = formDataForEdit.description[langCode]?.trim() || "";
+        const descExistingTranslationId = getExistingTranslationId(
+          "description",
+          langCode,
+        );
+        if (descVal || descExistingTranslationId) {
+          descriptionTranslations.push({
+            id: descExistingTranslationId,
+            language_code: langCode,
+            content: descVal || null,
+          });
+        }
+
+        // Prepare country translations
+        const countryVal = formDataForEdit.country[langCode]?.trim() || "";
+        const countryExistingTranslationId = getExistingTranslationId(
+          "country",
+          langCode,
+        );
+        if (countryVal || countryExistingTranslationId) {
+          countryTranslations.push({
+            id: countryExistingTranslationId,
+            language_code: langCode,
+            content: countryVal || null,
+          });
+        }
+
+        // Prepare location translations
+        const locVal = formDataForEdit.location[langCode]?.trim() || "";
+        const locExistingTranslationId = getExistingTranslationId(
+          "location",
+          langCode,
+        );
+        if (locVal || locExistingTranslationId) {
+          locationTranslations.push({
+            id: locExistingTranslationId,
+            language_code: langCode,
+            content: locVal || null,
+          });
+        }
+      });
+
+      // Prepare unified payload for updateInstitution
       const institutionUpdatePayload = {
         status: formDataForEdit.status,
         // Default language content
@@ -165,119 +246,58 @@
         links: JSON.stringify(formDataForEdit.links || []),
         // Include the default language ID for creating new text entries
         languageId: defaultLang?.id,
+        // Translation arrays
+        nameTranslations: nameTranslations.filter(
+          (t) => t.content !== undefined,
+        ),
+        descriptionTranslations: descriptionTranslations.filter(
+          (t) => t.content !== undefined,
+        ),
+        countryTranslations: countryTranslations.filter(
+          (t) => t.content !== undefined,
+        ),
+        locationTranslations: locationTranslations.filter(
+          (t) => t.content !== undefined,
+        ),
       };
 
-      // Call the refactored updateInstitution
-      await updateInstitution(institutionId, institutionUpdatePayload);
+      console.log("=== INSTITUTION UPDATE PAYLOAD ===");
+      console.log("Full payload:", institutionUpdatePayload);
 
-      // 2. Handle translations for secondary languages (existing logic remains)
-      const translationPromises = [];
-      const secondaryLanguages = projectLanguages.filter(
-        (lang) => !lang.is_default,
+      // Call the unified updateInstitution function
+      const result = await updateInstitution(
+        institutionId,
+        institutionUpdatePayload,
       );
 
-      secondaryLanguages.forEach((lang) => {
-        const langCode = lang.code;
-
-        // Process Name Translation
-        const nameVal = formDataForEdit.name[langCode]?.trim() || "";
-        const nameMainId = institution.name?.id; // Relies on institution object having name.id
-        const nameExistingTranslationId = getExistingTranslationId(
-          "name",
-          langCode,
-        );
-
-        if (nameExistingTranslationId) {
-          if (nameVal) {
-            translationPromises.push(
-              updateTranslation(nameExistingTranslationId, nameVal),
-            );
-          } else {
-            // Optional: delete translation if value is empty
-            // translationPromises.push(deleteTranslation(nameExistingTranslationId));
-          }
-        } else if (nameVal && nameMainId) {
-          translationPromises.push(
-            addTranslation(nameMainId, langCode, nameVal),
-          );
-        }
-
-        // Process Location Translation
-        const locVal = formDataForEdit.location[langCode]?.trim() || "";
-        const locMainId = institution.location?.id;
-        const locExistingTranslationId = getExistingTranslationId(
-          "location",
-          langCode,
-        );
-        if (locExistingTranslationId) {
-          if (locVal) {
-            translationPromises.push(
-              updateTranslation(locExistingTranslationId, locVal),
-            );
-          } else {
-            /* Optional: delete */
-          }
-        } else if (locVal && locMainId) {
-          translationPromises.push(addTranslation(locMainId, langCode, locVal));
-        }
-
-        // Process Country Translation
-        const countryVal = formDataForEdit.country[langCode]?.trim() || "";
-        const countryMainId = institution.country?.id;
-        const countryExistingTranslationId = getExistingTranslationId(
-          "country",
-          langCode,
-        );
-        if (countryExistingTranslationId) {
-          if (countryVal) {
-            translationPromises.push(
-              updateTranslation(countryExistingTranslationId, countryVal),
-            );
-          } else {
-            /* Optional: delete */
-          }
-        } else if (countryVal && countryMainId) {
-          translationPromises.push(
-            addTranslation(countryMainId, langCode, countryVal),
-          );
-        }
-
-        // Process Description Translation
-        const descVal = formDataForEdit.description[langCode]?.trim() || "";
-        const descMainId = institution.description?.id;
-        const descExistingTranslationId = getExistingTranslationId(
-          "description",
-          langCode,
-        );
-        if (descExistingTranslationId) {
-          if (descVal) {
-            translationPromises.push(
-              updateTranslation(descExistingTranslationId, descVal),
-            );
-          } else {
-            /* Optional: delete */
-          }
-        } else if (descVal && descMainId) {
-          translationPromises.push(
-            addTranslation(descMainId, langCode, descVal),
-          );
-        }
-      });
-
-      if (translationPromises.length > 0) {
-        await Promise.all(translationPromises);
+      if (result.error) {
+        console.error("Error updating institution:", result.error);
+        addToast({
+          data: {
+            title: "Error",
+            description: "Failed to update institution: " + result.error,
+            type: "error",
+          },
+        });
+      } else {
+        showEditModal = false;
+        addToast({
+          data: {
+            title: "Success",
+            description: "Institution updated successfully",
+            type: "success",
+          },
+        });
       }
-
-      showEditModal = false;
-      addToast({
-        data: {
-          title: "Success",
-          description: "Institution updated successfully",
-          type: "success",
-        },
-      });
     } catch (error) {
       console.error("Error updating institution:", error);
+      addToast({
+        data: {
+          title: "Error",
+          description: "Failed to update institution",
+          type: "error",
+        },
+      });
     } finally {
       isSubmitting = false;
     }

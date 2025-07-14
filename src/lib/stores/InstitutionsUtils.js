@@ -1,4 +1,4 @@
-import { executeQuery, partialUpdate } from "$lib/stores/GraphqlUtils.js";
+import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
 import { invalidate } from "$app/navigation";
 
@@ -17,17 +17,54 @@ export const getInstitution = async (institutionId, fetchFn) => {
     return result.result;
 };
 
-export const updateInstitution = async (institutionId, updateData) => {
+// Function to update an institution, including translations orchestration
+export const updateInstitution = async (institutionId, updatedData) => {
+    if (!institutionId) {
+        return { result: null, error: "Missing Institution ID" };
+    }
 
-    // Add institutionId to the update params (using 'id' to match GraphQL operation)
-    const params = {
+    console.log('=== INSTITUTION UNIFIED UPDATE ===');
+    console.log('Update parameters:', JSON.stringify(updatedData, null, 2));
+
+    // Prepare all parameters for the multi-step mutation
+    const updateParams = {
         id: institutionId,
-        ...updateData
+        // Direct fields
+        status: updatedData.status,
+        links: updatedData.links,
+        // Text content for default language
+        name: updatedData.name,
+        description: updatedData.description,
+        country: updatedData.country,
+        location: updatedData.location,
+        languageId: updatedData.languageId,
+        // Translation arrays
+        nameTranslations: updatedData.nameTranslations,
+        descriptionTranslations: updatedData.descriptionTranslations,
+        countryTranslations: updatedData.countryTranslations,
+        locationTranslations: updatedData.locationTranslations
     };
 
-    const result = await partialUpdate('institutions', 'update', params);
+    // Remove undefined values to prevent GraphQL errors
+    Object.keys(updateParams).forEach(key => {
+        if (updateParams[key] === undefined) {
+            delete updateParams[key];
+        }
+    });
+
+    console.log('Final parameters for institutions update:', updateParams);
+
+    // Execute the multi-step mutation
+    const result = await executeQuery('institutions', 'update', updateParams);
+
+    if (result.error) {
+        console.error('Institution update error:', result.error);
+        return { result: null, error: result.error };
+    }
+
+    console.log('Institution update completed successfully');
     invalidate("app:institutions");
-    return result;
+    return { result: result.result, error: null };
 };
 
 export const deleteInstitution = async (institutionId) => {

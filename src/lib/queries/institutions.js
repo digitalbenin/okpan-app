@@ -339,7 +339,12 @@ export const institutionsOperations = {
       location: "New location content (optional)",
       status: "New status (optional)",
       links: "New links array (optional, should be JSON)",
-      languageId: "Default language ID for creating new text entries (optional)"
+      languageId: "Default language ID for creating new text entries (optional)",
+      // Translation arrays
+      nameTranslations: "Array of name translations (optional)",
+      descriptionTranslations: "Array of description translations (optional)",
+      countryTranslations: "Array of country translations (optional)",
+      locationTranslations: "Array of location translations (optional)"
     },
     mutations: [
       {
@@ -563,6 +568,35 @@ export const institutionsOperations = {
 }`,
         useVariables: ["id", "links"],
         skipIf: { variableName: "links", isEmpty: true }
+      },
+      // === TRANSLATION PROCESSING STEPS ===
+      {
+        name: "processNameTranslations",
+        processTranslations: {
+          textIdPath: "getInstitution.institution.name.id",
+          translationsParam: "nameTranslations"
+        }
+      },
+      {
+        name: "processDescriptionTranslations",
+        processTranslations: {
+          textIdPath: "getInstitution.institution.description.id",
+          translationsParam: "descriptionTranslations"
+        }
+      },
+      {
+        name: "processCountryTranslations",
+        processTranslations: {
+          textIdPath: "getInstitution.institution.country.id",
+          translationsParam: "countryTranslations"
+        }
+      },
+      {
+        name: "processLocationTranslations",
+        processTranslations: {
+          textIdPath: "getInstitution.institution.location.id",
+          translationsParam: "locationTranslations"
+        }
       }
     ],
     query: null
