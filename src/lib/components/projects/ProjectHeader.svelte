@@ -189,9 +189,6 @@
         ),
       };
 
-      console.log("=== PROJECT UPDATE PAYLOAD ===");
-      console.log("Full payload:", projectUpdatePayload);
-
       // Call the unified updateProject function
       const result = await updateProject(project.id, projectUpdatePayload);
 
@@ -199,7 +196,6 @@
         console.error("Error updating project:", result.error);
         // Handle error appropriately - could show toast or alert
       } else {
-        console.log("Project updated successfully");
         // Close modal on success
         closeModal();
       }

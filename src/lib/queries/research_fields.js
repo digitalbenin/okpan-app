@@ -428,5 +428,107 @@ export const researchFieldsOperations = {
     field_id
   }
 }`
+  },
+  updateVocabulary: {
+    type: "mutation",
+    name: "Update Vocabulary in Research Field",
+    description: "Updates an existing vocabulary option including its translations",
+    variables: {
+      vocabularyId: "ID of the vocabulary to update",
+      option: "New option text content (optional)",
+      description: "New description text content (optional)",
+      mainAsset: "New main asset identifier (optional)",
+      otherAssets: "New JSON of other assets (optional)",
+      // Translation arrays
+      optionTranslations: "Array of option translations (optional)",
+      descriptionTranslations: "Array of description translations (optional)"
+    },
+    mutations: [
+      {
+        name: "getVocabulary",
+        query: `query GetVocabularyForUpdate($vocabularyId: String!) {
+  vocabularies(where: { id: { eq: $vocabularyId } }) {
+    id
+    option_id
+    description_id
+    field_id
+    main_asset_id
+    other_assets
+  }
+}`,
+        useVariables: ["vocabularyId"]
+      },
+      {
+        name: "updateOption",
+        query: `mutation UpdateVocabularyOption($optionId: String!, $option: String!) {
+  updateTexts(
+    set: { content: $option }
+    where: { id: { eq: $optionId } }
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["option"],
+        mapVariables: {
+          optionId: { from: "getVocabulary", path: "vocabularies.0.option_id" }
+        },
+        skipIf: { variableName: "option", isUndefined: true }
+      },
+      {
+        name: "updateDescription",
+        query: `mutation UpdateVocabularyDescription($descriptionId: String!, $description: String!) {
+  updateTexts(
+    set: { content: $description }
+    where: { id: { eq: $descriptionId } }
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["description"],
+        mapVariables: {
+          descriptionId: { from: "getVocabulary", path: "vocabularies.0.description_id" }
+        },
+        skipIf: { variableName: "description", isUndefined: true }
+      },
+      {
+        name: "updateVocabularyAssets",
+        query: `mutation UpdateVocabularyAssets($vocabularyId: String!, $mainAsset: String, $otherAssets: String) {
+  updateVocabularies(
+    set: { main_asset_id: $mainAsset, other_assets: $otherAssets }
+    where: { id: { eq: $vocabularyId } }
+  ) {
+    id
+    main_asset_id
+    other_assets
+  }
+}`,
+        useVariables: ["vocabularyId", "mainAsset", "otherAssets"],
+        skipIf: {
+          condition: "AND",
+          variables: [
+            { variableName: "mainAsset", isUndefined: true },
+            { variableName: "otherAssets", isUndefined: true }
+          ]
+        }
+      },
+      // === TRANSLATION PROCESSING STEPS ===
+      {
+        name: "processOptionTranslations",
+        processTranslations: {
+          textIdPath: "getVocabulary.vocabularies.0.option_id",
+          translationsParam: "optionTranslations"
+        }
+      },
+      {
+        name: "processDescriptionTranslations",
+        processTranslations: {
+          textIdPath: "getVocabulary.vocabularies.0.description_id",
+          translationsParam: "descriptionTranslations"
+        }
+      }
+    ],
+    query: null
   }
 }; 

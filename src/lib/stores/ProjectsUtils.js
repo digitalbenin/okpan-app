@@ -175,8 +175,7 @@ export const updateProject = async (projectId, updatedData) => {
         return { result: null, error: "Missing Project ID" };
     }
 
-    console.log('=== PROJECT UNIFIED UPDATE ===');
-    console.log('Update parameters:', JSON.stringify(updatedData, null, 2));
+
 
     // Prepare all parameters for the multi-step mutation
     const updateParams = {
@@ -196,7 +195,7 @@ export const updateProject = async (projectId, updatedData) => {
         }
     });
 
-    console.log('Final parameters for projects update:', updateParams);
+
 
     // Execute the multi-step mutation
     const result = await executeQuery('projects', 'update', updateParams);
@@ -206,7 +205,7 @@ export const updateProject = async (projectId, updatedData) => {
         return { result: null, error: result.error };
     }
 
-    console.log('Project update completed successfully');
+
     invalidate("app:projects");
     return { result: result.result, error: null };
 };

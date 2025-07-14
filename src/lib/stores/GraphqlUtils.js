@@ -71,10 +71,7 @@ export async function executeMultiStepMutation(mutations, params) {
         throw new Error("Invalid mutation chain");
     }
 
-    console.log('=== MULTI-STEP MUTATION START ===');
-    console.log('Input params:', JSON.stringify(params, null, 2));
-    console.log('Total mutations:', mutations.length);
-    console.log('Mutation names:', mutations.map(m => m.name));
+
 
     // Generate workflow ID for this multi-step operation
     const workflowId = crypto.randomUUID();
@@ -85,18 +82,10 @@ export async function executeMultiStepMutation(mutations, params) {
 
     for (let i = 0; i < mutations.length; i++) {
         const mutation = mutations[i];
-        console.log(`\n--- Step ${i + 1}: ${mutation.name} ---`);
-        console.log('Mutation config:', {
-            hasProcessTranslations: !!mutation.processTranslations,
-            hasUseVariables: !!mutation.useVariables,
-            hasMapVariables: !!mutation.mapVariables,
-            hasSkipIf: !!mutation.skipIf,
-            hasOnlyIf: !!mutation.onlyIf
-        });
+
 
         // Handle translation processing step
         if (mutation.processTranslations) {
-            console.log('This is a translation processing step!');
             const context = {
                 workflowId,
                 isMultiStep: true,
@@ -151,7 +140,6 @@ export async function executeMultiStepMutation(mutations, params) {
         // Check onlyIf condition first (run step ONLY if condition is met)
         if (mutation.onlyIf) {
             const { from, path, isNull } = mutation.onlyIf;
-            console.log(`Checking onlyIf: from=${from}, path=${path}, isNull=${isNull}`);
 
             if (results[from]) {
                 let value = results[from];
@@ -162,13 +150,9 @@ export async function executeMultiStepMutation(mutations, params) {
                     value = value[part];
                 }
 
-                console.log(`onlyIf value at ${path} =`, value);
-
                 if (isNull && value !== null) {
-                    console.log('SKIPPING mutation due to onlyIf condition (value is not null)');
                     continue;
                 } else if (!isNull && value === null) {
-                    console.log('SKIPPING mutation due to onlyIf condition (value is null)');
                     continue;
                 }
             }
@@ -177,8 +161,6 @@ export async function executeMultiStepMutation(mutations, params) {
         // Skip this step if the skipIf condition is met (check AFTER variable mapping)
         if (mutation.skipIf) {
             const { variableName, isUndefined, isEmpty } = mutation.skipIf;
-            console.log(`Checking skipIf: variableName=${variableName}, isUndefined=${isUndefined}, isEmpty=${isEmpty}`);
-            console.log(`stepVariables[${variableName}] =`, stepVariables[variableName]);
 
             let shouldSkip = false;
 
@@ -194,12 +176,11 @@ export async function executeMultiStepMutation(mutations, params) {
             }
 
             if (shouldSkip) {
-                console.log('SKIPPING mutation due to skipIf condition');
                 continue;
             }
         }
 
-        console.log('Step variables:', JSON.stringify(stepVariables, null, 2));
+
 
         // Execute this step with workflow context
         try {
@@ -212,7 +193,6 @@ export async function executeMultiStepMutation(mutations, params) {
             };
 
             const result = await performQuery({ name: mutation.name, query: mutation.query }, stepVariables, context);
-            console.log('Step result:', JSON.stringify(result, null, 2));
             results[mutation.name] = result;
             Object.assign(finalResults, result);
         } catch (error) {
@@ -236,34 +216,24 @@ async function processTranslationStep(mutation, params, results, context) {
     const { processTranslations } = mutation;
     const { textIdPath, translationsParam } = processTranslations;
 
-    console.log(`=== PROCESSING TRANSLATION STEP: ${mutation.name} ===`);
-    console.log(`textIdPath: ${textIdPath}`);
-    console.log(`translationsParam: ${translationsParam}`);
-    console.log(`params keys:`, Object.keys(params));
-    console.log(`results keys:`, Object.keys(results));
-    console.log(`context:`, context);
+
 
     // Get the text ID from previous results
     let textId = null;
     if (textIdPath) {
         const pathParts = textIdPath.split('.');
         let value = results;
-        console.log(`Traversing path ${textIdPath}...`);
         for (const part of pathParts) {
-            console.log(`  - Checking part '${part}' in:`, value);
             if (value === undefined || value === null) break;
             value = value[part];
         }
         textId = value;
-        console.log(`Resolved textId: ${textId}`);
     }
 
     // Get the translations array from params
     const translations = params[translationsParam];
-    console.log(`Translations for ${translationsParam}:`, translations);
 
     if (!translations || !Array.isArray(translations) || translations.length === 0) {
-        console.log(`No translations found for ${translationsParam}, skipping`);
         return null;
     }
 
@@ -272,46 +242,37 @@ async function processTranslationStep(mutation, params, results, context) {
         return null;
     }
 
-    console.log(`Processing ${translations.length} translations for text ID: ${textId}`);
-
     const translationResults = [];
     const errors = [];
 
     // Process each translation
     for (const translation of translations) {
         const { id: translationId, language_code, content } = translation;
-        console.log(`Processing translation:`, { translationId, language_code, content });
 
         try {
             if (translationId) {
-                console.log(`Updating existing translation ${translationId} with context:`, context);
                 // Update existing translation
                 const result = await performQuery(
                     { name: 'updateTranslation', query: getUpdateTranslationQuery() },
                     { id: translationId, content },
                     context
                 );
-                console.log(`Update translation result:`, result);
                 translationResults.push({ operation: 'update', result });
             } else if (content && language_code) {
-                console.log(`Creating new translation for language ${language_code} with context:`, context);
                 // Create new translation - need to convert language_code to language_id
                 const languageResult = await performQuery(
                     { name: 'getLanguageByCode', query: getLanguageByCodeQuery() },
                     { code: language_code },
                     context
                 );
-                console.log(`Language lookup result:`, languageResult);
 
                 if (languageResult?.result && languageResult.result.length > 0) {
                     const languageId = languageResult.result[0].id;
-                    console.log(`Found language ID ${languageId} for code ${language_code}`);
                     const result = await performQuery(
                         { name: 'createTranslation', query: getCreateTranslationQuery() },
                         { textId, languageId, content },
                         context
                     );
-                    console.log(`Create translation result:`, result);
                     translationResults.push({ operation: 'create', result });
                 }
             }
@@ -326,9 +287,6 @@ async function processTranslationStep(mutation, params, results, context) {
         errors: errors.length > 0 ? errors : null,
         processedCount: translationResults.length
     };
-
-    console.log(`=== TRANSLATION STEP COMPLETE: ${mutation.name} ===`);
-    console.log(`Result:`, result);
 
     return result;
 }

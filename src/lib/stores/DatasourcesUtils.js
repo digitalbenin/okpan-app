@@ -61,14 +61,13 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         (updateParams[key] === undefined || updateParams[key] === null) && delete updateParams[key]
     );
 
-    console.log('=== DATASOURCE UNIFIED UPDATE ===');
-    console.log('Update parameters:', JSON.stringify(updateParams, null, 2));
+
 
     try {
         // Execute the multi-step mutation that includes translation processing
         const result = await executeQuery('datasources', 'update', updateParams);
 
-        console.log('Multi-step update result:', JSON.stringify(result, null, 2));
+
 
         if (!result || result.error) {
             const errorMessage = result?.error?.message ||

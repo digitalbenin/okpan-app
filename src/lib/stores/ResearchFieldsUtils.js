@@ -77,14 +77,13 @@ export const updateResearchField = async (fieldId, updateData) => {
         (updateParams[key] === undefined || updateParams[key] === null) && delete updateParams[key]
     );
 
-    console.log('=== RESEARCH FIELD UNIFIED UPDATE ===');
-    console.log('Update parameters:', JSON.stringify(updateParams, null, 2));
+
 
     try {
         // Execute the multi-step mutation that includes translation processing
         const result = await executeQuery('research_fields', 'update', updateParams);
 
-        console.log('Multi-step update result:', JSON.stringify(result, null, 2));
+
 
         if (!result || result.error) {
             const errorMessage = result?.error?.message ||
@@ -126,9 +125,51 @@ export const updateResearchField = async (fieldId, updateData) => {
 
 // Delete a research field
 export const deleteResearchField = async (fieldId) => {
-    // TODO: Consider cascading deletes for related texts/translations if necessary
-    // Assuming 'research_fields' is the section and 'delete' is the operation
     const result = await executeQuery('research_fields', 'delete', { fieldId });
     invalidate("app:research-fields");
     return result;
+};
+
+// Function to update a vocabulary, including translations orchestration
+export const updateVocabulary = async (vocabularyId, updatedData) => {
+    if (!vocabularyId) {
+        return { result: null, error: "Missing Vocabulary ID" };
+    }
+
+
+
+    // Prepare all parameters for the multi-step mutation
+    const updateParams = {
+        vocabularyId: vocabularyId,
+        // Text content for default language
+        option: updatedData.option,
+        description: updatedData.description,
+        // Asset fields
+        mainAsset: updatedData.mainAsset,
+        otherAssets: updatedData.otherAssets,
+        // Translation arrays
+        optionTranslations: updatedData.optionTranslations,
+        descriptionTranslations: updatedData.descriptionTranslations
+    };
+
+    // Remove undefined values to prevent GraphQL errors
+    Object.keys(updateParams).forEach(key => {
+        if (updateParams[key] === undefined) {
+            delete updateParams[key];
+        }
+    });
+
+
+
+    // Execute the multi-step mutation
+    const result = await executeQuery('research_fields', 'updateVocabulary', updateParams);
+
+    if (result.error) {
+        console.error('Vocabulary update error:', result.error);
+        return { result: null, error: result.error };
+    }
+
+
+    invalidate("app:research-fields");
+    return { result: result.result, error: null };
 }; 

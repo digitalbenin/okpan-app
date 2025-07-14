@@ -23,8 +23,7 @@ export const updateInstitution = async (institutionId, updatedData) => {
         return { result: null, error: "Missing Institution ID" };
     }
 
-    console.log('=== INSTITUTION UNIFIED UPDATE ===');
-    console.log('Update parameters:', JSON.stringify(updatedData, null, 2));
+
 
     // Prepare all parameters for the multi-step mutation
     const updateParams = {
@@ -52,7 +51,7 @@ export const updateInstitution = async (institutionId, updatedData) => {
         }
     });
 
-    console.log('Final parameters for institutions update:', updateParams);
+
 
     // Execute the multi-step mutation
     const result = await executeQuery('institutions', 'update', updateParams);
@@ -62,7 +61,7 @@ export const updateInstitution = async (institutionId, updatedData) => {
         return { result: null, error: result.error };
     }
 
-    console.log('Institution update completed successfully');
+
     invalidate("app:institutions");
     return { result: result.result, error: null };
 };
