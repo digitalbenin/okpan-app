@@ -1,5 +1,4 @@
 import { browser } from '$app/environment';
-import { getInstitution } from "$lib/stores/InstitutionsUtils.js";
 import { getAssets } from "$lib/stores/AssetsUtils.js";
 import { getObjects } from "$lib/stores/ObjectsUtils.js";
 import { getDatasources } from '$lib/stores/DatasourcesUtils.js';
@@ -68,13 +67,11 @@ export const load = async ({ params, depends, url }) => {
 
     // Load all data in parallel
     const [
-        institutionData,
         assetsData,
         objectsData,
         datasourcesData,
         // projectLanguages,
     ] = await Promise.all([
-        getInstitution(institutionId),
         getAssets(aOptions),
         getObjects(oOptions),
         getDatasources(sOptions),
@@ -82,7 +79,6 @@ export const load = async ({ params, depends, url }) => {
     ]);
 
     const res = {
-        institution: institutionData,
         assets: assetsData,
         objects: objectsData,
         // projectId,

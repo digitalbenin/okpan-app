@@ -7,7 +7,7 @@
   const { data } = $props();
 
   const params = queryParameters({
-    iView: ssp.string("objects"),
+    view: ssp.string("objects"),
     page: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
@@ -45,4 +45,4 @@
 </script>
 
 <InstitutionOverview institution={data.institution} />
-<!-- <InstitutionItems /> -->
+<InstitutionItems bind:view={params.view} ...data />
