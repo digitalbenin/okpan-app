@@ -2,6 +2,8 @@
   let {
     type = "text",
     value = $bindable(),
+    optionsList,
+    optionsValue = $bindable(),
     placeholder = "",
     icon,
     min = null,
@@ -58,6 +60,20 @@
       >
         <i class="bi bi-x-lg"></i>
       </button>
+    </span>
+  {/if}
+  {#if optionsList && optionsList.length > 0}
+    <span class="input-group-text bg-white p-0 col-4">
+      <select
+        bind:value={optionsValue}
+        class="form-select border-0 text-truncate {size
+          ? `form-select-${size}`
+          : ''}"
+      >
+        {#each optionsList as option}
+          <option value={option.value}>{option.label}</option>
+        {/each}
+      </select>
     </span>
   {/if}
 </div>

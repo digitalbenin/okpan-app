@@ -7,7 +7,7 @@
   const { t } = getTranslationStore();
 </script>
 
-<div class="container-fluid border-bottom pb-4">
+<div class="container-fluid pb-4">
   <div class="row mb-2">
     <div class="col-12">
       <div class="d-flex align-items-start gap-3 mt-3">

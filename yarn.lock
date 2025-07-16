@@ -5032,6 +5032,11 @@ sveltekit-search-params@^4.0.0-next.0:
   resolved "https://registry.yarnpkg.com/sveltekit-search-params/-/sveltekit-search-params-4.0.0-next.0.tgz#3b5329eb0f585362bf2539d7edb3305612662862"
   integrity sha512-haFr5seakusriPePAv2F5/lsOa37rr9AOGDa5JOZ9CaB0Vrl8V8PdtqNWfh/kF0jlANdkdqz5gKK66nhhHT8tg==
 
+swiper@^11.2.10:
+  version "11.2.10"
+  resolved "https://registry.yarnpkg.com/swiper/-/swiper-11.2.10.tgz#ed0b17286b56f7fe8d4b46ed61e6e0bd8daaccad"
+  integrity sha512-RMeVUUjTQH+6N3ckimK93oxz6Sn5la4aDlgPzB+rBrG/smPdCTicXyhxa+woIpopz+jewEloiEE3lKo1h9w2YQ==
+
 symbol-observable@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/symbol-observable/-/symbol-observable-4.0.0.tgz#5b425f192279e87f2f9b937ac8540d1984b39205"
