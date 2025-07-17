@@ -1,17 +1,22 @@
 <script>
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
+  import BasePagination from "$lib/components/base/BasePagination.svelte";
+  import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import ObjectDetail from "$lib/components/objects/ObjectDetail.svelte";
   import ObjectCard from "$lib/components/objects/ObjectCard.svelte";
+  import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
+  import { formatDate } from "$lib/utils/dates.js";
 
   let { institution, objects, ontologyFields, params = $bindable() } = $props();
 
-  $inspect(objects); // Debugging: inspect objects data
-
-  const { t } = getTranslationStore();
+  const { t, translationState } = getTranslationStore();
 
   let viewAs = $state("grid");
+  let selectedObjects = $state([]);
+
+  $inspect(selectedObjects);
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -179,13 +184,70 @@
       >
     </div>
   </div>
-  {#if viewAs === "grid"}
+  {#if objects.items.length > 0}
+    {#if viewAs === "list"}
+      <ObjectDetail
+        bind:object={objects.selectedObject}
+        institutionId={institution.id}
+      />
+    {/if}
+    {#if viewAs === "grid"}
+      <div class="row">
+        {#each objects.items as object (object.id)}
+          <div class="col-4">
+            <ObjectCard {object} />
+          </div>
+        {/each}
+      </div>
+    {:else if viewAs === "table"}
+      <ObjectsTable
+        objects={objects.items}
+        columns={[
+          {
+            value: "created_at",
+            label: t("common.created-at", { fallback: "Created At" }),
+            sortable: true,
+            render: (value) =>
+              formatDate(+value, translationState.currentLocale, true),
+          },
+          {
+            value: "updated_at",
+            label: t("common.updated-at", { fallback: "Updated At" }),
+            sortable: true,
+            render: (value) =>
+              formatDate(+value, translationState.currentLocale, true),
+          },
+          {
+            value: "status",
+            label: t("common.status", { fallback: "Status" }),
+            sortable: true,
+            render: (value) => ({
+              component: BaseBadgeStatus,
+              props: { status: value },
+            }),
+          },
+        ]}
+        bind:orderBy={params.oOrderBy}
+        bind:direction={params.oDirection}
+        bind:selected={selectedObjects}
+      />
+    {/if}
+  {:else if objects.items.length === 0}
+    <div class="text-center text-black-50 fs-4 fst-italic mt-4">
+      {t("common.no-objects-found", { fallback: "No objects found." })}
+    </div>
+  {/if}
+
+  {#if objects.totalCount > params.pageSize}
     <div class="row">
-      {#each objects.items as object (object.id)}
-        <div class="col-4">
-          <ObjectCard {object} />
-        </div>
-      {/each}
+      <div class="col-auto">
+        <BasePagination
+          bind:page={params.oPage}
+          pageSize={params.pageSize}
+          count={objects.totalCount}
+          size="sm"
+        />
+      </div>
     </div>
   {/if}
 </div>

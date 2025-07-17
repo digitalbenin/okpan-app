@@ -10,6 +10,12 @@
   const { object } = $props();
   const { t, translationState } = getTranslationStore();
 
+  const id = $derived(
+    object.objectsOntologyFields?.find(
+      (f) => f.ontologyField.name.content === "object id"
+    )?.value || "Id not set"
+  );
+
   const attachSwiper = (element) => {
     const swiperInstance = new Swiper(element, {
       slidesPerView: 1,
@@ -26,7 +32,6 @@
       swiperInstance.destroy();
     };
   };
-  $inspect(object); // Debugging: inspect object data
 </script>
 
 <div
@@ -37,12 +42,12 @@
     <BaseBadgeStatus status={object.status}></BaseBadgeStatus>
     <div><i class="bi bi-three-dots-vertical"></i></div>
   </div>
-  <div class="bg-light rounded ratio ratio-1x1 mb-2">
+  <div class="bg-light rounded ratio ratio-1x1 mb-3">
     {#if object.objectsAssets && object.objectsAssets.length > 0}
       <div>
         <div
           class:d-none={object.objectsAssets.length === 1}
-          class="position-absolute top-50 start-0 translate-middle-y z-2"
+          class="position-absolute top-50 start-0 translate-middle-y z-2 ps-1"
         >
           <button
             class="prev btn btn-sm btn-outline-dark rounded-circle aspect-ratio-1x1"
@@ -65,7 +70,7 @@
         </div>
         <div
           class:d-none={object.objectsAssets.length === 1}
-          class="position-absolute top-50 end-0 translate-middle-y z-2"
+          class="position-absolute top-50 end-0 translate-middle-y z-2 pe-1"
         >
           <button
             class="next btn btn-sm btn-outline-dark rounded-circle aspect-ratio-1x1"
@@ -78,6 +83,12 @@
         <i class="bi bi-image fs-1 text-secondary"></i>
       </div>
     {/if}
+  </div>
+  <div class="fs-5 mb-2">
+    <a
+      href="projects/{object.project_id}/institutions/{object.institution_id}/objects/{object.id}"
+      class="link-dark">{id}</a
+    >
   </div>
   <div>
     <div class="fs-7 text-muted">

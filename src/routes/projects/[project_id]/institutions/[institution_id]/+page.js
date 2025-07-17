@@ -12,9 +12,9 @@ export const load = async ({ params, depends, url }) => {
     const institutionId = params.institution_id;
 
     // common params
-    const page = url.searchParams.get('page');
     const pageSize = url.searchParams.get('pageSize')
     // objects params
+    const oPage = url.searchParams.get('oPage');
     const oOrderBy = url.searchParams.get('oOrderBy')
     const oDirection = url.searchParams.get('oDirection')
     const oStatus = url.searchParams.get('oStatus')
@@ -24,7 +24,7 @@ export const load = async ({ params, depends, url }) => {
     const oOptions = {
         projectId,
         institutionId,
-        page: +page - 1,
+        page: +oPage - 1,
         pageSize: +pageSize,
         orderBy: oOrderBy,
         direction: oDirection,
@@ -33,6 +33,8 @@ export const load = async ({ params, depends, url }) => {
         searchField: oSearchField
     }
     // assets params
+    const aPage = url.searchParams.get('aPage');
+
     const aOrderBy = url.searchParams.get('aOrderBy')
     const aDirection = url.searchParams.get('aDirection')
     const aLinked = url.searchParams.get('aLinked')
@@ -41,7 +43,7 @@ export const load = async ({ params, depends, url }) => {
     const aOptions = {
         projectId,
         institutionId,
-        page: +page - 1,
+        page: +aPage - 1,
         pageSize: +pageSize,
         orderBy: aOrderBy,
         direction: aDirection,
@@ -49,6 +51,8 @@ export const load = async ({ params, depends, url }) => {
         linked: aLinked === 'true' ? true : false
     }
     // data sources params
+
+    const sPage = url.searchParams.get('sPage');
     const sOrderBy = url.searchParams.get('sOrderBy')
     const sDirection = url.searchParams.get('sDirection')
     const sSearch = url.searchParams.get('sSearch')
@@ -56,7 +60,7 @@ export const load = async ({ params, depends, url }) => {
     const sOptions = {
         projectId,
         institutionId,
-        page: +page - 1,
+        page: +sPage - 1,
         pageSize: +pageSize,
         orderBy: sOrderBy,
         direction: sDirection,

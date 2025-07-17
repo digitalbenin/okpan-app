@@ -6,15 +6,15 @@
   const { data } = $props();
   const paramsOptions = {
     view: ssp.string("objects"),
-    page: {
-      encode: (value) => value.toString(),
-      decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 1,
-    },
     pageSize: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
       defaultValue: 2,
+    },
+    oPage: {
+      encode: (value) => value.toString(),
+      decode: (value) => (value ? parseInt(value) : null),
+      defaultValue: 1,
     },
     oOrderBy: ssp.string("updated_at"),
     oDirection: ssp.string("asc"),
@@ -29,12 +29,20 @@
       decode: (value) => (value ? value : "all"),
       defaultValue: undefined,
     },
-
+    aPage: {
+      encode: (value) => value.toString(),
+      decode: (value) => (value ? parseInt(value) : null),
+      defaultValue: 1,
+    },
     aOrderBy: ssp.string("name"),
     aDirection: ssp.string("asc"),
     aSearch: ssp.string(undefined),
     aLinked: ssp.boolean(undefined),
-
+    sPage: {
+      encode: (value) => value.toString(),
+      decode: (value) => (value ? parseInt(value) : null),
+      defaultValue: 1,
+    },
     sOrderBy: ssp.string("name"),
     sDirection: ssp.string("asc"),
     sSearch: ssp.string(undefined),
