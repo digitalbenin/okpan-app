@@ -43,6 +43,11 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
                 description: 'Optional project ID to filter results'
             },
             {
+                name: 'entity_types',
+                type: new GraphQLList(GraphQLString),
+                description: 'Optional array of entity types to filter by (institutions, assets, objects). If not provided, all types are searched.'
+            },
+            {
                 name: 'limit',
                 type: drizzleResult.schema._typeMap.Int,
                 description: 'Maximum number of results to return',
@@ -50,83 +55,130 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
             }
         ],
         resolve: async (source, args, context, info) => {
-            const { query: searchTerm, project_id, limit } = args;
+            const { query: searchTerm, project_id, entity_types, limit } = args;
             const searchPattern = `%${searchTerm.trim().toLowerCase()}%`;
             const results = [];
 
-            // 1. Search institutions by name
-            const institutionNameTexts = aliasedTable(dbSchema.texts, 'institution_name_texts');
-            const institutionsQuery = db.select({
-                type: sql`'institution'`.as('type'),
-                id: dbSchema.institutions.id,
-                title: institutionNameTexts.content,
-                subtitle: sql`'Institution'`.as('subtitle'),
-                project_id: dbSchema.institutions.project_id,
-                institution_id: dbSchema.institutions.id
-            })
-                .from(dbSchema.institutions)
-                .leftJoin(institutionNameTexts, eq(dbSchema.institutions.name_id, institutionNameTexts.id))
-                .where(
-                    sql.join([
-                        sql`lower(${institutionNameTexts.content}) LIKE ${searchPattern}`,
-                        project_id ? eq(dbSchema.institutions.project_id, project_id) : sql`1=1`
-                    ], sql` AND `)
-                )
-                .limit(Math.floor(limit / 3));
+            // Parse entity_types input - handle both string and array formats
+            const parseEntityTypes = (input) => {
+                if (!input) return [];
 
-            // 2. Search assets by filename
-            const assetsQuery = db.select({
-                type: sql`'asset'`.as('type'),
-                id: dbSchema.assets.id,
-                title: dbSchema.assets.filename,
-                subtitle: dbSchema.assets.type,
-                project_id: dbSchema.assets.project_id,
-                institution_id: dbSchema.assets.institution_id
-            })
-                .from(dbSchema.assets)
-                .where(
-                    sql.join([
-                        sql`lower(${dbSchema.assets.filename}) LIKE ${searchPattern}`,
-                        project_id ? eq(dbSchema.assets.project_id, project_id) : sql`1=1`
-                    ], sql` AND `)
-                )
-                .limit(Math.floor(limit / 3));
+                if (typeof input === 'string') {
+                    return input.trim() ? input.split(',').map(s => s.trim()).filter(Boolean) : [];
+                }
 
-            // 3. Search objects by primary ontology fields
-            const ontologyFieldTexts = aliasedTable(dbSchema.texts, 'ontology_field_texts');
-            const objectsQuery = db.select({
-                type: sql`'object'`.as('type'),
-                id: dbSchema.objects.id,
-                title: dbSchema.objects_ontology_fields.value,
-                subtitle: ontologyFieldTexts.content, // The ontology field name
-                project_id: dbSchema.objects.project_id,
-                institution_id: dbSchema.objects.institution_id
-            })
-                .from(dbSchema.objects)
-                .innerJoin(dbSchema.objects_ontology_fields, eq(dbSchema.objects.id, dbSchema.objects_ontology_fields.object_id))
-                .leftJoin(dbSchema.ontology_fields, eq(dbSchema.objects_ontology_fields.field_id, dbSchema.ontology_fields.id))
-                .leftJoin(ontologyFieldTexts, eq(dbSchema.ontology_fields.name_id, ontologyFieldTexts.id))
-                .where(
-                    sql.join([
-                        sql`lower(${dbSchema.objects_ontology_fields.value}) LIKE ${searchPattern}`,
-                        sql`${dbSchema.objects_ontology_fields.primary} = 1`,
-                        project_id ? eq(dbSchema.objects.project_id, project_id) : sql`1=1`
-                    ], sql` AND `)
-                )
-                .limit(Math.floor(limit / 3));
+                if (Array.isArray(input)) {
+                    return input.flatMap(item => {
+                        if (!item || typeof item !== 'string') return [];
+                        const trimmed = item.trim();
+                        if (!trimmed) return [];
+
+                        // Handle JSON-like strings
+                        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                            try {
+                                const parsed = JSON.parse(trimmed);
+                                return Array.isArray(parsed) ? parsed.filter(p => p && p.trim()) : [trimmed];
+                            } catch { return [trimmed]; }
+                        }
+
+                        // Handle comma-separated strings
+                        return trimmed.includes(',')
+                            ? trimmed.split(',').map(s => s.trim()).filter(Boolean)
+                            : [trimmed];
+                    });
+                }
+
+                return [];
+            };
+
+            const parsedEntityTypes = parseEntityTypes(entity_types);
+            const typesToSearch = parsedEntityTypes.length > 0 ? parsedEntityTypes : ['institutions', 'assets', 'objects'];
+
+            // Calculate limit per type
+            const limitPerType = Math.floor(limit / typesToSearch.length);
+            const queries = [];
+
+            // 1. Search institutions by name (if requested)
+            if (typesToSearch.includes('institutions')) {
+                const institutionNameTexts = aliasedTable(dbSchema.texts, 'institution_name_texts');
+                const institutionsQuery = db.select({
+                    type: sql`'institution'`.as('type'),
+                    id: dbSchema.institutions.id,
+                    title: institutionNameTexts.content,
+                    subtitle: sql`'Institution'`.as('subtitle'),
+                    project_id: dbSchema.institutions.project_id,
+                    institution_id: dbSchema.institutions.id
+                })
+                    .from(dbSchema.institutions)
+                    .leftJoin(institutionNameTexts, eq(dbSchema.institutions.name_id, institutionNameTexts.id))
+                    .where(
+                        sql.join([
+                            sql`lower(${institutionNameTexts.content}) LIKE ${searchPattern}`,
+                            project_id ? eq(dbSchema.institutions.project_id, project_id) : sql`1=1`
+                        ], sql` AND `)
+                    )
+                    .limit(limitPerType);
+
+                queries.push(institutionsQuery.execute());
+            }
+
+            // 2. Search assets by filename (if requested)
+            if (typesToSearch.includes('assets')) {
+                const assetsQuery = db.select({
+                    type: sql`'asset'`.as('type'),
+                    id: dbSchema.assets.id,
+                    title: dbSchema.assets.filename,
+                    subtitle: dbSchema.assets.type,
+                    project_id: dbSchema.assets.project_id,
+                    institution_id: dbSchema.assets.institution_id
+                })
+                    .from(dbSchema.assets)
+                    .where(
+                        sql.join([
+                            sql`lower(${dbSchema.assets.filename}) LIKE ${searchPattern}`,
+                            project_id ? eq(dbSchema.assets.project_id, project_id) : sql`1=1`
+                        ], sql` AND `)
+                    )
+                    .limit(limitPerType);
+
+                queries.push(assetsQuery.execute());
+            }
+
+            // 3. Search objects by primary ontology fields (if requested)
+            if (typesToSearch.includes('objects')) {
+                const ontologyFieldTexts = aliasedTable(dbSchema.texts, 'ontology_field_texts');
+                const objectsQuery = db.select({
+                    type: sql`'object'`.as('type'),
+                    id: dbSchema.objects.id,
+                    title: dbSchema.objects_ontology_fields.value,
+                    subtitle: ontologyFieldTexts.content, // The ontology field name
+                    project_id: dbSchema.objects.project_id,
+                    institution_id: dbSchema.objects.institution_id
+                })
+                    .from(dbSchema.objects)
+                    .innerJoin(dbSchema.objects_ontology_fields, eq(dbSchema.objects.id, dbSchema.objects_ontology_fields.object_id))
+                    .leftJoin(dbSchema.ontology_fields, eq(dbSchema.objects_ontology_fields.field_id, dbSchema.ontology_fields.id))
+                    .leftJoin(ontologyFieldTexts, eq(dbSchema.ontology_fields.name_id, ontologyFieldTexts.id))
+                    .where(
+                        sql.join([
+                            sql`lower(${dbSchema.objects_ontology_fields.value}) LIKE ${searchPattern}`,
+                            sql`${dbSchema.objects_ontology_fields.primary} = 1`,
+                            project_id ? eq(dbSchema.objects.project_id, project_id) : sql`1=1`
+                        ], sql` AND `)
+                    )
+                    .limit(limitPerType);
+
+                queries.push(objectsQuery.execute());
+            }
 
             try {
                 // Execute all queries in parallel
-                const [institutionResults, assetResults, objectResults] = await Promise.all([
-                    institutionsQuery.execute(),
-                    assetsQuery.execute(),
-                    objectsQuery.execute()
-                ]);
+                const queryResults = await Promise.all(queries);
 
-                // Combine results
-                results.push(...institutionResults);
-                results.push(...assetResults);
-                results.push(...objectResults);
+                // Combine results from all executed queries
+                queryResults.forEach(result => {
+                    results.push(...result);
+                });
 
                 // Sort by relevance (exact matches first, then by length)
                 results.sort((a, b) => {
