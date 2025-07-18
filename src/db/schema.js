@@ -118,6 +118,15 @@ export const project = sqliteTable('project', {
     exports: text('exports', { mode: 'json' })
 });
 
+// Object Display Fields table - stores configuration for how objects are displayed in lists
+export const object_display_fields = sqliteTable('object_display_fields', {
+    ...commonFields,
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
+    ontology_field_id: text('ontology_field_id').references(() => ontology_fields.id, { onDelete: 'cascade' }),
+    research_field_id: text('research_field_id').references(() => research_fields.id, { onDelete: 'cascade' }),
+    property_name: text('property_name') // 'created_at', 'updated_at', 'status'
+});
+
 // Project relations
 export const projectRelations = relations(project, ({ many, one }) => ({
     institutions: many(institutions),
@@ -127,6 +136,7 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     assets: many(assets),
     genericAssets: many(genericAssets),
     languages: many(languages),
+    objectDisplayFields: many(object_display_fields),
     title: one(texts, {
         fields: [project.title_id],
         references: [texts.id]
@@ -134,6 +144,22 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     description: one(texts, {
         fields: [project.description_id],
         references: [texts.id]
+    })
+}));
+
+// Object Display Fields relations
+export const objectDisplayFieldsRelations = relations(object_display_fields, ({ one }) => ({
+    project: one(project, {
+        fields: [object_display_fields.project_id],
+        references: [project.id]
+    }),
+    ontologyField: one(ontology_fields, {
+        fields: [object_display_fields.ontology_field_id],
+        references: [ontology_fields.id]
+    }),
+    researchField: one(research_fields, {
+        fields: [object_display_fields.research_field_id],
+        references: [research_fields.id]
     })
 }));
 
@@ -199,6 +225,7 @@ export const researchFieldsRelations = relations(research_fields, ({ one, many }
     }),
     vocabularies: many(vocabularies),
     objectsResearchFields: many(objects_research_fields),
+    objectDisplayFields: many(object_display_fields),
     name: one(texts, {
         fields: [research_fields.name_id],
         references: [texts.id]
@@ -420,6 +447,7 @@ export const ontology_fields = sqliteTable('ontology_fields', {
 // Ontology Fields relations
 export const ontologyFieldsRelations = relations(ontology_fields, ({ many, one }) => ({
     objectsOntologyFields: many(objects_ontology_fields),
+    objectDisplayFields: many(object_display_fields),
     name: one(texts, {
         fields: [ontology_fields.name_id],
         references: [texts.id]

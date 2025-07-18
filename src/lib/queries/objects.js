@@ -72,6 +72,24 @@ export const objectsOperations = {
           }
         }
       }
+      objectsResearchFields {
+        id
+        value
+        vocabulary_id
+        researchField {
+          id
+          name {
+            content
+          }
+        }
+        vocabulary {
+          id
+          option {
+            content
+          }
+        }
+      }
+      displayFields
     }
     totalCount
   }

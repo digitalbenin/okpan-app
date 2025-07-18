@@ -1,8 +1,12 @@
 import { sql, eq, aliasedTable, countDistinct } from 'drizzle-orm';
-import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLInt } from 'graphql';
+import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLInt, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema';
+import { addCountField, GraphQLJSON } from './common';
 
 export const createObjectsListQuery = (db, drizzleResult) => {
+    // Add displayFields as a JSON field to ObjectsSelectItem type
+    addCountField(drizzleResult, 'ObjectsSelectItem', 'displayFields', GraphQLJSON);
+
     // Define Payload type for ObjectsList
     const ObjectsListPayload = new GraphQLObjectType({
         name: 'ObjectsListPayload',
@@ -69,6 +73,27 @@ export const createObjectsListQuery = (db, drizzleResult) => {
             const projectTitleTexts = aliasedTable(dbSchema.texts, 'project_title_texts_obj_list');
             const projectTitleTranslations = aliasedTable(dbSchema.translations, 'project_title_translations_obj_list');
 
+            // Get display fields configuration for the project
+            let displayFields = [];
+            if (args.project_id) {
+                const displayFieldsResult = await db
+                    .select({
+                        id: dbSchema.object_display_fields.id,
+                        ontology_field_id: dbSchema.object_display_fields.ontology_field_id,
+                        research_field_id: dbSchema.object_display_fields.research_field_id,
+                        property_name: dbSchema.object_display_fields.property_name
+                    })
+                    .from(dbSchema.object_display_fields)
+                    .where(eq(dbSchema.object_display_fields.project_id, args.project_id))
+                    .execute();
+                displayFields = displayFieldsResult;
+            }
+
+            // Build queries to get all ontology and research fields (no filtering)
+            const ontologyFieldsQuery = sql`(SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'ontology_field_name_id', ot.name_id, 'ontology_field_name_content', ot_name_texts.content )) FROM ${dbSchema.objects_ontology_fields} oof JOIN ${dbSchema.ontology_fields} ot ON oof.field_id = ot.id JOIN ${dbSchema.texts} ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = ${dbSchema.objects.id})`;
+
+            const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content )) FROM ${dbSchema.objects_research_fields} orf JOIN ${dbSchema.research_fields} rf ON orf.field_id = rf.id JOIN ${dbSchema.texts} rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN ${dbSchema.vocabularies} v ON orf.vocabulary_id = v.id LEFT JOIN ${dbSchema.texts} v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = ${dbSchema.objects.id})`;
+
             let queryBase = db.select({
                 id: dbSchema.objects.id,
                 created_at: dbSchema.objects.created_at,
@@ -90,7 +115,9 @@ export const createObjectsListQuery = (db, drizzleResult) => {
                 proj_title_translations: sql`json_group_array(json_object('id', ${projectTitleTranslations.id}, 'language_id', ${projectTitleTranslations.language_id}, 'content', ${projectTitleTranslations.content}))`.append(sql`FILTER (WHERE ${projectTitleTranslations.id} IS NOT NULL)`).as('proj_title_translations_json'),
 
                 objects_assets_json: sql`(SELECT json_group_array(json_object('order', oa."order", 'asset_id', oa.asset_id, 'asset_filename', a.filename, 'asset_formats', a.formats, 'asset_path', a.path, 'asset_type', a.type, 'asset_real_id', a.id)) FROM ${dbSchema.objects_assets} oa JOIN ${dbSchema.assets} a ON oa.asset_id = a.id WHERE oa.object_id = ${dbSchema.objects.id})`.as('objects_assets_json'),
-                objects_ontology_fields_json: sql`(SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'ontology_field_name_id', ot.name_id, 'ontology_field_name_content', ot_name_texts.content )) FROM ${dbSchema.objects_ontology_fields} oof JOIN ${dbSchema.ontology_fields} ot ON oof.field_id = ot.id JOIN ${dbSchema.texts} ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = ${dbSchema.objects.id})`.as('objects_ontology_fields_json'),
+                objects_ontology_fields_json: ontologyFieldsQuery.as('objects_ontology_fields_json'),
+                objects_research_fields_json: researchFieldsQuery.as('objects_research_fields_json'),
+                display_fields_json: sql`${JSON.stringify(displayFields)}`.as('display_fields_json'),
 
             })
                 .from(dbSchema.objects)
@@ -196,6 +223,79 @@ export const createObjectsListQuery = (db, drizzleResult) => {
                     } catch (e) { console.error('Error parsing objects_ontology_fields_json:', e); }
                 }
 
+                let objectsResearchFields = [];
+                if (item.objects_research_fields_json) {
+                    try {
+                        const parsedFields = JSON.parse(item.objects_research_fields_json);
+                        objectsResearchFields = parsedFields.map(orf => {
+                            const result = {
+                                id: orf.id,
+                                value: orf.value,
+                                vocabulary_id: orf.vocabulary_id,
+                                researchField: {
+                                    id: orf.field_id, // This is the research_field_id
+                                    name: { content: orf.research_field_name_content }
+                                }
+                            };
+
+                            // Add vocabulary information if available
+                            if (orf.vocabulary_id && orf.vocabulary_option_content) {
+                                result.vocabulary = {
+                                    id: orf.vocabulary_id,
+                                    option: { content: orf.vocabulary_option_content }
+                                };
+                            }
+
+                            return result;
+                        }).filter(orf => orf.id != null);
+                    } catch (e) { console.error('Error parsing objects_research_fields_json:', e); }
+                }
+
+                // Build display_fields array based on configuration
+                const displayFieldsArray = [];
+                if (item.display_fields_json) {
+                    try {
+                        const configuredFields = JSON.parse(item.display_fields_json);
+                        configuredFields.forEach(df => {
+                            if (df.property_name) {
+                                // Handle object properties
+                                let label = df.property_name;
+                                let value = item[df.property_name];
+
+                                // Format label for display
+                                if (df.property_name === 'created_at') label = 'Created At';
+                                else if (df.property_name === 'updated_at') label = 'Updated At';
+                                else if (df.property_name === 'status') label = 'Status';
+
+                                // Format dates
+                                if ((df.property_name === 'created_at' || df.property_name === 'updated_at') && value) {
+                                    value = new Date(value).toLocaleDateString();
+                                }
+
+                                displayFieldsArray.push({ label, value });
+                            } else if (df.research_field_id) {
+                                // Handle research fields
+                                const researchField = objectsResearchFields.find(rf => rf.researchField.id === df.research_field_id);
+                                if (researchField) {
+                                    const label = researchField.researchField.name.content;
+                                    const value = researchField.vocabulary?.option?.content || researchField.value || '';
+                                    displayFieldsArray.push({ label, value });
+                                }
+                            } else if (df.ontology_field_id) {
+                                // Handle ontology fields
+                                const ontologyField = objectsOntologyFields.find(of => of.ontologyField.id === df.ontology_field_id);
+                                if (ontologyField) {
+                                    const label = ontologyField.ontologyField.name.content;
+                                    const value = ontologyField.value || '';
+                                    displayFieldsArray.push({ label, value });
+                                }
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Error parsing display_fields_json:', e);
+                    }
+                }
+
                 return {
                     id: item.id,
                     created_at: item.created_at,
@@ -207,6 +307,8 @@ export const createObjectsListQuery = (db, drizzleResult) => {
                     project: project,
                     objectsAssets: objectsAssets,
                     objectsOntologyFields: objectsOntologyFields,
+                    objectsResearchFields: objectsResearchFields,
+                    displayFields: displayFieldsArray,
                 };
             });
             return { items: processedItems, totalCount: totalCount };
