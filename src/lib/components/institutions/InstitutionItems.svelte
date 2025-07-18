@@ -54,7 +54,11 @@
                   bind:params
                 />
               {:else if view === "assets"}
-                <InstitutionAssets />
+                <InstitutionAssets
+                  institution={restProps.institution}
+                  assets={restProps.assets}
+                  bind:params
+                />
               {:else if view === "datasources"}
                 <InstitutionDatasources />
               {/if}
