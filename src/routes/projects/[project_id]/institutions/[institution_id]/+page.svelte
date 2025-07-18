@@ -34,7 +34,7 @@
       decode: (value) => (value ? parseInt(value) : null),
       defaultValue: 1,
     },
-    aOrderBy: ssp.string("name"),
+    aOrderBy: ssp.string("filename"),
     aDirection: ssp.string("asc"),
     aSearch: ssp.string(undefined),
     aLinked: ssp.boolean(undefined),

@@ -70,11 +70,13 @@
 </script>
 
 <div class="w-100">
-  <div class="row align-items-center mb-3 position-relative overflow-hidden">
+  <div
+    class="row align-items-center mb-3 position-relative overflow-hidden py-2"
+  >
     {#if selectedObjects.length > 0}
       <div
         transition:fly={{ opacity: 1, y: -35 }}
-        class="d-flex align-items-center px-3 gap-2 position-absolute top-0 start-0 end-0 bottom-0 z-1 bg-white"
+        class="d-flex align-items-center px-3 gap-2 position-absolute top-0 start-0 end-0 bottom-0 z-1 bg-white border-bottom"
       >
         <div class="fw-bold">
           {selectedObjects.length}
@@ -164,12 +166,6 @@
     </div>
   </div>
   {#if objects.items.length > 0}
-    {#if viewAs === "list"}
-      <ObjectDetail
-        bind:object={objects.selectedObject}
-        institutionId={institution.id}
-      />
-    {/if}
     {#if viewAs === "grid"}
       <div class="row">
         {#each objects.items as object (object.id)}
