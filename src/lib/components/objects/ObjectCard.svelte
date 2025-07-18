@@ -5,7 +5,6 @@
   import { formatDate } from "$lib/utils/dates";
   import Swiper from "swiper";
   import { Navigation } from "swiper/modules";
-  import "swiper/css";
 
   const { object } = $props();
   const { t, translationState } = getTranslationStore();

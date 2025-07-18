@@ -1,6 +1,7 @@
 <script>
   import ObjectsTableInput from "./ObjectsTableInput.svelte";
   import ObjectsTableInputBatch from "./ObjectsTableInputBatch.svelte";
+  import ObjectsTablePreview from "./ObjectsTablePreview.svelte";
 
   let {
     objects,
@@ -23,7 +24,11 @@
     {
       value: "object_id",
       label: "Object id",
-      accessor: (value) => object_id_accessor(value),
+      accessor: (value) => value,
+      render: (value) => ({
+        component: ObjectsTablePreview,
+        props: { object: value },
+      }),
     },
   ];
 
@@ -59,10 +64,12 @@
 
     return { type: "value", value: header.render };
   }
+
+  $inspect(objects);
 </script>
 
 <div class="table-responsive">
-  <table class="table">
+  <table class="table align-middle">
     <thead>
       <tr>
         {#if selectable}

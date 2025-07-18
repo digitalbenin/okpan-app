@@ -63,6 +63,7 @@ $font-sizes: map-merge($font-sizes, $custom-sizes);
 
 // Optionally include utilities API last to generate classes based on the Sass map in `_utilities.scss`
 @import "~bootstrap/scss/utilities/api";
+@import "swiper/scss";
 
 body,
 html {
