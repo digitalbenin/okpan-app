@@ -3,9 +3,9 @@
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
-  import ObjectDetail from "$lib/components/objects/ObjectDetail.svelte";
   import ObjectCard from "$lib/components/objects/ObjectCard.svelte";
-  import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
+  import Table from "$lib/components/base/table/Table.svelte";
+  import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
   import { fly } from "svelte/transition";
@@ -175,9 +175,41 @@
         {/each}
       </div>
     {:else if viewAs === "table"}
-      <ObjectsTable
-        objects={objects.items}
+      <Table
+        items={objects.items}
         columns={[
+          {
+            value: "image",
+            label: null,
+            sortable: false,
+            accessor: (value) => {
+              const src =
+                value.objectsAssets && value.objectsAssets.length > 0
+                  ? value.objectsAssets[0].asset.formats.sm
+                  : null;
+              const id = value.id;
+              return {
+                src,
+                id,
+              };
+            },
+            render: (value) => ({
+              component: TableImagePreview,
+              props: value,
+            }),
+          },
+          {
+            value: "object_id",
+            label: t("common.object-id", { fallback: "Object ID" }),
+            sortable: false,
+            accessor: (value) => {
+              return (
+                value.objectsOntologyFields?.find(
+                  (f) => f.ontologyField.name.content === "object id"
+                )?.value || "Id not set"
+              );
+            },
+          },
           {
             value: "created_at",
             label: t("common.created-at", { fallback: "Created At" }),

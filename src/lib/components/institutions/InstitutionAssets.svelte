@@ -5,6 +5,7 @@
   import BaseLinkedStatus from "$lib/components/base/BaseLinkedStatus.svelte";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import Table from "$lib/components/base/table/Table.svelte";
+  import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
   import { fly } from "svelte/transition";
@@ -141,11 +142,26 @@
         items={assets.items}
         columns={[
           {
+            value: "image",
+            label: null,
+            sortable: false,
+            accessor: (value) => {
+              const src = value.formats?.sm || null;
+              const id = value.id;
+              return {
+                src,
+                id,
+              };
+            },
+            render: (value) => ({
+              component: TableImagePreview,
+              props: value,
+            }),
+          },
+          {
             value: "filename",
             label: t("common.filename", { fallback: "File name" }),
             sortable: true,
-            // render: (value) =>
-            //   formatDate(+value, translationState.currentLocale, true),
           },
           {
             value: "created_at",
