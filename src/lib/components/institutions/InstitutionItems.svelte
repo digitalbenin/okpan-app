@@ -1,34 +1,71 @@
 <script>
-  import { queryParameters, ssp } from "sveltekit-search-params";
-  import { page } from "$app/state";
-  import { Tabs } from "melt/builders";
+  import { Tabs } from "bits-ui";
   import InstitutionAssets from "./InstitutionAssets.svelte";
   import InstitutionObjects from "./InstitutionObjects.svelte";
   import InstitutionDatasources from "./InstitutionDatasources.svelte";
 
-  // Get data from context
-  let objects = $derived(page.data.objects);
-  let assets = $derived(page.data.assets);
-  let datasources = $derived(page.data.datasources);
+  let { view = $bindable(), params = $bindable(), ...restProps } = $props();
 
-  const params = queryParameters();
-
-  // Configure tabs with real counts
-  let tabsList = [
-    { id: "objects", label: `Objects (${objects.institutionTotal})` },
-    { id: "assets", label: `Assets (${assets.institutionTotal})` },
-    { id: "datasources", label: `Data sources (${datasources.length})` },
-  ];
-
-  const tabs = new Tabs({
-    value: params.iView || "objects",
-    value: "objects",
-    onValueChange: (value) => {
-      params.iView = value;
+  const tabsList = $derived([
+    {
+      value: "objects",
+      label: `Objects [${restProps.objects.totalCount}/${restProps.institution.objectsCount}]`,
     },
-  });
+    {
+      value: "assets",
+      label: `Assets [${restProps.assets.totalCount}/${restProps.institution.assetsCount}]`,
+    },
+    {
+      value: "datasources",
+      label: `Data sources [${restProps.datasources.totalCount}/${restProps.institution.datasourcesCount}]`,
+    },
+  ]);
 </script>
 
+<div class="container-fluid">
+  <div class="row">
+    <div class="col">
+      <Tabs.Root bind:value={view}>
+        <Tabs.List>
+          <ul class="nav nav-underline border-bottom border-top mb-3">
+            {#each tabsList as tab}
+              <Tabs.Trigger forceMount value={tab.value}>
+                {#snippet child({ props })}
+                  <li {...props} class="nav-item">
+                    <div class="nav-link" class:active={view === tab.value}>
+                      {tab.label}
+                    </div>
+                  </li>
+                {/snippet}
+              </Tabs.Trigger>
+            {/each}
+          </ul>
+        </Tabs.List>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          {#each tabsList as tab}
+            <Tabs.Content value={tab.value}>
+              {#if view === "objects"}
+                <InstitutionObjects
+                  institution={restProps.institution}
+                  objects={restProps.objects}
+                  ontologyFields={restProps.ontologyFields}
+                  bind:params
+                />
+              {:else if view === "assets"}
+                <InstitutionAssets />
+              {:else if view === "datasources"}
+                <InstitutionDatasources />
+              {/if}
+            </Tabs.Content>
+          {/each}
+        </div>
+      </Tabs.Root>
+    </div>
+  </div>
+</div>
+<!-- 
 <div class="container-fluid">
   <div class="row">
     <div class="col">
@@ -60,4 +97,4 @@
       </div>
     </div>
   </div>
-</div>
+</div> -->

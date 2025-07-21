@@ -1,3 +1,4 @@
+
 /**
  * Converts an epoch timestamp (milliseconds) or a valid date string to a DD/MM/YYYY string, optionally including time.
  * @param {number | string | Date | null | undefined} input The epoch timestamp or date string.
@@ -112,5 +113,21 @@ function epochToYYYYMMDD(epoch) {
     }
 }
 
-export { epochToDate, epochToYYYYMMDD };
+function formatDate(date, locale = "en", showTime = false) {
+    const options = {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    };
+    if (showTime) {
+        options.hour = "2-digit";
+        options.minute = "2-digit";
+        options.second = "2-digit";
+        options.hour12 = false;
+        options.timeZone = "UTC";
+    }
+    return new Date(date).toLocaleDateString(locale, options);
+}
+
+export { epochToDate, epochToYYYYMMDD, formatDate };
 

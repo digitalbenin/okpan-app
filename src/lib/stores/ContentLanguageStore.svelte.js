@@ -40,7 +40,7 @@ export function getContentLanguageStore() {
     });
 
     const initialize = async () => {
-        console.log("initializing languages");
+        // console.log("initializing languages");
         await fetchLanguages();
         contentLanguageState.isInitialized = true;
     };
@@ -48,7 +48,7 @@ export function getContentLanguageStore() {
     const fetchLanguages = async () => {
         contentLanguageState.isLoading = true;
         const result = await executeQuery('languages', 'list');
-        console.log(result);
+        // console.log(result);
 
         contentLanguageState.languages = result?.result || [];
         contentLanguageState.isLoading = false;
