@@ -18,17 +18,38 @@
     ...restProps
   } = $props();
 
-  let value = $state();
+  const types = $derived([
+    {
+      value: "all",
+      label: t("common.all", { fallback: "All" }),
+    },
+    {
+      value: "institutions",
+      label: t("common.institutions", { fallback: "Institutions" }),
+    },
+    { value: "objects", label: t("common.objects", { fallback: "Objects" }) },
+    { value: "assets", label: t("common.assets", { fallback: "Assets" }) },
+  ]);
+
+  // svelte-ignore state_referenced_locally
+  let typesValue = $state(types[0].value);
+
   let searchQuery = $state("");
   let open = $state(false);
 
   const filteredItems = resource(
-    [() => searchQuery, () => value],
-    async ([searchQuery, value]) => {
+    [() => searchQuery, () => typesValue],
+    async ([searchQuery, typesValue]) => {
       if (!searchQuery.trim() || searchQuery.length < minSearchLength) {
         return [];
       }
-      const response = await getSearch({ query: searchQuery, projectId }); // add filter by type value
+      const entityTypes = typesValue !== "all" ? [typesValue] : null;
+
+      const response = await getSearch({
+        query: searchQuery,
+        projectId,
+        entityTypes,
+      }); // add filter by type value
       return response.items.map((d) => ({
         ...d,
         label: d.title,
@@ -41,15 +62,6 @@
       initialValue: [],
     }
   );
-
-  const types = $derived([
-    {
-      value: "institution",
-      label: t("common.institutions", { fallback: "Institutions" }),
-    },
-    { value: "object", label: t("common.objects", { fallback: "Objects" }) },
-    { value: "asset", label: t("common.assets", { fallback: "Assets" }) },
-  ]);
 
   const icons = {
     institution: "bank2",
@@ -85,6 +97,8 @@
       }
     }
   }
+
+  $inspect(typesValue, "typesValue");
 </script>
 
 <Combobox.Root
@@ -114,11 +128,7 @@
       onfocus={handleInputFocus}
     />
     <div class="input-group-text p-0 bg-white">
-      <BaseSelect
-        bind:value
-        items={types}
-        placeholder={t("common.all", { fallback: "All" })}
-        inputClass="border-0"
+      <BaseSelect bind:value={typesValue} items={types} inputClass="border-0"
       ></BaseSelect>
     </div>
   </div>

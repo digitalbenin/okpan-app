@@ -3,7 +3,6 @@ import { executeQuery } from './GraphqlUtils.js';
 // Main actions query (includes all actions)
 export const getActions = async (options = {}) => {
     const result = await executeQuery('actions', 'listVisualizableActions', options);
-    console.log("vizactionres", result);
     if (result && result.result) {
         return { items: result.result || [], totalCount: result.result.length || 0 };
     }
