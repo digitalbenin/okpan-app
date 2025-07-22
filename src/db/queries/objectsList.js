@@ -90,7 +90,7 @@ export const createObjectsListQuery = (db, drizzleResult) => {
             }
 
             // Build queries to get all ontology and research fields (no filtering)
-            const ontologyFieldsQuery = sql`(SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'ontology_field_name_id', ot.name_id, 'ontology_field_name_content', ot_name_texts.content )) FROM ${dbSchema.objects_ontology_fields} oof JOIN ${dbSchema.ontology_fields} ot ON oof.field_id = ot.id JOIN ${dbSchema.texts} ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = ${dbSchema.objects.id})`;
+            const ontologyFieldsQuery = sql`(SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'primary', oof."primary", 'default_description', oof.default_description, 'ontology_field_name_id', ot.name_id, 'ontology_field_name_content', ot_name_texts.content )) FROM ${dbSchema.objects_ontology_fields} oof JOIN ${dbSchema.ontology_fields} ot ON oof.field_id = ot.id JOIN ${dbSchema.texts} ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = ${dbSchema.objects.id})`;
 
             const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content )) FROM ${dbSchema.objects_research_fields} orf JOIN ${dbSchema.research_fields} rf ON orf.field_id = rf.id JOIN ${dbSchema.texts} rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN ${dbSchema.vocabularies} v ON orf.vocabulary_id = v.id LEFT JOIN ${dbSchema.texts} v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = ${dbSchema.objects.id})`;
 
@@ -215,6 +215,8 @@ export const createObjectsListQuery = (db, drizzleResult) => {
                         objectsOntologyFields = parsedFields.map(oof => ({
                             id: oof.id,
                             value: oof.value,
+                            primary: oof.primary,
+                            default_description: oof.default_description,
                             ontologyField: {
                                 id: oof.field_id, // This is the ontology_field_id
                                 name: { content: oof.ontology_field_name_content }

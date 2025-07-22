@@ -11,12 +11,14 @@ export const getObjects = async (options) => {
     if (result && result.result) {
         return { items: result.result.items || [], totalCount: result.result.totalCount || 0 };
     }
+
     return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch objects or unexpected response structure") };
 };
 
 
 export const getTotalObjectsForInstitution = async (projectId, institutionId) => {
     const result = await executeQuery('objects', 'list', { projectId, institutionId, pageSize: 1, page: 0 });
+
     if (result && result.result && typeof result.result.totalCount === 'number') {
         return { totalCount: result.result.totalCount };
     }

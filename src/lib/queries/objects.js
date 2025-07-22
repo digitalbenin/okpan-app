@@ -66,6 +66,8 @@ export const objectsOperations = {
       objectsOntologyFields {
         id
         value
+        primary
+        default_description
         ontologyField {
           name {
             content
