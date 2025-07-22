@@ -8,6 +8,7 @@ export const load = async ({ params, depends }) => {
 
     const objectId = params.object_id;
     const object = await getObjectById(objectId);
+
     depends("custom:object");
     return {
         object: object.result,
