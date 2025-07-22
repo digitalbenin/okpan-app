@@ -6,6 +6,7 @@
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import Table from "$lib/components/base/table/Table.svelte";
   import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
+  import TableLink from "$lib/components/base/table/TableLink.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
   import { fly } from "svelte/transition";
@@ -16,8 +17,6 @@
 
   let viewAs = $state("grid");
   let selectedAssets = $state([]);
-
-  $inspect(selectedAssets);
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -162,6 +161,18 @@
             value: "filename",
             label: t("common.filename", { fallback: "File name" }),
             sortable: true,
+            accessor: (value) => {
+              const text = value.filename;
+              const url = `/projects/${value.project_id}/institutions/${value.institution_id}/assets/${value.id}`;
+              return {
+                url,
+                text,
+              };
+            },
+            render: (value) => ({
+              component: TableLink,
+              props: value,
+            }),
           },
           {
             value: "created_at",

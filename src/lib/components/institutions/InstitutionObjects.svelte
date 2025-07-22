@@ -6,6 +6,7 @@
   import ObjectCard from "$lib/components/objects/ObjectCard.svelte";
   import Table from "$lib/components/base/table/Table.svelte";
   import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
+  import TableLink from "$lib/components/base/table/TableLink.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
   import { fly } from "svelte/transition";
@@ -16,8 +17,6 @@
 
   let viewAs = $state("table");
   let selectedObjects = $state([]);
-
-  $inspect(selectedObjects);
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -203,12 +202,20 @@
             label: t("common.object-id", { fallback: "Object ID" }),
             sortable: false,
             accessor: (value) => {
-              return (
+              const text =
                 value.objectsOntologyFields?.find(
                   (f) => f.ontologyField.name.content === "object id"
-                )?.value || "Id not set"
-              );
+                )?.value || "Id not set";
+              const url = `/projects/${value.project_id}/institutions/${value.institution_id}/objects/${value.id}`;
+              return {
+                url,
+                text,
+              };
             },
+            render: (value) => ({
+              component: TableLink,
+              props: value,
+            }),
           },
           {
             value: "created_at",
