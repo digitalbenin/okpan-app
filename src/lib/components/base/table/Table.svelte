@@ -2,7 +2,6 @@
   import TableInput from "./TableInput.svelte";
   import TableInputBatch from "./TableInputBatch.svelte";
   import { getRenderResult } from "./utils.js";
-  // import TablePreview from "./TablePreview.svelte";
 
   let {
     items,
@@ -12,26 +11,6 @@
     selected = $bindable(),
     selectable = true,
   } = $props();
-
-  // const object_id_accessor = (object) => {
-  //   return (
-  //     object.objectsOntologyFields?.find(
-  //       (f) => f.ontologyField.name.content === "object id"
-  //     )?.value || "Id not set"
-  //   );
-  // };
-
-  // const defaultColumns = [
-  //   {
-  //     value: "object_id",
-  //     label: "Object id",
-  //     accessor: (value) => value,
-  //     render: (value) => ({
-  //       component: ObjectsTablePreview,
-  //       props: { object: value },
-  //     }),
-  //   },
-  // ];
 
   const defaultColumns = [];
   const derivedColumns = $derived([...defaultColumns, ...columns]);

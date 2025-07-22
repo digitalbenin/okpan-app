@@ -60,7 +60,11 @@
                   bind:params
                 />
               {:else if view === "datasources"}
-                <InstitutionDatasources />
+                <InstitutionDatasources
+                  institution={restProps.institution}
+                  datasources={restProps.datasources}
+                  bind:params
+                />
               {/if}
             </Tabs.Content>
           {/each}
