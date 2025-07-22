@@ -1,13 +1,10 @@
 <script>
   import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { getObjectIdentifier } from "$lib/utils/objects.js";
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   const { object } = $props();
   const institution = $derived(object.institution?.name.content);
-  const id = $derived(
-    object.objectsOntologyFields?.find(
-      (f) => f.ontologyField.name.content === "object id"
-    )?.value || "Id not set"
-  );
+  const id = $derived(getObjectIdentifier(object));
 
   const image = $derived(object.objectsAssets[0]?.asset);
 </script>
