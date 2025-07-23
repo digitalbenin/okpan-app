@@ -63,7 +63,13 @@ const ENTITY_NAME_STRATEGIES = {
     assets: (e) => e.filename || `Asset ${e.id.slice(-6)}`,
     genericAssets: (e) => e.filename || `Generic Asset ${e.id.slice(-6)}`,
     datasources: (e) => e.name?.content || `Datasource ${e.id.slice(-6)}`,
-    texts: (e) => `"${(e.content || '').substring(0, 30)}${e.content?.length > 30 ? '...' : ''}"`
+    texts: (e) => `"${(e.content || '').substring(0, 30)}${e.content?.length > 30 ? '...' : ''}`,
+    object_display_fields: (e) => {
+        if (e.property_name) return `Property: ${e.property_name}`;
+        if (e.ontologyField?.name?.content) return `Ontology: ${e.ontologyField.name.content}`;
+        if (e.researchField?.name?.content) return `Research: ${e.researchField.name.content}`;
+        return `Display Field ${e.id.slice(-6)}`;
+    }
 };
 
 const SECONDARY_ENTITY_CONFIGS = {
@@ -85,6 +91,28 @@ const SECONDARY_ENTITY_CONFIGS = {
 };
 
 const ENTITY_RELATIONSHIPS = {
+    object_display_fields: {
+        type: 'project_setting',
+        async findParent(displayFieldId, db) {
+            const displayField = await db.query.object_display_fields.findFirst({
+                where: (entity, { eq }) => eq(entity.id, displayFieldId),
+                with: {
+                    project: { with: { title: true } },
+                    ontologyField: { with: { name: true } },
+                    researchField: { with: { name: true } }
+                }
+            });
+            if (displayField?.project) {
+                return {
+                    type: 'project',
+                    id: displayField.project.id,
+                    entity: displayField.project
+                };
+            }
+            return null;
+        }
+    },
+
     texts: {
         type: 'referenced',
         async findParents(textId, db) {
@@ -160,7 +188,8 @@ const ENTITY_HIERARCHIES = {
     assets: async (id, db) => ({ type: 'assets', id, entity: await db.query.assets.findFirst({ where: (e, { eq }) => eq(e.id, id) }) }),
     genericAssets: async (id, db) => ({ type: 'genericAssets', id, entity: await db.query.genericAssets.findFirst({ where: (e, { eq }) => eq(e.id, id) }) }),
     datasources: async (id, db) => ({ type: 'datasources', id, entity: await db.query.datasources.findFirst({ where: (e, { eq }) => eq(e.id, id), with: { name: true } }) }),
-    texts: async (id, db) => ({ type: 'texts', id, entity: await db.query.texts.findFirst({ where: (e, { eq }) => eq(e.id, id) }) })
+    texts: async (id, db) => ({ type: 'texts', id, entity: await db.query.texts.findFirst({ where: (e, { eq }) => eq(e.id, id) }) }),
+    object_display_fields: async (id, db) => ({ type: 'object_display_fields', id, entity: await db.query.object_display_fields.findFirst({ where: (e, { eq }) => eq(e.id, id), with: { ontologyField: { with: { name: true } }, researchField: { with: { name: true } } } }) })
 };
 
 const getEntityName = (type, entity) => {
@@ -179,10 +208,24 @@ export const generateActionMetadata = async (actionType, entityType, entityId, d
     try {
         const mappedActionType = mapActionType(actionType, entityType);
 
-        // Handle relationships
+        // Handle child entities that should reference their parent
         const relationship = ENTITY_RELATIONSHIPS[entityType];
         if (relationship) {
-            if (relationship.type === 'referenced') {
+            if (relationship.type === 'project_setting') {
+                const parent = await relationship.findParent(entityId, db);
+                if (parent) {
+                    const metadata = {
+                        referenced_id: parent.id,
+                        referenced_type: parent.type,
+                        referenced_name: getEntityName(parent.type, parent.entity),
+                        action_type: 'edit' // Always edit for project settings, regardless of CREATE/UPDATE/DELETE
+                    };
+
+
+
+                    return JSON.stringify(metadata);
+                }
+            } else if (relationship.type === 'referenced') {
                 const parent = await relationship.findParents(entityId, db);
                 if (parent) {
                     return JSON.stringify({
@@ -229,22 +272,38 @@ export const generateActionMetadata = async (actionType, entityType, entityId, d
             }
         }
 
-        // Handle regular entities
+        // Handle parent entities that should reference themselves
         const hierarchyFn = ENTITY_HIERARCHIES[entityType];
         if (hierarchyFn) {
             const entityData = await hierarchyFn(entityId, db);
-            return JSON.stringify({
-                referenced_id: entityId,
-                referenced_type: entityType,
-                referenced_name: getEntityName(entityType, entityData.entity),
-                action_type: mappedActionType
-            });
+            if (entityData?.entity) {
+                return JSON.stringify({
+                    referenced_id: entityId,
+                    referenced_type: entityType,
+                    referenced_name: getEntityName(entityType, entityData.entity),
+                    action_type: mappedActionType
+                });
+            }
         }
 
-        return null;
+        // Fallback: ensure ALL actions have metadata, even if we can't find specific entity details
+        // This handles any entity types not explicitly covered above
+        return JSON.stringify({
+            referenced_id: entityId,
+            referenced_type: entityType,
+            referenced_name: `${entityType} ${entityId.slice(-6)}`,
+            action_type: mappedActionType
+        });
+
     } catch (error) {
         console.error('Error generating action metadata:', error);
-        return null;
+        // Even in error cases, provide basic metadata rather than null
+        return JSON.stringify({
+            referenced_id: entityId,
+            referenced_type: entityType,
+            referenced_name: `${entityType} ${entityId.slice(-6)}`,
+            action_type: mapActionType(actionType, entityType)
+        });
     }
 };
 
