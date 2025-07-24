@@ -82,6 +82,8 @@ export const load = async ({ params, depends, url }) => {
         // getAvaliableLocalesForProject(projectId),
     ]);
 
+    console.log(objectsData)
+
     const res = {
         assets: assetsData,
         objects: objectsData,
