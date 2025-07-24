@@ -12,7 +12,8 @@ import {
     createDatasourcesListQuery,
     createObjectsListQuery,
     createAssetsListQuery,
-    createEntitySearchQuery
+    createEntitySearchQuery,
+    createObjectDisplayFieldsTransformedQuery
 } from './queries';
 
 export function createGraphQLSchema(db) {
@@ -84,6 +85,7 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Query._fields.objectsList = createObjectsListQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.assetsList = createAssetsListQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.entitySearch = createEntitySearchQuery(db, drizzleResult);
+    drizzleResult.schema._typeMap.Query._fields.objectDisplayFieldsTransformed = createObjectDisplayFieldsTransformedQuery(db, drizzleResult);
 
     // Add custom bulk mutations
     drizzleResult.schema._typeMap.Mutation._fields.bulkUpdateInstitutions = createInstitutionsBulkUpdateMutation(db, drizzleResult);
