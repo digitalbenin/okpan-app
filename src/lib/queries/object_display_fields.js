@@ -120,7 +120,7 @@ export const objectDisplayFieldsOperations = {
       projectId: "Optional ID of the project to filter by"
     },
     query: `query GetObjectDisplayFieldsTransformed($projectId: String) {
-  objectDisplayFieldsTransformed(project_id: $projectId) {
+  result:objectDisplayFieldsTransformed(project_id: $projectId) {
     id
     type
     value

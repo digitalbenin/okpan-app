@@ -1,7 +1,7 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 
 export const getDisplayFields = async (params = {}) => {
-    const response = await executeQuery('object_display_fields', 'listByProject', params);
+    const response = await executeQuery('object_display_fields', 'list', params);
     return response;
 };
 

@@ -17,22 +17,14 @@
       label: t("common.created-at", { fallback: "Created At" }),
       group: t("common.object-information", { fallback: "Object Information" }),
       groupType: "propertyName",
-      id: getSelectedFieldsId(
-        displayFields.result,
-        "property_name",
-        "created_at"
-      ),
+      id: getSelectedFieldsId(displayFields.result, "created_at"),
     },
     {
       value: "updated_at",
       label: t("common.updated-at", { fallback: "Updated At" }),
       group: t("common.object-information", { fallback: "Object Information" }),
       groupType: "propertyName",
-      id: getSelectedFieldsId(
-        displayFields.result,
-        "property_name",
-        "updated_at"
-      ),
+      id: getSelectedFieldsId(displayFields.result, "updated_at"),
     },
   ]);
 
@@ -43,25 +35,19 @@
         label: researchField.name.content,
         group: t("common.research-fields", { fallback: "Research Fields" }),
         groupType: "researchFieldId",
-        id: getSelectedFieldsId(
-          displayFields.result,
-          "research_field_id",
-          researchField.id
-        ),
+        id: getSelectedFieldsId(displayFields.result, researchField.id),
       };
     })
   );
 
   let fieldsSelected = $state(
-    displayFields.result.map(
-      (field) => field.property_name || field.research_field_id
-    ) || []
+    displayFields.result.map((field) => field.value) || []
   );
 
   let fieldsItems = $state([...objectFieldsGroup, ...researchFieldsGroup]);
 
-  function getSelectedFieldsId(fields, type, value) {
-    const elm = fields.find((field) => field[type] === value);
+  function getSelectedFieldsId(fields, value) {
+    const elm = fields.find((field) => field.value === value);
     return elm ? elm.id : null;
   }
 

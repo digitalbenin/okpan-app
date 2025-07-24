@@ -29,26 +29,28 @@
     };
   };
 
-  // const parsedFields = $derived.by(() => {
-  //   displayFields.result.map((field) => {
-  //     if (field.property_name) {
-  //       return {
-  //         label: t(`common.${field.property_name}`, { fallback: field.property_name}),
-  //         value:formatDate(+object[field.property_name], translationState.currentLocale, true),
-  //       };
-  //     } else if (field.research_field_id) {
-  //       const research_field = object.researchFields.find(
-  //         (rf) => rf.id === field.research_field_id
-  //       );
-  //       return {
-  //         label: field.research_field.name.content,
-  //         value: field.value,
-  //       };
-  //     }
-  //     return null;
-  //   })
-  // });
-  // $inspect(object);
+  const parsedFields = $derived.by(() => {
+    return displayFields.result.map((field) => {
+      if (field.type === "object_property") {
+        return {
+          label: t(`common.${field.value}`, { fallback: field.value }),
+          value: formatDate(
+            +object[field.value],
+            translationState.currentLocale,
+            true
+          ),
+        };
+      } else if (field.type === "research_field") {
+        const research_field = object.objectsResearchFields.find(
+          (rf) => rf.researchField.id === field.value
+        );
+        return {
+          label: research_field.researchField.name.content,
+          value: research_field.vocabulary.option.content,
+        };
+      }
+    });
+  });
 </script>
 
 <div
@@ -107,14 +109,12 @@
       class="link-dark">{id}</a
     >
   </div>
-  {#each object.displayFields as field}
+  {#each parsedFields as field}
     <div>
       <div class="fs-7 text-muted">
-        <!-- {t("common.latest-update", { fallback: "Latest Update" })} -->
         {field.label}
       </div>
       <div>
-        <!-- {formatDate(+object.updated_at, translationState.currentLocale, true)} -->
         {field.value}
       </div>
     </div>
