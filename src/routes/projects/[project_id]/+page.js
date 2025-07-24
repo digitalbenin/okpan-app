@@ -4,9 +4,7 @@ import { getObjects } from "$lib/stores/ObjectsUtils.js";
 import { getActions } from "$lib/stores/ActionsUtils.js";
 
 export const load = async ({ params, url, depends }) => {
-    // depends('app:institutions');
     if (!browser) return;
-
 
     const objects = await getObjects({ projectId: params.project_id, orderBy: 'updated_at', direction: 'desc', pageSize: 5 });
     const objectsInProgress = await getObjects({ projectId: params.project_id, orderBy: 'updated_at', direction: 'desc', pageSize: 5, status: 'in progress' });

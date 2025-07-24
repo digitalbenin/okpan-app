@@ -5,19 +5,21 @@
   let {
     open = $bindable(false),
     children,
-    buttonText,
     contentProps,
+    buttonProps,
     title,
+    trigger,
     description,
+    footer,
     size = "",
     ...restProps
   } = $props();
 </script>
 
 <AlertDialog.Root bind:open {...restProps} class="modal d-block">
-  {#if buttonText}
-    <AlertDialog.Trigger>
-      {buttonText}
+  {#if buttonProps || trigger}
+    <AlertDialog.Trigger {...buttonProps}>
+      {@render trigger()}
     </AlertDialog.Trigger>
   {/if}
   <AlertDialog.Portal>
@@ -40,10 +42,18 @@
                   <h1 class="modal-title fs-5">{@render title()}</h1>
                   <AlertDialog.Cancel class="btn-close"></AlertDialog.Cancel>
                 </AlertDialog.Title>
-                <AlertDialog.Description class="modal-body">
-                  {@render description()}
-                </AlertDialog.Description>
-                {@render children?.()}
+                <div class="modal-body">
+                  <AlertDialog.Description>
+                    {@render description()}
+                  </AlertDialog.Description>
+                  {@render children?.()}
+                </div>
+
+                {#if footer}
+                  <div class="modal-footer">
+                    {@render footer()}
+                  </div>
+                {/if}
               </div>
             </div>
           </div>

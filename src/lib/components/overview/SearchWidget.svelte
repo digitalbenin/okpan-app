@@ -97,8 +97,6 @@
       }
     }
   }
-
-  $inspect(typesValue, "typesValue");
 </script>
 
 <Combobox.Root

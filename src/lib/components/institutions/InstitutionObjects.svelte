@@ -7,15 +7,23 @@
   import Table from "$lib/components/base/table/Table.svelte";
   import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
   import TableLink from "$lib/components/base/table/TableLink.svelte";
+  import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
   import { fly } from "svelte/transition";
 
-  let { institution, objects, ontologyFields, params = $bindable() } = $props();
+  let {
+    institution,
+    objects,
+    ontologyFields,
+    researchFields,
+    displayFields,
+    params = $bindable(),
+  } = $props();
 
   const { t, translationState } = getTranslationStore();
 
-  let viewAs = $state("table");
+  let viewAs = $state("grid");
   let selectedObjects = $state([]);
 
   const viewAsOptions = $derived([
@@ -135,6 +143,17 @@
         <BaseSelect items={orderBy} bind:value={params.oOrderBy} size="sm"
         ></BaseSelect>
       </div> -->
+      <div class="d-flex align-items-center text-truncate gap-2">
+        <div class="col-auto fs-7">
+          {t("common.select-fields", { fallback: "Select Fields" })}
+        </div>
+        <InstitutionObjectsFields
+          {displayFields}
+          {ontologyFields}
+          {researchFields}
+          projectId={institution.project_id}
+        />
+      </div>
 
       <div class="d-flex align-items-center gap-2">
         <div class="col-auto fs-7">
@@ -169,7 +188,7 @@
       <div class="row">
         {#each objects.items as object (object.id)}
           <div class="col-4">
-            <ObjectCard {object} />
+            <ObjectCard {object} {displayFields} />
           </div>
         {/each}
       </div>

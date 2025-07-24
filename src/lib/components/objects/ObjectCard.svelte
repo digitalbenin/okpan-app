@@ -2,18 +2,15 @@
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { getObjectIdentifier } from "$lib/utils/objects.js";
   import { formatDate } from "$lib/utils/dates";
   import Swiper from "swiper";
   import { Navigation } from "swiper/modules";
 
-  const { object } = $props();
+  const { object, displayFields } = $props();
   const { t, translationState } = getTranslationStore();
 
-  const id = $derived(
-    object.objectsOntologyFields?.find(
-      (f) => f.ontologyField.name.content === "object id"
-    )?.value || "Id not set"
-  );
+  const id = $derived(getObjectIdentifier(object));
 
   const attachSwiper = (element) => {
     const swiperInstance = new Swiper(element, {
@@ -31,6 +28,27 @@
       swiperInstance.destroy();
     };
   };
+
+  // const parsedFields = $derived.by(() => {
+  //   displayFields.result.map((field) => {
+  //     if (field.property_name) {
+  //       return {
+  //         label: t(`common.${field.property_name}`, { fallback: field.property_name}),
+  //         value:formatDate(+object[field.property_name], translationState.currentLocale, true),
+  //       };
+  //     } else if (field.research_field_id) {
+  //       const research_field = object.researchFields.find(
+  //         (rf) => rf.id === field.research_field_id
+  //       );
+  //       return {
+  //         label: field.research_field.name.content,
+  //         value: field.value,
+  //       };
+  //     }
+  //     return null;
+  //   })
+  // });
+  // $inspect(object);
 </script>
 
 <div
@@ -89,12 +107,16 @@
       class="link-dark">{id}</a
     >
   </div>
-  <div>
-    <div class="fs-7 text-muted">
-      {t("common.latest-update", { fallback: "Latest Update" })}
-    </div>
+  {#each object.displayFields as field}
     <div>
-      {formatDate(+object.updated_at, translationState.currentLocale, true)}
+      <div class="fs-7 text-muted">
+        <!-- {t("common.latest-update", { fallback: "Latest Update" })} -->
+        {field.label}
+      </div>
+      <div>
+        <!-- {formatDate(+object.updated_at, translationState.currentLocale, true)} -->
+        {field.value}
+      </div>
     </div>
-  </div>
+  {/each}
 </div>
