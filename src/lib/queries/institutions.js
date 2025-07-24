@@ -208,7 +208,8 @@ export const institutionsOperations = {
       description: "Description of the institution",
       country: "Country of the institution",
       location: "Location of the institution",
-      status: "Status of the institution"
+      website: "Website URL of the institution",
+      links: "JSON array of additional links"
     },
     mutations: [
       {
@@ -292,6 +293,8 @@ export const institutionsOperations = {
   $locationId: String!
   $project_id: String!
   $status: String
+  $website: String
+  $links: String
 ) {
   insertIntoInstitutions(
     values: [
@@ -302,6 +305,8 @@ export const institutionsOperations = {
         location_id: $locationId
         project_id: $project_id
         status: $status
+        website: $website
+        links: $links
       }
     ]
   ) {
@@ -312,9 +317,11 @@ export const institutionsOperations = {
     location_id
     project_id
     status
+    website
+    links
   }
 }`,
-        useVariables: ["project_id", "status"],
+        useVariables: ["project_id", "status", "website", "links"],
         mapVariables: {
           nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
           descriptionId: { from: "createDescriptionText", path: "insertIntoTexts.0.id" },

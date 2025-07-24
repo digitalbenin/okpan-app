@@ -1,43 +1,307 @@
 <script>
   import { browser } from "$app/environment";
-  import BaseInput from "$lib/components/base/BaseInput.svelte";
+  import { createForm } from "@tanstack/svelte-form";
+  import {
+    getValidator,
+    getFieldValidators,
+  } from "$lib/stores/formValidationUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { page } from "$app/stores";
+  import DynamicArrayField from "$lib/components/base/DynamicArrayField.svelte";
+
   const { t } = getTranslationStore();
+
+  // Get validator for institutions create operation
+  const validator = getValidator("institutions", "create");
+
+  // Get field validators for submit-only validation
+  const fieldValidators = getFieldValidators("institutions", "create");
+
+  // Create form instance
+  const form = createForm(() => ({
+    defaultValues: {
+      project_id: $page.params.project_id,
+      languageId: "",
+      name: "",
+      description: "",
+      country: "",
+      location: "",
+      website: "",
+      links: [{ url: "", label: "" }],
+    },
+    onSubmit: async ({ value }) => {
+      // Transform links array to JSON string for the mutation
+      const transformedValue = {
+        ...value,
+        links: JSON.stringify(
+          value.links?.filter(
+            (link) => link.url?.trim() && link.label?.trim(),
+          ) || [],
+        ),
+      };
+    },
+  }));
 
   function cancel() {
     if (browser) window.history.back();
   }
 </script>
 
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-6">
-      <h2 class="mt-3">
-        {t("common.add-new-institution", { fallback: "Add New Institution" })}
-      </h2>
-      <p>
-        {t("common.add-new-institution-desc", {
-          fallback:
-            "Please fill out the details below to add a new institution to your project.",
-        })}
-      </p>
-      <BaseInput
-        placeholder={t("common.institution-name", {
-          fallback: "Institution Name",
-        })}
-        class="mb-3"
-      ></BaseInput>
+<form
+  onsubmit={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    form.handleSubmit();
+  }}
+>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-6">
+        <h2 class="mt-3">
+          {t("common.add-new-institution", { fallback: "Add New Institution" })}
+        </h2>
+        <p>
+          {t("common.add-new-institution-desc", {
+            fallback:
+              "Please fill out the details below to add a new institution to your project.",
+          })}
+        </p>
+
+        <form.Field name="name" validators={fieldValidators.name}>
+          {#snippet children(field)}
+            <div class="mb-3">
+              <label for={field.name} class="form-label">
+                {t("common.institution-name", { fallback: "Institution Name" })}
+                {#if validator.requiredFields.has("name")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </label>
+              <input
+                id={field.name}
+                name={field.name}
+                type="text"
+                class="form-control {field.state.meta.errors.length > 0
+                  ? 'is-invalid'
+                  : ''}"
+                placeholder={t("common.institution-name", {
+                  fallback: "Institution Name",
+                })}
+                value={field.state.value}
+                oninput={(e) => field.handleChange(e.target.value)}
+                onblur={field.handleBlur}
+              />
+              {#if field.state.meta.errors.length > 0}
+                <div class="invalid-feedback">
+                  {field.state.meta.errors.join(", ")}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </form.Field>
+
+        <form.Field name="description" validators={fieldValidators.description}>
+          {#snippet children(field)}
+            <div class="mb-3">
+              <label for={field.name} class="form-label">
+                {t("common.description", { fallback: "Description" })}
+                {#if validator.requiredFields.has("description")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </label>
+              <textarea
+                id={field.name}
+                name={field.name}
+                class="form-control {field.state.meta.errors.length > 0
+                  ? 'is-invalid'
+                  : ''}"
+                rows="3"
+                placeholder={t("common.description", {
+                  fallback: "Description",
+                })}
+                value={field.state.value}
+                oninput={(e) => field.handleChange(e.target.value)}
+                onblur={field.handleBlur}
+              ></textarea>
+              {#if field.state.meta.errors.length > 0}
+                <div class="invalid-feedback">
+                  {field.state.meta.errors.join(", ")}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </form.Field>
+
+        <form.Field name="country" validators={fieldValidators.country}>
+          {#snippet children(field)}
+            <div class="mb-3">
+              <label for={field.name} class="form-label">
+                {t("common.country", { fallback: "Country" })}
+                {#if validator.requiredFields.has("country")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </label>
+              <input
+                id={field.name}
+                name={field.name}
+                type="text"
+                class="form-control {field.state.meta.errors.length > 0
+                  ? 'is-invalid'
+                  : ''}"
+                placeholder={t("common.country", {
+                  fallback: "Country",
+                })}
+                value={field.state.value}
+                oninput={(e) => field.handleChange(e.target.value)}
+                onblur={field.handleBlur}
+              />
+              {#if field.state.meta.errors.length > 0}
+                <div class="invalid-feedback">
+                  {field.state.meta.errors.join(", ")}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </form.Field>
+
+        <form.Field name="location" validators={fieldValidators.location}>
+          {#snippet children(field)}
+            <div class="mb-3">
+              <label for={field.name} class="form-label">
+                {t("common.location", { fallback: "Location" })}
+                {#if validator.requiredFields.has("location")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </label>
+              <input
+                id={field.name}
+                name={field.name}
+                type="text"
+                class="form-control {field.state.meta.errors.length > 0
+                  ? 'is-invalid'
+                  : ''}"
+                placeholder={t("common.location", {
+                  fallback: "Location",
+                })}
+                value={field.state.value}
+                oninput={(e) => field.handleChange(e.target.value)}
+                onblur={field.handleBlur}
+              />
+              {#if field.state.meta.errors.length > 0}
+                <div class="invalid-feedback">
+                  {field.state.meta.errors.join(", ")}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </form.Field>
+
+        <form.Field name="website" validators={fieldValidators.website}>
+          {#snippet children(field)}
+            <div class="mb-3">
+              <label for={field.name} class="form-label">
+                {t("common.website", { fallback: "Website" })}
+                {#if validator.requiredFields.has("website")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </label>
+              <input
+                id={field.name}
+                name={field.name}
+                type="text"
+                class="form-control {field.state.meta.errors.length > 0
+                  ? 'is-invalid'
+                  : ''}"
+                placeholder="https://example.com"
+                value={field.state.value}
+                oninput={(e) => field.handleChange(e.target.value)}
+                onblur={field.handleBlur}
+              />
+              {#if field.state.meta.errors.length > 0}
+                <div class="invalid-feedback">
+                  {field.state.meta.errors.join(", ")}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </form.Field>
+
+        <form.Field name="links" validators={fieldValidators.links}>
+          {#snippet children(field)}
+            <div class="mb-3">
+              <p class="form-label">
+                {t("common.links", { fallback: "Links" })}
+                {#if validator.requiredFields.has("links")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </p>
+              <DynamicArrayField
+                bind:value={field.state.value}
+                itemFields={[
+                  {
+                    name: "url",
+                    label: "URL",
+                    type: "text",
+                    placeholder: "https://example.com",
+                    required: false,
+                    colSize: 7,
+                  },
+                  {
+                    name: "label",
+                    label: "Label",
+                    type: "text",
+                    placeholder: "Website, Online Catalogue, etc.",
+                    required: false,
+                    colSize: 4,
+                  },
+                ]}
+                addButtonText="Add Link"
+                itemTitle="Link"
+                minItems={0}
+                maxItems={10}
+                errors={field.state.meta.errors}
+                onChange={(newValue) => {
+                  field.handleChange(newValue);
+                }}
+              />
+            </div>
+          {/snippet}
+        </form.Field>
+
+        <!-- Show form-level errors and debug state -->
+        <form.Subscribe
+          selector={(state) => ({
+            errors: state.errors,
+            canSubmit: state.canSubmit,
+            isSubmitting: state.isSubmitting,
+            fieldMeta: state.fieldMeta,
+          })}
+        >
+          {#snippet children(formState)}
+            {#if formState.errors.length > 0}
+              <div class="alert alert-danger">
+                <strong>Please fix the following errors:</strong>
+                <ul class="mb-0 mt-1">
+                  {#each formState.errors as error}
+                    <li>{error}</li>
+                  {/each}
+                </ul>
+              </div>
+            {/if}
+          {/snippet}
+        </form.Subscribe>
+      </div>
     </div>
   </div>
-</div>
-<div
-  class="position-absolute bottom-0 start-0 w-100 bg-light z-1 p-3 d-flex justify-content-between"
->
-  <button class="btn btn-outline-secondary" onclick={cancel}>
-    <i class="bi bi-chevron-left"></i>
-    {t("common.cancel", { fallback: "Cancel" })}</button
+
+  <div
+    class="position-absolute bottom-0 start-0 w-100 bg-light z-1 p-3 d-flex justify-content-between"
   >
-  <button class="btn btn-success">
-    {t("common.confirm", { fallback: "Confirm" })}</button
-  >
-</div>
+    <button type="button" class="btn btn-outline-secondary" onclick={cancel}>
+      <i class="bi bi-chevron-left"></i>
+      {t("common.cancel", { fallback: "Cancel" })}
+    </button>
+    <button type="submit" class="btn btn-success">
+      {t("common.confirm", { fallback: "Confirm" })}
+    </button>
+  </div>
+</form>

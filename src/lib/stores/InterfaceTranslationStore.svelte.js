@@ -151,13 +151,13 @@ export function getTranslationStore() {
 
         // Check if namespace exists
         if (!translationState.translations[namespace]) {
-            console.warn(`Namespace "${namespace}" not found`);
+            //console.warn(`Namespace "${namespace}" not found`);
             return fallback || key;
         }
 
         // Check if key exists in namespace
         if (!translationState.translations[namespace][key]) {
-            console.warn(`Key "${key}" not found in namespace "${namespace}"`);
+            //console.warn(`Key "${key}" not found in namespace "${namespace}"`);
             return fallback || key;
         }
 

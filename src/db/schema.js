@@ -166,7 +166,7 @@ export const objectDisplayFieldsRelations = relations(object_display_fields, ({ 
 // Institutions table
 export const institutions = sqliteTable('institutions', {
     ...commonFields,
-    name_id: text('name_id').references(() => texts.id),
+    name_id: text('name_id').notNull().references(() => texts.id),
     description_id: text('description_id').references(() => texts.id),
     country_id: text('country_id').references(() => texts.id),
     location_id: text('location_id').references(() => texts.id),
