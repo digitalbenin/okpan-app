@@ -20,8 +20,6 @@
       label: `Data sources [${restProps.datasources.totalCount}/${restProps.institution.datasourcesCount}]`,
     },
   ]);
-
-  $inspect(restProps.displayFields);
 </script>
 
 <div class="container-fluid">

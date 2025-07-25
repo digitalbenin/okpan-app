@@ -46,11 +46,11 @@
         );
         if (!research_field)
           return {
-            label: t(`common.field-missing`, { fallback: "Missing field" }),
+            label: field.name.content,
             value: null,
           };
         return {
-          label: research_field.researchField.name.content,
+          label: field.name.content,
           value: research_field.vocabulary.option.content,
         };
       }
@@ -119,8 +119,11 @@
       <div class="fs-7 text-muted">
         {field.label}
       </div>
-      <div>
-        {field.value}
+      <div
+        class:text-black-50={field.value === null}
+        class:fst-italic={field.value === null}
+      >
+        {field.value || t("common.no-value", { fallback: "No value" })}
       </div>
     </div>
   {/each}

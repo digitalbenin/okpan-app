@@ -78,7 +78,7 @@
       } else if (field.type === "research_field") {
         return {
           value: field.value,
-          label: field.name?.content,
+          label: field.name.content,
           //   sortable: true,
           accessor: (value) => {
             const research_field = value.objectsResearchFields.find(
@@ -92,8 +92,6 @@
       }
     });
   });
-
-  $inspect(optionalColumns);
 </script>
 
 <Table
