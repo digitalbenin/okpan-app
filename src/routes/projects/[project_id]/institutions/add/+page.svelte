@@ -1,5 +1,5 @@
 <script>
-  import { browser } from "$app/environment";
+  import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { createForm } from "@tanstack/svelte-form";
   import {
     getValidator,
@@ -11,6 +11,7 @@
   import { Tabs } from "melt/builders";
   import { createInstitution } from "$lib/stores/InstitutionsUtils.js";
   import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
+  import { goto } from "$app/navigation";
 
   const { t } = getTranslationStore();
 
@@ -117,21 +118,15 @@
           }
         }
         await Promise.all(translationPromises);
-
-        console.log(
-          "Institution and translations created successfully!",
-          institution,
-        );
         // TODO: Add navigation or success UI here
+        goto(
+          `/projects/${transformedValue.project_id}/institutions/${institution.id}`,
+        );
       } catch (error) {
         console.error("Error creating institution:", error);
       }
     },
   }));
-
-  function cancel() {
-    if (browser) window.history.back();
-  }
 </script>
 
 <form
@@ -161,7 +156,8 @@
             <button
               {...tabs.getTrigger("default")}
               type="button"
-              class="nav-link {activeLanguageCode === 'default'
+              class="btn btn-link rounded-0 text-decoration-none {activeLanguageCode ===
+              'default'
                 ? 'text-primary border-0 border-bottom border-primary'
                 : 'text-dark'}"
               role="tab"
@@ -174,7 +170,8 @@
               <button
                 {...tabs.getTrigger(lang.id)}
                 type="button"
-                class="nav-link {activeLanguageCode === lang.id
+                class="btn btn-link rounded-0 text-decoration-none {activeLanguageCode ===
+                lang.id
                   ? 'text-primary border-0 border-bottom border-primary'
                   : 'text-dark'}"
                 role="tab"
@@ -192,14 +189,14 @@
               <form.Field name="name" validators={fieldValidators.name}>
                 {#snippet children(field)}
                   <div class="mb-3">
-                    <label for={field.name} class="form-label">
+                    <p class="form-label" for={field.name}>
                       {t("common.institution-name", {
                         fallback: "Institution Name",
                       })} ({defaultLanguage?.code || "default"})
                       {#if validator.requiredFields.has("name")}
                         <span class="text-danger">*</span>
                       {/if}
-                    </label>
+                    </p>
                     <input
                       id={field.name}
                       name={field.name}
@@ -229,13 +226,13 @@
               >
                 {#snippet children(field)}
                   <div class="mb-3">
-                    <label for={field.name} class="form-label">
+                    <p class="form-label" for={field.name}>
                       {t("common.description", { fallback: "Description" })} ({defaultLanguage?.code ||
                         "default"})
                       {#if validator.requiredFields.has("description")}
                         <span class="text-danger">*</span>
                       {/if}
-                    </label>
+                    </p>
                     <textarea
                       id={field.name}
                       name={field.name}
@@ -262,13 +259,13 @@
               <form.Field name="country" validators={fieldValidators.country}>
                 {#snippet children(field)}
                   <div class="mb-3">
-                    <label for={field.name} class="form-label">
+                    <p class="form-label" for={field.name}>
                       {t("common.country", { fallback: "Country" })} ({defaultLanguage?.code ||
                         "default"})
                       {#if validator.requiredFields.has("country")}
                         <span class="text-danger">*</span>
                       {/if}
-                    </label>
+                    </p>
                     <input
                       id={field.name}
                       name={field.name}
@@ -295,13 +292,13 @@
               <form.Field name="location" validators={fieldValidators.location}>
                 {#snippet children(field)}
                   <div class="mb-3">
-                    <label for={field.name} class="form-label">
+                    <p class="form-label" for={field.name}>
                       {t("common.location", { fallback: "Location" })} ({defaultLanguage?.code ||
                         "default"})
                       {#if validator.requiredFields.has("location")}
                         <span class="text-danger">*</span>
                       {/if}
-                    </label>
+                    </p>
                     <input
                       id={field.name}
                       name={field.name}
@@ -332,11 +329,11 @@
             <div {...tabs.getContent(lang.id)}>
               <div class="pt-2">
                 <div class="mb-3">
-                  <label class="form-label">
+                  <p class="form-label">
                     {t("common.institution-name", {
                       fallback: "Institution Name",
                     })} ({lang.code})
-                  </label>
+                  </p>
                   <input
                     type="text"
                     class="form-control"
@@ -348,9 +345,9 @@
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">
+                  <p class="form-label">
                     {t("common.description", { fallback: "Description" })} ({lang.code})
-                  </label>
+                  </p>
                   <textarea
                     class="form-control"
                     rows="3"
@@ -362,9 +359,9 @@
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">
+                  <p class="form-label">
                     {t("common.country", { fallback: "Country" })} ({lang.code})
-                  </label>
+                  </p>
                   <input
                     type="text"
                     class="form-control"
@@ -376,9 +373,9 @@
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">
+                  <p class="form-label">
                     {t("common.location", { fallback: "Location" })} ({lang.code})
-                  </label>
+                  </p>
                   <input
                     type="text"
                     class="form-control"
@@ -398,12 +395,12 @@
           <form.Field name="website" validators={fieldValidators.website}>
             {#snippet children(field)}
               <div class="mb-3">
-                <label for={field.name} class="form-label">
+                <p class="form-label" for={field.name}>
                   {t("common.website", { fallback: "Website" })}
                   {#if validator.requiredFields.has("website")}
                     <span class="text-danger">*</span>
                   {/if}
-                </label>
+                </p>
                 <input
                   id={field.name}
                   name={field.name}
@@ -495,14 +492,12 @@
   </div>
 
   <div
-    class="position-absolute bottom-0 start-0 w-100 bg-light z-1 p-3 d-flex justify-content-between"
+    class="position-absolute bottom-0 start-0 w-100 bg-light z-1 p-3 d-flex justify-content-end"
   >
-    <button type="button" class="btn btn-outline-secondary" onclick={cancel}>
-      <i class="bi bi-chevron-left"></i>
-      {t("common.cancel", { fallback: "Cancel" })}
-    </button>
-    <button type="submit" class="btn btn-success">
-      {t("common.confirm", { fallback: "Confirm" })}
-    </button>
+    <BaseButton
+      type="submit"
+      class="btn btn-success"
+      text={t("common.confirm", { fallback: "Confirm" })}
+    />
   </div>
 </form>
