@@ -207,7 +207,7 @@
   {#if data.objects.totalCount}
     <div class="border-bottom mb-3">
       {data.objects.totalCount}
-      {#if data.objects.count > 1}
+      {#if data.objects.totalCount > 1}
         {t("common.objects", { fallback: "objects" })}
       {:else}
         {t("common.object", { fallback: "object" })}
