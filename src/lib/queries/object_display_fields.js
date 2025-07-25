@@ -124,6 +124,16 @@ export const objectDisplayFieldsOperations = {
     id
     type
     value
+    name {
+      id
+      content
+      original_language_id
+      translations {
+        id
+        language_id
+        content
+      }
+    }
   }
 }`
   }
