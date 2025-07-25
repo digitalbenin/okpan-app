@@ -294,7 +294,7 @@ export const institutionsOperations = {
   $project_id: String!
   $status: String
   $website: String
-  $links: String
+  $links: JSON
 ) {
   insertIntoInstitutions(
     values: [

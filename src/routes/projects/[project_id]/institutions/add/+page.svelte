@@ -9,7 +9,8 @@
   import { page } from "$app/stores";
   import DynamicArrayField from "$lib/components/base/DynamicArrayField.svelte";
   import { Tabs } from "melt/builders";
-  import { translationsOperations } from "$lib/queries/translations.js";
+  import { createInstitution } from "$lib/stores/InstitutionsUtils.js";
+  import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
   const { t } = getTranslationStore();
 
@@ -63,71 +64,65 @@
     },
     onSubmit: async ({ value }) => {
       try {
-        // Transform links array to JSON string for the mutation
+        // Transform links array to native array for the mutation
         const transformedValue = {
           ...value,
-          links: JSON.stringify(
+          links:
             value.links?.filter(
               (link) => link.url?.trim() && link.label?.trim(),
             ) || [],
-          ),
         };
 
-        console.log("Creating institution:", transformedValue);
-        // TODO: Call institution creation mutation here
-        // const institutionResult = await createInstitution(transformedValue);
+        // Create the institution (real call)
+        const { institution, nameId, descriptionId, countryId, locationId } =
+          await createInstitution({
+            project_id: transformedValue.project_id,
+            languageId: transformedValue.languageId,
+            name: transformedValue.name,
+            description: transformedValue.description,
+            country: transformedValue.country,
+            location: transformedValue.location,
+            website: transformedValue.website,
+            links: transformedValue.links,
+            status: transformedValue.status,
+          });
 
-        // Mock institution creation result for now
-        const mockInstitutionResult = {
-          createNameText: { insertIntoTexts: [{ id: "name_text_id" }] },
-          createDescriptionText: { insertIntoTexts: [{ id: "desc_text_id" }] },
-          createCountryText: { insertIntoTexts: [{ id: "country_text_id" }] },
-          createLocationText: { insertIntoTexts: [{ id: "location_text_id" }] },
+        // Prepare translation creation promises
+        const contentLanguageStore = getContentLanguageStore();
+        // Use languages from layout data
+        const translationFieldToTextId = {
+          name: nameId,
+          description: descriptionId,
+          country: countryId,
+          location: locationId,
         };
 
-        // Create translations for each language that has content
+        const translationPromises = [];
         for (const lang of secondaryLanguages) {
           const langTranslations = translations[lang.id];
-
           for (const [fieldName, content] of Object.entries(langTranslations)) {
-            if (content?.trim()) {
-              // Map field names to their corresponding text IDs
-              const textIdMapping = {
-                name: mockInstitutionResult.createNameText?.insertIntoTexts?.[0]
-                  ?.id,
-                description:
-                  mockInstitutionResult.createDescriptionText
-                    ?.insertIntoTexts?.[0]?.id,
-                country:
-                  mockInstitutionResult.createCountryText?.insertIntoTexts?.[0]
-                    ?.id,
-                location:
-                  mockInstitutionResult.createLocationText?.insertIntoTexts?.[0]
-                    ?.id,
-              };
-
-              const textId = textIdMapping[fieldName];
-              if (textId) {
-                console.log(
-                  `Creating translation for ${fieldName} in ${lang.name}:`,
-                  {
-                    textId,
-                    languageId: lang.id,
+            if (content?.trim() && translationFieldToTextId[fieldName]) {
+              translationPromises.push(
+                contentLanguageStore
+                  .addTranslation(
+                    translationFieldToTextId[fieldName],
+                    lang.code,
                     content,
-                  },
-                );
-                // TODO: Call translation creation mutation
-                // await createTranslation({
-                //   textId,
-                //   languageId: lang.id,
-                //   content
-                // });
-              }
+                  )
+                  .catch((err) => {
+                    throw err;
+                  }),
+              );
             }
           }
         }
+        await Promise.all(translationPromises);
 
-        console.log("Institution and translations created successfully!");
+        console.log(
+          "Institution and translations created successfully!",
+          institution,
+        );
+        // TODO: Add navigation or success UI here
       } catch (error) {
         console.error("Error creating institution:", error);
       }

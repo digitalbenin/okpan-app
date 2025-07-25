@@ -4,12 +4,14 @@ import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte
 
 export const load = async ({ params }) => {
     if (!browser) return;
-    const { getAvaliableLocalesForProject } = getContentLanguageStore();
+    const { getAvaliableLocalesForProject, setProjectLanguages } = getContentLanguageStore();
 
     const [project, languages] = await Promise.all([
         getProject(params.project_id),
         getAvaliableLocalesForProject(params.project_id)
     ]);
+
+    setProjectLanguages(languages);
 
     return {
         project,

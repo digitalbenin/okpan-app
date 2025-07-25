@@ -102,6 +102,10 @@ export function getContentLanguageStore() {
         return result.result;
     };
 
+    const setProjectLanguages = (langs) => {
+        contentLanguageState.projectLanguages = langs;
+    };
+
     // Add a new translation for a text in a specific language
     const addTranslation = async (textId, languageCode, content) => {
         contentLanguageState.isLoading = true;
@@ -197,6 +201,7 @@ export function getContentLanguageStore() {
         deleteLanguage,
         createLanguage,
         getAvaliableLocalesForProject,
+        setProjectLanguages, // <-- add the setter here
         // Add the new translation functions
         addTranslation,
         updateTranslation,

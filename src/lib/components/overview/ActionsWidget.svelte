@@ -20,7 +20,11 @@
           {action.entity_type}
         </div>
         <div>
-          <ActionTimeAgo timestamp={action.changes.timestamp}></ActionTimeAgo>
+          {#if action.changes && action.changes.timestamp}
+            <ActionTimeAgo timestamp={action.changes.timestamp}></ActionTimeAgo>
+          {:else}
+            <span class="text-black-50">-</span>
+          {/if}
         </div>
       </div>
     {/each}

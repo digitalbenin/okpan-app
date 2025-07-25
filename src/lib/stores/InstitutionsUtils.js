@@ -71,3 +71,17 @@ export const deleteInstitution = async (institutionId) => {
     invalidate("app:institutions");
     return result;
 };
+
+// Function to create an institution, including the required text entries
+export const createInstitution = async (institutionData) => {
+    const result = await executeQuery('institutions', 'create', institutionData);
+    // Extract all relevant IDs and institution from the institution object
+    const institution = result?.insertIntoInstitutions?.[0];
+    return {
+        institution,
+        nameId: institution?.name_id,
+        descriptionId: institution?.description_id,
+        countryId: institution?.country_id,
+        locationId: institution?.location_id,
+    };
+};
