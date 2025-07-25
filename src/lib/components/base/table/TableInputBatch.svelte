@@ -19,7 +19,8 @@
   function handleInputChange(event) {
     if (event.target.checked) {
       // Add all item ids to selected
-      selected = [...selected, ...items.map((item) => item.id)];
+      const newIds = items.map((item) => item.id);
+      selected = [...new Set([...selected, ...newIds])];
     } else {
       // Remove all item ids from selected
       selected = selected.filter((id) => !items.some((item) => item.id === id));
