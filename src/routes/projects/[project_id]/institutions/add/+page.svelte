@@ -26,7 +26,6 @@
 
   // Translation state - only for translatable fields
   const translatableFields = ["name", "description", "country", "location"];
-  let translations = $state({});
   let activeLanguageCode = $state("default");
 
   // Initialize tabs
@@ -37,23 +36,20 @@
     },
   });
 
-  // Initialize translation state
-  secondaryLanguages.forEach((lang) => {
-    translations[lang.id] = {};
-    translatableFields.forEach((field) => {
-      translations[lang.id][field] = "";
-    });
-  });
-
   // Get validator for institutions create operation
   const validator = getValidator("institutions", "create");
+  const translationsValidator = getValidator("translations", "create");
 
   // Get field validators for submit-only validation
   const fieldValidators = getFieldValidators("institutions", "create");
+  const translationsFieldValidators = getFieldValidators(
+    "translations",
+    "create",
+  );
 
-  // Create form instance
-  const form = createForm(() => ({
-    defaultValues: {
+  // Create default values including translation fields
+  const createDefaultValues = () => {
+    const defaults = {
       project_id: $page.params.project_id,
       languageId: defaultLanguage?.id || "",
       name: "",
@@ -62,7 +58,21 @@
       location: "",
       website: "",
       links: [{ url: "", label: "" }],
-    },
+    };
+
+    // Add translation fields for each secondary language
+    secondaryLanguages.forEach((lang) => {
+      translatableFields.forEach((field) => {
+        defaults[`translations_${lang.id}_${field}`] = "";
+      });
+    });
+
+    return defaults;
+  };
+
+  // Create form instance
+  const form = createForm(() => ({
+    defaultValues: createDefaultValues(),
     onSubmit: async ({ value }) => {
       try {
         // Transform links array to native array for the mutation
@@ -90,7 +100,6 @@
 
         // Prepare translation creation promises
         const contentLanguageStore = getContentLanguageStore();
-        // Use languages from layout data
         const translationFieldToTextId = {
           name: nameId,
           description: descriptionId,
@@ -100,8 +109,10 @@
 
         const translationPromises = [];
         for (const lang of secondaryLanguages) {
-          const langTranslations = translations[lang.id];
-          for (const [fieldName, content] of Object.entries(langTranslations)) {
+          for (const fieldName of translatableFields) {
+            const translationFieldKey = `translations_${lang.id}_${fieldName}`;
+            const content = transformedValue[translationFieldKey];
+
             if (content?.trim() && translationFieldToTextId[fieldName]) {
               translationPromises.push(
                 contentLanguageStore
@@ -118,7 +129,7 @@
           }
         }
         await Promise.all(translationPromises);
-        // TODO: Add navigation or success UI here
+
         goto(
           `/projects/${transformedValue.project_id}/institutions/${institution.id}`,
         );
@@ -328,63 +339,135 @@
           {#each secondaryLanguages as lang}
             <div {...tabs.getContent(lang.id)}>
               <div class="pt-2">
-                <div class="mb-3">
-                  <p class="form-label">
-                    {t("common.institution-name", {
-                      fallback: "Institution Name",
-                    })} ({lang.code})
-                  </p>
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder={t("common.institution-name", {
-                      fallback: "Institution Name",
-                    })}
-                    bind:value={translations[lang.id].name}
-                  />
-                </div>
+                <form.Field
+                  name="translations_{lang.id}_name"
+                  validators={translationsFieldValidators.content}
+                >
+                  {#snippet children(field)}
+                    <div class="mb-3">
+                      <p class="form-label" for={field.name}>
+                        {t("common.institution-name", {
+                          fallback: "Institution Name",
+                        })} ({lang.code})
+                      </p>
+                      <input
+                        id={field.name}
+                        name={field.name}
+                        type="text"
+                        class="form-control {field.state.meta.errors.length > 0
+                          ? 'is-invalid'
+                          : ''}"
+                        placeholder={t("common.institution-name", {
+                          fallback: "Institution Name",
+                        })}
+                        value={field.state.value}
+                        oninput={(e) => field.handleChange(e.target.value)}
+                        onblur={field.handleBlur}
+                      />
+                      {#if field.state.meta.errors.length > 0}
+                        <div class="invalid-feedback">
+                          {field.state.meta.errors.join(", ")}
+                        </div>
+                      {/if}
+                    </div>
+                  {/snippet}
+                </form.Field>
 
-                <div class="mb-3">
-                  <p class="form-label">
-                    {t("common.description", { fallback: "Description" })} ({lang.code})
-                  </p>
-                  <textarea
-                    class="form-control"
-                    rows="3"
-                    placeholder={t("common.description", {
-                      fallback: "Description",
-                    })}
-                    bind:value={translations[lang.id].description}
-                  ></textarea>
-                </div>
+                <form.Field
+                  name="translations_{lang.id}_description"
+                  validators={translationsFieldValidators.content}
+                >
+                  {#snippet children(field)}
+                    <div class="mb-3">
+                      <p class="form-label" for={field.name}>
+                        {t("common.description", { fallback: "Description" })} ({lang.code})
+                      </p>
+                      <textarea
+                        id={field.name}
+                        name={field.name}
+                        class="form-control {field.state.meta.errors.length > 0
+                          ? 'is-invalid'
+                          : ''}"
+                        rows="3"
+                        placeholder={t("common.description", {
+                          fallback: "Description",
+                        })}
+                        value={field.state.value}
+                        oninput={(e) => field.handleChange(e.target.value)}
+                        onblur={field.handleBlur}
+                      ></textarea>
+                      {#if field.state.meta.errors.length > 0}
+                        <div class="invalid-feedback">
+                          {field.state.meta.errors.join(", ")}
+                        </div>
+                      {/if}
+                    </div>
+                  {/snippet}
+                </form.Field>
 
-                <div class="mb-3">
-                  <p class="form-label">
-                    {t("common.country", { fallback: "Country" })} ({lang.code})
-                  </p>
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder={t("common.country", {
-                      fallback: "Country",
-                    })}
-                    bind:value={translations[lang.id].country}
-                  />
-                </div>
+                <form.Field
+                  name="translations_{lang.id}_country"
+                  validators={translationsFieldValidators.content}
+                >
+                  {#snippet children(field)}
+                    <div class="mb-3">
+                      <p class="form-label" for={field.name}>
+                        {t("common.country", { fallback: "Country" })} ({lang.code})
+                      </p>
+                      <input
+                        id={field.name}
+                        name={field.name}
+                        type="text"
+                        class="form-control {field.state.meta.errors.length > 0
+                          ? 'is-invalid'
+                          : ''}"
+                        placeholder={t("common.country", {
+                          fallback: "Country",
+                        })}
+                        value={field.state.value}
+                        oninput={(e) => field.handleChange(e.target.value)}
+                        onblur={field.handleBlur}
+                      />
+                      {#if field.state.meta.errors.length > 0}
+                        <div class="invalid-feedback">
+                          {field.state.meta.errors.join(", ")}
+                        </div>
+                      {/if}
+                    </div>
+                  {/snippet}
+                </form.Field>
 
-                <div class="mb-3">
-                  <p class="form-label">
-                    {t("common.location", { fallback: "Location" })} ({lang.code})
-                  </p>
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder={t("common.location", {
-                      fallback: "Location",
-                    })}
-                    bind:value={translations[lang.id].location}
-                  />
-                </div>
+                <form.Field
+                  name="translations_{lang.id}_location"
+                  validators={translationsFieldValidators.content}
+                >
+                  {#snippet children(field)}
+                    <div class="mb-3">
+                      <p class="form-label" for={field.name}>
+                        {t("common.location", { fallback: "Location" })} ({lang.code})
+                      </p>
+                      <input
+                        id={field.name}
+                        name={field.name}
+                        type="text"
+                        class="form-control {field.state.meta.errors.length > 0
+                          ? 'is-invalid'
+                          : ''}"
+                        placeholder={t("common.location", {
+                          fallback: "Location",
+                        })}
+                        value={field.state.value}
+                        oninput={(e) => field.handleChange(e.target.value)}
+                        onblur={field.handleBlur}
+                      />
+                      {#if field.state.meta.errors.length > 0}
+                        <div class="invalid-feedback">
+                          {field.state.meta.errors.join(", ")}
+                        </div>
+                      {/if}
+                    </div>
+                  {/snippet}
+                </form.Field>
               </div>
             </div>
           {/each}
