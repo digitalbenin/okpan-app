@@ -7,7 +7,7 @@
   import Swiper from "swiper";
   import { Navigation } from "swiper/modules";
 
-  const { object, displayFields } = $props();
+  const { object, displayFields, displayInstitution = false } = $props();
   const { t, translationState } = getTranslationStore();
 
   const id = $derived(getObjectIdentifier(object));
@@ -114,6 +114,21 @@
       class="link-dark">{id}</a
     >
   </div>
+  {#if displayInstitution}
+    <div class="mb-1">
+      <div class="text-muted fs-7">
+        {t("common.institution", { fallback: "Institution" })}
+      </div>
+      <div class="text-truncate">
+        <a
+          href="/projects/{object.project_id}/institutions/{object.institution_id}"
+          class="link-dark"
+        >
+          {object.institution.name.content}
+        </a>
+      </div>
+    </div>
+  {/if}
   {#each parsedFields as field}
     <div class="mb-1">
       <div class="fs-7 text-muted">

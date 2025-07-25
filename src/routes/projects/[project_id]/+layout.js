@@ -2,6 +2,8 @@ import { browser } from '$app/environment';
 import { getProject } from "$lib/stores/ProjectsUtils.js";
 import { getDisplayFields } from '$lib/stores/DisplayFieldsUtils.js';
 import { getResearchFields } from '$lib/stores/ResearchFieldsUtils.js';
+import { getOntologyFields } from '$lib/stores/OntologyFieldsUtils.js';
+
 
 
 
@@ -11,10 +13,13 @@ export const load = async ({ params, depends }) => {
     const project = await getProject(params.project_id);
     const displayFields = await getDisplayFields({ projectId: params.project_id });
     const researchFields = await getResearchFields(params.project_id);
+    const ontologyFields = await getOntologyFields()
+
     return {
         project,
         displayFields,
-        researchFields
+        researchFields,
+        ontologyFields
     };
 };
 
