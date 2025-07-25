@@ -110,7 +110,7 @@
   </div>
   <div class="fs-5 mb-2">
     <a
-      href="projects/{object.project_id}/institutions/{object.institution_id}/objects/{object.id}"
+      href="/projects/{object.project_id}/institutions/{object.institution_id}/objects/{object.id}"
       class="link-dark">{id}</a
     >
   </div>
