@@ -4,6 +4,7 @@
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import ObjectCard from "$lib/components/objects/ObjectCard.svelte";
+  import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import Table from "$lib/components/base/table/Table.svelte";
   import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
   import TableLink from "$lib/components/base/table/TableLink.svelte";
@@ -193,7 +194,13 @@
         {/each}
       </div>
     {:else if viewAs === "table"}
-      <Table
+      <ObjectsTable
+        items={objects.items}
+        bind:params
+        bind:selectedObjects
+        {displayFields}
+      ></ObjectsTable>
+      <!-- <Table
         items={objects.items}
         columns={[
           {
@@ -263,7 +270,7 @@
         bind:orderBy={params.oOrderBy}
         bind:direction={params.oDirection}
         bind:selected={selectedObjects}
-      />
+      /> -->
     {/if}
   {:else if objects.items.length === 0}
     <div class="text-center text-black-50 fs-4 fst-italic mt-4">

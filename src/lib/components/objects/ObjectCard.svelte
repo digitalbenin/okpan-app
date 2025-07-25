@@ -44,6 +44,11 @@
         const research_field = object.objectsResearchFields.find(
           (rf) => rf.researchField.id === field.value
         );
+        if (!research_field)
+          return {
+            label: t(`common.field-missing`, { fallback: "Missing field" }),
+            value: null,
+          };
         return {
           label: research_field.researchField.name.content,
           value: research_field.vocabulary.option.content,
@@ -110,7 +115,7 @@
     >
   </div>
   {#each parsedFields as field}
-    <div>
+    <div class="mb-1">
       <div class="fs-7 text-muted">
         {field.label}
       </div>
