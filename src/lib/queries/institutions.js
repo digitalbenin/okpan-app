@@ -293,7 +293,7 @@ export const institutionsOperations = {
   $project_id: String!
   $status: String
 ) {
-  insertIntoInstitutions(
+  result:insertIntoInstitutions(
     values: [
       {
         name_id: $nameId

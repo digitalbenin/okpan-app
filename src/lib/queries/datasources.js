@@ -257,7 +257,7 @@ export const datasourcesOperations = {
   $contact: String
   $date: String
 ) {
-  insertIntoDatasources(
+  result:insertIntoDatasources(
     values: [
       {
         name_id: $nameId
