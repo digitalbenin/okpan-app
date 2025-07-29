@@ -116,10 +116,15 @@ export async function executeMultiStepMutation(mutations, params) {
         // Map variables from previous step results
         if (mutation.mapVariables) {
             for (const [targetVar, mapping] of Object.entries(mutation.mapVariables)) {
-                const { from, path } = mapping;
+                const { from, path, skipIfUndefined } = mapping;
                 if (!results[from]) {
-                    console.warn(`Missing dependency: ${from} for variable ${targetVar}`);
-                    continue;
+                    if (skipIfUndefined) {
+                        // Skip this variable mapping if the source mutation was skipped
+                        continue;
+                    } else {
+                        console.warn(`Missing dependency: ${from} for variable ${targetVar}`);
+                        continue;
+                    }
                 }
 
                 // Get value from the specified path
@@ -131,8 +136,11 @@ export async function executeMultiStepMutation(mutations, params) {
                     value = value[part];
                 }
 
-                if (value !== undefined) {
+                if (value !== undefined && value !== null) {
                     stepVariables[targetVar] = value;
+                } else if (skipIfUndefined) {
+                    // Skip this variable mapping if the value is undefined/null and skipIfUndefined is true
+                    continue;
                 }
             }
         }
@@ -165,8 +173,10 @@ export async function executeMultiStepMutation(mutations, params) {
             let shouldSkip = false;
 
             if (isUndefined !== undefined) {
-                shouldSkip = (isUndefined && stepVariables[variableName] === undefined) ||
-                    (!isUndefined && stepVariables[variableName] !== undefined);
+                const value = stepVariables[variableName];
+                const valueIsUndefinedOrNull = value === undefined || value === null;
+                shouldSkip = (isUndefined && valueIsUndefinedOrNull) ||
+                    (!isUndefined && !valueIsUndefinedOrNull);
             }
 
             if (isEmpty !== undefined) {
