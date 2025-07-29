@@ -36,11 +36,7 @@
     },
   });
 
-  // Get validator for institutions create operation
   const validator = getValidator("institutions", "create");
-  const translationsValidator = getValidator("translations", "create");
-
-  // Get field validators for submit-only validation
   const fieldValidators = getFieldValidators("institutions", "create");
   const translationsFieldValidators = getFieldValidators(
     "translations",
