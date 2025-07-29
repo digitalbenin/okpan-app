@@ -3,9 +3,9 @@ import { getProject } from "$lib/stores/ProjectsUtils.js";
 import { getDisplayFields } from '$lib/stores/DisplayFieldsUtils.js';
 import { getResearchFields } from '$lib/stores/ResearchFieldsUtils.js';
 import { getOntologyFields } from '$lib/stores/OntologyFieldsUtils.js';
+import { getContentLanguageStore } from '$lib/stores/ContentLanguageStore.svelte.js';
 
-
-
+const { getAvaliableLocalesForProject } = getContentLanguageStore();
 
 export const load = async ({ params, depends }) => {
     if (!browser) return;
@@ -14,12 +14,14 @@ export const load = async ({ params, depends }) => {
     const displayFields = await getDisplayFields({ projectId: params.project_id });
     const researchFields = await getResearchFields(params.project_id);
     const ontologyFields = await getOntologyFields()
+    const languages = await getAvaliableLocalesForProject(params.project_id);
 
     return {
         project,
         displayFields,
         researchFields,
-        ontologyFields
+        ontologyFields,
+        languages
     };
 };
 

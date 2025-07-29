@@ -1,0 +1,36 @@
+
+export function createFetcher(fetchFn) {
+    let data = $state(null);
+    let error = $state(null);
+    let isLoading = $state(false);
+
+    async function fetch(variables) {
+        isLoading = true;
+        error = null;
+
+        try {
+            const result = await fetchFn(variables);
+            data = result;
+            return result;
+        } catch (err) {
+            error = err;
+            throw err;
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    function reset() {
+        data = null;
+        error = null;
+        isLoading = false;
+    }
+
+    return {
+        get data() { return data; },
+        get error() { return error; },
+        get isLoading() { return isLoading; },
+        fetch,
+        reset,
+    };
+}

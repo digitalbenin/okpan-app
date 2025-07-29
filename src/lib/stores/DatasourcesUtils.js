@@ -24,6 +24,31 @@ export const getDatasource = async (datasourceId) => {
     return { result: response.result, error: null };
 };
 
+// Get a single datasource by ID
+export const createDatasource = async (params) => {
+    const response = await executeQuery('datasources', 'create', params);
+
+    if (!response || response.error || !response.result) {
+        return { result: null, error: response?.error || "Failed to fetch datasource" };
+    }
+    return { result: response.result, error: null };
+};
+
+// Version that throws errors for useFetcher compatibility
+export const createDatasourceWithThrow = async (params) => {
+    const response = await executeQuery('datasources', 'create', params);
+    console.log(response)
+    if (!response || response.error || !response.result) {
+        const errorMessage = response?.error?.message ||
+            response?.error ||
+            "Failed to create datasource";
+        throw new Error(errorMessage);
+    }
+
+    return response.result; // Return just the result, not wrapped in object
+};
+
+
 // Function to update a datasource, including translations orchestration
 export const updateDatasource = async (datasourceId, updatedData) => {
     if (!datasourceId) {

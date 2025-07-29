@@ -255,7 +255,7 @@ export const datasourcesOperations = {
   $languageId: String
   $copyright: String
   $contact: String
-  $date: Int
+  $date: String
 ) {
   insertIntoDatasources(
     values: [
