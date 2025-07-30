@@ -261,36 +261,22 @@ export const createObjectsListQuery = (db, drizzleResult) => {
                         configuredFields.forEach(df => {
                             if (df.property_name) {
                                 // Handle object properties
-                                let label = df.property_name;
-                                let value = item[df.property_name];
-
-                                // Format label for display
-                                if (df.property_name === 'created_at') label = 'Created At';
-                                else if (df.property_name === 'updated_at') label = 'Updated At';
-                                else if (df.property_name === 'status') label = 'Status';
-
-                                // Format dates
-                                if ((df.property_name === 'created_at' || df.property_name === 'updated_at') && value) {
-                                    value = new Date(value).toLocaleDateString();
-                                }
-
-                                displayFieldsArray.push({ label, value });
+                                displayFieldsArray.push({
+                                    type: 'object_property',
+                                    value: df.property_name
+                                });
                             } else if (df.research_field_id) {
                                 // Handle research fields
-                                const researchField = objectsResearchFields.find(rf => rf.researchField.id === df.research_field_id);
-                                if (researchField) {
-                                    const label = researchField.researchField.name.content;
-                                    const value = researchField.vocabulary?.option?.content || researchField.value || '';
-                                    displayFieldsArray.push({ label, value });
-                                }
+                                displayFieldsArray.push({
+                                    type: 'research_field',
+                                    value: df.research_field_id
+                                });
                             } else if (df.ontology_field_id) {
                                 // Handle ontology fields
-                                const ontologyField = objectsOntologyFields.find(of => of.ontologyField.id === df.ontology_field_id);
-                                if (ontologyField) {
-                                    const label = ontologyField.ontologyField.name.content;
-                                    const value = ontologyField.value || '';
-                                    displayFieldsArray.push({ label, value });
-                                }
+                                displayFieldsArray.push({
+                                    type: 'ontology_field',
+                                    value: df.ontology_field_id
+                                });
                             }
                         });
                     } catch (e) {

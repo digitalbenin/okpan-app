@@ -2,20 +2,24 @@
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import BasePagination from "$lib/components/base/BasePagination.svelte";
-  import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import ObjectCard from "$lib/components/objects/ObjectCard.svelte";
-  import Table from "$lib/components/base/table/Table.svelte";
-  import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
-  import TableLink from "$lib/components/base/table/TableLink.svelte";
+  import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
+  import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { formatDate } from "$lib/utils/dates.js";
   import { fly } from "svelte/transition";
 
-  let { institution, objects, ontologyFields, params = $bindable() } = $props();
+  let {
+    institution,
+    objects,
+    ontologyFields,
+    researchFields,
+    displayFields,
+    params = $bindable(),
+  } = $props();
 
   const { t, translationState } = getTranslationStore();
 
-  let viewAs = $state("table");
+  let viewAs = $state("grid");
   let selectedObjects = $state([]);
 
   const viewAsOptions = $derived([
@@ -135,6 +139,17 @@
         <BaseSelect items={orderBy} bind:value={params.oOrderBy} size="sm"
         ></BaseSelect>
       </div> -->
+      <div class="d-flex align-items-center text-truncate gap-2">
+        <div class="col-auto fs-7">
+          {t("common.select-fields", { fallback: "Select Fields" })}
+        </div>
+        <InstitutionObjectsFields
+          {displayFields}
+          {ontologyFields}
+          {researchFields}
+          projectId={institution.project_id}
+        />
+      </div>
 
       <div class="d-flex align-items-center gap-2">
         <div class="col-auto fs-7">
@@ -169,82 +184,18 @@
       <div class="row">
         {#each objects.items as object (object.id)}
           <div class="col-4">
-            <ObjectCard {object} />
+            <ObjectCard {object} {displayFields} />
           </div>
         {/each}
       </div>
     {:else if viewAs === "table"}
-      <Table
+      <ObjectsTable
         items={objects.items}
-        columns={[
-          {
-            value: "image",
-            label: null,
-            sortable: false,
-            accessor: (value) => {
-              const src =
-                value.objectsAssets && value.objectsAssets.length > 0
-                  ? value.objectsAssets[0].asset.formats.sm
-                  : null;
-              const id = value.id;
-              return {
-                src,
-                id,
-              };
-            },
-            render: (value) => ({
-              component: TableImagePreview,
-              props: value,
-            }),
-          },
-          {
-            value: "object_id",
-            label: t("common.object-id", { fallback: "Object ID" }),
-            sortable: false,
-            accessor: (value) => {
-              const text =
-                value.objectsOntologyFields?.find(
-                  (f) => f.ontologyField.name.content === "object id"
-                )?.value || "Id not set";
-              const url = `/projects/${value.project_id}/institutions/${value.institution_id}/objects/${value.id}`;
-              return {
-                url,
-                text,
-              };
-            },
-            render: (value) => ({
-              component: TableLink,
-              props: value,
-            }),
-          },
-          {
-            value: "created_at",
-            label: t("common.created-at", { fallback: "Created At" }),
-            sortable: true,
-            render: (value) =>
-              formatDate(+value, translationState.currentLocale, true),
-          },
-          {
-            value: "updated_at",
-            label: t("common.updated-at", { fallback: "Updated At" }),
-            sortable: true,
-            render: (value) =>
-              formatDate(+value, translationState.currentLocale, true),
-          },
-          {
-            value: "status",
-            label: t("common.status", { fallback: "Status" }),
-            sortable: true,
-            render: (value) => ({
-              component: BaseBadgeStatus,
-              props: { status: value },
-            }),
-          },
-        ]}
         bind:orderBy={params.oOrderBy}
         bind:direction={params.oDirection}
-        bind:selected={selectedObjects}
-      />
+        bind:selectedObjects
+        {displayFields}
+      ></ObjectsTable>
     {/if}
   {:else if objects.items.length === 0}
     <div class="text-center text-black-50 fs-4 fst-italic mt-4">

@@ -9,6 +9,7 @@
       label: t("menu.overview", { fallback: "Overview" }),
       url: `/projects/${page.data.project.id}`,
       icon: "house-door-fill",
+      exact: true,
     },
     {
       label: t("menu.institutions", { fallback: "Institutions" }),
@@ -19,6 +20,7 @@
       label: t("menu.objects", { fallback: "Objects" }),
       url: `/projects/${page.data.project.id}/objects`,
       icon: "box",
+      exact: true,
     },
   ]);
 
@@ -27,16 +29,19 @@
       label: t("menu.add-institution", { fallback: "Add Institution" }),
       url: `/projects/${page.data.project.id}/institutions/add`,
       icon: "plus-lg",
+      exact: true,
     },
     {
       label: t("menu.add-object", { fallback: "Add Object" }),
       url: `/projects/${page.data.project.id}/objects/add`,
       icon: "plus-lg",
+      exact: true,
     },
     {
       label: t("menu.add-media", { fallback: "Add Media" }),
       url: `/projects/${page.data.project.id}/media/add`,
       icon: "plus-lg",
+      exact: true,
     },
     {
       label: t("menu.import-data", { fallback: "Import Data" }),
@@ -55,6 +60,7 @@
       label: t("menu.export", { fallback: "Export" }),
       url: `/projects/${page.data.project.id}/export`,
       icon: "box-arrow-left",
+      exact: true,
     },
     {
       label: t("menu.settings", { fallback: "Settings" }),

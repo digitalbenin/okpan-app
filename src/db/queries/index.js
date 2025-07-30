@@ -12,4 +12,6 @@ export { createInstitutionsBulkDeleteMutation } from './institutionsBulkDelete';
 export { createDatasourcesListQuery } from './datasourcesList';
 export { createObjectsListQuery } from './objectsList';
 export { createAssetsListQuery } from './assetsList';
-export { createEntitySearchQuery } from './entitySearch'; 
+export { createEntitySearchQuery } from './entitySearch';
+export { createObjectDisplayFieldsTransformedQuery } from './objectDisplayFields';
+export { createObjectSearchQuery } from './objectSearch'; 

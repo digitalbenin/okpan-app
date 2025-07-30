@@ -18,6 +18,7 @@ import { actionsOperations } from './actions.js';
 import { templatesOperations } from './templates.js';
 import { genericAssetsOperations } from './genericAssets.js';
 import { objectDisplayFieldsOperations } from './object_display_fields.js';
+import { objectSearchOperations } from './objectSearch.js';
 
 // Export API sections organized by entity type
 export const API_SECTIONS = {
@@ -80,6 +81,10 @@ export const API_SECTIONS = {
     object_display_fields: {
         name: "Object Display Fields",
         operations: objectDisplayFieldsOperations
+    },
+    object_search: {
+        name: "Object Search",
+        operations: objectSearchOperations
     },
     settings: {
         name: "Project Settings",

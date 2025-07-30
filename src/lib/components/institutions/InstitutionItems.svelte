@@ -51,6 +51,8 @@
                   institution={restProps.institution}
                   objects={restProps.objects}
                   ontologyFields={restProps.ontologyFields}
+                  displayFields={restProps.displayFields}
+                  researchFields={restProps.researchFields}
                   bind:params
                 />
               {:else if view === "assets"}

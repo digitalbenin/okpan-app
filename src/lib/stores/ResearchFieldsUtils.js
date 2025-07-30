@@ -41,7 +41,7 @@ export const getResearchFieldById = async (fieldId) => {
     }
 
     // Return the expected structure { result: [...], error: null }
-    return { result: researchFieldsResult, error: null };
+    return { result: researchFieldsResult[0], error: null };
 };
 
 // Create a new research field (initial implementation, may need translation handling)

@@ -15,6 +15,25 @@ export const getObjects = async (options) => {
     return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch objects or unexpected response structure") };
 };
 
+// Function to search objects with advanced filtering and faceted results
+export const searchObjects = async (options) => {
+    const result = await executeQuery('object_search', 'search', options);
+    if (result && result.result) {
+        return {
+            items: result.result.items || [],
+            totalCount: result.result.totalCount || 0,
+            facets: result.result.facets || { institutions: [], statuses: [], researchFields: [] }
+        };
+    }
+
+    return {
+        items: [],
+        totalCount: 0,
+        facets: { institutions: [], statuses: [], researchFields: [] },
+        error: result?.error || new Error("Failed to search objects or unexpected response structure")
+    };
+};
+
 
 export const getTotalObjectsForInstitution = async (projectId, institutionId) => {
     const result = await executeQuery('objects', 'list', { projectId, institutionId, pageSize: 1, page: 0 });

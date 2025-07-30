@@ -1,20 +1,27 @@
 import { browser } from '$app/environment';
 import { getProject } from "$lib/stores/ProjectsUtils.js";
-import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
+import { getDisplayFields } from '$lib/stores/DisplayFieldsUtils.js';
+import { getResearchFields } from '$lib/stores/ResearchFieldsUtils.js';
+import { getOntologyFields } from '$lib/stores/OntologyFieldsUtils.js';
+import { getContentLanguageStore } from '$lib/stores/ContentLanguageStore.svelte.js';
 
-export const load = async ({ params }) => {
+const { getAvaliableLocalesForProject, setProjectLanguages } = getContentLanguageStore();
+
+export const load = async ({ params, depends }) => {
     if (!browser) return;
-    const { getAvaliableLocalesForProject, setProjectLanguages } = getContentLanguageStore();
-
-    const [project, languages] = await Promise.all([
-        getProject(params.project_id),
-        getAvaliableLocalesForProject(params.project_id)
-    ]);
-
+    depends('app:project-shared');
+    const project = await getProject(params.project_id);
+    const displayFields = await getDisplayFields({ projectId: params.project_id });
+    const researchFields = await getResearchFields(params.project_id);
+    const ontologyFields = await getOntologyFields()
+    const languages = await getAvaliableLocalesForProject(params.project_id);
     setProjectLanguages(languages);
 
     return {
         project,
+        displayFields,
+        researchFields,
+        ontologyFields,
         languages
     };
 };

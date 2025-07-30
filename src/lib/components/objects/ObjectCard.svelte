@@ -2,18 +2,15 @@
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { getObjectIdentifier } from "$lib/utils/objects.js";
   import { formatDate } from "$lib/utils/dates";
   import Swiper from "swiper";
   import { Navigation } from "swiper/modules";
 
-  const { object } = $props();
+  const { object, displayFields, displayInstitution = false } = $props();
   const { t, translationState } = getTranslationStore();
 
-  const id = $derived(
-    object.objectsOntologyFields?.find(
-      (f) => f.ontologyField.name.content === "object id"
-    )?.value || "Id not set"
-  );
+  const id = $derived(getObjectIdentifier(object));
 
   const attachSwiper = (element) => {
     const swiperInstance = new Swiper(element, {
@@ -31,6 +28,34 @@
       swiperInstance.destroy();
     };
   };
+
+  const parsedFields = $derived.by(() => {
+    return displayFields.result.map((field) => {
+      if (field.type === "object_property") {
+        return {
+          label: t(`common.${field.value}`, { fallback: field.value }),
+          value: formatDate(
+            +object[field.value],
+            translationState.currentLocale,
+            true
+          ),
+        };
+      } else if (field.type === "research_field") {
+        const research_field = object.objectsResearchFields.find(
+          (rf) => rf.researchField.id === field.value
+        );
+        if (!research_field)
+          return {
+            label: field.name.content,
+            value: null,
+          };
+        return {
+          label: field.name.content,
+          value: research_field.vocabulary.option.content,
+        };
+      }
+    });
+  });
 </script>
 
 <div
@@ -85,16 +110,36 @@
   </div>
   <div class="fs-5 mb-2">
     <a
-      href="projects/{object.project_id}/institutions/{object.institution_id}/objects/{object.id}"
+      href="/projects/{object.project_id}/institutions/{object.institution_id}/objects/{object.id}"
       class="link-dark">{id}</a
     >
   </div>
-  <div>
-    <div class="fs-7 text-muted">
-      {t("common.latest-update", { fallback: "Latest Update" })}
+  {#if displayInstitution}
+    <div class="mb-1">
+      <div class="text-muted fs-7">
+        {t("common.institution", { fallback: "Institution" })}
+      </div>
+      <div class="text-truncate">
+        <a
+          href="/projects/{object.project_id}/institutions/{object.institution_id}"
+          class="link-dark"
+        >
+          {object.institution.name.content}
+        </a>
+      </div>
     </div>
-    <div>
-      {formatDate(+object.updated_at, translationState.currentLocale, true)}
+  {/if}
+  {#each parsedFields as field}
+    <div class="mb-1">
+      <div class="fs-7 text-muted">
+        {field.label}
+      </div>
+      <div
+        class:text-black-50={field.value === null}
+        class:fst-italic={field.value === null}
+      >
+        {field.value || t("common.no-value", { fallback: "No value" })}
+      </div>
     </div>
-  </div>
+  {/each}
 </div>

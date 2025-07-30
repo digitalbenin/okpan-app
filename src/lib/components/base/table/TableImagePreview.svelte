@@ -6,7 +6,7 @@
 <div>
   {#if src}
     <img
-      class="preview object-fit-cover rounded"
+      class="preview object-fit-cover rounded border"
       src={addImageProtocolPrefix(src)}
       alt={`Object ${id}`}
     />

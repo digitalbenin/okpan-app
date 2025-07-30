@@ -255,9 +255,9 @@ export const datasourcesOperations = {
   $languageId: String
   $copyright: String
   $contact: String
-  $date: Int
+  $date: String
 ) {
-  insertIntoDatasources(
+  result:insertIntoDatasources(
     values: [
       {
         name_id: $nameId
@@ -509,7 +509,7 @@ export const datasourcesOperations = {
       {
         name: "deleteDatasource",
         query: `mutation DeleteDatasourceFinal($datasourceId: String!) {
-  deleteFromDatasources(where: { id: { eq: $datasourceId } }) {
+  result:deleteFromDatasources(where: { id: { eq: $datasourceId } }) {
     id
     name_id
     method_id
@@ -526,7 +526,7 @@ export const datasourcesOperations = {
   }
 }`,
         mapVariables: {
-          nameId: { from: "getDatasource", path: "datasources.0.name_id" }
+          nameId: { from: "getDatasource", path: "datasources.0.name_id", skipIfUndefined: true }
         },
         skipIf: { variableName: "nameId", isUndefined: true }
       },
@@ -538,7 +538,7 @@ export const datasourcesOperations = {
   }
 }`,
         mapVariables: {
-          methodId: { from: "getDatasource", path: "datasources.0.method_id" }
+          methodId: { from: "getDatasource", path: "datasources.0.method_id", skipIfUndefined: true }
         },
         skipIf: { variableName: "methodId", isUndefined: true }
       },
@@ -550,7 +550,7 @@ export const datasourcesOperations = {
   }
 }`,
         mapVariables: {
-          notesId: { from: "getDatasource", path: "datasources.0.notes_id" }
+          notesId: { from: "getDatasource", path: "datasources.0.notes_id", skipIfUndefined: true }
         },
         skipIf: { variableName: "notesId", isUndefined: true }
       }

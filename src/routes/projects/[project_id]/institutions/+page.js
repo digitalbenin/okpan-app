@@ -11,9 +11,8 @@ export const load = async ({ params, url, depends }) => {
     const search = url.searchParams.get('search')
     const status = url.searchParams.get('status')
     const projectId = params.project_id
-    console.log("Loading institutions for project:", projectId, "Page:", page, "PageSize:", pageSize, "OrderBy:", orderBy, "Direction:", direction, "Search:", search, "Status:", status);
     const institutions = await getProjectInstitutions({ projectId, page: +page - 1, pageSize: +pageSize, orderBy, direction, search, status });
-    console.log("Institutions loaded:", institutions);
+
     return {
         institutions
     }
