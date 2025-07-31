@@ -551,5 +551,50 @@ export const objectsOperations = {
     field_id
   }
 }`
+  },
+
+  // IMPORT OBJECTS
+  import: {
+    type: "mutation",
+    name: "Import Objects from Data",
+    description: "Creates a template, associates it with a datasource, and creates multiple objects with ontology field mappings from imported data",
+    variables: {
+      datasourceId: "ID of the datasource to associate with the template",
+      mapping: "Array of mapping objects. Format: [{\"headerField\": \"header name\", \"mappedField\": \"ontologyFieldId\", \"primary\": boolean}]",
+      data: "Array of data objects to import, where each object has header names as keys",
+      assetMapRule: "Optional asset mapping rule for the template"
+    },
+    query: `mutation ImportObjects(
+  $datasourceId: String!
+  $mapping: JSON!
+  $data: [JSON!]!
+  $assetMapRule: String
+) {
+  result: objectImport(
+    datasourceId: $datasourceId
+    mapping: $mapping
+    data: $data
+    assetMapRule: $assetMapRule
+  ) {
+    template {
+      id
+      mapping
+      project_id
+      asset_map_rule
+    }
+    datasource {
+      id
+      template_id
+      updated_at
+    }
+    objects {
+      id
+      status
+      institution_id
+      project_id
+    }
+    createdObjectsCount
+  }
+}`
   }
 }; 

@@ -3,6 +3,7 @@ import { graphql, parse } from 'graphql';
 import { and } from 'drizzle-orm';
 import { actions } from '../../db/schema.js';
 import { getClientId } from '../../db/init.js';
+import crypto from 'crypto';
 import {
     generateActionMetadata,
     JUNCTION_TABLE_TYPES,
@@ -17,6 +18,116 @@ import {
     getPrimaryEntityFromActions,
     getParentActionType
 } from '../services/actionService.js';
+
+// Custom action processor for objectImport mutation
+const processObjectImportActions = async (importResult, variables, context, db) => {
+    const actionRows = [];
+    const clientId = context?.clientId || await getClientId();
+
+    try {
+        // 1. Create action for template creation
+        if (importResult.template) {
+            const templateAction = {
+                id: crypto.randomUUID(),
+                user_id: context?.userId || null,
+                project_id: importResult.template.project_id,
+                action_type: 'CREATE',
+                entity_type: 'templates',
+                entity_id: importResult.template.id,
+                changes: JSON.stringify({
+                    mapping: importResult.template.mapping,
+                    project_id: importResult.template.project_id,
+                    asset_map_rule: importResult.template.asset_map_rule
+                }),
+                client_id: clientId,
+                yjs_update: null,
+                parent_action_id: null,
+                metadata: await generateActionMetadata('CREATE', 'templates', importResult.template.id, db)
+            };
+            actionRows.push(templateAction);
+        }
+
+        // 2. Create action for datasource update
+        if (importResult.datasource) {
+            const datasourceAction = {
+                id: crypto.randomUUID(),
+                user_id: context?.userId || null,
+                project_id: importResult.datasource.institution?.project_id || null,
+                action_type: 'UPDATE',
+                entity_type: 'datasources',
+                entity_id: importResult.datasource.id,
+                changes: JSON.stringify({
+                    template_id: importResult.datasource.template_id
+                }),
+                client_id: clientId,
+                yjs_update: null,
+                parent_action_id: null,
+                metadata: await generateActionMetadata('UPDATE', 'datasources', importResult.datasource.id, db)
+            };
+            actionRows.push(datasourceAction);
+        }
+
+        // 3. Create actions for each object
+        if (importResult.objects) {
+            for (const obj of importResult.objects) {
+                const objectAction = {
+                    id: crypto.randomUUID(),
+                    user_id: context?.userId || null,
+                    project_id: obj.project_id,
+                    action_type: 'CREATE',
+                    entity_type: 'objects',
+                    entity_id: obj.id,
+                    changes: JSON.stringify({
+                        status: obj.status,
+                        institution_id: obj.institution_id,
+                        project_id: obj.project_id
+                    }),
+                    client_id: clientId,
+                    yjs_update: null,
+                    parent_action_id: null,
+                    metadata: await generateActionMetadata('CREATE', 'objects', obj.id, db)
+                };
+                actionRows.push(objectAction);
+            }
+        }
+
+        // 4. Create actions for each ontology field association
+        if (importResult._ontologyFields) {
+            for (const field of importResult._ontologyFields) {
+                const fieldAction = {
+                    id: crypto.randomUUID(),
+                    user_id: context?.userId || null,
+                    project_id: field.object?.project_id || null,
+                    action_type: 'CREATE',
+                    entity_type: 'objects_ontology_fields',
+                    entity_id: field.id,
+                    changes: JSON.stringify({
+                        object_id: field.object_id,
+                        field_id: field.field_id,
+                        datasources_id: field.datasources_id,
+                        value: field.value,
+                        primary: field.primary,
+                        label: field.label
+                    }),
+                    client_id: clientId,
+                    yjs_update: null,
+                    parent_action_id: null,
+                    metadata: await generateActionMetadata('CREATE', 'objects_ontology_fields', field.id, db)
+                };
+                actionRows.push(fieldAction);
+            }
+        }
+
+        // Insert all actions
+        if (actionRows.length > 0) {
+            await db.insert(actions).values(actionRows).execute();
+            console.log(`Created ${actionRows.length} actions for objectImport mutation`);
+        }
+
+    } catch (error) {
+        console.error('Error creating objectImport actions:', error);
+    }
+};
 
 // Simple utility functions
 const isBulkOp = (name) => name.toLowerCase().includes('bulk');
@@ -573,10 +684,21 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
             contextValue: { db }
         });
 
-        // Process actions for mutations
+        // Process actions for mutations (skip custom mutations)
         if (!result.errors && isMutation && result.data) {
             const mutationFields = extractMutationFields(op);
-            await processMutationActions(mutationFields, result, variables, context, db, preData, schema);
+            // Skip action processing for custom mutations that don't follow standard CRUD patterns
+            const customMutations = ['objectImport', 'bulkUpdateInstitutions', 'bulkDeleteInstitutions'];
+            const standardMutations = mutationFields.filter(field => !customMutations.includes(field));
+
+            if (standardMutations.length > 0) {
+                await processMutationActions(standardMutations, result, variables, context, db, preData, schema);
+            }
+
+            // Handle custom objectImport mutation actions
+            if (mutationFields.includes('objectImport') && result.data.objectImport) {
+                await processObjectImportActions(result.data.objectImport, variables, context, db);
+            }
         }
 
         if (result.errors) {

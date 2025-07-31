@@ -171,6 +171,12 @@ export const datasourcesOperations = {
         }
       }
     }
+    template {
+      id
+      mapping
+      project_id
+      asset_map_rule
+    }
   }
 }`
   },
@@ -189,7 +195,8 @@ export const datasourcesOperations = {
       languageId: "Language ID of the datasource (optional)",
       copyright: "Copyright information (optional)",
       contact: "Contact information (optional)",
-      date: "Date (optional timestamp)"
+      date: "Date (optional timestamp)",
+      templateId: "Template ID to link to this datasource (optional)"
     },
     mutations: [
       {
@@ -256,6 +263,7 @@ export const datasourcesOperations = {
   $copyright: String
   $contact: String
   $date: String
+  $templateId: String
 ) {
   result:insertIntoDatasources(
     values: [
@@ -268,6 +276,7 @@ export const datasourcesOperations = {
         copyright: $copyright
         contact: $contact
         date: $date
+        template_id: $templateId
       }
     ]
   ) {
@@ -280,9 +289,10 @@ export const datasourcesOperations = {
     copyright
     contact
     date
+    template_id
   }
 }`,
-        useVariables: ["institutionId", "languageId", "copyright", "contact", "date"],
+        useVariables: ["institutionId", "languageId", "copyright", "contact", "date", "templateId"],
         mapVariables: {
           nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
           methodId: { from: "createMethodText", path: "insertIntoTexts.0.id" },
@@ -305,6 +315,7 @@ export const datasourcesOperations = {
       contact: "New contact info (optional)",
       date: "New date as ISO string (optional)",
       copyright: "New copyright info (optional)",
+      templateId: "New template ID (optional)",
       // Text fields (content for default language)
       name: "New name content (optional)",
       method: "New method content (optional)",
@@ -418,9 +429,10 @@ export const datasourcesOperations = {
   $contact: String
   $date: String
   $copyright: String
+  $templateId: String
 ) {
   updateDatasources(
-    set: { language: $language, contact: $contact, date: $date, copyright: $copyright }
+    set: { language: $language, contact: $contact, date: $date, copyright: $copyright, template_id: $templateId }
     where: { id: { eq: $datasourceId } }
   ) {
     id
@@ -428,16 +440,18 @@ export const datasourcesOperations = {
     contact
     date
     copyright
+    template_id
   }
 }`,
-        useVariables: ["datasourceId", "language", "contact", "date", "copyright"],
+        useVariables: ["datasourceId", "language", "contact", "date", "copyright", "templateId"],
         skipIf: {
           condition: "AND",
           variables: [
             { variableName: "language", isUndefined: true },
             { variableName: "contact", isUndefined: true },
             { variableName: "date", isUndefined: true },
-            { variableName: "copyright", isUndefined: true }
+            { variableName: "copyright", isUndefined: true },
+            { variableName: "templateId", isUndefined: true }
           ]
         }
       },
@@ -489,9 +503,12 @@ export const datasourcesOperations = {
         useVariables: ["datasourceId"]
       },
       {
-        name: "deleteTemplates",
-        query: `mutation DeleteDatasourceTemplates($datasourceId: String!) {
-  deleteFromTemplates(where: { datasource_id: { eq: $datasourceId } }) {
+        name: "clearTemplateReference",
+        query: `mutation ClearTemplateReference($datasourceId: String!) {
+  updateDatasources(
+    set: { template_id: null }
+    where: { id: { eq: $datasourceId } }
+  ) {
     id
   }
 }`,

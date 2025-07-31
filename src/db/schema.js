@@ -335,7 +335,8 @@ export const datasources = sqliteTable('datasources', {
     method_id: text('method_id').references(() => texts.id),
     contact: text('contact'),
     notes_id: text('notes_id').references(() => texts.id),
-    date: integer('date', { mode: 'timestamp_ms' })
+    date: integer('date', { mode: 'timestamp_ms' }),
+    template_id: text('template_id').references(() => templates.id)
 });
 
 // Datasources relations
@@ -344,7 +345,10 @@ export const datasourcesRelations = relations(datasources, ({ one, many }) => ({
         fields: [datasources.institution_id],
         references: [institutions.id]
     }),
-    templates: many(templates),
+    template: one(templates, {
+        fields: [datasources.template_id],
+        references: [templates.id]
+    }),
     objectsOntologyFields: many(objects_ontology_fields),
     name: one(texts, {
         fields: [datasources.name_id],
@@ -493,23 +497,18 @@ export const objectsOntologyFieldsRelations = relations(objects_ontology_fields,
 // Templates table
 export const templates = sqliteTable('templates', {
     ...commonFields,
-    name: text('name'),
-    config: text('config', { mode: 'json' }),
-    institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
-    datasource_id: text('datasource_id').references(() => datasources.id),
+    mapping: text('mapping', { mode: 'json' }),
+    project_id: text('project_id').references(() => project.id, { onDelete: 'cascade' }),
     asset_map_rule: text('asset_map_rule')
 });
 
 // Templates relations
 export const templatesRelations = relations(templates, ({ one, many }) => ({
-    institution: one(institutions, {
-        fields: [templates.institution_id],
-        references: [institutions.id]
+    project: one(project, {
+        fields: [templates.project_id],
+        references: [project.id]
     }),
-    datasource: one(datasources, {
-        fields: [templates.datasource_id],
-        references: [datasources.id]
-    }),
+    datasources: many(datasources),
     imports: many(imports)
 }));
 
