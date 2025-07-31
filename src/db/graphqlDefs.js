@@ -14,7 +14,8 @@ import {
     createAssetsListQuery,
     createEntitySearchQuery,
     createObjectDisplayFieldsTransformedQuery,
-    createObjectSearchQuery
+    createObjectSearchQuery,
+    createObjectImportMutation
 } from './queries';
 
 export function createGraphQLSchema(db) {
@@ -92,6 +93,7 @@ export function createGraphQLSchema(db) {
     // Add custom bulk mutations
     drizzleResult.schema._typeMap.Mutation._fields.bulkUpdateInstitutions = createInstitutionsBulkUpdateMutation(db, drizzleResult);
     drizzleResult.schema._typeMap.Mutation._fields.bulkDeleteInstitutions = createInstitutionsBulkDeleteMutation(db, drizzleResult);
+    drizzleResult.schema._typeMap.Mutation._fields.objectImport = createObjectImportMutation(db, drizzleResult);
 
     return { schema: drizzleResult.schema, resolvers: drizzleResult.resolvers };
 };
