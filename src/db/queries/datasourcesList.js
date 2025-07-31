@@ -76,6 +76,7 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 created_at: dbSchema.datasources.created_at,
                 updated_at: dbSchema.datasources.updated_at,
                 institution_id: dbSchema.datasources.institution_id,
+                template_id: dbSchema.datasources.template_id,
                 language: dbSchema.datasources.language,
                 copyright: dbSchema.datasources.copyright,
                 contact: dbSchema.datasources.contact,
@@ -84,11 +85,20 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 method: createTextFieldWithTranslations(methodTexts, methodTranslations, methodLanguages),
                 notes: createTextFieldWithTranslations(notesTexts, notesTranslations, notesLanguages),
                 // Include the object count, defaulting to 0 if no objects are linked
-                objectsCount: sql`COALESCE(${objectsOntologyFieldsSubquery.objects_count}, 0)`.as('objectsCount')
+                objectsCount: sql`COALESCE(${objectsOntologyFieldsSubquery.objects_count}, 0)`.as('objectsCount'),
+                // Template information (can be null if no template is assigned)
+                template: {
+                    id: dbSchema.templates.id,
+                    name: dbSchema.templates.name,
+                    config: dbSchema.templates.config,
+                    asset_map_rule: dbSchema.templates.asset_map_rule
+                }
             })
                 .from(dbSchema.datasources)
                 // Left join with the subquery to get the object count
                 .leftJoin(objectsOntologyFieldsSubquery, eq(dbSchema.datasources.id, objectsOntologyFieldsSubquery.datasources_id))
+                // Left join with templates
+                .leftJoin(dbSchema.templates, eq(dbSchema.datasources.template_id, dbSchema.templates.id))
                 // Joins for translated fields
                 .leftJoin(nameTexts, eq(dbSchema.datasources.name_id, nameTexts.id))
                 .leftJoin(nameTranslations, eq(nameTexts.id, nameTranslations.text_id))

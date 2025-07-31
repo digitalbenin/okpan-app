@@ -330,6 +330,7 @@ export const datasources = sqliteTable('datasources', {
     ...commonFields,
     name_id: text('name_id').references(() => texts.id),
     institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
+    template_id: text('template_id').references(() => templates.id),
     language: text('language'),
     copyright: text('copyright'),
     method_id: text('method_id').references(() => texts.id),
@@ -344,7 +345,10 @@ export const datasourcesRelations = relations(datasources, ({ one, many }) => ({
         fields: [datasources.institution_id],
         references: [institutions.id]
     }),
-    templates: many(templates),
+    template: one(templates, {
+        fields: [datasources.template_id],
+        references: [templates.id]
+    }),
     objectsOntologyFields: many(objects_ontology_fields),
     name: one(texts, {
         fields: [datasources.name_id],
@@ -496,7 +500,6 @@ export const templates = sqliteTable('templates', {
     name: text('name'),
     config: text('config', { mode: 'json' }),
     institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
-    datasource_id: text('datasource_id').references(() => datasources.id),
     asset_map_rule: text('asset_map_rule')
 });
 
@@ -506,10 +509,7 @@ export const templatesRelations = relations(templates, ({ one, many }) => ({
         fields: [templates.institution_id],
         references: [institutions.id]
     }),
-    datasource: one(datasources, {
-        fields: [templates.datasource_id],
-        references: [datasources.id]
-    }),
+    datasources: many(datasources),
     imports: many(imports)
 }));
 

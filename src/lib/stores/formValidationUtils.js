@@ -532,3 +532,42 @@ registerCustomValidator('institutions', 'website', {
     required: false,
     defaultValue: ''
 });
+
+// =============================================================================
+// DATASOURCES VALIDATORS
+// =============================================================================
+
+// Only keep custom validators for fields that need special handling
+// Let the default schema validation handle basic fields like name, method, notes, etc.
+
+// Institution ID validator - required field (not in schema)
+registerCustomValidator('datasources', 'institutionId', {
+    validator: () => z.string().min(1, 'Please select an institution'),
+    required: true,
+    defaultValue: ''
+});
+
+// Template ID validator - optional field (not in schema)
+registerCustomValidator('datasources', 'templateId', {
+    validator: () => z.string().optional(),
+    required: false,
+    defaultValue: ''
+});
+
+// Language ID validator - required field for text creation (not in schema)
+registerCustomValidator('datasources', 'languageId', {
+    validator: () => z.string().min(1, 'Language is required'),
+    required: true,
+    defaultValue: ''
+});
+
+// Date validator - optional field with ISO date validation (not in schema)
+registerCustomValidator('datasources', 'date', {
+    validator: () => z.string().refine((val) => {
+        if (!val || val.trim() === '') return true; // Allow empty
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+    }, 'Must be a valid date').optional(),
+    required: false,
+    defaultValue: new Date().toISOString()
+});
