@@ -20,18 +20,24 @@
     languageId: languages[0].id,
     dateString: new Date().toISOString().split("T")[0],
   });
-  $inspect(datasource);
+
+  // add a fetch call when user goes back to this step if datasource is set
 
   const datasourceFetcher = createFetcher(createDatasourceWithThrow);
 
   async function handleSave() {
-    try {
-      const response = await datasourceFetcher.fetch(datasource);
-      console.log("Datasource saved:", response);
-    } catch (error) {
-      console.error("Error saving datasource:", error);
-      // Handle error appropriately, e.g., show a notification
-    }
+    // commented for testing purposes
+    // try {
+    //   const response = await datasourceFetcher.fetch(datasource);
+    //   console.log("Datasource saved:", response);
+    // } catch (error) {
+    //   console.error("Error saving datasource:", error);
+    //   // Handle error appropriately, e.g., show a notification
+    // }
+
+    const datasourceId = "1e1a2b20-f2cd-4479-88ae-d539a35f81c2"; // replace with actual ID from response
+    wizard.datasourceId = datasourceId;
+    wizard.nextEnabled = true;
   }
 </script>
 

@@ -37,15 +37,14 @@ export const createDatasource = async (params) => {
 // Version that throws errors for useFetcher compatibility
 export const createDatasourceWithThrow = async (params) => {
     const response = await executeQuery('datasources', 'create', params);
-    console.log(response)
-    if (!response || response.error || !response.result) {
+    if (!response) {
         const errorMessage = response?.error?.message ||
             response?.error ||
             "Failed to create datasource";
         throw new Error(errorMessage);
     }
 
-    return response.result; // Return just the result, not wrapped in object
+    return response; // Return just the result, not wrapped in object
 };
 
 
@@ -132,8 +131,6 @@ export const deleteDatasource = async (datasourceId) => {
     if (!datasourceId) {
         return { error: "Invalid datasource ID for deleteDatasource" };
     }
-
     const result = await executeQuery('datasources', 'delete', { datasourceId });
-    invalidate("app:datasources");
     return result;
 };

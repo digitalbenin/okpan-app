@@ -10,6 +10,12 @@ export function createFetcher(fetchFn) {
 
         try {
             const result = await fetchFn(variables);
+            if (!result) {
+                throw new Error("No data returned from fetch function");
+            }
+            if (result.error) {
+                throw new Error(result.error);
+            }
             data = result;
             return result;
         } catch (err) {

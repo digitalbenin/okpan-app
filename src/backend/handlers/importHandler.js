@@ -13,13 +13,13 @@ import { embeddingService } from '../services/embeddingService.js';
  * @param {Array<string>} [options.excludeFieldIds] - Ontology field IDs to exclude
  * @returns {Array} Array of objects with CSV field and suggested ontology field matches
  */
-export const suggestFieldMappings = async (csvFieldNames, options = {}) => {
-    const {
-        maxSuggestions = 3,
-        threshold = 0.65,
-        excludeFieldIds = []
-    } = options;
+export const suggestFieldMappings = async (csvFieldNames, options = {
+    maxSuggestions: 3,
+    threshold: 0.2,
+    excludeFieldIds: []
+}) => {
 
+    const { maxSuggestions, threshold, excludeFieldIds } = options;
     try {
 
         // Get all ontology fields with embeddings
