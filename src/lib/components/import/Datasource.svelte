@@ -35,7 +35,7 @@
     //   // Handle error appropriately, e.g., show a notification
     // }
 
-    const datasourceId = "1e1a2b20-f2cd-4479-88ae-d539a35f81c2"; // replace with actual ID from response
+    const datasourceId = "9b49749d-e86b-4555-8c90-8c0439d2e277"; // replace with actual ID from response
     wizard.datasourceId = datasourceId;
     wizard.nextEnabled = true;
   }

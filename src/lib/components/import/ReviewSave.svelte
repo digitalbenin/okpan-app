@@ -12,9 +12,9 @@
   async function handleSave() {
     try {
       const response = await saveFetcher.fetch({
-        data: wizard.file.data,
-        mapping: wizard.mapping,
-        datasourceId: wizard.datasourceId,
+        data: $state.snapshot(wizard.file.data),
+        mapping: $state.snapshot(wizard.mapping),
+        datasourceId: $state.snapshot(wizard.datasourceId),
       });
       console.log("Datasource saved:", response);
     } catch (error) {
@@ -22,7 +22,6 @@
       // Handle error appropriately, e.g., show a notification
     }
   }
-  $inspect(wizard);
 </script>
 
 <div class="container-fluid mt-3">
