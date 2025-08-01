@@ -184,3 +184,17 @@ export const unlinkAssetFromObject = async (objectId, assetId) => {
 
     return { result: result.deleteFromObjects_assets, error: null };
 };
+
+export const importObjectsAndTemplate = async (params) => {
+    if (!params) {
+        return { error: "Invalid parameters for importObjectsAndTemplate" };
+    }
+    console.log(params)
+    const result = await executeQuery('objects', 'import', params);
+    console.log("Import result:", result);
+    if (result?.error) {
+        return { error: result.error };
+    }
+
+    return result;
+};

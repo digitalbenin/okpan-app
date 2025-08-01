@@ -39,6 +39,7 @@
       data={wizard.file.data}
       {fields}
       matchingSuggestions={matchingSuggestions.current}
+      matchingSuggestionsLoading={matchingSuggestions.loading}
     />
   {/if}
 </div>

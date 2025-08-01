@@ -8,7 +8,7 @@
   const { t } = getTranslationStore();
 
   let open = $state(false);
-  let value = $derived(fieldMatched.id || null);
+  let value = $derived(fieldMatched ? fieldMatched.id : null);
   const items = $derived.by(() => {
     return page.data.ontologyFields.result
       .map((s) => ({

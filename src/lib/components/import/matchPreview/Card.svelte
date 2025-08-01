@@ -1,24 +1,34 @@
 <script>
   import { watch } from "runed";
   import MatchBadge from "./MatchBadge.svelte";
+  import SetMatch from "./SetMatch.svelte";
   import BaseCheckbox from "$lib/components/base/BaseCheckbox.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import SetMatch from "./SetMatch.svelte";
+  import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
 
   let {
     values,
     field,
     matchingSuggestion,
+    matchingSuggestionsLoading,
     matched = $bindable(),
     i,
     tot,
   } = $props();
+
+  const wizard = getImportWizardContext();
+
   const { t } = getTranslationStore();
 
-  let fieldMatched = $derived({
-    name: matchingSuggestion?.suggestions?.[0]?.ontologyFieldName,
-    id: matchingSuggestion?.suggestions?.[0]?.ontologyFieldId,
-    description: matchingSuggestion?.suggestions?.[0]?.ontologyFieldDescription,
+  let fieldMatched = $derived.by(() => {
+    if (!matchingSuggestion?.suggestions?.length) {
+      return null;
+    }
+    return {
+      name: matchingSuggestion.suggestions[0].ontologyFieldName,
+      id: matchingSuggestion.suggestions[0].ontologyFieldId,
+      description: matchingSuggestion.suggestions[0].ontologyFieldDescription,
+    };
   });
 
   let checked = $state(true);
@@ -29,10 +39,22 @@
       [field, fieldMatched, checked],
       [prevField, prevFieldMatched, prevChecked]
     ) => {
-      // update mapping
-      console.log("Field changed:", field, fieldMatched, checked);
+      const entry = {
+        headerField: field,
+        mappedField: fieldMatched?.id,
+        primary: false,
+      };
+      if (checked) {
+        wizard.addMappingEntry(entry);
+      } else {
+        wizard.removeMappingEntry(entry);
+      }
     }
   );
+
+  function resetFieldMatched() {
+    fieldMatched = null;
+  }
 
   //   $inspect(field, fieldMatched, checked);
 </script>
@@ -74,12 +96,36 @@
       <i class="bi bi-arrow-right"></i>
     </div>
     <div class="col">
-      <MatchBadge field={fieldMatched} />
-      <SetMatch
-        {field}
-        suggestions={matchingSuggestion.suggestions}
-        bind:fieldMatched
-      />
+      {#if matchingSuggestionsLoading}
+        <button class="btn btn-light" type="button" disabled>
+          <span class="spinner-border spinner-border-sm" aria-hidden="true"
+          ></span>
+          <span class="visually-hidden" role="status"
+            >{t("import.loading-suggestions", {
+              fallback: "Loading suggestions...",
+            })}</span
+          >
+        </button>
+      {:else}
+        <MatchBadge field={fieldMatched} />
+        {#if fieldMatched}
+          <button
+            class="btn btn-outline-danger"
+            onclick={resetFieldMatched}
+            aria-label={t("import.reset-match", {
+              fallback: "Reset match",
+            })}
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        {/if}
+
+        <SetMatch
+          {field}
+          suggestions={matchingSuggestion.suggestions}
+          bind:fieldMatched
+        />
+      {/if}
     </div>
   </div>
 </div>

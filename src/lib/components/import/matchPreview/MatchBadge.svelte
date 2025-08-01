@@ -6,17 +6,17 @@
   const { t } = getTranslationStore();
 </script>
 
-{#if field.id}
+{#if field}
   <BaseTooltip>
     {#snippet trigger(props)}
       <span class="btn btn-success text-capitalize" {...props}>
-        {field.name || t("import.not-set", { fallback: "Not set" })}
+        {field.name}
       </span>
     {/snippet}
     {field.description}
   </BaseTooltip>
 {:else}
   <span class="btn btn-warning text-capitalize fst-italic">
-    {field.name || t("import.not-set", { fallback: "Not set" })}
+    {t("import.not-set", { fallback: "Not set" })}
   </span>
 {/if}

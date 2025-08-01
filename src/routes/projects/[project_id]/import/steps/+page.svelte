@@ -4,6 +4,8 @@
   import Datasource from "$lib/components/import/Datasource.svelte";
   import UploadFile from "$lib/components/import/UploadFile.svelte";
   import MatchFields from "$lib/components/import/MatchFields.svelte";
+  import Identifier from "$lib/components/import/Identifier.svelte";
+  import ReviewSave from "$lib/components/import/ReviewSave.svelte";
   const { data } = $props();
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
@@ -20,4 +22,12 @@
 
 {#if wizard.currentStep === 3}
   <MatchFields />
+{/if}
+
+{#if wizard.currentStep === 4}
+  <Identifier ontologyFields={data.ontologyFields} />
+{/if}
+
+{#if wizard.currentStep === 5}
+  <ReviewSave />
 {/if}

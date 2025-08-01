@@ -7,7 +7,8 @@ export function createImportWizardContext(params) {
         { id: 1, t: 'give-datasource-name', fallback: 'Give Data Source Name' },
         { id: 2, t: 'upload-data', fallback: 'Add your data file' },
         { id: 3, t: 'match-data', fallback: 'Match your data' },
-        { id: 4, t: 'choose-id', fallback: 'Choose your object identifier' }
+        { id: 4, t: 'choose-id', fallback: 'Choose your object identifier' },
+        { id: 5, t: 'review-save', fallback: 'Review and Save' }
     ]);
     let currentStep = $state(1);
     let nextEnabled = $state(false);
@@ -66,6 +67,16 @@ export function createImportWizardContext(params) {
         },
         removeMappingEntry(entry) {
             mapping = mapping.filter(e => e.headerField !== entry.headerField);
+        },
+        setMappingIdentifier(id) {
+            mapping = mapping.map((entry) => {
+                if (entry.mappedField !== id) {
+                    entry.primary = false;
+                } else {
+                    entry.primary = true;
+                }
+                return entry;
+            });
         },
         nextStep() {
             currentStep++;
