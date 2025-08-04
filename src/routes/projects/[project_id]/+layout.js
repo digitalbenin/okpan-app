@@ -10,6 +10,14 @@ const { getAvaliableLocalesForProject } = getContentLanguageStore();
 export const load = async ({ params, depends }) => {
     if (!browser) return;
     depends('app:project-shared');
+
+    // Cache the current project ID in backend for optimized GraphQL queries
+    try {
+        await window.api.setCurrentProject(params.project_id);
+    } catch (error) {
+        console.warn('Failed to cache project ID:', error);
+    }
+
     const project = await getProject(params.project_id);
     const displayFields = await getDisplayFields({ projectId: params.project_id });
     const researchFields = await getResearchFields(params.project_id);

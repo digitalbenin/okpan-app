@@ -2,6 +2,7 @@ import { dialog } from 'electron';
 import { parse } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
 import fs from 'fs/promises';
+import { setCurrentProjectId, getCurrentProjectId, clearCurrentProjectId } from '../services/projectCache.js';
 
 /**
  * Handler for ping requests
@@ -202,4 +203,50 @@ async function parseStructuredFile(filePath, separator) {
         default:
             throw new Error(`Unsupported file format: ${extension}`);
     }
-} 
+};
+
+/**
+ * Handler for setting the current project ID in cache
+ * @param {Event} event - The IPC event
+ * @param {string} projectId - The project ID to cache
+ * @returns {Object} Success response
+ */
+export const handleSetCurrentProject = (event, projectId) => {
+    try {
+        setCurrentProjectId(projectId);
+        return { success: true, projectId };
+    } catch (error) {
+        console.error('Error setting current project ID:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Handler for getting the current cached project ID
+ * @param {Event} event - The IPC event
+ * @returns {Object} Response with current project ID
+ */
+export const handleGetCurrentProject = (event) => {
+    try {
+        const projectId = getCurrentProjectId();
+        return { success: true, projectId };
+    } catch (error) {
+        console.error('Error getting current project ID:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Handler for clearing the current project ID cache
+ * @param {Event} event - The IPC event
+ * @returns {Object} Success response
+ */
+export const handleClearCurrentProject = (event) => {
+    try {
+        clearCurrentProjectId();
+        return { success: true };
+    } catch (error) {
+        console.error('Error clearing current project ID:', error);
+        return { success: false, error: error.message };
+    }
+}; 

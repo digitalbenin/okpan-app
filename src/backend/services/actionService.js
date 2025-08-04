@@ -1,4 +1,5 @@
 // Action service - generates metadata for action logging
+import { getCurrentProjectId } from './projectCache.js';
 
 // Shared Constants (exported for use in other files)
 export const JUNCTION_TABLE_TYPES = ['objects_assets', 'objects_research_fields', 'assets_institutions'];
