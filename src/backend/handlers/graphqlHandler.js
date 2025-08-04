@@ -3,6 +3,7 @@ import { graphql, parse } from 'graphql';
 import { and } from 'drizzle-orm';
 import { actions } from '../../db/schema.js';
 import { getClientId } from '../../db/init.js';
+import { getCurrentProjectId } from '../services/projectCache.js';
 import crypto from 'crypto';
 import {
     generateActionMetadata,
@@ -177,6 +178,12 @@ const getVariableValue = (variables, ...possibleNames) => {
 
 // Extract project ID from variables or entity data
 const extractProjectId = async (variables, entityType, entityId, db, preData = null) => {
+    // Try cached project ID first (single-user Electron app optimization)
+    const cachedProjectId = getCurrentProjectId();
+    if (cachedProjectId) {
+        return cachedProjectId;
+    }
+
     // Try variables first
     const fromVars = getVariableValue(variables, 'projectId', 'project_id');
     if (fromVars) return fromVars;

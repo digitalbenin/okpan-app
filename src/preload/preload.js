@@ -19,5 +19,10 @@ contextBridge.exposeInMainWorld('api', {
     suggestFieldMappings: (csvFieldNames, options) => ipcRenderer.invoke('suggest-field-mappings', csvFieldNames, options),
 
     // Embedding methods
-    computeAllMissingEmbeddings: () => ipcRenderer.invoke('compute-all-missing-embeddings')
+    computeAllMissingEmbeddings: () => ipcRenderer.invoke('compute-all-missing-embeddings'),
+
+    // Project cache methods
+    setCurrentProject: (projectId) => ipcRenderer.invoke('set-current-project', projectId),
+    getCurrentProject: () => ipcRenderer.invoke('get-current-project'),
+    clearCurrentProject: () => ipcRenderer.invoke('clear-current-project')
 });
