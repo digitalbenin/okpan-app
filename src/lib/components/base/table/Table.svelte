@@ -10,6 +10,9 @@
     direction = $bindable(),
     selected = $bindable(),
     selectable = true,
+    size,
+    bordered = false,
+    wrap = true,
   } = $props();
 
   const defaultColumns = [];
@@ -17,7 +20,11 @@
 </script>
 
 <div class="table-responsive">
-  <table class="table align-middle">
+  <table
+    class="table align-middle {size ? `table-${size}` : ''}"
+    class:table-bordered={bordered}
+    class:text-nowrap={!wrap}
+  >
     <thead>
       <tr>
         {#if selectable}
@@ -58,7 +65,7 @@
       </tr>
     </thead>
     <tbody>
-      {#each items as item, i (item.id)}
+      {#each items as item, i}
         <tr>
           {#if selectable}
             <th>

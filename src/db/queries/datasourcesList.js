@@ -81,34 +81,35 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 copyright: dbSchema.datasources.copyright,
                 contact: dbSchema.datasources.contact,
                 date: dbSchema.datasources.date,
-                name: createTextFieldWithTranslations(nameTexts, nameTranslations, nameLanguages),
-                method: createTextFieldWithTranslations(methodTexts, methodTranslations, methodLanguages),
-                notes: createTextFieldWithTranslations(notesTexts, notesTranslations, notesLanguages),
+                // Simple text fields without complex translations for now
+                name: {
+                    content: nameTexts.content,
+                    id: nameTexts.id,
+                    original_language_id: nameTexts.original_language_id,
+                    translations: []
+                },
+                method: {
+                    content: methodTexts.content,
+                    id: methodTexts.id,
+                    original_language_id: methodTexts.original_language_id,
+                    translations: []
+                },
+                notes: {
+                    content: notesTexts.content,
+                    id: notesTexts.id,
+                    original_language_id: notesTexts.original_language_id,
+                    translations: []
+                },
                 // Include the object count, defaulting to 0 if no objects are linked
-                objectsCount: sql`COALESCE(${objectsOntologyFieldsSubquery.objects_count}, 0)`.as('objectsCount'),
-                // Template information (can be null if no template is assigned)
-                template: {
-                    id: dbSchema.templates.id,
-                    name: dbSchema.templates.name,
-                    config: dbSchema.templates.config,
-                    asset_map_rule: dbSchema.templates.asset_map_rule
-                }
+                objectsCount: sql`COALESCE(${objectsOntologyFieldsSubquery.objects_count}, 0)`.as('objectsCount')
             })
                 .from(dbSchema.datasources)
                 // Left join with the subquery to get the object count
                 .leftJoin(objectsOntologyFieldsSubquery, eq(dbSchema.datasources.id, objectsOntologyFieldsSubquery.datasources_id))
-                // Left join with templates
-                .leftJoin(dbSchema.templates, eq(dbSchema.datasources.template_id, dbSchema.templates.id))
-                // Joins for translated fields
+                // Simple joins - only text tables
                 .leftJoin(nameTexts, eq(dbSchema.datasources.name_id, nameTexts.id))
-                .leftJoin(nameTranslations, eq(nameTexts.id, nameTranslations.text_id))
-                .leftJoin(nameLanguages, eq(nameTranslations.language_id, nameLanguages.id))
                 .leftJoin(methodTexts, eq(dbSchema.datasources.method_id, methodTexts.id))
-                .leftJoin(methodTranslations, eq(methodTexts.id, methodTranslations.text_id))
-                .leftJoin(methodLanguages, eq(methodTranslations.language_id, methodLanguages.id))
-                .leftJoin(notesTexts, eq(dbSchema.datasources.notes_id, notesTexts.id))
-                .leftJoin(notesTranslations, eq(notesTexts.id, notesTranslations.text_id))
-                .leftJoin(notesLanguages, eq(notesTranslations.language_id, notesLanguages.id));
+                .leftJoin(notesTexts, eq(dbSchema.datasources.notes_id, notesTexts.id));
 
             // Apply institution_id filter if provided
             if (args.institution_id) {
@@ -140,17 +141,13 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
             // Apply pagination
             query = query
                 .limit(args.pageSize)
-                .offset(args.page * args.pageSize)
-                // Group by datasource ID to consolidate translations and object count
-                .groupBy(dbSchema.datasources.id);
+                .offset(args.page * args.pageSize);
 
             // Execute the paginated query
             const datasources = await query.execute();
 
-            // Process translations FIRST
-            const processedDatasources = processTranslations(datasources, ['name', 'method', 'notes']);
-
-            return processedDatasources; // Return results without server-side date formatting
+            // Return datasources directly - no complex translation processing needed
+            return datasources;
         }
     };
 }; 

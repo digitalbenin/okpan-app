@@ -12,88 +12,44 @@ export const datasourcesOperations = {
       direction: "Sort direction (asc or desc, default: desc)"
     },
     query: `query ListDatasources(
-  $institutionId: String
-  $page: Int
-  $pageSize: Int
-  $orderBy: String
-  $direction: String
-) {
-  result: datasourcesList(
-    institution_id: $institutionId
-    page: $page
-    pageSize: $pageSize
-    orderBy: $orderBy
-    direction: $direction
+    $institutionId: String
+    $page: Int
+    $pageSize: Int
+    $orderBy: String
+    $direction: String
   ) {
-    id
-    created_at
-    updated_at
-    institution_id
-    template_id
-    language
-    copyright
-    contact
-    date
-    objectsCount # Count of linked objects
-    institution {
+    result: datasourcesList(
+      institution_id: $institutionId
+      page: $page
+      pageSize: $pageSize
+      orderBy: $orderBy
+      direction: $direction
+    ) {
       id
+      created_at
+      updated_at
+      institution_id
+      language
+      copyright
+      contact
+      date
       name {
-        content
-      }
+         content
+       }
+       method {
+         content
+       }
+       notes {
+         content
+       }
+       institution {
+         id
+         name {
+           content
+         }
+       }
     }
-    template {
-      id
-      name
-      config
-      asset_map_rule
-    }
-    name {
-      id
-      content
-      original_language_id
-      translations {
-        id
-        language_id
-        content
-        language {
-          id
-          code
-          name
-        }
-      }
-    }
-    method {
-      id
-      content
-      original_language_id
-      translations {
-        id
-        language_id
-        content
-        language {
-          id
-          code
-          name
-        }
-      }
-    }
-    notes {
-      id
-      content
-      original_language_id
-      translations {
-        id
-        language_id
-        content
-        language {
-          id
-          code
-          name
-        }
-      }
-    }
-  }
-}`
+  }`
   },
 
   // GET BY ID
@@ -105,94 +61,10 @@ export const datasourcesOperations = {
       datasourceId: "ID of the datasource to retrieve"
     },
     query: `query GetDatasource($datasourceId: String!) {
-  result: datasources(where: { id: { eq: $datasourceId } }) {
-    id
-    created_at
-    updated_at
-    institution_id
-    template_id
-    language
-    copyright
-    contact
-    date
-    institution {
+    result: datasources(where: { id: { eq: $datasourceId } }) {
       id
-      name {
-        content
-      }
     }
-    template {
-      id
-      name
-      config
-      asset_map_rule
-    }
-    name {
-      id
-      content
-      original_language_id
-      translations {
-        id
-        language_id
-        content
-        language {
-          id
-          code
-          name
-        }
-      }
-    }
-    method {
-      id
-      content
-      original_language_id
-      translations {
-        id
-        language_id
-        content
-        language {
-          id
-          code
-          name
-        }
-      }
-    }
-    notes {
-      id
-      content
-      original_language_id
-      translations {
-        id
-        language_id
-        content
-        language {
-          id
-          code
-          name
-        }
-      }
-    }
-    objectsOntologyFields {
-      id
-      label
-      value
-      primary
-      default_description
-      ontologyField {
-        id
-        name {
-          content
-        }
-      }
-    }
-    template {
-      id
-      mapping
-      project_id
-      asset_map_rule
-    }
-  }
-}`
+  }`
   },
 
   // CREATE
@@ -207,11 +79,10 @@ export const datasourcesOperations = {
       name: "Name of the datasource",
       method: "Method description (optional)",
       notes: "Notes (optional)",
-      languageId: "Language ID of the datasource (optional)",
+      language: "Language code of the datasource (optional)",
       copyright: "Copyright information (optional)",
       contact: "Contact information (optional)",
-      date: "Date (optional timestamp)",
-      templateId: "Template ID to link to this datasource (optional)"
+      date: "Date (optional timestamp)"
     },
     mutations: [
       {
@@ -275,11 +146,10 @@ export const datasourcesOperations = {
   $notesId: String
   $institutionId: String!
   $templateId: String
-  $languageId: String
+  $language: String
   $copyright: String
   $contact: String
   $date: String
-  $templateId: String
 ) {
   result:insertIntoDatasources(
     values: [
@@ -289,11 +159,10 @@ export const datasourcesOperations = {
         notes_id: $notesId
         institution_id: $institutionId
         template_id: $templateId
-        language: $languageId
+        language: $language
         copyright: $copyright
         contact: $contact
         date: $date
-        template_id: $templateId
       }
     ]
   ) {
@@ -334,7 +203,6 @@ export const datasourcesOperations = {
       contact: "New contact info (optional)",
       date: "New date as ISO string (optional)",
       copyright: "New copyright info (optional)",
-      templateId: "New template ID (optional)",
       // Text fields (content for default language)
       name: "New name content (optional)",
       method: "New method content (optional)",
@@ -450,7 +318,6 @@ export const datasourcesOperations = {
   $contact: String
   $date: String
   $copyright: String
-  $templateId: String
 ) {
   updateDatasources(
     set: { language: $language, contact: $contact, date: $date, copyright: $copyright, template_id: $templateId }
@@ -462,7 +329,6 @@ export const datasourcesOperations = {
     contact
     date
     copyright
-    template_id
   }
 }`,
         useVariables: ["datasourceId", "language", "contact", "date", "copyright", "templateId"],

@@ -3,10 +3,14 @@
   import BottomToolbar from "$lib/components/import/BottomToolbar.svelte";
   import { createImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
 
-  const { children } = $props();
-  const wizard = createImportWizardContext();
+  const { data, children } = $props();
+  const wizard = createImportWizardContext({ projectId: data.project.id });
 </script>
 
-<Steps />
-{@render children()}
-<BottomToolbar />
+<div class="h-100 d-flex flex-column">
+  <Steps />
+  <div class="flex-grow-1 overflow-y-auto">
+    {@render children()}
+  </div>
+  <BottomToolbar />
+</div>

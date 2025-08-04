@@ -6,7 +6,7 @@
   const wizard = getImportWizardContext();
 </script>
 
-<div class="p-2 w-100 z-1 sticky-top">
+<div class="px-2 mt-2 w-100">
   <div class="bg-light rounded d-flex justify-content-between p-2 gap-2">
     {#each wizard.steps as step, i (step.id)}
       <div

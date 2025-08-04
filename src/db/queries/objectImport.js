@@ -121,8 +121,8 @@ export const createObjectImportMutation = (db, drizzleResult) => {
 
                             // 5. Create object-ontology field associations based on mapping
                             for (const fieldMapping of parsedMapping) {
-                                // Skip if no mapping defined or mappedField is null
-                                if (!fieldMapping || !fieldMapping.mappedField || !fieldMapping.headerField) {
+                                // Skip if no mapping defined or no headerField
+                                if (!fieldMapping || !fieldMapping.headerField) {
                                     continue;
                                 }
 
@@ -133,9 +133,10 @@ export const createObjectImportMutation = (db, drizzleResult) => {
                                 }
 
                                 // Create the object-ontology field association
+                                // If mappedField is null, field_id will be null (unmapped field)
                                 const associationData = {
                                     object_id: objectResult.id,
-                                    field_id: fieldMapping.mappedField,
+                                    field_id: fieldMapping.mappedField || null, // Allow null field_id for unmapped fields
                                     datasources_id: datasourceId,
                                     value: String(value), // Convert to string
                                     primary: fieldMapping.primary ? 1 : 0, // Convert boolean to integer for SQLite
