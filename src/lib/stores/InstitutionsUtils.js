@@ -75,8 +75,20 @@ export const deleteInstitution = async (institutionId) => {
 // Function to create an institution, including the required text entries
 export const createInstitution = async (institutionData) => {
     const result = await executeQuery('institutions', 'create', institutionData);
+
+    if (result.error) {
+        console.error('Institution creation error:', result.error);
+        return { result: null, error: result.error };
+    }
+
     // Extract all relevant IDs and institution from the institution object
-    const institution = result?.insertIntoInstitutions?.[0];
+    const institution = result?.result?.[0];
+
+    if (!institution) {
+        console.error('No institution returned from create mutation:', result);
+        return { result: null, error: 'No institution created' };
+    }
+
     return {
         institution,
         nameId: institution?.name_id,

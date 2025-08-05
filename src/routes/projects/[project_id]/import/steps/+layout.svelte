@@ -10,7 +10,7 @@
 <div class="h-100 d-flex flex-column">
   <Steps />
   <div class="flex-grow-1 overflow-y-auto">
-    {@render children()}
+    {@render children?.()}
   </div>
   <BottomToolbar />
 </div>

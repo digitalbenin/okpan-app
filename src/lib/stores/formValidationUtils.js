@@ -455,6 +455,66 @@ export const getFieldValidators = (entityName, operationName) => {
 };
 
 /**
+ * Creates a field validator for TanStack Form with structured error support
+ * @param {string} fieldName - The name of the field to validate
+ * @param {Object} validator - The validator object with schema
+ * @param {Object} form - The form instance
+ * @param {Function} setStructuredErrors - Function to update structured errors (optional)
+ * @param {Object} options - Configuration options
+ * @returns {Object} Validator configuration for TanStack Form
+ */
+export const createFieldValidator = (fieldName, validator, form, setStructuredErrors = null, options = {}) => {
+    const { validateOnChange = false } = options;
+
+    const validateField = ({ value }) => {
+        // Get the field schema from the main validator
+        const fieldSchema = validator.schema.shape[fieldName];
+
+        if (!fieldSchema) {
+            console.warn(`No schema found for field: ${fieldName}`);
+            return undefined;
+        }
+
+        // Validate only this specific field
+        const result = fieldSchema.safeParse(value);
+
+        if (!result.success) {
+            // Update structured errors for components that need them (like DynamicArrayField)
+            if (setStructuredErrors && fieldName === "links") {
+                // For individual field validation, we need to create error objects with proper paths
+                const linksErrors = result.error.errors.map(error => ({
+                    ...error,
+                    path: [fieldName, ...error.path] // Prepend the field name to the path
+                }));
+                setStructuredErrors(linksErrors);
+            }
+
+            // Return field-specific errors
+            const fieldErrors = result.error.errors.map((e) => e.message);
+            return fieldErrors.length > 0 ? fieldErrors.join(", ") : undefined;
+        } else {
+            // Clear structured errors on success
+            if (setStructuredErrors && fieldName === "links") {
+                setStructuredErrors([]);
+            }
+        }
+
+        return undefined;
+    };
+
+    const config = {
+        onSubmit: validateField,
+    };
+
+    // Only add onChange validation if explicitly requested
+    if (validateOnChange) {
+        config.onChange = validateField;
+    }
+
+    return config;
+};
+
+/**
  * Gets form configuration for TanStack Form
  */
 export const getFormConfig = (entityName, operationName, options = {}) => {

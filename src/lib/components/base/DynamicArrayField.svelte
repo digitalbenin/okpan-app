@@ -9,6 +9,9 @@
         class: customClass = "",
         onChange = null,
         errors = [],
+        structuredErrors = [], // Raw validation errors with path arrays
+        fieldValidators = null, // Optional field-level validators for individual items
+        arrayFieldName = "", // The name of the array field for error matching
     } = $props();
 
     // Ensure we have an array value
@@ -42,6 +45,59 @@
         value = newArray;
         onChange?.(newArray);
     }
+
+    // Generic error matching - purely data-driven
+    function getFieldErrors(index, fieldName) {
+        // Try structured errors first (preferred)
+        if (structuredErrors && Array.isArray(structuredErrors)) {
+            const structuredFieldErrors = structuredErrors
+                .filter((error) => {
+                    const match =
+                        typeof error === "object" &&
+                        error !== null &&
+                        error.path &&
+                        Array.isArray(error.path) &&
+                        error.path.length >= 3 &&
+                        error.path[0] === arrayFieldName &&
+                        error.path[1] === index &&
+                        error.path[2] === fieldName;
+
+                    return match;
+                })
+                .map((error) => error.message);
+
+            if (structuredFieldErrors.length > 0) {
+                return structuredFieldErrors;
+            }
+        }
+
+        // Don't show fallback errors if structured errors are available
+        // This prevents all fields from being highlighted when only one has an error
+        return [];
+    }
+
+    function getArrayLevelErrors() {
+        // Only show array-level errors if structured errors are working
+        if (structuredErrors && Array.isArray(structuredErrors)) {
+            return structuredErrors
+                .filter((error) => {
+                    // Array-level errors have path length <= 1 or don't match our array field
+                    return (
+                        typeof error === "object" &&
+                        error !== null &&
+                        error.path &&
+                        Array.isArray(error.path) &&
+                        (error.path.length <= 1 ||
+                            error.path[0] !== arrayFieldName ||
+                            error.path.length < 3)
+                    );
+                })
+                .map((error) => error.message);
+        }
+
+        // Fallback: don't show string errors at array level if structured errors are expected but empty
+        return [];
+    }
 </script>
 
 <div class="dynamic-array-field {customClass}">
@@ -61,8 +117,14 @@
                         {/if}
 
                         {#if fieldConfig.type === "select"}
+                            {@const fieldErrors = getFieldErrors(
+                                index,
+                                fieldConfig.name,
+                            )}
                             <select
-                                class="form-select"
+                                class="form-select {fieldErrors.length > 0
+                                    ? 'is-invalid'
+                                    : ''}"
                                 value={item[fieldConfig.name] || ""}
                                 onchange={(e) =>
                                     updateItem(
@@ -81,8 +143,14 @@
                                 {/each}
                             </select>
                         {:else if fieldConfig.type === "textarea"}
+                            {@const fieldErrors = getFieldErrors(
+                                index,
+                                fieldConfig.name,
+                            )}
                             <textarea
-                                class="form-control"
+                                class="form-control {fieldErrors.length > 0
+                                    ? 'is-invalid'
+                                    : ''}"
                                 rows={fieldConfig.rows || 3}
                                 placeholder={fieldConfig.placeholder || ""}
                                 value={item[fieldConfig.name] || ""}
@@ -94,9 +162,15 @@
                                     )}
                             ></textarea>
                         {:else}
+                            {@const fieldErrors = getFieldErrors(
+                                index,
+                                fieldConfig.name,
+                            )}
                             <input
                                 type={fieldConfig.type || "text"}
-                                class="form-control"
+                                class="form-control {fieldErrors.length > 0
+                                    ? 'is-invalid'
+                                    : ''}"
                                 placeholder={fieldConfig.placeholder || ""}
                                 value={item[fieldConfig.name] || ""}
                                 oninput={(e) =>
@@ -126,6 +200,23 @@
                     {/if}
                 </div>
             </div>
+
+            <!-- Field-specific error display -->
+            <div class="row g-2 mt-1">
+                {#each itemFields as fieldConfig}
+                    {@const fieldErrors = getFieldErrors(
+                        index,
+                        fieldConfig.name,
+                    )}
+                    <div class="col-{fieldConfig.colSize || 6}">
+                        {#if fieldErrors.length > 0}
+                            <div class="invalid-feedback d-block">
+                                {fieldErrors.join(", ")}
+                            </div>
+                        {/if}
+                    </div>
+                {/each}
+            </div>
         </div>
     {/each}
 
@@ -137,10 +228,10 @@
         </button>
     {/if}
 
-    <!-- Array-level validation errors -->
-    {#if errors.length > 0}
+    <!-- Array-level errors -->
+    {#if getArrayLevelErrors().length > 0}
         <div class="invalid-feedback d-block mt-2">
-            {errors.join(", ")}
+            {getArrayLevelErrors().join(", ")}
         </div>
     {/if}
 </div>

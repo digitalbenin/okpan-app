@@ -4,6 +4,7 @@
   import {
     getValidator,
     getFieldValidators,
+    createFieldValidator,
   } from "$lib/stores/formValidationUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { page } from "$app/stores";
@@ -66,9 +67,39 @@
     return defaults;
   };
 
+  // Store all validation errors for components to use
+  let allValidationErrors = $state([]);
+
+  // Helper function to set structured errors
+  function setAllValidationErrors(errors) {
+    allValidationErrors = errors;
+  }
+
   // Create form instance
   const form = createForm(() => ({
     defaultValues: createDefaultValues(),
+    validators: {
+      onSubmit: ({ value }) => {
+        const result = validator.schema.safeParse(value);
+        if (!result.success) {
+          // Store ALL validation errors for components
+          allValidationErrors = result.error.errors;
+
+          const fieldErrors = {};
+          result.error.errors.forEach((error) => {
+            const fieldPath = error.path.join(".");
+            if (!fieldErrors[fieldPath]) {
+              fieldErrors[fieldPath] = [];
+            }
+            fieldErrors[fieldPath].push(error.message);
+          });
+          return { fields: fieldErrors };
+        } else {
+          allValidationErrors = [];
+        }
+        return undefined;
+      },
+    },
     onSubmit: async ({ value }) => {
       try {
         // Transform links array to native array for the mutation
@@ -81,18 +112,25 @@
         };
 
         // Create the institution (real call)
+        const result = await createInstitution({
+          project_id: transformedValue.project_id,
+          languageId: transformedValue.languageId,
+          name: transformedValue.name,
+          description: transformedValue.description,
+          country: transformedValue.country,
+          location: transformedValue.location,
+          website: transformedValue.website,
+          links: transformedValue.links,
+          status: transformedValue.status,
+        });
+
+        if (!result || !result.institution) {
+          console.error("createInstitution result:", result);
+          throw new Error("Failed to create institution");
+        }
+
         const { institution, nameId, descriptionId, countryId, locationId } =
-          await createInstitution({
-            project_id: transformedValue.project_id,
-            languageId: transformedValue.languageId,
-            name: transformedValue.name,
-            description: transformedValue.description,
-            country: transformedValue.country,
-            location: transformedValue.location,
-            website: transformedValue.website,
-            links: transformedValue.links,
-            status: transformedValue.status,
-          });
+          result;
 
         // Prepare translation creation promises
         const contentLanguageStore = getContentLanguageStore();
@@ -193,7 +231,16 @@
           <!-- Default language content -->
           <div {...tabs.getContent("default")}>
             <div class="pt-2">
-              <form.Field name="name" validators={fieldValidators.name}>
+              <form.Field
+                name="name"
+                validators={createFieldValidator(
+                  "name",
+                  validator,
+                  form,
+                  setAllValidationErrors,
+                  { validateOnChange: true },
+                )}
+              >
                 {#snippet children(field)}
                   <div class="mb-3">
                     <p class="form-label" for={field.name}>
@@ -229,7 +276,13 @@
 
               <form.Field
                 name="description"
-                validators={fieldValidators.description}
+                validators={createFieldValidator(
+                  "description",
+                  validator,
+                  form,
+                  setAllValidationErrors,
+                  { validateOnChange: true },
+                )}
               >
                 {#snippet children(field)}
                   <div class="mb-3">
@@ -263,7 +316,16 @@
                 {/snippet}
               </form.Field>
 
-              <form.Field name="country" validators={fieldValidators.country}>
+              <form.Field
+                name="country"
+                validators={createFieldValidator(
+                  "country",
+                  validator,
+                  form,
+                  setAllValidationErrors,
+                  { validateOnChange: true },
+                )}
+              >
                 {#snippet children(field)}
                   <div class="mb-3">
                     <p class="form-label" for={field.name}>
@@ -296,7 +358,16 @@
                 {/snippet}
               </form.Field>
 
-              <form.Field name="location" validators={fieldValidators.location}>
+              <form.Field
+                name="location"
+                validators={createFieldValidator(
+                  "location",
+                  validator,
+                  form,
+                  setAllValidationErrors,
+                  { validateOnChange: true },
+                )}
+              >
                 {#snippet children(field)}
                   <div class="mb-3">
                     <p class="form-label" for={field.name}>
@@ -471,7 +542,16 @@
 
         <!-- Non-translatable fields -->
         <div class="mb-4">
-          <form.Field name="website" validators={fieldValidators.website}>
+          <form.Field
+            name="website"
+            validators={createFieldValidator(
+              "website",
+              validator,
+              form,
+              setAllValidationErrors,
+              { validateOnChange: true },
+            )}
+          >
             {#snippet children(field)}
               <div class="mb-3">
                 <p class="form-label" for={field.name}>
@@ -501,7 +581,16 @@
             {/snippet}
           </form.Field>
 
-          <form.Field name="links" validators={fieldValidators.links}>
+          <form.Field
+            name="links"
+            validators={createFieldValidator(
+              "links",
+              validator,
+              form,
+              setAllValidationErrors,
+              { validateOnChange: true },
+            )}
+          >
             {#snippet children(field)}
               <div class="mb-3">
                 <p class="form-label">
@@ -512,6 +601,7 @@
                 </p>
                 <DynamicArrayField
                   bind:value={field.state.value}
+                  arrayFieldName="links"
                   itemFields={[
                     {
                       name: "url",
@@ -531,10 +621,10 @@
                     },
                   ]}
                   addButtonText="Add Link"
-                  itemTitle="Link"
                   minItems={0}
                   maxItems={10}
                   errors={field.state.meta.errors}
+                  structuredErrors={allValidationErrors}
                   onChange={(newValue) => {
                     field.handleChange(newValue);
                   }}

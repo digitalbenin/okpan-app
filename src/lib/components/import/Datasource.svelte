@@ -3,7 +3,7 @@
   import { createForm } from "@tanstack/svelte-form";
   import {
     getValidator,
-    getFieldValidators,
+    createFieldValidator,
   } from "$lib/stores/formValidationUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { Tabs } from "melt/builders";
@@ -35,11 +35,15 @@
   // add a fetch call when user goes back to this step if datasource is set
 
   const validator = getValidator("datasources", "create");
-  const fieldValidators = getFieldValidators("datasources", "create");
-  const translationsFieldValidators = getFieldValidators(
-    "translations",
-    "create",
-  );
+  const translationsValidator = getValidator("translations", "create");
+
+  // Store all validation errors for components to use
+  let allValidationErrors = $state([]);
+
+  // Helper function to set structured errors
+  function setAllValidationErrors(errors) {
+    allValidationErrors = errors;
+  }
 
   // Create the form
   const form = createForm(() => ({
@@ -139,7 +143,16 @@
         <!-- Default language content -->
         <div {...tabs.getContent("default")}>
           <div class="pt-2">
-            <form.Field name="name" validators={fieldValidators.name}>
+            <form.Field
+              name="name"
+              validators={createFieldValidator(
+                "name",
+                validator,
+                form,
+                setAllValidationErrors,
+                { validateOnChange: true },
+              )}
+            >
               {#snippet children(field)}
                 <div class="mb-3">
                   <p class="form-label" for={field.name}>
@@ -173,7 +186,16 @@
               {/snippet}
             </form.Field>
 
-            <form.Field name="method" validators={fieldValidators.method}>
+            <form.Field
+              name="method"
+              validators={createFieldValidator(
+                "method",
+                validator,
+                form,
+                setAllValidationErrors,
+                { validateOnChange: true },
+              )}
+            >
               {#snippet children(field)}
                 <div class="mb-3">
                   <p class="form-label" for={field.name}>
@@ -206,7 +228,16 @@
               {/snippet}
             </form.Field>
 
-            <form.Field name="notes" validators={fieldValidators.notes}>
+            <form.Field
+              name="notes"
+              validators={createFieldValidator(
+                "notes",
+                validator,
+                form,
+                setAllValidationErrors,
+                { validateOnChange: true },
+              )}
+            >
               {#snippet children(field)}
                 <div class="mb-3">
                   <p class="form-label" for={field.name}>
@@ -247,7 +278,13 @@
             <div class="pt-2">
               <form.Field
                 name="translations_{lang.id}_name"
-                validators={translationsFieldValidators.content}
+                validators={createFieldValidator(
+                  "translations_{lang.id}_name",
+                  translationsValidator,
+                  form,
+                  setAllValidationErrors,
+                  { validateOnChange: true },
+                )}
               >
                 {#snippet children(field)}
                   <div class="mb-3">
@@ -281,7 +318,13 @@
 
               <form.Field
                 name="translations_{lang.id}_method"
-                validators={translationsFieldValidators.content}
+                validators={createFieldValidator(
+                  "translations_{lang.id}_method",
+                  translationsValidator,
+                  form,
+                  setAllValidationErrors,
+                  { validateOnChange: true },
+                )}
               >
                 {#snippet children(field)}
                   <div class="mb-3">
@@ -313,7 +356,13 @@
 
               <form.Field
                 name="translations_{lang.id}_notes"
-                validators={translationsFieldValidators.content}
+                validators={createFieldValidator(
+                  "translations_{lang.id}_notes",
+                  translationsValidator,
+                  form,
+                  setAllValidationErrors,
+                  { validateOnChange: true },
+                )}
               >
                 {#snippet children(field)}
                   <div class="mb-3">
@@ -347,229 +396,251 @@
         {/each}
       </div>
     </div>
-  </div>
 
-  <!-- Non-translatable fields in two columns -->
-  <div class="row">
-    <div class="col-md-6">
-      <form.Field
-        name="institutionId"
-        validators={fieldValidators.institutionId}
-      >
-        {#snippet children(field)}
-          <div class="mb-3">
-            <p class="form-label" for={field.name}>
-              {t("common.institution", { fallback: "Institution" })}
-              {#if validator.requiredFields.has("institutionId")}
-                <span class="text-danger">*</span>
-              {/if}
-            </p>
-            <select
-              id={field.name}
-              name={field.name}
-              class="form-select {field.state.meta.errors.length > 0
-                ? 'is-invalid'
-                : ''}"
-              value={field.state.value}
-              onchange={(e) => field.handleChange(e.target.value)}
-              onblur={field.handleBlur}
-            >
-              <option value="">Select an institution</option>
-              {#each institutions as institution}
-                <option value={institution.id}>
-                  {institution.name.content}
-                </option>
-              {/each}
-            </select>
-            {#if field.state.meta.errors.length > 0}
-              <div class="invalid-feedback">
-                {field.state.meta.errors.join(", ")}
-              </div>
-            {/if}
-          </div>
-        {/snippet}
-      </form.Field>
-
-      <form.Field name="date" validators={fieldValidators.date}>
-        {#snippet children(field)}
-          <div class="mb-3">
-            <p class="form-label" for={field.name}>
-              {t("common.date", { fallback: "Date" })}
-              {#if validator.requiredFields.has("date")}
-                <span class="text-danger">*</span>
-              {/if}
-            </p>
-            <input
-              id={field.name}
-              name={field.name}
-              type="date"
-              class="form-control {field.state.meta.errors.length > 0
-                ? 'is-invalid'
-                : ''}"
-              value={field.state.value
-                ? new Date(field.state.value).toISOString().split("T")[0]
-                : ""}
-              onchange={(e) =>
-                field.handleChange(
-                  e.target.value
-                    ? new Date(e.target.value).toISOString()
-                    : null,
-                )}
-              onblur={field.handleBlur}
-            />
-            {#if field.state.meta.errors.length > 0}
-              <div class="invalid-feedback">
-                {field.state.meta.errors.join(", ")}
-              </div>
-            {/if}
-          </div>
-        {/snippet}
-      </form.Field>
-    </div>
-
-    <div class="col-md-6">
-      <!-- Hidden field for languageId (used for text creation) -->
-      <form.Field name="languageId" validators={fieldValidators.languageId}>
-        {#snippet children(field)}
-          <input type="hidden" name={field.name} value={field.state.value} />
-        {/snippet}
-      </form.Field>
-
-      <form.Field name="language" validators={fieldValidators.language}>
-        {#snippet children(field)}
-          <div class="mb-3">
-            <p class="form-label" for={field.name}>
-              {t("common.datasource-language", {
-                fallback: "Datasource Language",
-              })}
-              {#if validator.requiredFields.has("language")}
-                <span class="text-danger">*</span>
-              {/if}
-            </p>
-            <input
-              id={field.name}
-              name={field.name}
-              type="text"
-              class="form-control {field.state.meta.errors.length > 0
-                ? 'is-invalid'
-                : ''}"
-              placeholder="e.g., en, es, fr"
-              value={field.state.value}
-              oninput={(e) => field.handleChange(e.target.value)}
-              onblur={field.handleBlur}
-            />
-            {#if field.state.meta.errors.length > 0}
-              <div class="invalid-feedback">
-                {field.state.meta.errors.join(", ")}
-              </div>
-            {/if}
-          </div>
-        {/snippet}
-      </form.Field>
-
-      <form.Field name="copyright" validators={fieldValidators.copyright}>
-        {#snippet children(field)}
-          <div class="mb-3">
-            <p class="form-label" for={field.name}>
-              {t("common.copyright", { fallback: "Copyright" })}
-              {#if validator.requiredFields.has("copyright")}
-                <span class="text-danger">*</span>
-              {/if}
-            </p>
-            <input
-              id={field.name}
-              name={field.name}
-              type="text"
-              class="form-control {field.state.meta.errors.length > 0
-                ? 'is-invalid'
-                : ''}"
-              placeholder={t("common.copyright", {
-                fallback: "Copyright",
-              })}
-              value={field.state.value}
-              oninput={(e) => field.handleChange(e.target.value)}
-              onblur={field.handleBlur}
-            />
-            {#if field.state.meta.errors.length > 0}
-              <div class="invalid-feedback">
-                {field.state.meta.errors.join(", ")}
-              </div>
-            {/if}
-          </div>
-        {/snippet}
-      </form.Field>
-
-      <form.Field name="contact" validators={fieldValidators.contact}>
-        {#snippet children(field)}
-          <div class="mb-3">
-            <p class="form-label" for={field.name}>
-              {t("common.contact", { fallback: "Contact" })}
-              {#if validator.requiredFields.has("contact")}
-                <span class="text-danger">*</span>
-              {/if}
-            </p>
-            <input
-              id={field.name}
-              name={field.name}
-              type="text"
-              class="form-control {field.state.meta.errors.length > 0
-                ? 'is-invalid'
-                : ''}"
-              placeholder={t("common.contact", {
-                fallback: "Contact",
-              })}
-              value={field.state.value}
-              oninput={(e) => field.handleChange(e.target.value)}
-              onblur={field.handleBlur}
-            />
-            {#if field.state.meta.errors.length > 0}
-              <div class="invalid-feedback">
-                {field.state.meta.errors.join(", ")}
-              </div>
-            {/if}
-          </div>
-        {/snippet}
-      </form.Field>
-    </div>
-  </div>
-
-  <!-- Show form-level errors and debug state -->
-  <div class="row">
-    <div class="col-12">
-      <form.Subscribe
-        selector={(state) => ({
-          errors: state.errors,
-          canSubmit: state.canSubmit,
-          isSubmitting: state.isSubmitting,
-          fieldMeta: state.fieldMeta,
-        })}
-      >
-        {#snippet children(formState)}
-          {#if formState.errors.length > 0}
-            <div class="alert alert-danger">
-              <strong>Please fix the following errors:</strong>
-              <ul class="mb-0 mt-1">
-                {#each formState.errors as error}
-                  <li>
-                    {typeof error === "object" ? JSON.stringify(error) : error}
-                  </li>
+    <!-- Non-translatable fields in two columns -->
+    <div class="row">
+      <div class="col-md-6">
+        <form.Field
+          name="institutionId"
+          validators={createFieldValidator(
+            "institutionId",
+            validator,
+            form,
+            setAllValidationErrors,
+            { validateOnChange: true },
+          )}
+        >
+          {#snippet children(field)}
+            <div class="mb-3">
+              <p class="form-label" for={field.name}>
+                {t("common.institution", { fallback: "Institution" })}
+                {#if validator.requiredFields.has("institutionId")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </p>
+              <select
+                id={field.name}
+                name={field.name}
+                class="form-select {field.state.meta.errors.length > 0
+                  ? 'is-invalid'
+                  : ''}"
+                value={field.state.value}
+                onchange={(e) => field.handleChange(e.target.value)}
+                onblur={field.handleBlur}
+              >
+                <option value="">Select an institution</option>
+                {#each institutions as institution}
+                  <option value={institution.id}>
+                    {institution.name.content}
+                  </option>
                 {/each}
-              </ul>
+              </select>
+              {#if field.state.meta.errors.length > 0}
+                <div class="invalid-feedback">
+                  {field.state.meta.errors.join(", ")}
+                </div>
+              {/if}
             </div>
-          {/if}
-        {/snippet}
-      </form.Subscribe>
-    </div>
-  </div>
+          {/snippet}
+        </form.Field>
 
-  <!-- Submit button -->
-  <div class="row mt-4">
-    <div class="col-12">
-      <BaseButton
-        type="submit"
-        class="btn btn-success"
-        text={t("common.confirm", { fallback: "Confirm" })}
-      />
+        <form.Field
+          name="date"
+          validators={createFieldValidator(
+            "date",
+            validator,
+            form,
+            setAllValidationErrors,
+            { validateOnChange: true },
+          )}
+        >
+          {#snippet children(field)}
+            <div class="mb-3">
+              <p class="form-label" for={field.name}>
+                {t("common.date", { fallback: "Date" })}
+                {#if validator.requiredFields.has("date")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </p>
+              <input
+                id={field.name}
+                name={field.name}
+                type="date"
+                class="form-control {field.state.meta.errors.length > 0
+                  ? 'is-invalid'
+                  : ''}"
+                value={field.state.value
+                  ? new Date(field.state.value).toISOString().split("T")[0]
+                  : ""}
+                onchange={(e) =>
+                  field.handleChange(
+                    e.target.value
+                      ? new Date(e.target.value).toISOString()
+                      : null,
+                  )}
+                onblur={field.handleBlur}
+              />
+              {#if field.state.meta.errors.length > 0}
+                <div class="invalid-feedback">
+                  {field.state.meta.errors.join(", ")}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </form.Field>
+
+        <!-- Hidden field for languageId (used for text creation) -->
+        <form.Field
+          name="languageId"
+          validators={createFieldValidator(
+            "languageId",
+            validator,
+            form,
+            setAllValidationErrors,
+            { validateOnChange: true },
+          )}
+        >
+          {#snippet children(field)}
+            <input type="hidden" name={field.name} value={field.state.value} />
+          {/snippet}
+        </form.Field>
+
+        <form.Field
+          name="language"
+          validators={createFieldValidator(
+            "language",
+            validator,
+            form,
+            setAllValidationErrors,
+            { validateOnChange: true },
+          )}
+        >
+          {#snippet children(field)}
+            <div class="mb-3">
+              <p class="form-label" for={field.name}>
+                {t("common.datasource-language", {
+                  fallback: "Datasource Language",
+                })}
+                {#if validator.requiredFields.has("language")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </p>
+              <input
+                id={field.name}
+                name={field.name}
+                type="text"
+                class="form-control {field.state.meta.errors.length > 0
+                  ? 'is-invalid'
+                  : ''}"
+                placeholder="e.g., en, es, fr"
+                value={field.state.value}
+                oninput={(e) => field.handleChange(e.target.value)}
+                onblur={field.handleBlur}
+              />
+              {#if field.state.meta.errors.length > 0}
+                <div class="invalid-feedback">
+                  {field.state.meta.errors.join(", ")}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </form.Field>
+      </div>
+
+      <div class="col-md-6">
+        <form.Field
+          name="copyright"
+          validators={createFieldValidator(
+            "copyright",
+            validator,
+            form,
+            setAllValidationErrors,
+            { validateOnChange: true },
+          )}
+        >
+          {#snippet children(field)}
+            <div class="mb-3">
+              <p class="form-label" for={field.name}>
+                {t("common.copyright", { fallback: "Copyright" })}
+                {#if validator.requiredFields.has("copyright")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </p>
+              <input
+                id={field.name}
+                name={field.name}
+                type="text"
+                class="form-control {field.state.meta.errors.length > 0
+                  ? 'is-invalid'
+                  : ''}"
+                placeholder={t("common.copyright", {
+                  fallback: "Copyright",
+                })}
+                value={field.state.value}
+                oninput={(e) => field.handleChange(e.target.value)}
+                onblur={field.handleBlur}
+              />
+              {#if field.state.meta.errors.length > 0}
+                <div class="invalid-feedback">
+                  {field.state.meta.errors.join(", ")}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </form.Field>
+
+        <form.Field
+          name="contact"
+          validators={createFieldValidator(
+            "contact",
+            validator,
+            form,
+            setAllValidationErrors,
+            { validateOnChange: true },
+          )}
+        >
+          {#snippet children(field)}
+            <div class="mb-3">
+              <p class="form-label" for={field.name}>
+                {t("common.contact", { fallback: "Contact" })}
+                {#if validator.requiredFields.has("contact")}
+                  <span class="text-danger">*</span>
+                {/if}
+              </p>
+              <input
+                id={field.name}
+                name={field.name}
+                type="text"
+                class="form-control {field.state.meta.errors.length > 0
+                  ? 'is-invalid'
+                  : ''}"
+                placeholder={t("common.contact", {
+                  fallback: "Contact",
+                })}
+                value={field.state.value}
+                oninput={(e) => field.handleChange(e.target.value)}
+                onblur={field.handleBlur}
+              />
+              {#if field.state.meta.errors.length > 0}
+                <div class="invalid-feedback">
+                  {field.state.meta.errors.join(", ")}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </form.Field>
+      </div>
+
+      <!-- Submit button -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <BaseButton
+            type="submit"
+            class="btn btn-success"
+            text={t("common.confirm", { fallback: "Confirm" })}
+          />
+        </div>
+      </div>
     </div>
   </div>
 </form>
