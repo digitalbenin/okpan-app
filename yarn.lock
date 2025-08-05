@@ -1396,6 +1396,33 @@
   dependencies:
     defer-to-connect "^2.0.0"
 
+"@tanstack/form-core@1.18.0":
+  version "1.18.0"
+  resolved "https://registry.yarnpkg.com/@tanstack/form-core/-/form-core-1.18.0.tgz#545c7fc27a499cb7780c6ab3119001f5f3539d9e"
+  integrity sha512-VfTJgD8yCBbKR4qDwgD+OWMpVI9QiJtdkf2W9wDFBMkPV5gCPfeidmJbcXjTdHIbWD6BdZOF4KwXt+pSoeoqyA==
+  dependencies:
+    "@tanstack/store" "^0.7.2"
+
+"@tanstack/store@0.7.2", "@tanstack/store@^0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@tanstack/store/-/store-0.7.2.tgz#2e04dac17f7d904539eeb797d8ba0058cee4edf7"
+  integrity sha512-RP80Z30BYiPX2Pyo0Nyw4s1SJFH2jyM6f9i3HfX4pA+gm5jsnYryscdq2aIQLnL4TaGuQMO+zXmN9nh1Qck+Pg==
+
+"@tanstack/svelte-form@^1.18.0":
+  version "1.18.0"
+  resolved "https://registry.yarnpkg.com/@tanstack/svelte-form/-/svelte-form-1.18.0.tgz#3ad76828ea92b18acfe965a4988c4dde82853a81"
+  integrity sha512-jCWcRx2gtd/tbK0BP4+wNHKUfAAFnbo5QbIxn/bKAUv9GHUM1zcFpASnu66GyigOASHyhRiECr2E7RlCtn7wvQ==
+  dependencies:
+    "@tanstack/form-core" "1.18.0"
+    "@tanstack/svelte-store" "^0.7.3"
+
+"@tanstack/svelte-store@^0.7.3":
+  version "0.7.3"
+  resolved "https://registry.yarnpkg.com/@tanstack/svelte-store/-/svelte-store-0.7.3.tgz#45bef3e615b112a53635aa575db8dcdfd2e4a230"
+  integrity sha512-/NZGI42mT0V0WRmeJKymv1Oftp3ZtgDOB57Vp79g9JZACqeLGmCcJwWWSwUEdul41XJ4Q4o9XHRIUCtCEbKAfA==
+  dependencies:
+    "@tanstack/store" "0.7.2"
+
 "@tanstack/table-core@^8.21.2":
   version "8.21.3"
   resolved "https://registry.yarnpkg.com/@tanstack/table-core/-/table-core-8.21.3.tgz#2977727d8fc8dfa079112d9f4d4c019110f1732c"
