@@ -10,6 +10,7 @@
     wizard.nextEnabled = false;
     wizard.file = null; // Reset file before selecting a new one
     const response = await selectParseFile();
+    console.log(response);
     //check for errors, usefetcher?
     wizard.file = response;
     wizard.nextEnabled = true; // Enable next step after file selection

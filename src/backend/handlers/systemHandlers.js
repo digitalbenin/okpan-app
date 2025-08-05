@@ -2,6 +2,7 @@ import { dialog } from 'electron';
 import { parse } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
 import fs from 'fs/promises';
+import { XMLParser } from 'fast-xml-parser';
 import { setCurrentProjectId, getCurrentProjectId, clearCurrentProjectId } from '../services/projectCache.js';
 
 /**
@@ -68,11 +69,12 @@ export const handleFileDialog = async (event, options) => {
  */
 export const handleStructuredDataImport = async (event, options = {}) => {
     const filters = [
+        { name: 'All Supported', extensions: ['json', 'csv', 'tsv', 'xlsx', 'xls', 'xml'] },
         { name: 'JSON Files', extensions: ['json'] },
         { name: 'CSV Files', extensions: ['csv'] },
         { name: 'TSV Files', extensions: ['tsv'] },
         { name: 'Excel Files', extensions: ['xlsx', 'xls'] },
-        { name: 'All Supported', extensions: ['json', 'csv', 'tsv', 'xlsx', 'xls'] }
+        { name: 'XML Files', extensions: ['xml'] }
     ];
 
     const dialogOptions = {
@@ -199,6 +201,25 @@ async function parseStructuredFile(filePath, separator) {
                 error: null,
                 sheets: workbook.SheetNames // Include available sheet names
             };
+
+        case 'xml':
+            try {
+                const options = {
+                    ignoreAttributes: false,
+                    attributeNamePrefix: '@_'
+                };
+                const parser = new XMLParser(options);
+                const parsedContent = parser.parse(fileContent);
+
+                return {
+                    success: true,
+                    format: 'xml',
+                    data: parsedContent,
+                    error: null
+                };
+            } catch (error) {
+                throw new Error(`XML parsing error: ${error.message}`);
+            }
 
         default:
             throw new Error(`Unsupported file format: ${extension}`);
