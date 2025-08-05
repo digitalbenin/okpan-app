@@ -3,6 +3,7 @@
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import { selectParseFile } from "$lib/stores/ImportUtils.js";
   import TablePreview from "./TablePreview.svelte";
+  import RootSelection from "./RootSelection.svelte";
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
 
@@ -13,7 +14,10 @@
     console.log(response);
     //check for errors, usefetcher?
     wizard.file = response;
-    wizard.nextEnabled = true; // Enable next step after file selection
+    if (wizard.file.format === "csv" || wizard.file.format === "tsv") {
+      wizard.data = wizard.file.data; // Store the parsed data in the wizard context
+      wizard.nextEnabled = true; // Enable next step after file selection
+    }
   }
 
   $inspect(wizard.file); // For debugging purposes, can be removed later
@@ -61,6 +65,8 @@
             })}
           </p>
           <TablePreview data={wizard.file.data.slice(0, 25)} />
+        {:else if wizard.file.format === "json"}
+          <RootSelection jsonData={wizard.file.data}></RootSelection>
         {/if}
       {/if}
     </div>
