@@ -43,6 +43,139 @@ function getType(value) {
   return typeof value;
 }
 
+// export function createTreeMapping(value, key = null, depth = 0, path = []) {
+//   const type = getType(value);
+//   const currentPath = key !== null ? [...path, key] : path;
+
+//   if (type === "array" && value.length > 0) {
+//     // Check if array contains primitives
+//     if (isPrimitive(value[0])) {
+//       // Flatten and get first 10 unique primitive values
+//       const uniqueValues = [...new Set(value)].slice(0, 10);
+
+//       return {
+//         key,
+//         value,
+//         type,
+//         depth,
+//         path: currentPath,
+//         pathString: currentPath.join("."),
+//         expanded: false,
+//         isExpandable: false,
+//         children: null,
+//         size: value.length,
+//         uniqueKeys: [{ key: null, values: uniqueValues }],
+//       };
+//     }
+//     // Array contains objects - process recursively
+//     else if (
+//       typeof value[0] === "object" &&
+//       value[0] !== null &&
+//       !Array.isArray(value[0])
+//     ) {
+//       const allKeys = new Set();
+//       const keyValues = {};
+
+//       // Collect all unique keys from array objects
+//       value.forEach((obj) => {
+//         Object.keys(obj).forEach((objKey) => {
+//           const objValue = obj[objKey];
+
+//           allKeys.add(objKey);
+
+//           if (!keyValues[objKey]) {
+//             keyValues[objKey] = [];
+//           }
+
+//           // Recursively process the value
+//           const processedValue = createTreeMapping(
+//             objValue,
+//             objKey,
+//             depth + 1,
+//             [...currentPath, objKey]
+//           );
+
+//           // Only store first 10 processed values
+//           if (keyValues[objKey].length < 10) {
+//             keyValues[objKey].push(processedValue);
+//           }
+//         });
+//       });
+
+//       const uniqueKeys = Array.from(allKeys).map((keyName) => ({
+//         key: keyName,
+//         values: keyValues[keyName],
+//       }));
+
+//       return {
+//         key,
+//         value,
+//         type,
+//         depth,
+//         path: currentPath,
+//         pathString: currentPath.join("."),
+//         expanded: false,
+//         isExpandable: false,
+//         children: null,
+//         size: value.length,
+//         uniqueKeys,
+//       };
+//     }
+//   }
+
+//   // Handle objects recursively
+//   if (type === "object") {
+//     const processedChildren = {};
+//     Object.entries(value).forEach(([objKey, objValue]) => {
+//       processedChildren[objKey] = createTreeMapping(
+//         objValue,
+//         objKey,
+//         depth + 1,
+//         currentPath
+//       );
+//     });
+
+//     return {
+//       key,
+//       value,
+//       type,
+//       depth,
+//       path: currentPath,
+//       pathString: currentPath.join("."),
+//       expanded: false,
+//       isExpandable: true,
+//       children: processedChildren,
+//       size: Object.keys(value).length,
+//     };
+//   }
+
+//   // Handle primitives
+//   return {
+//     key,
+//     value,
+//     type,
+//     depth,
+//     path: currentPath,
+//     pathString: currentPath.join("."),
+//     expanded: false,
+//     isExpandable: false,
+//     children: null,
+//     size: null,
+//   };
+// }
+
+// function isPrimitive(value) {
+//   const type = getType(value);
+//   return (
+//     type === "string" ||
+//     type === "number" ||
+//     type === "boolean" ||
+//     type === "date" ||
+//     type === "null" ||
+//     type === "undefined"
+//   );
+// }
+
 export function analyzeJsonStructure(jsonArray, maxSamples = 10) {
   if (!Array.isArray(jsonArray) || jsonArray.length === 0) {
     throw new Error("Input must be a non-empty array");
@@ -207,62 +340,62 @@ function analyzeObjectArrayKeys(objectArray, depth, path, maxSamples) {
           const valueStr = safeStringify(value);
           keyValueCounts.set(valueStr, (keyValueCounts.get(valueStr) || 0) + 1);
         }
-        // For arrays of primitives (like tags), collect all unique primitive values
-        else if (
-          valueType === "array" &&
-          value.length > 0 &&
-          isPrimitive(value[0])
-        ) {
-          value.forEach((primitiveValue) => {
-            const valueStr = safeStringify(primitiveValue);
-            arrayPrimitiveCounts.set(
-              valueStr,
-              (arrayPrimitiveCounts.get(valueStr) || 0) + 1
-            );
-          });
-        }
-        // For arrays of objects (like metadata with name/value pairs)
-        else if (
-          valueType === "array" &&
-          value.length > 0 &&
-          getType(value[0]) === "object"
-        ) {
-          // Collect all objects from all arrays to analyze recursively
-          value.forEach((arrayItem) => {
-            if (arrayItem && typeof arrayItem === "object") {
-              Object.entries(arrayItem).forEach(([nestedKey, nestedValue]) => {
-                // Create a combined key for tracking (e.g., "metadata.name", "metadata.value")
-                const combinedKey = `${keyName}.${nestedKey}`;
-                const valueStr = safeStringify(nestedValue);
-                arrayObjectKeyCounts.set(
-                  `${combinedKey}:${valueStr}`,
-                  (arrayObjectKeyCounts.get(`${combinedKey}:${valueStr}`) ||
-                    0) + 1
+        // For arrays, check their content type
+        else if (valueType === "array") {
+          // Check if it's an empty array or array of primitives
+          if (value.length === 0) {
+            // Empty arrays - treat as array of primitives with no values
+            // Don't add anything to arrayPrimitiveCounts, but mark as array type
+          } else if (isPrimitive(value[0])) {
+            // Array of primitives - collect all unique primitive values
+            value.forEach((primitiveValue) => {
+              const valueStr = safeStringify(primitiveValue);
+              arrayPrimitiveCounts.set(
+                valueStr,
+                (arrayPrimitiveCounts.get(valueStr) || 0) + 1
+              );
+            });
+          } else if (getType(value[0]) === "object") {
+            // Array of objects - handle separately below
+            value.forEach((arrayItem) => {
+              if (arrayItem && typeof arrayItem === "object") {
+                Object.entries(arrayItem).forEach(
+                  ([nestedKey, nestedValue]) => {
+                    const combinedKey = `${keyName}.${nestedKey}`;
+                    const valueStr = safeStringify(nestedValue);
+                    arrayObjectKeyCounts.set(
+                      `${combinedKey}:${valueStr}`,
+                      (arrayObjectKeyCounts.get(`${combinedKey}:${valueStr}`) ||
+                        0) + 1
+                    );
+                  }
                 );
-              });
-            }
-          });
+              }
+            });
+          } else {
+            // Array of other complex types - collect for later analysis
+            keyValues.push(value);
+          }
         }
-        // For nested objects, we want to flatten and analyze their properties
+        // For nested objects, collect them for later analysis
         else if (valueType === "object") {
-          // Don't add to keyValues for recursive analysis yet
-          // Instead, we'll handle this case separately below
+          keyValues.push(value);
         }
-        // For other complex types, analyze recursively
+        // For other complex types, collect them
         else {
           if (keyValues.length < maxSamples) {
-            keyValues.push(
-              walkJsonStructure(
-                value,
-                keyName,
-                depth + 1,
-                [...path, keyName],
-                maxSamples
-              )
-            );
+            keyValues.push(value);
           }
         }
       }
+    });
+
+    // Check if this key represents arrays across all samples
+    const allValuesAreArrays = objectArray.every((obj) => {
+      if (!obj || typeof obj !== "object" || !obj.hasOwnProperty(keyName)) {
+        return false;
+      }
+      return getType(obj[keyName]) === "array";
     });
 
     // Handle arrays of objects with key-value pairs (like metadata)
@@ -272,13 +405,13 @@ function analyzeObjectArrayKeys(objectArray, depth, path, maxSamples) {
 
       arrayObjectKeyCounts.forEach((count, keyValue) => {
         const colonIndex = keyValue.indexOf(":");
-        if (colonIndex === -1) return; // Skip malformed entries
+        if (colonIndex === -1) return;
 
         const combinedKey = keyValue.substring(0, colonIndex);
         const valueStr = keyValue.substring(colonIndex + 1);
 
         const dotIndex = combinedKey.indexOf(".");
-        if (dotIndex === -1) return; // Skip malformed entries
+        if (dotIndex === -1) return;
 
         const nestedKey = combinedKey.substring(dotIndex + 1);
 
@@ -289,80 +422,43 @@ function analyzeObjectArrayKeys(objectArray, depth, path, maxSamples) {
         nestedKeyAnalysis[nestedKey].set(valueStr, count);
       });
 
-      // Convert to the expected format and analyze recursively if needed
+      // Convert to the expected format
       const structuredAnalysis = {};
       Object.entries(nestedKeyAnalysis).forEach(([nestedKey, valueCounts]) => {
         const sortedValues = Array.from(valueCounts.entries())
           .sort((a, b) => b[1] - a[1])
           .slice(0, maxSamples)
-          .map(([valueStr, count]) => {
-            const parsedValue = safeParse(valueStr);
-            return {
-              value: parsedValue,
-              count,
-              frequency: count / objectArray.length,
-            };
-          });
+          .map(([valueStr, count]) => ({
+            value: safeParse(valueStr),
+            count,
+            frequency: count / objectArray.length,
+          }));
 
-        // Check if any of the values are complex and need further analysis
-        const hasComplexValues = sortedValues.some(
-          (item) => !isPrimitive(item.value) && item.value !== null
-        );
-
-        if (hasComplexValues) {
-          // If there are complex values, we need to analyze them recursively
-          const complexValues = sortedValues
-            .filter((item) => !isPrimitive(item.value) && item.value !== null)
-            .map((item) => item.value);
-
-          // Recursively analyze the complex values
-          const recursiveAnalysis = analyzeObjectArrayKeys(
-            complexValues,
-            depth + 2,
-            [...path, keyName, nestedKey],
-            maxSamples
-          );
-
-          structuredAnalysis[nestedKey] = {
-            key: nestedKey,
-            type: "complex_values",
-            depth: depth + 2,
-            path: [...path, keyName, nestedKey],
-            pathString: [...path, keyName, nestedKey].join("."),
-            analysis: recursiveAnalysis,
-            primitiveValues: sortedValues.filter((item) =>
-              isPrimitive(item.value)
-            ),
-            sampleSize: objectArray.length,
-          };
-        } else {
-          // All values are primitive
-          structuredAnalysis[nestedKey] = {
-            key: nestedKey,
-            type: "primitive_values",
-            arrayType: "array_of_objects",
-            depth: depth + 2,
-            path: [...path, keyName, nestedKey],
-            pathString: [...path, keyName, nestedKey].join("."),
-            values: sortedValues,
-            totalUniqueValues: valueCounts.size,
-            sampleSize: objectArray.length,
-          };
-        }
+        structuredAnalysis[nestedKey] = {
+          key: nestedKey,
+          type: "primitive_values",
+          arrayType: "array_of_objects",
+          depth: depth + 1,
+          path: [...path, keyName, nestedKey],
+          pathString: [...path, keyName, nestedKey].join("."),
+          values: sortedValues,
+          totalUniqueValues: valueCounts.size,
+          sampleSize: objectArray.length,
+        };
       });
 
       keyAnalysis[keyName] = {
         key: keyName,
         type: "array_of_objects",
-        depth: depth + 1,
+        depth: depth,
         path: [...path, keyName],
         pathString: [...path, keyName].join("."),
         analysis: structuredAnalysis,
         sampleSize: objectArray.length,
       };
     }
-    // Handle arrays of primitives
-    else if (arrayPrimitiveCounts.size > 0) {
+    // Handle arrays of primitives (including empty arrays)
+    else if (allValuesAreArrays || arrayPrimitiveCounts.size > 0) {
       const sortedValues = Array.from(arrayPrimitiveCounts.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, maxSamples)
@@ -376,7 +472,7 @@ function analyzeObjectArrayKeys(objectArray, depth, path, maxSamples) {
         key: keyName,
         type: "primitive_values",
         arrayType: "array_of_primitives",
-        depth: depth + 1,
+        depth: depth,
         path: [...path, keyName],
         pathString: [...path, keyName].join("."),
         values: sortedValues,
@@ -398,7 +494,7 @@ function analyzeObjectArrayKeys(objectArray, depth, path, maxSamples) {
       keyAnalysis[keyName] = {
         key: keyName,
         type: "primitive_values",
-        depth: depth + 1,
+        depth: depth,
         path: [...path, keyName],
         pathString: [...path, keyName].join("."),
         values: sortedValues,
@@ -406,17 +502,17 @@ function analyzeObjectArrayKeys(objectArray, depth, path, maxSamples) {
         sampleSize: objectArray.length,
       };
     }
-    // Handle nested objects - analyze their nested properties
-    else {
-      // Check if this key contains objects across all samples
-      const nestedObjects = objectArray
-        .map((obj) => (obj && typeof obj === "object" ? obj[keyName] : null))
-        .filter((val) => val && typeof val === "object" && !Array.isArray(val));
+    // Handle complex values (nested objects, arrays of arrays, etc.)
+    else if (keyValues.length > 0) {
+      // Check if all values are objects (nested objects case)
+      const allObjects = keyValues.every(
+        (val) => val && typeof val === "object" && !Array.isArray(val)
+      );
 
-      if (nestedObjects.length > 0) {
-        // Recursively analyze the nested object properties
+      if (allObjects) {
+        // Handle as nested objects - recursively analyze
         const nestedAnalysis = analyzeObjectArrayKeys(
-          nestedObjects,
+          keyValues,
           depth + 1,
           [...path, keyName],
           maxSamples
@@ -425,22 +521,37 @@ function analyzeObjectArrayKeys(objectArray, depth, path, maxSamples) {
         keyAnalysis[keyName] = {
           key: keyName,
           type: "nested_object",
-          depth: depth + 1,
+          depth: depth,
           path: [...path, keyName],
           pathString: [...path, keyName].join("."),
           analysis: nestedAnalysis,
-          sampleSize: nestedObjects.length,
+          sampleSize: keyValues.length,
         };
-      }
-      // Handle other complex values
-      else if (keyValues.length > 0) {
+      } else {
+        // Handle other complex types (arrays, mixed types, etc.)
+        const complexAnalysis = {};
+
+        keyValues.forEach((complexValue, index) => {
+          const analysisResult = walkJsonStructure(
+            complexValue,
+            `item_${index}`,
+            depth + 1,
+            [...path, keyName],
+            maxSamples
+          );
+
+          const valueType = getType(complexValue);
+          const typeKey = `${valueType}_${index}`;
+          complexAnalysis[typeKey] = analysisResult;
+        });
+
         keyAnalysis[keyName] = {
           key: keyName,
           type: "complex_values",
-          depth: depth + 1,
+          depth: depth,
           path: [...path, keyName],
           pathString: [...path, keyName].join("."),
-          values: keyValues,
+          analysis: complexAnalysis,
           sampleSize: keyValues.length,
         };
       }
@@ -511,4 +622,24 @@ function safeParse(valueStr) {
     }
     return valueStr;
   }
+}
+
+export function extractLeafPaths(treeNode) {
+  function traverseNode(node) {
+    // If this is a leaf node, return its path
+    if (!node.analysis) {
+      return [node.pathString];
+    }
+
+    // If node has analysis, traverse and collect all nested paths
+    if (node.analysis) {
+      return Object.values(node.analysis).reduce((paths, childNode) => {
+        return paths.concat(traverseNode(childNode));
+      }, []);
+    }
+
+    return [];
+  }
+
+  return traverseNode(treeNode);
 }

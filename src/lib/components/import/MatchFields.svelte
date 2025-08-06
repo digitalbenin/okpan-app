@@ -1,22 +1,10 @@
 <script>
-  import { resource } from "runed";
   import Dsv from "./matchPreview/Dsv.svelte";
   import Json from "./matchPreview/Json.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
-  import { suggestFieldMappings } from "$lib/stores/ImportUtils.js";
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
-
-  // const fields = $derived(Object.keys(wizard.file.data[0]));
-  // const matchingSuggestions = resource(
-  //   () => fields,
-  //   async (fields, prevFields, { data, refetching, onCleanup, signal }) => {
-  //     const response = await suggestFieldMappings(fields);
-  //     return response;
-  //   },
-  //   { initialValue: [] }
-  // );
 </script>
 
 <div class="container-fluid mt-3">
@@ -36,12 +24,7 @@
     </div>
   </div>
   {#if wizard.file.format === "csv" || wizard.file.format === "tsv"}
-    <Dsv
-      data={wizard.file.data}
-      {fields}
-      matchingSuggestions={matchingSuggestions.current}
-      matchingSuggestionsLoading={matchingSuggestions.loading}
-    />
+    <Dsv data={wizard.data} />
   {:else if wizard.file.format === "json"}
     <Json data={wizard.data} />
   {/if}

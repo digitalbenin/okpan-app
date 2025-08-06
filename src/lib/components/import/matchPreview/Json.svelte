@@ -1,58 +1,43 @@
 <script>
-  import { watch } from "runed";
+  import { watch, resource } from "runed";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
-  import Card from "./Card.svelte";
-  import { createTreeNode, analyzeJsonStructure } from "$lib/utils/import.js";
-
+  import CardTree from "./CardTree.svelte";
+  import { analyzeJsonStructure, extractLeafPaths } from "$lib/utils/import.js";
+  import { suggestFieldMappings } from "$lib/stores/ImportUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  let { data, fields, matchingSuggestions, matchingSuggestionsLoading } =
-    $props();
+
+  const { data } = $props();
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
-  //   watch(
-  //     () => wizard.mapping,
-  //     (mapping) => {
-  //       wizard.nextEnabled = mapping.length > 0;
-  //     }
-  //   );
 
-  //   const jsonData = [
-  //     {
-  //       id: 1,
-  //       name: "Object 1",
-  //       tags: ["tag1", "tag2"],
-  //       metadata: {
-  //         created: "2023-01-01",
-  //         author: "John",
-  //       },
-  //     },
-  //     {
-  //       id: 2,
-  //       name: "Object 2",
-  //       tags: ["tag1", "tag3"],
-  //       metadata: {
-  //         created: "2023-01-02",
-  //         author: "Jane",
-  //       },
-  //     },
-  //   ];
   let tree = $derived(analyzeJsonStructure(data));
-  $inspect(tree);
+
+  const fields = $derived(extractLeafPaths(tree).sort());
+
+  const matchingSuggestions = resource(
+    () => fields,
+    async (fields, prevFields, { data, refetching, onCleanup, signal }) => {
+      const response = await suggestFieldMappings(fields);
+      return response;
+    },
+    { initialValue: [] }
+  );
+
+  watch(
+    () => wizard.mapping,
+    (mapping) => {
+      wizard.nextEnabled = mapping.length > 0;
+    }
+  );
+
+  $inspect(tree); // For debugging purposes, can be removed later
 </script>
 
-<!-- <div class="w-100">
-  {#each fields as field, i}
-    {@const values = [...new Set(data.map((s) => s[field]))]}
-    {@const matchingSuggestion = matchingSuggestions.find(
-      (s) => s.csvField === field
-    )}
-    <Card
-      {values}
-      {field}
-      {matchingSuggestion}
-      {matchingSuggestionsLoading}
-      i={i + 1}
-      tot={fields.length}
-    />
-  {/each}
-</div> -->
+<div class="w-100">
+  <CardTree
+    node={tree}
+    matchingSuggestions={matchingSuggestions.current}
+    matchingSuggestionsLoading={matchingSuggestions.loading}
+    {fields}
+  ></CardTree>
+</div>

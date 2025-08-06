@@ -11,7 +11,6 @@
     wizard.nextEnabled = false;
     wizard.file = null; // Reset file before selecting a new one
     const response = await selectParseFile();
-    console.log(response);
     //check for errors, usefetcher?
     wizard.file = response;
     if (wizard.file.format === "csv" || wizard.file.format === "tsv") {

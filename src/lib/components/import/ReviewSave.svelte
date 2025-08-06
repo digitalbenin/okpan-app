@@ -12,7 +12,7 @@
   async function handleSave() {
     try {
       const response = await saveFetcher.fetch({
-        data: $state.snapshot(wizard.file.data),
+        data: $state.snapshot(wizard.data),
         mapping: $state.snapshot(wizard.mapping),
         datasourceId: $state.snapshot(wizard.datasourceId),
       });
@@ -22,6 +22,7 @@
       // Handle error appropriately, e.g., show a notification
     }
   }
+  $inspect(wizard);
 </script>
 
 <div class="container-fluid mt-3">
@@ -43,7 +44,7 @@
   <div class="row">
     <div class="col-12">
       <div>
-        {wizard.file.data.length}
+        {wizard.data.length}
         {t("import.objects-will-be-imported", {
           fallback: "objects will be imported",
         })}

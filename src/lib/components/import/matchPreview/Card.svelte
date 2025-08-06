@@ -82,11 +82,17 @@
       {t("import.preview", { fallback: "Preview" })}
     </div>
     <div class="col d-flex flex-wrap overflow-hidden">
-      {#each values.sort().slice(0, 11) as value}
-        <div class="badge text-bg-secondary me-1 mb-1 text-truncate">
-          {value}
+      {#if values.length}
+        {#each values.sort().slice(0, 11) as value}
+          <div class="badge text-bg-secondary me-1 mb-1 text-truncate">
+            {value}
+          </div>
+        {/each}
+      {:else}
+        <div class="badge text-bg-secondary me-1 mb-1 text-truncate fst-italic">
+          {t("import.no-values", { fallback: "No values available" })}
         </div>
-      {/each}
+      {/if}
     </div>
     <div class="col-auto"></div>
   </div>

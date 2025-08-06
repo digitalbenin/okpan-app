@@ -6,7 +6,12 @@
   const wizard = getImportWizardContext();
   const { ontologyFields } = $props();
 
-  const id = "2a36b050-65b7-4e89-b0a8-b73f8784292e"; //Find a way to get this dynamically
+  const id = $derived.by(() => {
+    //ontologyFields
+    return ontologyFields.result.find((f) => f.name.content === "object id")
+      ?.id;
+  }); //Find a better way to get this dynamically
+
   let selected = $state(
     wizard.mapping.find((f) => f.mappedField === id)?.mappedField || null
   );
