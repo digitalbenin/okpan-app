@@ -17,6 +17,7 @@ export function createImportWizardContext(params) {
     let mappingId = $state();
     let file = $state();
     let mapping = $state([])
+    let data = $state([])
     // let formData = $state({});
     // let isValid = $state(false);
     // let errors = $state([]);
@@ -46,6 +47,9 @@ export function createImportWizardContext(params) {
 
         get mapping() { return mapping; },
         set mapping(value) { mapping = value; },
+
+        get data() { return data; },
+        set data(value) { data = value; },
 
         // get formData() { return formData; },
         // set formData(value) { formData = value; },
