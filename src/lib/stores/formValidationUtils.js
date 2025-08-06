@@ -621,13 +621,13 @@ registerCustomValidator('datasources', 'languageId', {
     defaultValue: ''
 });
 
-// Date validator - optional field with ISO date validation (not in schema)
+// Date validator - required field with ISO date validation (not in schema)
 registerCustomValidator('datasources', 'date', {
     validator: () => z.string().refine((val) => {
-        if (!val || val.trim() === '') return true; // Allow empty
+        if (!val || val.trim() === '') return false; // Don't allow empty
         const date = new Date(val);
         return !isNaN(date.getTime());
-    }, 'Must be a valid date').optional(),
-    required: false,
+    }, 'Must be a valid date'),
+    required: true,
     defaultValue: new Date().toISOString()
 });

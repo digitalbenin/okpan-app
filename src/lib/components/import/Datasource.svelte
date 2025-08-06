@@ -56,7 +56,7 @@
       language: "",
       copyright: "",
       contact: "",
-      date: null,
+      date: new Date().toISOString(),
     },
     validators: {
       onSubmit: validator.schema,
