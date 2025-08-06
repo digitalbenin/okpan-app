@@ -187,20 +187,34 @@ async function parseStructuredFile(filePath, separator) {
             const binaryContent = await fs.readFile(filePath);
             const workbook = XLSX.read(binaryContent, { type: 'buffer' });
 
-            // Get the first sheet
-            const sheetName = workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
+            // Check if there are multiple sheets
+            if (workbook.SheetNames.length > 1) {
+                // Return sheet list for user selection when multiple sheets exist
+                return {
+                    success: true,
+                    format: extension,
+                    multiPage: true,
+                    sheets: workbook.SheetNames,
+                    data: null, // No data until user selects a sheet
+                    error: null
+                };
+            } else {
+                // Single sheet - proceed as before
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
 
-            // Convert to JSON
-            const excelData = XLSX.utils.sheet_to_json(sheet);
+                // Convert to JSON
+                const excelData = XLSX.utils.sheet_to_json(sheet);
 
-            return {
-                success: true,
-                format: extension,
-                data: excelData,
-                error: null,
-                sheets: workbook.SheetNames // Include available sheet names
-            };
+                return {
+                    success: true,
+                    format: extension,
+                    multiPage: false,
+                    data: excelData,
+                    error: null,
+                    sheets: workbook.SheetNames
+                };
+            }
 
         case 'xml':
             try {
@@ -254,6 +268,75 @@ export const handleGetCurrentProject = (event) => {
     } catch (error) {
         console.error('Error getting current project ID:', error);
         return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Handler for parsing a specific sheet from an Excel file
+ * @param {Event} event - The IPC event
+ * @param {Object} options - Options for sheet parsing
+ * @param {string} options.filePath - Path to the Excel file
+ * @param {string} options.sheetName - Name of the sheet to parse
+ * @returns {Promise<Object>} Result with parsed data or error
+ */
+export const handleExcelSheetSelection = async (event, options) => {
+    const { filePath, sheetName } = options;
+
+    if (!filePath || !sheetName) {
+        return {
+            success: false,
+            error: 'File path and sheet name are required',
+            data: null
+        };
+    }
+
+    try {
+        const extension = filePath.split('.').pop().toLowerCase();
+
+        if (!['xlsx', 'xls'].includes(extension)) {
+            return {
+                success: false,
+                error: 'File must be an Excel file (.xlsx or .xls)',
+                data: null
+            };
+        }
+
+        // Read the file as binary
+        const binaryContent = await fs.readFile(filePath);
+        const workbook = XLSX.read(binaryContent, { type: 'buffer' });
+
+        // Check if the requested sheet exists
+        if (!workbook.SheetNames.includes(sheetName)) {
+            return {
+                success: false,
+                error: `Sheet "${sheetName}" not found. Available sheets: ${workbook.SheetNames.join(', ')}`,
+                data: null
+            };
+        }
+
+        // Get the requested sheet
+        const sheet = workbook.Sheets[sheetName];
+
+        // Convert to JSON
+        const excelData = XLSX.utils.sheet_to_json(sheet);
+
+        return {
+            success: true,
+            format: extension,
+            multiPage: false,
+            data: excelData,
+            error: null,
+            sheets: workbook.SheetNames,
+            selectedSheet: sheetName
+        };
+
+    } catch (error) {
+        console.error('Error parsing Excel sheet:', error);
+        return {
+            success: false,
+            error: error.message,
+            data: null
+        };
     }
 };
 

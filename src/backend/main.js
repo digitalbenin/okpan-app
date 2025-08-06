@@ -13,7 +13,7 @@ import { createGraphQLSchema } from '../db/graphqlDefs.js';
 // Import handlers
 import { handleExportTranslations, handleImportTranslations } from './handlers/translationHandlers.js';
 import { handleGraphQL } from './handlers/graphqlHandler.js';
-import { handlePing, handleFileDialog, handleStructuredDataImport, handleSetCurrentProject, handleGetCurrentProject, handleClearCurrentProject } from './handlers/systemHandlers.js';
+import { handlePing, handleFileDialog, handleStructuredDataImport, handleSetCurrentProject, handleGetCurrentProject, handleClearCurrentProject, handleExcelSheetSelection } from './handlers/systemHandlers.js';
 import { handleImportAssets } from './handlers/assetHandlers.js';
 import { suggestObjectMatches } from './handlers/assetMappingHandler.js';
 import { suggestFieldMappings } from './handlers/importHandler.js';
@@ -45,6 +45,7 @@ ipcMain.handle('import-assets', (event, data) =>
 );
 ipcMain.handle('open-file-dialog', handleFileDialog);
 ipcMain.handle('import-structured-data', handleStructuredDataImport);
+ipcMain.handle('excel-sheet-selection', handleExcelSheetSelection);
 
 // Project cache handlers
 ipcMain.handle('set-current-project', handleSetCurrentProject);
