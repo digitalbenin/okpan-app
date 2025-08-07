@@ -28,8 +28,6 @@
       }
     }
   );
-
-  $inspect(wizard.mapping);
 </script>
 
 <div class="w-100">

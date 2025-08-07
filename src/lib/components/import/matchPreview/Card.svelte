@@ -59,7 +59,7 @@
   //   $inspect(field, fieldMatched, checked);
 </script>
 
-<div class="bg-secondary-subtle px-3 py-2 mb-2 rounded">
+<div class="bg-light border px-3 py-2 mb-2 rounded">
   <div class="text-muted fs-7">
     {i}
     {t("common.of", { fallback: "of" })}
