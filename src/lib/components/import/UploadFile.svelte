@@ -4,6 +4,7 @@
   import { selectParseFile } from "$lib/stores/ImportUtils.js";
   import TablePreview from "./TablePreview.svelte";
   import RootSelection from "./RootSelection.svelte";
+  import MultiSheetsSelection from "./MultiSheetsSelection.svelte";
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
 
@@ -13,13 +14,17 @@
     const response = await selectParseFile();
     //check for errors, usefetcher?
     wizard.file = response;
-    if (wizard.file.format === "csv" || wizard.file.format === "tsv") {
+    if (
+      wizard.file.format === "csv" ||
+      wizard.file.format === "tsv" ||
+      (wizard.file.format === "xlsx" && !wizard.file.multiPage)
+    ) {
       wizard.data = wizard.file.data; // Store the parsed data in the wizard context
       wizard.nextEnabled = true; // Enable next step after file selection
     }
   }
 
-  $inspect(wizard.file); // For debugging purposes, can be removed later
+  //$inspect(wizard); // For debugging purposes, can be removed later
 </script>
 
 <div class="container-fluid mt-3">
@@ -51,20 +56,32 @@
             fallback: "You selected",
           })} a <code>{wizard.file.format}</code> file named
           <code>{wizard.file.fileName}</code>
-          {#if wizard.file.format === "csv" || wizard.file.format === "tsv"}
+          {#if (wizard.file.format === "csv" || wizard.file.format === "tsv" || wizard.file.format === "xlsx") && wizard.data.length}
             {t("common.with", { fallback: "with" })}
             <span class="fw-bold">{wizard.file.data.length}</span>
-            {t("common.rows", { fallback: "rows" })}
+            {t("common.rows", {
+              fallback: "rows",
+            })}
+            {#if wizard.file.selectedSheet}
+              {t("common.in-the-sheets", { fallback: "in the selected sheet" })}
+              <span class="fw-bold">{wizard.file.selectedSheet}</span>
+            {/if}
           {/if}
         </div>
-        {#if wizard.file.format === "csv" || wizard.file.format === "tsv"}
+        {#if wizard.file.multiPage}
+          <MultiSheetsSelection
+            filePath={wizard.file.filePath}
+            sheets={wizard.file.sheets}
+          />
+        {/if}
+        {#if (wizard.file.format === "csv" || wizard.file.format === "tsv" || wizard.file.format === "xlsx") && wizard.data.length}
           <p class="mt-2">
             {t("import.preview-table", {
-              fallback: "Preview of the first 25 rows",
+              fallback: "Preview of the first rows",
             })}
           </p>
-          <TablePreview data={wizard.file.data.slice(0, 25)} />
-        {:else if wizard.file.format === "json"}
+          <TablePreview data={wizard.data.slice(0, 25)} />
+        {:else if wizard.file.format === "json" || wizard.file.format === "xml"}
           <RootSelection jsonData={wizard.file.data}></RootSelection>
         {/if}
       {/if}
