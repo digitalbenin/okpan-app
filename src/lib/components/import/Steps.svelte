@@ -10,15 +10,17 @@
   <div class="bg-light rounded d-flex justify-content-between p-2 gap-2">
     {#each wizard.steps as step, i (step.id)}
       <div
-        class="d-flex align-items-center gap-1 text-truncate"
+        class="d-flex align-items-center gap-1 overflow-hidden"
         class:disabled={wizard.currentStep !== i + 1}
       >
         <div
-          class="step text-bg-primary rounded d-flex align-items-center justify-content-center"
+          class="step text-bg-primary rounded d-flex align-items-center justify-content-center flex-shrink-0"
         >
           <div>{i + 1}</div>
         </div>
-        <div>{t(step.t, { fallback: step.fallback })}</div>
+        <div class="text-truncate">
+          {t(step.t, { fallback: step.fallback })}
+        </div>
       </div>
     {/each}
   </div>

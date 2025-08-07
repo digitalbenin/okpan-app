@@ -1,8 +1,10 @@
 <script>
+  import ItemsPreview from "./ItemsPreview.svelte";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { createFetcher } from "$lib/stores/useFetcher.svelte.js";
   import { importObjectsAndTemplate } from "$lib/stores/ObjectsUtils.js";
+  import { parseData } from "$lib/utils/import.js";
 
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
@@ -12,7 +14,7 @@
   async function handleSave() {
     try {
       const response = await saveFetcher.fetch({
-        data: $state.snapshot(wizard.data),
+        data: $state.snapshot(finalData),
         mapping: $state.snapshot(wizard.mapping),
         datasourceId: $state.snapshot(wizard.datasourceId),
       });
@@ -22,7 +24,11 @@
       // Handle error appropriately, e.g., show a notification
     }
   }
-  $inspect(wizard);
+
+  const finalData = $derived(
+    parseData(wizard.data, wizard.mapping, wizard.file.format)
+  );
+  $inspect(finalData);
 </script>
 
 <div class="container-fluid mt-3">
@@ -41,7 +47,7 @@
       </p>
     </div>
   </div>
-  <div class="row">
+  <div class="row mb-2">
     <div class="col-12">
       <div>
         {wizard.data.length}
@@ -66,7 +72,9 @@
         {t("import.primary-field-set-to", {
           fallback: "Object identifier field is set to",
         })}
-        {wizard.mapping.find((m) => m.primary).headerField}
+        <span class="fw-bold"
+          >{wizard.mapping.find((m) => m.primary).headerField}</span
+        >
       </div>
       <button class="btn btn-success btn-lg mt-3" onclick={handleSave}>
         {t("common.save-data", {
@@ -76,6 +84,11 @@
       {#if saveFetcher.isLoading}
         <div>loading</div>
       {/if}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12">
+      <ItemsPreview data={finalData} mapping={wizard.mapping} />
     </div>
   </div>
 </div>

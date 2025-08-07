@@ -17,8 +17,10 @@
     {t("common.of", { fallback: "of" })}
     {wizard.steps.length}
   </div>
+
   <button
     class="btn btn-success"
+    class:invisible={wizard.currentStep === wizard.steps.length}
     disabled={!wizard.nextEnabled}
     onclick={wizard.nextStep}
   >

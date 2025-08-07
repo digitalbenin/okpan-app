@@ -480,7 +480,70 @@ function analyzeObjectArrayKeys(objectArray, depth, path, maxSamples) {
         sampleSize: objectArray.length,
       };
     }
-    // Handle regular primitives
+    // Handle regular primitives vs nested objects - THE KEY FIX IS HERE
+    else if (keyValueCounts.size > 0 && keyValues.length > 0) {
+      // Mixed case: some primitives (including null) and some objects
+      // Check if we have any actual objects (non-null objects)
+      const nonNullObjects = keyValues.filter(
+        (val) => val && typeof val === "object" && !Array.isArray(val)
+      );
+
+      if (nonNullObjects.length > 0) {
+        // We have some objects, so treat this as nested objects
+        // The primitives (null values) will be handled in the values
+        const nestedAnalysis = analyzeObjectArrayKeys(
+          nonNullObjects,
+          depth + 1,
+          [...path, keyName],
+          maxSamples
+        );
+
+        // Also include the primitive values (like null) in the result
+        const sortedPrimitiveValues = Array.from(keyValueCounts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, maxSamples)
+          .map(([valueStr, count]) => ({
+            value: safeParse(valueStr),
+            count,
+            frequency: count / objectArray.length,
+          }));
+
+        keyAnalysis[keyName] = {
+          key: keyName,
+          type: "mixed_object", // New type for mixed null/object cases
+          depth: depth,
+          path: [...path, keyName],
+          pathString: [...path, keyName].join("."),
+          analysis: nestedAnalysis,
+          primitiveValues: sortedPrimitiveValues, // Include null values here
+          sampleSize: objectArray.length,
+          objectCount: nonNullObjects.length,
+          nullCount: keyValueCounts.get(safeStringify(null)) || 0,
+        };
+      } else {
+        // Only primitives, no objects
+        const sortedValues = Array.from(keyValueCounts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, maxSamples)
+          .map(([valueStr, count]) => ({
+            value: safeParse(valueStr),
+            count,
+            frequency: count / objectArray.length,
+          }));
+
+        keyAnalysis[keyName] = {
+          key: keyName,
+          type: "primitive_values",
+          depth: depth,
+          path: [...path, keyName],
+          pathString: [...path, keyName].join("."),
+          values: sortedValues,
+          totalUniqueValues: keyValueCounts.size,
+          sampleSize: objectArray.length,
+        };
+      }
+    }
+    // Handle regular primitives only
     else if (keyValueCounts.size > 0) {
       const sortedValues = Array.from(keyValueCounts.entries())
         .sort((a, b) => b[1] - a[1])
@@ -502,17 +565,17 @@ function analyzeObjectArrayKeys(objectArray, depth, path, maxSamples) {
         sampleSize: objectArray.length,
       };
     }
-    // Handle complex values (nested objects, arrays of arrays, etc.)
+    // Handle nested objects only
     else if (keyValues.length > 0) {
-      // Check if all values are objects (nested objects case)
-      const allObjects = keyValues.every(
+      // Filter out null values for object analysis
+      const nonNullObjects = keyValues.filter(
         (val) => val && typeof val === "object" && !Array.isArray(val)
       );
 
-      if (allObjects) {
+      if (nonNullObjects.length > 0) {
         // Handle as nested objects - recursively analyze
         const nestedAnalysis = analyzeObjectArrayKeys(
-          keyValues,
+          nonNullObjects,
           depth + 1,
           [...path, keyName],
           maxSamples
@@ -525,24 +588,26 @@ function analyzeObjectArrayKeys(objectArray, depth, path, maxSamples) {
           path: [...path, keyName],
           pathString: [...path, keyName].join("."),
           analysis: nestedAnalysis,
-          sampleSize: keyValues.length,
+          sampleSize: nonNullObjects.length,
         };
       } else {
         // Handle other complex types (arrays, mixed types, etc.)
         const complexAnalysis = {};
 
         keyValues.forEach((complexValue, index) => {
-          const analysisResult = walkJsonStructure(
-            complexValue,
-            `item_${index}`,
-            depth + 1,
-            [...path, keyName],
-            maxSamples
-          );
+          if (complexValue !== null && complexValue !== undefined) {
+            const analysisResult = walkJsonStructure(
+              complexValue,
+              `item_${index}`,
+              depth + 1,
+              [...path, keyName],
+              maxSamples
+            );
 
-          const valueType = getType(complexValue);
-          const typeKey = `${valueType}_${index}`;
-          complexAnalysis[typeKey] = analysisResult;
+            const valueType = getType(complexValue);
+            const typeKey = `${valueType}_${index}`;
+            complexAnalysis[typeKey] = analysisResult;
+          }
         });
 
         keyAnalysis[keyName] = {
@@ -642,4 +707,59 @@ export function extractLeafPaths(treeNode) {
   }
 
   return traverseNode(treeNode);
+}
+
+export function parseData(data, mapping, format) {
+  const output = data.map((item) => {
+    if (format === "json" || format === "xml") {
+      const transformedItem = {};
+      mapping.forEach((mapping) => {
+        const sourcePath = mapping.headerField.split(".");
+        // Extract value from nested path
+        const value = getNestedValue(item, sourcePath);
+        if (value !== undefined) {
+          transformedItem[mapping.headerField] = value;
+        }
+      });
+      return transformedItem;
+    } else {
+      const fields = mapping.map((mapping) => mapping.headerField);
+      return Object.fromEntries(
+        Object.entries(item).filter(([key]) => fields.includes(key))
+      );
+    }
+  });
+  return output;
+}
+
+function getNestedValue(obj, path) {
+  return path.reduce((current, key, index, array) => {
+    const type = getType(current);
+    let next;
+    if (type === "object") {
+      next = current[key];
+    } else if (type === "array") {
+      if (current.length === 0) {
+        next = null; // If no mapping, return the array as is
+      }
+      const types = current.map((d) => getType(d));
+      if (types.every((t) => t === "object")) {
+        next = current.map((d) => d[key]);
+      } else {
+        next = current.join("|");
+      }
+    } else {
+      // If the value is not an object or array, return it directly
+      next = current;
+    }
+    const nextType = getType(next);
+    if (nextType === "array" && index === array.length - 1) {
+      if (next.length === 0) {
+        next = null; // If no mapping, return the array as is
+      } else {
+        next = next.join("|");
+      }
+    }
+    return next;
+  }, obj);
 }

@@ -6,7 +6,7 @@
 
 <Pagination.Root {count} perPage={pageSize} bind:page>
   {#snippet children({ pages })}
-    <ul class="pagination {size ? `pagination-${size}` : ''}">
+    <ul class="pagination {size ? `pagination-${size}` : ''} mb-0">
       <Pagination.PrevButton forceMount>
         {#snippet child({ props })}
           <li class="page-item" class:disabled={props.disabled}>

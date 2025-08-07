@@ -85,7 +85,7 @@
             <td>
               {#if type === "component"}
                 <Component {...props}></Component>
-              {:else if type === "function"}
+              {:else if type === "function" || header.html}
                 {@html value}
               {:else}
                 {value || cellValue}
