@@ -73,7 +73,7 @@
 
         console.log("Datasource created successfully:", result.result);
         // Enable next step in wizard
-        wizard.datasourceId = result.result.id;
+        wizard.datasourceId = result.result[0].id;
         wizard.nextEnabled = true;
         console.log("Form submitted successfully! Next step enabled.");
       } catch (error) {
@@ -81,10 +81,6 @@
       }
     },
   }));
-
-  //to be romoved
-  wizard.datasourceId = "529b1c44-0b13-4d90-8b58-e32c48948a04";
-  wizard.nextEnabled = true;
 </script>
 
 <form
@@ -154,7 +150,7 @@
                 validator,
                 form,
                 setAllValidationErrors,
-                { validateOnChange: true }
+                { validateOnChange: true },
               )}
             >
               {#snippet children(field)}
@@ -197,7 +193,7 @@
                 validator,
                 form,
                 setAllValidationErrors,
-                { validateOnChange: true }
+                { validateOnChange: true },
               )}
             >
               {#snippet children(field)}
@@ -239,7 +235,7 @@
                 validator,
                 form,
                 setAllValidationErrors,
-                { validateOnChange: true }
+                { validateOnChange: true },
               )}
             >
               {#snippet children(field)}
@@ -287,7 +283,7 @@
                   translationsValidator,
                   form,
                   setAllValidationErrors,
-                  { validateOnChange: true }
+                  { validateOnChange: true },
                 )}
               >
                 {#snippet children(field)}
@@ -327,7 +323,7 @@
                   translationsValidator,
                   form,
                   setAllValidationErrors,
-                  { validateOnChange: true }
+                  { validateOnChange: true },
                 )}
               >
                 {#snippet children(field)}
@@ -365,7 +361,7 @@
                   translationsValidator,
                   form,
                   setAllValidationErrors,
-                  { validateOnChange: true }
+                  { validateOnChange: true },
                 )}
               >
                 {#snippet children(field)}
@@ -411,7 +407,7 @@
             validator,
             form,
             setAllValidationErrors,
-            { validateOnChange: true }
+            { validateOnChange: true },
           )}
         >
           {#snippet children(field)}
@@ -455,7 +451,7 @@
             validator,
             form,
             setAllValidationErrors,
-            { validateOnChange: true }
+            { validateOnChange: true },
           )}
         >
           {#snippet children(field)}
@@ -480,7 +476,7 @@
                   field.handleChange(
                     e.target.value
                       ? new Date(e.target.value).toISOString()
-                      : null
+                      : null,
                   )}
                 onblur={field.handleBlur}
               />
@@ -501,7 +497,7 @@
             validator,
             form,
             setAllValidationErrors,
-            { validateOnChange: true }
+            { validateOnChange: true },
           )}
         >
           {#snippet children(field)}
@@ -516,7 +512,7 @@
             validator,
             form,
             setAllValidationErrors,
-            { validateOnChange: true }
+            { validateOnChange: true },
           )}
         >
           {#snippet children(field)}
@@ -559,7 +555,7 @@
             validator,
             form,
             setAllValidationErrors,
-            { validateOnChange: true }
+            { validateOnChange: true },
           )}
         >
           {#snippet children(field)}
@@ -600,7 +596,7 @@
             validator,
             form,
             setAllValidationErrors,
-            { validateOnChange: true }
+            { validateOnChange: true },
           )}
         >
           {#snippet children(field)}

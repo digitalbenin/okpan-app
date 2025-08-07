@@ -326,7 +326,7 @@ export const handleExcelSheetSelection = async (event, options) => {
             multiPage: false,
             data: excelData,
             error: null,
-            sheets: workbook.SheetNames,
+            //sheets: workbook.SheetNames,
             selectedSheet: sheetName
         };
 

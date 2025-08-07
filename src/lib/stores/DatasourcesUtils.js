@@ -29,7 +29,7 @@ export const createDatasource = async (params) => {
     const response = await executeQuery('datasources', 'create', params);
 
     if (!response || response.error || !response.result) {
-        return { result: null, error: response?.error || "Failed to fetch datasource" };
+        return { result: null, error: response?.error || "Failed to create datasource" };
     }
     return { result: response.result, error: null };
 };

@@ -17,6 +17,7 @@ import { handlePing, handleFileDialog, handleStructuredDataImport, handleSetCurr
 import { handleImportAssets } from './handlers/assetHandlers.js';
 import { suggestObjectMatches } from './handlers/assetMappingHandler.js';
 import { suggestFieldMappings } from './handlers/importHandler.js';
+import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.js';
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { eq, sql, isNull } from 'drizzle-orm';
@@ -67,6 +68,16 @@ ipcMain.handle('suggest-field-mappings', async (event, csvFieldNames, options) =
     return await suggestFieldMappings(csvFieldNames, options);
   } catch (error) {
     console.error('Error in suggest-field-mappings:', error);
+    throw error;
+  }
+});
+
+// Template matching handlers
+ipcMain.handle('suggest-template-reuse', async (event, inputHeaders, projectId) => {
+  try {
+    return await handleSuggestTemplateReuse(event, inputHeaders, projectId);
+  } catch (error) {
+    console.error('Error in suggest-template-reuse:', error);
     throw error;
   }
 });

@@ -13,11 +13,14 @@
 
   async function handleSave() {
     try {
-      const response = await saveFetcher.fetch({
+      const saveParams = {
         data: $state.snapshot(finalData),
         mapping: $state.snapshot(wizard.mapping),
         datasourceId: $state.snapshot(wizard.datasourceId),
-      });
+      };
+      console.log("Save parameters:", saveParams);
+
+      const response = await saveFetcher.fetch(saveParams);
       console.log("Datasource saved:", response);
     } catch (error) {
       console.error("Error saving datasource:", error);
@@ -26,7 +29,7 @@
   }
 
   const finalData = $derived(
-    parseData(wizard.data, wizard.mapping, wizard.file.format)
+    parseData(wizard.data, wizard.mapping, wizard.file.format),
   );
   $inspect(finalData);
 </script>
