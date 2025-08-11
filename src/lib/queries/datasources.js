@@ -33,6 +33,7 @@ export const datasourcesOperations = {
       copyright
       contact
       date
+      objectsCount
       name {
          content
        }
@@ -63,6 +64,34 @@ export const datasourcesOperations = {
     query: `query GetDatasource($datasourceId: String!) {
     result: datasources(where: { id: { eq: $datasourceId } }) {
       id
+      created_at
+      updated_at
+      institution_id
+      language
+      copyright
+      contact
+      date
+      name {
+        content
+        translations {
+          language_id
+          content
+        }
+      }
+      method {
+        content
+        translations {
+          language_id
+          content
+        }
+      }
+      notes {
+        content
+        translations {
+          language_id
+          content
+        }
+      }
     }
   }`
   },
