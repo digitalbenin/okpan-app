@@ -59,7 +59,7 @@ export async function findMatchingTemplates(inputHeaders, projectId) {
 
                     matchingTemplates.push({
                         id: template.id,
-                        mapping: template.mapping,
+                        mapping: mapping, // Use the parsed mapping instead of the raw string
                         project_id: template.project_id,
                         asset_map_rule: template.asset_map_rule,
                         created_at: template.created_at,
@@ -108,6 +108,8 @@ async function getDatasourcesWithInstitutions(templateId) {
                 // Datasource fields (only id and name)
                 datasource_id: datasources.id,
                 datasource_name: createTextFieldWithTranslations(datasourceNameTexts, datasourceNameTranslations, datasourceNameLanguages),
+                datasource_language: datasources.language,
+                datasource_date: datasources.date,
 
                 // Institution fields (only id and name)
                 institution_id: institutions.id,
@@ -137,6 +139,8 @@ async function getDatasourcesWithInstitutions(templateId) {
                 datasourceMap.set(row.datasource_id, {
                     id: row.datasource_id,
                     name: row.datasource_name,
+                    language: row.datasource_language,
+                    date: row.datasource_date,
                     institution: row.institution_id ? {
                         id: row.institution_id,
                         name: row.institution_name

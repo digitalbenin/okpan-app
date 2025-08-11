@@ -219,6 +219,22 @@
             } catch {}
         }
     });
+
+    // Log form-level errors from script via subscription (no template logging)
+    $effect(() => {
+        if (!form || typeof form.subscribe !== "function") return;
+        const unsubscribe = form.subscribe((state) => {
+            const errors = state?.errors || [];
+            if (errors.length > 0) {
+                console.error("Form validation errors:", errors);
+            }
+        });
+        return () => {
+            try {
+                unsubscribe?.();
+            } catch {}
+        };
+    });
 </script>
 
 {#if derivedTranslatable.length > 0 && defaultLanguage}
@@ -678,11 +694,4 @@
     {/each}
 </div>
 
-<!-- No summary UI; log to console for debugging only -->
-<form.Subscribe selector={(state) => ({ errors: state.errors })}>
-    {#snippet children(formState)}
-        {#if formState.errors?.length > 0}
-            {console.error("Form validation errors:", formState.errors)}
-        {/if}
-    {/snippet}
-</form.Subscribe>
+<!-- No summary UI; logging handled in script subscription -->
