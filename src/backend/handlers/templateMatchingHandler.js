@@ -59,7 +59,7 @@ export async function findMatchingTemplates(inputHeaders, projectId) {
 
                     matchingTemplates.push({
                         id: template.id,
-                        mapping: template.mapping,
+                        mapping: mapping, // Use the parsed mapping instead of the raw string
                         project_id: template.project_id,
                         asset_map_rule: template.asset_map_rule,
                         created_at: template.created_at,
