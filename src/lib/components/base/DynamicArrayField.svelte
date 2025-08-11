@@ -12,6 +12,7 @@
         structuredErrors = [], // Raw validation errors with path arrays
         fieldValidators = null, // Optional field-level validators for individual items
         arrayFieldName = "", // The name of the array field for error matching
+        deleteColSize = 1, // column size for delete button to keep row in a single line
     } = $props();
 
     // Ensure we have an array value
@@ -184,12 +185,12 @@
                     </div>
                 {/each}
 
-                <!-- Delete Button Column -->
-                <div class="col-auto">
+                <!-- Delete Button Column (auto width so it stays inline) -->
+                <div class="col-auto d-flex align-items-end">
                     {#if arrayValue.length > minItems}
                         <BaseButton
                             type="button"
-                            class="btn btn-sm btn-outline-danger"
+                            class="btn btn-sm btn-outline-danger ms-1"
                             icon="trash"
                             text=""
                             onClick={() => removeItem(index)}

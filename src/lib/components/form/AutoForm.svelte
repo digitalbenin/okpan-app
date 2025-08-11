@@ -512,6 +512,7 @@
                                             .rendererProps}
                                         errors={field.state.meta.errors}
                                         {structuredErrors}
+                                        onChange={(v) => field.handleChange(v)}
                                         on:change={(e) =>
                                             field.handleChange(e.detail ?? e)}
                                         on:blur={field.handleBlur}
