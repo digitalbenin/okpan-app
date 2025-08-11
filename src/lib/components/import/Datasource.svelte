@@ -9,6 +9,7 @@
   import { Tabs } from "melt/builders";
   import { createDatasource } from "$lib/stores/DatasourcesUtils.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
+  import AutoForm from "$lib/components/form/AutoForm.svelte";
 
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();

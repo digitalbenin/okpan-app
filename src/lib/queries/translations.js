@@ -1,4 +1,21 @@
 export const translationsOperations = {
+  // GET BY TEXT ID
+  getByTextId: {
+    type: "query",
+    name: "Get Translations By Text Id",
+    description: "Retrieves all translations for a given text id",
+    variables: {
+      textId: "ID of the text to get translations for"
+    },
+    query: `query GetTranslationsByText($textId: String!) {
+  result: translations(where: { text_id: { eq: $textId } }) {
+    id
+    content
+    language_id
+    text_id
+  }
+}`
+  },
   create: {
     type: "mutation",
     name: "Create Translation",
@@ -40,6 +57,21 @@ export const translationsOperations = {
   ) {
     id
     content
+    language_id
+    text_id
+  }
+}`
+  },
+  delete: {
+    type: "mutation",
+    name: "Delete Translation",
+    description: "Deletes a translation by its ID",
+    variables: {
+      translationId: "ID of the translation to delete"
+    },
+    query: `mutation DeleteTranslation($translationId: String!) {
+  deleteFromTranslations(where: { id: { eq: $translationId } }) {
+    id
     language_id
     text_id
   }

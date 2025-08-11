@@ -364,6 +364,31 @@ function generateValidationSchema(entityName, mutationAnalysis, schemaEntries, o
         validationRules[fieldName] = validator;
     });
 
+    // Ensure custom validators registered for the entity are included
+    try {
+        if (customValidatorsRegistry.has(entityName)) {
+            const entityCustoms = customValidatorsRegistry.get(entityName);
+            for (const [customFieldName, cfg] of entityCustoms.entries()) {
+                if (!(customFieldName in validationRules)) {
+                    let v = null;
+                    if (typeof cfg.validator === 'function') {
+                        v = cfg.validator();
+                    } else if (cfg.validator) {
+                        v = cfg.validator;
+                    }
+                    if (v) {
+                        validationRules[customFieldName] = v;
+                        if (cfg.required) {
+                            requiredFields.add(customFieldName);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to merge custom validators:', e);
+    }
+
     const finalSchema = z.object(validationRules);
 
     return {
