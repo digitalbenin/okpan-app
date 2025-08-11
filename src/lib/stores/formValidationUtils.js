@@ -634,9 +634,10 @@ registerCustomValidator('datasources', 'institutionId', {
 
 // Template ID validator - optional field (not in schema)
 registerCustomValidator('datasources', 'templateId', {
-    validator: () => z.string().optional(),
+    // Accept not provided or explicitly null (we don't want to send it from the form)
+    validator: () => z.string().nullable().optional(),
     required: false,
-    defaultValue: ''
+    defaultValue: null
 });
 
 // Language ID validator - required field for text creation (not in schema)

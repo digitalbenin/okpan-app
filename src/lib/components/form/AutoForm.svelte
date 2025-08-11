@@ -143,14 +143,35 @@
 
     const derivedTranslatable = deriveTranslatableFields();
 
-    // Compute non-translatable visible fields in order
+    // Compute non-translatable visible fields in order (include fields listed in fieldOrder/uiSchema
+    // even if they are not present in validator schema)
     const nonTranslatableCandidates = schemaFields.filter(
         (f) => !derivedTranslatable.includes(f),
     );
-    const orderedFields = [
-        ...fieldOrder.filter((f) => nonTranslatableCandidates.includes(f)),
-        ...nonTranslatableCandidates.filter((f) => !fieldOrder.includes(f)),
-    ];
+
+    const orderedFields = [];
+    // 1) honor fieldOrder first
+    for (const f of fieldOrder || []) {
+        if (!derivedTranslatable.includes(f) && !getFieldConfig(f).hidden) {
+            if (!orderedFields.includes(f)) orderedFields.push(f);
+        }
+    }
+    // 2) add remaining schema fields
+    for (const f of nonTranslatableCandidates) {
+        if (!getFieldConfig(f).hidden && !orderedFields.includes(f)) {
+            orderedFields.push(f);
+        }
+    }
+    // 3) add any extra uiSchema-only fields that are not hidden
+    for (const f of Object.keys(uiSchema || {})) {
+        if (
+            !derivedTranslatable.includes(f) &&
+            !getFieldConfig(f).hidden &&
+            !orderedFields.includes(f)
+        ) {
+            orderedFields.push(f);
+        }
+    }
 
     // Sync hidden values with guards to avoid loops
     function valuesEqual(a, b) {
@@ -201,7 +222,7 @@
 </script>
 
 {#if derivedTranslatable.length > 0 && defaultLanguage}
-    <div class="mb-4">
+    <div class="m-4">
         <div {...tabs.triggerList} class="nav nav-tabs mb-3" role="tablist">
             <button
                 {...tabs.getTrigger("default")}
@@ -475,7 +496,7 @@
 {/if}
 
 <!-- Non-translatable fields -->
-<div class="mb-4">
+<div class="m-4">
     <div class="row">
         {#each orderedFields as fieldName}
             {#if !getFieldConfig(fieldName).hidden && !derivedTranslatable.includes(fieldName)}
@@ -657,22 +678,11 @@
     {/each}
 </div>
 
-<!-- Optional form-level error summary (presentational) -->
+<!-- No summary UI; log to console for debugging only -->
 <form.Subscribe selector={(state) => ({ errors: state.errors })}>
     {#snippet children(formState)}
         {#if formState.errors?.length > 0}
-            <div class="alert alert-danger">
-                <strong
-                    >{t("common.fix-errors", {
-                        fallback: "Please fix the following errors:",
-                    })}</strong
-                >
-                <ul class="mb-0 mt-1">
-                    {#each formState.errors as error}
-                        <li>{error}</li>
-                    {/each}
-                </ul>
-            </div>
+            {console.error("Form validation errors:", formState.errors)}
         {/if}
     {/snippet}
 </form.Subscribe>

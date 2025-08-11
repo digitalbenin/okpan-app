@@ -70,7 +70,7 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 .groupBy(dbSchema.objects_ontology_fields.datasources_id)
                 .as('objects_ontology_fields_subquery');
 
-            // Build the base query
+            // Build the base query with translations using helpers similar to institutions list
             let query = db.select({
                 id: dbSchema.datasources.id,
                 created_at: dbSchema.datasources.created_at,
@@ -81,35 +81,25 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 copyright: dbSchema.datasources.copyright,
                 contact: dbSchema.datasources.contact,
                 date: dbSchema.datasources.date,
-                // Simple text fields without complex translations for now
-                name: {
-                    content: nameTexts.content,
-                    id: nameTexts.id,
-                    original_language_id: nameTexts.original_language_id,
-                    translations: []
-                },
-                method: {
-                    content: methodTexts.content,
-                    id: methodTexts.id,
-                    original_language_id: methodTexts.original_language_id,
-                    translations: []
-                },
-                notes: {
-                    content: notesTexts.content,
-                    id: notesTexts.id,
-                    original_language_id: notesTexts.original_language_id,
-                    translations: []
-                },
+                name: createTextFieldWithTranslations(nameTexts, nameTranslations, nameLanguages),
+                method: createTextFieldWithTranslations(methodTexts, methodTranslations, methodLanguages),
+                notes: createTextFieldWithTranslations(notesTexts, notesTranslations, notesLanguages),
                 // Include the object count, defaulting to 0 if no objects are linked
                 objectsCount: sql`COALESCE(${objectsOntologyFieldsSubquery.objects_count}, 0)`.as('objectsCount')
             })
                 .from(dbSchema.datasources)
                 // Left join with the subquery to get the object count
                 .leftJoin(objectsOntologyFieldsSubquery, eq(dbSchema.datasources.id, objectsOntologyFieldsSubquery.datasources_id))
-                // Simple joins - only text tables
+                // Joins for texts, translations and languages
                 .leftJoin(nameTexts, eq(dbSchema.datasources.name_id, nameTexts.id))
+                .leftJoin(nameTranslations, eq(nameTexts.id, nameTranslations.text_id))
+                .leftJoin(nameLanguages, eq(nameTranslations.language_id, nameLanguages.id))
                 .leftJoin(methodTexts, eq(dbSchema.datasources.method_id, methodTexts.id))
-                .leftJoin(notesTexts, eq(dbSchema.datasources.notes_id, notesTexts.id));
+                .leftJoin(methodTranslations, eq(methodTexts.id, methodTranslations.text_id))
+                .leftJoin(methodLanguages, eq(methodTranslations.language_id, methodLanguages.id))
+                .leftJoin(notesTexts, eq(dbSchema.datasources.notes_id, notesTexts.id))
+                .leftJoin(notesTranslations, eq(notesTexts.id, notesTranslations.text_id))
+                .leftJoin(notesLanguages, eq(notesTranslations.language_id, notesLanguages.id));
 
             // Apply institution_id filter if provided
             if (args.institution_id) {
@@ -138,16 +128,31 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
             // Add ordering to the query
             query = query.orderBy(direction === 'asc' ? orderByField : sql`${orderByField} DESC`);
 
-            // Apply pagination
+            // Apply pagination and group by to aggregate translations correctly
             query = query
                 .limit(args.pageSize)
-                .offset(args.page * args.pageSize);
+                .offset(args.page * args.pageSize)
+                .groupBy(
+                    dbSchema.datasources.id,
+                    dbSchema.datasources.created_at,
+                    dbSchema.datasources.updated_at,
+                    dbSchema.datasources.institution_id,
+                    dbSchema.datasources.template_id,
+                    dbSchema.datasources.language,
+                    dbSchema.datasources.copyright,
+                    dbSchema.datasources.contact,
+                    dbSchema.datasources.date,
+                    nameTexts.id,
+                    methodTexts.id,
+                    notesTexts.id
+                );
 
             // Execute the paginated query
             const datasources = await query.execute();
 
-            // Return datasources directly - no complex translation processing needed
-            return datasources;
+            // Process translations arrays for name/method/notes
+            const results = processTranslations(datasources, ['name', 'method', 'notes']);
+            return results;
         }
     };
 }; 

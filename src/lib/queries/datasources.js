@@ -33,21 +33,34 @@ export const datasourcesOperations = {
       copyright
       contact
       date
+      objectsCount
       name {
-         content
-       }
-       method {
-         content
-       }
-       notes {
-         content
-       }
-       institution {
-         id
-         name {
-           content
-         }
-       }
+        content
+        translations {
+          language {
+            code
+          }
+          content
+        }
+      }
+      method {
+        content
+        translations {
+          language {
+            code
+          }
+          content
+        }
+      }
+      notes {
+        content
+        translations {
+          language {
+            code
+          }
+          content
+        }
+      }
     }
   }`
   },
@@ -63,6 +76,35 @@ export const datasourcesOperations = {
     query: `query GetDatasource($datasourceId: String!) {
     result: datasources(where: { id: { eq: $datasourceId } }) {
       id
+      created_at
+      updated_at
+      institution_id
+      template_id
+      language
+      copyright
+      contact
+      date
+      name {
+        content
+        translations {
+          language { code }
+          content
+        }
+      }
+      method {
+        content
+        translations {
+          language { code }
+          content
+        }
+      }
+      notes {
+        content
+        translations {
+          language { code }
+          content
+        }
+      }
     }
   }`
   },
@@ -184,6 +226,29 @@ export const datasourcesOperations = {
           nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
           methodId: { from: "createMethodText", path: "insertIntoTexts.0.id" },
           notesId: { from: "createNotesText", path: "insertIntoTexts.0.id" }
+        }
+      }
+      ,
+      // === TRANSLATION PROCESSING STEPS AFTER CREATE ===
+      {
+        name: "processNameTranslations",
+        processTranslations: {
+          textIdPath: "createNameText.insertIntoTexts.0.id",
+          translationsParam: "nameTranslations"
+        }
+      },
+      {
+        name: "processMethodTranslations",
+        processTranslations: {
+          textIdPath: "createMethodText.insertIntoTexts.0.id",
+          translationsParam: "methodTranslations"
+        }
+      },
+      {
+        name: "processNotesTranslations",
+        processTranslations: {
+          textIdPath: "createNotesText.insertIntoTexts.0.id",
+          translationsParam: "notesTranslations"
         }
       }
     ],
