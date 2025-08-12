@@ -15,4 +15,4 @@ export { createAssetsListQuery } from './assetsList';
 export { createEntitySearchQuery } from './entitySearch';
 export { createObjectDisplayFieldsTransformedQuery } from './objectDisplayFields';
 export { createObjectSearchQuery } from './objectSearch';
-export { createObjectImportMutation } from './objectImport'; 
+export { createObjectImportMutation, createObjectImportUsingTemplateMutation } from './objectImport'; 
