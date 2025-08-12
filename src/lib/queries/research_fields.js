@@ -189,6 +189,20 @@ export const researchFieldsOperations = {
         useVariables: ["description", "languageId"]
       },
       {
+        name: "processNameTranslations",
+        processTranslations: {
+          textIdPath: "createNameText.insertIntoTexts.0.id",
+          translationsParam: "nameTranslations"
+        }
+      },
+      {
+        name: "processDescriptionTranslations",
+        processTranslations: {
+          textIdPath: "createDescriptionText.insertIntoTexts.0.id",
+          translationsParam: "descriptionTranslations"
+        }
+      },
+      {
         name: "createResearchField",
         query: `mutation CreateResearchFieldEntry(
   $nameId: String!
@@ -339,7 +353,10 @@ export const researchFieldsOperations = {
       option: "Option text content",
       description: "Description text content",
       mainAsset: "Main asset identifier (optional)",
-      otherAssets: "JSON of other assets (optional)"
+      otherAssets: "JSON of other assets (optional)",
+      // optional translation arrays for creation
+      optionTranslations: "Array of option translations (optional)",
+      descriptionTranslations: "Array of description translations (optional)"
     },
     mutations: [
       {
@@ -375,6 +392,20 @@ export const researchFieldsOperations = {
   }
 }`,
         useVariables: ["description", "languageId"]
+      },
+      {
+        name: "processOptionTranslations",
+        processTranslations: {
+          textIdPath: "createOptionText.insertIntoTexts.0.id",
+          translationsParam: "optionTranslations"
+        }
+      },
+      {
+        name: "processDescriptionTranslations",
+        processTranslations: {
+          textIdPath: "createDescriptionText.insertIntoTexts.0.id",
+          translationsParam: "descriptionTranslations"
+        }
       },
       {
         name: "createVocabulary",
