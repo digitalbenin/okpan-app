@@ -172,4 +172,47 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
 
     invalidate("app:research-fields");
     return { result: result.result, error: null };
-}; 
+};
+
+// Create a vocabulary for a research field (supports translations on create)
+export const addVocabulary = async (fieldId, data) => {
+    if (!fieldId) {
+        return { result: null, error: "Missing Research Field ID" };
+    }
+
+    const params = {
+        fieldId,
+        languageId: data.languageId,
+        option: data.option,
+        description: data.description,
+        // Optional translation arrays on creation
+        optionTranslations: data.optionTranslations,
+        descriptionTranslations: data.descriptionTranslations,
+        // Optional assets if ever used in the future
+        mainAsset: data.mainAsset,
+        otherAssets: data.otherAssets
+    };
+
+    // Prune undefined to avoid GraphQL variable issues
+    Object.keys(params).forEach((k) => params[k] === undefined && delete params[k]);
+
+    const result = await executeQuery('research_fields', 'addVocabulary', params);
+    if (result?.error) {
+        return { result: null, error: result.error };
+    }
+    invalidate("app:research-fields");
+    return { result, error: null };
+};
+
+// Delete a vocabulary by ID
+export const deleteVocabulary = async (vocabularyId) => {
+    if (!vocabularyId) {
+        return { result: null, error: "Missing Vocabulary ID" };
+    }
+    const result = await executeQuery('research_fields', 'deleteVocabulary', { vocabularyId });
+    if (result?.error) {
+        return { result: null, error: result.error };
+    }
+    invalidate("app:research-fields");
+    return { result, error: null };
+};
