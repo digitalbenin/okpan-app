@@ -6,10 +6,9 @@
   const { template } = $props();
   const { t, translationState } = getTranslationStore();
   const wizard = getImportWizardContext();
-  $inspect(template);
 </script>
 
-<div class="d-flex align-items-center border rounded p-2 bg-white mb-3 gap-2">
+<div class="d-flex align-items-center border rounded p-2 bg-white mb-1 gap-2">
   <div class="text-truncate fw-bold">
     {template.datasources[0].name.content}
   </div>
@@ -18,9 +17,10 @@
   </div>
   <div class="ms-auto">
     <button
-      class="btn btn-primary"
+      class="btn btn-success"
       onclick={() => {
-        wizard.reusedTemplate = template;
+        wizard.reusedTemplate = $state.snapshot(template);
+        wizard.useMatchingTemplate = true;
       }}
     >
       {t("import.reuse", {

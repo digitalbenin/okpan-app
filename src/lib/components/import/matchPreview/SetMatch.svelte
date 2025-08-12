@@ -4,7 +4,12 @@
   import BaseRadioGroup from "$lib/components/base/BaseRadioGroup.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
-  let { field, suggestions, fieldMatched = $bindable() } = $props();
+  let {
+    field,
+    suggestions = [],
+    fieldMatched = $bindable(),
+    disabled = false,
+  } = $props();
   const { t } = getTranslationStore();
 
   let open = $state(false);
@@ -30,12 +35,19 @@
         name: f.name.content,
         id: f.id,
         description: f.description.content,
+        suggestion: suggestions.some((ss) => ss.ontologyFieldId === f.id),
       }))[0];
     open = false;
   }
 </script>
 
-<BaseAlertDialog bind:open buttonProps={{ class: "btn btn-outline-secondary" }}>
+<BaseAlertDialog
+  bind:open
+  buttonProps={{
+    class: "btn btn-outline-secondary btn-sm",
+    disabled: disabled,
+  }}
+>
   {#snippet title()}
     {t("import.edit-match", { fallback: "Edit matched field" })}
   {/snippet}
