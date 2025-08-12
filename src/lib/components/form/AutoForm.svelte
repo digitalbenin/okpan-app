@@ -101,6 +101,26 @@
         return Boolean(validator?.requiredFields?.has(fieldName));
     }
 
+    // Normalize error values to readable strings
+    function formatErrors(errors) {
+        try {
+            if (!Array.isArray(errors)) return "";
+            return errors
+                .map((err) =>
+                    typeof err === "string"
+                        ? err
+                        : (err?.message ??
+                          (typeof err === "object"
+                              ? JSON.stringify(err)
+                              : String(err))),
+                )
+                .filter(Boolean)
+                .join(", ");
+        } catch {
+            return "";
+        }
+    }
+
     // Derive fields from validator schema
     const schemaFields = Object.keys(validator?.schema?.shape || {});
 
@@ -373,8 +393,9 @@
                                                     <div
                                                         class="invalid-feedback"
                                                     >
-                                                        {field.state.meta.errors.join(
-                                                            ", ",
+                                                        {formatErrors(
+                                                            field.state.meta
+                                                                .errors,
                                                         )}
                                                     </div>
                                                 {/if}
@@ -483,8 +504,9 @@
                                                         <div
                                                             class="invalid-feedback"
                                                         >
-                                                            {field.state.meta.errors.join(
-                                                                ", ",
+                                                            {formatErrors(
+                                                                field.state.meta
+                                                                    .errors,
                                                             )}
                                                         </div>
                                                     {/if}
@@ -658,7 +680,7 @@
 
                                 {#if field.state.meta.errors.length > 0}
                                     <div class="invalid-feedback">
-                                        {field.state.meta.errors.join(", ")}
+                                        {formatErrors(field.state.meta.errors)}
                                     </div>
                                 {/if}
                             </div>

@@ -71,6 +71,7 @@ export const createInstitutionByIdQuery = (db, drizzleResult) => {
                 created_at: dbSchema.institutions.created_at,
                 updated_at: dbSchema.institutions.updated_at,
                 project_id: dbSchema.institutions.project_id,
+                website: dbSchema.institutions.website,
                 name: createTextFieldWithTranslations(nameTexts, nameTranslations, nameLanguages),
                 description: createTextFieldWithTranslations(descriptionTexts, descriptionTranslations, descriptionLanguages),
                 location: createTextFieldWithTranslations(locationTexts, locationTranslations, locationLanguages),

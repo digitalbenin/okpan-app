@@ -20,7 +20,6 @@ export const performQuery = async (query, params, context) => {
 
         // Check for GraphQL errors in the response (GraphQL can return data with errors)
         if (result && result.errors) {
-            // Get the first error message or a default message
             const errorMessage = result.errors[0]?.message || 'GraphQL operation failed';
             console.error('GraphQL operation errors:', result.errors);
 
@@ -34,14 +33,14 @@ export const performQuery = async (query, params, context) => {
 
             await logError(query.name, errorMessage);
 
-            // Create a custom error with the GraphQL error details
             const error = new Error(errorMessage);
             error.graphqlErrors = result.errors;
             error.graphqlResult = result;
-
-            // Throw the error to be caught by the calling function
             throw error;
         }
+
+        // Success
+        return result;
     } catch (error) {
         // Handle network/execution errors (different from GraphQL errors in the response)
         if (!error.graphqlErrors) {
@@ -55,8 +54,6 @@ export const performQuery = async (query, params, context) => {
             await logError(query.name, error.message);
         }
         throw error;
-    } finally {
-        return result;
     }
 }
 

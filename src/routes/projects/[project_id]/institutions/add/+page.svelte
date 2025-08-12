@@ -4,6 +4,7 @@
   import {
     getValidator,
     createFieldValidator,
+    getFormConfig,
   } from "$lib/stores/formValidationUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { page } from "$app/stores";
@@ -30,29 +31,7 @@
   // Make sure custom validators (like links) are merged into schema
   const validator = getValidator("institutions", "create");
 
-  // Create default values including translation fields
-  const createDefaultValues = () => {
-    const defaults = {
-      project_id: $page.params.project_id,
-      languageId: defaultLanguage?.id || "",
-      name: "",
-      description: "",
-      country: "",
-      location: "",
-      website: "",
-      status: "in progress",
-      links: [{ url: "", label: "" }],
-    };
-
-    // Add translation fields for each secondary language
-    secondaryLanguages.forEach((lang) => {
-      translatableFields.forEach((field) => {
-        defaults[`translations_${lang.id}_${field}`] = "";
-      });
-    });
-
-    return defaults;
-  };
+  // Using getFormConfig defaults; hidden values will set project_id/languageId/status
 
   // Store all validation errors for components to use
   let allValidationErrors = $state([]);
@@ -62,103 +41,82 @@
     allValidationErrors = errors;
   }
 
-  // Create form instance
-  const form = createForm(() => ({
-    defaultValues: createDefaultValues(),
-    validators: {
-      onSubmit: ({ value }) => {
-        const result = validator.schema.safeParse(value);
-        if (!result.success) {
-          // Store ALL validation errors for components
-          allValidationErrors = result.error.errors;
+  // Create form instance using optimized config (live validation via onChange)
+  const form = createForm(() =>
+    getFormConfig("institutions", "create", {
+      onSubmit: async ({ value }) => {
+        try {
+          // Transform links array to native array for the mutation
+          const transformedValue = {
+            ...value,
+            links:
+              value.links?.filter(
+                (link) => link.url?.trim() && link.label?.trim(),
+              ) || [],
+          };
 
-          const fieldErrors = {};
-          result.error.errors.forEach((error) => {
-            const fieldPath = error.path.join(".");
-            if (!fieldErrors[fieldPath]) {
-              fieldErrors[fieldPath] = [];
-            }
-            fieldErrors[fieldPath].push(error.message);
+          // Create the institution (real call)
+          const result = await createInstitution({
+            project_id: transformedValue.project_id,
+            languageId: transformedValue.languageId,
+            name: transformedValue.name,
+            description: transformedValue.description,
+            country: transformedValue.country,
+            location: transformedValue.location,
+            website: transformedValue.website,
+            links: transformedValue.links,
+            status: transformedValue.status,
           });
-          return { fields: fieldErrors };
-        } else {
-          allValidationErrors = [];
-        }
-        return undefined;
-      },
-    },
-    onSubmit: async ({ value }) => {
-      try {
-        // Transform links array to native array for the mutation
-        const transformedValue = {
-          ...value,
-          links:
-            value.links?.filter(
-              (link) => link.url?.trim() && link.label?.trim(),
-            ) || [],
-        };
 
-        // Create the institution (real call)
-        const result = await createInstitution({
-          project_id: transformedValue.project_id,
-          languageId: transformedValue.languageId,
-          name: transformedValue.name,
-          description: transformedValue.description,
-          country: transformedValue.country,
-          location: transformedValue.location,
-          website: transformedValue.website,
-          links: transformedValue.links,
-          status: transformedValue.status,
-        });
+          if (!result || !result.institution) {
+            console.error("createInstitution result:", result);
+            throw new Error("Failed to create institution");
+          }
 
-        if (!result || !result.institution) {
-          console.error("createInstitution result:", result);
-          throw new Error("Failed to create institution");
-        }
+          const { institution, nameId, descriptionId, countryId, locationId } =
+            result;
 
-        const { institution, nameId, descriptionId, countryId, locationId } =
-          result;
+          // Prepare translation creation promises
+          const contentLanguageStore = getContentLanguageStore();
+          const translationFieldToTextId = {
+            name: nameId,
+            description: descriptionId,
+            country: countryId,
+            location: locationId,
+          };
 
-        // Prepare translation creation promises
-        const contentLanguageStore = getContentLanguageStore();
-        const translationFieldToTextId = {
-          name: nameId,
-          description: descriptionId,
-          country: countryId,
-          location: locationId,
-        };
+          const translationPromises = [];
+          for (const lang of secondaryLanguages) {
+            for (const fieldName of translatableFields) {
+              const translationFieldKey = `translations_${lang.id}_${fieldName}`;
+              const content = transformedValue[translationFieldKey];
 
-        const translationPromises = [];
-        for (const lang of secondaryLanguages) {
-          for (const fieldName of translatableFields) {
-            const translationFieldKey = `translations_${lang.id}_${fieldName}`;
-            const content = transformedValue[translationFieldKey];
-
-            if (content?.trim() && translationFieldToTextId[fieldName]) {
-              translationPromises.push(
-                contentLanguageStore
-                  .addTranslation(
-                    translationFieldToTextId[fieldName],
-                    lang.code,
-                    content,
-                  )
-                  .catch((err) => {
-                    throw err;
-                  }),
-              );
+              if (content?.trim() && translationFieldToTextId[fieldName]) {
+                translationPromises.push(
+                  contentLanguageStore
+                    .addTranslation(
+                      translationFieldToTextId[fieldName],
+                      lang.code,
+                      content,
+                    )
+                    .catch((err) => {
+                      throw err;
+                    }),
+                );
+              }
             }
           }
-        }
-        await Promise.all(translationPromises);
+          await Promise.all(translationPromises);
 
-        goto(
-          `/projects/${transformedValue.project_id}/institutions/${institution.id}`,
-        );
-      } catch (error) {
-        console.error("Error creating institution:", error);
-      }
-    },
-  }));
+          goto(
+            `/projects/${transformedValue.project_id}/institutions/${institution.id}`,
+          );
+        } catch (error) {
+          console.error("Error creating institution:", error);
+        }
+      },
+    }),
+  );
 </script>
 
 <form
