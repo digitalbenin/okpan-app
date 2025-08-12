@@ -6,7 +6,10 @@
     createFieldValidator,
   } from "$lib/stores/formValidationUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { createDatasource } from "$lib/stores/DatasourcesUtils.js";
+  import {
+    createDatasource,
+    updateDatasource,
+  } from "$lib/stores/DatasourcesUtils.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
 
@@ -92,25 +95,48 @@
           if (key.startsWith("translations_")) delete payload[key];
         }
 
-        // Call create with translation arrays so backend can process them
-        const result = await createDatasource({
-          ...payload,
-          nameTranslations: nameTranslations.length
-            ? nameTranslations
-            : undefined,
-          methodTranslations: methodTranslations.length
-            ? methodTranslations
-            : undefined,
-          notesTranslations: notesTranslations.length
-            ? notesTranslations
-            : undefined,
-        });
-        if (result.error) {
-          console.error("Error creating datasource:", result.error);
-          return;
+        // Decide between create and update based on wizard state
+        if (!wizard.datasourceId) {
+          // Call create with translation arrays so backend can process them
+          const result = await createDatasource({
+            ...payload,
+            nameTranslations: nameTranslations.length
+              ? nameTranslations
+              : undefined,
+            methodTranslations: methodTranslations.length
+              ? methodTranslations
+              : undefined,
+            notesTranslations: notesTranslations.length
+              ? notesTranslations
+              : undefined,
+          });
+          if (result.error) {
+            console.error("Error creating datasource:", result.error);
+            return;
+          }
+          wizard.datasourceId = result.result[0].id;
+          wizard.nextEnabled = true;
+        } else {
+          // Update existing datasource, allowing users to refine fields after initial creation
+          const updateResult = await updateDatasource(wizard.datasourceId, {
+            ...payload,
+            nameTranslations: nameTranslations.length
+              ? nameTranslations
+              : undefined,
+            methodTranslations: methodTranslations.length
+              ? methodTranslations
+              : undefined,
+            notesTranslations: notesTranslations.length
+              ? notesTranslations
+              : undefined,
+          });
+          if (updateResult?.error) {
+            console.error("Error updating datasource:", updateResult.error);
+            return;
+          }
+          // Keep Next enabled after successful update
+          wizard.nextEnabled = true;
         }
-        wizard.datasourceId = result.result[0].id;
-        wizard.nextEnabled = true;
       } catch (error) {
         console.error("Error creating datasource:", error);
       }

@@ -314,6 +314,30 @@ export const datasourcesOperations = {
         mapVariables: { methodId: { from: "getDatasource", path: "datasources.0.method_id" } },
         skipIf: { variableName: "methodId", isUndefined: true }
       },
+      // Create method text if missing and a method value is provided
+      {
+        name: "getDefaultLanguageForMethod",
+        query: `query GetDefaultLanguage($nameId: String!) {\n  texts(where: { id: { eq: $nameId } }) {\n    original_language_id\n  }\n}`,
+        useVariables: ["method"],
+        mapVariables: { nameId: { from: "getDatasource", path: "datasources.0.name_id" } },
+        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: true },
+        skipIf: { variableName: "method", isUndefined: true }
+      },
+      {
+        name: "createMethodTextOnUpdate",
+        query: `mutation CreateDatasourceMethod($method: String!, $languageId: String!) {\n  insertIntoTexts(\n    values: [\n      {\n        content: $method\n        context: \"datasources.method\"\n        original_language_id: $languageId\n      }\n    ]\n  ) {\n    id\n  }\n}`,
+        useVariables: ["method"],
+        mapVariables: { languageId: { from: "getDefaultLanguageForMethod", path: "texts.0.original_language_id" } },
+        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: true },
+        skipIf: { variableName: "method", isUndefined: true }
+      },
+      {
+        name: "updateMethodId",
+        query: `mutation UpdateDatasourceMethodId($datasourceId: String!, $methodId: String!) {\n  updateDatasources(\n    set: { method_id: $methodId }\n    where: { id: { eq: $datasourceId } }\n  ) {\n    id\n    method_id\n  }\n}`,
+        useVariables: ["datasourceId"],
+        mapVariables: { methodId: { from: "createMethodTextOnUpdate", path: "insertIntoTexts.0.id" } },
+        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: true }
+      },
       {
         name: "getDefaultLanguage",
         query: `query GetDefaultLanguage($nameId: String!) {
@@ -321,7 +345,7 @@ export const datasourcesOperations = {
     original_language_id
   }
 }`,
-        useVariables: ["notes"],
+        useVariables: [],
         mapVariables: { nameId: { from: "getDatasource", path: "datasources.0.name_id" } },
         onlyIf: { from: "getDatasource", path: "datasources.0.notes_id", isNull: true },
         skipIf: { variableName: "notes", isUndefined: true }
@@ -404,8 +428,7 @@ export const datasourcesOperations = {
             { variableName: "language", isUndefined: true },
             { variableName: "contact", isUndefined: true },
             { variableName: "date", isUndefined: true },
-            { variableName: "copyright", isUndefined: true },
-            { variableName: "templateId", isUndefined: true }
+            { variableName: "copyright", isUndefined: true }
           ]
         }
       },
@@ -422,7 +445,16 @@ export const datasourcesOperations = {
         processTranslations: {
           textIdPath: "getDatasource.datasources.0.method_id",
           translationsParam: "methodTranslations"
-        }
+        },
+        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: false }
+      },
+      {
+        name: "processMethodTranslationsNew",
+        processTranslations: {
+          textIdPath: "createMethodTextOnUpdate.insertIntoTexts.0.id",
+          translationsParam: "methodTranslations"
+        },
+        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: true }
       },
       {
         name: "processNotesTranslations",

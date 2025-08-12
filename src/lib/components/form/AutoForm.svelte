@@ -25,13 +25,6 @@
         hiddenFields = [], // additional hidden field names
         defaultColSize = 12, // default bootstrap col size
 
-        // Select options provider (legacy alias of uiSchema[name].options)
-        selectOptions = {},
-
-        // Custom renderers per field (generic, avoids special-casing). If provided in uiSchema[name].renderer, this is ignored.
-        customRenderers = {}, // { [name]: SvelteComponent }
-        customRendererProps = {}, // { [name]: any }
-
         // Structured errors for complex fields (e.g., array/object). Caller can pass the form-level errors.
         structuredErrors = [],
         setStructuredErrors = null,
@@ -62,7 +55,6 @@
     // Helper: label/placeholder/type/options/hidden/renderer resolution
     function getFieldConfig(fieldName) {
         const base = uiSchema?.[fieldName] || {};
-        const options = base.options ?? selectOptions?.[fieldName] ?? [];
         return {
             label:
                 base.label ??
@@ -72,10 +64,9 @@
             type: base.type ?? inferTypeFromSchema(fieldName),
             hidden: base.hidden ?? hiddenFields.includes(fieldName),
             colSize: base.colSize ?? defaultColSize,
-            renderer: base.renderer ?? customRenderers?.[fieldName] ?? null,
-            rendererProps:
-                base.rendererProps ?? customRendererProps?.[fieldName] ?? {},
-            options,
+            renderer: base.renderer ?? null,
+            rendererProps: base.rendererProps ?? {},
+            options: base.options ?? [],
         };
     }
 
@@ -541,9 +532,9 @@
                                 </p>
 
                                 {#if getFieldConfig(fieldName).renderer}
-                                    <svelte:component
-                                        this={getFieldConfig(fieldName)
-                                            .renderer}
+                                    {@const Renderer =
+                                        getFieldConfig(fieldName).renderer}
+                                    <Renderer
                                         bind:value={field.state.value}
                                         {...getFieldConfig(fieldName)
                                             .rendererProps}
@@ -693,5 +684,3 @@
         {/if}
     {/each}
 </div>
-
-<!-- No summary UI; logging handled in script subscription -->
