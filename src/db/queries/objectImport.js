@@ -175,3 +175,166 @@ export const createObjectImportMutation = (db, drizzleResult) => {
         }
     };
 };
+
+// New mutation: import objects using an existing template (reuse mapping)
+export const createObjectImportUsingTemplateMutation = (db, drizzleResult) => {
+    // Reuse the ObjectImportResult type if already defined; otherwise define it
+    let ObjectImportResult = drizzleResult.schema._typeMap.ObjectImportResult;
+    if (!ObjectImportResult) {
+        ObjectImportResult = new GraphQLObjectType({
+            name: 'ObjectImportResult',
+            fields: () => ({
+                template: { type: drizzleResult.schema._typeMap.TemplatesSelectItem },
+                datasource: { type: drizzleResult.schema._typeMap.DatasourcesSelectItem },
+                objects: { type: new GraphQLList(drizzleResult.schema._typeMap.ObjectsSelectItem) },
+                createdObjectsCount: { type: GraphQLInt }
+            })
+        });
+        drizzleResult.schema._typeMap.ObjectImportResult = ObjectImportResult;
+    }
+
+    return {
+        name: 'objectImportUsingTemplate',
+        type: ObjectImportResult,
+        args: [
+            {
+                name: 'datasourceId',
+                type: new GraphQLNonNull(drizzleResult.schema._typeMap.String),
+                description: 'ID of the datasource to associate with the existing template'
+            },
+            {
+                name: 'templateId',
+                type: new GraphQLNonNull(drizzleResult.schema._typeMap.String),
+                description: 'ID of the existing template to reuse'
+            },
+            {
+                name: 'data',
+                type: new GraphQLNonNull(new GraphQLList(drizzleResult.schema._typeMap.JSON)),
+                description: 'Array of data objects to import, where each object has header names as keys'
+            }
+        ],
+        resolve: async (source, args, context) => {
+            const { datasourceId, templateId, data } = args;
+
+            try {
+                return await db.transaction(async (tx) => {
+                    const createdObjects = [];
+                    const createdOntologyFields = [];
+
+                    // 1. Verify datasource exists and get project_id
+                    const datasource = await tx.query.datasources.findFirst({
+                        where: eq(dbSchema.datasources.id, datasourceId),
+                        with: { institution: true }
+                    });
+
+                    if (!datasource) {
+                        throw new Error(`Datasource with ID ${datasourceId} not found`);
+                    }
+
+                    const projectId = datasource?.institution?.project_id;
+                    if (!projectId) {
+                        throw new Error('Could not determine project ID from datasource');
+                    }
+
+                    // 2. Load and validate template
+                    const template = await tx.query.templates.findFirst({
+                        where: eq(dbSchema.templates.id, templateId)
+                    });
+
+                    if (!template) {
+                        throw new Error(`Template with ID ${templateId} not found`);
+                    }
+
+                    if (template.project_id !== projectId) {
+                        throw new Error('Template project does not match datasource project');
+                    }
+
+                    // Parse mapping stored on template
+                    let parsedMapping;
+                    try {
+                        parsedMapping = typeof template.mapping === 'string' ? JSON.parse(template.mapping) : template.mapping;
+                    } catch (e) {
+                        throw new Error('Invalid mapping JSON on template');
+                    }
+
+                    if (!Array.isArray(parsedMapping)) {
+                        throw new Error('Template mapping must be an array');
+                    }
+
+                    // 3. Associate datasource with the template (idempotent)
+                    await tx.update(dbSchema.datasources)
+                        .set({ template_id: template.id })
+                        .where(eq(dbSchema.datasources.id, datasourceId));
+
+                    const updatedDatasource = {
+                        id: datasourceId,
+                        template_id: template.id,
+                        updated_at: new Date().toISOString()
+                    };
+
+                    // 4. Create objects from data array (same logic as objectImport)
+                    for (const [index, rawDataRow] of data.entries()) {
+                        try {
+                            const dataRow = typeof rawDataRow === 'string' ? JSON.parse(rawDataRow) : rawDataRow;
+
+                            const objectData = {
+                                project_id: projectId,
+                                institution_id: datasource.institution_id,
+                                status: 'in progress'
+                            };
+
+                            const [objectResult] = await tx.insert(dbSchema.objects)
+                                .values(objectData)
+                                .returning();
+
+                            createdObjects.push(objectResult);
+
+                            for (const fieldMapping of parsedMapping) {
+                                if (!fieldMapping || !fieldMapping.headerField) {
+                                    continue;
+                                }
+
+                                const value = dataRow[fieldMapping.headerField];
+                                if (value === undefined || value === null || value === '') {
+                                    continue;
+                                }
+
+                                const associationData = {
+                                    object_id: objectResult.id,
+                                    field_id: fieldMapping.mappedField || null,
+                                    datasources_id: datasourceId,
+                                    value: String(value),
+                                    primary: fieldMapping.primary ? 1 : 0,
+                                    label: fieldMapping.headerField,
+                                    default_description: null
+                                };
+
+                                const [ontologyFieldResult] = await tx.insert(dbSchema.objects_ontology_fields)
+                                    .values(associationData)
+                                    .returning();
+
+                                createdOntologyFields.push(ontologyFieldResult);
+                            }
+
+                        } catch (objectError) {
+                            console.error(`Error creating object ${index + 1}:`, objectError);
+                            throw objectError;
+                        }
+                    }
+
+                    return {
+                        template: template, // returning existing template (action logging will ignore CREATE)
+                        datasource: updatedDatasource,
+                        objects: createdObjects,
+                        createdObjectsCount: createdObjects.length,
+                        _ontologyFields: createdOntologyFields
+                    };
+                });
+
+            } catch (error) {
+                console.error('Error in objectImportUsingTemplate mutation:', error);
+                throw new Error(`Import using template failed: ${error.message}`);
+            }
+        }
+    };
+};

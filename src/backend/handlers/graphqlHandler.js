@@ -130,6 +130,90 @@ const processObjectImportActions = async (importResult, variables, context, db) 
     }
 };
 
+// Custom action processor for objectImportUsingTemplate mutation (reuses template)
+const processObjectImportUsingTemplateActions = async (importResult, variables, context, db) => {
+    const actionRows = [];
+    const clientId = context?.clientId || await getClientId();
+
+    try {
+        // Datasource update (template assignment)
+        if (importResult.datasource) {
+            const datasourceAction = {
+                id: crypto.randomUUID(),
+                user_id: context?.userId || null,
+                project_id: importResult.datasource.institution?.project_id || null,
+                action_type: 'UPDATE',
+                entity_type: 'datasources',
+                entity_id: importResult.datasource.id,
+                changes: JSON.stringify({ template_id: importResult.datasource.template_id }),
+                client_id: clientId,
+                yjs_update: null,
+                parent_action_id: null,
+                metadata: await generateActionMetadata('UPDATE', 'datasources', importResult.datasource.id, db)
+            };
+            actionRows.push(datasourceAction);
+        }
+
+        // Created objects
+        if (importResult.objects) {
+            for (const obj of importResult.objects) {
+                const objectAction = {
+                    id: crypto.randomUUID(),
+                    user_id: context?.userId || null,
+                    project_id: obj.project_id,
+                    action_type: 'CREATE',
+                    entity_type: 'objects',
+                    entity_id: obj.id,
+                    changes: JSON.stringify({
+                        status: obj.status,
+                        institution_id: obj.institution_id,
+                        project_id: obj.project_id
+                    }),
+                    client_id: clientId,
+                    yjs_update: null,
+                    parent_action_id: null,
+                    metadata: await generateActionMetadata('CREATE', 'objects', obj.id, db)
+                };
+                actionRows.push(objectAction);
+            }
+        }
+
+        // Created ontology field associations
+        if (importResult._ontologyFields) {
+            for (const field of importResult._ontologyFields) {
+                const fieldAction = {
+                    id: crypto.randomUUID(),
+                    user_id: context?.userId || null,
+                    project_id: field.object?.project_id || null,
+                    action_type: 'CREATE',
+                    entity_type: 'objects_ontology_fields',
+                    entity_id: field.id,
+                    changes: JSON.stringify({
+                        object_id: field.object_id,
+                        field_id: field.field_id,
+                        datasources_id: field.datasources_id,
+                        value: field.value,
+                        primary: field.primary,
+                        label: field.label
+                    }),
+                    client_id: clientId,
+                    yjs_update: null,
+                    parent_action_id: null,
+                    metadata: await generateActionMetadata('CREATE', 'objects_ontology_fields', field.id, db)
+                };
+                actionRows.push(fieldAction);
+            }
+        }
+
+        if (actionRows.length > 0) {
+            await db.insert(actions).values(actionRows).execute();
+            console.log(`Created ${actionRows.length} actions for objectImportUsingTemplate mutation`);
+        }
+    } catch (error) {
+        console.error('Error creating objectImportUsingTemplate actions:', error);
+    }
+};
+
 // Simple utility functions
 const isBulkOp = (name) => name.toLowerCase().includes('bulk');
 const isUpdate = (name) => name.toLowerCase().includes('update');
@@ -695,7 +779,7 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
         if (!result.errors && isMutation && result.data) {
             const mutationFields = extractMutationFields(op);
             // Skip action processing for custom mutations that don't follow standard CRUD patterns
-            const customMutations = ['objectImport', 'bulkUpdateInstitutions', 'bulkDeleteInstitutions'];
+            const customMutations = ['objectImport', 'objectImportUsingTemplate', 'bulkUpdateInstitutions', 'bulkDeleteInstitutions'];
             const standardMutations = mutationFields.filter(field => !customMutations.includes(field));
 
             if (standardMutations.length > 0) {
@@ -705,6 +789,10 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
             // Handle custom objectImport mutation actions
             if (mutationFields.includes('objectImport') && result.data.objectImport) {
                 await processObjectImportActions(result.data.objectImport, variables, context, db);
+            }
+            // Handle custom objectImportUsingTemplate mutation actions
+            if (mutationFields.includes('objectImportUsingTemplate') && result.data.objectImportUsingTemplate) {
+                await processObjectImportUsingTemplateActions(result.data.objectImportUsingTemplate, variables, context, db);
             }
         }
 

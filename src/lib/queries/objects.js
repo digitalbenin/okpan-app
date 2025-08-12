@@ -596,5 +596,45 @@ export const objectsOperations = {
     createdObjectsCount
   }
 }`
+  },
+
+  // IMPORT OBJECTS USING EXISTING TEMPLATE
+  importUsingTemplate: {
+    type: "mutation",
+    name: "Import Objects Using Existing Template",
+    description: "Associates an existing template to a datasource and creates objects using the template's mapping",
+    variables: {
+      datasourceId: "ID of the datasource to associate with the template",
+      templateId: "ID of the existing template to reuse",
+      data: "Array of data objects to import, where each object has header names as keys"
+    },
+    query: `mutation ImportObjectsUsingTemplate(
+  $datasourceId: String!
+  $templateId: String!
+  $data: [JSON!]!
+) {
+  result: objectImportUsingTemplate(
+    datasourceId: $datasourceId
+    templateId: $templateId
+    data: $data
+  ) {
+    template {
+      id
+      project_id
+    }
+    datasource {
+      id
+      template_id
+      updated_at
+    }
+    objects {
+      id
+      status
+      institution_id
+      project_id
+    }
+    createdObjectsCount
+  }
+}`
   }
 }; 
