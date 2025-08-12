@@ -24,6 +24,7 @@
           component: BaseBadgeField,
           props: { label: `${value}` },
         }),
+        nowrap: true,
       },
       {
         value: "value",

@@ -33,7 +33,10 @@
           </th>
         {/if}
         {#each derivedColumns as header}
-          <th class="fs-7 fw-normal text-black-50">
+          <th
+            class="fs-7 fw-normal text-black-50"
+            class:text-nowrap={header.nowrap}
+          >
             {#if header.sortable}
               <button
                 class="btn btn-link btn-sm p-0 text-black-50 link-underline link-underline-opacity-0"
@@ -68,9 +71,9 @@
       {#each items as item, i}
         <tr>
           {#if selectable}
-            <th>
+            <td>
               <TableInput bind:selected id={item.id}></TableInput>
-            </th>
+            </td>
           {/if}
           {#each derivedColumns as header, i}
             {@const cellValue = header.accessor
@@ -82,7 +85,7 @@
               component: Component,
               props,
             } = getRenderResult(header, cellValue, item)}
-            <td>
+            <td class:text-nowrap={header.nowrap}>
               {#if type === "component"}
                 <Component {...props}></Component>
               {:else if type === "function" || header.html}
