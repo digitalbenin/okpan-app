@@ -43,7 +43,9 @@
 <div class:ms-2={node.depth > 1} class="mb-2">
   {#if hasChildren}
     {#if node.pathString}
-      <div class="bg-white border px-3 py-2 mb-2 rounded fw-bold text-muted">
+      <div
+        class="bg-white border px-3 py-2 mb-2 rounded fw-bold text-muted text-break"
+      >
         {node.pathString || "root"}
       </div>
     {/if}

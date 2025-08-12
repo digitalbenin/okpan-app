@@ -19,8 +19,8 @@ export function createTreeNode(value, key = null, depth = 0, path = []) {
       type === "array"
         ? value.length
         : type === "object"
-        ? Object.keys(value).length
-        : null,
+          ? Object.keys(value).length
+          : null,
   };
 }
 
@@ -176,12 +176,12 @@ function getType(value) {
 //   );
 // }
 
-export function analyzeJsonStructure(jsonArray, maxSamples = 10) {
+export function analyzeJsonStructure(jsonArray, maxSamples = 100) {
   if (!Array.isArray(jsonArray) || jsonArray.length === 0) {
     throw new Error("Input must be a non-empty array");
   }
 
-  return walkJsonStructure(jsonArray, null, 0, []);
+  return walkJsonStructure(jsonArray, null, 0, [], maxSamples);
 }
 
 function walkJsonStructure(

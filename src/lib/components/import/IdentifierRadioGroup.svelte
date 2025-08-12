@@ -44,7 +44,7 @@
         value={field.mappedField}
         bind:group={selected}
       />
-      <span class="ms-1 fw-bold">{field.headerField}</span>
+      <span class="ms-1 fw-bold text-break">{field.headerField}</span>
       <i class="bi bi-arrow-right"></i>
       {#if ontologyField}
         <span class="text-capitalize">{ontologyField.name.content}</span>

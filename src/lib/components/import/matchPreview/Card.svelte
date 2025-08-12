@@ -98,8 +98,8 @@
     {tot}
   </div>
   <div class="d-flex justify-content-between align-items-baseline mb-2">
-    <div class="fs-5 fw-bold">{field}</div>
-    <div>
+    <div class="fs-5 fw-bold text-break">{field}</div>
+    <div class="flex-shrink-0 ms-2">
       <BaseCheckbox
         bind:checked
         value={field}
