@@ -4,6 +4,7 @@
   import {
     getValidator,
     createFieldValidator,
+    getFormConfig,
   } from "$lib/stores/formValidationUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import {
@@ -34,114 +35,98 @@
     allValidationErrors = errors;
   }
 
-  // Create the form
-  const form = createForm(() => ({
-    defaultValues: {
-      name: "",
-      method: "",
-      notes: "",
-      institutionId: "",
-      languageId: defaultLanguage?.id || "",
-      language: "",
-      copyright: "",
-      contact: "",
-      date: new Date().toISOString(),
-      // translation inputs for secondary languages will be captured by AutoForm with field names
-      // like translations_<languageId>_<field>
-    },
-    validators: {
-      onSubmit: validator.schema,
-    },
-    onSubmit: async ({ value }) => {
-      try {
-        const { templateId, ...rest } = value || {};
+  // Create the form using optimized config (live validation via onChange)
+  const form = createForm(() =>
+    getFormConfig("datasources", "create", {
+      defaultValues: {
+        date: new Date().toISOString(),
+      },
+      onSubmit: async ({ value }) => {
+        try {
+          const { templateId, ...rest } = value || {};
 
-        // Extract translations typed in multilingual tabs
-        // Expect fields named translations_<languageId>_<baseField>
-        const nameTranslations = [];
-        const methodTranslations = [];
-        const notesTranslations = [];
+          // Extract translations typed in multilingual tabs
+          const nameTranslations = [];
+          const methodTranslations = [];
+          const notesTranslations = [];
 
-        for (const lang of languages || []) {
-          if (!lang.is_default) {
-            const nameKey = `translations_${lang.id}_name`;
-            const methodKey = `translations_${lang.id}_method`;
-            const notesKey = `translations_${lang.id}_notes`;
+          for (const lang of languages || []) {
+            if (!lang.is_default) {
+              const nameKey = `translations_${lang.id}_name`;
+              const methodKey = `translations_${lang.id}_method`;
+              const notesKey = `translations_${lang.id}_notes`;
 
-            if (rest[nameKey]) {
-              nameTranslations.push({
-                language_code: lang.code,
-                content: rest[nameKey],
-              });
-            }
-            if (rest[methodKey]) {
-              methodTranslations.push({
-                language_code: lang.code,
-                content: rest[methodKey],
-              });
-            }
-            if (rest[notesKey]) {
-              notesTranslations.push({
-                language_code: lang.code,
-                content: rest[notesKey],
-              });
+              if (rest[nameKey]) {
+                nameTranslations.push({
+                  language_code: lang.code,
+                  content: rest[nameKey],
+                });
+              }
+              if (rest[methodKey]) {
+                methodTranslations.push({
+                  language_code: lang.code,
+                  content: rest[methodKey],
+                });
+              }
+              if (rest[notesKey]) {
+                notesTranslations.push({
+                  language_code: lang.code,
+                  content: rest[notesKey],
+                });
+              }
             }
           }
-        }
 
-        // Clean the payload by removing translation temp fields
-        const payload = { ...rest };
-        for (const key of Object.keys(payload)) {
-          if (key.startsWith("translations_")) delete payload[key];
-        }
+          // Clean the payload by removing translation temp fields
+          const payload = { ...rest };
+          for (const key of Object.keys(payload)) {
+            if (key.startsWith("translations_")) delete payload[key];
+          }
 
-        // Decide between create and update based on wizard state
-        if (!wizard.datasourceId) {
-          // Call create with translation arrays so backend can process them
-          const result = await createDatasource({
-            ...payload,
-            nameTranslations: nameTranslations.length
-              ? nameTranslations
-              : undefined,
-            methodTranslations: methodTranslations.length
-              ? methodTranslations
-              : undefined,
-            notesTranslations: notesTranslations.length
-              ? notesTranslations
-              : undefined,
-          });
-          if (result.error) {
-            console.error("Error creating datasource:", result.error);
-            return;
+          if (!wizard.datasourceId) {
+            const result = await createDatasource({
+              ...payload,
+              nameTranslations: nameTranslations.length
+                ? nameTranslations
+                : undefined,
+              methodTranslations: methodTranslations.length
+                ? methodTranslations
+                : undefined,
+              notesTranslations: notesTranslations.length
+                ? notesTranslations
+                : undefined,
+            });
+            if (result?.error) {
+              console.error("Error creating datasource:", result.error);
+              return;
+            }
+            wizard.datasourceId = result.result[0].id;
+            wizard.nextEnabled = true;
+          } else {
+            const updateResult = await updateDatasource(wizard.datasourceId, {
+              ...payload,
+              nameTranslations: nameTranslations.length
+                ? nameTranslations
+                : undefined,
+              methodTranslations: methodTranslations.length
+                ? methodTranslations
+                : undefined,
+              notesTranslations: notesTranslations.length
+                ? notesTranslations
+                : undefined,
+            });
+            if (updateResult?.error) {
+              console.error("Error updating datasource:", updateResult.error);
+              return;
+            }
+            wizard.nextEnabled = true;
           }
-          wizard.datasourceId = result.result[0].id;
-          wizard.nextEnabled = true;
-        } else {
-          // Update existing datasource, allowing users to refine fields after initial creation
-          const updateResult = await updateDatasource(wizard.datasourceId, {
-            ...payload,
-            nameTranslations: nameTranslations.length
-              ? nameTranslations
-              : undefined,
-            methodTranslations: methodTranslations.length
-              ? methodTranslations
-              : undefined,
-            notesTranslations: notesTranslations.length
-              ? notesTranslations
-              : undefined,
-          });
-          if (updateResult?.error) {
-            console.error("Error updating datasource:", updateResult.error);
-            return;
-          }
-          // Keep Next enabled after successful update
-          wizard.nextEnabled = true;
+        } catch (error) {
+          console.error("Error creating datasource:", error);
         }
-      } catch (error) {
-        console.error("Error creating datasource:", error);
-      }
-    },
-  }));
+      },
+    }),
+  );
 </script>
 
 <form

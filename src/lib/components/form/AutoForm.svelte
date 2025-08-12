@@ -101,6 +101,32 @@
         return Boolean(validator?.requiredFields?.has(fieldName));
     }
 
+    // Track whether the form has been submitted to control when to show errors
+    let formSubmitted = $state(false);
+    $effect(() => {
+        if (!form || typeof form.subscribe !== "function") return;
+        const unsubscribe = form.subscribe((state) => {
+            try {
+                const submitCount = state?.submitCount ?? 0;
+                const isSubmitted = Boolean(state?.isSubmitted);
+                formSubmitted = isSubmitted || submitCount > 0;
+            } catch {}
+        });
+        return () => {
+            try {
+                unsubscribe?.();
+            } catch {}
+        };
+    });
+
+    function shouldShowError(meta) {
+        if (!meta) return false;
+        const hasErrors = Array.isArray(meta.errors) && meta.errors.length > 0;
+        if (!hasErrors) return false;
+        const touched = Boolean(meta.touched || meta.isTouched);
+        return touched || formSubmitted;
+    }
+
     // Normalize error values to readable strings
     function formatErrors(errors) {
         try {
@@ -332,9 +358,10 @@
                                                         id={field.name}
                                                         name={field.name}
                                                         class={"form-control " +
-                                                            (field.state.meta
-                                                                .errors.length >
-                                                            0
+                                                            (shouldShowError(
+                                                                field.state
+                                                                    .meta,
+                                                            )
                                                                 ? "is-invalid"
                                                                 : "")}
                                                         rows="3"
@@ -371,9 +398,10 @@
                                                         name={field.name}
                                                         type="text"
                                                         class={"form-control " +
-                                                            (field.state.meta
-                                                                .errors.length >
-                                                            0
+                                                            (shouldShowError(
+                                                                field.state
+                                                                    .meta,
+                                                            )
                                                                 ? "is-invalid"
                                                                 : "")}
                                                         placeholder={getFieldConfig(
@@ -389,7 +417,7 @@
                                                     />
                                                 {/if}
 
-                                                {#if field.state.meta.errors.length > 0}
+                                                {#if shouldShowError(field.state.meta)}
                                                     <div
                                                         class="invalid-feedback"
                                                     >
@@ -457,9 +485,10 @@
                                                             id={field.name}
                                                             name={field.name}
                                                             class={"form-control " +
-                                                                (field.state
-                                                                    .meta.errors
-                                                                    .length > 0
+                                                                (shouldShowError(
+                                                                    field.state
+                                                                        .meta,
+                                                                )
                                                                     ? "is-invalid"
                                                                     : "")}
                                                             rows="3"
@@ -481,9 +510,10 @@
                                                             name={field.name}
                                                             type="text"
                                                             class={"form-control " +
-                                                                (field.state
-                                                                    .meta.errors
-                                                                    .length > 0
+                                                                (shouldShowError(
+                                                                    field.state
+                                                                        .meta,
+                                                                )
                                                                     ? "is-invalid"
                                                                     : "")}
                                                             placeholder={getFieldConfig(
@@ -500,7 +530,7 @@
                                                         />
                                                     {/if}
 
-                                                    {#if field.state.meta.errors.length > 0}
+                                                    {#if shouldShowError(field.state.meta)}
                                                         <div
                                                             class="invalid-feedback"
                                                         >
@@ -572,7 +602,7 @@
                                         id={field.name}
                                         name={field.name}
                                         class={"form-select " +
-                                            (field.state.meta.errors.length > 0
+                                            (shouldShowError(field.state.meta)
                                                 ? "is-invalid"
                                                 : "")}
                                         value={field.state.value}
@@ -597,7 +627,7 @@
                                         name={field.name}
                                         type="date"
                                         class={"form-control " +
-                                            (field.state.meta.errors.length > 0
+                                            (shouldShowError(field.state.meta)
                                                 ? "is-invalid"
                                                 : "")}
                                         value={field.state.value
@@ -620,7 +650,7 @@
                                         id={field.name}
                                         name={field.name}
                                         class={"form-control " +
-                                            (field.state.meta.errors.length > 0
+                                            (shouldShowError(field.state.meta)
                                                 ? "is-invalid"
                                                 : "")}
                                         rows="3"
@@ -650,7 +680,7 @@
                                         name={field.name}
                                         type="number"
                                         class={"form-control " +
-                                            (field.state.meta.errors.length > 0
+                                            (shouldShowError(field.state.meta)
                                                 ? "is-invalid"
                                                 : "")}
                                         placeholder={getFieldConfig(fieldName)
@@ -678,7 +708,7 @@
                                     />
                                 {/if}
 
-                                {#if field.state.meta.errors.length > 0}
+                                {#if shouldShowError(field.state.meta)}
                                     <div class="invalid-feedback">
                                         {formatErrors(field.state.meta.errors)}
                                     </div>
