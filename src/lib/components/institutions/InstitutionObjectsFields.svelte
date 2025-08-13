@@ -46,6 +46,8 @@
 
   let fieldsItems = $state([...objectFieldsGroup, ...researchFieldsGroup]);
 
+  let loading = $state(false);
+
   function getSelectedFieldsId(fields, value) {
     const elm = fields.find((field) => field.value === value);
     return elm ? elm.id : null;
@@ -56,6 +58,7 @@
     async (curr, prev) => {
       //   console.log("Fields selected changed:", curr, prev);
       if (!prev) return; // Skip initial run
+      loading = true;
 
       const added = curr.filter((item) => !prev.includes(item));
       const removed = prev.filter((item) => !curr.includes(item));
@@ -64,16 +67,19 @@
         const fieldType = fieldsItems.find(
           (item) => item.value === added[0]
         ).groupType;
+
         await createDisplayField({ projectId, [fieldType]: added[0] });
-        invalidate("app:project-shared");
+        await invalidate("app:project-shared");
       }
 
       if (removed.length > 0) {
         const id = fieldsItems.find((field) => field.value === removed[0])?.id;
         if (!id) return;
+
         await deleteDisplayField(id);
-        invalidate("app:project-shared");
+        await invalidate("app:project-shared");
       }
+      loading = false;
     },
     { lazy: true }
   );
@@ -87,4 +93,5 @@
   })}
   type="multiple"
   size="sm"
+  disabled={loading}
 ></BaseSelect>

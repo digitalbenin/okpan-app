@@ -83,8 +83,8 @@
   }));
 
   //to be romoved
-  wizard.datasourceId = "529b1c44-0b13-4d90-8b58-e32c48948a04";
-  wizard.nextEnabled = true;
+  // wizard.datasourceId = "529b1c44-0b13-4d90-8b58-e32c48948a04";
+  // wizard.nextEnabled = true;
 </script>
 
 <form

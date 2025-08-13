@@ -35,7 +35,9 @@
         bind:value={search}
         placeholder={t("common.search", { fallback: "Search" })}
       />
-      <button class="btn btn-primary" onclick={openNewProjectModal}
+      <button
+        class="btn btn-primary flex-shrink-0"
+        onclick={openNewProjectModal}
         >{t("common.new-project", { fallback: "Create a new project" })}</button
       >
     </div>
