@@ -231,7 +231,7 @@ export const researchFieldsOperations = {
   $projectId: String!
   $type: String
 ) {
-  insertIntoResearch_fields(
+  result:insertIntoResearch_fields(
     values: [
       {
         name_id: $nameId

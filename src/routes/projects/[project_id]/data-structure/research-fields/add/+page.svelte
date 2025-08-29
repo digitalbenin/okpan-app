@@ -35,7 +35,7 @@
     const validator = getValidator("research_fields", "create");
 
     // Store all validation errors for components to use
-    let allValidationErrors = [];
+    let allValidationErrors = $state([]);
 
     // Helper function to set structured errors
     function setAllValidationErrors(errors) {
@@ -75,9 +75,9 @@
             },
         },
         vocabularies: {
-            label: t("common.vocabulary-options", {
+            label: "" /* t("common.vocabulary-options", {
                 fallback: "Vocabulary Options",
-            }),
+            }),*/,
             renderer: VocabularyManager,
             colSize: 12,
             rendererProps: {
@@ -92,7 +92,12 @@
     // Create form instance using optimized config (live validation via onChange)
     const form = createForm(() =>
         getFormConfig("research_fields", "create", {
+            defaultValues: {
+                type: "free text", // Set default type
+                vocabularies: [], // Ensure vocabularies is always an empty array by default
+            },
             onSubmit: async ({ value }) => {
+                console.log("onSubmit called - form is valid!");
                 try {
                     // Prepare translation arrays for the mutation
                     const nameTranslations = [];
@@ -119,8 +124,7 @@
                         }
                     }
 
-                    // Create the research field with translations
-                    const result = await createResearchField({
+                    const createParams = {
                         projectId: value.projectId,
                         languageId: value.languageId,
                         name: value.name,
@@ -134,12 +138,30 @@
                             descriptionTranslations.length > 0
                                 ? descriptionTranslations
                                 : undefined,
-                    });
+                    };
+
+                    console.log(
+                        "Creating research field with params:",
+                        createParams,
+                    );
+
+                    // Create the research field with translations
+                    const result = await createResearchField(createParams);
+
+                    console.log("API Response:", result);
+                    console.log(
+                        "Result object keys:",
+                        Object.keys(result || {}),
+                    );
+                    console.log("Result.result:", result?.result);
 
                     if (!result || !result.result) {
-                        console.error("createResearchField result:", result);
+                        console.error("API call failed - no result returned");
+                        console.error("Full result object:", result);
                         throw new Error("Failed to create research field");
                     }
+
+                    console.log("Research field created successfully!");
 
                     // Get the created research field ID
                     const researchFieldId =
@@ -153,6 +175,11 @@
                         Array.isArray(value.vocabularies) &&
                         value.vocabularies.length > 0
                     ) {
+                        console.log(
+                            "Processing",
+                            value.vocabularies.length,
+                            "vocabularies",
+                        );
                         const vocabularyPromises = value.vocabularies
                             .filter((vocab) => vocab.option?.trim()) // Only add vocabularies with non-empty options
                             .map(async (vocab) => {
@@ -275,20 +302,17 @@
                         `/projects/${value.projectId}/data-structure/research-fields`,
                     );
                 } catch (error) {
-                    console.error("Error creating research field:", error);
+                    console.error(
+                        "Error creating research field:",
+                        error.message,
+                    );
                 }
             },
         }),
     );
 </script>
 
-<form
-    onsubmit={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        form.handleSubmit();
-    }}
->
+<form method="post">
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
@@ -328,15 +352,16 @@
                 />
             </div>
         </div>
-    </div>
 
-    <div
-        class="position-absolute bottom-0 start-0 w-100 bg-light z-1 p-3 d-flex justify-content-end"
-    >
-        <BaseButton
-            type="submit"
-            class="btn btn-success"
-            text={t("common.confirm", { fallback: "Confirm" })}
-        />
+        <div class="row mt-4">
+            <div class="col-12 d-flex justify-content-end">
+                <BaseButton
+                    type="button"
+                    class="btn btn-success"
+                    text={t("common.confirm", { fallback: "Confirm" })}
+                    onClick={() => form.handleSubmit()}
+                />
+            </div>
+        </div>
     </div>
 </form>

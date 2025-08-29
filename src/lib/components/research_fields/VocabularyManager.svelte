@@ -394,12 +394,12 @@
             {/each}
         {/if}
 
-        <!-- Overall errors -->
+        <!-- Overall errors 
         {#if errors.length > 0}
             <div class="alert alert-danger">
                 {errors.join(", ")}
             </div>
-        {/if}
+        {/if} -->
     </div>
 {/if}
 
