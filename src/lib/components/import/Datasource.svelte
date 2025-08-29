@@ -40,6 +40,7 @@
     getFormConfig("datasources", "create", {
       defaultValues: {
         date: new Date().toISOString(),
+        languageId: defaultLanguage?.id,
       },
       onSubmit: async ({ value }) => {
         try {

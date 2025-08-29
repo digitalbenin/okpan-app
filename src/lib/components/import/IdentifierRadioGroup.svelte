@@ -36,7 +36,7 @@
       (f) => f.id === field.mappedField
     )}
 
-    <div class="bg-light rounded mb-2 px-3 py-2">
+    <div class="bg-secondary-subtle rounded mb-2 px-3 py-2">
       <input
         type="radio"
         name="identifier"
@@ -44,7 +44,7 @@
         value={field.mappedField}
         bind:group={selected}
       />
-      <span class="ms-1 fw-bold">{field.headerField}</span>
+      <span class="ms-1 fw-bold text-break">{field.headerField}</span>
       <i class="bi bi-arrow-right"></i>
       {#if ontologyField}
         <span class="text-capitalize">{ontologyField.name.content}</span>

@@ -1,9 +1,12 @@
 <script>
+  import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
+
   import Self from "./CardTree.svelte";
   import Card from "./Card.svelte";
   const { node, matchingSuggestions, matchingSuggestionsLoading, fields } =
     $props();
 
+  const wizard = getImportWizardContext();
   const hasChildren = $derived(node.analysis ? true : false);
   const childern = $derived.by(() => {
     if (hasChildren) {
@@ -15,6 +18,13 @@
   const matchingSuggestion = $derived.by(() => {
     return matchingSuggestions?.find((s) => s.csvField === node.pathString);
   });
+
+  const mappedField = $derived.by(() => {
+    return wizard.reusedTemplate?.mapping.find(
+      (m) => m.headerField === node.pathString
+    );
+  });
+
   const values = $derived.by(() => {
     return node.values.map((item) => {
       if (Array.isArray(item.value) && !item.value.length) {
@@ -33,7 +43,9 @@
 <div class:ms-2={node.depth > 1} class="mb-2">
   {#if hasChildren}
     {#if node.pathString}
-      <div class="bg-white border px-3 py-2 mb-2 rounded fw-bold text-muted">
+      <div
+        class="bg-white border px-3 py-2 mb-2 rounded fw-bold text-muted text-break"
+      >
         {node.pathString || "root"}
       </div>
     {/if}
@@ -42,6 +54,7 @@
         <Self
           node={node.analysis[field]}
           {matchingSuggestions}
+          {mappedField}
           {matchingSuggestionsLoading}
           {fields}
         ></Self>
@@ -51,6 +64,7 @@
     <Card
       field={node.pathString}
       {values}
+      {mappedField}
       {matchingSuggestion}
       {matchingSuggestionsLoading}
       {i}

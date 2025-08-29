@@ -1,4 +1,5 @@
 <script>
+  import { page } from "$app/state";
   import { watch } from "runed";
   import MatchBadge from "./MatchBadge.svelte";
   import SetMatch from "./SetMatch.svelte";
@@ -9,6 +10,7 @@
   let {
     values,
     field,
+    mappedField,
     matchingSuggestion,
     matchingSuggestionsLoading,
     matched = $bindable(),
@@ -21,17 +23,44 @@
   const { t } = getTranslationStore();
 
   let fieldMatched = $derived.by(() => {
-    if (!matchingSuggestion?.suggestions?.length) {
+    if (!matchingSuggestion && !mappedField) {
       return null;
+    } else if (mappedField && mappedField.mappedField) {
+      const ontologyField = page.data.ontologyFields.result.find(
+        (f) => f.id === mappedField.mappedField
+      );
+      return {
+        name: ontologyField.name.content,
+        id: ontologyField.id,
+        description: ontologyField.description.content,
+        suggestion: false,
+      };
+    } else if (matchingSuggestion) {
+      if (!matchingSuggestion?.suggestions?.length) {
+        return null;
+      }
+      return {
+        name: matchingSuggestion.suggestions[0].ontologyFieldName,
+        id: matchingSuggestion.suggestions[0].ontologyFieldId,
+        description: matchingSuggestion.suggestions[0].ontologyFieldDescription,
+        suggestion: true,
+      };
     }
-    return {
-      name: matchingSuggestion.suggestions[0].ontologyFieldName,
-      id: matchingSuggestion.suggestions[0].ontologyFieldId,
-      description: matchingSuggestion.suggestions[0].ontologyFieldDescription,
-    };
   });
 
-  let checked = $state(true);
+  let checked = $state(
+    wizard.mapping.length === 0
+      ? true
+      : wizard.mapping.find((m) => m.headerField === field)
+        ? true
+        : false
+  );
+
+  const editEnabled = $derived(wizard.useMatchingTemplate ? false : true);
+
+  const slicedValues = $derived(
+    values.length > 10 ? values.slice(0, 10).sort() : values.sort()
+  );
 
   watch(
     [() => field, () => fieldMatched, () => checked],
@@ -39,38 +68,42 @@
       [field, fieldMatched, checked],
       [prevField, prevFieldMatched, prevChecked]
     ) => {
+      if (
+        field === prevField &&
+        fieldMatched === prevFieldMatched &&
+        checked === prevChecked
+      ) {
+        return;
+      }
       const entry = {
         headerField: field,
         mappedField: fieldMatched?.id,
         primary: false,
       };
+
       if (checked) {
         wizard.addMappingEntry(entry);
       } else {
         wizard.removeMappingEntry(entry);
       }
-    }
+    },
+    { lazy: true }
   );
-
-  function resetFieldMatched() {
-    fieldMatched = null;
-  }
-
-  //   $inspect(field, fieldMatched, checked);
 </script>
 
-<div class="bg-light border px-3 py-2 mb-2 rounded">
+<div class="bg-secondary-subtle border px-3 py-2 mb-2 rounded">
   <div class="text-muted fs-7">
     {i}
     {t("common.of", { fallback: "of" })}
     {tot}
   </div>
   <div class="d-flex justify-content-between align-items-baseline mb-2">
-    <div class="fs-5 fw-bold">{field}</div>
-    <div>
+    <div class="fs-5 fw-bold text-break">{field}</div>
+    <div class="flex-shrink-0 ms-2">
       <BaseCheckbox
         bind:checked
         value={field}
+        disabled={!editEnabled}
         labelText={t("import.import-field", { fallback: "Import Field" })}
       />
     </div>
@@ -82,9 +115,15 @@
       {t("import.preview", { fallback: "Preview" })}
     </div>
     <div class="col d-flex flex-wrap overflow-hidden">
-      {#if values.length}
-        {#each values.sort().slice(0, 11) as value}
-          <div class="badge text-bg-secondary me-1 mb-1 text-truncate">
+      {#if slicedValues.length}
+        {#each slicedValues as value, i}
+          <!-- <div class="badge text-bg-secondary me-1 mb-1 text-truncate">
+            {value}
+          </div> -->
+          <div
+            class="px-1 text-truncate border-secondary"
+            class:border-end={i + 1 < slicedValues.length}
+          >
             {value}
           </div>
         {/each}
@@ -113,24 +152,15 @@
           >
         </button>
       {:else}
-        <MatchBadge field={fieldMatched} />
-        {#if fieldMatched}
-          <button
-            class="btn btn-outline-danger"
-            onclick={resetFieldMatched}
-            aria-label={t("import.reset-match", {
-              fallback: "Reset match",
-            })}
-          >
-            <i class="bi bi-x-lg"></i>
-          </button>
-        {/if}
-
-        <SetMatch
-          {field}
-          suggestions={matchingSuggestion.suggestions}
-          bind:fieldMatched
-        />
+        <div class="d-flex align-items-center gap-2">
+          <MatchBadge bind:field={fieldMatched} disabled={!editEnabled} />
+          <SetMatch
+            {field}
+            suggestions={matchingSuggestion?.suggestions}
+            disabled={!editEnabled}
+            bind:fieldMatched
+          />
+        </div>
       {/if}
     </div>
   </div>

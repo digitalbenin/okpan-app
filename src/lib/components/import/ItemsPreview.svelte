@@ -12,18 +12,19 @@
   const columns = $derived.by(() => {
     return [
       {
+        value: "institution-field",
+        label: t("common.institution-field", { fallback: "Institution field" }),
+        sortable: false,
+      },
+      {
         value: "mapped-field",
         label: t("common.mapped-field", { fallback: "Mapped field" }),
         sortable: false,
         render: (value) => ({
           component: BaseBadgeField,
-          props: { label: value },
+          props: { label: `${value}` },
         }),
-      },
-      {
-        value: "institution-field",
-        label: t("common.institution-field", { fallback: "Institution field" }),
-        sortable: false,
+        nowrap: true,
       },
       {
         value: "value",
@@ -87,11 +88,4 @@
   ></BasePagination>
 </div>
 
-<Table
-  items={item}
-  {columns}
-  selectable={false}
-  size="sm"
-  bordered={true}
-  wrap={true}
-/>
+<Table items={item} {columns} selectable={false} bordered={false} wrap={true} />

@@ -18,6 +18,9 @@ export function createImportWizardContext(params) {
     let file = $state();
     let mapping = $state([])
     let data = $state([])
+    let useMatchingSuggestions = $state(false);
+    let reusedTemplate = $state();
+    let useMatchingTemplate = $state(false);
     // let formData = $state({});
     // let isValid = $state(false);
     // let errors = $state([]);
@@ -50,6 +53,20 @@ export function createImportWizardContext(params) {
 
         get data() { return data; },
         set data(value) { data = value; },
+
+        get useMatchingSuggestions() { return useMatchingSuggestions; },
+        set useMatchingSuggestions(value) { useMatchingSuggestions = value; },
+
+        get useMatchingTemplate() { return useMatchingTemplate; },
+        set useMatchingTemplate(value) { useMatchingTemplate = value; },
+
+        get reusedTemplate() { return reusedTemplate; },
+        set reusedTemplate(value) {
+            if (value?.mapping) {
+                mapping = value.mapping;
+            }
+            reusedTemplate = value;
+        },
 
         // get formData() { return formData; },
         // set formData(value) { formData = value; },
