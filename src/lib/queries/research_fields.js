@@ -53,7 +53,15 @@ export const researchFieldsOperations = {
         path
         type
       }
-      other_assets
+      otherAssets:vocabulariesGenericAssets {
+        genericAsset {
+          id
+          filename
+          path
+          type
+        }
+        order
+      }
     }
   }
 }`
@@ -117,7 +125,16 @@ export const researchFieldsOperations = {
         path
         type
       }
-      other_assets
+      vocabulariesGenericAssets {
+        genericAsset {
+          id
+          filename
+          formats
+          path
+          type
+        }
+        order
+      }
       option {
         id
         content
@@ -353,7 +370,7 @@ export const researchFieldsOperations = {
       option: "Option text content",
       description: "Description text content",
       mainAsset: "Main asset identifier (optional)",
-      otherAssets: "JSON of other assets (optional)",
+      otherAssets: "Array of generic asset IDs to associate with this vocabulary (optional)",
       // optional translation arrays for creation
       optionTranslations: "Array of option translations (optional)",
       descriptionTranslations: "Array of description translations (optional)"
@@ -414,7 +431,6 @@ export const researchFieldsOperations = {
   $descriptionId: String!
   $fieldId: String!
   $mainAsset: String
-  $otherAssets: String
 ) {
   insertIntoVocabularies(
     values: [
@@ -423,7 +439,6 @@ export const researchFieldsOperations = {
         description_id: $descriptionId
         field_id: $fieldId
         main_asset_id: $mainAsset
-        other_assets: $otherAssets
       }
     ]
   ) {
@@ -432,10 +447,9 @@ export const researchFieldsOperations = {
     description_id
     field_id
     main_asset_id
-    other_assets
   }
 }`,
-        useVariables: ["fieldId", "mainAsset", "otherAssets"],
+        useVariables: ["fieldId", "mainAsset"],
         mapVariables: {
           optionId: { from: "createOptionText", path: "insertIntoTexts.0.id" },
           descriptionId: { from: "createDescriptionText", path: "insertIntoTexts.0.id" }
@@ -469,7 +483,7 @@ export const researchFieldsOperations = {
       option: "New option text content (optional)",
       description: "New description text content (optional)",
       mainAsset: "New main asset identifier (optional)",
-      otherAssets: "New JSON of other assets (optional)",
+      otherAssets: "Array of generic asset IDs to associate with this vocabulary (optional)",
       // Translation arrays
       optionTranslations: "Array of option translations (optional)",
       descriptionTranslations: "Array of description translations (optional)"
@@ -484,7 +498,10 @@ export const researchFieldsOperations = {
     description_id
     field_id
     main_asset_id
-    other_assets
+    vocabulariesGenericAssets {
+      generic_asset_id
+      order
+    }
   }
 }`,
         useVariables: ["vocabularyId"]
@@ -525,24 +542,17 @@ export const researchFieldsOperations = {
       },
       {
         name: "updateVocabularyAssets",
-        query: `mutation UpdateVocabularyAssets($vocabularyId: String!, $mainAsset: String, $otherAssets: String) {
+        query: `mutation UpdateVocabularyAssets($vocabularyId: String!, $mainAsset: String) {
   updateVocabularies(
-    set: { main_asset_id: $mainAsset, other_assets: $otherAssets }
+    set: { main_asset_id: $mainAsset }
     where: { id: { eq: $vocabularyId } }
   ) {
     id
     main_asset_id
-    other_assets
   }
 }`,
-        useVariables: ["vocabularyId", "mainAsset", "otherAssets"],
-        skipIf: {
-          condition: "AND",
-          variables: [
-            { variableName: "mainAsset", isUndefined: true },
-            { variableName: "otherAssets", isUndefined: true }
-          ]
-        }
+        useVariables: ["vocabularyId", "mainAsset"],
+        skipIf: { variableName: "mainAsset", isUndefined: true }
       },
       // === TRANSLATION PROCESSING STEPS ===
       {

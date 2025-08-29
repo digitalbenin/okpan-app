@@ -4099,7 +4099,6 @@ input VocabulariesInsertInput {
   option: String
   description: String
   main_asset: String
-  other_assets: String
   field_id: Int
 }
 
@@ -4108,7 +4107,6 @@ input VocabulariesUpdateInput {
   option: String
   description: String
   main_asset: String
-  other_assets: String
   field_id: Int
 }
 
@@ -4117,7 +4115,6 @@ input VocabulariesFilters {
   option: VocabulariesOptionFilters
   description: VocabulariesDescriptionFilters
   main_asset: VocabulariesMain_assetFilters
-  other_assets: VocabulariesOther_assetsFilters
   field_id: VocabulariesField_idFilters
   OR: [VocabulariesFiltersOr!]
 }
@@ -4294,48 +4291,7 @@ input VocabulariesMain_assetfiltersOr {
   isNotNull: Boolean
 }
 
-input VocabulariesOther_assetsFilters {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
 
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-  OR: [VocabulariesOther_assetsfiltersOr!]
-}
-
-input VocabulariesOther_assetsfiltersOr {
-  eq: String
-  ne: String
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  like: String
-  notLike: String
-  ilike: String
-  notIlike: String
-
-  """Array<undefined>"""
-  inArray: [String!]
-
-  """Array<undefined>"""
-  notInArray: [String!]
-  isNull: Boolean
-  isNotNull: Boolean
-}
 
 input VocabulariesField_idFilters {
   eq: Int
@@ -4385,7 +4341,6 @@ input VocabulariesFiltersOr {
   option: VocabulariesOptionFilters
   description: VocabulariesDescriptionFilters
   main_asset: VocabulariesMain_assetFilters
-  other_assets: VocabulariesOther_assetsFilters
   field_id: VocabulariesField_idFilters
 }
 
@@ -4394,8 +4349,512 @@ input VocabulariesOrderBy {
   option: InnerOrder
   description: InnerOrder
   main_asset: InnerOrder
-  other_assets: InnerOrder
   field_id: InnerOrder
+}
+
+input GenericAssetsFilters {
+  id: GenericAssetsIdFilters
+  filename: GenericAssetsFilenameFilters
+  path: GenericAssetsPathFilters
+  type: GenericAssetsTypeFilters
+  properties: GenericAssetsPropertiesFilters
+  project_id: GenericAssetsProject_idFilters
+  OR: [GenericAssetsFiltersOr!]
+}
+
+input GenericAssetsIdFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [GenericAssetsIdfiltersOr!]
+}
+
+input GenericAssetsIdfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input GenericAssetsFilenameFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [GenericAssetsFilenamefiltersOr!]
+}
+
+input GenericAssetsFilenamefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input GenericAssetsPathFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [GenericAssetsPathfiltersOr!]
+}
+
+input GenericAssetsPathfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input GenericAssetsTypeFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [GenericAssetsTypefiltersOr!]
+}
+
+input GenericAssetsTypefiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input GenericAssetsPropertiesFilters {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [GenericAssetsPropertiesfiltersOr!]
+}
+
+input GenericAssetsPropertiesfiltersOr {
+  eq: String
+  ne: String
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [String!]
+
+  """Array<undefined>"""
+  notInArray: [String!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input GenericAssetsProject_idFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [GenericAssetsProject_idfiltersOr!]
+}
+
+input GenericAssetsProject_idfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input GenericAssetsFiltersOr {
+  id: GenericAssetsIdFilters
+  filename: GenericAssetsFilenameFilters
+  path: GenericAssetsPathFilters
+  type: GenericAssetsTypeFilters
+  properties: GenericAssetsPropertiesFilters
+  project_id: GenericAssetsProject_idFilters
+}
+
+input VocabulariesGenericAssetsFilters {
+  id: VocabulariesGenericAssetsIdFilters
+  vocabulary_id: VocabulariesGenericAssetsVocabulary_idFilters
+  generic_asset_id: VocabulariesGenericAssetsGeneric_asset_idFilters
+  order: VocabulariesGenericAssetsOrderFilters
+  OR: [VocabulariesGenericAssetsFiltersOr!]
+}
+
+input VocabulariesGenericAssetsIdFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [VocabulariesGenericAssetsIdfiltersOr!]
+}
+
+input VocabulariesGenericAssetsIdfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input VocabulariesGenericAssetsVocabulary_idFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [VocabulariesGenericAssetsVocabulary_idfiltersOr!]
+}
+
+input VocabulariesGenericAssetsVocabulary_idfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input VocabulariesGenericAssetsGeneric_asset_idFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [VocabulariesGenericAssetsGeneric_asset_idfiltersOr!]
+}
+
+input VocabulariesGenericAssetsGeneric_asset_idfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input VocabulariesGenericAssetsOrderFilters {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+  OR: [VocabulariesGenericAssetsOrderfiltersOr!]
+}
+
+input VocabulariesGenericAssetsOrderfiltersOr {
+  eq: Int
+  ne: Int
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  like: String
+  notLike: String
+  ilike: String
+  notIlike: String
+
+  """Array<undefined>"""
+  inArray: [Int!]
+
+  """Array<undefined>"""
+  notInArray: [Int!]
+  isNull: Boolean
+  isNotNull: Boolean
+}
+
+input VocabulariesGenericAssetsFiltersOr {
+  id: VocabulariesGenericAssetsIdFilters
+  vocabulary_id: VocabulariesGenericAssetsVocabulary_idFilters
+  generic_asset_id: VocabulariesGenericAssetsGeneric_asset_idFilters
+  order: VocabulariesGenericAssetsOrderFilters
+}
+
+input VocabulariesGenericAssetsOrderBy {
+  id: InnerOrder
+  vocabulary_id: InnerOrder
+  generic_asset_id: InnerOrder
+  order: InnerOrder
+}
+
+type VocabulariesVocabulariesGenericAssetsRelation {
+  id: Int!
+  vocabulary_id: Int
+  generic_asset_id: Int
+  order: Int
+  genericAsset(where: GenericAssetsFilters): VocabulariesGenericAssetsGenericAssetRelation
+}
+
+type VocabulariesGenericAssetsGenericAssetRelation {
+  id: Int!
+  filename: String
+  path: String
+  type: String
+  properties: String
+  project_id: Int
+}
+
+type Research_fieldsVocabulariesGenericAssetsRelation {
+  id: Int!
+  vocabulary_id: Int
+  generic_asset_id: Int
+  order: Int
+  genericAsset(where: GenericAssetsFilters): Research_fieldsGenericAssetsGenericAssetRelation
+}
+
+type Research_fieldsGenericAssetsGenericAssetRelation {
+  id: Int!
+  filename: String
+  path: String
+  type: String
+  properties: String
+  project_id: Int
 }
 
 type AssetsSelectItem {
@@ -4909,8 +5368,8 @@ type Research_fieldsVocabulariesRelation {
   option: String
   description: String
   main_asset: String
-  other_assets: String
   field_id: Int
+  vocabulariesGenericAssets(where: VocabulariesGenericAssetsFilters, orderBy: VocabulariesGenericAssetsOrderBy, offset: Int, limit: Int): [Research_fieldsVocabulariesGenericAssetsRelation!]!
 }
 
 type Research_fieldsObjectsResearchFieldsRelation {
@@ -5002,9 +5461,9 @@ type VocabulariesSelectItem {
   option: String
   description: String
   main_asset: String
-  other_assets: String
   field_id: Int
   researchField(where: Research_fieldsFilters): VocabulariesResearchFieldRelation
+  vocabulariesGenericAssets(where: VocabulariesGenericAssetsFilters, orderBy: VocabulariesGenericAssetsOrderBy, offset: Int, limit: Int): [VocabulariesVocabulariesGenericAssetsRelation!]!
 }
 
 type VocabulariesResearchFieldRelation {
@@ -5020,7 +5479,44 @@ type VocabulariesItem {
   option: String
   description: String
   main_asset: String
-  other_assets: String
+  field_id: Int
+}
+
+input VocabulariesGenericAssetsInsertInput {
+  id: Int
+  vocabulary_id: Int
+  generic_asset_id: Int
+  order: Int
+}
+
+input VocabulariesGenericAssetsUpdateInput {
+  id: Int
+  vocabulary_id: Int
+  generic_asset_id: Int
+  order: Int
+}
+
+type VocabulariesGenericAssetsItem {
+  id: Int!
+  vocabulary_id: Int
+  generic_asset_id: Int
+  order: Int
+}
+
+type VocabulariesGenericAssetsSelectItem {
+  id: Int!
+  vocabulary_id: Int
+  generic_asset_id: Int
+  order: Int
+  vocabulary(where: VocabulariesFilters): VocabulariesGenericAssetsVocabularyRelation
+  genericAsset(where: GenericAssetsFilters): VocabulariesGenericAssetsGenericAssetRelation
+}
+
+type VocabulariesGenericAssetsVocabularyRelation {
+  id: Int!
+  option: String
+  description: String
+  main_asset: String
   field_id: Int
 }
 
@@ -5055,6 +5551,8 @@ type Query {
   templatesSingle(offset: Int, orderBy: TemplatesOrderBy, where: TemplatesFilters): TemplatesSelectItem
   vocabularies(offset: Int, limit: Int, orderBy: VocabulariesOrderBy, where: VocabulariesFilters): [VocabulariesSelectItem!]!
   vocabulariesSingle(offset: Int, orderBy: VocabulariesOrderBy, where: VocabulariesFilters): VocabulariesSelectItem
+  vocabularies_generic_assets(offset: Int, limit: Int, orderBy: VocabulariesGenericAssetsOrderBy, where: VocabulariesGenericAssetsFilters): [VocabulariesGenericAssetsSelectItem!]!
+  vocabularies_generic_assetsSingle(offset: Int, orderBy: VocabulariesGenericAssetsOrderBy, where: VocabulariesGenericAssetsFilters): VocabulariesGenericAssetsSelectItem
 }
 
 type Mutation {
@@ -5118,4 +5616,8 @@ type Mutation {
   insertIntoVocabulariesSingle(values: VocabulariesInsertInput!): VocabulariesItem
   updateVocabularies(set: VocabulariesUpdateInput!, where: VocabulariesFilters): [VocabulariesItem!]!
   deleteFromVocabularies(where: VocabulariesFilters): [VocabulariesItem!]!
+  insertIntoVocabularies_generic_assets(values: [VocabulariesGenericAssetsInsertInput!]!): [VocabulariesGenericAssetsItem!]!
+  insertIntoVocabularies_generic_assetsSingle(values: VocabulariesGenericAssetsInsertInput!): VocabulariesGenericAssetsItem
+  updateVocabularies_generic_assets(set: VocabulariesGenericAssetsUpdateInput!, where: VocabulariesGenericAssetsFilters): [VocabulariesGenericAssetsItem!]!
+  deleteFromVocabularies_generic_assets(where: VocabulariesGenericAssetsFilters): [VocabulariesGenericAssetsItem!]!
 }

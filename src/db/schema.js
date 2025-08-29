@@ -299,7 +299,9 @@ export const genericAssetsRelations = relations(genericAssets, ({ one, many }) =
         references: [project.id]
     }),
     // This allows querying from a genericAsset to all vocabularies where it is the main_asset_id
-    vocabulariesAsMain: many(vocabularies)
+    vocabulariesAsMain: many(vocabularies),
+    // This allows querying from a genericAsset to all vocabularies through the junction table
+    vocabulariesGenericAssets: many(vocabularies_generic_assets)
 }));
 
 // Objects table
@@ -391,12 +393,19 @@ export const vocabularies = sqliteTable('vocabularies', {
     option_id: text('option_id').references(() => texts.id),
     description_id: text('description_id').references(() => texts.id),
     main_asset_id: text('main_asset_id').references(() => genericAssets.id),
-    other_assets: text('other_assets', { mode: 'json' }),
     field_id: text('field_id').references(() => research_fields.id)
 });
 
+// Vocabularies Generic Assets junction table
+export const vocabularies_generic_assets = sqliteTable('vocabularies_generic_assets', {
+    ...commonFields,
+    vocabulary_id: text('vocabulary_id').references(() => vocabularies.id, { onDelete: 'cascade' }),
+    generic_asset_id: text('generic_asset_id').references(() => genericAssets.id, { onDelete: 'cascade' }),
+    order: integer('order') // Optional: for ordering assets within a vocabulary
+});
+
 // Vocabularies relations
-export const vocabulariesRelations = relations(vocabularies, ({ one }) => ({
+export const vocabulariesRelations = relations(vocabularies, ({ one, many }) => ({
     researchField: one(research_fields, {
         fields: [vocabularies.field_id],
         references: [research_fields.id]
@@ -411,6 +420,19 @@ export const vocabulariesRelations = relations(vocabularies, ({ one }) => ({
     }),
     mainAsset: one(genericAssets, {
         fields: [vocabularies.main_asset_id],
+        references: [genericAssets.id]
+    }),
+    vocabulariesGenericAssets: many(vocabularies_generic_assets)
+}));
+
+// Vocabularies Generic Assets relations
+export const vocabulariesGenericAssetsRelations = relations(vocabularies_generic_assets, ({ one }) => ({
+    vocabulary: one(vocabularies, {
+        fields: [vocabularies_generic_assets.vocabulary_id],
+        references: [vocabularies.id]
+    }),
+    genericAsset: one(genericAssets, {
+        fields: [vocabularies_generic_assets.generic_asset_id],
         references: [genericAssets.id]
     })
 }));
