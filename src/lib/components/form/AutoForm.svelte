@@ -592,6 +592,7 @@
                                             .rendererProps}
                                         errors={field.state.meta.errors}
                                         {structuredErrors}
+                                        {activeLanguageCode}
                                         onChange={(v) => field.handleChange(v)}
                                         on:change={(e) =>
                                             field.handleChange(e.detail ?? e)}

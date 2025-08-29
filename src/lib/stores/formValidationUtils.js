@@ -657,3 +657,46 @@ registerCustomValidator('datasources', 'date', {
     required: true,
     defaultValue: new Date().toISOString()
 });
+
+// =============================================================================
+// RESEARCH FIELDS VALIDATORS
+// =============================================================================
+
+// Project ID validator - required field for research fields
+registerCustomValidator('research_fields', 'projectId', {
+    validator: () => z.string().min(1, 'Project ID is required'),
+    required: true,
+    defaultValue: ''
+});
+
+// Language ID validator - required field for text creation
+registerCustomValidator('research_fields', 'languageId', {
+    validator: () => z.string().min(1, 'Language is required'),
+    required: true,
+    defaultValue: ''
+});
+
+// Type validator - required field for research field type
+registerCustomValidator('research_fields', 'type', {
+    validator: () => z.enum(['free text', 'vocabulary'], {
+        required_error: 'Field type is required',
+        invalid_type_error: 'Field type must be either "free text" or "vocabulary"'
+    }),
+    required: true,
+    defaultValue: 'free text'
+});
+
+
+
+// Vocabularies validator - optional array of vocabulary options
+registerCustomValidator('research_fields', 'vocabularies', {
+    validator: () => z.array(z.object({
+        option: z.string().min(1, 'Option text is required'),
+        description: z.string().optional(),
+        mainAssetFile: z.any().optional(), // File object or null
+        otherAssetsFiles: z.array(z.any()).optional(), // Array of File objects
+        // Translation fields for secondary languages (dynamic based on available languages)
+    }).catchall(z.string().optional())), // Allow additional translation fields
+    required: false,
+    defaultValue: []
+});

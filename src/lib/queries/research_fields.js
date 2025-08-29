@@ -166,7 +166,11 @@ export const researchFieldsOperations = {
       languageId: "Language ID for the initial text",
       name: "Name of the research field",
       description: "Description of the research field",
-      type: "Type of the research field"
+      type: "Type of the research field",
+      vocabularies: "Array of vocabulary options (optional)",
+      // Translation arrays for research field
+      nameTranslations: "Array of name translations (optional)",
+      descriptionTranslations: "Array of description translations (optional)"
     },
     mutations: [
       {
