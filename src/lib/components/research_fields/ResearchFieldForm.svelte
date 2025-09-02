@@ -58,27 +58,85 @@
         allValidationErrors = errors;
     }
 
-    // Track selected type
-    let selectedType = $state(initialData?.type || "free text");
+    // Track selected type - initialize properly for edit mode
+    let selectedType = $state(
+        mode === "edit" && initialData?.type ? initialData.type : "free text",
+    );
 
     // Prepare default values based on mode
     const getDefaultValues = () => {
         if (mode === "edit" && initialData) {
+            console.log("Edit mode - initialData:", initialData);
+
+            // Process vocabularies to match VocabularyManager expected format
+            const processedVocabularies = (initialData.vocabularies || []).map(
+                (vocab) => {
+                    const processedVocab = {
+                        id: vocab.id,
+                        option: vocab.option?.content || "",
+                        description: vocab.description?.content || "",
+                        mainAssetFile: vocab.mainAsset
+                            ? {
+                                  path: vocab.mainAsset.path,
+                                  name: vocab.mainAsset.filename,
+                                  type: "file",
+                              }
+                            : null,
+                        otherAssetsFiles: vocab.vocabulariesGenericAssets
+                            ? vocab.vocabulariesGenericAssets.map((va) => ({
+                                  path: va.genericAsset.path,
+                                  name: va.genericAsset.filename,
+                                  type: "file",
+                              }))
+                            : [],
+                    };
+
+                    // Add vocabulary translations for secondary languages
+                    for (const lang of secondaryLanguages) {
+                        const optionTranslation =
+                            vocab.option?.translations?.find(
+                                (t) => t.language_id === lang.id,
+                            );
+                        const descriptionTranslation =
+                            vocab.description?.translations?.find(
+                                (t) => t.language_id === lang.id,
+                            );
+
+                        processedVocab[`option_${lang.id}`] =
+                            optionTranslation?.content || "";
+                        processedVocab[`description_${lang.id}`] =
+                            descriptionTranslation?.content || "";
+                    }
+
+                    return processedVocab;
+                },
+            );
+
             // For edit mode, populate with existing data
             const values = {
                 type: initialData.type || "free text",
-                name: initialData.name || "",
-                description: initialData.description || "",
-                vocabularies: initialData.vocabularies || [],
+                name: initialData.name?.content || initialData.name || "",
+                description:
+                    initialData.description?.content ||
+                    initialData.description ||
+                    "",
+                vocabularies: processedVocabularies,
             };
 
             // Add translation fields for secondary languages
             for (const lang of secondaryLanguages) {
                 // Find existing translations
-                const nameTranslation = initialData.nameTranslations?.find(
-                    (t) => t.language_id === lang.id,
-                );
+                const nameTranslation =
+                    initialData.name?.translations?.find(
+                        (t) => t.language_id === lang.id,
+                    ) ||
+                    initialData.nameTranslations?.find(
+                        (t) => t.language_id === lang.id,
+                    );
                 const descriptionTranslation =
+                    initialData.description?.translations?.find(
+                        (t) => t.language_id === lang.id,
+                    ) ||
                     initialData.descriptionTranslations?.find(
                         (t) => t.language_id === lang.id,
                     );
@@ -88,6 +146,8 @@
                 values[`translations_${lang.id}_description`] =
                     descriptionTranslation?.content || "";
             }
+
+            console.log("Edit mode - computed values:", values);
 
             return values;
         } else {
