@@ -17,7 +17,7 @@
     onUnlinkAssetRequest = (details) => {
       console.warn(
         "ObjectDetail: onUnlinkAssetRequest prop not provided.",
-        details
+        details,
       );
     },
   } = $props();
@@ -99,7 +99,7 @@
     if (!fieldId) return;
 
     const originalField = object.objectsResearchFields.find(
-      (f, index) => (f.id || `field-${index}`) === fieldId
+      (f, index) => (f.id || `field-${index}`) === fieldId,
     );
 
     if (!originalField) return;
@@ -125,7 +125,7 @@
   // Get options for select fields
   function getFieldOptions(field) {
     const fieldDef = researchFields.find(
-      (rf) => rf.id === field.researchField?.id
+      (rf) => rf.id === field.researchField?.id,
     );
 
     if (!fieldDef?.vocabularies?.length) return [];
@@ -139,7 +139,7 @@
   // Check if field should use select
   function shouldUseSelect(field) {
     const fieldType = getFieldType(field);
-    return fieldType === "vocabulary" || fieldType === "multiselect";
+    return fieldType === "vocabulary";
   }
 
   // Get object title
@@ -147,7 +147,7 @@
     if (currentObject?.objectsOntologyFields) {
       const titleField = currentObject.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "object id"
+          field.ontologyField?.name?.content?.toLowerCase() === "object id",
       );
       if (titleField?.value) return titleField.value;
     }
@@ -159,7 +159,7 @@
     if (currentObject?.objectsOntologyFields) {
       const designationField = currentObject.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "designation"
+          field.ontologyField?.name?.content?.toLowerCase() === "designation",
       );
       return designationField?.value || null;
     }
@@ -213,7 +213,7 @@
     console.log("Saving changes...");
     const statusResult = await updateObjectStatus(
       object.id,
-      statusValue ? "completed" : "in progress"
+      statusValue ? "completed" : "in progress",
     );
     if (statusResult.error) {
       console.error("Error updating status:", statusResult.error);
@@ -250,7 +250,7 @@
     // Collect field changes
     for (const editedFieldKey in editedFields) {
       const originalFieldData = object.objectsResearchFields.find(
-        (f, index) => (f.id || `field-${index}`) === editedFieldKey
+        (f, index) => (f.id || `field-${index}`) === editedFieldKey,
       );
 
       if (originalFieldData?.id) {
@@ -301,7 +301,7 @@
       console.error(
         "Cannot initiate unlink: missing object ID or asset ID from selected image.",
         object,
-        assetLinkEntry
+        assetLinkEntry,
       );
     }
   }
@@ -409,7 +409,7 @@
                           e.target.value;
                         handleInputChange(
                           field.id || `field-${index}`,
-                          e.target.value
+                          e.target.value,
                         );
                       }}
                       placeholder="Enter value..."
@@ -431,7 +431,7 @@
                         e.target.value;
                       handleInputChange(
                         field.id || `field-${index}`,
-                        e.target.value
+                        e.target.value,
                       );
                     }}
                     placeholder="Enter value..."

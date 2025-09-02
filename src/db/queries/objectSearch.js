@@ -207,7 +207,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                     }
 
                     if (filter.vocabularyIds && filter.vocabularyIds.length > 0) {
-                        // Multiselect vocabulary search
+                        // Vocabulary search
                         const vocabConditions = filter.vocabularyIds.map(vocabId => {
                             return sql`EXISTS (
                                 SELECT 1 FROM ${dbSchema.objects_research_fields} orf
@@ -370,9 +370,9 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 count: institutionCountMap.get(inst.id) || 0
             }));
 
-            // Research field facets (multiselect only)
+            // Research field facets (vocabulary only)
             const rfNameTexts = aliasedTable(dbSchema.texts, 'rf_name_texts_facet');
-            const multiselectFields = await db
+            const vocabularyFields = await db
                 .select({
                     id: dbSchema.research_fields.id,
                     name: rfNameTexts.content
@@ -381,11 +381,11 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 .leftJoin(rfNameTexts, eq(dbSchema.research_fields.name_id, rfNameTexts.id))
                 .where(and(
                     eq(dbSchema.research_fields.project_id, args.project_id),
-                    eq(dbSchema.research_fields.type, 'multiselect')
+                    eq(dbSchema.research_fields.type, 'vocabulary')
                 ))
                 .execute();
 
-            for (const field of multiselectFields) {
+            for (const field of vocabularyFields) {
                 // Get ALL vocabulary options for this research field first
                 const vOptionTextsAll = aliasedTable(dbSchema.texts, `v_option_texts_all_${field.id.replace(/-/g, '_')}`);
                 const allVocabularyOptions = await db

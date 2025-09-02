@@ -17,8 +17,8 @@ const SEED_CONFIG = {
     INSTITUTIONS_COUNT: 5,              // Number of institutions to create
     OBJECTS_PER_INSTITUTION: 8,         // Number of objects per institution
     RESEARCH_FIELDS_COUNT: 10,           // Total number of research fields
-    MULTISELECT_FIELDS_COUNT: 3,         // Number of multiselect research fields (out of total)
-    VOCABULARY_OPTIONS_PER_FIED: 3,     // Number of vocabulary options per multiselect field
+    VOCABULARY_FIELDS_COUNT: 3,         // Number of vocabulary research fields (out of total)
+    VOCABULARY_OPTIONS_PER_FIED: 3,     // Number of vocabulary options per vocabulary field
     ASSETS_PER_OBJECT: 1                 // Number of assets per object
 };
 
@@ -349,9 +349,9 @@ const seed = async () => {
         const institutionsAndDatasources = await Promise.all(institutionPromises);
         console.log(`Created ${institutionsAndDatasources.length} institutions and their datasources.`);
 
-        // Create research fields (some multiselect, some free text)
+        // Create research fields (some vocabulary, some free text)
         const researchFieldPromises = Array(SEED_CONFIG.RESEARCH_FIELDS_COUNT).fill().map(async (_, i) => {
-            const isMultiselect = i < SEED_CONFIG.MULTISELECT_FIELDS_COUNT;
+            const isVocabulary = i < SEED_CONFIG.VOCABULARY_FIELDS_COUNT;
             const [nameText, descriptionText] = await Promise.all([
                 db.insert(texts).values({
                     content: `Research Field ${i + 1}`,
@@ -369,11 +369,11 @@ const seed = async () => {
                 name_id: nameText[0].id,
                 description_id: descriptionText[0].id,
                 project_id: projectRecord.id,
-                type: isMultiselect ? 'multiselect' : 'free_text'
+                type: isVocabulary ? 'vocabulary' : 'free_text'
             }).returning();
 
-            // For multiselect fields, create vocabulary options
-            if (isMultiselect) {
+            // For vocabulary fields, create vocabulary options
+            if (isVocabulary) {
                 const vocabularyPromises = Array(SEED_CONFIG.VOCABULARY_OPTIONS_PER_FIED).fill().map(async (_, j) => {
                     const [optionText, descriptionText] = await Promise.all([
                         db.insert(texts).values({
@@ -499,7 +499,7 @@ const seed = async () => {
 
                 // Add research field values
                 const researchFieldValuePromises = researchFieldsList.map(async (field) => {
-                    if (field.type === 'multiselect') {
+                    if (field.type === 'vocabulary') {
                         const fieldVocabularies = await db.select().from(vocabularies).where(sql`${vocabularies.field_id} = ${field.id}`).$dynamic();
                         if (fieldVocabularies.length > 0) {
                             const randomVocabulary = fieldVocabularies[Math.floor(Math.random() * fieldVocabularies.length)];

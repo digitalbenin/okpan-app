@@ -345,7 +345,7 @@ const seed = async () => {
             name_id: edoRfNameId,
             description_id: edoRfDescId,
             project_id: mainProjectId,
-            type: 'multiselect'
+            type: 'vocabulary'
         }).returning();
 
         const edoVocabularyMap = new Map(); // Map old Edo ID to new vocabulary DB ID
