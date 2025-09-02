@@ -1,6 +1,5 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import FileUpload from "$lib/components/base/FileUpload.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
 
     const { t } = getTranslationStore();
@@ -14,7 +13,13 @@
         activeLanguageCode = "default", // Current active language tab
         selectedType = "free text", // Current selected type from parent form
         class: customClass = "",
+        onChange = null, // AutoForm passes this callback
     } = $props();
+
+    // Debug value changes
+    $effect(() => {
+        console.log("VocabularyManager value changed:", $state.snapshot(value));
+    });
 
     // Local persistent state to prevent loss during tab changes
     let localVocabularies = $state([]);
@@ -23,7 +28,16 @@
     // Initialize local state without creating infinite loops
     function updateBoundValue() {
         if (hasBeenInitialized) {
-            value = [...localVocabularies];
+            const newValue = [...localVocabularies];
+            value = newValue;
+            // Also call onChange if provided by AutoForm
+            if (onChange) {
+                onChange(newValue);
+            }
+            console.log(
+                "updateBoundValue called, setting value to:",
+                $state.snapshot(value),
+            );
         }
     }
 
@@ -67,6 +81,8 @@
 
         localVocabularies = [...localVocabularies, newVocabulary];
         updateBoundValue();
+        console.log("Added vocabulary, new array:", localVocabularies);
+        console.log("Updated bound value:", value);
     }
 
     function removeVocabulary(index) {
@@ -101,15 +117,103 @@
             .map((error) => error.message);
     }
 
-    function handleFileUpload(index, fieldName, file) {
-        updateVocabulary(index, fieldName, file);
+    async function handleFileUpload(index, fieldName) {
+        console.log("handleFileUpload called with:", index, fieldName);
+        try {
+            const result = await window.api.openFileDialog({
+                title: "Select Asset File",
+                multiple: false,
+                filters: [
+                    {
+                        name: "Media Files",
+                        extensions: [
+                            "jpg",
+                            "jpeg",
+                            "png",
+                            "gif",
+                            "webp",
+                            "avif",
+                            "mp4",
+                            "webm",
+                            "ogg",
+                            "mp3",
+                            "wav",
+                            "m4a",
+                            "pdf",
+                            "doc",
+                            "docx",
+                        ],
+                    },
+                    { name: "All Files", extensions: ["*"] },
+                ],
+            });
+
+            if (
+                !result.canceled &&
+                result.filePaths &&
+                result.filePaths.length > 0
+            ) {
+                const filePath = result.filePaths[0];
+                // Create a file-like object with path and name
+                const fileObject = {
+                    path: filePath,
+                    name: filePath.split(/[/\\]/).pop(),
+                    type: "file",
+                };
+                updateVocabulary(index, fieldName, fileObject);
+            }
+        } catch (error) {
+            console.error("Error selecting file:", error);
+        }
     }
 
-    function handleMultipleFileUpload(index, fieldName, event) {
-        const files =
-            event.detail.files ||
-            (event.detail.file ? [event.detail.file] : []);
-        updateVocabulary(index, fieldName, files);
+    async function handleMultipleFileUpload(index, fieldName) {
+        console.log("handleMultipleFileUpload called with:", index, fieldName);
+        try {
+            const result = await window.api.openFileDialog({
+                title: "Select Asset Files",
+                multiple: true,
+                filters: [
+                    {
+                        name: "Media Files",
+                        extensions: [
+                            "jpg",
+                            "jpeg",
+                            "png",
+                            "gif",
+                            "webp",
+                            "avif",
+                            "mp4",
+                            "webm",
+                            "ogg",
+                            "mp3",
+                            "wav",
+                            "m4a",
+                            "pdf",
+                            "doc",
+                            "docx",
+                        ],
+                    },
+                    { name: "All Files", extensions: ["*"] },
+                ],
+            });
+
+            if (
+                !result.canceled &&
+                result.filePaths &&
+                result.filePaths.length > 0
+            ) {
+                // Create file-like objects with path and name
+                const fileObjects = result.filePaths.map((filePath) => ({
+                    path: filePath,
+                    name: filePath.split(/[/\\]/).pop(),
+                    type: "file",
+                }));
+                updateVocabulary(index, fieldName, fileObjects);
+            }
+        } catch (error) {
+            console.error("Error selecting files:", error);
+        }
     }
 </script>
 
@@ -346,48 +450,83 @@
                     <div class="row g-3 mb-3">
                         <!-- Main Asset -->
                         <div class="col-md-6">
-                            <FileUpload
-                                bind:value={vocab.mainAssetFile}
-                                label={t("common.main-asset", {
+                            <label class="form-label">
+                                {t("common.main-asset", {
                                     fallback: "Main Asset",
                                 })}
-                                placeholder={t("common.upload-main-asset", {
-                                    fallback: "Upload main asset file...",
-                                })}
-                                accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
-                                errors={getFieldErrors(index, "mainAssetFile")}
-                                on:fileSelected={(e) =>
-                                    handleFileUpload(
-                                        index,
-                                        "mainAssetFile",
-                                        e.detail.file,
-                                    )}
-                            />
+                            </label>
+                            <div class="d-flex align-items-center gap-2">
+                                <BaseButton
+                                    text="Select File"
+                                    icon="folder-open"
+                                    class="btn btn-outline-primary btn-sm"
+                                    onClick={() =>
+                                        handleFileUpload(
+                                            index,
+                                            "mainAssetFile",
+                                        )}
+                                />
+                                {#if vocab.mainAssetFile}
+                                    <span class="text-muted small"
+                                        >{vocab.mainAssetFile.name}</span
+                                    >
+                                    <BaseButton
+                                        icon="x"
+                                        class="btn btn-outline-danger btn-sm"
+                                        onClick={() =>
+                                            updateVocabulary(
+                                                index,
+                                                "mainAssetFile",
+                                                null,
+                                            )}
+                                    />
+                                {/if}
+                            </div>
                         </div>
 
                         <!-- Other Assets -->
                         <div class="col-md-6">
-                            <FileUpload
-                                bind:value={vocab.otherAssetsFiles}
-                                label={t("common.other-assets", {
+                            <label class="form-label">
+                                {t("common.other-assets", {
                                     fallback: "Other Assets",
                                 })}
-                                placeholder={t("common.upload-other-assets", {
-                                    fallback: "Upload additional assets...",
-                                })}
-                                accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
-                                multiple={true}
-                                errors={getFieldErrors(
-                                    index,
-                                    "otherAssetsFiles",
-                                )}
-                                on:fileSelected={(e) =>
-                                    handleMultipleFileUpload(
-                                        index,
-                                        "otherAssetsFiles",
-                                        e,
-                                    )}
-                            />
+                            </label>
+                            <div class="d-flex align-items-center gap-2">
+                                <BaseButton
+                                    text="Select Files"
+                                    icon="folder-open"
+                                    class="btn btn-outline-primary btn-sm"
+                                    onClick={() =>
+                                        handleMultipleFileUpload(
+                                            index,
+                                            "otherAssetsFiles",
+                                        )}
+                                />
+                                {#if vocab.otherAssetsFiles && vocab.otherAssetsFiles.length > 0}
+                                    <span class="text-muted small"
+                                        >{vocab.otherAssetsFiles.length} file(s)</span
+                                    >
+                                    <BaseButton
+                                        icon="x"
+                                        class="btn btn-outline-danger btn-sm"
+                                        onClick={() =>
+                                            updateVocabulary(
+                                                index,
+                                                "otherAssetsFiles",
+                                                [],
+                                            )}
+                                    />
+                                {/if}
+                            </div>
+                            {#if vocab.otherAssetsFiles && vocab.otherAssetsFiles.length > 0}
+                                <div class="mt-1">
+                                    {#each vocab.otherAssetsFiles as file, fileIndex}
+                                        <small class="text-muted d-block"
+                                            >{file.name}</small
+                                        >
+                                    {/each}
+                                </div>
+                            {/if}
                         </div>
                     </div>
                 </div>

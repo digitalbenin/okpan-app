@@ -209,20 +209,7 @@ export const researchFieldsOperations = {
 }`,
         useVariables: ["description", "languageId"]
       },
-      {
-        name: "processNameTranslations",
-        processTranslations: {
-          textIdPath: "createNameText.insertIntoTexts.0.id",
-          translationsParam: "nameTranslations"
-        }
-      },
-      {
-        name: "processDescriptionTranslations",
-        processTranslations: {
-          textIdPath: "createDescriptionText.insertIntoTexts.0.id",
-          translationsParam: "descriptionTranslations"
-        }
-      },
+      // Translations will be handled in frontend after research field creation
       {
         name: "createResearchField",
         query: `mutation CreateResearchFieldEntry(
@@ -414,20 +401,7 @@ export const researchFieldsOperations = {
 }`,
         useVariables: ["description", "languageId"]
       },
-      {
-        name: "processOptionTranslations",
-        processTranslations: {
-          textIdPath: "createOptionText.insertIntoTexts.0.id",
-          translationsParam: "optionTranslations"
-        }
-      },
-      {
-        name: "processDescriptionTranslations",
-        processTranslations: {
-          textIdPath: "createDescriptionText.insertIntoTexts.0.id",
-          translationsParam: "descriptionTranslations"
-        }
-      },
+      // Vocabulary translations will be handled in frontend after vocabulary creation
       {
         name: "createVocabulary",
         query: `mutation CreateVocabularyEntry(
@@ -458,7 +432,8 @@ export const researchFieldsOperations = {
           optionId: { from: "createOptionText", path: "insertIntoTexts.0.id" },
           descriptionId: { from: "createDescriptionText", path: "insertIntoTexts.0.id" }
         }
-      }
+      },
+
     ],
     query: null
   },

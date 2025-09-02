@@ -19,6 +19,7 @@ import { templatesOperations } from './templates.js';
 import { genericAssetsOperations } from './genericAssets.js';
 import { objectDisplayFieldsOperations } from './object_display_fields.js';
 import { objectSearchOperations } from './objectSearch.js';
+import { vocabularyAssetsOperations } from './vocabulary_assets.js';
 
 // Export API sections organized by entity type
 export const API_SECTIONS = {
@@ -101,6 +102,10 @@ export const API_SECTIONS = {
     schema: {
         name: "GraphQL Schema",
         operations: schemaOperations // Note: schema operations is an array
+    },
+    vocabulary_assets: {
+        name: "Vocabulary Assets",
+        operations: vocabularyAssetsOperations
     }
 };
 
