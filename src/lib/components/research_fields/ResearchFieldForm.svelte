@@ -171,6 +171,7 @@
 
     // Dynamic uiSchema that updates based on selected type
     const uiSchema = $derived({
+        fieldId: { hidden: true },
         projectId: { hidden: true },
         languageId: { hidden: true },
         name: {
@@ -221,40 +222,57 @@
     });
 
     // Create form instance using optimized config
-    const form = createForm(() =>
-        getFormConfig("research_fields", validatorOperationName, {
-            defaultValues: getDefaultValues(),
-            onSubmit: async ({ value }) => {
-                try {
-                    // Prepare translations
-                    const translations = prepareTranslations(value);
+    const form = createForm(() => {
+        const config = getFormConfig(
+            "research_fields",
+            validatorOperationName,
+            {
+                defaultValues: getDefaultValues(),
+                onSubmit: async ({ value }) => {
+                    try {
+                        // Prepare translations
+                        const translations = prepareTranslations(value);
 
-                    const result =
-                        mode === "create"
-                            ? await handleCreate(value, translations)
-                            : await handleUpdate(value, translations);
+                        const result =
+                            mode === "create"
+                                ? await handleCreate(value, translations)
+                                : await handleUpdate(value, translations);
 
-                    // Handle success
-                    if (onSuccess) {
-                        onSuccess(result);
-                    } else {
-                        const targetProjectId =
-                            value.projectId ||
-                            projectId ||
-                            $page.params.project_id;
-                        goto(
-                            `/projects/${targetProjectId}/data-structure/research-fields`,
+                        // Handle success
+                        if (onSuccess) {
+                            onSuccess(result);
+                        } else {
+                            const targetProjectId =
+                                value.projectId ||
+                                projectId ||
+                                $page.params.project_id;
+                            goto(
+                                `/projects/${targetProjectId}/data-structure/research-fields`,
+                            );
+                        }
+                    } catch (error) {
+                        console.error(
+                            `Error ${mode === "create" ? "creating" : "updating"} research field:`,
+                            error.message,
                         );
                     }
-                } catch (error) {
-                    console.error(
-                        `Error ${mode === "create" ? "creating" : "updating"} research field:`,
-                        error.message,
-                    );
-                }
+                },
             },
-        }),
-    );
+        );
+
+        // Add field-level validation for vocabularies with structured error support
+        if (config.fieldValidators && config.fieldValidators.vocabularies) {
+            config.fieldValidators.vocabularies = createFieldValidator(
+                "vocabularies",
+                validator,
+                null, // form instance not needed here
+                setAllValidationErrors,
+                { validateOnChange: true },
+            );
+        }
+
+        return config;
+    });
 
     // Helper to prepare translations from form values
     const prepareTranslations = (value) => {

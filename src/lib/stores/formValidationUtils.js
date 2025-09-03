@@ -504,14 +504,14 @@ export const createFieldValidator = (fieldName, validator, form, setStructuredEr
         const result = fieldSchema.safeParse(value);
 
         if (!result.success) {
-            // Update structured errors for components that need them (like DynamicArrayField)
-            if (setStructuredErrors && fieldName === "links") {
+            // Update structured errors for components that need them (like DynamicArrayField and VocabularyManager)
+            if (setStructuredErrors && (fieldName === "links" || fieldName === "vocabularies")) {
                 // For individual field validation, we need to create error objects with proper paths
-                const linksErrors = result.error.errors.map(error => ({
+                const fieldErrors = result.error.errors.map(error => ({
                     ...error,
                     path: [fieldName, ...error.path] // Prepend the field name to the path
                 }));
-                setStructuredErrors(linksErrors);
+                setStructuredErrors(fieldErrors);
             }
 
             // Return field-specific errors
@@ -519,7 +519,7 @@ export const createFieldValidator = (fieldName, validator, form, setStructuredEr
             return fieldErrors.length > 0 ? fieldErrors.join(", ") : undefined;
         } else {
             // Clear structured errors on success
-            if (setStructuredErrors && fieldName === "links") {
+            if (setStructuredErrors && (fieldName === "links" || fieldName === "vocabularies")) {
                 setStructuredErrors([]);
             }
         }
@@ -661,6 +661,14 @@ registerCustomValidator('datasources', 'date', {
 // =============================================================================
 // RESEARCH FIELDS VALIDATORS
 // =============================================================================
+
+// Field ID validator - hidden field for edit operations
+registerCustomValidator('research_fields', 'fieldId', {
+    validator: () => z.string().optional(),
+    required: false,
+    defaultValue: '',
+    hidden: true
+});
 
 // Project ID validator - required field for research fields
 registerCustomValidator('research_fields', 'projectId', {
