@@ -159,8 +159,7 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
         }
     });
 
-    console.log('updateVocabulary: Sending parameters:', updateParams);
-    console.log('updateVocabulary: mainAsset value:', updateParams.mainAsset);
+
 
     // Execute the multi-step mutation
     const result = await executeQuery('research_fields', 'updateVocabulary', updateParams);
@@ -197,12 +196,9 @@ export const addVocabulary = async (fieldId, data) => {
     // Prune undefined to avoid GraphQL variable issues
     Object.keys(params).forEach((k) => params[k] === undefined && delete params[k]);
 
-    console.log("addVocabulary: Calling executeQuery with params:", params);
     const result = await executeQuery('research_fields', 'addVocabulary', params);
-    console.log("addVocabulary: executeQuery result:", result);
 
     if (result?.error) {
-        console.error("addVocabulary: Error from executeQuery:", result.error);
         return { result: null, error: result.error };
     }
     invalidate("app:research-fields");

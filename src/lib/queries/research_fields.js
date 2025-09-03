@@ -547,6 +547,20 @@ export const researchFieldsOperations = {
           textIdPath: "getVocabulary.vocabularies.0.description_id",
           translationsParam: "descriptionTranslations"
         }
+      },
+      // === FINAL RESULT STEP ===
+      {
+        name: "result",
+        query: `query GetUpdatedVocabulary($vocabularyId: String!) {
+  result: vocabularies(where: { id: { eq: $vocabularyId } }) {
+    id
+    option_id
+    description_id
+    field_id
+    main_asset_id
+  }
+}`,
+        useVariables: ["vocabularyId"]
       }
     ],
     query: null

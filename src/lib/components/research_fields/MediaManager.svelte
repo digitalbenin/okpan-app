@@ -1,0 +1,195 @@
+<script>
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+    import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import AssetPreview from "$lib/components/research_fields/AssetPreview.svelte";
+
+    const { t } = getTranslationStore();
+
+    let {
+        mainAsset = $bindable(),
+        otherAssets = $bindable([]),
+        errors = [],
+        class: customClass = "",
+        onChange = null,
+        // Media type filters - for now images and audio
+        acceptedTypes = ["image", "audio"],
+        maxAssets = 10,
+    } = $props();
+
+    // Ensure otherAssets is always an array
+    if (!Array.isArray(otherAssets)) {
+        otherAssets = [];
+    }
+
+    // Unified file upload handler
+    async function handleMediaUpload() {
+        try {
+            // Create filter based on accepted types
+            const mediaFilters = [];
+
+            if (acceptedTypes.includes("image")) {
+                mediaFilters.push({
+                    name: "Images",
+                    extensions: ["jpg", "jpeg", "png", "gif", "webp", "avif"],
+                });
+            }
+
+            if (acceptedTypes.includes("audio")) {
+                mediaFilters.push({
+                    name: "Audio",
+                    extensions: ["mp3", "wav", "ogg", "m4a", "aac"],
+                });
+            }
+
+            mediaFilters.push({ name: "All Files", extensions: ["*"] });
+
+            const result = await window.api.openFileDialog({
+                title: "Select Media Files",
+                multiple: true,
+                filters: mediaFilters,
+            });
+
+            if (!result.canceled && result.filePaths?.length > 0) {
+                const fileObjects = result.filePaths.map(createFileObject);
+                addMediaFiles(fileObjects);
+            }
+        } catch (error) {
+            console.error("Error selecting media files:", error);
+        }
+    }
+
+    // Create file object from path
+    const createFileObject = (filePath) => ({
+        path: filePath,
+        name: filePath.split(/[/\\]/).pop(),
+        type: "file",
+    });
+
+    // Add media files and automatically manage main asset
+    function addMediaFiles(fileObjects) {
+        const currentAssetCount =
+            (mainAsset ? 1 : 0) + (otherAssets?.length || 0);
+        const availableSlots = maxAssets - currentAssetCount;
+
+        if (availableSlots <= 0) return;
+
+        const filesToAdd = fileObjects.slice(0, availableSlots);
+
+        // Add all files to the end of other assets
+        otherAssets = [...(otherAssets || []), ...filesToAdd];
+
+        // Automatically manage main asset
+        updateMainAssetFromOrder();
+    }
+
+    // Automatically set the first asset as main asset
+    function updateMainAssetFromOrder() {
+        const allAssets = [mainAsset, ...(otherAssets || [])].filter(Boolean);
+
+        if (allAssets.length > 0) {
+            mainAsset = allAssets[0];
+            otherAssets = allAssets.slice(1);
+        } else {
+            mainAsset = null;
+            otherAssets = [];
+        }
+
+        // Trigger onChange callback if provided
+        if (onChange) {
+            onChange({ mainAsset, otherAssets });
+        }
+    }
+
+    // Remove main asset and automatically reorganize
+    function removeMainAsset() {
+        mainAsset = null;
+        updateMainAssetFromOrder();
+    }
+
+    // Remove specific other asset and automatically reorganize
+    function removeOtherAsset(index) {
+        if (otherAssets && index >= 0 && index < otherAssets.length) {
+            otherAssets = otherAssets.filter((_, i) => i !== index);
+            updateMainAssetFromOrder();
+        }
+    }
+
+    // Get total asset count
+    const totalAssets = $derived(
+        (mainAsset ? 1 : 0) + (otherAssets?.length || 0),
+    );
+    const canAddMore = $derived(totalAssets < maxAssets);
+</script>
+
+<div class="border rounded p-3 bg-white {customClass}">
+    <!-- Header with upload button -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">
+            {t("common.media", { fallback: "Media" })}
+        </h6>
+
+        {#if canAddMore}
+            <BaseButton
+                type="button"
+                class="btn btn-sm btn-primary"
+                icon="plus"
+                text={t("common.add-media", { fallback: "Add Media" })}
+                onClick={handleMediaUpload}
+            />
+        {/if}
+    </div>
+
+    {#if totalAssets === 0}
+        <!-- Empty state -->
+        <div
+            class="border border-2 border-dashed rounded p-4 bg-light text-center"
+        >
+            <i
+                class="bi bi-cloud-upload mb-3 text-muted"
+                style="font-size: 3rem;"
+            ></i>
+            <p class="text-muted mb-2">
+                {t("common.no-media-added", { fallback: "No media added yet" })}
+            </p>
+            <small class="text-muted">
+                {t("common.media-help", {
+                    fallback:
+                        "Upload images and audio files. First upload becomes main media.",
+                })}
+            </small>
+        </div>
+    {:else}
+        <!-- Media display -->
+        <div class="d-flex flex-column flex-md-row gap-3 align-items-start">
+            <!-- Main Asset -->
+            {#if mainAsset}
+                <div class="d-flex flex-column align-items-center">
+                    <AssetPreview
+                        asset={mainAsset}
+                        size={150}
+                        showRemoveButton={true}
+                        onRemove={removeMainAsset}
+                    />
+                </div>
+            {/if}
+
+            <!-- Other Assets -->
+            {#if otherAssets && otherAssets.length > 0}
+                <div class="flex-fill">
+                    <div class="d-flex flex-wrap gap-3">
+                        {#each otherAssets as asset, index}
+                            <div class="d-flex flex-column align-items-center">
+                                <AssetPreview
+                                    {asset}
+                                    size={120}
+                                    showRemoveButton={true}
+                                    onRemove={() => removeOtherAsset(index)}
+                                />
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+            {/if}
+        </div>
+    {/if}
+</div>

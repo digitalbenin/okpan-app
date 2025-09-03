@@ -2,7 +2,7 @@
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
-    import AssetPreview from "$lib/components/research_fields/AssetPreview.svelte";
+    import MediaManager from "$lib/components/research_fields/MediaManager.svelte";
     import {
         addVocabulary as addVocabularyAPI,
         updateVocabulary as updateVocabularyAPI,
@@ -120,56 +120,10 @@
             .map((error) => error.message);
     }
 
-    // Common file filters for asset selection
-    const assetFilters = [
-        {
-            name: "Media Files",
-            extensions: [
-                "jpg",
-                "jpeg",
-                "png",
-                "gif",
-                "webp",
-                "avif",
-                "mp4",
-                "webm",
-                "ogg",
-                "mp3",
-            ],
-        },
-        { name: "All Files", extensions: ["*"] },
-    ];
-
-    // Create file object from path
-    const createFileObject = (filePath) => ({
-        path: filePath,
-        name: filePath.split(/[/\\]/).pop(),
-        type: "file",
-    });
-
-    // Generic file upload handler
-    async function handleFileUpload(index, fieldName, multiple = false) {
-        try {
-            const result = await window.api.openFileDialog({
-                title: multiple ? "Select Asset Files" : "Select Asset File",
-                multiple,
-                filters: assetFilters,
-            });
-
-            if (!result.canceled && result.filePaths?.length > 0) {
-                const fileObjects = result.filePaths.map(createFileObject);
-                updateVocabulary(
-                    index,
-                    fieldName,
-                    multiple ? fileObjects : fileObjects[0],
-                );
-            }
-        } catch (error) {
-            console.error(
-                `Error selecting ${multiple ? "files" : "file"}:`,
-                error,
-            );
-        }
+    // Handle media changes from MediaManager
+    function handleMediaChange(index, { mainAsset, otherAssets }) {
+        updateVocabulary(index, "mainAssetFile", mainAsset);
+        updateVocabulary(index, "otherAssetsFiles", otherAssets);
     }
 
     // === VOCABULARY PROCESSING FUNCTIONS (moved from ResearchFieldForm) ===
@@ -272,14 +226,22 @@
         )
             .map((va) => va.genericAsset.id)
             .sort();
-        const currentOtherAssetIds = (currentVocab.otherAssetsFiles || [])
+
+        const currentOtherAssets = currentVocab.otherAssetsFiles || [];
+        const currentOtherAssetIds = currentOtherAssets
             .map((file) => file.id)
             .filter((id) => id)
             .sort();
 
+        // Check if there are new assets (files with path but no id)
+        const hasNewAssets = currentOtherAssets.some(
+            (file) => file.path && !file.id,
+        );
+
         if (
+            hasNewAssets ||
             JSON.stringify(originalOtherAssetIds) !==
-            JSON.stringify(currentOtherAssetIds)
+                JSON.stringify(currentOtherAssetIds)
         ) {
             return true;
         }
@@ -483,7 +445,6 @@
             option: vocab.option,
             description: vocab.description || "",
             mainAsset: mainAssetId,
-            otherAssets: otherAssetIds.length > 0 ? otherAssetIds : null,
             optionTranslations:
                 optionTranslations.length > 0 ? optionTranslations : undefined,
             descriptionTranslations:
@@ -492,7 +453,31 @@
                     : undefined,
         };
 
-        return updateVocabularyAPI(vocab.id, updateData);
+        const result = await updateVocabularyAPI(vocab.id, updateData);
+
+        // Handle other assets separately like in create process
+        // Check if update was successful
+        if (result?.result && !result?.error) {
+            // First delete existing other asset links
+            try {
+                await executeQuery("vocabulary_assets", "delete", {
+                    vocabularyId: vocab.id,
+                });
+            } catch (error) {
+                console.error("Error deleting old vocabulary assets:", error);
+            }
+
+            // Then create new links if there are other assets
+            if (otherAssetIds.length > 0) {
+                try {
+                    await linkVocabularyAssets(vocab.id, otherAssetIds);
+                } catch (error) {
+                    console.error("Error linking vocabulary assets:", error);
+                }
+            }
+        }
+
+        return result;
     };
 
     // Main vocabulary processing function
@@ -833,105 +818,16 @@
                         </div>
                     </div>
 
-                    <!-- Asset Upload Row -->
-                    <div class="row g-3 mb-3">
-                        <!-- Main Asset -->
-                        <div class="col-md-6">
-                            <label class="form-label">
-                                {t("common.main-asset", {
-                                    fallback: "Main Asset",
-                                })}
-                            </label>
-                            <div class="d-flex align-items-start gap-3">
-                                <div class="flex-shrink-0">
-                                    <BaseButton
-                                        text="Select File"
-                                        icon="folder-open"
-                                        class="btn btn-outline-primary btn-sm"
-                                        onClick={() =>
-                                            handleFileUpload(
-                                                index,
-                                                "mainAssetFile",
-                                            )}
-                                    />
-                                </div>
-                                {#if vocab.mainAssetFile}
-                                    <AssetPreview
-                                        asset={vocab.mainAssetFile}
-                                        size={150}
-                                        showRemoveButton={true}
-                                        onRemove={() =>
-                                            updateVocabulary(
-                                                index,
-                                                "mainAssetFile",
-                                                null,
-                                            )}
-                                    />
-                                {/if}
-                            </div>
-                        </div>
-
-                        <!-- Other Assets -->
-                        <div class="col-md-6">
-                            <label class="form-label">
-                                {t("common.other-assets", {
-                                    fallback: "Other Assets",
-                                })}
-                            </label>
-                            <div class="d-flex flex-column gap-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <BaseButton
-                                        text="Select Files"
-                                        icon="folder-open"
-                                        class="btn btn-outline-primary btn-sm"
-                                        onClick={() =>
-                                            handleFileUpload(
-                                                index,
-                                                "otherAssetsFiles",
-                                                true,
-                                            )}
-                                    />
-                                    {#if vocab.otherAssetsFiles && vocab.otherAssetsFiles.length > 0}
-                                        <span class="text-muted small"
-                                            >{vocab.otherAssetsFiles.length} file(s)</span
-                                        >
-                                        <BaseButton
-                                            icon="x"
-                                            class="btn btn-outline-danger btn-sm"
-                                            onClick={() =>
-                                                updateVocabulary(
-                                                    index,
-                                                    "otherAssetsFiles",
-                                                    [],
-                                                )}
-                                        />
-                                    {/if}
-                                </div>
-                                {#if vocab.otherAssetsFiles && vocab.otherAssetsFiles.length > 0}
-                                    <div class="d-flex flex-wrap gap-1">
-                                        {#each vocab.otherAssetsFiles as file, fileIndex}
-                                            <AssetPreview
-                                                asset={file}
-                                                size={150}
-                                                showRemoveButton={true}
-                                                onRemove={() => {
-                                                    const updatedFiles =
-                                                        vocab.otherAssetsFiles.filter(
-                                                            (_, i) =>
-                                                                i !== fileIndex,
-                                                        );
-                                                    updateVocabulary(
-                                                        index,
-                                                        "otherAssetsFiles",
-                                                        updatedFiles,
-                                                    );
-                                                }}
-                                            />
-                                        {/each}
-                                    </div>
-                                {/if}
-                            </div>
-                        </div>
+                    <!-- Media Manager -->
+                    <div class="mb-3">
+                        <MediaManager
+                            bind:mainAsset={vocab.mainAssetFile}
+                            bind:otherAssets={vocab.otherAssetsFiles}
+                            acceptedTypes={["image", "audio"]}
+                            maxAssets={10}
+                            onChange={(mediaData) =>
+                                handleMediaChange(index, mediaData)}
+                        />
                     </div>
                 </div>
             {/each}
