@@ -11,9 +11,6 @@
     import {
         createResearchField,
         updateResearchField,
-        addVocabulary,
-        updateVocabulary,
-        deleteVocabulary,
     } from "$lib/stores/ResearchFieldsUtils.js";
     import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import { goto } from "$app/navigation";
@@ -54,6 +51,9 @@
     // Store all validation errors for components to use
     let allValidationErrors = $state([]);
 
+    // Reference to vocabulary processing function from VocabularyManager
+    let vocabularyProcessingFunction = null;
+
     // Helper function to set structured errors
     function setAllValidationErrors(errors) {
         allValidationErrors = errors;
@@ -64,106 +64,109 @@
         mode === "edit" && initialData?.type ? initialData.type : "free text",
     );
 
+    // Debug selected type changes
+    $effect(() => {
+        console.log(
+            "ResearchFieldForm: selectedType changed to:",
+            selectedType,
+        );
+        console.log(
+            "ResearchFieldForm: mode:",
+            mode,
+            "initialData type:",
+            initialData?.type,
+        );
+        if (initialData?.vocabularies) {
+            console.log(
+                "ResearchFieldForm: initialData has vocabularies:",
+                initialData.vocabularies.length,
+            );
+        }
+    });
+
+    // Helper to process asset for vocabulary
+    const processAsset = (asset) =>
+        asset
+            ? {
+                  id: asset.id,
+                  path: asset.path,
+                  name: asset.filename,
+                  filename: asset.filename,
+                  type: "file",
+                  formats: asset.formats,
+              }
+            : null;
+
+    // Helper to get translation content
+    const getTranslationContent = (textObj, langId) =>
+        textObj?.translations?.find((t) => t.language_id === langId)?.content ||
+        "";
+
     // Prepare default values based on mode
     const getDefaultValues = () => {
-        if (mode === "edit" && initialData) {
-            console.log("Edit mode - initialData:", initialData);
-
-            // Process vocabularies to match VocabularyManager expected format
-            const processedVocabularies = (initialData.vocabularies || []).map(
-                (vocab) => {
-                    const processedVocab = {
-                        id: vocab.id,
-                        option: vocab.option?.content || "",
-                        description: vocab.description?.content || "",
-                        mainAssetFile: vocab.mainAsset
-                            ? {
-                                  id: vocab.mainAsset.id, // Include asset ID for existing assets
-                                  path: vocab.mainAsset.path,
-                                  name: vocab.mainAsset.filename,
-                                  filename: vocab.mainAsset.filename,
-                                  type: "file",
-                                  formats: vocab.mainAsset.formats,
-                              }
-                            : null,
-                        otherAssetsFiles: vocab.vocabulariesGenericAssets
-                            ? vocab.vocabulariesGenericAssets.map((va) => ({
-                                  id: va.genericAsset.id, // Include asset ID for existing assets
-                                  path: va.genericAsset.path,
-                                  name: va.genericAsset.filename,
-                                  filename: va.genericAsset.filename,
-                                  type: "file",
-                                  formats: va.genericAsset.formats,
-                              }))
-                            : [],
-                    };
-
-                    // Add vocabulary translations for secondary languages
-                    for (const lang of secondaryLanguages) {
-                        const optionTranslation =
-                            vocab.option?.translations?.find(
-                                (t) => t.language_id === lang.id,
-                            );
-                        const descriptionTranslation =
-                            vocab.description?.translations?.find(
-                                (t) => t.language_id === lang.id,
-                            );
-
-                        processedVocab[`option_${lang.id}`] =
-                            optionTranslation?.content || "";
-                        processedVocab[`description_${lang.id}`] =
-                            descriptionTranslation?.content || "";
-                    }
-
-                    return processedVocab;
-                },
-            );
-
-            // For edit mode, populate with existing data
-            const values = {
-                type: initialData.type || "free text",
-                name: initialData.name?.content || initialData.name || "",
-                description:
-                    initialData.description?.content ||
-                    initialData.description ||
-                    "",
-                vocabularies: processedVocabularies,
-            };
-
-            // Add translation fields for secondary languages
-            for (const lang of secondaryLanguages) {
-                // Find existing translations
-                const nameTranslation =
-                    initialData.name?.translations?.find(
-                        (t) => t.language_id === lang.id,
-                    ) ||
-                    initialData.nameTranslations?.find(
-                        (t) => t.language_id === lang.id,
-                    );
-                const descriptionTranslation =
-                    initialData.description?.translations?.find(
-                        (t) => t.language_id === lang.id,
-                    ) ||
-                    initialData.descriptionTranslations?.find(
-                        (t) => t.language_id === lang.id,
-                    );
-
-                values[`translations_${lang.id}_name`] =
-                    nameTranslation?.content || "";
-                values[`translations_${lang.id}_description`] =
-                    descriptionTranslation?.content || "";
-            }
-
-            console.log("Edit mode - computed values:", values);
-
-            return values;
-        } else {
-            // For create mode, use defaults
-            return {
-                type: "free text",
-                vocabularies: [],
-            };
+        if (mode !== "edit" || !initialData) {
+            return { type: "free text", vocabularies: [] };
         }
+
+        // Process vocabularies for edit mode
+        const processedVocabularies = (initialData.vocabularies || []).map(
+            (vocab) => {
+                const processedVocab = {
+                    id: vocab.id,
+                    option: vocab.option?.content || "",
+                    description: vocab.description?.content || "",
+                    mainAssetFile: processAsset(vocab.mainAsset),
+                    otherAssetsFiles:
+                        vocab.vocabulariesGenericAssets?.map((va) =>
+                            processAsset(va.genericAsset),
+                        ) || [],
+                };
+
+                // Add translations for secondary languages
+                secondaryLanguages.forEach((lang) => {
+                    processedVocab[`option_${lang.id}`] = getTranslationContent(
+                        vocab.option,
+                        lang.id,
+                    );
+                    processedVocab[`description_${lang.id}`] =
+                        getTranslationContent(vocab.description, lang.id);
+                });
+
+                return processedVocab;
+            },
+        );
+
+        const values = {
+            type: initialData.type || "free text",
+            name: initialData.name?.content || initialData.name || "",
+            description:
+                initialData.description?.content ||
+                initialData.description ||
+                "",
+            vocabularies: processedVocabularies,
+        };
+
+        // Add main field translations
+        secondaryLanguages.forEach((lang) => {
+            const nameTranslation =
+                getTranslationContent(initialData.name, lang.id) ||
+                initialData.nameTranslations?.find(
+                    (t) => t.language_id === lang.id,
+                )?.content ||
+                "";
+            const descriptionTranslation =
+                getTranslationContent(initialData.description, lang.id) ||
+                initialData.descriptionTranslations?.find(
+                    (t) => t.language_id === lang.id,
+                )?.content ||
+                "";
+
+            values[`translations_${lang.id}_name`] = nameTranslation;
+            values[`translations_${lang.id}_description`] =
+                descriptionTranslation;
+        });
+
+        return values;
     };
 
     // Dynamic uiSchema that updates based on selected type
@@ -204,6 +207,15 @@
                 structuredErrors: allValidationErrors,
                 maxVocabularies: 50,
                 selectedType: selectedType,
+                mode: mode,
+                initialData: initialData,
+                projectId: projectId,
+                onVocabulariesProcessed: (processingFunction) => {
+                    console.log(
+                        "ResearchFieldForm: Received vocabulary processing function",
+                    );
+                    vocabularyProcessingFunction = processingFunction;
+                },
             },
         },
     });
@@ -213,141 +225,16 @@
         getFormConfig("research_fields", validatorOperationName, {
             defaultValues: getDefaultValues(),
             onSubmit: async ({ value }) => {
-                console.log(`onSubmit called for ${mode} - form is valid!`);
-                console.log("Form value:", value);
-                console.log("Secondary languages:", secondaryLanguages);
                 try {
-                    // Prepare translation arrays for the mutation
-                    const nameTranslations = [];
-                    const descriptionTranslations = [];
+                    // Prepare translations
+                    const translations = prepareTranslations(value);
 
-                    for (const lang of secondaryLanguages) {
-                        const nameContent =
-                            value[`translations_${lang.id}_name`];
-                        const descriptionContent =
-                            value[`translations_${lang.id}_description`];
+                    const result =
+                        mode === "create"
+                            ? await handleCreate(value, translations)
+                            : await handleUpdate(value, translations);
 
-                        // Debug removed - translations are working correctly on frontend
-
-                        if (nameContent?.trim()) {
-                            nameTranslations.push({
-                                language_id: lang.id,
-                                content: nameContent,
-                            });
-                        }
-
-                        if (descriptionContent?.trim()) {
-                            descriptionTranslations.push({
-                                language_id: lang.id,
-                                content: descriptionContent,
-                            });
-                        }
-                    }
-
-                    // Translation arrays are correctly built - issue is in backend GraphQL resolver
-
-                    let result;
-
-                    if (mode === "create") {
-                        // Create mode
-                        const createParams = {
-                            projectId: value.projectId || projectId,
-                            languageId: value.languageId || defaultLanguage?.id,
-                            name: value.name,
-                            description: value.description,
-                            type: value.type,
-                            nameTranslations:
-                                nameTranslations.length > 0
-                                    ? nameTranslations
-                                    : undefined,
-                            descriptionTranslations:
-                                descriptionTranslations.length > 0
-                                    ? descriptionTranslations
-                                    : undefined,
-                        };
-
-                        result = await createResearchField(createParams);
-
-                        if (!result || !result.result) {
-                            console.error(
-                                "API call failed - no result returned",
-                            );
-                            throw new Error("Failed to create research field");
-                        }
-
-                        // Get the created research field ID and text IDs
-                        const researchFieldId = result.result?.[0]?.id;
-                        const nameId = result.result?.[0]?.name_id;
-                        const descriptionId =
-                            result.result?.[0]?.description_id;
-
-                        // Create translations for name and description
-                        await createTranslations(nameTranslations, nameId);
-                        await createTranslations(
-                            descriptionTranslations,
-                            descriptionId,
-                        );
-
-                        if (
-                            value.type === "vocabulary" &&
-                            value.vocabularies &&
-                            Array.isArray(value.vocabularies) &&
-                            value.vocabularies.length > 0
-                        ) {
-                            await processVocabularies(
-                                value.vocabularies,
-                                researchFieldId,
-                                value.projectId || projectId,
-                                value.languageId || defaultLanguage?.id,
-                                "create",
-                            );
-                        }
-                    } else {
-                        // Edit mode
-                        const updateParams = {
-                            type: value.type,
-                            name: value.name,
-                            description: value.description,
-                            nameTranslations:
-                                nameTranslations.length > 0
-                                    ? nameTranslations
-                                    : undefined,
-                            descriptionTranslations:
-                                descriptionTranslations.length > 0
-                                    ? descriptionTranslations
-                                    : undefined,
-                        };
-
-                        result = await updateResearchField(
-                            initialData.id,
-                            updateParams,
-                        );
-
-                        if (!result || result.error) {
-                            console.error("Update failed:", result?.error);
-                            throw new Error(
-                                result?.error ||
-                                    "Failed to update research field",
-                            );
-                        }
-
-                        // Handle vocabulary updates for edit mode
-                        if (
-                            value.type === "vocabulary" &&
-                            value.vocabularies &&
-                            Array.isArray(value.vocabularies)
-                        ) {
-                            await processVocabularies(
-                                value.vocabularies,
-                                initialData.id,
-                                value.projectId || projectId,
-                                value.languageId || defaultLanguage?.id,
-                                "edit",
-                            );
-                        }
-                    }
-
-                    // Call success callback if provided, otherwise navigate
+                    // Handle success
                     if (onSuccess) {
                         onSuccess(result);
                     } else {
@@ -369,28 +256,118 @@
         }),
     );
 
-    // Helper function to link other assets to a vocabulary
-    async function linkVocabularyAssets(vocabularyId, assetIds) {
-        if (!assetIds || assetIds.length === 0) return;
+    // Helper to prepare translations from form values
+    const prepareTranslations = (value) => {
+        const nameTranslations = [];
+        const descriptionTranslations = [];
 
-        try {
-            // Create the junction table entries
-            const values = assetIds.map((assetId, index) => ({
-                vocabulary_id: vocabularyId,
-                generic_asset_id: assetId,
-                order: index,
-            }));
+        secondaryLanguages.forEach((lang) => {
+            const nameContent = value[`translations_${lang.id}_name`];
+            const descriptionContent =
+                value[`translations_${lang.id}_description`];
 
-            const result = await executeQuery("vocabulary_assets", "create", {
-                values,
-            });
-            console.log("Vocabulary assets linked successfully:", result);
-            return result;
-        } catch (error) {
-            console.error("Error linking vocabulary assets:", error);
-            throw error;
+            if (nameContent?.trim()) {
+                nameTranslations.push({
+                    language_id: lang.id,
+                    content: nameContent,
+                });
+            }
+            if (descriptionContent?.trim()) {
+                descriptionTranslations.push({
+                    language_id: lang.id,
+                    content: descriptionContent,
+                });
+            }
+        });
+
+        return { nameTranslations, descriptionTranslations };
+    };
+
+    // Handle create mode
+    const handleCreate = async (
+        value,
+        { nameTranslations, descriptionTranslations },
+    ) => {
+        const createParams = {
+            projectId: value.projectId || projectId,
+            languageId: value.languageId || defaultLanguage?.id,
+            name: value.name,
+            description: value.description,
+            type: value.type,
+            nameTranslations:
+                nameTranslations.length > 0 ? nameTranslations : undefined,
+            descriptionTranslations:
+                descriptionTranslations.length > 0
+                    ? descriptionTranslations
+                    : undefined,
+        };
+
+        const result = await createResearchField(createParams);
+        if (!result?.result) throw new Error("Failed to create research field");
+
+        const researchFieldId = result.result[0]?.id;
+        const nameId = result.result[0]?.name_id;
+        const descriptionId = result.result[0]?.description_id;
+
+        // Create translations
+        await createTranslations(nameTranslations, nameId);
+        await createTranslations(descriptionTranslations, descriptionId);
+
+        // Handle vocabularies
+        if (
+            value.type === "vocabulary" &&
+            value.vocabularies?.length > 0 &&
+            vocabularyProcessingFunction
+        ) {
+            await vocabularyProcessingFunction(
+                researchFieldId,
+                value.projectId || projectId,
+                value.languageId || defaultLanguage?.id,
+                "create",
+            );
         }
-    }
+
+        return result;
+    };
+
+    // Handle update mode
+    const handleUpdate = async (
+        value,
+        { nameTranslations, descriptionTranslations },
+    ) => {
+        const updateParams = {
+            type: value.type,
+            name: value.name,
+            description: value.description,
+            nameTranslations:
+                nameTranslations.length > 0 ? nameTranslations : undefined,
+            descriptionTranslations:
+                descriptionTranslations.length > 0
+                    ? descriptionTranslations
+                    : undefined,
+        };
+
+        const result = await updateResearchField(initialData.id, updateParams);
+        if (!result || result.error) {
+            throw new Error(result?.error || "Failed to update research field");
+        }
+
+        // Handle vocabularies
+        if (
+            value.type === "vocabulary" &&
+            value.vocabularies &&
+            vocabularyProcessingFunction
+        ) {
+            await vocabularyProcessingFunction(
+                initialData.id,
+                value.projectId || projectId,
+                value.languageId || defaultLanguage?.id,
+                "edit",
+            );
+        }
+
+        return result;
+    };
 
     // Helper function to create translations for a text field
     async function createTranslations(translations, textId) {
@@ -403,17 +380,11 @@
             return;
         }
 
-        console.log(
-            `Creating ${translations.length} translations for text ID ${textId}`,
-        );
-
         for (const translation of translations) {
             try {
-                // Find the language code from the language ID
                 const language = secondaryLanguages.find(
                     (lang) => lang.id === translation.language_id,
                 );
-
                 if (!language) {
                     console.error(
                         `Language not found for ID: ${translation.language_id}`,
@@ -421,321 +392,15 @@
                     continue;
                 }
 
-                const result = await addTranslation(
+                await addTranslation(
                     textId,
                     language.code,
                     translation.content,
                 );
-
-                console.log("Translation created successfully:", result);
             } catch (error) {
                 console.error("Error creating translation:", error);
             }
         }
-    }
-
-    // Helper function to process vocabularies (create/update/delete)
-    async function processVocabularies(
-        vocabularies,
-        researchFieldId,
-        projectId,
-        languageId,
-        mode,
-    ) {
-        console.log(
-            "Processing",
-            vocabularies.length,
-            "vocabularies for",
-            mode,
-            "mode",
-        );
-
-        if (mode === "edit") {
-            // For edit mode, we need to handle creates, updates, and deletes
-            const existingVocabs = initialData.vocabularies || [];
-            const currentVocabs = vocabularies.filter((vocab) =>
-                vocab.option?.trim(),
-            );
-
-            // Find vocabularies to delete (exist in initial data but not in current)
-            const vocabsToDelete = existingVocabs.filter(
-                (existing) =>
-                    !currentVocabs.find(
-                        (current) => current.id === existing.id,
-                    ),
-            );
-
-            // Delete vocabularies
-            for (const vocab of vocabsToDelete) {
-                try {
-                    await deleteVocabulary(vocab.id);
-                } catch (error) {
-                    console.error("Error deleting vocabulary:", error);
-                }
-            }
-
-            // Process current vocabularies (create new ones, update existing ones)
-            for (const vocab of currentVocabs) {
-                try {
-                    if (vocab.id) {
-                        // Update existing vocabulary
-                        await updateExistingVocabulary(vocab, languageId);
-                    } else {
-                        // Create new vocabulary
-                        await createNewVocabulary(
-                            vocab,
-                            researchFieldId,
-                            projectId,
-                            languageId,
-                        );
-                    }
-                } catch (error) {
-                    console.error("Error processing vocabulary:", error);
-                }
-            }
-        } else {
-            // Create mode - just create all vocabularies
-            const vocabularyPromises = vocabularies
-                .filter((vocab) => vocab.option?.trim())
-                .map((vocab) =>
-                    createNewVocabulary(
-                        vocab,
-                        researchFieldId,
-                        projectId,
-                        languageId,
-                    ),
-                );
-
-            await Promise.all(vocabularyPromises);
-        }
-    }
-
-    // Helper function to create a new vocabulary
-    async function createNewVocabulary(
-        vocab,
-        researchFieldId,
-        projectId,
-        languageId,
-    ) {
-        // Handle file uploads first
-        let mainAssetId = null;
-        let otherAssetIds = [];
-
-        // Upload main asset if provided
-        if (vocab.mainAssetFile && vocab.mainAssetFile.path) {
-            try {
-                console.log("Uploading main asset file:", vocab.mainAssetFile);
-                const mainAssetResult = await window.api.importAssets({
-                    path: [vocab.mainAssetFile.path],
-                    projectId: projectId,
-                    isGenericAsset: true,
-                });
-                console.log("Main asset upload result:", mainAssetResult);
-                if (mainAssetResult?.createdAssets?.length > 0) {
-                    mainAssetId = mainAssetResult.createdAssets[0].id;
-                    console.log("Main asset ID:", mainAssetId);
-                }
-            } catch (error) {
-                console.error("Error uploading main asset:", error);
-            }
-        }
-
-        // Upload other assets if provided
-        if (vocab.otherAssetsFiles && Array.isArray(vocab.otherAssetsFiles)) {
-            for (const file of vocab.otherAssetsFiles) {
-                if (file && file.path) {
-                    try {
-                        const otherAssetResult = await window.api.importAssets({
-                            path: [file.path],
-                            projectId: projectId,
-                            isGenericAsset: true,
-                        });
-                        if (otherAssetResult?.createdAssets?.length > 0) {
-                            otherAssetIds.push(
-                                otherAssetResult.createdAssets[0].id,
-                            );
-                        }
-                    } catch (error) {
-                        console.error("Error uploading other asset:", error);
-                    }
-                }
-            }
-        }
-
-        // Prepare vocabulary translation arrays
-        const optionTranslations = [];
-        const descriptionTranslations = [];
-
-        for (const lang of secondaryLanguages) {
-            const optionKey = `option_${lang.id}`;
-            const descriptionKey = `description_${lang.id}`;
-
-            if (vocab[optionKey]?.trim()) {
-                optionTranslations.push({
-                    language_id: lang.id,
-                    content: vocab[optionKey],
-                });
-            }
-
-            if (vocab[descriptionKey]?.trim()) {
-                descriptionTranslations.push({
-                    language_id: lang.id,
-                    content: vocab[descriptionKey],
-                });
-            }
-        }
-
-        const vocabParams = {
-            languageId: languageId,
-            option: vocab.option,
-            description: vocab.description || "",
-            mainAsset: mainAssetId,
-            otherAssets: otherAssetIds,
-            optionTranslations:
-                optionTranslations.length > 0 ? optionTranslations : undefined,
-            descriptionTranslations:
-                descriptionTranslations.length > 0
-                    ? descriptionTranslations
-                    : undefined,
-        };
-
-        console.log(
-            "Vocabulary params being sent to addVocabulary:",
-            vocabParams,
-        );
-        const result = await addVocabulary(researchFieldId, vocabParams);
-        console.log("addVocabulary result:", result);
-
-        // Create translations for vocabulary option and description, and link other assets
-        if (result && result.result) {
-            // The vocabulary creation should return the created vocabulary with option_id and description_id
-            const createdVocabulary = result.result.insertIntoVocabularies?.[0];
-            if (createdVocabulary) {
-                await createTranslations(
-                    optionTranslations,
-                    createdVocabulary.option_id,
-                );
-                await createTranslations(
-                    descriptionTranslations,
-                    createdVocabulary.description_id,
-                );
-
-                // Link other assets to vocabulary
-                if (otherAssetIds.length > 0) {
-                    console.log(
-                        "Linking other assets to vocabulary:",
-                        otherAssetIds,
-                    );
-                    await linkVocabularyAssets(
-                        createdVocabulary.id,
-                        otherAssetIds,
-                    );
-                }
-            }
-        }
-
-        return result;
-    }
-
-    // Helper function to update an existing vocabulary
-    async function updateExistingVocabulary(vocab, languageId) {
-        // Prepare vocabulary translation arrays
-        const optionTranslations = [];
-        const descriptionTranslations = [];
-
-        for (const lang of secondaryLanguages) {
-            const optionKey = `option_${lang.id}`;
-            const descriptionKey = `description_${lang.id}`;
-
-            if (vocab[optionKey]?.trim()) {
-                optionTranslations.push({
-                    language_id: lang.id,
-                    content: vocab[optionKey],
-                });
-            }
-
-            if (vocab[descriptionKey]?.trim()) {
-                descriptionTranslations.push({
-                    language_id: lang.id,
-                    content: vocab[descriptionKey],
-                });
-            }
-        }
-
-        // Handle main asset - if mainAssetFile is null, explicitly set mainAsset to null
-        let mainAssetId = null;
-        if (vocab.mainAssetFile) {
-            // If it's an existing asset (has id), use the id
-            if (vocab.mainAssetFile.id) {
-                mainAssetId = vocab.mainAssetFile.id;
-            } else if (vocab.mainAssetFile.path) {
-                // If it's a new file upload, we need to upload it first
-                try {
-                    const mainAssetResult = await window.api.importAssets({
-                        path: [vocab.mainAssetFile.path],
-                        projectId: projectId,
-                        isGenericAsset: true,
-                    });
-                    if (mainAssetResult?.createdAssets?.length > 0) {
-                        mainAssetId = mainAssetResult.createdAssets[0].id;
-                    }
-                } catch (error) {
-                    console.error(
-                        "Error uploading main asset during update:",
-                        error,
-                    );
-                }
-            }
-        }
-
-        // Handle other assets - similar logic
-        let otherAssetIds = [];
-        if (vocab.otherAssetsFiles && Array.isArray(vocab.otherAssetsFiles)) {
-            for (const file of vocab.otherAssetsFiles) {
-                if (file && file.id) {
-                    // Existing asset
-                    otherAssetIds.push(file.id);
-                } else if (file && file.path) {
-                    // New file upload
-                    try {
-                        const otherAssetResult = await window.api.importAssets({
-                            path: [file.path],
-                            projectId: projectId,
-                            isGenericAsset: true,
-                        });
-                        if (otherAssetResult?.createdAssets?.length > 0) {
-                            otherAssetIds.push(
-                                otherAssetResult.createdAssets[0].id,
-                            );
-                        }
-                    } catch (error) {
-                        console.error(
-                            "Error uploading other asset during update:",
-                            error,
-                        );
-                    }
-                }
-            }
-        }
-
-        const updateData = {
-            option: vocab.option,
-            description: vocab.description || "",
-            mainAsset: mainAssetId, // This will be null if asset was removed
-            otherAssets: otherAssetIds.length > 0 ? otherAssetIds : null,
-            optionTranslations:
-                optionTranslations.length > 0 ? optionTranslations : undefined,
-            descriptionTranslations:
-                descriptionTranslations.length > 0
-                    ? descriptionTranslations
-                    : undefined,
-        };
-
-        console.log(`Updating vocabulary ${vocab.id} with:`, updateData);
-        console.log(`mainAssetFile was:`, vocab.mainAssetFile);
-        console.log(`Computed mainAssetId:`, mainAssetId);
-
-        return updateVocabulary(vocab.id, updateData);
     }
 
     // Determine title and description based on mode

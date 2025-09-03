@@ -445,7 +445,7 @@ export const researchFieldsOperations = {
       vocabularyId: "ID of the vocabulary to delete"
     },
     query: `mutation DeleteVocabulary($vocabularyId: String!) {
-  deleteFromVocabularies(where: { id: { eq: $vocabularyId } }) {
+  result: deleteFromVocabularies(where: { id: { eq: $vocabularyId } }) {
     id
     option_id
     description_id

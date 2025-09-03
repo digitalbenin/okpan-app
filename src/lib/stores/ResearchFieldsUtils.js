@@ -219,5 +219,5 @@ export const deleteVocabulary = async (vocabularyId) => {
         return { result: null, error: result.error };
     }
     invalidate("app:research-fields");
-    return { result, error: null };
+    return { result: result.result || result, error: null };
 };
