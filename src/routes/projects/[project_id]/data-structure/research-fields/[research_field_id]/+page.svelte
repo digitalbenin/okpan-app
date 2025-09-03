@@ -21,7 +21,7 @@
   }
 </script>
 
-<div class="container-fluid my-4">
+<div class="container-fluid mt-4 p-0">
   <ResearchFieldForm
     {languages}
     mode="edit"

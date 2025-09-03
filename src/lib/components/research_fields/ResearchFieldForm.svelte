@@ -486,24 +486,42 @@
                 />
             </div>
         </div>
+    </div>
+</form>
 
-        <div class="row mt-4">
-            <div class="col-12 d-flex justify-content-end gap-2">
+<!-- Sticky bottom action bar -->
+<div class="sticky-bottom-bar">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12 d-flex justify-content-end gap-2 p-2">
                 {#if onCancel}
                     <BaseButton
                         type="button"
-                        class="btn btn-secondary"
+                        class="btn btn-sm btn-secondary"
                         text={t("common.cancel", { fallback: "Cancel" })}
                         onClick={onCancel}
                     />
                 {/if}
                 <BaseButton
                     type="button"
-                    class="btn btn-success"
+                    class="btn btn-sm btn-success"
                     text={t("common.confirm", { fallback: "Confirm" })}
                     onClick={() => form.handleSubmit()}
                 />
             </div>
         </div>
     </div>
-</form>
+</div>
+
+<style>
+    .sticky-bottom-bar {
+        position: sticky;
+        bottom: 0;
+        background-color: white;
+        border-top: 1px solid #dee2e6;
+        margin-top: 0;
+        z-index: 10;
+    }
+
+    /* Add some bottom margin to prevent content from being hidden */
+</style>
