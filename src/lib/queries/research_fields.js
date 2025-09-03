@@ -530,8 +530,8 @@ export const researchFieldsOperations = {
     main_asset_id
   }
 }`,
-        useVariables: ["vocabularyId", "mainAsset"],
-        skipIf: { variableName: "mainAsset", isUndefined: true }
+        useVariables: ["vocabularyId", "mainAsset"]
+        // Removed skipIf condition to allow null values for asset removal
       },
       // === TRANSLATION PROCESSING STEPS ===
       {

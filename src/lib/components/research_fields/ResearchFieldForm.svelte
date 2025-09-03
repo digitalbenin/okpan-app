@@ -47,8 +47,9 @@
     // Translation state - only for translatable fields
     const translatableFields = ["name", "description"];
 
-    // Get appropriate validator based on mode
-    const validator = getValidator("research_fields", mode);
+    // Get appropriate validator based on mode - map 'edit' to 'update' for API compatibility
+    const validatorOperationName = mode === "edit" ? "update" : mode;
+    const validator = getValidator("research_fields", validatorOperationName);
 
     // Store all validation errors for components to use
     let allValidationErrors = $state([]);
@@ -77,16 +78,22 @@
                         description: vocab.description?.content || "",
                         mainAssetFile: vocab.mainAsset
                             ? {
+                                  id: vocab.mainAsset.id, // Include asset ID for existing assets
                                   path: vocab.mainAsset.path,
                                   name: vocab.mainAsset.filename,
+                                  filename: vocab.mainAsset.filename,
                                   type: "file",
+                                  formats: vocab.mainAsset.formats,
                               }
                             : null,
                         otherAssetsFiles: vocab.vocabulariesGenericAssets
                             ? vocab.vocabulariesGenericAssets.map((va) => ({
+                                  id: va.genericAsset.id, // Include asset ID for existing assets
                                   path: va.genericAsset.path,
                                   name: va.genericAsset.filename,
+                                  filename: va.genericAsset.filename,
                                   type: "file",
+                                  formats: va.genericAsset.formats,
                               }))
                             : [],
                     };
@@ -203,7 +210,7 @@
 
     // Create form instance using optimized config
     const form = createForm(() =>
-        getFormConfig("research_fields", mode, {
+        getFormConfig("research_fields", validatorOperationName, {
             defaultValues: getDefaultValues(),
             onSubmit: async ({ value }) => {
                 console.log(`onSubmit called for ${mode} - form is valid!`);
@@ -655,18 +662,80 @@
             }
         }
 
-        return updateVocabulary(vocab.id, {
+        // Handle main asset - if mainAssetFile is null, explicitly set mainAsset to null
+        let mainAssetId = null;
+        if (vocab.mainAssetFile) {
+            // If it's an existing asset (has id), use the id
+            if (vocab.mainAssetFile.id) {
+                mainAssetId = vocab.mainAssetFile.id;
+            } else if (vocab.mainAssetFile.path) {
+                // If it's a new file upload, we need to upload it first
+                try {
+                    const mainAssetResult = await window.api.importAssets({
+                        path: [vocab.mainAssetFile.path],
+                        projectId: projectId,
+                        isGenericAsset: true,
+                    });
+                    if (mainAssetResult?.createdAssets?.length > 0) {
+                        mainAssetId = mainAssetResult.createdAssets[0].id;
+                    }
+                } catch (error) {
+                    console.error(
+                        "Error uploading main asset during update:",
+                        error,
+                    );
+                }
+            }
+        }
+
+        // Handle other assets - similar logic
+        let otherAssetIds = [];
+        if (vocab.otherAssetsFiles && Array.isArray(vocab.otherAssetsFiles)) {
+            for (const file of vocab.otherAssetsFiles) {
+                if (file && file.id) {
+                    // Existing asset
+                    otherAssetIds.push(file.id);
+                } else if (file && file.path) {
+                    // New file upload
+                    try {
+                        const otherAssetResult = await window.api.importAssets({
+                            path: [file.path],
+                            projectId: projectId,
+                            isGenericAsset: true,
+                        });
+                        if (otherAssetResult?.createdAssets?.length > 0) {
+                            otherAssetIds.push(
+                                otherAssetResult.createdAssets[0].id,
+                            );
+                        }
+                    } catch (error) {
+                        console.error(
+                            "Error uploading other asset during update:",
+                            error,
+                        );
+                    }
+                }
+            }
+        }
+
+        const updateData = {
             option: vocab.option,
             description: vocab.description || "",
-            mainAsset: vocab.mainAsset,
-            otherAssets: vocab.otherAssets,
+            mainAsset: mainAssetId, // This will be null if asset was removed
+            otherAssets: otherAssetIds.length > 0 ? otherAssetIds : null,
             optionTranslations:
                 optionTranslations.length > 0 ? optionTranslations : undefined,
             descriptionTranslations:
                 descriptionTranslations.length > 0
                     ? descriptionTranslations
                     : undefined,
-        });
+        };
+
+        console.log(`Updating vocabulary ${vocab.id} with:`, updateData);
+        console.log(`mainAssetFile was:`, vocab.mainAssetFile);
+        console.log(`Computed mainAssetId:`, mainAssetId);
+
+        return updateVocabulary(vocab.id, updateData);
     }
 
     // Determine title and description based on mode
@@ -715,12 +784,15 @@
                     {validator}
                     {createFieldValidator}
                     entity={"research_fields"}
-                    operation={mode}
+                    operation={validatorOperationName}
                     {languages}
                     {translatableFields}
                     setStructuredErrors={setAllValidationErrors}
                     defaultColSize={6}
-                    translationsValidator={getValidator("translations", mode)}
+                    translationsValidator={getValidator(
+                        "translations",
+                        validatorOperationName,
+                    )}
                     fieldOrder={["type", "vocabularies"]}
                     {uiSchema}
                     hiddenValueProviders={{

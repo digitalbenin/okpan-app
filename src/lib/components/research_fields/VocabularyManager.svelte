@@ -1,6 +1,7 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import AssetPreview from "$lib/components/research_fields/AssetPreview.svelte";
 
     const { t } = getTranslationStore();
 
@@ -455,25 +456,25 @@
                                     fallback: "Main Asset",
                                 })}
                             </label>
-                            <div class="d-flex align-items-center gap-2">
-                                <BaseButton
-                                    text="Select File"
-                                    icon="folder-open"
-                                    class="btn btn-outline-primary btn-sm"
-                                    onClick={() =>
-                                        handleFileUpload(
-                                            index,
-                                            "mainAssetFile",
-                                        )}
-                                />
-                                {#if vocab.mainAssetFile}
-                                    <span class="text-muted small"
-                                        >{vocab.mainAssetFile.name}</span
-                                    >
+                            <div class="d-flex align-items-start gap-3">
+                                <div class="flex-shrink-0">
                                     <BaseButton
-                                        icon="x"
-                                        class="btn btn-outline-danger btn-sm"
+                                        text="Select File"
+                                        icon="folder-open"
+                                        class="btn btn-outline-primary btn-sm"
                                         onClick={() =>
+                                            handleFileUpload(
+                                                index,
+                                                "mainAssetFile",
+                                            )}
+                                    />
+                                </div>
+                                {#if vocab.mainAssetFile}
+                                    <AssetPreview
+                                        asset={vocab.mainAssetFile}
+                                        size={150}
+                                        showRemoveButton={true}
+                                        onRemove={() =>
                                             updateVocabulary(
                                                 index,
                                                 "mainAssetFile",
@@ -491,42 +492,58 @@
                                     fallback: "Other Assets",
                                 })}
                             </label>
-                            <div class="d-flex align-items-center gap-2">
-                                <BaseButton
-                                    text="Select Files"
-                                    icon="folder-open"
-                                    class="btn btn-outline-primary btn-sm"
-                                    onClick={() =>
-                                        handleMultipleFileUpload(
-                                            index,
-                                            "otherAssetsFiles",
-                                        )}
-                                />
-                                {#if vocab.otherAssetsFiles && vocab.otherAssetsFiles.length > 0}
-                                    <span class="text-muted small"
-                                        >{vocab.otherAssetsFiles.length} file(s)</span
-                                    >
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex align-items-center gap-2">
                                     <BaseButton
-                                        icon="x"
-                                        class="btn btn-outline-danger btn-sm"
+                                        text="Select Files"
+                                        icon="folder-open"
+                                        class="btn btn-outline-primary btn-sm"
                                         onClick={() =>
-                                            updateVocabulary(
+                                            handleMultipleFileUpload(
                                                 index,
                                                 "otherAssetsFiles",
-                                                [],
                                             )}
                                     />
+                                    {#if vocab.otherAssetsFiles && vocab.otherAssetsFiles.length > 0}
+                                        <span class="text-muted small"
+                                            >{vocab.otherAssetsFiles.length} file(s)</span
+                                        >
+                                        <BaseButton
+                                            icon="x"
+                                            class="btn btn-outline-danger btn-sm"
+                                            onClick={() =>
+                                                updateVocabulary(
+                                                    index,
+                                                    "otherAssetsFiles",
+                                                    [],
+                                                )}
+                                        />
+                                    {/if}
+                                </div>
+                                {#if vocab.otherAssetsFiles && vocab.otherAssetsFiles.length > 0}
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {#each vocab.otherAssetsFiles as file, fileIndex}
+                                            <AssetPreview
+                                                asset={file}
+                                                size={150}
+                                                showRemoveButton={true}
+                                                onRemove={() => {
+                                                    const updatedFiles =
+                                                        vocab.otherAssetsFiles.filter(
+                                                            (_, i) =>
+                                                                i !== fileIndex,
+                                                        );
+                                                    updateVocabulary(
+                                                        index,
+                                                        "otherAssetsFiles",
+                                                        updatedFiles,
+                                                    );
+                                                }}
+                                            />
+                                        {/each}
+                                    </div>
                                 {/if}
                             </div>
-                            {#if vocab.otherAssetsFiles && vocab.otherAssetsFiles.length > 0}
-                                <div class="mt-1">
-                                    {#each vocab.otherAssetsFiles as file, fileIndex}
-                                        <small class="text-muted d-block"
-                                            >{file.name}</small
-                                        >
-                                    {/each}
-                                </div>
-                            {/if}
                         </div>
                     </div>
                 </div>

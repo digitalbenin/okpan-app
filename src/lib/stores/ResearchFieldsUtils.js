@@ -159,7 +159,8 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
         }
     });
 
-
+    console.log('updateVocabulary: Sending parameters:', updateParams);
+    console.log('updateVocabulary: mainAsset value:', updateParams.mainAsset);
 
     // Execute the multi-step mutation
     const result = await executeQuery('research_fields', 'updateVocabulary', updateParams);
