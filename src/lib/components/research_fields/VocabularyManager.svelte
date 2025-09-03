@@ -621,37 +621,47 @@
                 </small>
             </div>
         {:else}
-            {#each vocabularies as vocab, index}
-                <div class="vocabulary-item border rounded p-3 mb-3">
-                    <div
-                        class="d-flex justify-content-between align-items-start mb-3"
-                    >
-                        <h6 class="mb-0">
-                            {t("common.vocabulary-option", {
-                                fallback: "Vocabulary Option",
-                            })}
-                            {index + 1}
-                        </h6>
-                        <BaseButton
-                            type="button"
-                            class="btn btn-sm btn-outline-danger"
-                            icon="trash"
-                            text=""
-                            onClick={() => removeVocabulary(index)}
-                        />
+            <!-- Header Row -->
+            <div class="row g-0 bg-secondary-subtle rounded-top border">
+                <div class="col-4 p-3 border-end">
+                    <div class="d-flex align-items-center gap-2">
+                        <strong
+                            >{t("common.label", { fallback: "Label" })}</strong
+                        >
                     </div>
+                </div>
+                <div class="col-4 p-3 border-end">
+                    <div class="d-flex align-items-center gap-2">
+                        <strong
+                            >{t("common.description", {
+                                fallback: "Description",
+                            })}</strong
+                        >
+                    </div>
+                </div>
+                <div class="col-4 p-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <strong
+                            >{t("common.media", { fallback: "Media" })}</strong
+                        >
+                    </div>
+                </div>
+            </div>
 
-                    <!-- Main Fields Row -->
-                    <div class="row g-3 mb-3">
-                        <!-- Option -->
-                        <div class="col-md-6">
-                            {#if activeLanguageCode === "default"}
-                                <label class="form-label">
-                                    {t("common.option", { fallback: "Option" })}
-                                    ({defaultLanguage?.code || "default"})
-                                    <span class="text-danger">*</span>
-                                </label>
-                                {#if true}
+            {#each vocabularies as vocab, index}
+                <div
+                    class="row g-0 border border-top-0 {index ===
+                    vocabularies.length - 1
+                        ? 'rounded-bottom'
+                        : ''}"
+                >
+                    <!-- Option Column -->
+                    <div class="col-4 p-3 border-end">
+                        <div
+                            class="d-flex align-items-center justify-content-start gap-2"
+                        >
+                            <div class="flex-grow-1">
+                                {#if activeLanguageCode === "default"}
                                     {@const fieldErrors = getFieldErrors(
                                         index,
                                         "option",
@@ -682,144 +692,129 @@
                                             {fieldErrors.join(", ")}
                                         </div>
                                     {/if}
-                                {/if}
-                            {:else}
-                                {@const currentLang = languages.find(
-                                    (l) => l.id === activeLanguageCode,
-                                )}
-                                {#if currentLang}
-                                    <label class="form-label">
-                                        {t("common.option", {
-                                            fallback: "Option",
-                                        })}
-                                        ({currentLang.code})
-                                        <span class="text-danger">*</span>
-                                    </label>
-                                    {@const fieldErrors = getFieldErrors(
-                                        index,
-                                        `option_${currentLang.id}`,
+                                {:else}
+                                    {@const currentLang = languages.find(
+                                        (l) => l.id === activeLanguageCode,
                                     )}
-                                    <input
-                                        type="text"
-                                        class="form-control {fieldErrors.length >
-                                        0
-                                            ? 'is-invalid'
-                                            : ''}"
-                                        placeholder={t(
-                                            "common.vocabulary-option-translation-placeholder",
-                                            {
-                                                fallback: `Option in ${currentLang.name}...`,
-                                            },
+                                    {#if currentLang}
+                                        {@const fieldErrors = getFieldErrors(
+                                            index,
+                                            `option_${currentLang.id}`,
                                         )}
-                                        value={vocab[
-                                            `option_${currentLang.id}`
-                                        ] || ""}
-                                        oninput={(e) =>
-                                            updateVocabulary(
-                                                index,
-                                                `option_${currentLang.id}`,
-                                                e.target.value,
+                                        <input
+                                            type="text"
+                                            class="form-control {fieldErrors.length >
+                                            0
+                                                ? 'is-invalid'
+                                                : ''}"
+                                            placeholder={t(
+                                                "common.vocabulary-option-translation-placeholder",
+                                                {
+                                                    fallback: `Option in ${currentLang.name}...`,
+                                                },
                                             )}
-                                    />
-                                    {#if fieldErrors.length > 0}
-                                        <div class="invalid-feedback">
-                                            {fieldErrors.join(", ")}
-                                        </div>
+                                            value={vocab[
+                                                `option_${currentLang.id}`
+                                            ] || ""}
+                                            oninput={(e) =>
+                                                updateVocabulary(
+                                                    index,
+                                                    `option_${currentLang.id}`,
+                                                    e.target.value,
+                                                )}
+                                        />
+                                        {#if fieldErrors.length > 0}
+                                            <div class="invalid-feedback">
+                                                {fieldErrors.join(", ")}
+                                            </div>
+                                        {/if}
                                     {/if}
                                 {/if}
-                            {/if}
-                        </div>
-
-                        <!-- Description -->
-                        <div class="col-md-6">
-                            {#if activeLanguageCode === "default"}
-                                <label class="form-label">
-                                    {t("common.description", {
-                                        fallback: "Description",
-                                    })}
-                                    ({defaultLanguage?.code || "default"})
-                                </label>
-                                {#if true}
-                                    {@const fieldErrors = getFieldErrors(
-                                        index,
-                                        "description",
-                                    )}
-                                    <input
-                                        type="text"
-                                        class="form-control {fieldErrors.length >
-                                        0
-                                            ? 'is-invalid'
-                                            : ''}"
-                                        placeholder={t(
-                                            "common.vocabulary-description-placeholder",
-                                            {
-                                                fallback:
-                                                    "Optional description...",
-                                            },
-                                        )}
-                                        value={vocab.description || ""}
-                                        oninput={(e) =>
-                                            updateVocabulary(
-                                                index,
-                                                "description",
-                                                e.target.value,
-                                            )}
-                                    />
-                                    {#if fieldErrors.length > 0}
-                                        <div class="invalid-feedback">
-                                            {fieldErrors.join(", ")}
-                                        </div>
-                                    {/if}
-                                {/if}
-                            {:else}
-                                {@const currentLang = languages.find(
-                                    (l) => l.id === activeLanguageCode,
-                                )}
-                                {#if currentLang}
-                                    <label class="form-label">
-                                        {t("common.description", {
-                                            fallback: "Description",
-                                        })}
-                                        ({currentLang.code})
-                                    </label>
-                                    {@const fieldErrors = getFieldErrors(
-                                        index,
-                                        `description_${currentLang.id}`,
-                                    )}
-                                    <input
-                                        type="text"
-                                        class="form-control {fieldErrors.length >
-                                        0
-                                            ? 'is-invalid'
-                                            : ''}"
-                                        placeholder={t(
-                                            "common.vocabulary-description-translation-placeholder",
-                                            {
-                                                fallback: `Description in ${currentLang.name}...`,
-                                            },
-                                        )}
-                                        value={vocab[
-                                            `description_${currentLang.id}`
-                                        ] || ""}
-                                        oninput={(e) =>
-                                            updateVocabulary(
-                                                index,
-                                                `description_${currentLang.id}`,
-                                                e.target.value,
-                                            )}
-                                    />
-                                    {#if fieldErrors.length > 0}
-                                        <div class="invalid-feedback">
-                                            {fieldErrors.join(", ")}
-                                        </div>
-                                    {/if}
-                                {/if}
-                            {/if}
+                            </div>
+                            <!-- Delete Button -->
+                            <BaseButton
+                                type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                icon="trash"
+                                text=""
+                                title="Delete vocabulary option"
+                                onClick={() => removeVocabulary(index)}
+                            />
                         </div>
                     </div>
 
-                    <!-- Media Manager -->
-                    <div class="mb-3">
+                    <!-- Description Column -->
+                    <div class="col-4 p-3 border-end">
+                        {#if activeLanguageCode === "default"}
+                            {@const fieldErrors = getFieldErrors(
+                                index,
+                                "description",
+                            )}
+                            <textarea
+                                class="form-control {fieldErrors.length > 0
+                                    ? 'is-invalid'
+                                    : ''}"
+                                rows="3"
+                                placeholder={t(
+                                    "common.vocabulary-description-placeholder",
+                                    {
+                                        fallback: "Optional description...",
+                                    },
+                                )}
+                                value={vocab.description || ""}
+                                oninput={(e) =>
+                                    updateVocabulary(
+                                        index,
+                                        "description",
+                                        e.target.value,
+                                    )}
+                            ></textarea>
+                            {#if fieldErrors.length > 0}
+                                <div class="invalid-feedback">
+                                    {fieldErrors.join(", ")}
+                                </div>
+                            {/if}
+                        {:else}
+                            {@const currentLang = languages.find(
+                                (l) => l.id === activeLanguageCode,
+                            )}
+                            {#if currentLang}
+                                {@const fieldErrors = getFieldErrors(
+                                    index,
+                                    `description_${currentLang.id}`,
+                                )}
+                                <textarea
+                                    class="form-control {fieldErrors.length > 0
+                                        ? 'is-invalid'
+                                        : ''}"
+                                    rows="3"
+                                    placeholder={t(
+                                        "common.vocabulary-description-translation-placeholder",
+                                        {
+                                            fallback: `Description in ${currentLang.name}...`,
+                                        },
+                                    )}
+                                    value={vocab[
+                                        `description_${currentLang.id}`
+                                    ] || ""}
+                                    oninput={(e) =>
+                                        updateVocabulary(
+                                            index,
+                                            `description_${currentLang.id}`,
+                                            e.target.value,
+                                        )}
+                                ></textarea>
+                                {#if fieldErrors.length > 0}
+                                    <div class="invalid-feedback">
+                                        {fieldErrors.join(", ")}
+                                    </div>
+                                {/if}
+                            {/if}
+                        {/if}
+                    </div>
+
+                    <!-- Media Column -->
+                    <div class="col-4 p-3">
                         <MediaManager
                             bind:mainAsset={vocab.mainAssetFile}
                             bind:otherAssets={vocab.otherAssetsFiles}

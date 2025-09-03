@@ -121,17 +121,13 @@
     const canAddMore = $derived(totalAssets < maxAssets);
 </script>
 
-<div class="border rounded p-3 bg-white {customClass}">
+<div class={customClass}>
     <!-- Header with upload button -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0">
-            {t("common.media", { fallback: "Media" })}
-        </h6>
-
+    <div class="d-flex flex-column mb-3">
         {#if canAddMore}
             <BaseButton
                 type="button"
-                class="btn btn-sm btn-primary"
+                class="btn btn-sm btn-link text-dark text-decoration-none"
                 icon="plus"
                 text={t("common.add-media", { fallback: "Add Media" })}
                 onClick={handleMediaUpload}
@@ -159,14 +155,14 @@
             </small>
         </div>
     {:else}
-        <!-- Media display -->
-        <div class="d-flex flex-column flex-md-row gap-3 align-items-start">
+        <!-- Media display - stacked vertically -->
+        <div class="d-flex flex-row flex-wrap gap-2">
             <!-- Main Asset -->
             {#if mainAsset}
-                <div class="d-flex flex-column align-items-center">
+                <div class="d-flex justify-content-start">
                     <AssetPreview
                         asset={mainAsset}
-                        size={150}
+                        size={100}
                         showRemoveButton={true}
                         onRemove={removeMainAsset}
                     />
@@ -175,20 +171,16 @@
 
             <!-- Other Assets -->
             {#if otherAssets && otherAssets.length > 0}
-                <div class="flex-fill">
-                    <div class="d-flex flex-wrap gap-3">
-                        {#each otherAssets as asset, index}
-                            <div class="d-flex flex-column align-items-center">
-                                <AssetPreview
-                                    {asset}
-                                    size={120}
-                                    showRemoveButton={true}
-                                    onRemove={() => removeOtherAsset(index)}
-                                />
-                            </div>
-                        {/each}
+                {#each otherAssets as asset, index}
+                    <div class="d-flex justify-content-start">
+                        <AssetPreview
+                            {asset}
+                            size={100}
+                            showRemoveButton={true}
+                            onRemove={() => removeOtherAsset(index)}
+                        />
                     </div>
-                </div>
+                {/each}
             {/if}
         </div>
     {/if}

@@ -447,67 +447,70 @@
     });
 </script>
 
-<form method="post">
-    <div class="container-fluid">
-        {#if showTitle}
+<div class="d-flex flex-column min-vh-100">
+    <form method="post" class="flex-grow-1">
+        <div class="container-fluid">
+            {#if showTitle}
+                <div class="row">
+                    <div class="col-12">
+                        <h2 class="mt-3">{title}</h2>
+                        {#if showDescription}
+                            <p>{description}</p>
+                        {/if}
+                    </div>
+                </div>
+            {/if}
+
             <div class="row">
                 <div class="col-12">
-                    <h2 class="mt-3">{title}</h2>
-                    {#if showDescription}
-                        <p>{description}</p>
-                    {/if}
+                    <AutoForm
+                        {form}
+                        {validator}
+                        {createFieldValidator}
+                        entity={"research_fields"}
+                        operation={validatorOperationName}
+                        {languages}
+                        {translatableFields}
+                        setStructuredErrors={setAllValidationErrors}
+                        defaultColSize={6}
+                        translationsValidator={getValidator(
+                            "translations",
+                            validatorOperationName,
+                        )}
+                        fieldOrder={["type", "vocabularies"]}
+                        {uiSchema}
+                        hiddenValueProviders={{
+                            projectId: () =>
+                                projectId || $page.params.project_id,
+                            languageId: () => defaultLanguage?.id || "",
+                        }}
+                        structuredErrors={allValidationErrors}
+                    />
                 </div>
             </div>
-        {/if}
-
-        <div class="row">
-            <div class="col-12">
-                <AutoForm
-                    {form}
-                    {validator}
-                    {createFieldValidator}
-                    entity={"research_fields"}
-                    operation={validatorOperationName}
-                    {languages}
-                    {translatableFields}
-                    setStructuredErrors={setAllValidationErrors}
-                    defaultColSize={6}
-                    translationsValidator={getValidator(
-                        "translations",
-                        validatorOperationName,
-                    )}
-                    fieldOrder={["type", "vocabularies"]}
-                    {uiSchema}
-                    hiddenValueProviders={{
-                        projectId: () => projectId || $page.params.project_id,
-                        languageId: () => defaultLanguage?.id || "",
-                    }}
-                    structuredErrors={allValidationErrors}
-                />
-            </div>
         </div>
-    </div>
-</form>
+    </form>
 
-<!-- Sticky bottom action bar -->
-<div class="sticky-bottom-bar">
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12 d-flex justify-content-end gap-2 p-2">
-                {#if onCancel}
+    <!-- Sticky bottom action bar -->
+    <div class="sticky-bottom-bar">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12 d-flex justify-content-end gap-2 p-2">
+                    {#if onCancel}
+                        <BaseButton
+                            type="button"
+                            class="btn btn-sm btn-secondary"
+                            text={t("common.cancel", { fallback: "Cancel" })}
+                            onClick={onCancel}
+                        />
+                    {/if}
                     <BaseButton
                         type="button"
-                        class="btn btn-sm btn-secondary"
-                        text={t("common.cancel", { fallback: "Cancel" })}
-                        onClick={onCancel}
+                        class="btn btn-sm btn-success"
+                        text={t("common.confirm", { fallback: "Confirm" })}
+                        onClick={() => form.handleSubmit()}
                     />
-                {/if}
-                <BaseButton
-                    type="button"
-                    class="btn btn-sm btn-success"
-                    text={t("common.confirm", { fallback: "Confirm" })}
-                    onClick={() => form.handleSubmit()}
-                />
+                </div>
             </div>
         </div>
     </div>
@@ -519,9 +522,13 @@
         bottom: 0;
         background-color: white;
         border-top: 1px solid #dee2e6;
-        margin-top: 0;
+        margin-top: auto;
         z-index: 10;
+        flex-shrink: 0;
     }
 
-    /* Add some bottom margin to prevent content from being hidden */
+    /* Ensure the form takes full height when content is short */
+    .min-vh-100 {
+        min-height: 100vh;
+    }
 </style>
