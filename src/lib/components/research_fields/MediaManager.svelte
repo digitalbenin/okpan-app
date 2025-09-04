@@ -11,8 +11,8 @@
         errors = [],
         class: customClass = "",
         onChange = null,
-        // Media type filters - for now images and audio
-        acceptedTypes = ["image", "audio"],
+        // Media type filters - images, audio, and video
+        acceptedTypes = ["image", "audio", "video"],
         maxAssets = 10,
     } = $props();
 
@@ -27,17 +27,57 @@
             // Create filter based on accepted types
             const mediaFilters = [];
 
+            // Collect all accepted extensions
+            let allExtensions = [];
+
+            const imageExtensions = [
+                "jpg",
+                "jpeg",
+                "png",
+                "gif",
+                "webp",
+                "avif",
+            ];
+            const audioExtensions = ["mp3", "ogg"];
+            const videoExtensions = ["mp4", "webm", "mov"];
+
+            if (acceptedTypes.includes("image")) {
+                allExtensions.push(...imageExtensions);
+            }
+            if (acceptedTypes.includes("audio")) {
+                allExtensions.push(...audioExtensions);
+            }
+            if (acceptedTypes.includes("video")) {
+                allExtensions.push(...videoExtensions);
+            }
+
+            // Add "All Accepted Formats" as the first (default) option
+            if (allExtensions.length > 0) {
+                mediaFilters.push({
+                    name: "All Accepted Formats",
+                    extensions: allExtensions,
+                });
+            }
+
+            // Add individual type filters
             if (acceptedTypes.includes("image")) {
                 mediaFilters.push({
                     name: "Images",
-                    extensions: ["jpg", "jpeg", "png", "gif", "webp", "avif"],
+                    extensions: imageExtensions,
                 });
             }
 
             if (acceptedTypes.includes("audio")) {
                 mediaFilters.push({
                     name: "Audio",
-                    extensions: ["mp3", "wav", "ogg", "m4a", "aac"],
+                    extensions: audioExtensions,
+                });
+            }
+
+            if (acceptedTypes.includes("video")) {
+                mediaFilters.push({
+                    name: "Video",
+                    extensions: videoExtensions,
                 });
             }
 
@@ -150,7 +190,7 @@
             <small class="text-muted">
                 {t("common.media-help", {
                     fallback:
-                        "Upload images and audio files. First upload becomes main media.",
+                        "Upload images, audio (mp3, ogg ≤10MB), and video files (mp4, webm, mov ≤50MB). First upload becomes main media.",
                 })}
             </small>
         </div>

@@ -818,7 +818,7 @@
                         <MediaManager
                             bind:mainAsset={vocab.mainAssetFile}
                             bind:otherAssets={vocab.otherAssetsFiles}
-                            acceptedTypes={["image", "audio"]}
+                            acceptedTypes={["image", "audio", "video"]}
                             maxAssets={10}
                             onChange={(mediaData) =>
                                 handleMediaChange(index, mediaData)}

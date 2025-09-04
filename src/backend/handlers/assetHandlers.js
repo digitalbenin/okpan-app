@@ -7,11 +7,30 @@ import { v4 as uuidv4 } from 'uuid';
 
 const sm = 300
 const md = 1400
-const maxSize = 5000000 // 5Mb
 const assetPath = "./src/assets/project_assets"
-const imagesFormats = ["png", "jpg", "jpeg", "webp", "gif", "avif"]
-const videoFormats = ["mp4", "webm", "ogg"]
-const audioFormats = ["mp3", "wav", "ogg", "m4a"]
+
+// Configuration object for file types and limits
+const assetConfig = {
+    image: {
+        formats: ["png", "jpg", "jpeg", "webp", "gif", "avif"],
+        maxSize: 5000000, // 5MB
+        maxSizeLabel: "5MB"
+    },
+    video: {
+        formats: ["mp4", "webm", "mov"],
+        maxSize: 52428800, // 50MB
+        maxSizeLabel: "50MB"
+    },
+    audio: {
+        formats: ["mp3", "ogg"],
+        maxSize: 10485760, // 10MB
+        maxSizeLabel: "10MB"
+    }
+}
+
+const imagesFormats = assetConfig.image.formats
+const videoFormats = assetConfig.video.formats
+const audioFormats = assetConfig.audio.formats
 
 
 
@@ -66,68 +85,30 @@ const handleImportAssets = async (event, data) => {
         fs.mkdirSync(projectFolder, { recursive: true });
     }
 
-    // make a set of AVIF for each file in the directory
-    if (data.isDirectory) {
-        const files = fs.readdirSync(data.path);
-        const totalFiles = files.length;
-        for (const file of files) {
-            try {
-                const assetType = checkAssetType(file)
-                let formats = null;
+    // Process files from directory or array
+    const filesToProcess = data.isDirectory
+        ? fs.readdirSync(data.path).map(file => path.join(data.path, file))
+        : data.path;
 
-                if (assetType === "image") {
-                    formats = await makeAVIF(path.join(data.path, file), projectFolder);
-                }
+    const totalFiles = filesToProcess.length;
 
-                const asset = {
-                    project_id: data?.projectId,
-                    // Conditionally set institution_id only if not a generic asset
-                    institution_id: data.isGenericAsset ? undefined : data?.institutionId,
-                    path: formats?.original || path.join(projectFolder, file),
-                    filename: path.basename(file),
-                    type: assetType,
-                    formats: formats || null
-                }
-                const newAsset = await saveAssetToDb(asset, data.isGenericAsset)
+    for (const filePath of filesToProcess) {
+        try {
+            console.log("processing file", filePath);
+
+            const asset = await processAssetFile(filePath, projectFolder, data);
+
+            if (asset) {
+                console.log("saving asset to db", asset);
+                const newAsset = await saveAssetToDb(asset, data.isGenericAsset);
                 createdAssets.push(newAsset);
-
-                progress++;
-                console.log(`${progress}/${totalFiles} files processed`);
-            } catch (error) {
-                errors.push(error);
             }
-        }
-    }
-    // if it's not a directory then it's an ARRAY of files
-    else {
-        const totalFiles = data.path.length;
-        for (const file of data.path) {
-            try {
-                console.log("processing file", file)
-                const assetType = checkAssetType(file)
-                let formats = null;
 
-                if (assetType === "image") {
-                    console.log("making avif for image", file)
-                    formats = await makeAVIF(file, projectFolder);
-                    const asset = {
-                        project_id: data?.projectId,
-                        // Conditionally set institution_id only if not a generic asset
-                        institution_id: data.isGenericAsset ? undefined : data?.institutionId,
-                        path: formats.original,
-                        filename: path.basename(file),
-                        type: assetType,
-                        formats
-                    }
-                    console.log("saving asset to db", asset)
-                    const newAsset = await saveAssetToDb(asset, data.isGenericAsset)
-                    createdAssets.push(newAsset);
-                }
-                progress++;
-                console.log(`${progress}/${totalFiles} files processed`);
-            } catch (error) {
-                errors.push(error);
-            }
+            progress++;
+            console.log(`${progress}/${totalFiles} files processed`);
+        } catch (error) {
+            console.error(`Error processing file ${filePath}:`, error);
+            errors.push(error);
         }
     }
     loading = false
@@ -147,8 +128,8 @@ const makeAVIF = async (imagePath, destPath) => {
     const newFileName = `${fileNameWithoutExt}_${uuid}`;
     destPath = path.join(destPath, newFileName);
     const origSize = metadata.size;
-    if (origSize > maxSize) {
-        throw new Error("File is too large");
+    if (origSize > assetConfig.image.maxSize) {
+        throw new Error(`Image file is too large (max ${assetConfig.image.maxSizeLabel})`);
     }
     if (format === "avif") {
         await image.resize(sm).toFile(`${destPath}_sm.avif`);
@@ -168,6 +149,63 @@ const makeAVIF = async (imagePath, destPath) => {
         original: `${destPath}.avif`
     };
 }
+
+// Generic processor for media files (video and audio)
+const processMediaFile = async (filePath, destPath, assetType) => {
+    const config = assetConfig[assetType];
+    if (!config) {
+        throw new Error(`Unsupported asset type: ${assetType}`);
+    }
+
+    const stats = fs.statSync(filePath);
+    const fileSizeInBytes = stats.size;
+
+    if (fileSizeInBytes > config.maxSize) {
+        throw new Error(`${assetType.charAt(0).toUpperCase() + assetType.slice(1)} file is too large (max ${config.maxSizeLabel})`);
+    }
+
+    const fileName = path.basename(filePath);
+    const fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+    const fileExt = fileName.substring(fileName.lastIndexOf('.'));
+    const uuid = getCroppedUUID();
+    const newFileName = `${fileNameWithoutExt}_${uuid}${fileExt}`;
+    const finalPath = path.join(destPath, newFileName);
+
+    // Simply copy the media file for now - no processing
+    fs.copyFileSync(filePath, finalPath);
+
+    return {
+        original: finalPath
+    };
+}
+
+// Unified file processor that handles all asset types
+const processAssetFile = async (filePath, projectFolder, data) => {
+    const assetType = checkAssetType(filePath);
+    let formats = null;
+
+    if (assetType === "image") {
+        formats = await makeAVIF(filePath, projectFolder);
+    } else if (assetType === "video" || assetType === "audio") {
+        formats = await processMediaFile(filePath, projectFolder, assetType);
+    } else {
+        console.warn(`Unsupported asset type: ${assetType} for file: ${filePath}`);
+        return null;
+    }
+
+    return {
+        project_id: data?.projectId,
+        institution_id: data.isGenericAsset ? undefined : data?.institutionId,
+        path: formats.original,
+        filename: path.basename(filePath),
+        type: assetType,
+        formats
+    };
+}
+
+// Convenience functions for backward compatibility
+const processVideo = (videoPath, destPath) => processMediaFile(videoPath, destPath, 'video');
+const processAudio = (audioPath, destPath) => processMediaFile(audioPath, destPath, 'audio');
 
 const saveAssetToDb = async (assetData, isGeneric) => {
     console.log("Saving asset to DB:", assetData, "Is generic:", isGeneric);
