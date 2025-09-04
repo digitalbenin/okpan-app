@@ -760,7 +760,7 @@
                                 class="form-control {fieldErrors.length > 0
                                     ? 'is-invalid'
                                     : ''}"
-                                rows="3"
+                                rows="5"
                                 placeholder={t(
                                     "common.vocabulary-description-placeholder",
                                     {
