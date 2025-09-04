@@ -622,15 +622,21 @@
             </div>
         {:else}
             <!-- Header Row -->
-            <div class="row g-0 bg-secondary-subtle rounded-top border">
-                <div class="col-4 p-3 border-end">
+            <div
+                class="row g-0 bg-secondary-subtle bg-opacity-25 rounded-top border"
+            >
+                <div
+                    class="col-4 p-2 border-0 border-secondary border-opacity-25 border-end"
+                >
                     <div class="d-flex align-items-center gap-2">
                         <strong
                             >{t("common.label", { fallback: "Label" })}</strong
                         >
                     </div>
                 </div>
-                <div class="col-4 p-3 border-end">
+                <div
+                    class="col-4 p-2 border-0 border-secondary border-opacity-25 border-end"
+                >
                     <div class="d-flex align-items-center gap-2">
                         <strong
                             >{t("common.description", {
@@ -639,7 +645,7 @@
                         >
                     </div>
                 </div>
-                <div class="col-4 p-3">
+                <div class="col-4 p-2">
                     <div class="d-flex align-items-center gap-2">
                         <strong
                             >{t("common.media", { fallback: "Media" })}</strong
@@ -656,7 +662,7 @@
                         : ''}"
                 >
                     <!-- Option Column -->
-                    <div class="col-4 p-3 border-end">
+                    <div class="col-4 p-3">
                         <div
                             class="d-flex align-items-center justify-content-start gap-2"
                         >
@@ -744,7 +750,7 @@
                     </div>
 
                     <!-- Description Column -->
-                    <div class="col-4 p-3 border-end">
+                    <div class="col-4 p-3">
                         {#if activeLanguageCode === "default"}
                             {@const fieldErrors = getFieldErrors(
                                 index,
