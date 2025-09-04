@@ -1,6 +1,5 @@
 <script>
   const { data } = $props();
-  console.log("Data in default fields page:", data);
 </script>
 
 <div>

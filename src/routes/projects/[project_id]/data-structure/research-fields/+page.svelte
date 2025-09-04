@@ -192,7 +192,7 @@
               }}
             ></BaseButton>
             <BaseButton
-              class="btn btn-sm btn-danger"
+              class="btn btn-link text-danger p-0 text-decoration-none"
               onClick={() => confirmDelete(researchField)}
               icon="trash"
               text={t("common.delete", {
