@@ -64,26 +64,6 @@
         mode === "edit" && initialData?.type ? initialData.type : "free text",
     );
 
-    // Debug selected type changes
-    $effect(() => {
-        console.log(
-            "ResearchFieldForm: selectedType changed to:",
-            selectedType,
-        );
-        console.log(
-            "ResearchFieldForm: mode:",
-            mode,
-            "initialData type:",
-            initialData?.type,
-        );
-        if (initialData?.vocabularies) {
-            console.log(
-                "ResearchFieldForm: initialData has vocabularies:",
-                initialData.vocabularies.length,
-            );
-        }
-    });
-
     // Helper to process asset for vocabulary
     const processAsset = (asset) =>
         asset
@@ -174,6 +154,8 @@
         fieldId: { hidden: true },
         projectId: { hidden: true },
         languageId: { hidden: true },
+        private: { hidden: true },
+        onwebsite: { hidden: true },
         name: {
             label: t("common.research-field-name", {
                 fallback: "Research Field Name",
@@ -212,9 +194,6 @@
                 initialData: initialData,
                 projectId: projectId,
                 onVocabulariesProcessed: (processingFunction) => {
-                    console.log(
-                        "ResearchFieldForm: Received vocabulary processing function",
-                    );
                     vocabularyProcessingFunction = processingFunction;
                 },
             },

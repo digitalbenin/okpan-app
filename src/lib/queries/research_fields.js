@@ -13,6 +13,8 @@ export const researchFieldsOperations = {
     created_at
     updated_at
     project_id
+    private
+    onwebsite
     name {
       id
       content
@@ -80,6 +82,8 @@ export const researchFieldsOperations = {
     created_at
     updated_at
     project_id
+    private
+    onwebsite
     name {
       id
       content
@@ -167,6 +171,8 @@ export const researchFieldsOperations = {
       name: "Name of the research field",
       description: "Description of the research field",
       type: "Type of the research field",
+      private: "Whether the field is private (optional, defaults to false)",
+      onwebsite: "Whether to show the field on website (optional, defaults to true)",
       vocabularies: "Array of vocabulary options (optional)",
       // Translation arrays for research field
       nameTranslations: "Array of name translations (optional)",
@@ -217,6 +223,8 @@ export const researchFieldsOperations = {
   $descriptionId: String!
   $projectId: String!
   $type: String
+  $private: Int
+  $onwebsite: Int
 ) {
   result:insertIntoResearch_fields(
     values: [
@@ -225,6 +233,8 @@ export const researchFieldsOperations = {
         description_id: $descriptionId
         project_id: $projectId
         type: $type
+        private: $private
+        onwebsite: $onwebsite
       }
     ]
   ) {
@@ -233,9 +243,11 @@ export const researchFieldsOperations = {
     project_id
     name_id
     description_id
+    private
+    onwebsite
   }
 }`,
-        useVariables: ["projectId", "type"],
+        useVariables: ["projectId", "type", "private", "onwebsite"],
         mapVariables: {
           nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
           descriptionId: { from: "createDescriptionText", path: "insertIntoTexts.0.id" }
@@ -253,6 +265,8 @@ export const researchFieldsOperations = {
       name: "New name content (optional)",
       description: "New description content (optional)",
       type: "New field type (optional)",
+      private: "Whether the field is private (optional)",
+      onwebsite: "Whether to show the field on website (optional)",
       // Translation arrays
       nameTranslations: "Array of name translations (optional)",
       descriptionTranslations: "Array of description translations (optional)"
@@ -266,6 +280,8 @@ export const researchFieldsOperations = {
     name_id
     description_id
     type
+    private
+    onwebsite
   }
 }`,
         useVariables: ["fieldId"]
@@ -318,6 +334,34 @@ export const researchFieldsOperations = {
         useVariables: ["fieldId", "type"],
         skipIf: { variableName: "type", isUndefined: true }
       },
+      {
+        name: "updatePrivate",
+        query: `mutation UpdateResearchFieldPrivate($fieldId: String!, $private: Int!) {
+  updateResearch_fields(
+    set: { private: $private }
+    where: { id: { eq: $fieldId } }
+  ) {
+    id
+    private
+  }
+}`,
+        useVariables: ["fieldId", "private"],
+        skipIf: { variableName: "private", isUndefined: true }
+      },
+      {
+        name: "updateOnwebsite",
+        query: `mutation UpdateResearchFieldOnwebsite($fieldId: String!, $onwebsite: Int!) {
+  updateResearch_fields(
+    set: { onwebsite: $onwebsite }
+    where: { id: { eq: $fieldId } }
+  ) {
+    id
+    onwebsite
+  }
+}`,
+        useVariables: ["fieldId", "onwebsite"],
+        skipIf: { variableName: "onwebsite", isUndefined: true }
+      },
       // === TRANSLATION PROCESSING STEPS ===
       {
         name: "processNameTranslations",
@@ -339,12 +383,12 @@ export const researchFieldsOperations = {
   delete: {
     type: "mutation",
     name: "Delete Research Field",
-    description: "Deletes a research field by ID",
+    description: "Deletes a research field by ID (cascade deletion handled by database)",
     variables: {
       fieldId: "ID of the research field to delete"
     },
     query: `mutation DeleteResearchField($fieldId: String!) {
-  deleteFromResearch_fields(where: { id: { eq: $fieldId } }) {
+  result:deleteFromResearch_fields(where: { id: { eq: $fieldId } }) {
     id
     name_id
     description_id
@@ -564,5 +608,16 @@ export const researchFieldsOperations = {
       }
     ],
     query: null
+  },
+  countObjects: {
+    type: "query",
+    name: "Count Objects Using Research Field",
+    description: "Counts how many objects contain values from a specific research field",
+    variables: {
+      fieldId: "ID of the research field"
+    },
+    query: `query CountObjectsUsingResearchField($fieldId: String!) {
+  result: researchFieldObjectsCount(fieldId: $fieldId)
+}`
   }
 }; 

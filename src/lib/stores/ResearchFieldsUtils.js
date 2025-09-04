@@ -46,9 +46,16 @@ export const getResearchFieldById = async (fieldId) => {
 
 // Create a new research field (initial implementation, may need translation handling)
 export const createResearchField = async (fieldData) => {
+    // Set default values for new boolean fields if not provided
+    const params = {
+        ...fieldData,
+        private: fieldData.private !== undefined ? (fieldData.private ? 1 : 0) : 0, // default false
+        onwebsite: fieldData.onwebsite !== undefined ? (fieldData.onwebsite ? 1 : 0) : 1 // default true
+    };
+
     // TODO: Handle initial text/translation creation if needed upon creation
     // Assuming 'research_fields' is the section and 'create' is the operation
-    const result = await executeQuery('research_fields', 'create', fieldData);
+    const result = await executeQuery('research_fields', 'create', params);
     invalidate("app:research_fields");
     return result;
 };
@@ -64,6 +71,9 @@ export const updateResearchField = async (fieldId, updateData) => {
         fieldId: fieldId,
         // Direct fields
         type: updateData.type,
+        // Boolean fields (convert to integers for SQLite)
+        private: updateData.private !== undefined ? (updateData.private ? 1 : 0) : undefined,
+        onwebsite: updateData.onwebsite !== undefined ? (updateData.onwebsite ? 1 : 0) : undefined,
         // Text content for default language
         name: updateData.name,
         description: updateData.description,
@@ -125,9 +135,26 @@ export const updateResearchField = async (fieldId, updateData) => {
 
 // Delete a research field
 export const deleteResearchField = async (fieldId) => {
-    const result = await executeQuery('research_fields', 'delete', { fieldId });
-    invalidate("app:research-fields");
-    return result;
+    if (!fieldId) {
+        return { result: null, error: "Missing Research Field ID" };
+    }
+
+    try {
+        const result = await executeQuery('research_fields', 'delete', { fieldId });
+
+        if (!result) {
+            return { result: null, error: "Failed to delete research field: No response" };
+        }
+        if (result.error) {
+            return { result: null, error: result.error?.message || result.error || "Failed to delete research field: GraphQL error" };
+        }
+
+        invalidate("app:research-fields");
+        return { result: result, error: null };
+    } catch (error) {
+        console.error('Error during research field deletion:', error);
+        return { result: null, error: error.message };
+    }
 };
 
 // Function to update a vocabulary, including translations orchestration
@@ -216,4 +243,23 @@ export const deleteVocabulary = async (vocabularyId) => {
     }
     invalidate("app:research-fields");
     return { result: result.result || result, error: null };
+};
+
+// Count objects that contain values from a specific research field
+export const countObjectsUsingResearchField = async (fieldId) => {
+    if (!fieldId) {
+        return { result: null, error: "Missing Research Field ID" };
+    }
+
+    const response = await executeQuery('research_fields', 'countObjects', { fieldId });
+
+    if (!response) {
+        return { result: null, error: "Failed to count objects: No response" };
+    }
+    if (response.error) {
+        return { result: null, error: response.error?.message || response.error || "Failed to count objects: GraphQL error" };
+    }
+
+    const count = response.result || 0;
+    return { result: count, error: null };
 };

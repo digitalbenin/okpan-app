@@ -163,7 +163,7 @@
 
 <div class={customClass}>
     <!-- Header with upload button -->
-    <div class="d-flex flex-column mb-3">
+    <div class="d-flex flex-column mb-1">
         {#if canAddMore}
             <BaseButton
                 type="button"
@@ -177,22 +177,14 @@
 
     {#if totalAssets === 0}
         <!-- Empty state -->
-        <div
-            class="border border-2 border-dashed rounded p-4 bg-light text-center"
-        >
+        <div class="p-2 text-center">
             <i
                 class="bi bi-cloud-upload mb-3 text-muted"
-                style="font-size: 3rem;"
+                style="font-size: 1rem;"
             ></i>
-            <p class="text-muted mb-2">
+            <p class="text-muted mb-1">
                 {t("common.no-media-added", { fallback: "No media added yet" })}
             </p>
-            <small class="text-muted">
-                {t("common.media-help", {
-                    fallback:
-                        "Upload images, audio (mp3, ogg ≤10MB), and video files (mp4, webm, mov ≤50MB). First upload becomes main media.",
-                })}
-            </small>
         </div>
     {:else}
         <!-- Media display - stacked vertically -->

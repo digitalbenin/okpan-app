@@ -598,7 +598,7 @@
                     class="btn btn-sm btn-outline-primary"
                     icon="plus"
                     text={t("common.add-vocabulary", {
-                        fallback: "Add Vocabulary",
+                        fallback: "Add Vocabulary item",
                     })}
                     onClick={addVocabulary}
                 />

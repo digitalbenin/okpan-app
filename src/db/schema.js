@@ -214,7 +214,9 @@ export const research_fields = sqliteTable('research_fields', {
     name_id: text('name_id').references(() => texts.id),
     type: text('type'),
     description_id: text('description_id').references(() => texts.id),
-    project_id: text('project_id').references(() => project.id)
+    project_id: text('project_id').references(() => project.id),
+    private: integer('private').notNull().default(0), // false by default
+    onwebsite: integer('onwebsite').notNull().default(1) // true by default
 });
 
 // Research Fields relations
@@ -393,7 +395,7 @@ export const vocabularies = sqliteTable('vocabularies', {
     option_id: text('option_id').references(() => texts.id),
     description_id: text('description_id').references(() => texts.id),
     main_asset_id: text('main_asset_id').references(() => genericAssets.id),
-    field_id: text('field_id').references(() => research_fields.id)
+    field_id: text('field_id').references(() => research_fields.id, { onDelete: 'cascade' })
 });
 
 // Vocabularies Generic Assets junction table
@@ -441,7 +443,7 @@ export const vocabulariesGenericAssetsRelations = relations(vocabularies_generic
 export const objects_research_fields = sqliteTable('objects_research_fields', {
     ...commonFields,
     object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
-    field_id: text('field_id').references(() => research_fields.id),
+    field_id: text('field_id').references(() => research_fields.id, { onDelete: 'cascade' }),
     vocabulary_id: text('vocabulary_id').references(() => vocabularies.id),
     value: text('value')
 });

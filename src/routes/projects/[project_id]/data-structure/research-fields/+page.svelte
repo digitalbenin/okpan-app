@@ -1,12 +1,108 @@
 <script>
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseCheckBox from "$lib/components/base/BaseCheckBox.svelte";
+  import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import BaseBadge from "$lib/components/base/BaseBadge.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-
+  import {
+    deleteResearchField,
+    countObjectsUsingResearchField,
+    updateResearchField,
+  } from "$lib/stores/ResearchFieldsUtils.js";
+  import { invalidateAll } from "$app/navigation";
+  import { goto } from "$app/navigation";
   const { data } = $props();
   const { t } = getTranslationStore();
 
   let search = $state();
+  let showDeleteModal = $state(false);
+  let researchFieldToDelete = $state(null);
+  let objectsCount = $state(0);
+  let isLoadingCount = $state(false);
+  let isDeleting = $state(false);
+
+  // Function to open the delete confirmation modal
+  async function confirmDelete(researchField) {
+    researchFieldToDelete = researchField;
+    isLoadingCount = true;
+    showDeleteModal = true;
+
+    // Get the count of objects using this research field
+    const { result, error } = await countObjectsUsingResearchField(
+      researchField.id,
+    );
+    isLoadingCount = false;
+
+    if (error) {
+      console.error("Error counting objects:", error);
+      objectsCount = 0;
+    } else {
+      objectsCount = result;
+    }
+  }
+
+  // Function to handle the actual deletion after confirmation
+  async function handleConfirmDelete() {
+    if (!researchFieldToDelete) return;
+
+    isDeleting = true;
+    const { result, error } = await deleteResearchField(
+      researchFieldToDelete.id,
+    );
+
+    if (error) {
+      console.error("Error deleting research field:", error);
+      // TODO: Show error message to user
+    } else {
+      console.log("Research field deleted successfully");
+      // Refresh the data
+      await invalidateAll();
+    }
+
+    isDeleting = false;
+    showDeleteModal = false;
+    researchFieldToDelete = null;
+    objectsCount = 0;
+  }
+
+  // Function to cancel deletion
+  function cancelDelete() {
+    showDeleteModal = false;
+    researchFieldToDelete = null;
+    objectsCount = 0;
+    isLoadingCount = false;
+  }
+
+  // Function to handle checkbox changes
+  async function handleCheckboxChange(researchField, fieldName, newValue) {
+    try {
+      const updateData = {
+        [fieldName]: newValue,
+      };
+
+      const { result, error } = await updateResearchField(
+        researchField.id,
+        updateData,
+      );
+
+      if (error) {
+        console.error(`Error updating ${fieldName}:`, error);
+        // TODO: Show error message to user and revert checkbox state
+      } else {
+        // Update the local data to reflect the change
+        const fieldIndex = data.researchFields.findIndex(
+          (f) => f.id === researchField.id,
+        );
+        if (fieldIndex !== -1) {
+          data.researchFields[fieldIndex][fieldName] = newValue ? 1 : 0;
+        }
+      }
+    } catch (error) {
+      console.error(`Error updating ${fieldName}:`, error);
+      // TODO: Show error message to user and revert checkbox state
+    }
+  }
 
   $inspect(data.researchFields);
 </script>
@@ -52,33 +148,64 @@
     {#each data.researchFields as researchField (researchField.id)}
       <div class="d-flex py-2 border-bottom">
         <div class="col-3">
-          <a
-            href={`/projects/${data.project.id}/data-structure/research-fields/${researchField.id}`}
-          >
-            {researchField.name.content}
-          </a>
+          <BaseBadge
+            class="bg-secondary-subtle text-dark"
+            value={researchField.name.content}
+          ></BaseBadge>
         </div>
         <div class="col-6">
           {researchField.description.content}
         </div>
         <div class="col-3">
           <div class="d-flex flex-column align-items-start gap-2">
-            <button class="btn btn-sm btn-light"
-              ><i class="bi bi-pencil"></i>
-              {t("common.edit", {
+            <BaseButton
+              class="btn btn-sm btn-link text-dark p-0 text-decoration-none"
+              icon="pencil"
+              text={t("common.edit", {
                 fallback: "Edit",
-              })}</button
+              })}
+              onClick={() => {
+                console.log("Editing research field:", researchField);
+                goto(
+                  `/projects/${data.project.id}/data-structure/research-fields/${researchField.id}`,
+                );
+              }}
+            ></BaseButton>
+            <BaseButton
+              class="btn btn-sm btn-danger"
+              onClick={() => confirmDelete(researchField)}
+              icon="trash"
+              text={t("common.delete", {
+                fallback: "Delete",
+              })}
             >
-            <button class="btn btn-sm btn-danger"
-              ><i class="bi bi-trash"></i>
               {t("common.delete", {
                 fallback: "Delete",
-              })}</button
+              })}</BaseButton
             >
             <BaseCheckBox
-              labelText={t("common.public-website", {
-                fallback: "Show on website",
+              labelText={t("common.private", {
+                fallback: "Private",
               })}
+              checked={researchField.private === 1}
+              onclick={() =>
+                handleCheckboxChange(
+                  researchField,
+                  "private",
+                  researchField.private !== 1,
+                )}
+            />
+            <BaseCheckBox
+              labelText={t("common.public-website", {
+                fallback: "Public on website",
+              })}
+              checked={researchField.onwebsite === 1}
+              onclick={() =>
+                handleCheckboxChange(
+                  researchField,
+                  "onwebsite",
+                  researchField.onwebsite !== 1,
+                )}
             />
           </div>
         </div>
@@ -92,3 +219,53 @@
     </div>
   {/if}
 </div>
+
+<!-- Delete Confirmation Modal -->
+<BaseModal bind:isOpen={showDeleteModal}>
+  {#snippet header()}
+    {t("common.delete-research-field", { fallback: "Delete research field" })}
+  {/snippet}
+
+  {#snippet body()}
+    {#if researchFieldToDelete}
+      <p class="mb-3">
+        {#if isLoadingCount}
+          {t("common.checking-usage", { fallback: "Checking usage..." })}
+        {:else if objectsCount > 0}
+          <strong>{objectsCount}</strong>
+          {#if objectsCount === 1}
+            {t("common.object-contains", { fallback: "object contains" })}
+          {:else}
+            {t("common.objects-contain", { fallback: "objects contain" })}
+          {/if}
+          <strong>{researchFieldToDelete.name.content}</strong>
+          {t("common.values-continue", {
+            fallback: "values. Do you want to continue?",
+          })}
+        {:else}
+          {t("common.confirm-delete-research-field", {
+            fallback: "Are you sure you want to delete the research field",
+          })}
+          <strong>{researchFieldToDelete.name.content}</strong>?
+        {/if}
+      </p>
+    {/if}
+  {/snippet}
+
+  {#snippet actions()}
+    <BaseButton
+      text={t("common.cancel", { fallback: "Cancel" })}
+      class="btn btn-secondary"
+      onClick={cancelDelete}
+      disabled={isDeleting}
+    />
+    <BaseButton
+      text={isDeleting
+        ? t("common.deleting", { fallback: "Deleting..." })
+        : t("common.confirm-and-delete", { fallback: "Confirm and delete" })}
+      class="btn btn-danger"
+      onClick={handleConfirmDelete}
+      disabled={isLoadingCount || isDeleting}
+    />
+  {/snippet}
+</BaseModal>
