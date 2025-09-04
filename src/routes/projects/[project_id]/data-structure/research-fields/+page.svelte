@@ -15,12 +15,26 @@
   const { data } = $props();
   const { t } = getTranslationStore();
 
-  let search = $state();
+  let search = $state("");
   let showDeleteModal = $state(false);
   let researchFieldToDelete = $state(null);
   let objectsCount = $state(0);
   let isLoadingCount = $state(false);
   let isDeleting = $state(false);
+
+  // Filter research fields based on search input
+  const filteredResearchFields = $derived.by(() => {
+    if (!search || !search.trim()) {
+      return data.researchFields || [];
+    }
+
+    const searchTerm = search.toLowerCase().trim();
+    return (data.researchFields || []).filter(
+      (field) =>
+        field.name?.content?.toLowerCase().includes(searchTerm) ||
+        field.description?.content?.toLowerCase().includes(searchTerm),
+    );
+  });
 
   // Function to open the delete confirmation modal
   async function confirmDelete(researchField) {
@@ -103,8 +117,6 @@
       // TODO: Show error message to user and revert checkbox state
     }
   }
-
-  $inspect(data.researchFields);
 </script>
 
 <div class="container-fluid">
@@ -136,16 +148,24 @@
       </div>
     </div>
   </div>
-  {#if data.researchFields.length > 0}
+
+  {#if filteredResearchFields.length > 0}
     <div class="border-bottom mb-3">
-      {data.researchFields.length}
-      {#if data.researchFields.length > 1}
+      {filteredResearchFields.length}
+      {#if filteredResearchFields.length > 1}
         {t("common.research-fields", { fallback: "research fields" })}
       {:else}
         {t("common.research-field", { fallback: "research field" })}
       {/if}
+      {#if search && search.trim() && filteredResearchFields.length !== data.researchFields.length}
+        <span class="text-muted">
+          {t("common.of", { fallback: "of" })}
+          {data.researchFields.length}
+          {t("common.total", { fallback: "total" })}
+        </span>
+      {/if}
     </div>
-    {#each data.researchFields as researchField (researchField.id)}
+    {#each filteredResearchFields as researchField (researchField.id)}
       <div class="d-flex py-2 border-bottom">
         <div class="col-3">
           <BaseBadge
@@ -213,9 +233,20 @@
     {/each}
   {:else}
     <div class="text-center fst-italic text-muted mt-5">
-      {t("common.no-research-fields-found", {
-        fallback: "No research field found.",
-      })}
+      {#if search && search.trim()}
+        {t("common.no-search-results", {
+          fallback: "No research fields match your search.",
+        })}
+        <div class="mt-2">
+          <button class="btn btn-link btn-sm p-0" onclick={() => (search = "")}>
+            {t("common.clear-search", { fallback: "Clear search" })}
+          </button>
+        </div>
+      {:else}
+        {t("common.no-research-fields-found", {
+          fallback: "No research field found.",
+        })}
+      {/if}
     </div>
   {/if}
 </div>
