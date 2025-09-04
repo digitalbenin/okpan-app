@@ -36,6 +36,7 @@ export const ontologyFieldsOperations = {
       }
     }
     embeddings
+    onwebsite
   }
 }`
   },
@@ -79,6 +80,7 @@ export const ontologyFieldsOperations = {
       }
     }
     embeddings
+    onwebsite
   }
 }`
   },
@@ -91,7 +93,8 @@ export const ontologyFieldsOperations = {
       name: "Name of the ontology field",
       description: "Description of the ontology field",
       category: "Category of the ontology field",
-      embeddings: "Embeddings data (optional)"
+      embeddings: "Embeddings data (optional)",
+      onwebsite: "Whether field should be visible on website (optional, defaults to 0)"
     },
     mutations: [
       {
@@ -155,6 +158,7 @@ export const ontologyFieldsOperations = {
   $descriptionId: String!
   $categoryId: String!
   $embeddings: String
+  $onwebsite: Int
 ) {
   insertIntoOntology_fields(
     values: [
@@ -163,6 +167,7 @@ export const ontologyFieldsOperations = {
         description_id: $descriptionId
         category_id: $categoryId
         embeddings: $embeddings
+        onwebsite: $onwebsite
       }
     ]
   ) {
@@ -171,9 +176,10 @@ export const ontologyFieldsOperations = {
     description_id
     category_id
     embeddings
+    onwebsite
   }
 }`,
-        useVariables: ["embeddings"],
+        useVariables: ["embeddings", "onwebsite"],
         mapVariables: {
           nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
           descriptionId: { from: "createDescriptionText", path: "insertIntoTexts.0.id" },
@@ -192,7 +198,8 @@ export const ontologyFieldsOperations = {
       name: "New name content (optional)",
       description: "New description content (optional)",
       category: "New category content (optional)",
-      embeddings: "New embeddings data (optional)"
+      embeddings: "New embeddings data (optional)",
+      onwebsite: "New onwebsite value (optional)"
     },
     mutations: [
       {
@@ -204,6 +211,7 @@ export const ontologyFieldsOperations = {
     description_id
     category_id
     embeddings
+    onwebsite
   }
 }`,
         useVariables: ["fieldId"]
@@ -272,6 +280,20 @@ export const ontologyFieldsOperations = {
 }`,
         useVariables: ["fieldId", "embeddings"],
         skipIf: { variableName: "embeddings", isUndefined: true }
+      },
+      {
+        name: "updateOnwebsite",
+        query: `mutation UpdateOntologyFieldOnwebsite($fieldId: String!, $onwebsite: Int!) {
+  updateOntology_fields(
+    set: { onwebsite: $onwebsite }
+    where: { id: { eq: $fieldId } }
+  ) {
+    id
+    onwebsite
+  }
+}`,
+        useVariables: ["fieldId", "onwebsite"],
+        skipIf: { variableName: "onwebsite", isUndefined: true }
       }
     ],
     query: null

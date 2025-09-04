@@ -470,7 +470,8 @@ export const ontology_fields = sqliteTable('ontology_fields', {
     name_id: text('name_id').references(() => texts.id),
     description_id: text('description_id').references(() => texts.id),
     category_id: text('category_id').references(() => texts.id),
-    embeddings: text('embeddings')
+    embeddings: text('embeddings'),
+    onwebsite: integer('onwebsite').default(1)
 });
 
 // Ontology Fields relations
