@@ -469,6 +469,21 @@ export const objectsOperations = {
   }
 }`
   },
+  objectRemoveResearchField: {
+    type: "mutation",
+    name: "Remove Research Field Value from Object",
+    description: "Deletes a specific research field record from an object",
+    variables: {
+      recordId: "ID of the objects_research_fields record to delete"
+    },
+    query: `mutation RemoveResearchFieldValue($recordId: String!) {
+  result: deleteFromObjects_research_fields(
+    where: { id: { eq: $recordId } }
+  ) {
+    id
+  }
+}`
+  },
   objectGetResearchFields: {
     type: "query",
     name: "Get Object Research Fields",

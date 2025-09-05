@@ -106,33 +106,58 @@ export const updateObjectResearchFields = async (objectId, changes) => {
     const errors = [];
 
     for (const change of changes) {
-        // Skip invalid changes
-        if (!change.id) {
-            errors.push("Change missing field ID");
+        let response;
+
+        // If change.action is 'delete', remove the research field record
+        if (change.action === 'delete' && change.id) {
+            const params = {
+                recordId: change.id
+            };
+
+            response = await executeQuery('objects', 'objectRemoveResearchField', params);
+        }
+        // If change.id exists, it's an update to existing objects_research_fields record
+        else if (change.id) {
+            const params = {
+                objectId: objectId,
+                fieldId: change.id,
+                value: change.value,
+                vocabularyId: change.vocabularyId
+            };
+
+            response = await executeQuery('objects', 'objectUpdateResearchField', params);
+        }
+        // If change.id is null/undefined, it's a new assignment
+        else if (change.fieldId) {
+            const params = {
+                objectId: objectId,
+                fieldId: change.fieldId,
+                value: change.value,
+                vocabularyId: change.vocabularyId
+            };
+
+            response = await executeQuery('objects', 'objectAssignResearchField', params);
+        } else {
+            errors.push("Change missing both record ID and field ID");
             continue;
         }
 
-        const params = {
-            objectId: objectId,
-            fieldId: change.id,
-            value: change.value,
-            vocabularyId: change.vocabularyId
-        };
-
-        const response = await executeQuery('objects', 'objectUpdateResearchField', params);
-
         if (response && response.error) {
-            errors.push(`Failed to update field ${change.id}: ${response.error}`);
+            errors.push(`Failed to process field change: ${response.error}`);
         } else {
             let fieldResult = null;
             if (response.result && Array.isArray(response.result) && response.result.length > 0) {
                 // Handle the case where the result is directly in an array under response.result
                 fieldResult = response.result[0];
             } else {
-                // Fallback to previous checks if the structure is different (less likely now)
+                // Fallback to previous checks if the structure is different
                 fieldResult = response.result?.updateObjects_research_fields ||
+                    response.result?.insertIntoObjects_research_fields?.[0] ||
+                    response.result?.deleteFromObjects_research_fields?.[0] ||
                     response.result?.result ||
                     response.updateObjects_research_fields ||
+                    response.insertIntoObjects_research_fields?.[0] ||
+                    response.deleteFromObjects_research_fields?.[0] ||
                     null;
             }
 
@@ -140,7 +165,7 @@ export const updateObjectResearchFields = async (objectId, changes) => {
                 results.push(fieldResult);
             } else {
                 // If no result data but no explicit error, create a minimal result object
-                results.push({ id: change.id, value: change.value });
+                results.push({ id: change.id || change.fieldId, value: change.value });
             }
         }
     }
@@ -156,6 +181,7 @@ export const updateObjectResearchFields = async (objectId, changes) => {
 
     return { results, error: null };
 };
+
 
 // Function to delete an object
 export const deleteObject = async (objectId) => {

@@ -54,6 +54,7 @@ export const researchFieldsOperations = {
         filename
         path
         type
+        formats
       }
       otherAssets:vocabulariesGenericAssets {
         genericAsset {
