@@ -2,6 +2,7 @@
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import ObjectResearchFields from "$lib/components/objects/ObjectResearchFields.svelte";
   import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
+  import ObjectOntologyFields from "$lib/components/objects/ObjectOntologyFields.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { back } from "$lib/utils/navigation.js";
@@ -113,6 +114,15 @@
             object={data.object}
             onChangesUpdate={handleComponentChanges}
           />
+        </div>
+      </div>
+    </div>
+
+    <!-- Ontology Fields Section -->
+    <div class="container-fluid mt-4">
+      <div class="row">
+        <div class="col-12">
+          <ObjectOntologyFields object={data.object} />
         </div>
       </div>
     </div>

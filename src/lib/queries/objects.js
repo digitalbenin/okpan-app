@@ -162,6 +162,7 @@ export const objectsOperations = {
       label
       value
       field_id
+      datasources_id
       primary
       default_description
       ontologyField {
@@ -170,6 +171,15 @@ export const objectsOperations = {
           content
         }
         category {
+          content
+        }
+        description {
+          content
+        }
+      }
+      datasource {
+        id
+        name {
           content
         }
       }
