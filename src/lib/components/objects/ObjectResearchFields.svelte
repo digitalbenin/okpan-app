@@ -229,7 +229,7 @@
     }
 </script>
 
-<div class="bg-white p-4 mb-4">
+<div class="bg-white mb-2 px-2">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0">
             {t("objects.research_fields.title", { fallback: "Research data" })}
@@ -247,7 +247,7 @@
         <div class="row">
             {#each allResearchFields as field}
                 <div class="col-12 mb-2">
-                    <div class="p-3 rounded">
+                    <div class="mb-2 rounded">
                         <div
                             class="d-flex justify-content-between align-items-start mb-2"
                         >

@@ -167,7 +167,7 @@
     }
 </script>
 
-<div class="bg-white p-4">
+<div class="bg-white px-2">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0">
             {t("objects.linked_media.title", { fallback: "Linked media" })}
