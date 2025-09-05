@@ -246,7 +246,7 @@
         <!-- Research fields with direct editing -->
         <div class="row">
             {#each allResearchFields as field}
-                <div class="col-md-7 mb-2">
+                <div class="col-12 mb-2">
                     <div class="p-3 rounded">
                         <div
                             class="d-flex justify-content-between align-items-start mb-2"

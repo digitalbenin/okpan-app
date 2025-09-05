@@ -1,6 +1,7 @@
 <script>
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import ObjectResearchFields from "$lib/components/objects/ObjectResearchFields.svelte";
+  import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { back } from "$lib/utils/navigation.js";
@@ -97,15 +98,19 @@
       </div>
     </div>
 
-    <!-- Research Fields Section -->
+    <!-- Research Fields and Linked Media Section -->
     <div class="container-fluid">
       <div class="row">
-        <div class="col-12">
+        <div class="col-8">
           <ObjectResearchFields
             object={data.object}
             researchFields={data.researchFields}
-            {languages}
-            {projectId}
+            onChangesUpdate={handleComponentChanges}
+          />
+        </div>
+        <div class="col-4">
+          <ObjectLinkedMedia
+            object={data.object}
             onChangesUpdate={handleComponentChanges}
           />
         </div>
