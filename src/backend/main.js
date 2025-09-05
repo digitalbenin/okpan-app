@@ -153,6 +153,41 @@ protocol.registerSchemesAsPrivileged([
   }
 ]);
 
+// Helper function for path resolution
+function resolveMediaPath(urlObj) {
+  let pathStr;
+
+  // Handle Windows drive letters in hostname (media://c/Users/... -> c/Users/...)
+  if (urlObj.hostname && /^[a-zA-Z]$/.test(urlObj.hostname)) {
+    pathStr = urlObj.hostname + decodeURIComponent(urlObj.pathname);
+  } else {
+    pathStr = decodeURIComponent(urlObj.pathname).replace(/^\//, '');
+  }
+
+  // Convert to absolute path if needed
+  if (/^[a-zA-Z]\//.test(pathStr)) {
+    // Windows drive format (c/Users/... -> C:\Users\...)
+    const driveLetter = pathStr.charAt(0).toUpperCase();
+    const restOfPath = pathStr.substring(2);
+    return process.platform === 'win32'
+      ? `${driveLetter}:\\${restOfPath.replace(/\//g, '\\')}`
+      : `/${pathStr}`;
+  }
+
+  if (path.isAbsolute(pathStr)) {
+    return path.normalize(pathStr);
+  }
+
+  // Try relative paths in project
+  const projectRoot = process.cwd();
+  const candidates = [
+    path.join(projectRoot, 'src', pathStr),
+    path.join(projectRoot, pathStr)
+  ];
+
+  return candidates.find(fs.existsSync) || null;
+}
+
 // Create window function
 const createWindow = () => {
   // Create the browser window.
@@ -197,30 +232,13 @@ app.whenReady().then(() => {
   // Register media protocol handler
   protocol.registerFileProtocol('media', (request, callback) => {
     try {
-      const pathToMedia = decodeURIComponent(new URL(request.url).pathname).replace(/^\//, '');
+      const resolvedPath = resolveMediaPath(new URL(request.url));
 
-      // Get the project root directory
-      const projectRoot = process.cwd();
-
-      // TEMPORARY!!!!!!! Try different path combinations
-      const possiblePaths = [
-        // Try with src prefix
-        path.join(projectRoot, 'src', pathToMedia),
-        // Try as-is
-        path.join(projectRoot, pathToMedia),
-        // Try with src prefix and Windows separators
-        path.join(projectRoot, 'src', pathToMedia.replace(/\//g, '\\')),
-        // Try the exact path from database
-        path.join(projectRoot, pathToMedia.replace(/\//g, '\\'))
-      ];
-
-      for (const tryPath of possiblePaths) {
-        if (fs.existsSync(tryPath)) {
-          callback({ path: tryPath });
-          return;
-        }
+      if (resolvedPath && fs.existsSync(resolvedPath)) {
+        callback({ path: resolvedPath });
+      } else {
+        callback({ error: -2 });
       }
-      callback({ error: -2 });
     } catch (error) {
       console.error('Media protocol error:', error);
       callback({ error: -2 });

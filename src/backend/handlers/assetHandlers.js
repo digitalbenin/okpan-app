@@ -66,8 +66,6 @@ const handleImportAssets = async (event, data) => {
     let errors = []
     let createdAssets = []; // Array to store created assets
 
-    console.log("asset handler data", data)
-
     if (!data.projectId) {
         throw new Error("Project ID is required");
     }
@@ -94,18 +92,15 @@ const handleImportAssets = async (event, data) => {
 
     for (const filePath of filesToProcess) {
         try {
-            console.log("processing file", filePath);
 
             const asset = await processAssetFile(filePath, projectFolder, data);
 
             if (asset) {
-                console.log("saving asset to db", asset);
                 const newAsset = await saveAssetToDb(asset, data.isGenericAsset);
                 createdAssets.push(newAsset);
             }
 
             progress++;
-            console.log(`${progress}/${totalFiles} files processed`);
         } catch (error) {
             console.error(`Error processing file ${filePath}:`, error);
             errors.push(error);
@@ -208,7 +203,6 @@ const processVideo = (videoPath, destPath) => processMediaFile(videoPath, destPa
 const processAudio = (audioPath, destPath) => processMediaFile(audioPath, destPath, 'audio');
 
 const saveAssetToDb = async (assetData, isGeneric) => {
-    console.log("Saving asset to DB:", assetData, "Is generic:", isGeneric);
     const table = isGeneric ? genericAssets : assets;
     const [newAsset] = await db.insert(table).values({
         id: uuidv4(),
