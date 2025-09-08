@@ -15,6 +15,9 @@
 
     const { t } = getTranslationStore();
 
+    // State management
+    let isSaving = $state(false);
+
     // Get object's current research field values
     const objectResearchFieldValues = $derived(
         object?.objectsResearchFields || [],

@@ -19,6 +19,7 @@ import {
     getPrimaryEntityFromActions,
     getParentActionType
 } from '../services/actionService.js';
+import { seedDefaultOntologyFields } from '../services/ontologyFieldsSeeder.js';
 
 // Custom action processor for objectImport mutation
 const processObjectImportActions = async (importResult, variables, context, db) => {
@@ -745,6 +746,39 @@ const processMutationActions = async (mutationFields, result, variables, context
     }
 };
 
+// Custom action processor for project creation - seed ontology fields
+const processProjectCreationActions = async (projectResult, variables, context, db) => {
+    try {
+        // Extract project ID from the creation result
+        const projectId = projectResult.insertIntoProject?.[0]?.id;
+        if (!projectId) {
+            console.warn('Project creation result missing project ID');
+            return;
+        }
+
+        // Find the default language for this project
+        // The language should have been created as part of the project creation mutations
+        const defaultLanguage = await db.query.languages.findFirst({
+            where: (languages, { eq, and }) => and(
+                eq(languages.project_id, projectId),
+                eq(languages.is_default, 1)
+            )
+        });
+
+        if (!defaultLanguage) {
+            console.warn(`No default language found for project ${projectId}`);
+            return;
+        }
+
+        // Seed default ontology fields
+        await seedDefaultOntologyFields(projectId, defaultLanguage.id);
+        console.log(`Ontology fields seeded for new project ${projectId}`);
+
+    } catch (error) {
+        console.error('Error processing project creation:', error);
+    }
+};
+
 // Track active workflows to create parent actions
 const activeWorkflows = new Map();
 
@@ -793,6 +827,11 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
             // Handle custom objectImportUsingTemplate mutation actions
             if (mutationFields.includes('objectImportUsingTemplate') && result.data.objectImportUsingTemplate) {
                 await processObjectImportUsingTemplateActions(result.data.objectImportUsingTemplate, variables, context, db);
+            }
+
+            // Handle project creation - seed ontology fields
+            if (mutationFields.includes('insertIntoProject') && result.data.insertIntoProject) {
+                await processProjectCreationActions(result.data, variables, context, db);
             }
         }
 

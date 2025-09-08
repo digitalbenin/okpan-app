@@ -108,21 +108,13 @@
             researchFields={data.researchFields}
             onChangesUpdate={handleComponentChanges}
           />
+          <ObjectOntologyFields object={data.object} />
         </div>
         <div class="col-4">
           <ObjectLinkedMedia
             object={data.object}
             onChangesUpdate={handleComponentChanges}
           />
-        </div>
-      </div>
-    </div>
-
-    <!-- Ontology Fields Section -->
-    <div class="container-fluid mt-4">
-      <div class="row">
-        <div class="col-12">
-          <ObjectOntologyFields object={data.object} />
         </div>
       </div>
     </div>

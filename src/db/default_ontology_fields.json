@@ -1,0 +1,203 @@
+{
+    "categories": {
+        "basic": "Basic Information",
+        "physical": "Physical Attributes",
+        "creation": "Creation Information",
+        "history": "Historical Context",
+        "acquisition": "Acquisition Details",
+        "management": "Collection Management",
+        "references": "References & Documentation"
+    },
+    "fields": [
+        {
+            "name": "object id",
+            "description": "Unique identifier for the artifact.",
+            "category": "basic"
+        },
+        {
+            "name": "designation",
+            "description": "Official title or name.",
+            "category": "basic"
+        },
+        {
+            "name": "description",
+            "description": "Brief summary of the artifact.",
+            "category": "basic"
+        },
+        {
+            "name": "object type",
+            "description": "Category or type of artifact.",
+            "category": "basic"
+        },
+        {
+            "name": "object count",
+            "description": "Number of items in the artifact group.",
+            "category": "basic"
+        },
+        {
+            "name": "material",
+            "description": "Substance(s) used to create the artifact.",
+            "category": "physical"
+        },
+        {
+            "name": "dimensions",
+            "description": "Size measurements (height, width, depth).",
+            "category": "physical"
+        },
+        {
+            "name": "weight",
+            "description": "Weight of the artifact.",
+            "category": "physical"
+        },
+        {
+            "name": "colour",
+            "description": "Dominant colors of the artifact.",
+            "category": "physical"
+        },
+        {
+            "name": "condition",
+            "description": "Current state of preservation.",
+            "category": "physical"
+        },
+        {
+            "name": "date made",
+            "description": "When the artifact was created.",
+            "category": "creation"
+        },
+        {
+            "name": "producer",
+            "description": "Creator or maker of the artifact.",
+            "category": "creation"
+        },
+        {
+            "name": "production technique",
+            "description": "Method used to create the artifact.",
+            "category": "creation"
+        },
+        {
+            "name": "production place",
+            "description": "Location where the artifact was made.",
+            "category": "creation"
+        },
+        {
+            "name": "iconography",
+            "description": "Symbols and imagery depicted.",
+            "category": "creation"
+        },
+        {
+            "name": "inscriptions",
+            "description": "Any text or markings on the artifact.",
+            "category": "creation"
+        },
+        {
+            "name": "prior owner",
+            "description": "Previous owner of the artifact.",
+            "category": "history"
+        },
+        {
+            "name": "prior owner role",
+            "description": "Role or title of the previous owner.",
+            "category": "history"
+        },
+        {
+            "name": "provenance",
+            "description": "Artifact's history and ownership record.",
+            "category": "history"
+        },
+        {
+            "name": "event",
+            "description": "Historical event associated with the artifact.",
+            "category": "history"
+        },
+        {
+            "name": "reign associated name",
+            "description": "Name of a ruler or figure linked to the artifact.",
+            "category": "history"
+        },
+        {
+            "name": "ethnic attribution",
+            "description": "Cultural or ethnic origin.",
+            "category": "history"
+        },
+        {
+            "name": "date collected",
+            "description": "When the artifact was acquired.",
+            "category": "acquisition"
+        },
+        {
+            "name": "place collected",
+            "description": "Location where the artifact was found.",
+            "category": "acquisition"
+        },
+        {
+            "name": "department and institution",
+            "description": "Museum or department housing the artifact.",
+            "category": "acquisition"
+        },
+        {
+            "name": "accession date",
+            "description": "Date the artifact was added to the collection.",
+            "category": "acquisition"
+        },
+        {
+            "name": "accession method",
+            "description": "How the artifact was acquired.",
+            "category": "acquisition"
+        },
+        {
+            "name": "notes",
+            "description": "Additional remarks or observations.",
+            "category": "management"
+        },
+        {
+            "name": "exhibition history",
+            "description": "Past exhibitions featuring the artifact.",
+            "category": "management"
+        },
+        {
+            "name": "display status",
+            "description": "Current display status (on display, in storage, etc.).",
+            "category": "management"
+        },
+        {
+            "name": "legal status",
+            "description": "Legal ownership and rights.",
+            "category": "management"
+        },
+        {
+            "name": "license",
+            "description": "Usage rights and permissions.",
+            "category": "management"
+        },
+        {
+            "name": "bibliography",
+            "description": "References and sources related to the artifact.",
+            "category": "references"
+        },
+        {
+            "name": "images",
+            "description": "Visual representations of the artifact.",
+            "category": "references"
+        },
+        {
+            "name": "weblink",
+            "description": "Online link for more information.",
+            "category": "references"
+        },
+        {
+            "name": "additional ids",
+            "description": "Additional identification numbers or codes.",
+            "category": "basic"
+        },
+        {
+            "name": "material analysis",
+            "description": "Scientific analysis of materials used.",
+            "category": "physical"
+        },
+        {
+            "name": "function",
+            "description": "Purpose or use of the artifact.",
+            "category": "basic"
+        }
+    ]
+}

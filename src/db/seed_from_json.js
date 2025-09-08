@@ -210,7 +210,8 @@ const seed = async () => {
                 id: uuidv4(),
                 name_id: nameId,
                 description_id: descriptionId,
-                category_id: categoryId
+                category_id: categoryId,
+                project_id: mainProjectId
             }).returning();
             ontologyFieldsByName.set(field.name.toLowerCase(), dbField.id);
         }

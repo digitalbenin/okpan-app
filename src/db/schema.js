@@ -132,6 +132,7 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     institutions: many(institutions),
     objects: many(objects),
     researchFields: many(research_fields),
+    ontologyFields: many(ontology_fields),
     settings: one(settings),
     assets: many(assets),
     genericAssets: many(genericAssets),
@@ -471,13 +472,18 @@ export const ontology_fields = sqliteTable('ontology_fields', {
     description_id: text('description_id').references(() => texts.id),
     category_id: text('category_id').references(() => texts.id),
     embeddings: text('embeddings'),
-    onwebsite: integer('onwebsite').default(1)
+    onwebsite: integer('onwebsite').default(1),
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' })
 });
 
 // Ontology Fields relations
 export const ontologyFieldsRelations = relations(ontology_fields, ({ many, one }) => ({
     objectsOntologyFields: many(objects_ontology_fields),
     objectDisplayFields: many(object_display_fields),
+    project: one(project, {
+        fields: [ontology_fields.project_id],
+        references: [project.id]
+    }),
     name: one(texts, {
         fields: [ontology_fields.name_id],
         references: [texts.id]
