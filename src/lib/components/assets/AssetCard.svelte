@@ -5,7 +5,7 @@
   const { asset } = $props();
 
   const linked = $derived(
-    asset.objectsAssets && asset.objectsAssets.length > 0
+    asset.objectsAssets && asset.objectsAssets.length > 0,
   );
 </script>
 
@@ -22,7 +22,7 @@
   </div>
   <div class="fs-5 mb-2 text-break p-2">
     <a
-      href="projects/{asset.project_id}/institutions/{asset.institution_id}/assets/{asset.id}"
+      href="/projects/{asset.project_id}/institutions/{asset.institution_id}/assets/{asset.id}"
       class="link-dark">{asset.filename}</a
     >
   </div>
