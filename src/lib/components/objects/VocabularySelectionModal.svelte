@@ -61,20 +61,14 @@
     }
 
     function handleSave() {
-        onSave?.(selectedIds);
+        onSave?.(currentVocabularyIds);
     }
 
     function handleCancel() {
         onCancel?.();
     }
 
-    // Debug
-    $inspect({
-        isOpen,
-        currentVocabularyIds,
-        selectedIds,
-        fieldName: field?.name?.content,
-    });
+
 </script>
 
 {#snippet header()}

@@ -190,9 +190,22 @@
     };
 
     const handleModalSave = (vocabularyIds) => {
-        if (currentModalField && vocabularyIds?.length > 0) {
-            vocabularyIds.forEach((vocabularyId) => {
-                handleVocabularyAdd(currentModalField.id, vocabularyId);
+        if (currentModalField) {
+            const originalIds = currentModalField.currentVocabularyIds || [];
+            const newIds = vocabularyIds || [];
+            
+            // Handle additions (new IDs not in original)
+            newIds.forEach((vocabularyId) => {
+                if (!originalIds.includes(vocabularyId)) {
+                    handleVocabularyAdd(currentModalField.id, vocabularyId);
+                }
+            });
+            
+            // Handle removals (original IDs not in new)
+            originalIds.forEach((vocabularyId) => {
+                if (!newIds.includes(vocabularyId)) {
+                    handleVocabularyRemove(currentModalField.id, vocabularyId);
+                }
             });
         }
         closeModal();
