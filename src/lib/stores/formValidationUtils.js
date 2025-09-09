@@ -618,6 +618,13 @@ registerCustomValidator('institutions', 'website', {
     defaultValue: ''
 });
 
+// Name field validator for institutions - required field
+registerCustomValidator('institutions', 'name', {
+    validator: () => z.string().min(1, 'Institution name is required'),
+    required: true,
+    defaultValue: ''
+});
+
 // =============================================================================
 // DATASOURCES VALIDATORS
 // =============================================================================
