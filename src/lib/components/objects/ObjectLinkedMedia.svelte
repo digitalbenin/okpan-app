@@ -3,8 +3,13 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import MediaModal from "$lib/components/research_fields/MediaModal.svelte";
-    import { unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
+    import {
+        unlinkAssetFromObject,
+        reorderAssets,
+    } from "$lib/stores/ObjectsUtils.js";
     import { invalidate } from "$app/navigation";
+    import { dragHandleZone, dragHandle } from "svelte-dnd-action";
+    import { flip } from "svelte/animate";
 
     // Props
     const {
@@ -20,6 +25,13 @@
     // Track pending changes for removal
     let pendingRemovals = $state(new Set());
 
+    // Track reordered assets locally for immediate visual feedback
+    let reorderedAssets = $state([]);
+    let hasReorderChanges = $state(false);
+
+    // Animation duration for flip animations
+    const flipDurationMs = 200;
+
     // Modal state for media preview
     let isModalOpen = $state(false);
     let modalAsset = $state(null);
@@ -32,8 +44,11 @@
         if (onChangesUpdate) {
             onChangesUpdate({
                 component: "linked_media",
-                hasChanges: pendingRemovals.size > 0,
-                changes: Array.from(pendingRemovals),
+                hasChanges: pendingRemovals.size > 0 || hasReorderChanges,
+                changes: {
+                    removals: Array.from(pendingRemovals),
+                    reorders: hasReorderChanges ? reorderedAssets : null,
+                },
                 saveFunction: saveChanges,
             });
         }
@@ -43,20 +58,38 @@
     function handleAssetRemove(assetId) {
         pendingRemovals.add(assetId);
         pendingRemovals = new Set(pendingRemovals);
+
+        // Also remove from reorderedAssets if we have reorder changes
+        if (hasReorderChanges) {
+            reorderedAssets = reorderedAssets.filter(
+                (asset) => asset.asset.id !== assetId,
+            );
+        }
+
         notifyParent();
     }
 
-    // Get filtered assets (excluding those marked for removal)
-    const displayAssets = $derived(
-        linkedAssets.filter(
+    // Get filtered and reordered assets (excluding those marked for removal)
+    const displayAssets = $derived.by(() => {
+        const filtered = linkedAssets.filter(
             (objectAsset) => !pendingRemovals.has(objectAsset.asset.id),
-        ),
-    );
+        );
+
+        // Use reordered assets if available, otherwise use original order sorted by order field
+        const assets = hasReorderChanges
+            ? reorderedAssets
+            : filtered.sort((a, b) => a.order - b.order);
+
+        // Ensure each item has an id property for svelte-dnd-action
+        return assets.map((objectAsset) => ({
+            ...objectAsset,
+            id: objectAsset.id, // svelte-dnd-action requires this
+        }));
+    });
 
     // Handle adding media (placeholder for now)
     function handleAddMedia() {
         // TODO: Implement media linking functionality
-        console.log("Add media clicked - functionality to be implemented");
     }
 
     // Handle viewing media
@@ -136,34 +169,54 @@
 
     // Save all pending changes
     async function saveChanges() {
-        if (pendingRemovals.size === 0) return;
+        if (pendingRemovals.size === 0 && !hasReorderChanges) return;
 
         try {
-            const removePromises = Array.from(pendingRemovals).map((assetId) =>
-                unlinkAssetFromObject(object.id, assetId),
-            );
+            const promises = [];
 
-            const results = await Promise.all(removePromises);
+            // Execute removal operations
+            if (pendingRemovals.size > 0) {
+                const removePromises = Array.from(pendingRemovals).map(
+                    (assetId) => unlinkAssetFromObject(object.id, assetId),
+                );
+                promises.push(...removePromises);
+            }
 
-            // Check for errors
+            // Execute reorder operations
+            if (hasReorderChanges) {
+                const assetOrders = reorderedAssets.map((asset, index) => ({
+                    assetId: asset.asset.id,
+                    order: index + 1,
+                }));
+                promises.push(reorderAssets(object.id, assetOrders));
+            }
+
+            const results = await Promise.all(promises);
             const errors = results.filter((result) => result.error);
+
             if (errors.length > 0) {
-                console.error("Error removing assets:", errors);
-                // TODO: Show user error message
+                console.error("Error saving asset changes:", errors);
             } else {
-                // Clear pending removals
+                // Clear pending changes
                 pendingRemovals.clear();
                 pendingRemovals = new Set(pendingRemovals);
-
-                // Notify parent that changes are cleared
                 notifyParent();
 
-                // Invalidate to refresh data
-                invalidate("custom:object");
+                // Refresh data then clear reorder state to prevent flickering
+                await invalidate("custom:object");
+                reorderedAssets = [];
+                hasReorderChanges = false;
             }
         } catch (error) {
             console.error("Error saving asset changes:", error);
         }
+    }
+
+    // Handle drag and drop events
+    function handleDndEvent(event) {
+        reorderedAssets = [...event.detail.items];
+        hasReorderChanges = true;
+        notifyParent();
     }
 </script>
 
@@ -188,11 +241,21 @@
 
     <!-- Linked assets list -->
     {#if displayAssets.length > 0}
-        <div class="linked-assets">
-            {#each displayAssets as objectAsset (objectAsset.id)}
+        <div
+            class="linked-assets"
+            use:dragHandleZone={{
+                dropTargetStyle: { outline: "none" },
+                items: displayAssets,
+                flipDurationMs,
+            }}
+            onconsider={handleDndEvent}
+            onfinalize={handleDndEvent}
+        >
+            {#each displayAssets as objectAsset, index (objectAsset.id)}
                 {@const asset = objectAsset.asset}
                 <div
-                    class="d-flex align-items-center gap-3 mb-3 p-3 border border-secondary border-opacity-25 rounded"
+                    class="d-flex align-items-center gap-3 mb-3 p-3 bg-white border border-secondary border-opacity-25 rounded"
+                    animate:flip={{ duration: flipDurationMs }}
                 >
                     <!-- Asset thumbnail -->
                     <div
@@ -235,18 +298,32 @@
                     </div>
 
                     <!-- Actions -->
-                    <div class="flex-shrink-0">
+                    <div class="flex-shrink-0 d-flex align-items-center gap-1">
+                        <!-- Drag handle -->
+                        <button
+                            class="btn btn-link text-muted p-1 drag-handle"
+                            style="cursor: grab;"
+                            aria-label="drag item"
+                            use:dragHandle
+                            ><i class="bi bi-grip-vertical"></i>
+                        </button>
                         <!-- Unlink button -->
-                        <BaseButton
+                        <button
                             class="btn btn-link text-danger p-1"
-                            icon="dash-circle"
-                            text=""
+                            type="button"
+                            aria-label={t("objects.linked_media.unlink", {
+                                fallback: "Unlink media",
+                            })}
                             title={t("objects.linked_media.unlink", {
                                 fallback: "Unlink media",
                             })}
-                            onClick={() =>
-                                handleAssetRemove(objectAsset.asset.id)}
-                        />
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                handleAssetRemove(objectAsset.asset.id);
+                            }}
+                        >
+                            <i class="bi bi-dash-circle"></i>
+                        </button>
                     </div>
                 </div>
             {/each}

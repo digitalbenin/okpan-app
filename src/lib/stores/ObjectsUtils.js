@@ -224,3 +224,51 @@ export const importObjectsAndTemplate = async (params) => {
 
     return result;
 };
+
+// Function to update asset order in objects_assets table
+export const updateAssetOrder = async (objectId, assetId, order) => {
+    if (!objectId || !assetId || order === undefined) {
+        return { error: "Invalid parameters for updateAssetOrder" };
+    }
+
+    const result = await executeQuery('objects', 'updateAssetOrder', { 
+        objectId, 
+        assetId, 
+        order 
+    });
+
+    if (result.error) {
+        return { error: result.error };
+    }
+
+    // Invalidate caches to reflect the change
+    invalidate("app:objects");
+    invalidate("custom:object");
+
+    return { result: result.updateObjects_assets, error: null };
+};
+
+// Function to reorder multiple assets at once
+export const reorderAssets = async (objectId, assetOrders) => {
+    if (!objectId || !assetOrders || assetOrders.length === 0) {
+        return { error: "Invalid parameters for reorderAssets" };
+    }
+
+    try {
+        const updatePromises = assetOrders.map(({ assetId, order }) => 
+            updateAssetOrder(objectId, assetId, order)
+        );
+
+        const results = await Promise.all(updatePromises);
+        
+        // Check for errors
+        const errors = results.filter(result => result.error);
+        if (errors.length > 0) {
+            return { error: errors.map(e => e.error).join("; ") };
+        }
+
+        return { results: results.map(r => r.result), error: null };
+    } catch (error) {
+        return { error: `Failed to reorder assets: ${error.message}` };
+    }
+};

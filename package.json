@@ -74,6 +74,7 @@
     "melt": "^0.30.1",
     "runed": "^0.30.0",
     "sharp": "^0.33.5",
+    "svelte-dnd-action": "^0.9.65",
     "sveltekit-i18n": "^2.4.2",
     "swiper": "^11.2.10",
     "uuid": "^11.1.0",
