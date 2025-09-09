@@ -75,6 +75,7 @@ export const institutionsOperations = {
       }
     }
     links
+    website
     objectsCount
     datasourcesCount
     assetsCount
@@ -345,6 +346,7 @@ export const institutionsOperations = {
       country: "New country content (optional)",
       location: "New location content (optional)",
       status: "New status (optional)",
+      website: "New website URL (optional)",
       links: "New links array (optional, should be JSON)",
       languageId: "Default language ID for creating new text entries (optional)",
       // Translation arrays
@@ -364,6 +366,7 @@ export const institutionsOperations = {
     country { id }
     location { id }
     status
+    website
     links
   }
 }`,
@@ -576,6 +579,20 @@ export const institutionsOperations = {
         useVariables: ["id", "links"],
         skipIf: { variableName: "links", isEmpty: true }
       },
+      {
+        name: "updateWebsite",
+        query: `mutation UpdateInstitutionWebsite($id: String!, $website: String!) {
+  updateInstitutions(
+    set: { website: $website }
+    where: { id: { eq: $id } }
+  ) {
+    id
+    website
+  }
+}`,
+        useVariables: ["id", "website"],
+        skipIf: { variableName: "website", isEmpty: true }
+      },
       // === TRANSLATION PROCESSING STEPS ===
       {
         name: "processNameTranslations",
@@ -734,4 +751,4 @@ export const institutionsOperations = {
       }
     }`
   }
-}; 
+};

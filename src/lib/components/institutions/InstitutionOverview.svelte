@@ -1,16 +1,24 @@
 <script>
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
+  import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { back } from "$lib/utils/navigation.js";
+  import { goto } from "$app/navigation";
 
   const { institution } = $props();
   const { t } = getTranslationStore();
+
+  const handleEdit = () => {
+    goto(`/projects/${institution.project_id}/institutions/${institution.id}/edit`);
+  };
 </script>
 
-<div class="container-fluid pb-4">
+<div class="container-fluid pb-4" style="overflow: visible;">
   <div class="row mb-2">
     <div class="col-12">
-      <div class="d-flex align-items-start gap-3 mt-3">
+      <div
+        class="d-flex align-items-start gap-3 mt-3"
+        style="overflow: visible;"
+      >
         <div>
           <button
             class="btn btn-lg btn-light rounded-circle aspect-ratio-1x1"
@@ -25,12 +33,16 @@
           </span>
         </h1>
         <div class="ms-auto">
-          <!-- <a
-            href="/projects/{institution.project_id}/institutions/{institution.id}/edit"
-            >edit</a
-          > -->
-
-          <i class="bi bi-three-dots-vertical"></i>
+          <BaseButton
+            class="btn btn-outline-secondary btn border-0"
+            onClick={handleEdit}
+            title={$t("common.edit-institution", {
+              fallback: "Edit Institution",
+            })}
+            icon="pencil"
+          >
+            <i class="bi bi-pencil"></i>
+          </BaseButton>
         </div>
       </div>
     </div>
