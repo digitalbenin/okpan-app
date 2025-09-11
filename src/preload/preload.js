@@ -12,7 +12,8 @@ contextBridge.exposeInMainWorld('api', {
     exportLogs: (filePath) => ipcRenderer.invoke('export-logs', filePath),
     clearLogs: (filters) => ipcRenderer.invoke('clear-logs', filters),
     importAssets: (data) => ipcRenderer.invoke('import-assets', data),
-    exportProjectSql: (options) => ipcRenderer.invoke('export-project-sql', options),
+    // Removed legacy exportProjectSql in favor of unified exportProject
+    exportProject: (options) => ipcRenderer.invoke('export-project', options),
     openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options),
     readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
     importStructuredData: (options) => ipcRenderer.invoke('import-structured-data', options),

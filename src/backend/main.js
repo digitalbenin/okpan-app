@@ -21,7 +21,7 @@ import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.j
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { eq, sql, isNull } from 'drizzle-orm';
-import { handleExportProjectSql } from './handlers/exportHandlers.js';
+import { handleExportProject } from './handlers/exportHandlers.js';
 
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
@@ -49,8 +49,9 @@ ipcMain.handle('open-file-dialog', handleFileDialog);
 ipcMain.handle('import-structured-data', handleStructuredDataImport);
 ipcMain.handle('excel-sheet-selection', handleExcelSheetSelection);
 
-ipcMain.handle('export-project-sql', (event, options) =>
-  handleExportProjectSql(event, options, { db })
+// New generic export channel supports { format: 'sql' | 'json', ... }
+ipcMain.handle('export-project', (event, options) =>
+  handleExportProject(event, options, { db })
 );
 
 // Project cache handlers
