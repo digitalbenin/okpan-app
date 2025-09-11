@@ -1,9 +1,11 @@
-import { sql, eq, inArray, and, or } from 'drizzle-orm';
+import { eq, inArray, and } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import path from 'path';
 import os from 'os';
 import fsPromises from 'fs/promises';
 import { execFile } from 'child_process';
+import { buildObjectSearchConditions } from './objectSearchConditions.js';
+import { buildCounts, makeExportResult } from './exportResult.js';
 
 // Utility: escape single quotes for SQL
 const sqlEscape = (val) => String(val).replace(/'/g, "''");
@@ -226,49 +228,12 @@ async function createZipFromFolder(folderPath, zipPath) {
   const isWin = process.platform === 'win32';
   if (!isWin) throw new Error('ZIP export currently supported only on Windows environment');
   return new Promise((resolve, reject) => {
-    const args = ['-NoProfile','-Command',`Compress-Archive -Path "${folderPath}/*" -DestinationPath "${zipPath}" -Force`];
+    const args = ['-NoProfile', '-Command', `Compress-Archive -Path "${folderPath}/*" -DestinationPath "${zipPath}" -Force`];
     execFile('powershell', args, { windowsHide: true }, (error, stdout, stderr) => {
       if (error) return reject(new Error(`ZIP failed: ${stderr || error.message}`));
       resolve(true);
     });
   });
-}
-
-// Build search conditions like objectSearch
-function buildObjectSearchConditions(args) {
-  const { project_id, institutionIds, status, ontologyQuery, ontologyFieldIds, researchFieldFilters } = args || {};
-  const conditions = [eq(dbSchema.objects.project_id, project_id)];
-  if (institutionIds && institutionIds.length > 0) conditions.push(inArray(dbSchema.objects.institution_id, institutionIds));
-  if (status) conditions.push(eq(dbSchema.objects.status, status));
-  if (ontologyQuery && ontologyQuery.trim()) {
-    const q = `%${ontologyQuery.trim().toLowerCase()}%`;
-    if (ontologyFieldIds && ontologyFieldIds.length > 0) {
-      const existsPerField = ontologyFieldIds.map((fid) => sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof WHERE oof.object_id = ${dbSchema.objects.id} AND oof.field_id = ${fid} AND LOWER(oof.value) LIKE ${q})`);
-      conditions.push(existsPerField.length === 1 ? existsPerField[0] : or(...existsPerField));
-    } else {
-      conditions.push(sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof WHERE oof.object_id = ${dbSchema.objects.id} AND LOWER(oof.value) LIKE ${q})`);
-    }
-  }
-  const rfFilters = Array.isArray(researchFieldFilters)
-    ? researchFieldFilters.map((f) => { try { return typeof f === 'string' ? JSON.parse(f) : f; } catch { return f; } })
-    : [];
-  if (rfFilters.length > 0) {
-    const rfConds = [];
-    for (const filter of rfFilters) {
-      const fieldConds = [];
-      if (filter?.query && String(filter.query).trim()) {
-        const rq = `%${String(filter.query).trim().toLowerCase()}%`;
-        fieldConds.push(sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_research_fields} orf WHERE orf.object_id = ${dbSchema.objects.id} AND orf.field_id = ${filter.fieldId} AND LOWER(orf.value) LIKE ${rq})`);
-      }
-      if (filter?.vocabularyIds && filter.vocabularyIds.length > 0) {
-        const vocOr = filter.vocabularyIds.map((vid) => sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_research_fields} orf WHERE orf.object_id = ${dbSchema.objects.id} AND orf.field_id = ${filter.fieldId} AND orf.vocabulary_id = ${vid})`);
-        fieldConds.push(vocOr.length === 1 ? vocOr[0] : or(...vocOr));
-      }
-      if (fieldConds.length > 0) rfConds.push(fieldConds.length === 1 ? fieldConds[0] : and(...fieldConds));
-    }
-    if (rfConds.length > 0) conditions.push(rfConds.length === 1 ? rfConds[0] : and(...rfConds));
-  }
-  return conditions;
 }
 
 export async function exportProjectSql(options, { db }) {
@@ -285,11 +250,11 @@ export async function exportProjectSql(options, { db }) {
       const tmpBase = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'export-'));
       await fsPromises.writeFile(path.join(tmpBase, 'README.txt'), 'No objects matched the filters.');
       await createZipFromFolder(tmpBase, filePath);
-      try { await fsPromises.rm(tmpBase, { recursive: true, force: true }); } catch {}
-      return { filePath, mode: 'zip', counts: { objects: 0 } };
+      try { await fsPromises.rm(tmpBase, { recursive: true, force: true }); } catch { }
+      return makeExportResult({ filePath, zipped: true, counts: buildCounts(), fallbackMode: 'sql' });
     } else {
       await fsPromises.writeFile(filePath, '-- No objects matched the filters.\n', 'utf-8');
-      return { filePath, mode: 'sql', counts: { objects: 0 } };
+      return makeExportResult({ filePath, zipped: false, counts: buildCounts(), fallbackMode: 'sql' });
     }
   }
 
@@ -305,112 +270,76 @@ export async function exportProjectSql(options, { db }) {
   const datasources = datasourceIds.length ? await db.select().from(dbSchema.datasources).where(inArray(dbSchema.datasources.id, datasourceIds)).execute() : [];
   const templateIds = Array.from(new Set(datasources.map((d) => d.template_id).filter(Boolean)));
   const templates = templateIds.length ? await db.select().from(dbSchema.templates).where(inArray(dbSchema.templates.id, templateIds)).execute() : [];
-  const rfIds = Array.from(new Set(objectsOntologyFields.map((_) => null))); // placeholder to keep structure
   const orfs = await db.select().from(dbSchema.objects_research_fields).where(inArray(dbSchema.objects_research_fields.object_id, objectIds)).execute();
   const researchFieldIds = Array.from(new Set(orfs.map((r) => r.field_id).filter(Boolean)));
   const researchFields = researchFieldIds.length ? await db.select().from(dbSchema.research_fields).where(inArray(dbSchema.research_fields.id, researchFieldIds)).execute() : [];
   const vocabularyIds = Array.from(new Set(orfs.map((r) => r.vocabulary_id).filter(Boolean)));
   const vocabularies = vocabularyIds.length ? await db.select().from(dbSchema.vocabularies).where(inArray(dbSchema.vocabularies.id, vocabularyIds)).execute() : [];
-  const vgRows = vocabularyIds.length ? await db.select().from(dbSchema.vocabularies_generic_assets).where(inArray(dbSchema.vocabularies_generic_assets.vocabulary_id, vocabularyIds)).execute() : [];
+  const vga = vocabularyIds.length ? await db.select().from(dbSchema.vocabularies_generic_assets).where(inArray(dbSchema.vocabularies_generic_assets.vocabulary_id, vocabularyIds)).execute() : [];
   const genericAssetIds = Array.from(new Set([
-    ...vgRows.map((r) => r.generic_asset_id).filter(Boolean),
-    ...vocabularies.map((v) => v.main_asset_id).filter(Boolean)
+    ...vga.map((r) => r.generic_asset_id).filter(Boolean),
+    ...vocabularies.map((v) => v.main_asset_id).filter(Boolean),
   ]));
   const genericAssets = genericAssetIds.length ? await db.select().from(dbSchema.genericAssets).where(inArray(dbSchema.genericAssets.id, genericAssetIds)).execute() : [];
-  const assetsInstitutions = assetIds.length ? await db.select().from(dbSchema.assets_institutions).where(inArray(dbSchema.assets_institutions.asset_id, assetIds)).execute() : [];
-  const institutionIds = Array.from(new Set([
-    ...assets.map((a) => a.institution_id).filter(Boolean),
-    ...assetsInstitutions.map((ai) => ai.institution_id).filter(Boolean)
-  ]));
-  const institutions = institutionIds.length ? await db.select().from(dbSchema.institutions).where(inArray(dbSchema.institutions.id, institutionIds)).execute() : [];
-  const projectRow = await db.select().from(dbSchema.project).where(eq(dbSchema.project.id, filters.project_id)).execute();
 
-  const textIdSet = new Set();
-  const pushText = (id) => { if (id) textIdSet.add(id); };
-  const project = projectRow[0]; if (project) { pushText(project.title_id); pushText(project.description_id); }
-  institutions.forEach((inst) => { pushText(inst.name_id); pushText(inst.description_id); pushText(inst.country_id); pushText(inst.location_id); });
-  const rfSetTexts = (arr) => arr.forEach((rf) => { pushText(rf.name_id); pushText(rf.description_id); });
-  rfSetTexts(researchFields);
-  ontologyFields.forEach((f) => { pushText(f.name_id); pushText(f.description_id); pushText(f.category_id); });
-  datasources.forEach((d) => { pushText(d.name_id); pushText(d.method_id); pushText(d.notes_id); });
-  vocabularies.forEach((v) => { pushText(v.option_id); pushText(v.description_id); });
+  // 3) Prepare SQL content
+  const ddl = generateSchemaDDL();
+  const inserts = [
+    generateInsertStatements('objects', objects),
+    generateInsertStatements('objects_assets', objectsAssets),
+    generateInsertStatements('assets', assets),
+    generateInsertStatements('objects_ontology_fields', objectsOntologyFields),
+    generateInsertStatements('ontology_fields', ontologyFields),
+    generateInsertStatements('datasources', datasources),
+    generateInsertStatements('templates', templates),
+    generateInsertStatements('objects_research_fields', orfs),
+    generateInsertStatements('research_fields', researchFields),
+    generateInsertStatements('vocabularies', vocabularies),
+    generateInsertStatements('vocabularies_generic_assets', vga),
+    generateInsertStatements('generic_assets', genericAssets),
+  ].join('\n');
 
-  const textIds = Array.from(textIdSet);
-  const texts = textIds.length ? await db.select().from(dbSchema.texts).where(inArray(dbSchema.texts.id, textIds)).execute() : [];
-  const languages = await db.select().from(dbSchema.languages).where(eq(dbSchema.languages.project_id, filters.project_id)).execute();
-  const languageIds = languages.map((l) => l.id);
-  const translations = textIds.length && languageIds.length ? await db.select().from(dbSchema.translations).where(and(inArray(dbSchema.translations.text_id, textIds), inArray(dbSchema.translations.language_id, languageIds))).execute() : [];
+  const sqlContent = ddl + inserts;
 
-  // 3) Generate SQL
-  let sqlOut = '';
-  sqlOut += 'PRAGMA foreign_keys=OFF;\n';
-  sqlOut += 'BEGIN TRANSACTION;\n\n';
-  sqlOut += '-- Schema (drop and create)\n';
-  sqlOut += generateSchemaDDL();
-  sqlOut += '\n-- Data\n\n';
-  sqlOut += generateInsertStatements('languages', languages);
-  sqlOut += generateInsertStatements('texts', texts);
-  sqlOut += generateInsertStatements('translations', translations);
-  sqlOut += generateInsertStatements('project', projectRow);
-  sqlOut += generateInsertStatements('institutions', institutions);
-  sqlOut += generateInsertStatements('ontology_fields', ontologyFields);
-  sqlOut += generateInsertStatements('research_fields', researchFields);
-  sqlOut += generateInsertStatements('generic_assets', genericAssets);
-  sqlOut += generateInsertStatements('vocabularies', vocabularies);
-  sqlOut += generateInsertStatements('vocabularies_generic_assets', vgRows);
-  sqlOut += generateInsertStatements('templates', templates);
-  sqlOut += generateInsertStatements('datasources', datasources);
-  sqlOut += generateInsertStatements('assets', assets);
-  sqlOut += generateInsertStatements('objects', objects);
-  sqlOut += generateInsertStatements('objects_research_fields', orfs);
-  sqlOut += generateInsertStatements('objects_ontology_fields', objectsOntologyFields);
-  sqlOut += generateInsertStatements('objects_assets', objectsAssets);
-  sqlOut += generateInsertStatements('assets_institutions', assetsInstitutions);
-  sqlOut += '\nCOMMIT;\nPRAGMA foreign_keys=ON;\n';
+  const counts = buildCounts({
+    objects,
+    assets,
+    ontologyFields,
+    datasources,
+    templates,
+    researchFields,
+    vocabularies,
+    vga,
+    genericAssets,
+  });
 
   if (!wantZip) {
-    await fsPromises.writeFile(filePath, sqlOut, 'utf-8');
-    return { filePath, mode: 'sql', counts: { objects: objects.length } };
+    await fsPromises.writeFile(filePath, sqlContent, 'utf-8');
+    return makeExportResult({ filePath, zipped: false, counts, fallbackMode: 'sql' });
   }
 
-  const tmpBase = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'export-'));
-  const sqlPath = path.join(tmpBase, 'export.sql');
-  await fsPromises.writeFile(sqlPath, sqlOut, 'utf-8');
+  // 4) If want zip, write SQL and optionally copy assets/generic assets
+  const tmpBase = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'export-sql-'));
+  const dataDir = path.join(tmpBase, 'data');
+  await ensureDir(dataDir);
+  const sqlFile = path.join(dataDir, 'export.sql');
+  await fsPromises.writeFile(sqlFile, sqlContent, 'utf-8');
 
   if (includeAssets) {
     const assetsDir = path.join(tmpBase, 'assets');
     await ensureDir(assetsDir);
+    for (const a of genericAssets) {
+      if (!a?.path) continue;
+      const ok = await copyFileIfExists(a.path, path.join(assetsDir, a.filename || String(a.id)));
+    }
     for (const a of assets) {
       if (!a?.path) continue;
-      const base = path.basename(a.path || a.filename || a.id);
-      const dest = path.join(assetsDir, `${a.id}_${base}`);
-      await copyFileIfExists(a.path, dest);
-    }
-    const genDir = path.join(tmpBase, 'generic_assets');
-    await ensureDir(genDir);
-    for (const ga of genericAssets) {
-      if (!ga?.path) continue;
-      const base = path.basename(ga.path || ga.filename || ga.id);
-      const dest = path.join(genDir, `${ga.id}_${base}`);
-      await copyFileIfExists(ga.path, dest);
+      const ok = await copyFileIfExists(a.path, path.join(assetsDir, a.filename || String(a.id)));
     }
   }
 
   await createZipFromFolder(tmpBase, filePath);
-  try { await fsPromises.rm(tmpBase, { recursive: true, force: true }); } catch {}
+  try { await fsPromises.rm(tmpBase, { recursive: true, force: true }); } catch { }
 
-  return {
-    filePath,
-    mode: 'zip',
-    includeAssets,
-    counts: {
-      objects: objects.length,
-      assets: assets.length,
-      institutions: institutions.length,
-      ontologyFields: ontologyFields.length,
-      datasources: datasources.length,
-      researchFields: researchFields.length,
-      vocabularies: vocabularies.length,
-    }
-  };
+  return makeExportResult({ filePath, zipped: true, counts, fallbackMode: 'sql' });
 }

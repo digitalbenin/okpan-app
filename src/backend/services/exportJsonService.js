@@ -2,8 +2,10 @@ import path from 'path';
 import os from 'os';
 import fsPromises from 'fs/promises';
 import { execFile } from 'child_process';
-import { sql, eq, inArray, and, or } from 'drizzle-orm';
+import { eq, inArray, and } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
+import { buildObjectSearchConditions } from './objectSearchConditions.js';
+import { buildCounts, makeExportResult } from './exportResult.js';
 
 async function ensureDir(dirPath) { await fsPromises.mkdir(dirPath, { recursive: true }); }
 async function writeJson(filePath, obj) { await ensureDir(path.dirname(filePath)); await fsPromises.writeFile(filePath, JSON.stringify(obj, null, 2), 'utf-8'); }
@@ -27,49 +29,12 @@ async function createZipFromFolder(folderPath, zipPath) {
   const isWin = process.platform === 'win32';
   if (!isWin) throw new Error('ZIP export currently supported only on Windows environment');
   return new Promise((resolve, reject) => {
-    const args = ['-NoProfile','-Command',`Compress-Archive -Path "${folderPath}/*" -DestinationPath "${zipPath}" -Force`];
+    const args = ['-NoProfile', '-Command', `Compress-Archive -Path "${folderPath}/*" -DestinationPath "${zipPath}" -Force`];
     execFile('powershell', args, { windowsHide: true }, (error, stdout, stderr) => {
       if (error) return reject(new Error(`ZIP failed: ${stderr || error.message}`));
       resolve(true);
     });
   });
-}
-
-function buildObjectSearchConditions(args) {
-  const { project_id, institutionIds, status, ontologyQuery, ontologyFieldIds, researchFieldFilters } = args || {};
-  const conditions = [eq(dbSchema.objects.project_id, project_id)];
-  if (institutionIds && institutionIds.length > 0) conditions.push(inArray(dbSchema.objects.institution_id, institutionIds));
-  if (status) conditions.push(eq(dbSchema.objects.status, status));
-  if (ontologyQuery && ontologyQuery.trim()) {
-    const q = `%${ontologyQuery.trim().toLowerCase()}%`;
-    if (ontologyFieldIds && ontologyFieldIds.length > 0) {
-      const existsPerField = ontologyFieldIds.map((fid) => sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof WHERE oof.object_id = ${dbSchema.objects.id} AND oof.field_id = ${fid} AND LOWER(oof.value) LIKE ${q})`);
-      conditions.push(existsPerField.length === 1 ? existsPerField[0] : or(...existsPerField));
-    } else {
-      conditions.push(sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof WHERE oof.object_id = ${dbSchema.objects.id} AND LOWER(oof.value) LIKE ${q})`);
-    }
-  }
-
-  const rfFilters = Array.isArray(researchFieldFilters)
-    ? researchFieldFilters.map((f) => { try { return typeof f === 'string' ? JSON.parse(f) : f; } catch { return f; } })
-    : [];
-  if (rfFilters.length > 0) {
-    const rfConds = [];
-    for (const filter of rfFilters) {
-      const fieldConds = [];
-      if (filter?.query && String(filter.query).trim()) {
-        const rq = `%${String(filter.query).trim().toLowerCase()}%`;
-        fieldConds.push(sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_research_fields} orf WHERE orf.object_id = ${dbSchema.objects.id} AND orf.field_id = ${filter.fieldId} AND LOWER(orf.value) LIKE ${rq})`);
-      }
-      if (filter?.vocabularyIds && filter.vocabularyIds.length > 0) {
-        const vocOr = filter.vocabularyIds.map((vid) => sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_research_fields} orf WHERE orf.object_id = ${dbSchema.objects.id} AND orf.field_id = ${filter.fieldId} AND orf.vocabulary_id = ${vid})`);
-        fieldConds.push(vocOr.length === 1 ? vocOr[0] : or(...vocOr));
-      }
-      if (fieldConds.length > 0) rfConds.push(fieldConds.length === 1 ? fieldConds[0] : and(...fieldConds));
-    }
-    if (rfConds.length > 0) conditions.push(rfConds.length === 1 ? rfConds[0] : and(...rfConds));
-  }
-  return conditions;
 }
 
 export async function exportProjectJson(options, { db }) {
@@ -256,7 +221,7 @@ export async function exportProjectJson(options, { db }) {
         if (s === '' || s.toLowerCase() === 'null') {
           base.links = null;
         } else {
-          try { base.links = JSON.parse(s); } catch {}
+          try { base.links = JSON.parse(s); } catch { }
         }
       }
     }
@@ -270,7 +235,7 @@ export async function exportProjectJson(options, { db }) {
 
   for (const obj of objects) {
     const oJson = sanitizeRow('objects', obj);
-    
+
     // Expand institution reference
     if (obj.institution_id) {
       const inst = iInstitutions[obj.institution_id];
@@ -278,7 +243,7 @@ export async function exportProjectJson(options, { db }) {
         oJson.institution = expandEntity('institutions', inst);
       }
     }
-    
+
     // expand ontology fields grouped by datasource
     const myOofs = byObjectOofs[obj.id] || [];
     const byDs = myOofs.reduce((m, o) => { const k = o.datasources_id || 'null'; (m[k] ||= []).push(o); return m; }, {});
@@ -297,31 +262,32 @@ export async function exportProjectJson(options, { db }) {
       });
       return dsOut;
     });
-    
+
     // expand research fields
     const myOrfs = byObjectOrfs[obj.id] || [];
     oJson.research_fields = myOrfs.map((r) => {
       const field = iResearchFields[r.field_id];
       const vocab = iVocabs[r.vocabulary_id];
-      
+      const valueOut = r.vocabulary_id
+        ? (r.value ?? (vocab ? expandText(vocab.option_id) : null))
+        : (r.value ?? null);
+
       return {
         ...sanitizeRow('objects_research_fields', r),
         field: field ? expandEntity('research_fields', field) : null,
-        vocabulary: vocab ? {
-          ...expandEntity('vocabularies', vocab),
-          main_asset: vocab.main_asset_id ? (() => {
-            const ga = iGenericAssets[vocab.main_asset_id];
-            return ga ? {
-              filename: ga.filename || null,
-              type: ga.type || null,
-              properties: ga.properties ?? null
-            } : null;
-          })() : null,
-          generic_assets: (byVocabGA[vocab.id] || []).map((ga) => sanitizeRow('generic_assets', iGenericAssets[ga.generic_asset_id])).filter(Boolean)
-        } : null
+        value: valueOut,
+        main_asset: (vocab && vocab.main_asset_id) ? (() => {
+          const ga = iGenericAssets[vocab.main_asset_id];
+          return ga ? {
+            filename: ga.filename || null,
+            type: ga.type || null,
+            properties: ga.properties ?? null
+          } : null;
+        })() : null,
+        generic_assets: vocab ? (byVocabGA[vocab.id] || []).map((ga) => sanitizeRow('generic_assets', iGenericAssets[ga.generic_asset_id])).filter(Boolean) : []
       };
     });
-    
+
     // expand assets
     const myOassets = byObjectAssets[obj.id] || [];
     const assetItems = myOassets.map((oa) => {
@@ -329,27 +295,11 @@ export async function exportProjectJson(options, { db }) {
       return a ? sanitizeRow('assets', a) : null;
     }).filter(Boolean);
 
-    // include main generic assets from vocabularies as assets with same shape
-    const mainGenericIds = new Set();
-    for (const r of myOrfs) {
-      const vocab = iVocabs[r.vocabulary_id];
-      if (vocab?.main_asset_id) mainGenericIds.add(vocab.main_asset_id);
-    }
-    const rfMainAssets = Array.from(mainGenericIds).map((gaId) => {
-      const ga = iGenericAssets[gaId];
-      if (!ga) return null;
-      // mirror assets shape: filename, type, properties
-      return {
-        filename: ga.filename || null,
-        type: ga.type || null,
-        properties: ga.properties ?? null
-      };
-    }).filter(Boolean);
-
-    // merge and dedupe by filename
+    // Do NOT include research-field main assets in top-level assets (per request)
+    // Only object-linked assets are exported at the top level, still deduped by filename
     const merged = [];
     const seen = new Set();
-    for (const item of [...assetItems, ...rfMainAssets]) {
+    for (const item of assetItems) {
       const key = item && item.filename ? item.filename : JSON.stringify(item);
       if (!seen.has(key)) {
         seen.add(key);
@@ -374,7 +324,7 @@ export async function exportProjectJson(options, { db }) {
         const base = a.filename || path.basename(a.path || a.id);
         const dest = path.join(assetsDir, base);
         await fsPromises.copyFile(a.path, dest);
-      } catch {}
+      } catch { }
     }
     const genDir = path.join(outRoot, 'generic_assets');
     await ensureDir(genDir);
@@ -384,12 +334,30 @@ export async function exportProjectJson(options, { db }) {
         const base = ga.filename || path.basename(ga.path || ga.id);
         const dest = path.join(genDir, base);
         await fsPromises.copyFile(ga.path, dest);
-      } catch {}
+      } catch { }
     }
   }
 
-  await createZipFromFolder(outRoot, filePath);
-  try { await fsPromises.rm(outRoot, { recursive: true, force: true }); } catch {}
+  // Align behavior with SQL export when no objects matched: add a README.txt
+  if ((objects?.length || 0) === 0) {
+    try { await fsPromises.writeFile(path.join(outRoot, 'README.txt'), 'No objects matched the filters.'); } catch { }
+  }
 
-  return { filePath, mode: 'json', objects: objects.length };
+  // Build counts from the loaded datasets to unify response with SQL export
+  const counts = buildCounts({
+    objects,
+    assets,
+    ontologyFields,
+    datasources,
+    templates,
+    researchFields,
+    vocabularies,
+    vga,
+    genericAssets,
+  });
+
+  await createZipFromFolder(outRoot, filePath);
+  try { await fsPromises.rm(outRoot, { recursive: true, force: true }); } catch { }
+
+  return makeExportResult({ filePath, zipped: true, counts, fallbackMode: 'json' });
 }
