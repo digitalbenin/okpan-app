@@ -8,14 +8,10 @@
   const matchingSuggestions = resource(
     () => wizard.assets,
     async (assets, preAssets, { data, refetching, onCleanup, signal }) => {
-      console.log("Assets changed, fetching matching suggestions", assets);
       if (!assets.length) {
         return [];
       }
       const toMap = assets.map((a) => ({ id: a.id, filename: a.filename }));
-
-      console.log("Suggesting matches for", toMap);
-
       const suggestions = await window.api.suggestObjectMatches(toMap, {
         institutionId: wizard.institutionId,
         searchFields: [],
