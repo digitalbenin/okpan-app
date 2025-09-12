@@ -8,6 +8,7 @@
 
   let files = $state([]);
   let filesSelected = $state([]);
+  let importErrors = $state([]);
 
   async function choose(isDirectory) {
     const result = await window.api.openFileDialog({
@@ -16,26 +17,104 @@
     });
     console.log("Dialog result", result);
     if (result.canceled) return;
-    files = result.filePaths;
-    filesSelected = result.filePaths;
+    wizard.assets = [];
+    importErrors = [];
+    files = result.files;
+    filesSelected = result.files.map((f) => f.path);
   }
 
   async function importNow() {
-    const payload = {
-      path: $state.snapshot(filesSelected),
-      isDirectory: false,
-      projectId: wizard.projectId,
-      institutionId: wizard.institutionId,
-    };
+    // const payload = {
+    //   path: $state.snapshot(filesSelected),
+    //   isDirectory: false,
+    //   projectId: wizard.projectId,
+    //   institutionId: wizard.institutionId,
+    // };
 
-    console.log("Importing with payload", payload);
+    // console.log("Importing with payload", payload);
 
-    const { errors, createdAssets } = await window.api.importAssets(payload);
-    if (errors?.length) console.warn("Import warnings", errors);
+    // const { errors, createdAssets } = await window.api.importAssets(payload);
+    // if (errors?.length) {
+    //   importErrors = errors;
+    // }
 
-    wizard.assets = createdAssets ? createdAssets : [];
+    // wizard.assets = createdAssets ? createdAssets : [];
+    wizard.assets = fakeAssets;
+    if (wizard.assets.length) {
+      wizard.nextEnabled = true;
+    }
   }
 
+  const fakeAssets = [
+    {
+      id: "49666163-3fd0-49e4-8d05-8d57c15c9a82",
+      created_at: "2025-09-12T08:34:01.000Z",
+      updated_at: "2025-09-12T08:34:01.000Z",
+      filename: "img_raf602.jpg",
+      path: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/img_raf602_6aee54a2.avif",
+      type: "image",
+      formats: {
+        sm: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/img_raf602_6aee54a2_sm.avif",
+        md: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/img_raf602_6aee54a2_md.avif",
+        original:
+          "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/img_raf602_6aee54a2.avif",
+      },
+      properties: null,
+      institution_id: "f0142078-d5b2-4ab3-98d0-3f489e3f0b08",
+      project_id: "3e4cc3fb-11ee-4d0a-a999-df28a465fc28",
+    },
+    {
+      id: "13507e4d-8de4-4739-a589-bec1250af127",
+      created_at: "2025-09-12T08:34:01.000Z",
+      updated_at: "2025-09-12T08:34:01.000Z",
+      filename: "raf 603.jpg",
+      path: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf 603_4a38448b.avif",
+      type: "image",
+      formats: {
+        sm: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf 603_4a38448b_sm.avif",
+        md: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf 603_4a38448b_md.avif",
+        original:
+          "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf 603_4a38448b.avif",
+      },
+      properties: null,
+      institution_id: "f0142078-d5b2-4ab3-98d0-3f489e3f0b08",
+      project_id: "3e4cc3fb-11ee-4d0a-a999-df28a465fc28",
+    },
+    {
+      id: "dfdf2957-6a07-48ab-9909-a94039c8291a",
+      created_at: "2025-09-12T08:34:04.000Z",
+      updated_at: "2025-09-12T08:34:04.000Z",
+      filename: "raf_602.jpg",
+      path: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf_602_0683a0a1.avif",
+      type: "image",
+      formats: {
+        sm: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf_602_0683a0a1_sm.avif",
+        md: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf_602_0683a0a1_md.avif",
+        original:
+          "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf_602_0683a0a1.avif",
+      },
+      properties: null,
+      institution_id: "f0142078-d5b2-4ab3-98d0-3f489e3f0b08",
+      project_id: "3e4cc3fb-11ee-4d0a-a999-df28a465fc28",
+    },
+    {
+      id: "8ee165fd-2577-4ba9-9d4b-ed55b0b74792",
+      created_at: "2025-09-12T08:34:05.000Z",
+      updated_at: "2025-09-12T08:34:05.000Z",
+      filename: "3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688.jpg",
+      path: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688_6a434aa9.avif",
+      type: "image",
+      formats: {
+        sm: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688_6a434aa9_sm.avif",
+        md: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688_6a434aa9_md.avif",
+        original:
+          "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688_6a434aa9.avif",
+      },
+      properties: null,
+      institution_id: "f0142078-d5b2-4ab3-98d0-3f489e3f0b08",
+      project_id: "3e4cc3fb-11ee-4d0a-a999-df28a465fc28",
+    },
+  ];
   $inspect(wizard);
 </script>
 
@@ -70,38 +149,52 @@
     <div class="row">
       <div class="col-12">
         <TablePreview
-          data={files.map((f) => ({ path: f, id: f }))}
+          data={files.map((f) => ({ name: f.name, size: f.size, id: f.path }))}
           bind:selected={filesSelected}
         />
+        {#if !wizard.assets.length}
+          <div class="d-flex align-items-center">
+            {filesSelected.length}
+            {filesSelected.length === 1
+              ? t("import.file-selected", { fallback: "file selected" })
+              : t("import.files", { fallback: "files selected" })}
+            <button
+              class="ms-2 btn btn-success"
+              disabled={filesSelected.length === 0}
+              onclick={importNow}
+            >
+              {t("import.import", { fallback: "Import" })}
+            </button>
+          </div>
+        {/if}
+        {#if wizard.assets.length}
+          <div class="alert alert-success mt-3">
+            {wizard.assets.length}
+            {wizard.assets.length === 1
+              ? t("import.asset-created", {
+                  fallback: "asset imported correctly",
+                })
+              : t("import.assets-created", {
+                  fallback: "assets imported correctly",
+                })}
+          </div>
+        {/if}
 
-        <div class="d-flex align-items-center">
-          {filesSelected.length}
-          {filesSelected.length === 1
-            ? t("import.file-selected", { fallback: "file selected" })
-            : t("import.files", { fallback: "files selected" })}
-          <button
-            class="ms-2 btn btn-success"
-            disabled={filesSelected.length === 0}
-            onclick={importNow}
-          >
-            {t("import.import", { fallback: "Import" })}
-          </button>
-        </div>
+        {#if importErrors.length}
+          <div class="alert alert-danger">
+            <h4>
+              {t("import.errors-occurred", {
+                fallback: "Some errors occurred",
+              })}
+            </h4>
+            <ul>
+              {#each importErrors as err}
+                <li>{err}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
       </div>
     </div>
   {/if}
 </div>
-
-{#if wizard.assets.length}
-  <div class="row g-3 mt-3">
-    {#each wizard.assets as a}
-      <div class="col-3">
-        <img
-          src={`media://${a.path}`}
-          alt={a.filename}
-          style="width:100%;aspect-ratio:1;object-fit:cover;"
-        />
-      </div>
-    {/each}
-  </div>
-{/if}
