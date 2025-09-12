@@ -65,6 +65,7 @@ const handleImportAssets = async (event, data) => {
     let loading = true
     let errors = []
     let createdAssets = []; // Array to store created assets
+    let importedFilePaths = []; // Track only files actually imported
 
     if (!data.projectId) {
         throw new Error("Project ID is required");
@@ -98,6 +99,7 @@ const handleImportAssets = async (event, data) => {
             if (asset) {
                 const newAsset = await saveAssetToDb(asset, data.isGenericAsset);
                 createdAssets.push(newAsset);
+                importedFilePaths.push(filePath);
             }
 
             progress++;
@@ -109,7 +111,8 @@ const handleImportAssets = async (event, data) => {
     loading = false
     return {
         errors,
-        createdAssets // Return the list of created assets
+        createdAssets,
+        files: importedFilePaths
     }
 }
 
