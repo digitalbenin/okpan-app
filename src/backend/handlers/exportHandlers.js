@@ -1,5 +1,5 @@
 import { dialog } from 'electron';
-import { sql, eq, inArray, and, or } from 'drizzle-orm';
+import { sql, eq, inArray, and, or, notInArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import { exportProjectJson } from '../services/exportJsonService.js';
 import { exportProjectSql } from '../services/exportSqlService.js';
@@ -22,7 +22,7 @@ export function makeExportResult({ filePath, zipped, counts, fallbackMode }) {
 }
 
 export function buildObjectSearchConditions(args) {
-  const { project_id, institutionIds, status, ontologyQuery, ontologyFieldIds, researchFieldFilters } = args || {};
+  const { project_id, institutionIds, status, ontologyQuery, ontologyFieldIds, researchFieldFilters, excludeObjectIds } = args || {};
   const conditions = [eq(dbSchema.objects.project_id, project_id)];
   if (institutionIds && institutionIds.length > 0) conditions.push(inArray(dbSchema.objects.institution_id, institutionIds));
   if (status) conditions.push(eq(dbSchema.objects.status, status));
@@ -54,6 +54,12 @@ export function buildObjectSearchConditions(args) {
       if (fieldConds.length > 0) rfConds.push(fieldConds.length === 1 ? fieldConds[0] : and(...fieldConds));
     }
     if (rfConds.length > 0) conditions.push(rfConds.length === 1 ? rfConds[0] : and(...rfConds));
+  }
+
+  // Exclude specific object IDs if provided
+  if (excludeObjectIds && excludeObjectIds.length > 0) {
+    const ex = excludeObjectIds.filter(Boolean);
+    if (ex.length > 0) conditions.push(notInArray(dbSchema.objects.id, ex));
   }
   return conditions;
 }
