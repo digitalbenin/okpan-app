@@ -4,8 +4,7 @@ import fsPromises from 'fs/promises';
 import { execFile } from 'child_process';
 import { eq, inArray, and } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
-import { buildObjectSearchConditions } from './objectSearchConditions.js';
-import { buildCounts, makeExportResult } from './exportResult.js';
+import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
 
 async function ensureDir(dirPath) { await fsPromises.mkdir(dirPath, { recursive: true }); }
 async function writeJson(filePath, obj) { await ensureDir(path.dirname(filePath)); await fsPromises.writeFile(filePath, JSON.stringify(obj, null, 2), 'utf-8'); }
@@ -326,13 +325,11 @@ export async function exportProjectJson(options, { db }) {
         await fsPromises.copyFile(a.path, dest);
       } catch { }
     }
-    const genDir = path.join(outRoot, 'generic_assets');
-    await ensureDir(genDir);
     for (const ga of genericAssets) {
       if (!ga?.path) continue;
       try {
         const base = ga.filename || path.basename(ga.path || ga.id);
-        const dest = path.join(genDir, base);
+        const dest = path.join(assetsDir, base);
         await fsPromises.copyFile(ga.path, dest);
       } catch { }
     }
@@ -347,13 +344,7 @@ export async function exportProjectJson(options, { db }) {
   const counts = buildCounts({
     objects,
     assets,
-    ontologyFields,
-    datasources,
-    templates,
-    researchFields,
-    vocabularies,
-    vga,
-    genericAssets,
+    institutions,
   });
 
   await createZipFromFolder(outRoot, filePath);

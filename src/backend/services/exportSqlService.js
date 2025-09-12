@@ -4,8 +4,7 @@ import path from 'path';
 import os from 'os';
 import fsPromises from 'fs/promises';
 import { execFile } from 'child_process';
-import { buildObjectSearchConditions } from './objectSearchConditions.js';
-import { buildCounts, makeExportResult } from './exportResult.js';
+import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
 
 // Utility: escape single quotes for SQL
 const sqlEscape = (val) => String(val).replace(/'/g, "''");
@@ -251,10 +250,10 @@ export async function exportProjectSql(options, { db }) {
       await fsPromises.writeFile(path.join(tmpBase, 'README.txt'), 'No objects matched the filters.');
       await createZipFromFolder(tmpBase, filePath);
       try { await fsPromises.rm(tmpBase, { recursive: true, force: true }); } catch { }
-      return makeExportResult({ filePath, zipped: true, counts: buildCounts(), fallbackMode: 'sql' });
+      return makeExportResult({ filePath, zipped: true, counts: buildCounts({}), fallbackMode: 'sql' });
     } else {
       await fsPromises.writeFile(filePath, '-- No objects matched the filters.\n', 'utf-8');
-      return makeExportResult({ filePath, zipped: false, counts: buildCounts(), fallbackMode: 'sql' });
+      return makeExportResult({ filePath, zipped: false, counts: buildCounts({}), fallbackMode: 'sql' });
     }
   }
 
@@ -263,6 +262,15 @@ export async function exportProjectSql(options, { db }) {
   const objectsAssets = await db.select().from(dbSchema.objects_assets).where(inArray(dbSchema.objects_assets.object_id, objectIds)).execute();
   const assetIds = Array.from(new Set(objectsAssets.map((r) => r.asset_id).filter(Boolean)));
   const assets = assetIds.length ? await db.select().from(dbSchema.assets).where(inArray(dbSchema.assets.id, assetIds)).execute() : [];
+
+  const assetsInstitutions = assetIds.length ? await db.select().from(dbSchema.assets_institutions).where(inArray(dbSchema.assets_institutions.asset_id, assetIds)).execute() : [];
+  const institutionIds = Array.from(new Set([
+    ...objects.map(o => o.institution_id),
+    ...assets.map(a => a.institution_id),
+    ...assetsInstitutions.map(ai => ai.institution_id)
+  ].filter(Boolean)));
+  const institutions = institutionIds.length ? await db.select().from(dbSchema.institutions).where(inArray(dbSchema.institutions.id, institutionIds)).execute() : [];
+
   const objectsOntologyFields = await db.select().from(dbSchema.objects_ontology_fields).where(inArray(dbSchema.objects_ontology_fields.object_id, objectIds)).execute();
   const ontologyFieldIds = Array.from(new Set(objectsOntologyFields.map((r) => r.field_id).filter(Boolean)));
   const datasourceIds = Array.from(new Set(objectsOntologyFields.map((r) => r.datasources_id).filter(Boolean)));
@@ -288,6 +296,7 @@ export async function exportProjectSql(options, { db }) {
     generateInsertStatements('objects', objects),
     generateInsertStatements('objects_assets', objectsAssets),
     generateInsertStatements('assets', assets),
+    generateInsertStatements('institutions', institutions),
     generateInsertStatements('objects_ontology_fields', objectsOntologyFields),
     generateInsertStatements('ontology_fields', ontologyFields),
     generateInsertStatements('datasources', datasources),
@@ -304,13 +313,7 @@ export async function exportProjectSql(options, { db }) {
   const counts = buildCounts({
     objects,
     assets,
-    ontologyFields,
-    datasources,
-    templates,
-    researchFields,
-    vocabularies,
-    vga,
-    genericAssets,
+    institutions,
   });
 
   if (!wantZip) {
