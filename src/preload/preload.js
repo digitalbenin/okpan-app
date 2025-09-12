@@ -28,5 +28,9 @@ contextBridge.exposeInMainWorld('api', {
     // Project cache methods
     setCurrentProject: (projectId) => ipcRenderer.invoke('set-current-project', projectId),
     getCurrentProject: () => ipcRenderer.invoke('get-current-project'),
-    clearCurrentProject: () => ipcRenderer.invoke('clear-current-project')
+    clearCurrentProject: () => ipcRenderer.invoke('clear-current-project'),
+
+    // Listeners for backend events
+    onImportProgress: (callback) => ipcRenderer.on('import-assets-progress', callback),
+    removeImportProgressListeners: () => ipcRenderer.removeAllListeners('import-assets-progress'),
 });

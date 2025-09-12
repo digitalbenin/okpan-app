@@ -2,6 +2,7 @@ import { dialog } from 'electron';
 import { parse } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
 import fs from 'fs/promises';
+import path from 'path';
 import { XMLParser } from 'fast-xml-parser';
 import { setCurrentProjectId, getCurrentProjectId, clearCurrentProjectId } from '../services/projectCache.js';
 
@@ -14,6 +15,40 @@ export const handlePing = () => {
     return 'pong';
 };
 
+// Helper: convert bytes to MB (number with 2 decimals)
+const bytesToMB = (bytes) => {
+    const mb = bytes / (1024 * 1024);
+    return Math.round(mb * 100) / 100;
+};
+
+// Helper: recursively list files in a directory with size info
+async function listFilesRecursively(dirPath) {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    const results = [];
+
+    for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+            const subResults = await listFilesRecursively(fullPath);
+            results.push(...subResults);
+        } else if (entry.isFile()) {
+            try {
+                const stat = await fs.stat(fullPath);
+                results.push({
+                    path: fullPath,
+                    name: entry.name,
+                    //sizeBytes: stat.size,
+                    size: bytesToMB(stat.size),
+                });
+            } catch (e) {
+                // Skip items we cannot stat, but include an error marker if needed in the future
+            }
+        }
+    }
+
+    return results;
+}
+
 /**
  * Handler for opening system file dialog
  * @param {Event} event - The IPC event
@@ -23,14 +58,14 @@ export const handlePing = () => {
  * @returns {Promise<Object>} Dialog result containing selected file paths
  */
 export const handleFileDialog = async (event, options) => {
-    // Default filters if none are provided
-    const defaultFilters = [
+    // Image-specific filters for asset selection
+    const imageFilters = [
+        { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'] },
         { name: 'All Files', extensions: ['*'] }
     ];
 
     const dialogOptions = {
-        // Use options.title if provided, otherwise keep it default
-        title: options.title || 'Select File',
+        title: options.title || 'Select Image Assets',
         properties: [
             options.isDirectory ? 'openDirectory' : 'openFile',
             // Use options.properties if provided (like 'openFile')
@@ -39,18 +74,53 @@ export const handleFileDialog = async (event, options) => {
             ...(Array.isArray(options.properties) ? options.properties : []),
             options.multiple && !options.isDirectory ? 'multiSelections' : null
         ].filter(p => p !== null && p !== undefined).filter((v, i, a) => a.indexOf(v) === i), // Filter nulls and duplicates
-        // Use filters from options if provided, otherwise use the default
-        filters: options.filters && Array.isArray(options.filters) && options.filters.length > 0
-            ? options.filters
-            : defaultFilters
+        // Always use image filters for asset selection
+        filters: imageFilters
     };
-
-    // Log the final options being used for debugging
-    // console.log("Using dialog options:", JSON.stringify(dialogOptions, null, 2));
 
     try {
         const result = await dialog.showOpenDialog(dialogOptions);
-        return result; // Return the full result object (includes canceled flag)
+
+        // If user canceled, return early with the standard shape
+        if (result.canceled || !result.filePaths?.length) {
+            return { canceled: true, filePaths: [] };
+        }
+
+        // Build detailed file info without opening file contents (use fs.stat)
+        let files = [];
+        if (options.isDirectory) {
+            // For directory selection, list all files recursively
+            for (const dirPath of result.filePaths) {
+                const listed = await listFilesRecursively(dirPath);
+                // Filter to only include image files
+                const imageFiles = listed.filter(file => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'].includes(ext);
+                });
+                files.push(...imageFiles);
+            }
+        } else {
+            // For file selection, stat each selected file
+            for (const filePath of result.filePaths) {
+                try {
+                    const stat = await fs.stat(filePath);
+                    files.push({
+                        path: filePath,
+                        name: filePath.split(/[/\\]/).pop(),
+                        //sizeBytes: stat.size,
+                        size: bytesToMB(stat.size),
+                    });
+                } catch (e) {
+                    // Skip files we cannot stat
+                }
+            }
+        }
+
+        return {
+            canceled: false,
+            //filePaths: result.filePaths,
+            files
+        };
     } catch (error) {
         console.error("Error showing file dialog:", error);
         // Return an error structure consistent with a cancelled dialog
@@ -353,4 +423,4 @@ export const handleClearCurrentProject = (event) => {
         console.error('Error clearing current project ID:', error);
         return { success: false, error: error.message };
     }
-}; 
+};
