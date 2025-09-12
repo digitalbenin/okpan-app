@@ -16,8 +16,48 @@ function cleanEntity(obj) {
   delete cleaned.created_at;
   delete cleaned.updated_at;
   delete cleaned.id;
+  // Remove status from all entities in JSON export
+  if ('status' in cleaned) delete cleaned.status;
   return cleaned;
 }
+
+// Centralized static schema references (edit here if DB schema evolves)
+const FOREIGN_KEY_MAP = {
+  objects: ['institution_id', 'project_id'],
+  objects_ontology_fields: ['object_id', 'field_id', 'datasources_id'],
+  objects_research_fields: ['object_id', 'field_id', 'vocabulary_id'],
+  objects_assets: ['object_id', 'asset_id'],
+  assets_institutions: ['asset_id', 'institution_id'],
+  assets: ['institution_id', 'project_id'],
+  datasources: ['institution_id', 'template_id'],
+  vocabularies: ['main_asset_id'],
+  vocabularies_generic_assets: ['vocabulary_id', 'generic_asset_id'],
+  institutions: ['project_id'],
+  generic_assets: ['project_id'],
+  languages: ['project_id']
+};
+
+const TEXT_FIELD_LABEL_MAP = {
+  institutions: { name_id: 'name', description_id: 'description', country_id: 'country', location_id: 'location' },
+  ontology_fields: { name_id: 'name', description_id: 'description', category_id: 'category' },
+  datasources: { name_id: 'name', method_id: 'method', notes_id: 'notes' },
+  research_fields: { name_id: 'name', description_id: 'description' },
+  vocabularies: { option_id: 'option', description_id: 'description' }
+};
+
+const EXCLUDE_FIELDS_MAP = {
+  ontology_fields: ['embeddings', 'onwebsite'],
+  objects_ontology_fields: ['default_description'],
+  research_fields: ['onwebsite'],
+  // keep aligned with CSV/SQL exporters
+  assets: ['path', 'formats'],
+  objects_assets: ['order']
+};
+
+// Helper derived maps
+const TEXT_FIELD_MAP = Object.fromEntries(
+  Object.entries(TEXT_FIELD_LABEL_MAP).map(([tbl, labels]) => [tbl, Object.keys(labels)])
+);
 
 // Helper to clean arrays of entities
 function cleanEntities(entities) {
@@ -91,11 +131,19 @@ export async function exportProjectJson(options, { db }) {
   // texts/translations/languages for human-readable fields
   const textSet = new Set();
   const pushText = (id) => { if (id) textSet.add(id); };
-  institutions.forEach((inst) => { pushText(inst.name_id); pushText(inst.description_id); pushText(inst.country_id); pushText(inst.location_id); });
-  ontologyFields.forEach((f) => { pushText(f.name_id); pushText(f.description_id); pushText(f.category_id); });
-  datasources.forEach((d) => { pushText(d.name_id); pushText(d.method_id); pushText(d.notes_id); });
-  researchFields.forEach((rf) => { pushText(rf.name_id); pushText(rf.description_id); });
-  vocabularies.forEach((v) => { pushText(v.option_id); pushText(v.description_id); });
+  const COLLECT_FROM = {
+    institutions,
+    ontology_fields: ontologyFields,
+    datasources,
+    research_fields: researchFields,
+    vocabularies
+  };
+  Object.entries(TEXT_FIELD_LABEL_MAP).forEach(([tbl, labels]) => {
+    const rows = COLLECT_FROM[tbl] || [];
+    rows.forEach(r => {
+      Object.keys(labels).forEach(idKey => pushText(r[idKey]));
+    });
+  });
 
   const textIds = Array.from(textSet);
   const [texts, languages] = await Promise.all([
@@ -153,51 +201,13 @@ export async function exportProjectJson(options, { db }) {
     return Object.keys(map).length ? map : null;
   };
 
-  // Data-driven configuration for relations and text fields per table
-  const foreignKeyMap = {
-    objects: ['institution_id', 'project_id'],
-    objects_ontology_fields: ['object_id', 'field_id', 'datasources_id'],
-    objects_research_fields: ['object_id', 'field_id', 'vocabulary_id'],
-    objects_assets: ['object_id', 'asset_id'],
-    assets_institutions: ['asset_id', 'institution_id'],
-    assets: ['institution_id', 'project_id'],
-    datasources: ['institution_id', 'template_id'],
-    vocabularies: ['main_asset_id'],
-    vocabularies_generic_assets: ['vocabulary_id', 'generic_asset_id'],
-    institutions: ['project_id'],
-    generic_assets: ['project_id'],
-    languages: ['project_id']
-  };
-
-  const textFieldLabelMap = {
-    institutions: { name_id: 'name', description_id: 'description', country_id: 'country', location_id: 'location' },
-    ontology_fields: { name_id: 'name', description_id: 'description', category_id: 'category' },
-    datasources: { name_id: 'name', method_id: 'method', notes_id: 'notes' },
-    research_fields: { name_id: 'name', description_id: 'description' },
-    vocabularies: { option_id: 'option', description_id: 'description' }
-  };
-
-  const textFieldMap = Object.fromEntries(
-    Object.entries(textFieldLabelMap).map(([tbl, labels]) => [tbl, Object.keys(labels)])
-  );
-
-  // Additional per-table fields to exclude from export
-  const excludeFieldsMap = {
-    ontology_fields: ['embeddings', 'onwebsite'],
-    objects_ontology_fields: ['default_description'],
-    research_fields: ['onwebsite'],
-    // New exclusions per request
-    assets: ['path', 'formats'],
-    objects_assets: ['order']
-  };
-
   function sanitizeRow(table, row) {
     if (!row) return null;
     const base = cleanEntity(row);
     const rm = [
-      ...(foreignKeyMap[table] || []),
-      ...(textFieldMap[table] || []),
-      ...(excludeFieldsMap[table] || [])
+      ...(FOREIGN_KEY_MAP[table] || []),
+      ...(Object.keys(TEXT_FIELD_LABEL_MAP[table] || {})),
+      ...(EXCLUDE_FIELDS_MAP[table] || [])
     ];
     rm.forEach((k) => {
       if (k in base) delete base[k];
@@ -208,7 +218,7 @@ export async function exportProjectJson(options, { db }) {
   function expandEntity(table, row) {
     if (!row) return null;
     const base = sanitizeRow(table, row);
-    const labels = textFieldLabelMap[table] || {};
+    const labels = TEXT_FIELD_LABEL_MAP[table] || {};
     for (const [idKey, outKey] of Object.entries(labels)) {
       base[outKey] = expandText(row[idKey]);
     }

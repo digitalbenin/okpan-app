@@ -3,6 +3,7 @@ import { sql, eq, inArray, and, or } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import { exportProjectJson } from '../services/exportJsonService.js';
 import { exportProjectSql } from '../services/exportSqlService.js';
+import { exportProjectCsv } from '../services/exportCsvService.js';
 
 export function buildCounts({
   objects = [],
@@ -86,6 +87,23 @@ export async function handleExportProject(event, options, { db }) {
                 ? filePath
                 : (filePath + '.zip');
             return await exportProjectJson({ filePath: zipPath, filters, includeAssets }, { db });
+        }
+
+        if (format === 'csv') {
+            let filePath = inputFilePath;
+            if (!filePath) {
+                const result = await dialog.showSaveDialog({
+                    title: 'Save CSV Export ZIP',
+                    defaultPath: 'export-csv.zip',
+                    filters: [{ name: 'Zip', extensions: ['zip'] }]
+                });
+                if (result.canceled) return { canceled: true };
+                filePath = result.filePath;
+            }
+            const zipPath = filePath && typeof filePath === 'string' && filePath.toLowerCase().endsWith('.zip')
+                ? filePath
+                : (filePath + '.zip');
+            return await exportProjectCsv({ filePath: zipPath, filters, includeAssets }, { db });
         }
 
         if (!filters?.project_id) {
