@@ -48,6 +48,11 @@
       url: `/projects/${page.data.project.id}/import`,
       icon: "box-arrow-in-right",
     },
+    {
+      label: t("menu.import-assets", { fallback: "Import Assets" }),
+      url: `/projects/${page.data.project.id}/import-assets`,
+      icon: "box-arrow-in-right",
+    },
   ]);
 
   const otherLinks = $derived([
