@@ -43,10 +43,10 @@ const getProgress = (progress, total) => {
 }
 
 
-const checkAssetType = (path) => {
+const checkAssetType = (filePath) => {
 
     //check by file extension
-    const ext = path.split(".").pop()
+    const ext = path.extname(filePath).toLowerCase().slice(1)
     if (imagesFormats.includes(ext)) {
         return "image"
     }
@@ -61,8 +61,6 @@ const checkAssetType = (path) => {
 
 
 const handleImportAssets = async (event, data) => {
-    let progress = 0
-    let loading = true
     let errors = []
     let createdAssets = []; // Array to store created assets
     let importedFilePaths = []; // Track only files actually imported
@@ -85,15 +83,54 @@ const handleImportAssets = async (event, data) => {
     }
 
     // Process files from directory or array
-    const filesToProcess = data.isDirectory
-        ? fs.readdirSync(data.path).map(file => path.join(data.path, file))
-        : data.path;
+    const filesToProcess = (() => {
+        if (Array.isArray(data?.files) && data.files.length) return data.files;
+        if (Array.isArray(data?.paths) && data.paths.length) return data.paths;
+        if (Array.isArray(data?.path) && data.path.length) return data.path;
+        if (typeof data?.path === 'string') {
+            if (data?.isDirectory) {
+                return fs.readdirSync(data.path).map(file => path.join(data.path, file));
+            }
+            return [data.path];
+        }
+        return [];
+    })();
 
     const totalFiles = filesToProcess.length;
+    console.debug('[import-assets] total files to process:', totalFiles);
+
+    // Throttle configuration for progress events
+    const progressChannel = 'import-assets-progress';
+    const throttleIntervalMs = Number.isFinite(data?.progressThrottleMs) ? data.progressThrottleMs : 500; // default 500ms
+    let _lastProgressSentAt = 0;
+    const sendProgress = (force = false) => {
+        const now = Date.now();
+        if (!force && now - _lastProgressSentAt < throttleIntervalMs) return;
+        _lastProgressSentAt = now;
+        try {
+            event?.sender?.send(progressChannel, {
+                status: 'progress',
+                processed: importedFilePaths.length,
+                total: totalFiles,
+                percent: totalFiles > 0 ? getProgress(importedFilePaths.length, totalFiles) : 0,
+                files: [...importedFilePaths]
+            });
+        } catch {}
+    };
+
+    // Notify renderer that import started
+    try {
+        event?.sender?.send('import-assets-progress', {
+            status: 'start',
+            total: totalFiles,
+            processed: 0,
+            percent: 0
+        });
+    } catch {}
 
     for (const filePath of filesToProcess) {
         try {
-
+            console.debug('[import-assets] processing file:', filePath);
             const asset = await processAssetFile(filePath, projectFolder, data);
 
             if (asset) {
@@ -101,14 +138,29 @@ const handleImportAssets = async (event, data) => {
                 createdAssets.push(newAsset);
                 importedFilePaths.push(filePath);
             }
-
-            progress++;
         } catch (error) {
             console.error(`Error processing file ${filePath}:`, error);
             errors.push(error);
         }
+
+        // Emit progress update after each attempt
+        sendProgress();
     }
-    loading = false
+    // Ensure a final progress emission for UI before complete
+    sendProgress(true);
+
+    // Final completion event
+    try {
+        event?.sender?.send('import-assets-progress', {
+            status: 'complete',
+            processed: importedFilePaths.length,
+            total: totalFiles,
+            percent: totalFiles > 0 ? getProgress(importedFilePaths.length, totalFiles) : 0,
+            files: [...importedFilePaths],
+            errorsCount: errors.length
+        });
+    } catch {}
+
     return {
         errors,
         createdAssets,
@@ -200,10 +252,6 @@ const processAssetFile = async (filePath, projectFolder, data) => {
         formats
     };
 }
-
-// Convenience functions for backward compatibility
-const processVideo = (videoPath, destPath) => processMediaFile(videoPath, destPath, 'video');
-const processAudio = (audioPath, destPath) => processMediaFile(audioPath, destPath, 'audio');
 
 const saveAssetToDb = async (assetData, isGeneric) => {
     const table = isGeneric ? genericAssets : assets;
