@@ -60,22 +60,21 @@
 
             // Add institution filters at top level
             if (selectedInstitutions.length > 0) {
-                searchParams.institutionIds = [
-                    ...selectedInstitutions,
-                ];
+                searchParams.institutionIds = [...selectedInstitutions];
             }
 
             // Add research field filters at top level - ensure serializable
             if (researchFieldFilters.length > 0) {
-                searchParams.researchFieldFilters =
-                    researchFieldFilters.map((filter) => ({
+                searchParams.researchFieldFilters = researchFieldFilters.map(
+                    (filter) => ({
                         fieldId: filter.fieldId,
                         query: filter.query || "",
                         vocabularyIds: filter.vocabularyIds || [],
-                    }));
+                    }),
+                );
             }
 
-            console.log('Searching with params:', searchParams);
+            console.log("Searching with params:", searchParams);
             const response = await searchObjects(searchParams);
 
             if (response.error) {
@@ -97,11 +96,11 @@
 
     // Manual search trigger function
     function handleApplyFilters() {
-        console.log('Apply filters clicked!');
-        console.log('Current filters:', {
+        console.log("Apply filters clicked!");
+        console.log("Current filters:", {
             selectedStatus,
             selectedInstitutions,
-            researchFieldFilters
+            researchFieldFilters,
         });
         currentPage = 1;
         performSearch();
@@ -208,11 +207,11 @@
                     />
                     <span class="format-label">{format.label}</span>
                     {#if format.value === "csv"}
-                        <span class="format-icon csv-icon"></span>
+                        <span class="bi bi-table"></span>
                     {:else if format.value === "json"}
-                        <span class="format-icon json-icon">M</span>
+                        <span class="bi bi-braces"></span>
                     {:else if format.value === "sql"}
-                        <span class="format-icon sql-icon"></span>
+                        <span class="bi bi-database"></span>
                     {/if}
                 </label>
             {/each}
@@ -221,7 +220,6 @@
 
     <!-- Assets Section -->
     <div class="assets-section">
-        <h5>Assets</h5>
         <label class="asset-option">
             <input type="checkbox" bind:checked={includeAssets} />
             <span>Include assets in the export</span>
@@ -436,7 +434,6 @@
                 <span class="spinner-sm"></span>
             {/if}
             Download
-            <span class="download-icon">⬇</span>
         </button>
     </div>
 </div>
