@@ -27,7 +27,8 @@
     let objects = $state([]);
     let totalCount = $state(0);
     let isLoading = $state(false);
-    let selectedObjects = $state(new Set());
+    // Global set: IDs explicitly deselected by user (persists across pages)
+    let deselectedObjectIds = $state(new Set());
     // NEW: facets from search response for dynamic counts
     let facets = $state({ institutions: [], statuses: [], researchFields: [] });
     // Track initial search completion to avoid duplicate fetch via effect
@@ -97,44 +98,16 @@
         { value: "in progress", label: "In progress" },
     ];
 
-
-
     // Search function
     async function performSearch() {
         isLoading = true;
         try {
-            const searchParams = {
-                projectId,
-                page: currentPage - 1, // Convert to 0-based for backend
-                pageSize,
-            };
+            const searchParams = buildSearchParams();
 
-            // Add status filter at top level (object search expects it here)
-            if (selectedStatus !== "all") {
-                searchParams.status = selectedStatus;
-            }
-
-            // Add institution filters at top level
-            if (selectedInstitutions.length > 0) {
-                searchParams.institutionIds = [...selectedInstitutions];
-            }
-
-            // Add research field filters at top level - ensure serializable
-            if (researchFieldFilters.length > 0) {
-                searchParams.researchFieldFilters = researchFieldFilters.map(
-                    (filter) => {
-                        const allowed = (researchFieldOptions.find(o => o.value === filter.fieldId)?.vocabOptions || []).map(v => v.value);
-                        const vocab = (Array.isArray(filter.vocabularyIds) ? filter.vocabularyIds : []).filter(id => allowed.includes(id));
-                        return {
-                            fieldId: filter.fieldId,
-                            query: filter.query || "",
-                            vocabularyIds: vocab,
-                        };
-                    },
-                );
-            }
-
-            console.log("Searching with params:", JSON.parse(JSON.stringify(searchParams)));
+            console.log(
+                "Searching with params:",
+                JSON.parse(JSON.stringify(searchParams)),
+            );
             const response = await searchObjects(searchParams);
 
             if (response.error) {
@@ -142,7 +115,7 @@
                 objects = [];
                 totalCount = 0;
                 facets = { institutions: [], statuses: [], researchFields: [] };
-                selectedObjects = new Set();
+                // Selection derived from deselectedObjectIds; nothing to reset here
             } else {
                 objects = response.items || [];
                 totalCount = response.totalCount || 0;
@@ -151,15 +124,14 @@
                     statuses: [],
                     researchFields: [],
                 };
-                // Select all by default for current results
-                selectedObjects = new Set(objects.map((obj) => obj.id));
+                // Selection on this page is derived from deselectedObjectIds
             }
         } catch (error) {
             console.error("Error searching objects:", error);
             objects = [];
             totalCount = 0;
             facets = { institutions: [], statuses: [], researchFields: [] };
-            selectedObjects = new Set();
+            // Selection derived from deselectedObjectIds
         } finally {
             isLoading = false;
         }
@@ -173,6 +145,8 @@
             selectedInstitutions,
             researchFieldFilters,
         });
+        // Reset deselections when filters change so selection matches new result set
+        deselectedObjectIds = new Set();
         currentPage = 1;
         performSearch();
     }
@@ -196,28 +170,35 @@
 
     // Toggle object selection
     function toggleObjectSelection(objectId) {
-        if (selectedObjects.has(objectId)) {
-            selectedObjects.delete(objectId);
+        // If currently selected (not in deselected set), clicking will deselect it
+        if (!deselectedObjectIds.has(objectId)) {
+            deselectedObjectIds.add(objectId);
         } else {
-            selectedObjects.add(objectId);
+            deselectedObjectIds.delete(objectId);
         }
-        selectedObjects = new Set(selectedObjects);
+        deselectedObjectIds = new Set(deselectedObjectIds);
     }
 
     // Toggle all objects selection
     function toggleAllObjects() {
-        if (selectedObjects.size === objects.length) {
-            selectedObjects.clear();
+        const pageIds = objects.map((o) => o.id);
+        const allSelectedOnPage = pageIds.every(
+            (id) => !deselectedObjectIds.has(id),
+        );
+        if (allSelectedOnPage) {
+            // Deselect all on this page
+            pageIds.forEach((id) => deselectedObjectIds.add(id));
         } else {
-            selectedObjects = new Set(objects.map((obj) => obj.id));
+            // Select all on this page
+            pageIds.forEach((id) => deselectedObjectIds.delete(id));
         }
-        selectedObjects = new Set(selectedObjects);
+        deselectedObjectIds = new Set(deselectedObjectIds);
     }
 
     // Get research fields from page data
     let researchFields = $derived.by(() => {
         const rf = data.researchFields;
-        if (Array.isArray(rf)) return rf;               // Already an array
+        if (Array.isArray(rf)) return rf; // Already an array
         if (rf && Array.isArray(rf.result)) return rf.result; // Response wrapper with .result
         if (rf && Array.isArray(rf.research_fields)) return rf.research_fields; // Alt shape
         return [];
@@ -232,21 +213,71 @@
                 typeof name === "string"
                     ? name
                     : (name?.content ??
-                       (Array.isArray(name?.translations) && name.translations[0]?.content) ??
-                       String(field.id));
+                      (Array.isArray(name?.translations) &&
+                          name.translations[0]?.content) ??
+                      String(field.id));
             return {
                 value: field.id,
                 label,
                 group: field?.project?.title?.content ?? "Research Fields",
-                vocabOptions: Array.isArray(field?.vocabularies) ? field.vocabularies.map(v => ({ value: v.id, label: v?.option?.content ?? v.id })) : [],
+                vocabOptions: Array.isArray(field?.vocabularies)
+                    ? field.vocabularies.map((v) => ({
+                          value: v.id,
+                          label: v?.option?.content ?? v.id,
+                      }))
+                    : [],
             };
         });
     });
 
-    // Debugging: please paste these logs
-    $inspect({ researchFields });
-    $inspect({ researchFieldOptions });
-    $inspect({ researchFieldFilters });
+    // Helpers to keep IPC/search payloads serializable and DRY
+    function sanitizeResearchFieldFilters(filters) {
+        if (!Array.isArray(filters) || filters.length === 0) return [];
+        return filters.map((filter) => {
+            const allowed = (
+                researchFieldOptions.find((o) => o.value === filter.fieldId)
+                    ?.vocabOptions || []
+            ).map((v) => v.value);
+            const vocab = (
+                Array.isArray(filter.vocabularyIds) ? filter.vocabularyIds : []
+            ).filter((id) => allowed.includes(id));
+            return {
+                fieldId: filter.fieldId,
+                query: filter.query || "",
+                vocabularyIds: vocab,
+            };
+        });
+    }
+
+    function buildCommonFilters() {
+        return {
+            project_id: projectId,
+            ...(selectedStatus !== "all" && { status: selectedStatus }),
+            ...(selectedInstitutions.length > 0 && {
+                institutionIds: [...selectedInstitutions],
+            }),
+            ...(researchFieldFilters.length > 0 && {
+                researchFieldFilters:
+                    sanitizeResearchFieldFilters(researchFieldFilters),
+            }),
+        };
+    }
+
+    function buildSearchParams() {
+        return {
+            projectId,
+            page: currentPage - 1, // Convert to 0-based for backend
+            pageSize,
+            ...(selectedStatus !== "all" && { status: selectedStatus }),
+            ...(selectedInstitutions.length > 0 && {
+                institutionIds: [...selectedInstitutions],
+            }),
+            ...(researchFieldFilters.length > 0 && {
+                researchFieldFilters:
+                    sanitizeResearchFieldFilters(researchFieldFilters),
+            }),
+        };
+    }
 
     // Remove research field filter
     function removeResearchFieldFilter(index) {
@@ -258,34 +289,39 @@
     // Handle export
     async function handleExport() {
         try {
-            const exportOptions = {
-                filters: {
-                    project_id: projectId,
-                    ...(selectedStatus !== "all" && { status: selectedStatus }),
-                    ...(selectedInstitutions.length > 0 && {
-                        institutionIds: selectedInstitutions,
-                    }),
-                    ...(researchFieldFilters.length > 0 && {
-                        researchFieldFilters,
-                    }),
-                },
-                includeAssets,
-                format: selectedFormat,
-            };
-
-            // Call the backend export handler
-            const result =
-                await window.electronAPI.exportProject(exportOptions);
-
-            if (result.canceled) {
+            if (!window?.api?.exportProject) {
+                console.error("window.api.exportProject is not available");
                 return;
             }
 
+            // Use globally tracked deselections across all pages
+            const excludeIds = Array.from(deselectedObjectIds);
+
+            const exportOptions = {
+                filters: {
+                    ...buildCommonFilters(),
+                    ...(excludeIds.length > 0 && {
+                        excludeObjectIds: excludeIds,
+                    }),
+                },
+                includeAssets: !!includeAssets,
+                format: selectedFormat,
+            };
+
+            console.log(
+                "Exporting with options:",
+                JSON.parse(JSON.stringify(exportOptions)),
+                "excludeObjectIds:",
+                excludeIds.length,
+            );
+
+            const result = await window.api.exportProject(exportOptions);
+
+            if (result.canceled) return;
+
             console.log("Export completed:", result);
-            // Show success message or handle result
         } catch (error) {
             console.error("Export failed:", error);
-            // Show error message
         }
     }
 
@@ -306,7 +342,10 @@
         researchFieldFilters = [
             ...researchFieldFilters,
             {
-                fieldId: researchFieldOptions.length > 0 ? researchFieldOptions[0]?.value : "",
+                fieldId:
+                    researchFieldOptions.length > 0
+                        ? researchFieldOptions[0]?.value
+                        : "",
                 query: "",
                 vocabularyIds: [],
             },
@@ -315,286 +354,353 @@
 </script>
 
 <div class="export-page container-fluid py-4">
-    <!-- Header -->
-    <div class="header mb-4">
-        <h2 class="h2 mb-1">Export</h2>
-        <p class="text-muted">Choose the filters to export your dataset.</p>
-    </div>
-
-    <!-- Export Format Selection -->
-    <div class="export-format-section mb-4">
-        <h5 class="h5 mb-2">Export as</h5>
-        <div class="format-options d-flex gap-3">
-            {#each exportFormats as format}
-                <label
-                    class="format-option d-inline-flex align-items-center gap-2 px-3 py-2 border rounded-2 cursor-pointer"
-                >
-                    <input
-                        type="radio"
-                        bind:group={selectedFormat}
-                        value={format.value}
-                    />
-                    <span class="format-label">{format.label}</span>
-                    {#if format.value === "csv"}
-                        <span class="bi bi-table"></span>
-                    {:else if format.value === "json"}
-                        <span class="bi bi-braces"></span>
-                    {:else if format.value === "sql"}
-                        <span class="bi bi-database"></span>
-                    {/if}
-                </label>
-            {/each}
+    <div class="col-lg-8">
+        <!-- Header -->
+        <div class="header mb-4">
+            <h2 class="h2 mb-1">Export</h2>
+            <p class="text-muted">Choose the filters to export your dataset.</p>
         </div>
-    </div>
 
-    <!-- Assets Section -->
-    <div class="assets-section mb-4">
-        <label class="asset-option d-flex align-items-center gap-2">
-            <input type="checkbox" bind:checked={includeAssets} />
-            <span>Include assets in the export</span>
-        </label>
-    </div>
-
-    <!-- Filter Content Section -->
-    <div class="filter-section mb-4">
-        <h5 class="h5 mb-3">Filter content</h5>
-
-        <!-- Status Filter -->
-        <div class="filter-group mb-3">
-            <label class="filter-label fw-semibold mb-2 d-block">Status</label>
-            <div class="status-options d-flex gap-2">
-                {#each statusOptions as status}
-                    <button
-                        class="status-btn d-inline-flex align-items-center gap-1 px-3 py-1 border rounded-pill bg-white text-dark-emphasis cursor-pointer {selectedStatus ===
-                        status.value
-                            ? 'active border-primary bg-primary-subtle text-primary'
+        <!-- Export Format Selection -->
+        <div class="export-format-section mb-4">
+            <h5 class="h5 mb-2">Export as</h5>
+            <div class="format-options d-flex gap-3">
+                {#each exportFormats as format}
+                    <label
+                        class="format-option d-inline-flex align-items-center gap-2 px-3 py-2 border rounded-2 cursor-pointer {selectedFormat ===
+                        format.value
+                            ? 'border border-primary'
                             : ''}"
-                        onclick={() => (selectedStatus = status.value)}
                     >
-                        {status.label}
-                        {#if status.value === "completed"}
-                            <span class="status-count">{completedCount}</span>
-                        {:else if status.value === "in progress"}
-                            <span class="status-count">{inProgressCount}</span>
+                        <input
+                            type="radio"
+                            bind:group={selectedFormat}
+                            value={format.value}
+                        />
+                        <span class="format-label">{format.label}</span>
+                        {#if format.value === "csv"}
+                            <span
+                                class="bi bi-table d-inline-flex align-items-center justify-content-center rounded-2 {selectedFormat ===
+                                format.value
+                                    ? 'bg-primary text-white'
+                                    : 'bg-light text-secondary'}"
+                                style="width: 2rem; height: 2rem;"
+                            ></span>
+                        {:else if format.value === "json"}
+                            <span
+                                class="bi bi-braces d-inline-flex align-items-center justify-content-center rounded-2 {selectedFormat ===
+                                format.value
+                                    ? 'bg-primary text-white'
+                                    : 'bg-light text-secondary'}"
+                                style="width: 2rem; height: 2rem;"
+                            ></span>
+                        {:else if format.value === "sql"}
+                            <span
+                                class="bi bi-database d-inline-flex align-items-center justify-content-center rounded-2 {selectedFormat ===
+                                format.value
+                                    ? 'bg-primary text-white'
+                                    : 'bg-light text-secondary'}"
+                                style="width: 2rem; height: 2rem;"
+                            ></span>
                         {/if}
-                    </button>
+                    </label>
                 {/each}
             </div>
         </div>
 
-        <!-- Institution Filter -->
-        <div class="filter-group mb-3">
-            <label class="filter-label fw-semibold mb-2 d-block"
-                >Institution</label
-            >
-            <div class="institution-selection d-flex flex-column gap-2">
-                <div class="selected-count text-body-secondary small">
-                    {selectedInstitutions.length} selected
-                </div>
-                <BaseSelect
-                    items={data.institutions}
-                    bind:value={selectedInstitutions}
-                    placeholder="Select institutions..."
-                    type="multiple"
-                    size="sm"
-                />
-                {#if selectedInstitutions.length > 0}
-                    <div
-                        class="selected-institutions d-flex flex-wrap gap-1 mt-1"
-                    >
-                        {#each selectedInstitutions as instId}
-                            {@const institution = data.institutions.find(
-                                (i) => i.value === instId,
-                            )}
-                            {#if institution}
-                                <span
-                                    class="institution-tag d-inline-flex align-items-center gap-1 px-2 py-1 bg-primary-subtle text-primary border border-primary-subtle rounded-pill"
-                                >
-                                    {institution.label}
-                                    <button
-                                        class="remove-tag bg-transparent border-0 text-primary cursor-pointer fs-6"
-                                        onclick={() =>
-                                            (selectedInstitutions =
-                                                selectedInstitutions.filter(
-                                                    (id) => id !== instId,
-                                                ))}
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            {/if}
-                        {/each}
-                    </div>
-                {/if}
-            </div>
+        <!-- Assets Section -->
+        <div class="assets-section mb-4">
+            <label class="asset-option d-flex align-items-center gap-2">
+                <input type="checkbox" bind:checked={includeAssets} />
+                <span>Include assets in the export</span>
+            </label>
         </div>
 
-        <!-- Research Field Filters -->
-        <div class="filter-group">
-            <label class="filter-label fw-semibold mb-2 d-block"
-                >Research field</label
-            >
-            {#each researchFieldFilters as filter, index}
-                {@const selectedField = researchFieldOptions.find(o => o.value === filter.fieldId)}
-                <div
-                    class="research-field-filter bg-white border border-light-subtle rounded-3 p-3 d-flex flex-column gap-2 mb-2"
+        <!-- Filter Content Section -->
+        <div class="filter-section mb-4">
+            <h5 class="h5 mb-3">Filter content</h5>
+
+            <!-- Status Filter -->
+            <div class="filter-group mb-3">
+                <label class="filter-label fw-semibold mb-2 d-block"
+                    >Status</label
                 >
-                    <div class="field-row d-flex align-items-center gap-2">
-                        <BaseSelect
-                            items={researchFieldOptions}
-                            bind:value={filter.fieldId}
-                            placeholder="Select research field..."
-                            type="single"
-                            size="sm"
-                        />
-                        <span class="arrow text-body-tertiary">→</span>
-                        {#if selectedField && selectedField.vocabOptions && selectedField.vocabOptions.length > 0}
+                <div class="status-options d-flex gap-2">
+                    {#each statusOptions as status}
+                        <button
+                            class="status-btn d-inline-flex align-items-center gap-1 px-3 py-2 border rounded-2 bg-white text-dark-emphasis cursor-pointer {selectedStatus ===
+                            status.value
+                                ? 'active border-primary'
+                                : ''}"
+                            onclick={() => (selectedStatus = status.value)}
+                        >
+                            <span class="pe-2">{status.label}</span>
+                            {#if status.value === "all"}
+                                <span
+                                    class="badge rounded {selectedStatus ===
+                                    status.value
+                                        ? 'bg-primary text-white'
+                                        : 'bg-light text-body'}"
+                                    >{completedCount + inProgressCount}</span
+                                >
+                            {:else if status.value === "completed"}
+                                <span
+                                    class="badge rounded {selectedStatus ===
+                                    status.value
+                                        ? 'bg-primary text-white'
+                                        : 'bg-light text-body'}"
+                                    >{completedCount}</span
+                                >
+                            {:else if status.value === "in progress"}
+                                <span
+                                    class="badge rounded {selectedStatus ===
+                                    status.value
+                                        ? 'bg-primary text-white'
+                                        : 'bg-light text-body'}"
+                                    >{inProgressCount}</span
+                                >
+                            {/if}
+                        </button>
+                    {/each}
+                </div>
+            </div>
+
+            <!-- Institution Filter -->
+            <div class="filter-group mb-3">
+                <label class="filter-label fw-semibold mb-2 d-block"
+                    >Institution</label
+                >
+                <div class="institution-selection d-flex flex-column gap-2">
+                    <BaseSelect
+                        items={data.institutions}
+                        bind:value={selectedInstitutions}
+                        placeholder="Select institutions..."
+                        type="multiple"
+                        size="sm"
+                    />
+                    {#if selectedInstitutions.length > 0}
+                        <div
+                            class="selected-institutions d-flex flex-wrap gap-1 mt-1"
+                        >
+                            {#each selectedInstitutions as instId}
+                                {@const institution = data.institutions.find(
+                                    (i) => i.value === instId,
+                                )}
+                                {#if institution}
+                                    <span
+                                        class="institution-tag d-inline-flex align-items-center gap-1 px-2 py-1 bg-light text-dark border border-dark rounded-pill"
+                                    >
+                                        {institution.label}
+                                        <button
+                                            class="remove-tag bg-transparent border-0 text-dark cursor-pointer fs-6"
+                                            onclick={() =>
+                                                (selectedInstitutions =
+                                                    selectedInstitutions.filter(
+                                                        (id) => id !== instId,
+                                                    ))}
+                                        >
+                                            ×
+                                        </button>
+                                    </span>
+                                {/if}
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
+            </div>
+
+            <!-- Research Field Filters -->
+            <div class="filter-group">
+                <label class="filter-label fw-semibold mb-2 d-block"
+                    >Research field</label
+                >
+                {#each researchFieldFilters as filter, index}
+                    {@const selectedField = researchFieldOptions.find(
+                        (o) => o.value === filter.fieldId,
+                    )}
+                    <div
+                        class="research-field-filter bg-white border border-light-subtle rounded-3 p-3 d-flex flex-column gap-2 mb-2"
+                    >
+                        <div class="field-row d-flex align-items-center gap-2">
                             <BaseSelect
-                                class="flex-grow-1"
-                                items={selectedField.vocabOptions}
-                                bind:value={filter.vocabularyIds}
-                                placeholder="Select vocabulary options..."
-                                type="multiple"
+                                items={researchFieldOptions}
+                                bind:value={filter.fieldId}
+                                placeholder="Select research field..."
+                                type="single"
                                 size="sm"
                             />
-                        {:else}
-                            <input
-                                type="text"
-                                class="value-input flex-grow-1 px-2 py-1 border rounded-2"
-                                bind:value={filter.query}
-                                placeholder="Enter search terms..."
-                            />
-                        {/if}
-                        <button
-                            class="remove-filter bg-transparent border-0 text-danger cursor-pointer fs-5"
-                            onclick={() => removeResearchFieldFilter(index)}
-                        >
-                            ×
-                        </button>
+                            <span class="arrow text-body-tertiary">→</span>
+                            {#if selectedField && selectedField.vocabOptions && selectedField.vocabOptions.length > 0}
+                                <BaseSelect
+                                    class="flex-grow-1"
+                                    items={selectedField.vocabOptions}
+                                    bind:value={filter.vocabularyIds}
+                                    placeholder="Select vocabulary options..."
+                                    type="multiple"
+                                    size="sm"
+                                />
+                            {:else}
+                                <input
+                                    type="text"
+                                    class="value-input flex-grow-1 px-2 py-1 border rounded-2"
+                                    bind:value={filter.query}
+                                    placeholder="Enter search terms..."
+                                />
+                            {/if}
+                            <button
+                                class="remove-filter bg-transparent border-0 text-danger cursor-pointer fs-5"
+                                onclick={() => removeResearchFieldFilter(index)}
+                            >
+                                ×
+                            </button>
+                        </div>
                     </div>
-                </div>
-            {/each}
-            <button
-                class="add-filter mt-2 bg-primary-subtle border border-primary-subtle text-primary rounded-2 px-3 py-1 cursor-pointer"
-                onclick={addResearchFieldFilter}
-            >
-                Add research field filter
-            </button>
-        </div>
+                {/each}
+                <button
+                    class="add-filter mt-2 border border-dark bg-transparent text-dark rounded-2 px-3 py-1 cursor-pointer"
+                    onclick={addResearchFieldFilter}
+                    ><i class="bi bi-plus-circle"></i>
+                    Add field
+                </button>
+            </div>
 
-        <!-- Apply Filters Button -->
-        <div class="apply-filters mt-3 d-flex justify-content-end">
+            <!-- Apply Filters Button -->
+            <!--<div class="apply-filters mt-3 d-flex justify-content-end">
             <button
                 class="apply-btn bg-primary text-white border-0 rounded-2 px-3 py-2 cursor-pointer"
                 onclick={handleApplyFilters}
             >
                 Apply Filters
             </button>
+        </div>-->
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section mt-4">
+            <div
+                class="summary d-flex align-items-center justify-content-between mb-3"
+            >
+                <div class="summary-left">
+                    <div class="summary-text text-body">{exportSummary}</div>
+                </div>
+                <div class="summary-right"></div>
+            </div>
+
+            <div
+                class="table-container overflow-auto border border-light-subtle rounded-3"
+            >
+                <table class="objects-table w-100 border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-column" style="width: 40px;">
+                                <input
+                                    type="checkbox"
+                                    checked={objects.length > 0 &&
+                                        objects.every(
+                                            (o) =>
+                                                !deselectedObjectIds.has(o.id),
+                                        )}
+                                    indeterminate={objects.some(
+                                        (o) => !deselectedObjectIds.has(o.id),
+                                    ) &&
+                                        objects.some((o) =>
+                                            deselectedObjectIds.has(o.id),
+                                        )}
+                                    onclick={toggleAllObjects}
+                                />
+                            </th>
+                            <th class="image-column" style="width: 60px;"></th>
+                            <th class="id-column" style="width: 140px;"
+                                >Object ID</th
+                            >
+
+                            <th class="date-column" style="width: 140px;"
+                                >Date modified</th
+                            >
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each objects as object}
+                            <tr>
+                                <td class="checkbox-column">
+                                    <input
+                                        type="checkbox"
+                                        checked={!deselectedObjectIds.has(
+                                            object.id,
+                                        )}
+                                        onclick={() =>
+                                            toggleObjectSelection(object.id)}
+                                    />
+                                </td>
+                                <td class="image-column">
+                                    <BaseImage
+                                        src={getObjectPreviewUrl(object)}
+                                        alt={getObjectIdentifier(object)}
+                                        width={48}
+                                        height={48}
+                                        class="rounded"
+                                    />
+                                </td>
+                                <td class="id-column"
+                                    ><span
+                                        class="id-link text-primary text-decoration-underline cursor-default"
+                                        >{getObjectIdentifier(object)}</span
+                                    ></td
+                                >
+
+                                <td class="date-column"
+                                    >{formatDate(object.updated_at)}</td
+                                >
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-container mt-3">
+                <BasePagination
+                    bind:page={currentPage}
+                    {pageSize}
+                    count={totalCount}
+                    size="sm"
+                />
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Results Section -->
-    <div class="results-section mt-4">
-        <div
-            class="summary d-flex align-items-center justify-content-between mb-3"
-        >
-            <div class="summary-left">
-                <div class="summary-text text-body">{exportSummary}</div>
-            </div>
-            <div class="summary-right">
+<!-- Sticky bottom action bar -->
+<div
+    class="sticky-bottom-bar position-sticky bottom-0 bg-white border-top border-light-subtle mt-auto z-1 flex-shrink-0"
+>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12 d-flex justify-content-end gap-2 p-2">
                 <button
-                    class="download-btn bg-success text-white border-0 rounded-2 px-3 py-2 cursor-pointer"
+                    type="button"
+                    class="btn btn-sm btn-success"
                     onclick={handleExport}
+                    disabled={totalCount === 0 ||
+                        totalCount - deselectedObjectIds.size === 0}
+                    title={totalCount === 0
+                        ? "No objects match current filters"
+                        : totalCount - deselectedObjectIds.size === 0
+                          ? "No objects selected"
+                          : ""}
                 >
                     Download export
                 </button>
             </div>
         </div>
-
-        <div
-            class="table-container overflow-auto border border-light-subtle rounded-3"
-        >
-            <table class="objects-table w-100 border-collapse">
-                <thead>
-                    <tr>
-                        <th class="checkbox-column" style="width: 40px;">
-                            <input
-                                type="checkbox"
-                                checked={selectedObjects.size ===
-                                    objects.length}
-                                indeterminate={selectedObjects.size > 0 &&
-                                    selectedObjects.size < objects.length}
-                                onclick={toggleAllObjects}
-                            />
-                        </th>
-                        <th class="image-column" style="width: 60px;"></th>
-                        <th class="id-column" style="width: 140px;"
-                            >Object ID</th
-                        >
-
-                        <th class="date-column" style="width: 140px;"
-                            >Date modified</th
-                        >
-                    </tr>
-                </thead>
-                <tbody>
-                    {#each objects as object}
-                        <tr>
-                            <td class="checkbox-column">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedObjects.has(object.id)}
-                                    onclick={() =>
-                                        toggleObjectSelection(object.id)}
-                                />
-                            </td>
-                            <td class="image-column">
-                                <BaseImage
-                                    src={getObjectPreviewUrl(object)}
-                                    alt={getObjectIdentifier(object)}
-                                    width={48}
-                                    height={48}
-                                    class="rounded"
-                                />
-                            </td>
-                            <td class="id-column"
-                                ><span
-                                    class="id-link text-primary text-decoration-underline cursor-default"
-                                    >{getObjectIdentifier(object)}</span
-                                ></td
-                            >
-
-                            <td class="date-column"
-                                >{formatDate(object.updated_at)}</td
-                            >
-                        </tr>
-                    {/each}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="pagination-container mt-3">
-            <BasePagination
-                bind:page={currentPage}
-                {pageSize}
-                count={totalCount}
-                size="sm"
-            />
-        </div>
     </div>
 </div>
 
 <style>
-    /* Minimal remaining styles that can't be replaced with Bootstrap */
+    /* Keep only minimal table styles that aren't easily replaced */
     .objects-table th,
     .objects-table td {
         border-bottom: 1px solid #f0f0f0;
         padding: 10px 12px;
         text-align: left;
-    }
-
-    .id-column {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-            "Liberation Mono", "Courier New", monospace;
     }
 </style>
