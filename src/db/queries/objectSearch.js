@@ -230,7 +230,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             }
 
             // Build main query
-            
+
             let mainQuery = db
                 .select(baseSelect)
                 .from(dbSchema.objects);

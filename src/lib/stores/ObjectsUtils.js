@@ -17,7 +17,15 @@ export const getObjects = async (options) => {
 
 // Function to search objects with advanced filtering and faceted results
 export const searchObjects = async (options) => {
-    const result = await executeQuery('object_search', 'search', options);
+    // Ensure payload is JSON-serializable for IPC/structured clone
+    let safeOptions;
+    try {
+        safeOptions = JSON.parse(JSON.stringify(options ?? {}));
+    } catch (e) {
+        console.warn('Failed to serialize search options, falling back to shallow copy', e);
+        safeOptions = { ...(options || {}) };
+    }
+    const result = await executeQuery('object_search', 'search', safeOptions);
     if (result && result.result) {
         return {
             items: result.result.items || [],

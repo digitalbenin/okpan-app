@@ -4,6 +4,9 @@
 
     import BasePagination from "$lib/components/base/BasePagination.svelte";
     import { searchObjects } from "$lib/stores/ObjectsUtils.js";
+    import { onMount } from "svelte";
+    import BaseImage from "$lib/components/base/BaseImage.svelte";
+    import { getObjectIdentifier } from "$lib/utils/objects.js";
 
     let { data } = $props();
 
@@ -25,6 +28,61 @@
     let totalCount = $state(0);
     let isLoading = $state(false);
     let selectedObjects = $state(new Set());
+    // NEW: facets from search response for dynamic counts
+    let facets = $state({ institutions: [], statuses: [], researchFields: [] });
+    // Track initial search completion to avoid duplicate fetch via effect
+    let didInitialSearch = $state(false);
+
+    // Helper: format date as DD-MM-YYYY
+    function formatDate(value) {
+        const d = new Date(+value);
+        if (Number.isNaN(d.getTime())) return "";
+        const dd = String(d.getDate()).padStart(2, "0");
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const yyyy = d.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    // Helper: get first image asset from object
+    function getFirstImageAsset(object) {
+        const list = object?.objectsAssets || [];
+        const first =
+            list.find(
+                (oa) => oa?.asset?.type === "image" || oa?.type === "image",
+            ) || list[0];
+        const asset = first?.asset ?? first;
+        return asset || null;
+    }
+
+    // Helper: resolve media url from asset preferring the "sm" format
+    function getObjectPreviewUrl(object) {
+        const asset = getFirstImageAsset(object);
+        if (!asset) return null;
+        try {
+            let formats = asset.formats;
+            if (typeof formats === "string") {
+                try {
+                    formats = JSON.parse(formats);
+                } catch {
+                    // ignore
+                }
+            }
+            if (formats && formats.sm) {
+                return `media://${formats.sm}`;
+            }
+            if (formats && (formats.md || formats.lg || formats.original)) {
+                const fallback =
+                    formats.sm || formats.md || formats.lg || formats.original;
+                if (fallback) return `media://${fallback}`;
+            }
+            const p = Array.isArray(asset.path) ? asset.path[0] : asset.path;
+            return p ? `media://${p}` : null;
+        } catch (e) {
+            console.warn("Failed to resolve preview url for asset", e);
+            const p = Array.isArray(asset.path) ? asset.path[0] : asset.path;
+            return p ? `media://${p}` : null;
+        }
+    }
 
     // Available options
     let exportFormats = [
@@ -36,12 +94,10 @@
     let statusOptions = [
         { value: "all", label: "All" },
         { value: "completed", label: "Completed" },
-        { value: "in_progress", label: "In progress" },
+        { value: "in progress", label: "In progress" },
     ];
 
-    let researchFieldOptions = [
-        { value: "designations", label: "Designations" },
-    ];
+
 
     // Search function
     async function performSearch() {
@@ -66,29 +122,44 @@
             // Add research field filters at top level - ensure serializable
             if (researchFieldFilters.length > 0) {
                 searchParams.researchFieldFilters = researchFieldFilters.map(
-                    (filter) => ({
-                        fieldId: filter.fieldId,
-                        query: filter.query || "",
-                        vocabularyIds: filter.vocabularyIds || [],
-                    }),
+                    (filter) => {
+                        const allowed = (researchFieldOptions.find(o => o.value === filter.fieldId)?.vocabOptions || []).map(v => v.value);
+                        const vocab = (Array.isArray(filter.vocabularyIds) ? filter.vocabularyIds : []).filter(id => allowed.includes(id));
+                        return {
+                            fieldId: filter.fieldId,
+                            query: filter.query || "",
+                            vocabularyIds: vocab,
+                        };
+                    },
                 );
             }
 
-            console.log("Searching with params:", searchParams);
+            console.log("Searching with params:", JSON.parse(JSON.stringify(searchParams)));
             const response = await searchObjects(searchParams);
 
             if (response.error) {
                 console.error("Search error:", response.error);
                 objects = [];
                 totalCount = 0;
+                facets = { institutions: [], statuses: [], researchFields: [] };
+                selectedObjects = new Set();
             } else {
                 objects = response.items || [];
                 totalCount = response.totalCount || 0;
+                facets = response.facets || {
+                    institutions: [],
+                    statuses: [],
+                    researchFields: [],
+                };
+                // Select all by default for current results
+                selectedObjects = new Set(objects.map((obj) => obj.id));
             }
         } catch (error) {
             console.error("Error searching objects:", error);
             objects = [];
             totalCount = 0;
+            facets = { institutions: [], statuses: [], researchFields: [] };
+            selectedObjects = new Set();
         } finally {
             isLoading = false;
         }
@@ -105,6 +176,23 @@
         currentPage = 1;
         performSearch();
     }
+
+    // Trigger initial no-filter search on mount
+    onMount(() => {
+        console.log("Initial search on mount");
+        // Mark completion so page-change effect doesn't double-fetch
+        performSearch().finally(() => {
+            didInitialSearch = true;
+        });
+    });
+
+    // When currentPage changes via pagination, fetch that page
+    $effect(() => {
+        const p = currentPage; // track dependency
+        if (!didInitialSearch) return;
+        console.log("Page changed, fetching page", p);
+        performSearch();
+    });
 
     // Toggle object selection
     function toggleObjectSelection(objectId) {
@@ -126,17 +214,39 @@
         selectedObjects = new Set(selectedObjects);
     }
 
-    // Add research field filter
-    function addResearchFieldFilter() {
-        researchFieldFilters = [
-            ...researchFieldFilters,
-            {
-                fieldId: "designations",
-                query: "",
-                vocabularyIds: [],
-            },
-        ];
-    }
+    // Get research fields from page data
+    let researchFields = $derived.by(() => {
+        const rf = data.researchFields;
+        if (Array.isArray(rf)) return rf;               // Already an array
+        if (rf && Array.isArray(rf.result)) return rf.result; // Response wrapper with .result
+        if (rf && Array.isArray(rf.research_fields)) return rf.research_fields; // Alt shape
+        return [];
+    });
+
+    // Convert research fields to select options
+    let researchFieldOptions = $derived.by(() => {
+        const list = Array.isArray(researchFields) ? researchFields : [];
+        return list.map((field) => {
+            const name = field?.name;
+            const label =
+                typeof name === "string"
+                    ? name
+                    : (name?.content ??
+                       (Array.isArray(name?.translations) && name.translations[0]?.content) ??
+                       String(field.id));
+            return {
+                value: field.id,
+                label,
+                group: field?.project?.title?.content ?? "Research Fields",
+                vocabOptions: Array.isArray(field?.vocabularies) ? field.vocabularies.map(v => ({ value: v.id, label: v?.option?.content ?? v.id })) : [],
+            };
+        });
+    });
+
+    // Debugging: please paste these logs
+    $inspect({ researchFields });
+    $inspect({ researchFieldOptions });
+    $inspect({ researchFieldFilters });
 
     // Remove research field filter
     function removeResearchFieldFilter(index) {
@@ -180,26 +290,45 @@
     }
 
     // Computed values
-    let totalPages = $derived(Math.ceil(totalCount / pageSize));
-    let selectedCount = $derived(selectedObjects.size);
-    let exportSummary = $derived(
-        `You are about to export ${selectedCount} institutions, ${selectedCount} object, ${includeAssets ? selectedCount : 0} media`,
+    let exportSummary = $derived(`Objects matching filters: ${totalCount}`);
+    // Dynamic status counts from facets
+    let completedCount = $derived(
+        facets?.statuses?.find((s) => (s.id ?? s.name) === "completed")
+            ?.count || 0,
     );
+    let inProgressCount = $derived(
+        facets?.statuses?.find((s) => (s.id ?? s.name) === "in progress")
+            ?.count || 0,
+    );
+
+    // Add research field filter
+    function addResearchFieldFilter() {
+        researchFieldFilters = [
+            ...researchFieldFilters,
+            {
+                fieldId: researchFieldOptions.length > 0 ? researchFieldOptions[0]?.value : "",
+                query: "",
+                vocabularyIds: [],
+            },
+        ];
+    }
 </script>
 
-<div class="export-page">
+<div class="export-page container-fluid py-4">
     <!-- Header -->
-    <div class="header">
-        <h2>Export</h2>
-        <p class="subtitle">Choose the filters to export your dataset.</p>
+    <div class="header mb-4">
+        <h2 class="h2 mb-1">Export</h2>
+        <p class="text-muted">Choose the filters to export your dataset.</p>
     </div>
 
     <!-- Export Format Selection -->
-    <div class="export-format-section">
-        <h5>Export as</h5>
-        <div class="format-options">
+    <div class="export-format-section mb-4">
+        <h5 class="h5 mb-2">Export as</h5>
+        <div class="format-options d-flex gap-3">
             {#each exportFormats as format}
-                <label class="format-option">
+                <label
+                    class="format-option d-inline-flex align-items-center gap-2 px-3 py-2 border rounded-2 cursor-pointer"
+                >
                     <input
                         type="radio"
                         bind:group={selectedFormat}
@@ -219,33 +348,34 @@
     </div>
 
     <!-- Assets Section -->
-    <div class="assets-section">
-        <label class="asset-option">
+    <div class="assets-section mb-4">
+        <label class="asset-option d-flex align-items-center gap-2">
             <input type="checkbox" bind:checked={includeAssets} />
             <span>Include assets in the export</span>
         </label>
     </div>
 
     <!-- Filter Content Section -->
-    <div class="filter-section">
-        <h5>Filter content</h5>
+    <div class="filter-section mb-4">
+        <h5 class="h5 mb-3">Filter content</h5>
 
         <!-- Status Filter -->
-        <div class="filter-group">
-            <label class="filter-label">Status</label>
-            <div class="status-options">
+        <div class="filter-group mb-3">
+            <label class="filter-label fw-semibold mb-2 d-block">Status</label>
+            <div class="status-options d-flex gap-2">
                 {#each statusOptions as status}
                     <button
-                        class="status-btn {selectedStatus === status.value
-                            ? 'active'
+                        class="status-btn d-inline-flex align-items-center gap-1 px-3 py-1 border rounded-pill bg-white text-dark-emphasis cursor-pointer {selectedStatus ===
+                        status.value
+                            ? 'active border-primary bg-primary-subtle text-primary'
                             : ''}"
                         onclick={() => (selectedStatus = status.value)}
                     >
                         {status.label}
                         {#if status.value === "completed"}
-                            <span class="status-count">58</span>
-                        {:else if status.value === "in_progress"}
-                            <span class="status-count">34</span>
+                            <span class="status-count">{completedCount}</span>
+                        {:else if status.value === "in progress"}
+                            <span class="status-count">{inProgressCount}</span>
                         {/if}
                     </button>
                 {/each}
@@ -253,10 +383,12 @@
         </div>
 
         <!-- Institution Filter -->
-        <div class="filter-group">
-            <label class="filter-label">Institution</label>
-            <div class="institution-selection">
-                <div class="selected-count">
+        <div class="filter-group mb-3">
+            <label class="filter-label fw-semibold mb-2 d-block"
+                >Institution</label
+            >
+            <div class="institution-selection d-flex flex-column gap-2">
+                <div class="selected-count text-body-secondary small">
                     {selectedInstitutions.length} selected
                 </div>
                 <BaseSelect
@@ -267,16 +399,20 @@
                     size="sm"
                 />
                 {#if selectedInstitutions.length > 0}
-                    <div class="selected-institutions">
+                    <div
+                        class="selected-institutions d-flex flex-wrap gap-1 mt-1"
+                    >
                         {#each selectedInstitutions as instId}
                             {@const institution = data.institutions.find(
                                 (i) => i.value === instId,
                             )}
                             {#if institution}
-                                <span class="institution-tag">
+                                <span
+                                    class="institution-tag d-inline-flex align-items-center gap-1 px-2 py-1 bg-primary-subtle text-primary border border-primary-subtle rounded-pill"
+                                >
                                     {institution.label}
                                     <button
-                                        class="remove-tag"
+                                        class="remove-tag bg-transparent border-0 text-primary cursor-pointer fs-6"
                                         onclick={() =>
                                             (selectedInstitutions =
                                                 selectedInstitutions.filter(
@@ -295,571 +431,170 @@
 
         <!-- Research Field Filters -->
         <div class="filter-group">
-            <label class="filter-label">Research field</label>
+            <label class="filter-label fw-semibold mb-2 d-block"
+                >Research field</label
+            >
             {#each researchFieldFilters as filter, index}
-                <div class="research-field-filter">
-                    <div class="field-row">
+                {@const selectedField = researchFieldOptions.find(o => o.value === filter.fieldId)}
+                <div
+                    class="research-field-filter bg-white border border-light-subtle rounded-3 p-3 d-flex flex-column gap-2 mb-2"
+                >
+                    <div class="field-row d-flex align-items-center gap-2">
                         <BaseSelect
                             items={researchFieldOptions}
                             bind:value={filter.fieldId}
-                            placeholder="Select field..."
+                            placeholder="Select research field..."
                             type="single"
                             size="sm"
                         />
-                        <span class="arrow">→</span>
-                        <input
-                            type="text"
-                            class="value-input"
-                            bind:value={filter.query}
-                            placeholder="Ada, Value2"
-                        />
+                        <span class="arrow text-body-tertiary">→</span>
+                        {#if selectedField && selectedField.vocabOptions && selectedField.vocabOptions.length > 0}
+                            <BaseSelect
+                                class="flex-grow-1"
+                                items={selectedField.vocabOptions}
+                                bind:value={filter.vocabularyIds}
+                                placeholder="Select vocabulary options..."
+                                type="multiple"
+                                size="sm"
+                            />
+                        {:else}
+                            <input
+                                type="text"
+                                class="value-input flex-grow-1 px-2 py-1 border rounded-2"
+                                bind:value={filter.query}
+                                placeholder="Enter search terms..."
+                            />
+                        {/if}
                         <button
-                            class="remove-filter"
+                            class="remove-filter bg-transparent border-0 text-danger cursor-pointer fs-5"
                             onclick={() => removeResearchFieldFilter(index)}
                         >
                             ×
                         </button>
                     </div>
-                    <div class="field-options">
-                        <BaseSelect
-                            items={[{ value: "all", label: "All" }]}
-                            value="all"
-                            placeholder="Select..."
-                            type="single"
-                            size="sm"
-                        />
-                    </div>
                 </div>
             {/each}
-            <button class="add-field-button" onclick={addResearchFieldFilter}>
-                Add field
+            <button
+                class="add-filter mt-2 bg-primary-subtle border border-primary-subtle text-primary rounded-2 px-3 py-1 cursor-pointer"
+                onclick={addResearchFieldFilter}
+            >
+                Add research field filter
             </button>
         </div>
 
-        <!-- Apply Button -->
-        <div class="apply-section">
+        <!-- Apply Filters Button -->
+        <div class="apply-filters mt-3 d-flex justify-content-end">
             <button
-                class="apply-button"
+                class="apply-btn bg-primary text-white border-0 rounded-2 px-3 py-2 cursor-pointer"
                 onclick={handleApplyFilters}
-                disabled={isLoading}
             >
-                {isLoading ? "Searching..." : "Apply Filters"}
+                Apply Filters
             </button>
         </div>
     </div>
 
-    <!-- Preview Section -->
-    <div class="preview-section">
-        <h5>Preview</h5>
-        {#if isLoading}
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <span>Loading...</span>
+    <!-- Results Section -->
+    <div class="results-section mt-4">
+        <div
+            class="summary d-flex align-items-center justify-content-between mb-3"
+        >
+            <div class="summary-left">
+                <div class="summary-text text-body">{exportSummary}</div>
             </div>
-        {:else if objects.length === 0}
-            <div class="empty-state">
-                <p>No objects found matching the current filters.</p>
+            <div class="summary-right">
+                <button
+                    class="download-btn bg-success text-white border-0 rounded-2 px-3 py-2 cursor-pointer"
+                    onclick={handleExport}
+                >
+                    Download export
+                </button>
             </div>
-        {:else}
-            <div class="preview-table">
-                <div class="table-header">
-                    <label class="select-all">
-                        <input
-                            type="checkbox"
-                            checked={selectedObjects.size === objects.length &&
-                                objects.length > 0}
-                            onchange={toggleAllObjects}
-                        />
-                    </label>
-                    <span class="column-header">Object ID</span>
-                    <span class="column-header">Date modified</span>
-                </div>
-                {#each objects as object}
-                    <div class="table-row">
-                        <label class="row-checkbox">
+        </div>
+
+        <div
+            class="table-container overflow-auto border border-light-subtle rounded-3"
+        >
+            <table class="objects-table w-100 border-collapse">
+                <thead>
+                    <tr>
+                        <th class="checkbox-column" style="width: 40px;">
                             <input
                                 type="checkbox"
-                                checked={selectedObjects.has(object.id)}
-                                onchange={() =>
-                                    toggleObjectSelection(object.id)}
+                                checked={selectedObjects.size ===
+                                    objects.length}
+                                indeterminate={selectedObjects.size > 0 &&
+                                    selectedObjects.size < objects.length}
+                                onclick={toggleAllObjects}
                             />
-                        </label>
-                        <div class="object-info">
-                            <div class="object-icon">
-                                {#if object.status === "completed"}
-                                    <span class="status-icon completed"></span>
-                                {:else}
-                                    <span class="status-icon default"></span>
-                                {/if}
-                            </div>
-                            <span class="object-id">{object.id}</span>
-                        </div>
-                        <span class="date-modified"
-                            >{object.updated_at || "23-09-2024"}</span
+                        </th>
+                        <th class="image-column" style="width: 60px;"></th>
+                        <th class="id-column" style="width: 140px;"
+                            >Object ID</th
                         >
-                    </div>
-                {/each}
-            </div>
 
-            <!-- Pagination -->
-            {#if totalPages > 1}
-                <div class="pagination-wrapper">
-                    <BasePagination
-                        bind:page={currentPage}
-                        {pageSize}
-                        count={totalCount}
-                        size="sm"
-                    />
-                </div>
-            {/if}
-        {/if}
+                        <th class="date-column" style="width: 140px;"
+                            >Date modified</th
+                        >
+                    </tr>
+                </thead>
+                <tbody>
+                    {#each objects as object}
+                        <tr>
+                            <td class="checkbox-column">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedObjects.has(object.id)}
+                                    onclick={() =>
+                                        toggleObjectSelection(object.id)}
+                                />
+                            </td>
+                            <td class="image-column">
+                                <BaseImage
+                                    src={getObjectPreviewUrl(object)}
+                                    alt={getObjectIdentifier(object)}
+                                    width={48}
+                                    height={48}
+                                    class="rounded"
+                                />
+                            </td>
+                            <td class="id-column"
+                                ><span
+                                    class="id-link text-primary text-decoration-underline cursor-default"
+                                    >{getObjectIdentifier(object)}</span
+                                ></td
+                            >
 
-        <!-- Export Summary -->
-        <div class="export-summary">
-            <p>{exportSummary}</p>
+                            <td class="date-column"
+                                >{formatDate(object.updated_at)}</td
+                            >
+                        </tr>
+                    {/each}
+                </tbody>
+            </table>
         </div>
-    </div>
 
-    <!-- Action Buttons -->
-    <div class="action-buttons">
-        <button class="cancel-button" onclick={() => history.back()}>
-            Cancel
-        </button>
-        <button
-            class="download-button"
-            disabled={selectedObjects.size === 0 || isLoading}
-            onclick={handleExport}
-        >
-            {#if isLoading}
-                <span class="spinner-sm"></span>
-            {/if}
-            Download
-        </button>
+        <div class="pagination-container mt-3">
+            <BasePagination
+                bind:page={currentPage}
+                {pageSize}
+                count={totalCount}
+                size="sm"
+            />
+        </div>
     </div>
 </div>
 
 <style>
-    .export-page {
-        padding: 2rem;
-        max-width: 800px;
-        margin: 0 auto;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-            sans-serif;
+    /* Minimal remaining styles that can't be replaced with Bootstrap */
+    .objects-table th,
+    .objects-table td {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 10px 12px;
+        text-align: left;
     }
 
-    .header {
-        margin-bottom: 2rem;
-    }
-
-    .header h2 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.5rem;
-        font-weight: 600;
-    }
-
-    .subtitle {
-        color: #666;
-        margin: 0;
-    }
-
-    .export-format-section,
-    .assets-section,
-    .filter-section,
-    .preview-section {
-        margin-bottom: 2rem;
-    }
-
-    .export-format-section h5,
-    .assets-section h5,
-    .filter-section h5,
-    .preview-section h5 {
-        margin: 0 0 1rem 0;
-        font-size: 1rem;
-        font-weight: 600;
-    }
-
-    .apply-section {
-        margin-top: 1.5rem;
-        padding-top: 1rem;
-        border-top: 1px solid #e5e7eb;
-        display: flex;
-        justify-content: center;
-    }
-
-    .apply-button {
-        background-color: #3b82f6;
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.375rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .apply-button:hover:not(:disabled) {
-        background-color: #2563eb;
-    }
-
-    .apply-button:disabled {
-        background-color: #9ca3af;
-        cursor: not-allowed;
-    }
-
-    .add-field-button {
-        background-color: transparent;
-        color: #6b7280;
-        border: 1px solid #d1d5db;
-        padding: 0.5rem 1rem;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .add-field-button:hover {
-        background-color: #f9fafb;
-        border-color: #9ca3af;
-    }
-
-    .cancel-button {
-        background-color: transparent;
-        color: #6b7280;
-        border: 1px solid #d1d5db;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.375rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .cancel-button:hover {
-        background-color: #f9fafb;
-        border-color: #9ca3af;
-    }
-
-    .download-button {
-        background-color: #3b82f6;
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.375rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .download-button:hover:not(:disabled) {
-        background-color: #2563eb;
-    }
-
-    .download-button:disabled {
-        background-color: #9ca3af;
-        cursor: not-allowed;
-    }
-
-    .format-options {
-        display: flex;
-        gap: 1rem;
-    }
-
-    .format-option {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        padding: 0.5rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background: white;
-    }
-
-    .format-option:has(input:checked) {
-        border-color: #007bff;
-        background-color: #f0f8ff;
-    }
-
-    .format-icon {
-        width: 20px;
-        height: 20px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 2px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-
-    .csv-icon {
-        background-color: #28a745;
-    }
-
-    .json-icon {
-        background-color: #6f42c1;
-        color: white;
-    }
-
-    .sql-icon {
-        background-color: #17a2b8;
-    }
-
-    .asset-option {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-    }
-
-    .filter-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .filter-label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-    }
-
-    .status-options {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .status-btn {
-        padding: 0.5rem 1rem;
-        border: 1px solid #ddd;
-        background: white;
-        border-radius: 4px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .status-btn.active {
-        border-color: #007bff;
-        background-color: #007bff;
-        color: white;
-    }
-
-    .status-count {
-        background-color: rgba(255, 255, 255, 0.2);
-        padding: 0.2rem 0.4rem;
-        border-radius: 10px;
-        font-size: 0.8rem;
-    }
-
-    .status-btn:not(.active) .status-count {
-        background-color: #f8f9fa;
-        color: #666;
-    }
-
-    .institution-selection {
-        position: relative;
-    }
-
-    .selected-count {
-        font-size: 0.9rem;
-        color: #666;
-        margin-bottom: 0.5rem;
-    }
-
-    .selected-institutions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
-    }
-
-    .institution-tag {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.25rem 0.5rem;
-        background-color: #e9ecef;
-        border-radius: 12px;
-        font-size: 0.8rem;
-    }
-
-    .remove-tag {
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: #666;
-        font-size: 1rem;
-        line-height: 1;
-    }
-
-    .research-field-filter {
-        margin-bottom: 1rem;
-        padding: 1rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
-
-    .field-row {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .arrow {
-        color: #666;
-    }
-
-    .value-input {
-        flex: 1;
-        padding: 0.375rem 0.75rem;
-        border: 1px solid #ced4da;
-        border-radius: 0.25rem;
-    }
-
-    .remove-filter {
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: #dc3545;
-        font-size: 1.2rem;
-        line-height: 1;
-    }
-
-    .field-options {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .preview-table {
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        overflow: hidden;
-    }
-
-    .table-header {
-        display: grid;
-        grid-template-columns: 40px 1fr auto;
-        gap: 1rem;
-        padding: 0.75rem 1rem;
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #ddd;
-        font-weight: 500;
-    }
-
-    .table-row {
-        display: grid;
-        grid-template-columns: 40px 1fr auto;
-        gap: 1rem;
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid #eee;
-        align-items: center;
-    }
-
-    .table-row:last-child {
-        border-bottom: none;
-    }
-
-    .object-info {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .object-icon {
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .status-icon {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-    }
-
-    .status-icon.completed {
-        background-color: #28a745;
-    }
-
-    .status-icon.default {
-        background-color: #6c757d;
-    }
-
-    .object-id {
-        color: #007bff;
-        text-decoration: underline;
-        cursor: pointer;
-    }
-
-    .date-modified {
-        color: #666;
-        font-size: 0.9rem;
-    }
-
-    .pagination-wrapper {
-        display: flex;
-        justify-content: center;
-        margin-top: 1rem;
-    }
-
-    .export-summary {
-        margin-top: 1rem;
-        padding: 1rem;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-        text-align: center;
-    }
-
-    .action-buttons {
-        display: flex;
-        justify-content: flex-end;
-        gap: 1rem;
-        margin-top: 2rem;
-    }
-
-    .loading-state,
-    .empty-state {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        color: #666;
-    }
-
-    .spinner {
-        width: 20px;
-        height: 20px;
-        border: 2px solid #f3f3f3;
-        border-top: 2px solid #007bff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-right: 0.5rem;
-    }
-
-    .spinner-sm {
-        width: 16px;
-        height: 16px;
-        border: 2px solid transparent;
-        border-top: 2px solid currentColor;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-right: 0.5rem;
-    }
-
-    .download-icon {
-        margin-left: 0.5rem;
-    }
-
-    @keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg);
-        }
+    .id-column {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace;
     }
 </style>
