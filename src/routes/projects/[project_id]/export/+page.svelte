@@ -23,6 +23,7 @@
 
     // Pagination and data states
     let currentPage = $state(1);
+    let _prevPage = $state(1);
     let pageSize = $state(10);
     let objects = $state([]);
     let totalCount = $state(0);
@@ -33,7 +34,7 @@
     let facets = $state({ institutions: [], statuses: [], researchFields: [] });
 
     // Watch page changes and perform search
-    let _prevPage = $state(currentPage);
+
     $effect(() => {
         if (currentPage !== _prevPage) {
             _prevPage = currentPage;

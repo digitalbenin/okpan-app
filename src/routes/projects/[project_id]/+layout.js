@@ -10,6 +10,7 @@ const { getAvaliableLocalesForProject, setProjectLanguages } = getContentLanguag
 export const load = async ({ params, depends }) => {
     if (!browser) return;
     depends('app:project-shared');
+    depends('app:projects');
 
     // Cache the current project ID in backend for optimized GraphQL queries
     try {
