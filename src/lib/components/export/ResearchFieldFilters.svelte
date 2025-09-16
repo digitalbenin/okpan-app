@@ -1,13 +1,17 @@
 <script>
     import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
 
-    let { researchFieldOptions = [], researchFieldFilters = $bindable([]) } = $props();
+    let { researchFieldOptions = [], researchFieldFilters = $bindable([]) } =
+        $props();
 
     function addResearchFieldFilter() {
         researchFieldFilters = [
             ...researchFieldFilters,
             {
-                fieldId: researchFieldOptions.length > 0 ? researchFieldOptions[0]?.value : "",
+                fieldId:
+                    researchFieldOptions.length > 0
+                        ? researchFieldOptions[0]?.value
+                        : "",
                 query: "",
                 vocabularyIds: [],
             },
@@ -15,15 +19,21 @@
     }
 
     function removeResearchFieldFilter(index) {
-        researchFieldFilters = researchFieldFilters.filter((_, i) => i !== index);
+        researchFieldFilters = researchFieldFilters.filter(
+            (_, i) => i !== index,
+        );
     }
 </script>
 
 <div class="filter-group">
-    <label class="filter-label fw-semibold mb-2 d-block">Research field</label>
+    <p class="filter-label fw-semibold mb-2 d-block">Research field</p>
     {#each researchFieldFilters as filter, index}
-        {@const selectedField = researchFieldOptions.find((o) => o.value === filter.fieldId)}
-        <div class="research-field-filter bg-white border border-light-subtle rounded-3 p-3 d-flex flex-column gap-2 mb-2">
+        {@const selectedField = researchFieldOptions.find(
+            (o) => o.value === filter.fieldId,
+        )}
+        <div
+            class="research-field-filter bg-white border border-light-subtle rounded-3 p-3 d-flex flex-column gap-2 mb-2"
+        >
             <div class="field-row d-flex align-items-center gap-2">
                 <BaseSelect
                     items={researchFieldOptions}

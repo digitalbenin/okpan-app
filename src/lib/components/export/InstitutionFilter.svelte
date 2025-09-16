@@ -5,10 +5,10 @@
 </script>
 
 <div class="filter-group mb-3">
-    <label class="filter-label fw-semibold mb-2 d-block">Institution</label>
+    <p class="filter-label fw-semibold mb-2 d-block">Institution</p>
     <div class="institution-selection d-flex flex-column gap-2">
         <BaseSelect
-            items={items}
+            {items}
             bind:value={selectedInstitutions}
             placeholder="Select institutions..."
             type="multiple"
@@ -19,12 +19,17 @@
                 {#each selectedInstitutions as instId}
                     {@const institution = items.find((i) => i.value === instId)}
                     {#if institution}
-                        <span class="institution-tag d-inline-flex align-items-center gap-1 px-2 py-1 bg-light text-dark border border-dark rounded-pill">
+                        <span
+                            class="institution-tag d-inline-flex align-items-center gap-1 px-2 py-1 bg-light text-dark border border-dark rounded-pill"
+                        >
                             {institution.label}
                             <button
                                 class="remove-tag bg-transparent border-0 text-dark cursor-pointer fs-6"
                                 onclick={() =>
-                                    (selectedInstitutions = selectedInstitutions.filter((id) => id !== instId))}
+                                    (selectedInstitutions =
+                                        selectedInstitutions.filter(
+                                            (id) => id !== instId,
+                                        ))}
                             >
                                 ×
                             </button>
