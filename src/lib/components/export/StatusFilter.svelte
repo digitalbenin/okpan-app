@@ -3,6 +3,7 @@
         selectedStatus = $bindable("all"),
         completedCount = 0,
         inProgressCount = 0,
+        onChange = null,
     } = $props();
 
     const statusOptions = [
@@ -16,6 +17,17 @@
         if (value === "completed") return completedCount;
         if (value === "in progress") return inProgressCount;
         return 0;
+    }
+
+    function notify(val) {
+        const next = val ?? selectedStatus;
+        if (typeof onChange === "function") {
+            try {
+                onChange(next);
+            } catch (e) {
+                console.error("Error in onStatusChanged:", e);
+            }
+        }
     }
 </script>
 
@@ -37,6 +49,8 @@
                     bind:group={selectedStatus}
                     value={status.value}
                     disabled={countByStatus(status.value) === 0}
+                    onchange={(e) =>
+                        notify(e.currentTarget?.value ?? e.target?.value)}
                 />
                 <span class="format-label">{status.label}</span>
                 {#if status.value === "all"}

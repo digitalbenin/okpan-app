@@ -10,8 +10,9 @@
         page = $bindable(1), // bindable from parent
         pageSize,
         count,
-        onPageChange = null, // optional callback provided by parent
     } = $props();
+
+    // Debug: watch page value directly
 
     // Toggle single row selection (we track deselections globally)
     function toggleObjectSelection(objectId) {
@@ -84,17 +85,6 @@
             return p ? `media://${p}` : null;
         }
     }
-
-    function handleInternalPageChange(newPage) {
-        // forward to parent if provided
-        if (typeof onPageChange === "function") {
-            try {
-                onPageChange(newPage);
-            } catch (e) {
-                console.error("PreviewTable onPageChange error:", e);
-            }
-        }
-    }
 </script>
 
 <div class="table-container overflow-auto border border-light-subtle rounded-3">
@@ -139,9 +129,7 @@
                         />
                     </td>
                     <td class="id-column">
-                        <span
-                            class="id-link text-primary text-decoration-underline cursor-default"
-                        >
+                        <span>
                             {getObjectIdentifier(object)}
                         </span>
                     </td>
@@ -153,13 +141,7 @@
 </div>
 
 <div class="pagination-container mt-3">
-    <BasePagination
-        bind:page
-        {pageSize}
-        {count}
-        size="sm"
-        onChange={handleInternalPageChange}
-    />
+    <BasePagination bind:page {pageSize} {count} size="sm" />
 </div>
 
 <style>

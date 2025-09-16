@@ -1,7 +1,21 @@
 <script>
     import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
 
-    let { items = [], selectedInstitutions = $bindable([]) } = $props();
+    let {
+        items = [],
+        selectedInstitutions = $bindable([]),
+        onChange = null,
+    } = $props();
+
+    function handleChange(newValue) {
+        if (typeof onChange === "function") {
+            try {
+                onChange(newValue);
+            } catch (e) {
+                console.error("Error in onInstitutionsChanged:", e);
+            }
+        }
+    }
 </script>
 
 <div class="filter-group mb-3">
@@ -13,6 +27,7 @@
             placeholder="Select institutions..."
             type="multiple"
             size="sm"
+            onValueChange={(v) => handleChange(v)}
         />
         {#if selectedInstitutions.length > 0}
             <div class="selected-institutions d-flex flex-wrap gap-1 mt-1">
@@ -25,11 +40,13 @@
                             {institution.label}
                             <button
                                 class="remove-tag bg-transparent border-0 text-dark cursor-pointer fs-6"
-                                onclick={() =>
-                                    (selectedInstitutions =
+                                onclick={() => {
+                                    selectedInstitutions =
                                         selectedInstitutions.filter(
                                             (id) => id !== instId,
-                                        ))}
+                                        );
+                                    handleChange(selectedInstitutions);
+                                }}
                             >
                                 ×
                             </button>

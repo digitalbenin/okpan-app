@@ -32,6 +32,15 @@
     // NEW: facets from search response for dynamic counts
     let facets = $state({ institutions: [], statuses: [], researchFields: [] });
 
+    // Watch page changes and perform search
+    let _prevPage = $state(currentPage);
+    $effect(() => {
+        if (currentPage !== _prevPage) {
+            _prevPage = currentPage;
+            performSearch();
+        }
+    });
+
     // Available options
     let exportFormats = [
         { value: "csv", label: "CSV" },
@@ -44,19 +53,12 @@
         isLoading = true;
         try {
             const searchParams = buildSearchParams();
-
-            console.log(
-                "Searching with params:",
-                JSON.parse(JSON.stringify(searchParams)),
-            );
             const response = await searchObjects(searchParams);
 
             if (response.error) {
-                console.error("Search error:", response.error);
                 objects = [];
                 totalCount = 0;
                 facets = { institutions: [], statuses: [], researchFields: [] };
-                // Selection derived from deselectedObjectIds; nothing to reset here
             } else {
                 objects = response.items || [];
                 totalCount = response.totalCount || 0;
@@ -65,14 +67,11 @@
                     statuses: [],
                     researchFields: [],
                 };
-                // Selection on this page is derived from deselectedObjectIds
             }
         } catch (error) {
-            console.error("Error searching objects:", error);
             objects = [];
             totalCount = 0;
             facets = { institutions: [], statuses: [], researchFields: [] };
-            // Selection derived from deselectedObjectIds
         } finally {
             isLoading = false;
         }
@@ -80,15 +79,8 @@
 
     // Trigger initial no-filter search on mount
     onMount(() => {
-        console.log("Initial search on mount");
         performSearch();
     });
-
-    function handlePageChange(newPage) {
-        currentPage = newPage ?? currentPage;
-        console.log("Page changed via callback to", currentPage);
-        performSearch();
-    }
 
     // Get research fields from page data
     let researchFields = $derived.by(() => {
@@ -174,15 +166,46 @@
         };
     }
 
+    function shallowEqualArray(a, b) {
+        if (a === b) return true;
+        if (!Array.isArray(a) || !Array.isArray(b)) return false;
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i += 1) {
+            if (a[i] !== b[i]) return false;
+        }
+        return true;
+    }
+
+    function onStatusChanged(newStatus) {
+        if (newStatus === selectedStatus) {
+            return;
+        }
+        selectedStatus = newStatus;
+        currentPage = 1;
+        performSearch();
+    }
+
+    function onInstitutionsChanged(newInstitutions) {
+        selectedInstitutions = Array.isArray(newInstitutions)
+            ? newInstitutions
+            : [];
+        currentPage = 1;
+        performSearch();
+    }
+
+    function onResearchFieldsChanged(newFilters) {
+        researchFieldFilters = Array.isArray(newFilters) ? newFilters : [];
+        currentPage = 1;
+        performSearch();
+    }
+
     // Handle export
     async function handleExport() {
         try {
             if (!window?.api?.exportProject) {
-                console.error("window.api.exportProject is not available");
                 return;
             }
 
-            // Use globally tracked deselections across all pages
             const excludeIds = Array.from(deselectedObjectIds);
 
             const exportOptions = {
@@ -196,20 +219,11 @@
                 format: selectedFormat,
             };
 
-            console.log(
-                "Exporting with options:",
-                JSON.parse(JSON.stringify(exportOptions)),
-                "excludeObjectIds:",
-                excludeIds.length,
-            );
-
             const result = await window.api.exportProject(exportOptions);
 
             if (result.canceled) return;
-
-            console.log("Export completed:", result);
         } catch (error) {
-            console.error("Export failed:", error);
+            // intentionally no console output
         }
     }
 
@@ -298,18 +312,21 @@
                 bind:selectedStatus
                 {completedCount}
                 {inProgressCount}
+                onChange={onStatusChanged}
             />
 
             <!-- Institution Filter -->
             <InstitutionFilter
                 items={data.institutions}
                 bind:selectedInstitutions
+                onChange={onInstitutionsChanged}
             />
 
             <!-- Research Field Filters -->
             <ResearchFieldFilters
                 {researchFieldOptions}
                 bind:researchFieldFilters
+                onChange={onResearchFieldsChanged}
             />
         </div>
 
@@ -330,7 +347,6 @@
                 bind:page={currentPage}
                 {pageSize}
                 count={totalCount}
-                onPageChange={handlePageChange}
             />
         </div>
     </div>

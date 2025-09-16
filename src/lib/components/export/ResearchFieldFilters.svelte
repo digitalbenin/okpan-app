@@ -1,8 +1,11 @@
 <script>
     import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
 
-    let { researchFieldOptions = [], researchFieldFilters = $bindable([]) } =
-        $props();
+    let {
+        researchFieldOptions = [],
+        researchFieldFilters = $bindable([]),
+        onChange = null,
+    } = $props();
 
     function addResearchFieldFilter() {
         researchFieldFilters = [
@@ -16,12 +19,24 @@
                 vocabularyIds: [],
             },
         ];
+        notify();
     }
 
     function removeResearchFieldFilter(index) {
         researchFieldFilters = researchFieldFilters.filter(
             (_, i) => i !== index,
         );
+        notify();
+    }
+
+    function notify() {
+        if (typeof onChange === "function") {
+            try {
+                onChange(researchFieldFilters);
+            } catch (e) {
+                console.error("Error in onResearchFieldsChanged:", e);
+            }
+        }
     }
 </script>
 
@@ -41,6 +56,7 @@
                     placeholder="Select research field..."
                     type="single"
                     size="sm"
+                    onValueChange={notify}
                 />
                 <span class="arrow text-body-tertiary">→</span>
                 {#if selectedField && selectedField.vocabOptions && selectedField.vocabOptions.length > 0}
@@ -51,6 +67,7 @@
                         placeholder="Select vocabulary options..."
                         type="multiple"
                         size="sm"
+                        onValueChange={notify}
                     />
                 {:else}
                     <input
@@ -58,6 +75,7 @@
                         class="value-input flex-grow-1 px-2 py-1 border rounded-2"
                         bind:value={filter.query}
                         placeholder="Enter search terms..."
+                        oninput={notify}
                     />
                 {/if}
                 <button
