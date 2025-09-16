@@ -1,7 +1,29 @@
 <script>
   import { Pagination } from "bits-ui";
+  import { tick } from "svelte";
 
-  let { page = $bindable(), pageSize, count, size } = $props();
+  let { page = $bindable(), pageSize, count, size, onChange = null } = $props();
+
+  async function notify(nextPage) {
+    if (typeof onChange === "function") {
+      // Wait for bits-ui to perform its own internal updates; we still pass nextPage explicitly
+      await tick();
+      try {
+        onChange(nextPage);
+      } catch (e) {
+        console.error("BasePagination onChange error:", e);
+      }
+    }
+  }
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function maxPages() {
+    if (!count || !pageSize) return 1;
+    return Math.max(1, Math.ceil(count / pageSize));
+  }
 </script>
 
 <Pagination.Root {count} perPage={pageSize} bind:page>
@@ -10,7 +32,11 @@
       <Pagination.PrevButton forceMount>
         {#snippet child({ props })}
           <li class="page-item" class:disabled={props.disabled}>
-            <button class="page-link" {...props}>Prev</button>
+            <button
+              class="page-link"
+              {...props}
+              on:click={() => notify(clamp(page - 1, 1, maxPages()))}
+            >Prev</button>
           </li>
         {/snippet}
       </Pagination.PrevButton>
@@ -27,7 +53,11 @@
                 class="page-item"
                 class:active={props["data-selected"] === ""}
               >
-                <button class="page-link" {...props}>{buttonPage.value}</button>
+                <button
+                  class="page-link"
+                  {...props}
+                  on:click={() => notify(buttonPage.value)}
+                >{buttonPage.value}</button>
               </li>
             {/snippet}
           </Pagination.Page>
@@ -37,7 +67,11 @@
       <Pagination.NextButton forceMount>
         {#snippet child({ props })}
           <li class="page-item" class:disabled={props.disabled}>
-            <button class="page-link" {...props}>Next</button>
+            <button
+              class="page-link"
+              {...props}
+              on:click={() => notify(clamp(page + 1, 1, maxPages()))}
+            >Next</button>
           </li>
         {/snippet}
       </Pagination.NextButton>

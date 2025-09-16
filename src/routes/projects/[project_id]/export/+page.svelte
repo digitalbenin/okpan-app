@@ -1,9 +1,12 @@
 <script>
     import { page } from "$app/stores";
-    import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
+
     import { searchObjects } from "$lib/stores/ObjectsUtils.js";
     import { onMount } from "svelte";
     import PreviewTable from "$lib/components/export/PreviewTable.svelte";
+    import StatusFilter from "$lib/components/export/StatusFilter.svelte";
+    import InstitutionFilter from "$lib/components/export/InstitutionFilter.svelte";
+    import ResearchFieldFilters from "$lib/components/export/ResearchFieldFilters.svelte";
 
     let { data } = $props();
 
@@ -28,21 +31,12 @@
     let deselectedObjectIds = $state(new Set());
     // NEW: facets from search response for dynamic counts
     let facets = $state({ institutions: [], statuses: [], researchFields: [] });
-    // Track initial search completion to avoid duplicate fetch via effect
-    let didInitialSearch = $state(false);
-
 
     // Available options
     let exportFormats = [
         { value: "csv", label: "CSV" },
         { value: "json", label: "JSON" },
         { value: "sql", label: "SQLite" },
-    ];
-
-    let statusOptions = [
-        { value: "all", label: "All" },
-        { value: "completed", label: "Completed" },
-        { value: "in progress", label: "In progress" },
     ];
 
     // Search function
@@ -84,37 +78,17 @@
         }
     }
 
-    // Manual search trigger function
-    function handleApplyFilters() {
-        console.log("Apply filters clicked!");
-        console.log("Current filters:", {
-            selectedStatus,
-            selectedInstitutions,
-            researchFieldFilters,
-        });
-        // Reset deselections when filters change so selection matches new result set
-        deselectedObjectIds = new Set();
-        currentPage = 1;
-        performSearch();
-    }
-
     // Trigger initial no-filter search on mount
     onMount(() => {
         console.log("Initial search on mount");
-        // Mark completion so page-change effect doesn't double-fetch
-        performSearch().finally(() => {
-            didInitialSearch = true;
-        });
-    });
-
-    // When currentPage changes via pagination, fetch that page
-    $effect(() => {
-        const p = currentPage; // track dependency
-        if (!didInitialSearch) return;
-        console.log("Page changed, fetching page", p);
         performSearch();
     });
 
+    function handlePageChange(newPage) {
+        currentPage = newPage ?? currentPage;
+        console.log("Page changed via callback to", currentPage);
+        performSearch();
+    }
 
     // Get research fields from page data
     let researchFields = $derived.by(() => {
@@ -200,13 +174,6 @@
         };
     }
 
-    // Remove research field filter
-    function removeResearchFieldFilter(index) {
-        researchFieldFilters = researchFieldFilters.filter(
-            (_, i) => i !== index,
-        );
-    }
-
     // Handle export
     async function handleExport() {
         try {
@@ -257,28 +224,6 @@
         facets?.statuses?.find((s) => (s.id ?? s.name) === "in progress")
             ?.count || 0,
     );
-
-    function countByStatus(value) {
-        if (value === "all") return completedCount + inProgressCount;
-        if (value === "completed") return completedCount;
-        if (value === "in progress") return inProgressCount;
-        return 0;
-    }
-
-    // Add research field filter
-    function addResearchFieldFilter() {
-        researchFieldFilters = [
-            ...researchFieldFilters,
-            {
-                fieldId:
-                    researchFieldOptions.length > 0
-                        ? researchFieldOptions[0]?.value
-                        : "",
-                query: "",
-                vocabularyIds: [],
-            },
-        ];
-    }
 </script>
 
 <div class="export-page container-fluid py-4">
@@ -349,163 +294,23 @@
             <h5 class="h5 mb-3">Filter content</h5>
 
             <!-- Status Filter -->
-            <div class="filter-group mb-3">
-                <label class="filter-label fw-semibold mb-2 d-block"
-                    >Status</label
-                >
-                <div class="format-options d-flex gap-3">
-                    {#each statusOptions as status}
-                        <label
-                            class="format-option d-inline-flex align-items-center gap-2 px-3 py-2 border rounded-2 {countByStatus(status.value) === 0 ? 'opacity-50 pe-none' : 'cursor-pointer'} {selectedStatus ===
-                            status.value
-                                ? 'border border-primary'
-                                : ''}"
-                        >
-                            <input
-                                type="radio"
-                                bind:group={selectedStatus}
-                                value={status.value}
-                                disabled={countByStatus(status.value) === 0}
-                            />
-                            <span class="format-label">{status.label}</span>
-                            {#if status.value === "all"}
-                                <span
-                                    class="badge rounded {selectedStatus ===
-                                    status.value
-                                        ? 'bg-primary text-white'
-                                        : 'bg-light text-body'}"
-                                    >{completedCount + inProgressCount}</span
-                                >
-                            {:else if status.value === "completed"}
-                                <span
-                                    class="badge rounded {selectedStatus ===
-                                    status.value
-                                        ? 'bg-primary text-white'
-                                        : 'bg-light text-body'}"
-                                    >{completedCount}</span
-                                >
-                            {:else if status.value === "in progress"}
-                                <span
-                                    class="badge rounded {selectedStatus ===
-                                    status.value
-                                        ? 'bg-primary text-white'
-                                        : 'bg-light text-body'}"
-                                    >{inProgressCount}</span
-                                >
-                            {/if}
-                        </label>
-                    {/each}
-                </div>
-            </div>
+            <StatusFilter
+                bind:selectedStatus
+                {completedCount}
+                {inProgressCount}
+            />
 
             <!-- Institution Filter -->
-            <div class="filter-group mb-3">
-                <label class="filter-label fw-semibold mb-2 d-block"
-                    >Institution</label
-                >
-                <div class="institution-selection d-flex flex-column gap-2">
-                    <BaseSelect
-                        items={data.institutions}
-                        bind:value={selectedInstitutions}
-                        placeholder="Select institutions..."
-                        type="multiple"
-                        size="sm"
-                    />
-                    {#if selectedInstitutions.length > 0}
-                        <div
-                            class="selected-institutions d-flex flex-wrap gap-1 mt-1"
-                        >
-                            {#each selectedInstitutions as instId}
-                                {@const institution = data.institutions.find(
-                                    (i) => i.value === instId,
-                                )}
-                                {#if institution}
-                                    <span
-                                        class="institution-tag d-inline-flex align-items-center gap-1 px-2 py-1 bg-light text-dark border border-dark rounded-pill"
-                                    >
-                                        {institution.label}
-                                        <button
-                                            class="remove-tag bg-transparent border-0 text-dark cursor-pointer fs-6"
-                                            onclick={() =>
-                                                (selectedInstitutions =
-                                                    selectedInstitutions.filter(
-                                                        (id) => id !== instId,
-                                                    ))}
-                                        >
-                                            ×
-                                        </button>
-                                    </span>
-                                {/if}
-                            {/each}
-                        </div>
-                    {/if}
-                </div>
-            </div>
+            <InstitutionFilter
+                items={data.institutions}
+                bind:selectedInstitutions
+            />
 
             <!-- Research Field Filters -->
-            <div class="filter-group">
-                <label class="filter-label fw-semibold mb-2 d-block"
-                    >Research field</label
-                >
-                {#each researchFieldFilters as filter, index}
-                    {@const selectedField = researchFieldOptions.find(
-                        (o) => o.value === filter.fieldId,
-                    )}
-                    <div
-                        class="research-field-filter bg-white border border-light-subtle rounded-3 p-3 d-flex flex-column gap-2 mb-2"
-                    >
-                        <div class="field-row d-flex align-items-center gap-2">
-                            <BaseSelect
-                                items={researchFieldOptions}
-                                bind:value={filter.fieldId}
-                                placeholder="Select research field..."
-                                type="single"
-                                size="sm"
-                            />
-                            <span class="arrow text-body-tertiary">→</span>
-                            {#if selectedField && selectedField.vocabOptions && selectedField.vocabOptions.length > 0}
-                                <BaseSelect
-                                    class="flex-grow-1"
-                                    items={selectedField.vocabOptions}
-                                    bind:value={filter.vocabularyIds}
-                                    placeholder="Select vocabulary options..."
-                                    type="multiple"
-                                    size="sm"
-                                />
-                            {:else}
-                                <input
-                                    type="text"
-                                    class="value-input flex-grow-1 px-2 py-1 border rounded-2"
-                                    bind:value={filter.query}
-                                    placeholder="Enter search terms..."
-                                />
-                            {/if}
-                            <button
-                                class="remove-filter bg-transparent border-0 text-danger cursor-pointer fs-5"
-                                onclick={() => removeResearchFieldFilter(index)}
-                            >
-                                ×
-                            </button>
-                        </div>
-                    </div>
-                {/each}
-                <button
-                    class="add-filter mt-2 border border-dark bg-transparent text-dark rounded-2 px-3 py-1 cursor-pointer"
-                    onclick={addResearchFieldFilter}
-                    ><i class="bi bi-plus-circle"></i>
-                    Add field
-                </button>
-            </div>
-
-            <!-- Apply Filters Button -->
-            <!--<div class="apply-filters mt-3 d-flex justify-content-end">
-            <button
-                class="apply-btn bg-primary text-white border-0 rounded-2 px-3 py-2 cursor-pointer"
-                onclick={handleApplyFilters}
-            >
-                Apply Filters
-            </button>
-        </div>-->
+            <ResearchFieldFilters
+                {researchFieldOptions}
+                bind:researchFieldFilters
+            />
         </div>
 
         <!-- Results Section -->
@@ -519,15 +324,14 @@
                 <div class="summary-right"></div>
             </div>
 
-                <PreviewTable
-                    {objects}
-                    bind:deselectedObjectIds={deselectedObjectIds}
-                    bind:page={currentPage}
-                    pageSize={pageSize}
-                    count={totalCount}
-                />
-
-
+            <PreviewTable
+                {objects}
+                bind:deselectedObjectIds
+                bind:page={currentPage}
+                {pageSize}
+                count={totalCount}
+                onPageChange={handlePageChange}
+            />
         </div>
     </div>
 </div>
@@ -551,12 +355,9 @@
                           ? "No objects selected"
                           : ""}
                 >
-                    Download export
+                    Export
                 </button>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-</style>

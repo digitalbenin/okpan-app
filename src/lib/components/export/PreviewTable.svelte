@@ -10,6 +10,7 @@
         page = $bindable(1), // bindable from parent
         pageSize,
         count,
+        onPageChange = null, // optional callback provided by parent
     } = $props();
 
     // Toggle single row selection (we track deselections globally)
@@ -21,20 +22,21 @@
         }
         // Reassign to trigger reactivity and propagate via bindable prop
         deselectedObjectIds = new Set(deselectedObjectIds);
-        console.log("PreviewTable: toggled object", objectId, "deselected?", deselectedObjectIds.has(objectId));
     }
 
     // Toggle selection for current page
     function toggleAllObjects() {
         const pageIds = objects.map((o) => o.id);
-        const allSelectedOnPage = pageIds.every((id) => !deselectedObjectIds.has(id));
+        const allSelectedOnPage = pageIds.every(
+            (id) => !deselectedObjectIds.has(id),
+        );
         if (allSelectedOnPage) {
             pageIds.forEach((id) => deselectedObjectIds.add(id));
         } else {
             pageIds.forEach((id) => deselectedObjectIds.delete(id));
         }
+        // Reassign to trigger reactivity and propagate via bindable prop
         deselectedObjectIds = new Set(deselectedObjectIds);
-        console.log("PreviewTable: toggle all on page; new deselected size:", deselectedObjectIds.size);
     }
 
     // Helpers previously in page
@@ -50,7 +52,9 @@
     function getFirstImageAsset(object) {
         const list = object?.objectsAssets || [];
         const first =
-            list.find((oa) => oa?.asset?.type === "image" || oa?.type === "image") || list[0];
+            list.find(
+                (oa) => oa?.asset?.type === "image" || oa?.type === "image",
+            ) || list[0];
         const asset = first?.asset ?? first;
         return asset || null;
     }
@@ -69,7 +73,8 @@
             }
             if (formats && formats.sm) return `media://${formats.sm}`;
             if (formats && (formats.md || formats.lg || formats.original)) {
-                const fallback = formats.sm || formats.md || formats.lg || formats.original;
+                const fallback =
+                    formats.sm || formats.md || formats.lg || formats.original;
                 if (fallback) return `media://${fallback}`;
             }
             const p = Array.isArray(asset.path) ? asset.path[0] : asset.path;
@@ -80,11 +85,16 @@
         }
     }
 
-    // Debug: log when internal page changes so we can verify binding
-    $effect(() => {
-        const p = page;
-        console.log("PreviewTable: internal page changed ->", p);
-    });
+    function handleInternalPageChange(newPage) {
+        // forward to parent if provided
+        if (typeof onPageChange === "function") {
+            try {
+                onPageChange(newPage);
+            } catch (e) {
+                console.error("PreviewTable onPageChange error:", e);
+            }
+        }
+    }
 </script>
 
 <div class="table-container overflow-auto border border-light-subtle rounded-3">
@@ -94,8 +104,13 @@
                 <th class="checkbox-column" style="width: 40px;">
                     <input
                         type="checkbox"
-                        checked={objects.length > 0 && objects.every((o) => !deselectedObjectIds.has(o.id))}
-                        indeterminate={objects.some((o) => !deselectedObjectIds.has(o.id)) && objects.some((o) => deselectedObjectIds.has(o.id))}
+                        checked={objects.length > 0 &&
+                            objects.every(
+                                (o) => !deselectedObjectIds.has(o.id),
+                            )}
+                        indeterminate={objects.some(
+                            (o) => !deselectedObjectIds.has(o.id),
+                        ) && objects.some((o) => deselectedObjectIds.has(o.id))}
                         onclick={toggleAllObjects}
                     />
                 </th>
@@ -105,7 +120,7 @@
             </tr>
         </thead>
         <tbody>
-            {#each objects as object}
+            {#each objects as object (object.id)}
                 <tr>
                     <td class="checkbox-column">
                         <input
@@ -124,7 +139,9 @@
                         />
                     </td>
                     <td class="id-column">
-                        <span class="id-link text-primary text-decoration-underline cursor-default">
+                        <span
+                            class="id-link text-primary text-decoration-underline cursor-default"
+                        >
                             {getObjectIdentifier(object)}
                         </span>
                     </td>
@@ -137,10 +154,11 @@
 
 <div class="pagination-container mt-3">
     <BasePagination
-        bind:page={page}
-        pageSize={pageSize}
-        count={count}
+        bind:page
+        {pageSize}
+        {count}
         size="sm"
+        onChange={handleInternalPageChange}
     />
 </div>
 
@@ -149,6 +167,5 @@
     .objects-table td {
         border-bottom: 1px solid #f0f0f0;
         padding: 10px 12px;
-        text-align: left;
     }
 </style>
