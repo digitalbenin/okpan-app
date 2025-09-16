@@ -396,9 +396,24 @@ const seed = async () => {
         }
         console.log(`Edo Designation research field and ${edoDesignationsData.length} vocabularies seeded.`);
 
+        // Add freetext research field: 'notes'
+        const notesRfNameId = await createTextEntry('notes', 'research_fields.name', englishLang.id);
+        const notesRfDescId = await createTextEntry('Free text notes on objects.', 'research_fields.description', englishLang.id);
+        const [notesResearchField] = await db.insert(research_fields).values({
+            id: uuidv4(),
+            name_id: notesRfNameId,
+            description_id: notesRfDescId,
+            project_id: mainProjectId,
+            type: 'freetext'
+        }).returning();
+        console.log(`Seeded freetext research field 'notes' with id ${notesResearchField.id}`);
+
         // --- 7. Seed Objects ---
         // Define which ontology fields are considered "description-like"
         const descriptionOntologyFieldNames = new Set(['description', 'designation']);
+
+        // Track created object IDs to attach notes later
+        const seededObjectIds = [];
 
         for (const objData of objectsData) {
             const newInstitutionId = institutionMap.get(objData.institution);
@@ -413,6 +428,9 @@ const seed = async () => {
                 project_id: mainProjectId,
                 status: 'in progress' // Default status
             }).returning();
+
+            // Keep for later to attach notes
+            seededObjectIds.push(dbObject.id);
 
             // Handle Edo Designations
             if (objData.edo_designations && objData.edo_designations.length > 0) {
@@ -507,6 +525,37 @@ const seed = async () => {
                 }
             }
         }
+
+        // After creating all objects, attach two different notes to two random objects (if available)
+        if (seededObjectIds.length > 0) {
+            const pickUniqueIndices = (count, max) => {
+                const set = new Set();
+                while (set.size < Math.min(count, max)) {
+                    set.add(Math.floor(Math.random() * max));
+                }
+                return Array.from(set);
+            };
+
+            const indices = pickUniqueIndices(2, seededObjectIds.length);
+            const notesTexts = [
+                'Curator note: requires condition assessment.',
+                'Curator note: potential duplicate entry, verify provenance.'
+            ];
+
+            for (let i = 0; i < indices.length; i++) {
+                const objId = seededObjectIds[indices[i]];
+                const noteContent = notesTexts[i] || `Curator note #${i + 1}`;
+                await db.insert(objects_research_fields).values({
+                    id: uuidv4(),
+                    object_id: objId,
+                    field_id: notesResearchField.id,
+                    vocabulary_id: null,
+                    value: noteContent
+                });
+                console.log(`Added note to object ${objId.substring(0, 8)}…: ${noteContent}`);
+            }
+        }
+
         console.log(`${objectsData.length} objects seeded.`);
 
         console.log('Seed completed successfully!');
@@ -516,4 +565,4 @@ const seed = async () => {
     }
 };
 
-seed(); 
+seed();

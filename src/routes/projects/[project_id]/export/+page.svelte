@@ -1,12 +1,9 @@
 <script>
     import { page } from "$app/stores";
     import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
-
-    import BasePagination from "$lib/components/base/BasePagination.svelte";
     import { searchObjects } from "$lib/stores/ObjectsUtils.js";
     import { onMount } from "svelte";
-    import BaseImage from "$lib/components/base/BaseImage.svelte";
-    import { getObjectIdentifier } from "$lib/utils/objects.js";
+    import PreviewTable from "$lib/components/export/PreviewTable.svelte";
 
     let { data } = $props();
 
@@ -34,56 +31,6 @@
     // Track initial search completion to avoid duplicate fetch via effect
     let didInitialSearch = $state(false);
 
-    // Helper: format date as DD-MM-YYYY
-    function formatDate(value) {
-        const d = new Date(+value);
-        if (Number.isNaN(d.getTime())) return "";
-        const dd = String(d.getDate()).padStart(2, "0");
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const yyyy = d.getFullYear();
-        return `${dd}/${mm}/${yyyy}`;
-    }
-
-    // Helper: get first image asset from object
-    function getFirstImageAsset(object) {
-        const list = object?.objectsAssets || [];
-        const first =
-            list.find(
-                (oa) => oa?.asset?.type === "image" || oa?.type === "image",
-            ) || list[0];
-        const asset = first?.asset ?? first;
-        return asset || null;
-    }
-
-    // Helper: resolve media url from asset preferring the "sm" format
-    function getObjectPreviewUrl(object) {
-        const asset = getFirstImageAsset(object);
-        if (!asset) return null;
-        try {
-            let formats = asset.formats;
-            if (typeof formats === "string") {
-                try {
-                    formats = JSON.parse(formats);
-                } catch {
-                    // ignore
-                }
-            }
-            if (formats && formats.sm) {
-                return `media://${formats.sm}`;
-            }
-            if (formats && (formats.md || formats.lg || formats.original)) {
-                const fallback =
-                    formats.sm || formats.md || formats.lg || formats.original;
-                if (fallback) return `media://${fallback}`;
-            }
-            const p = Array.isArray(asset.path) ? asset.path[0] : asset.path;
-            return p ? `media://${p}` : null;
-        } catch (e) {
-            console.warn("Failed to resolve preview url for asset", e);
-            const p = Array.isArray(asset.path) ? asset.path[0] : asset.path;
-            return p ? `media://${p}` : null;
-        }
-    }
 
     // Available options
     let exportFormats = [
@@ -168,32 +115,6 @@
         performSearch();
     });
 
-    // Toggle object selection
-    function toggleObjectSelection(objectId) {
-        // If currently selected (not in deselected set), clicking will deselect it
-        if (!deselectedObjectIds.has(objectId)) {
-            deselectedObjectIds.add(objectId);
-        } else {
-            deselectedObjectIds.delete(objectId);
-        }
-        deselectedObjectIds = new Set(deselectedObjectIds);
-    }
-
-    // Toggle all objects selection
-    function toggleAllObjects() {
-        const pageIds = objects.map((o) => o.id);
-        const allSelectedOnPage = pageIds.every(
-            (id) => !deselectedObjectIds.has(id),
-        );
-        if (allSelectedOnPage) {
-            // Deselect all on this page
-            pageIds.forEach((id) => deselectedObjectIds.add(id));
-        } else {
-            // Select all on this page
-            pageIds.forEach((id) => deselectedObjectIds.delete(id));
-        }
-        deselectedObjectIds = new Set(deselectedObjectIds);
-    }
 
     // Get research fields from page data
     let researchFields = $derived.by(() => {
@@ -337,6 +258,13 @@
             ?.count || 0,
     );
 
+    function countByStatus(value) {
+        if (value === "all") return completedCount + inProgressCount;
+        if (value === "completed") return completedCount;
+        if (value === "in progress") return inProgressCount;
+        return 0;
+    }
+
     // Add research field filter
     function addResearchFieldFilter() {
         researchFieldFilters = [
@@ -425,16 +353,21 @@
                 <label class="filter-label fw-semibold mb-2 d-block"
                     >Status</label
                 >
-                <div class="status-options d-flex gap-2">
+                <div class="format-options d-flex gap-3">
                     {#each statusOptions as status}
-                        <button
-                            class="status-btn d-inline-flex align-items-center gap-1 px-3 py-2 border rounded-2 bg-white text-dark-emphasis cursor-pointer {selectedStatus ===
+                        <label
+                            class="format-option d-inline-flex align-items-center gap-2 px-3 py-2 border rounded-2 {countByStatus(status.value) === 0 ? 'opacity-50 pe-none' : 'cursor-pointer'} {selectedStatus ===
                             status.value
-                                ? 'active border-primary'
+                                ? 'border border-primary'
                                 : ''}"
-                            onclick={() => (selectedStatus = status.value)}
                         >
-                            <span class="pe-2">{status.label}</span>
+                            <input
+                                type="radio"
+                                bind:group={selectedStatus}
+                                value={status.value}
+                                disabled={countByStatus(status.value) === 0}
+                            />
+                            <span class="format-label">{status.label}</span>
                             {#if status.value === "all"}
                                 <span
                                     class="badge rounded {selectedStatus ===
@@ -460,7 +393,7 @@
                                     >{inProgressCount}</span
                                 >
                             {/if}
-                        </button>
+                        </label>
                     {/each}
                 </div>
             </div>
@@ -586,85 +519,15 @@
                 <div class="summary-right"></div>
             </div>
 
-            <div
-                class="table-container overflow-auto border border-light-subtle rounded-3"
-            >
-                <table class="objects-table w-100 border-collapse">
-                    <thead>
-                        <tr>
-                            <th class="checkbox-column" style="width: 40px;">
-                                <input
-                                    type="checkbox"
-                                    checked={objects.length > 0 &&
-                                        objects.every(
-                                            (o) =>
-                                                !deselectedObjectIds.has(o.id),
-                                        )}
-                                    indeterminate={objects.some(
-                                        (o) => !deselectedObjectIds.has(o.id),
-                                    ) &&
-                                        objects.some((o) =>
-                                            deselectedObjectIds.has(o.id),
-                                        )}
-                                    onclick={toggleAllObjects}
-                                />
-                            </th>
-                            <th class="image-column" style="width: 60px;"></th>
-                            <th class="id-column" style="width: 140px;"
-                                >Object ID</th
-                            >
-
-                            <th class="date-column" style="width: 140px;"
-                                >Date modified</th
-                            >
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {#each objects as object}
-                            <tr>
-                                <td class="checkbox-column">
-                                    <input
-                                        type="checkbox"
-                                        checked={!deselectedObjectIds.has(
-                                            object.id,
-                                        )}
-                                        onclick={() =>
-                                            toggleObjectSelection(object.id)}
-                                    />
-                                </td>
-                                <td class="image-column">
-                                    <BaseImage
-                                        src={getObjectPreviewUrl(object)}
-                                        alt={getObjectIdentifier(object)}
-                                        width={48}
-                                        height={48}
-                                        class="rounded"
-                                    />
-                                </td>
-                                <td class="id-column"
-                                    ><span
-                                        class="id-link text-primary text-decoration-underline cursor-default"
-                                        >{getObjectIdentifier(object)}</span
-                                    ></td
-                                >
-
-                                <td class="date-column"
-                                    >{formatDate(object.updated_at)}</td
-                                >
-                            </tr>
-                        {/each}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="pagination-container mt-3">
-                <BasePagination
+                <PreviewTable
+                    {objects}
+                    bind:deselectedObjectIds={deselectedObjectIds}
                     bind:page={currentPage}
-                    {pageSize}
+                    pageSize={pageSize}
                     count={totalCount}
-                    size="sm"
                 />
-            </div>
+
+
         </div>
     </div>
 </div>
@@ -696,11 +559,4 @@
 </div>
 
 <style>
-    /* Keep only minimal table styles that aren't easily replaced */
-    .objects-table th,
-    .objects-table td {
-        border-bottom: 1px solid #f0f0f0;
-        padding: 10px 12px;
-        text-align: left;
-    }
 </style>

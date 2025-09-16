@@ -1,0 +1,154 @@
+<script>
+    import BaseImage from "$lib/components/base/BaseImage.svelte";
+    import BasePagination from "$lib/components/base/BasePagination.svelte";
+    import { getObjectIdentifier } from "$lib/utils/objects.js";
+
+    let {
+        objects = [],
+        // Make these bindable so changes propagate to the parent component
+        deselectedObjectIds = $bindable(new Set()), // bindable from parent
+        page = $bindable(1), // bindable from parent
+        pageSize,
+        count,
+    } = $props();
+
+    // Toggle single row selection (we track deselections globally)
+    function toggleObjectSelection(objectId) {
+        if (!deselectedObjectIds.has(objectId)) {
+            deselectedObjectIds.add(objectId);
+        } else {
+            deselectedObjectIds.delete(objectId);
+        }
+        // Reassign to trigger reactivity and propagate via bindable prop
+        deselectedObjectIds = new Set(deselectedObjectIds);
+        console.log("PreviewTable: toggled object", objectId, "deselected?", deselectedObjectIds.has(objectId));
+    }
+
+    // Toggle selection for current page
+    function toggleAllObjects() {
+        const pageIds = objects.map((o) => o.id);
+        const allSelectedOnPage = pageIds.every((id) => !deselectedObjectIds.has(id));
+        if (allSelectedOnPage) {
+            pageIds.forEach((id) => deselectedObjectIds.add(id));
+        } else {
+            pageIds.forEach((id) => deselectedObjectIds.delete(id));
+        }
+        deselectedObjectIds = new Set(deselectedObjectIds);
+        console.log("PreviewTable: toggle all on page; new deselected size:", deselectedObjectIds.size);
+    }
+
+    // Helpers previously in page
+    function formatDate(value) {
+        const d = new Date(+value);
+        if (Number.isNaN(d.getTime())) return "";
+        const dd = String(d.getDate()).padStart(2, "0");
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const yyyy = d.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    function getFirstImageAsset(object) {
+        const list = object?.objectsAssets || [];
+        const first =
+            list.find((oa) => oa?.asset?.type === "image" || oa?.type === "image") || list[0];
+        const asset = first?.asset ?? first;
+        return asset || null;
+    }
+
+    function getObjectPreviewUrl(object) {
+        const asset = getFirstImageAsset(object);
+        if (!asset) return null;
+        try {
+            let formats = asset.formats;
+            if (typeof formats === "string") {
+                try {
+                    formats = JSON.parse(formats);
+                } catch {
+                    // ignore
+                }
+            }
+            if (formats && formats.sm) return `media://${formats.sm}`;
+            if (formats && (formats.md || formats.lg || formats.original)) {
+                const fallback = formats.sm || formats.md || formats.lg || formats.original;
+                if (fallback) return `media://${fallback}`;
+            }
+            const p = Array.isArray(asset.path) ? asset.path[0] : asset.path;
+            return p ? `media://${p}` : null;
+        } catch (e) {
+            const p = Array.isArray(asset.path) ? asset.path[0] : asset.path;
+            return p ? `media://${p}` : null;
+        }
+    }
+
+    // Debug: log when internal page changes so we can verify binding
+    $effect(() => {
+        const p = page;
+        console.log("PreviewTable: internal page changed ->", p);
+    });
+</script>
+
+<div class="table-container overflow-auto border border-light-subtle rounded-3">
+    <table class="objects-table w-100 border-collapse">
+        <thead>
+            <tr>
+                <th class="checkbox-column" style="width: 40px;">
+                    <input
+                        type="checkbox"
+                        checked={objects.length > 0 && objects.every((o) => !deselectedObjectIds.has(o.id))}
+                        indeterminate={objects.some((o) => !deselectedObjectIds.has(o.id)) && objects.some((o) => deselectedObjectIds.has(o.id))}
+                        onclick={toggleAllObjects}
+                    />
+                </th>
+                <th class="image-column" style="width: 60px;"></th>
+                <th class="id-column" style="width: 140px;">Object ID</th>
+                <th class="date-column" style="width: 140px;">Date modified</th>
+            </tr>
+        </thead>
+        <tbody>
+            {#each objects as object}
+                <tr>
+                    <td class="checkbox-column">
+                        <input
+                            type="checkbox"
+                            checked={!deselectedObjectIds.has(object.id)}
+                            onclick={() => toggleObjectSelection(object.id)}
+                        />
+                    </td>
+                    <td class="image-column">
+                        <BaseImage
+                            src={getObjectPreviewUrl(object)}
+                            alt={getObjectIdentifier(object)}
+                            width={48}
+                            height={48}
+                            class="rounded"
+                        />
+                    </td>
+                    <td class="id-column">
+                        <span class="id-link text-primary text-decoration-underline cursor-default">
+                            {getObjectIdentifier(object)}
+                        </span>
+                    </td>
+                    <td class="date-column">{formatDate(object.updated_at)}</td>
+                </tr>
+            {/each}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination-container mt-3">
+    <BasePagination
+        bind:page={page}
+        pageSize={pageSize}
+        count={count}
+        size="sm"
+    />
+</div>
+
+<style>
+    .objects-table th,
+    .objects-table td {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 10px 12px;
+        text-align: left;
+    }
+</style>
