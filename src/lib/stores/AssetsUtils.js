@@ -22,6 +22,17 @@ export const getTotalAssetsForInstitution = async (projectId, institutionId) => 
     return { totalCount: 0, error: result?.error || new Error("Failed to fetch total assets count or unexpected response structure") };
 };
 
+export const updateAsset = async (assetId, data) => {
+    const result = await executeQuery('assets', 'update', { assetId, ...data });
+    invalidate("app:assets");
+    return result;
+};
+
+export const getAssetById = async (assetId) => {
+    let result = await executeQuery('assets', 'getById', { assetId: assetId });
+    return result;
+};
+
 export const deleteAsset = async (assetId) => {
     let result = await executeQuery('assets', 'delete', { assetId: assetId });
     invalidate("app:assets");

@@ -190,7 +190,7 @@ export const updateProject = async (projectId, updatedData) => {
 
     // Remove undefined values to prevent GraphQL errors
     Object.keys(updateParams).forEach(key => {
-        if (updateParams[key] === undefined) {
+        if (updateParams[key] === undefined || updateParams[key] === null) {
             delete updateParams[key];
         }
     });
