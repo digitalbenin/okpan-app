@@ -1,6 +1,5 @@
 <script>
   import BaseButton from "$lib/components/base/BaseButton.svelte";
-  import { addToast } from "$lib/components/base/BaseToast.svelte";
   import { updateProject } from "$lib/stores/ProjectsUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { Tabs } from "melt/builders";
