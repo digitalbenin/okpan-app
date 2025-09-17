@@ -104,6 +104,40 @@ export const updateObjectStatus = async (objectId, status) => {
     };
 };
 
+// Add: Function to update object's institution
+export const updateObjectInstitution = async (objectId, institutionId) => {
+    if (!objectId) {
+        return { error: "Invalid object ID for institution update" };
+    }
+
+    if (!institutionId) {
+        return { error: "Invalid institution ID for update" };
+    }
+
+    const response = await executeQuery('objects', 'update', {
+        objectId,
+        institutionId
+    });
+
+    if (response?.error) {
+        return { error: response.error };
+    }
+
+    let resultData = null;
+    if (response.updateObjects && Array.isArray(response.updateObjects) && response.updateObjects.length > 0) {
+        resultData = response.updateObjects[0];
+    }
+
+    // Invalidate caches to reflect the change (object details and listings)
+    invalidate("app:objects");
+    invalidate("custom:object");
+
+    return {
+        result: resultData || { id: objectId, institution_id: institutionId },
+        error: null
+    };
+};
+
 // Function to update object research fields
 export const updateObjectResearchFields = async (objectId, changes) => {
     if (!objectId || !changes || changes.length === 0) {

@@ -7,13 +7,16 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { back } from "$lib/utils/navigation.js";
   import { page } from "$app/stores";
+  import { goto } from "$app/navigation";
+  import BaseSelectNew from "$lib/components/base/BaseSelectNew.svelte";
+  import { updateObjectInstitution } from "$lib/stores/ObjectsUtils.js";
 
   const { data } = $props();
   const { t } = getTranslationStore();
-  $inspect(data.object);
 
   // Get project ID and languages from page params and parent data
   const projectId = $derived($page.params.project_id);
+  const currentInstitutionIdParam = $derived($page.params.institution_id);
   const languages = $derived($page.data.languages || []);
 
   const objectId = $derived.by(() => {
@@ -22,6 +25,43 @@
       "Identifier not set"
     );
   });
+
+  // Institution selection (event-driven, no runes)
+  let selectedInstitutionId = data.object.institution_id || null;
+  let institutionHasChanges = false;
+  const institutionItems = data.institutions || [];
+
+  function onInstitutionValueChange(val) {
+    selectedInstitutionId = val;
+    institutionHasChanges = selectedInstitutionId !== (data.object.institution_id || null);
+
+    // Register/update change entry for institution
+    componentChanges.set("institution", {
+      component: "institution",
+      hasChanges: institutionHasChanges,
+      saveFunction: saveInstitutionChange
+    });
+    // Trigger reactivity for Map consumers
+    componentChanges = new Map(componentChanges);
+  }
+
+  async function saveInstitutionChange() {
+    if (!institutionHasChanges || !selectedInstitutionId) return;
+    const res = await updateObjectInstitution(data.object.id, selectedInstitutionId);
+    if (res?.error) {
+      console.error("Failed to update object institution:", res.error);
+      throw res.error;
+    }
+    // Reflect saved value locally and reset change state
+    data.object.institution_id = selectedInstitutionId;
+    institutionHasChanges = false;
+    componentChanges.set("institution", {
+      component: "institution",
+      hasChanges: false,
+      saveFunction: saveInstitutionChange
+    });
+    componentChanges = new Map(componentChanges);
+  }
 
   // Centralized change management
   let componentChanges = $state(new Map());
@@ -43,6 +83,13 @@
   async function saveAllChanges() {
     if (!hasAnyChanges) return;
 
+    // Capture redirect need prior to saving (because save resets flags)
+    const nextInstitutionId = selectedInstitutionId;
+    const redirectNeeded =
+      institutionHasChanges &&
+      nextInstitutionId &&
+      nextInstitutionId !== currentInstitutionIdParam;
+
     isSaving = true;
     try {
       const savePromises = [];
@@ -56,6 +103,13 @@
 
       // Execute all saves in parallel
       await Promise.all(savePromises);
+
+      // Redirect if institution changed (URL contains institution_id)
+      if (redirectNeeded) {
+        const newUrl = `/projects/${projectId}/institutions/${nextInstitutionId}/objects/${data.object.id}`;
+        goto(newUrl);
+        return;
+      }
 
       // Clear component changes
       componentChanges.clear();
@@ -89,6 +143,8 @@
                   <BaseBadgeStatus status={data.object.status} />
                 </span>
               </h1>
+
+             
             </div>
 
             <div class="ms-auto">
@@ -103,6 +159,20 @@
     <div class="container-fluid">
       <div class="row">
         <div class="col-8">
+           <!-- Institution selector: after primary id, before research data -->
+              <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
+                <h3 class="">{t("institutions.institution", { fallback: "Institution" })}</h3>
+                <BaseSelectNew
+                  placeholder={t("institutions.select_institution", { fallback: "Select institution" })}
+                  items={institutionItems}
+                  value={selectedInstitutionId}
+                  onValueChange={onInstitutionValueChange}
+                  type="single"
+                  size="sm"
+                  inputClass="w-100"
+                  contentProps={{ width: "anchor" }}
+                />
+              </div>
           <ObjectResearchFields
             object={data.object}
             researchFields={data.researchFields}
