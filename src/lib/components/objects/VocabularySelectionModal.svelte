@@ -72,7 +72,10 @@
     function handleSave() {
         // Pass back both the selected IDs and any vocabularies created during this session
         if (createdVocabularies.length > 0) {
-            onSave?.({ ids: currentVocabularyIds, created: createdVocabularies });
+            onSave?.({
+                ids: currentVocabularyIds,
+                created: createdVocabularies,
+            });
         } else {
             // Backward-compatibility: allow existing handlers that expect an array
             onSave?.(currentVocabularyIds);
@@ -87,15 +90,25 @@
         creationError = null;
         const optionText = (searchQuery || "").trim();
         if (!optionText) {
-            creationError = t("common.validation.required", { fallback: "Value is required" });
+            creationError = t("common.validation.required", {
+                fallback: "Value is required",
+            });
             return;
         }
         if (!defaultLanguageId) {
-            creationError = t("objects.research_fields.default_language_required", { fallback: "Default language is required to create a new option." });
+            creationError = t(
+                "objects.research_fields.default_language_required",
+                {
+                    fallback:
+                        "Default language is required to create a new option.",
+                },
+            );
             return;
         }
         if (!field?.id) {
-            creationError = t("objects.research_fields.field_missing", { fallback: "Research field is missing." });
+            creationError = t("objects.research_fields.field_missing", {
+                fallback: "Research field is missing.",
+            });
             return;
         }
 
@@ -107,7 +120,10 @@
                 description: "",
             });
             if (error) {
-                creationError = typeof error === 'string' ? error : (error?.message || "Failed to create vocabulary");
+                creationError =
+                    typeof error === "string"
+                        ? error
+                        : error?.message || "Failed to create vocabulary";
                 return;
             }
 
@@ -127,7 +143,9 @@
             };
 
             // Update local field reference so list shows the new item on top
-            const existing = Array.isArray(field?.vocabularies) ? field.vocabularies : [];
+            const existing = Array.isArray(field?.vocabularies)
+                ? field.vocabularies
+                : [];
             field = { ...field, vocabularies: [newVocab, ...existing] };
 
             // Remember the created vocabulary to send back to parent for merging
@@ -136,7 +154,8 @@
             // Select the newly created vocabulary
             currentVocabularyIds = [...(currentVocabularyIds || []), newId];
         } catch (e) {
-            creationError = e?.message || "Unexpected error while creating vocabulary";
+            creationError =
+                e?.message || "Unexpected error while creating vocabulary";
         } finally {
             isCreating = false;
         }
@@ -221,25 +240,33 @@
         {#if filteredVocabularies.length === 0}
             <div class="text-center py-4 text-muted">
                 {#if searchQuery.trim()}
-                    <div class="mb-2">
+                    <div class="mb-2 ps-3 d-flex justify-content-start">
                         {t("common.no_results", {
                             fallback: "No results found",
                         })}
                     </div>
                     <BaseButton
-                        class="btn btn-primary"
-                        icon="plus"
+                        class="btn btn-link text-dark text-decoration-none"
+                        icon="plus-circle"
                         text={`Create "${searchQuery.trim()}"`}
                         onClick={createNewVocabulary}
                         disabled={!defaultLanguageId || isCreating}
                     />
                     {#if !defaultLanguageId}
                         <div class="small mt-2">
-                            {t("objects.research_fields.default_language_required", { fallback: "Default language is required to create a new option." })}
+                            {t(
+                                "objects.research_fields.default_language_required",
+                                {
+                                    fallback:
+                                        "Default language is required to create a new option.",
+                                },
+                            )}
                         </div>
                     {/if}
                     {#if creationError}
-                        <div class="text-danger small mt-2">{creationError}</div>
+                        <div class="text-danger small mt-2">
+                            {creationError}
+                        </div>
                     {/if}
                 {:else}
                     {t("objects.research_fields.no_vocabularies", {
