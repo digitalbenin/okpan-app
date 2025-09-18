@@ -18,6 +18,11 @@
   const projectId = $derived($page.params.project_id);
   const currentInstitutionIdParam = $derived($page.params.institution_id);
   const languages = $derived($page.data.languages || []);
+  const defaultLanguageId = $derived.by(() => {
+    const langs = languages || [];
+    const def = langs.find((l) => l.is_default);
+    return def?.id || langs[0]?.id || null;
+  });
 
   const objectId = $derived.by(() => {
     return (
@@ -176,6 +181,7 @@
           <ObjectResearchFields
             object={data.object}
             researchFields={data.researchFields}
+            defaultLanguageId={defaultLanguageId}
             onChangesUpdate={handleComponentChanges}
           />
           <ObjectOntologyFields object={data.object} />

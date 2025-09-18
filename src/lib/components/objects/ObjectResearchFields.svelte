@@ -11,6 +11,7 @@
         researchFields = [],
         onSave = null,
         onChangesUpdate = null, // Callback to notify parent of changes
+        defaultLanguageId = null,
     } = $props();
 
     const { t } = getTranslationStore();
@@ -191,8 +192,36 @@
 
     const handleModalSave = (vocabularyIds) => {
         if (currentModalField) {
+            // Support new payload shape: { ids: string[], created: Vocabulary[] }
+            const payload = Array.isArray(vocabularyIds)
+                ? { ids: vocabularyIds, created: [] }
+                : (vocabularyIds || { ids: [], created: [] });
+
             const originalIds = currentModalField.currentVocabularyIds || [];
-            const newIds = vocabularyIds || [];
+            const newIds = payload.ids || [];
+
+            // If there are created vocabularies from the modal, merge them into the field's vocabularies
+            if (Array.isArray(payload.created) && payload.created.length > 0) {
+                // Merge without duplicates by id
+                const existing = Array.isArray(currentModalField.vocabularies)
+                    ? currentModalField.vocabularies
+                    : [];
+                const existingIds = new Set(existing.map((v) => v.id));
+                const merged = [...payload.created.filter(v => !existingIds.has(v.id)), ...existing];
+
+                // Also merge into the master researchFields array so UI outside the modal can resolve labels
+                const rfIndex = researchFields.findIndex(rf => rf.id === currentModalField.id);
+                if (rfIndex !== -1) {
+                    const rf = researchFields[rfIndex];
+                    const rfExisting = Array.isArray(rf.vocabularies) ? rf.vocabularies : [];
+                    const rfExistingIds = new Set(rfExisting.map(v => v.id));
+                    const rfMerged = [...payload.created.filter(v => !rfExistingIds.has(v.id)), ...rfExisting];
+                    researchFields[rfIndex] = { ...rf, vocabularies: rfMerged };
+                }
+
+                // Update currentModalField vocabularies for immediate display
+                currentModalField = { ...currentModalField, vocabularies: merged };
+            }
             
             // Handle additions (new IDs not in original)
             newIds.forEach((vocabularyId) => {
@@ -371,4 +400,5 @@
     currentVocabularyIds={currentModalField?.currentVocabularyIds || []}
     onSave={handleModalSave}
     onCancel={closeModal}
+    {defaultLanguageId}
 />
