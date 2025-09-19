@@ -53,8 +53,19 @@
   const otherLinks = $derived([
     {
       label: t("menu.data-structure", { fallback: "Data Structure" }),
-      url: `/projects/${page.data.project.id}/data-structure`,
       icon: "table",
+      children: [
+        {
+          label: t("menu.research-fields", { fallback: "Research Fields" }),
+          url: `/projects/${page.data.project.id}/data-structure/research-fields`,
+          icon: "",
+        },
+        {
+          label: t("menu.default-fields", { fallback: "Default Fields" }),
+          url: `/projects/${page.data.project.id}/data-structure/default-fields`,
+          icon: "",
+        },
+      ],
     },
     {
       label: t("menu.export", { fallback: "Export" }),
