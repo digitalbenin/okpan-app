@@ -168,28 +168,34 @@
     }
 
     // Save all pending changes
-    async function saveChanges() {
-        if (pendingRemovals.size === 0 && !hasReorderChanges) return;
+    async function saveChanges(objectIdToSave) {
+    if (pendingRemovals.size === 0 && !hasReorderChanges) return;
 
-        try {
-            const promises = [];
+    const objectId = objectIdToSave || object?.id;
+    if (!objectId) {
+        console.error("No object ID provided to save asset changes.");
+        return;
+    }
 
-            // Execute removal operations
-            if (pendingRemovals.size > 0) {
-                const removePromises = Array.from(pendingRemovals).map(
-                    (assetId) => unlinkAssetFromObject(object.id, assetId),
-                );
-                promises.push(...removePromises);
-            }
+    try {
+        const promises = [];
 
-            // Execute reorder operations
-            if (hasReorderChanges) {
-                const assetOrders = reorderedAssets.map((asset, index) => ({
-                    assetId: asset.asset.id,
-                    order: index + 1,
-                }));
-                promises.push(reorderAssets(object.id, assetOrders));
-            }
+        // Execute removal operations
+        if (pendingRemovals.size > 0) {
+            const removePromises = Array.from(pendingRemovals).map((assetId) =>
+                unlinkAssetFromObject(objectId, assetId),
+            );
+            promises.push(...removePromises);
+        }
+
+        // Execute reorder operations
+        if (hasReorderChanges) {
+            const assetOrders = reorderedAssets.map((asset, index) => ({
+                assetId: asset.asset.id,
+                order: index + 1,
+            }));
+            promises.push(reorderAssets(objectId, assetOrders));
+        }
 
             const results = await Promise.all(promises);
             const errors = results.filter((result) => result.error);

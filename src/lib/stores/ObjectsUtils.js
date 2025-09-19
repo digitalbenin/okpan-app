@@ -72,6 +72,44 @@ export const getObjectById = async (objectId) => {
     return { result: result.result[0], error: null };
 };
 
+export const createObject = async (
+    projectId,
+    institutionId,
+    status = "draft"
+  ) => {
+    if (!projectId || !institutionId) {
+      return { error: "Invalid project ID or institution ID for createObject" };
+    }
+  
+    const response = await executeQuery("objects", "create", {
+      projectId,
+      institutionId,
+      status,
+    });
+  
+    if (response.error) {
+      return { error: response.error };
+    }
+  
+    // Extract the result data
+    let resultData = null;
+    if (
+      response.insertIntoObjects &&
+      Array.isArray(response.insertIntoObjects) &&
+      response.insertIntoObjects.length > 0
+    ) {
+      resultData = response.insertIntoObjects[0];
+    }
+  
+    // Invalidate caches to reflect the change
+    invalidate("app:objects");
+  
+    return {
+      result: resultData,
+      error: null,
+    };
+  };
+
 // Function to update object status
 export const updateObjectStatus = async (objectId, status) => {
     if (!objectId) {

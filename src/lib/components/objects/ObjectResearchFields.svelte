@@ -241,13 +241,19 @@
     };
 
     // Save all pending changes
-    async function saveChanges() {
+    async function saveChanges(objectIdToSave) {
         if (pendingChanges.size === 0) return;
+
+        const objectId = objectIdToSave || object?.id;
+        if (!objectId) {
+            console.error("No object ID provided to save research fields.");
+            return;
+        }
 
         isSaving = true;
         try {
             const changes = Array.from(pendingChanges.values());
-            const result = await updateObjectResearchFields(object.id, changes);
+            const result = await updateObjectResearchFields(objectId, changes);
 
             if (result.error) {
                 console.error("Error saving changes:", result.error);
