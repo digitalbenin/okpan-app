@@ -446,7 +446,7 @@ export const objects_research_fields = sqliteTable('objects_research_fields', {
     ...commonFields,
     object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
     field_id: text('field_id').references(() => research_fields.id, { onDelete: 'cascade' }),
-    vocabulary_id: text('vocabulary_id').references(() => vocabularies.id),
+    vocabulary_id: text('vocabulary_id').references(() => vocabularies.id, { onDelete: 'cascade' }),
     value: text('value')
 });
 
