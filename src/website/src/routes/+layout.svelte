@@ -3,7 +3,8 @@
 	import 'bootstrap-icons/font/bootstrap-icons.css';
 	import favicon from '$lib/assets/favicon.svg';
 
-	let { children } = $props();
+	let { children, data } = $props();
+	$inspect(data);
 </script>
 
 <svelte:head>
