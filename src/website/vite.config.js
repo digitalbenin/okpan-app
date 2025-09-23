@@ -7,6 +7,7 @@ export default defineConfig({
 		'process.env.DB_FILE_NAME': JSON.stringify('../db/local.db')
 	},
 	server: {
+		port: 5174,
 		fs: {
 			// Allow serving files from one level up to the project root
 			allow: ['..']

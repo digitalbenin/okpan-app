@@ -89,6 +89,10 @@
   <h5>Other</h5>
   <SidebarMenu items={otherLinks} pathname={page.url.pathname} />
   <a href="/debug" class="btn btn-link">debug</a>
+  <button
+    onclick={() => window.api.openPreview(page.data.project.id)}
+    class="btn btn-link">Preview</button
+  >
 </div>
 
 <style>

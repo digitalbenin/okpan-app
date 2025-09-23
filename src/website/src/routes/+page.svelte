@@ -1,8 +1,14 @@
 <script>
+	import Grid from '$lib/components/Grid.svelte';
 	let { data } = $props();
 
-	console.log('Data received in +page.svelte:', data);
-
-	// For debugging, you can inspect the data from the load function.
 	$inspect(data);
 </script>
+
+{#if data?.searchResult?.items}
+	<Grid
+		items={data.searchResult.items}
+		ontology_fields={data.ontology_fields}
+		institutions={data.institutions}
+	/>
+{/if}

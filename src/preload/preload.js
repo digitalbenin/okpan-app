@@ -33,4 +33,6 @@ contextBridge.exposeInMainWorld('api', {
     // Listeners for backend events
     onImportProgress: (callback) => ipcRenderer.on('import-assets-progress', callback),
     removeImportProgressListeners: () => ipcRenderer.removeAllListeners('import-assets-progress'),
+    openPreview: (projectId) => ipcRenderer.send('open-preview', projectId)
 });
+

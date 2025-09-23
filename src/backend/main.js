@@ -5,6 +5,10 @@ import path from 'path';
 import net from 'net';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import database and schema
 import { db } from '../db/init.js';
@@ -144,6 +148,21 @@ ipcMain.handle('read-file', async (event, filePath) => {
   }
 });
 
+ipcMain.on('open-preview', (event, projectId) => {
+  const previewWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      preload: path.join(import.meta.dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  // Se stai usando il dev server:
+  previewWindow.loadURL(`http://localhost:5174?project_id=${projectId}`);
+});
+
 // Register protocol
 protocol.registerSchemesAsPrivileged([
   {
@@ -214,7 +233,7 @@ const createWindow = () => {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data: 'unsafe-inline'; img-src * 'self' data: media:"
+          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data: 'unsafe-inline'; img-src * 'self' data: media:"
         ]
       }
     });
@@ -266,6 +285,8 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.

@@ -12,6 +12,10 @@ import { getDb, getResults, parseJsonFields, getParamsWithout } from '$lib/utils
  * @param {number} [options.limit=25] - The number of items to return per page.
  * @param {number} [options.page=0] - The page number for pagination.
  * @param {string} [options.project_id] - The ID of the project to scope the search to.
+ * @param {string[]} [options.ontologyFieldIds] - Optional list of ontology field IDs to search in.
+ * @param {Array<Object>} [options.researchFieldFilters] - Optional list of research field filters.
+ * @param {string} [options.orderBy] - Field to order by.
+ * @param {string} [options.direction] - Sort direction (asc/desc).
  * @returns {Promise<{
  *   items: any[],
  *   totalCount: number,
@@ -38,9 +42,13 @@ export async function searchObjects(options = {}) {
   }
   const status = options.status ?? null;
   const limit = Number.isFinite(options.limit) ? options.limit : 25;
-  const page = Number.isFinite(options.page) ? options.page : 0;
-  const offset = page * limit;
+  const page = Number.isFinite(options.page) ? options.page : 1;
+  const offset = (page > 0 ? page - 1 : 0) * limit;
   const projectId = options.project_id ?? null;
+  const ontologyFieldIds = options.ontologyFieldIds ?? [];
+  const researchFieldFilters = options.researchFieldFilters ?? [];
+  const orderBy = options.orderBy ?? 'created_at';
+  const direction = options.direction === 'asc' ? 'ASC' : 'DESC';
 
   // 2. Build base WHERE clauses and parameters
   const params = [];
@@ -60,15 +68,56 @@ export async function searchObjects(options = {}) {
     params.push(status);
   }
   if (ontologyQuery) {
+    const ontologyFieldPlaceholders = ontologyFieldIds.map(() => '?').join(',');
     // This clause searches across all indexed text fields in the ontology table
     whereClauses.push(`
       EXISTS (
         SELECT 1 FROM objects_ontology_fields oof
         WHERE oof.object_id = o.id
+        ${ontologyFieldIds.length > 0 ? `AND oof.field_id IN (${ontologyFieldPlaceholders})` : ''}
         AND LOWER(oof.value) LIKE ?
       ) /*ontologyQuery*/
     `);
+    if (ontologyFieldIds.length > 0) {
+      params.push(...ontologyFieldIds);
+    }
     params.push(`%${ontologyQuery.toLowerCase()}%`);
+  }
+
+  if (researchFieldFilters.length > 0) {
+    const researchFieldConditions = [];
+    for (const filter of researchFieldFilters) {
+      const fieldConditions = [];
+      if (filter.query && filter.query.trim()) {
+        fieldConditions.push(`
+                    EXISTS (
+                        SELECT 1 FROM objects_research_fields orf
+                        WHERE orf.object_id = o.id
+                        AND orf.field_id = ?
+                        AND LOWER(orf.value) LIKE ?
+                    )
+                `);
+        params.push(filter.fieldId, `%${filter.query.trim().toLowerCase()}%`);
+      }
+      if (filter.vocabularyIds && filter.vocabularyIds.length > 0) {
+        const vocabPlaceholders = filter.vocabularyIds.map(() => '?').join(',');
+        fieldConditions.push(`
+                    EXISTS (
+                        SELECT 1 FROM objects_research_fields orf
+                        WHERE orf.object_id = o.id
+                        AND orf.field_id = ?
+                        AND orf.vocabulary_id IN (${vocabPlaceholders})
+                    )
+                `);
+        params.push(filter.fieldId, ...filter.vocabularyIds);
+      }
+      if (fieldConditions.length > 0) {
+        researchFieldConditions.push(`(${fieldConditions.join(' OR ')})`);
+      }
+    }
+    if (researchFieldConditions.length > 0) {
+      whereClauses.push(`(${researchFieldConditions.join(' AND ')}) /*research*/`);
+    }
   }
 
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -101,7 +150,7 @@ export async function searchObjects(options = {}) {
       ${subqueries.research} as objects_research_fields_json
     FROM objects o
     ${whereSql}
-    ORDER BY o.created_at DESC
+    ORDER BY o.${orderBy} ${direction}
     LIMIT ? OFFSET ?
   `;
   const mainQueryParams = [...params, limit, offset];
@@ -121,7 +170,12 @@ export async function searchObjects(options = {}) {
 
   // 6a. Institution Facet
   const institutionParams = getParamsWithout(whereClauses, params, '/*institution*/');
-  const institutionWhere = whereClauses.filter((c) => !c.includes('/*institution*/')).join(' AND ');
+  const institutionWhereClauses = whereClauses.filter((c) => !c.includes('/*institution*/'));
+  if (projectId) {
+    institutionWhereClauses.push('(i.project_id = ? OR i.project_id IS NULL)');
+    institutionParams.push(projectId);
+  }
+  const institutionWhere = institutionWhereClauses.length > 0 ? `WHERE ${institutionWhereClauses.join(' AND ')}` : '';
   const institutionFacetSql = `
      SELECT 
        o.institution_id, 
@@ -130,7 +184,7 @@ export async function searchObjects(options = {}) {
      FROM objects o
      JOIN institutions i ON o.institution_id = i.id
      LEFT JOIN texts txt ON i.name_id = txt.id
-     ${institutionWhere ? `WHERE ${institutionWhere}` : ''}
+     ${institutionWhere}
      GROUP BY o.institution_id, name
      ORDER BY count DESC
    `;
@@ -154,12 +208,18 @@ export async function searchObjects(options = {}) {
 
   // 6c. Ontology Fields Facet
   const ontologyParams = getParamsWithout(whereClauses, params, '/*ontologyQuery*/');
-  const ontologyWhere = whereClauses.filter((c) => !c.includes('/*ontologyQuery*/')).join(' AND ');
+  const ontologyWhereClauses = whereClauses.filter((c) => !c.includes('/*ontologyQuery*/'));
+  if (projectId) {
+    ontologyWhereClauses.push('(of.project_id = ? OR of.project_id IS NULL)');
+    ontologyParams.push(projectId);
+  }
+  const ontologyWhere = ontologyWhereClauses.length > 0 ? `WHERE ${ontologyWhereClauses.join(' AND ')}` : '';
   const ontologyFacetSql = `
      SELECT oof.field_id, oof.value, COUNT(DISTINCT o.id) as count
      FROM objects o
      JOIN objects_ontology_fields oof ON o.id = oof.object_id
-     ${ontologyWhere ? `WHERE ${ontologyWhere}` : ''}
+     JOIN ontology_fields of ON oof.field_id = of.id
+     ${ontologyWhere}
      GROUP BY oof.field_id, oof.value
      HAVING count > 0
      ORDER BY count DESC
