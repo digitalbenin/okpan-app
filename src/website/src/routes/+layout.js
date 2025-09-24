@@ -77,10 +77,27 @@ export async function load({ url }) {
     );
   }
 
+  let projects_res;
+  if (projectId) {
+    projects_res = db.exec(
+      `
+      SELECT p.*,
+             title_text.content as name,
+             desc_text.content as description
+      FROM project p
+      LEFT JOIN texts title_text ON p.title_id = title_text.id
+      LEFT JOIN texts desc_text ON p.description_id = desc_text.id
+      WHERE p.id = ?
+      `,
+      [projectId]
+    );
+  }
+
   return {
     institutions: results_to_objects(institutions_res),
     ontology_fields: results_to_objects(ontology_fields_res),
     research_fields: results_to_objects(research_fields_res),
-    vocabularies: results_to_objects(vocabularies_res)
+    vocabularies: results_to_objects(vocabularies_res),
+    project: projects_res ? results_to_objects(projects_res)[0] : {}
   };
 }

@@ -6,22 +6,22 @@ let dbPromise = null;
 /**
  * Initialize the client-side sql.js database from a static asset.
  * Subsequent calls return the same promise.
- * @param {string} dbUrl path to the DB file served from /static (default: '/local.db')
+ * @param {string} dbUrl path to the DB file (default: 'media://db/local.db')
  * @returns {Promise<import('sql.js').Database>}
  */
-export function initClientDb(dbUrl = '/local.db') {
-	if (dbPromise) return dbPromise;
+export function initClientDb(dbUrl = 'media://src/db/local.db') {
+  if (dbPromise) return dbPromise;
 
-	dbPromise = (async () => {
-		const SQL = await initSqlJs({ locateFile: () => wasmUrl });
-		const res = await fetch(dbUrl);
-		if (!res.ok) throw new Error(`Failed to fetch DB from ${dbUrl}: ${res.status}`);
-		const bytes = new Uint8Array(await res.arrayBuffer());
-		const db = new SQL.Database(bytes);
-		return db;
-	})();
+  dbPromise = (async () => {
+    const SQL = await initSqlJs({ locateFile: () => wasmUrl });
+    const res = await fetch(dbUrl);
+    if (!res.ok) throw new Error(`Failed to fetch DB from ${dbUrl}: ${res.status}`);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const db = new SQL.Database(bytes);
+    return db;
+  })();
 
-	return dbPromise;
+  return dbPromise;
 }
 
 /**
@@ -29,7 +29,7 @@ export function initClientDb(dbUrl = '/local.db') {
  * @returns {Promise<import('sql.js').Database> | null}
  */
 export function getDb() {
-	return dbPromise;
+  return dbPromise;
 }
 
 /**

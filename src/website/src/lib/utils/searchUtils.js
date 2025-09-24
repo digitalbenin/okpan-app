@@ -68,20 +68,49 @@ export async function searchObjects(options = {}) {
     params.push(status);
   }
   if (ontologyQuery) {
+    const searchConditions = [];
+    const searchParams = [];
+
+    // Ontology fields search (existing)
     const ontologyFieldPlaceholders = ontologyFieldIds.map(() => '?').join(',');
-    // This clause searches across all indexed text fields in the ontology table
-    whereClauses.push(`
+    searchConditions.push(`
       EXISTS (
         SELECT 1 FROM objects_ontology_fields oof
         WHERE oof.object_id = o.id
         ${ontologyFieldIds.length > 0 ? `AND oof.field_id IN (${ontologyFieldPlaceholders})` : ''}
         AND LOWER(oof.value) LIKE ?
-      ) /*ontologyQuery*/
+      )
     `);
     if (ontologyFieldIds.length > 0) {
-      params.push(...ontologyFieldIds);
+      searchParams.push(...ontologyFieldIds);
     }
-    params.push(`%${ontologyQuery.toLowerCase()}%`);
+    searchParams.push(`%${ontologyQuery.toLowerCase()}%`);
+
+    // Research fields search
+    searchConditions.push(`
+      EXISTS (
+        SELECT 1 FROM objects_research_fields orf
+        JOIN research_fields rf ON orf.field_id = rf.id
+        JOIN texts t_rf ON rf.name_id = t_rf.id
+        WHERE orf.object_id = o.id
+        AND (LOWER(orf.value) LIKE ? OR LOWER(t_rf.content) LIKE ?)
+      )
+    `);
+    searchParams.push(`%${ontologyQuery.toLowerCase()}%`, `%${ontologyQuery.toLowerCase()}%`);
+
+    // Institution name search
+    searchConditions.push(`
+      EXISTS (
+        SELECT 1 FROM institutions i
+        JOIN texts t_i ON i.name_id = t_i.id
+        WHERE i.id = o.institution_id
+        AND LOWER(t_i.content) LIKE ?
+      )
+    `);
+    searchParams.push(`%${ontologyQuery.toLowerCase()}%`);
+
+    whereClauses.push(`(${searchConditions.join(' OR ')}) /*ontologyQuery*/`);
+    params.push(...searchParams);
   }
 
   if (researchFieldFilters.length > 0) {
