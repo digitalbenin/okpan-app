@@ -1,6 +1,5 @@
 <script>
 	let { project } = $props();
-	$inspect(project);
 </script>
 
 <div class="flex align-items-between sticky-top">
