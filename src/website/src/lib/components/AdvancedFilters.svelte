@@ -1,19 +1,88 @@
 <script>
 	import { fly, fade } from 'svelte/transition';
+	import { onMount } from 'svelte';
 
-	let { advancedFilters, onClose, researchFields = [] } = $props();
+	let {
+		advancedFilters,
+		onFiltersChange,
+		onClose,
+		researchFields = [],
+		institutions = [],
+		vocabularies = []
+	} = $props();
 
 	let activeView = $state('main');
 	let selectedField = $state(null);
+	let searchTerm = $state('');
+	let filteredItems = $state([]);
 
 	function showDetail(field) {
 		selectedField = field;
 		activeView = 'detail';
+		if (field.type === 'institutions') {
+			filteredItems = institutions;
+		} else if (field.type === 'vocabulary') {
+			filteredItems = vocabularies.filter((v) => v.field_id === field.id);
+		}
+	}
+
+	function toggleFilter(itemId) {
+		const fieldKey = selectedField.type === 'institutions' ? 'institutions' : selectedField.id;
+		if (!advancedFilters[fieldKey]) {
+			advancedFilters[fieldKey] = [];
+		}
+
+		const index = advancedFilters[fieldKey].indexOf(itemId);
+		if (index > -1) {
+			advancedFilters[fieldKey].splice(index, 1);
+		} else {
+			advancedFilters[fieldKey].push(itemId);
+		}
+		onFiltersChange(advancedFilters);
+	}
+
+	function selectAll() {
+		const fieldKey = selectedField.type === 'institutions' ? 'institutions' : selectedField.id;
+		if (!advancedFilters[fieldKey]) {
+			advancedFilters[fieldKey] = [];
+		}
+
+		filteredItems.forEach((item) => {
+			if (!advancedFilters[fieldKey].includes(item.id)) {
+				advancedFilters[fieldKey].push(item.id);
+			}
+		});
+		onFiltersChange(advancedFilters);
+	}
+
+	function isSelected(itemId) {
+		const fieldKey = selectedField.type === 'institutions' ? 'institutions' : selectedField.id;
+		return advancedFilters[fieldKey] && advancedFilters[fieldKey].includes(itemId);
 	}
 
 	function showMain() {
 		activeView = 'main';
+		searchTerm = '';
 	}
+
+	$effect(() => {
+		if (activeView === 'detail') {
+			let items = [];
+			if (selectedField.type === 'institutions') {
+				items = institutions;
+			} else if (selectedField.type === 'vocabulary') {
+				items = vocabularies.filter((v) => v.field_id === selectedField.id);
+			}
+
+			if (searchTerm) {
+				filteredItems = items.filter((item) =>
+					item.name.toLowerCase().includes(searchTerm.toLowerCase())
+				);
+			} else {
+				filteredItems = items;
+			}
+		}
+	});
 </script>
 
 <!-- Backdrop -->
@@ -89,10 +158,31 @@
 					>
 						<i class="bi bi-chevron-left me-2"></i>{selectedField.name}
 					</button>
-					<button type="button" class="btn btn-link p-0">Select all</button>
+					<button type="button" class="btn btn-link p-0" onclick={selectAll}>Select all</button>
 				</div>
 				<div class="p-3">
-					<p>Checkboxes for {selectedField.name} will go here.</p>
+					<div class="input-group mb-3 border-0">
+						<input
+							type="text"
+							class="form-control border-0"
+							placeholder="Search"
+							bind:value={searchTerm}
+						/>
+						<span class="input-group-text border-0"><i class="bi bi-search"></i></span>
+					</div>
+					<div class="list-group border-0">
+						{#each filteredItems as item (item.id)}
+							<label class="list-group-item d-flex align-items-center">
+								<input
+									class="form-check-input me-3"
+									type="checkbox"
+									checked={isSelected(item.id)}
+									onchange={() => toggleFilter(item.id)}
+								/>
+								{item.name}
+							</label>
+						{/each}
+					</div>
 				</div>
 			</div>
 		{/if}
