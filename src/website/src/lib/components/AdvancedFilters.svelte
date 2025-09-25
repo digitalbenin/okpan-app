@@ -56,6 +56,13 @@
 		onFiltersChange(advancedFilters);
 	}
 
+	function resetFilter() {
+		if (!selectedField) return;
+		const fieldKey = selectedField.type === 'institutions' ? 'institutions' : selectedField.id;
+		advancedFilters[fieldKey] = [];
+		onFiltersChange(advancedFilters);
+	}
+
 	function selectAll() {
 		const fieldKey = selectedField.type === 'institutions' ? 'institutions' : selectedField.id;
 		if (!advancedFilters[fieldKey]) {
@@ -102,10 +109,22 @@
 		}
 
 		const term = (searchTerm || '').toLowerCase().trim();
+		let result = items;
 		if (term) {
-			return items.filter((item) => (item.name || '').toLowerCase().includes(term));
+			result = items.filter((item) => (item.name || '').toLowerCase().includes(term));
 		}
-		return items;
+
+		// Sort by facet count descending; tiebreaker by name ascending
+		result = [...result].sort((a, b) => {
+			const countB = getFacetCountForItem(b);
+			const countA = getFacetCountForItem(a);
+			if (countB !== countA) return countB - countA;
+			const nameA = (a.name || '').toLowerCase();
+			const nameB = (b.name || '').toLowerCase();
+			return nameA.localeCompare(nameB);
+		});
+
+		return result;
 	});
 </script>
 
@@ -177,7 +196,7 @@
 					<button class="btn btn-link p-0 text-decoration-none text-body" onclick={showMain}>
 						<i class="bi bi-chevron-left me-2"></i>{selectedField.name}
 					</button>
-					<button type="button" class="btn btn-link p-0" onclick={selectAll}>Select all</button>
+					<button type="button" class="btn btn-link p-0" onclick={resetFilter}>Reset</button>
 				</div>
 				<div class="p-3">
 					<div class="input-group mb-3 border-0">
@@ -200,13 +219,17 @@
 									checked={isSelected(item.id)}
 									onchange={() => toggleFilter(item.id)}
 								/>
-								{#if selectedField.type === 'vocabulary' && item.main_asset_path}
-									<img
-										src={getAssetUrl({ asset_path: item.main_asset_path })}
-										alt={item.name || 'vocabulary thumbnail'}
-										class="me-3"
-										style="width: 32px; height: 32px; object-fit: cover; border: 1px solid #eee; border-radius: 4px;"
-									/>
+								{#if selectedField.type === 'vocabulary'}
+									{#if item.main_asset_path}
+										<img
+											src={getAssetUrl({ asset_path: item.main_asset_path })}
+											alt={item.name || 'vocabulary thumbnail'}
+											class="me-3"
+											style="width: 32px; height: 32px; object-fit: cover; border: 1px solid #eee; border-radius: 4px;"
+										/>
+									{:else}
+										<i class="text-secondary bi bi-image ms-2 me-4"></i>
+									{/if}
 								{/if}
 								{item.name}
 								<span class="ms-auto badge bg-light text-secondary"

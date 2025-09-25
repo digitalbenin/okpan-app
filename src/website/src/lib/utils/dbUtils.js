@@ -91,3 +91,99 @@ export function getParamsWithout(clauses, originalParams, filterIdentifier) {
   }
   return newParams;
 }
+
+export function results_to_objects(res) {
+  if (!res || res.length === 0) return [];
+  const cols = res[0].columns;
+  const values = res[0].values;
+  return values.map((row) => {
+    const o = {};
+    for (let i = 0; i < cols.length; i++) o[cols[i]] = row[i];
+    return o;
+  });
+}
+
+export function fetchInstitutions(db, projectId) {
+  let res;
+  if (projectId) {
+    res = db.exec(
+      'SELECT i.*, t.content as name FROM institutions i LEFT JOIN texts t ON i.name_id = t.id WHERE i.project_id = ?',
+      [projectId]
+    );
+  } else {
+    res = db.exec(
+      'SELECT i.*, t.content as name FROM institutions i LEFT JOIN texts t ON i.name_id = t.id'
+    );
+  }
+  return results_to_objects(res);
+}
+
+export function fetchOntologyFields(db, projectId) {
+  let res;
+  if (projectId) {
+    res = db.exec(
+      'SELECT o.*, t.content as name FROM ontology_fields o LEFT JOIN texts t ON o.name_id = t.id WHERE o.project_id = ?',
+      [projectId]
+    );
+  } else {
+    res = db.exec(
+      'SELECT o.*, t.content as name FROM ontology_fields o LEFT JOIN texts t ON o.name_id = t.id'
+    );
+  }
+  return results_to_objects(res);
+}
+
+export function fetchResearchFields(db, projectId) {
+  let res;
+  if (projectId) {
+    res = db.exec(
+      'SELECT r.*, t.content as name FROM research_fields r LEFT JOIN texts t ON r.name_id = t.id WHERE r.project_id = ?',
+      [projectId]
+    );
+  } else {
+    res = db.exec(
+      'SELECT r.*, t.content as name FROM research_fields r LEFT JOIN texts t ON r.name_id = t.id'
+    );
+  }
+  return results_to_objects(res);
+}
+
+export function fetchVocabularies(db, projectId) {
+  let res;
+  if (projectId) {
+    res = db.exec(
+      `
+      SELECT v.*, t.content as name, ga.path as main_asset_path
+      FROM vocabularies v
+      JOIN research_fields rf ON v.field_id = rf.id
+      LEFT JOIN texts t ON v.option_id = t.id
+      LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id
+      WHERE rf.project_id = ?
+    `,
+      [projectId]
+    );
+  } else {
+    res = db.exec(
+      'SELECT v.*, t.content as name, ga.path as main_asset_path FROM vocabularies v LEFT JOIN texts t ON v.option_id = t.id LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id'
+    );
+  }
+  return results_to_objects(res);
+}
+
+export function fetchProject(db, projectId) {
+  if (!projectId) return {};
+  const res = db.exec(
+    `
+    SELECT p.*,
+           title_text.content as name,
+           desc_text.content as description
+    FROM project p
+    LEFT JOIN texts title_text ON p.title_id = title_text.id
+    LEFT JOIN texts desc_text ON p.description_id = desc_text.id
+    WHERE p.id = ?
+    `,
+    [projectId]
+  );
+  const arr = results_to_objects(res);
+  return arr[0] || {};
+}
