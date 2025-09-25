@@ -26,7 +26,7 @@
 			'No Title'
 		);
 	}
-
+	//TODO define a way to get a meaningful field
 	function getObjectType(item) {
 		const typeFieldId = Object.keys(ontologyFieldMap).find(
 			(id) => ontologyFieldMap[id] === 'designation'
@@ -58,26 +58,29 @@
 		{@const institutionName = getObjectInstitution(object)}
 		<div class="col">
 			<div class="card h-100">
-				{#if primaryAsset}
-					<img
-						src={getAssetUrl(primaryAsset)}
-						class="card-img-top"
-						alt={getObjectTitle(object)}
-						style="height: 200px; object-fit: cover;"
-					/>
-				{:else}
-					<div
-						class="card-img-top d-flex align-items-center justify-content-center bg-light"
-						style="height: 200px;"
-					>
-						<span class="text-muted">No Image</span>
-					</div>
-				{/if}
+				<div class="bg-secondary-subtle w-100">
+					{#if primaryAsset}
+						<img
+							src={getAssetUrl(primaryAsset)}
+							class="card-img-top object-fit-contain"
+							alt={getObjectTitle(object)}
+							style="height: 200px; object-fit: cover;"
+						/>
+					{:else}
+						<div
+							class="card-img-top d-flex flex-column align-items-center justify-content-center"
+							style="height: 200px;"
+						>
+							<i class="bi bi-image text-secondary display-5"></i>
+							<span class="text-muted">No Image</span>
+						</div>
+					{/if}
+				</div>
 				<div class="card-body">
 					<h5 class="card-title mb-3">{getObjectTitle(object)}</h5>
 
 					<p class="card-text mb-2">
-						<small class="text-muted">English designation</small><br />
+						<small class="text-muted">Designation</small><br />
 						{getObjectType(object)}
 					</p>
 

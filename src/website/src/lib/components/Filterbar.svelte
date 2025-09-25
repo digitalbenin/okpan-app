@@ -1,5 +1,16 @@
 <script>
-	let { value, onInput, resCount, onFiltersClick } = $props();
+	let {
+		value,
+		onInput,
+		resCount,
+		onFiltersClick,
+		institutionChips = [],
+		vocabularyChips = [],
+		hasActiveFilters = false,
+		onRemoveInstitution,
+		onRemoveVocabulary,
+		onClearAllAdvancedFilters
+	} = $props();
 </script>
 
 <div class="row">
@@ -39,6 +50,45 @@
 	<div class="my-3 d-flex justify-content-between align-items-center">
 		<div class="text-nowrap">
 			{resCount} results
+		</div>
+		<div class="d-flex align-items-center flex-wrap gap-2">
+			{#if hasActiveFilters}
+				{#each institutionChips as chip (chip.id)}
+					<span class="badge bg-secondary text-white d-flex align-items-center px-2">
+						{chip.label}
+						<button
+							type="button"
+							class="btn btn-link btn-sm text-white text-decoration-none ms-2 p-0"
+							aria-label="Remove filter"
+							onclick={() => onRemoveInstitution?.(chip.id)}
+						>
+							<i class="bi bi-x"></i>
+						</button>
+					</span>
+				{/each}
+
+				{#each vocabularyChips as chip (`${chip.fieldId}:${chip.vocabId}`)}
+					<span class="badge bg-secondary text-white d-inline-flex align-items-center px-2">
+						{chip.label}
+						<button
+							type="button"
+							class="btn btn-link btn-sm text-white text-decoration-none ms-2 p-0"
+							aria-label="Remove filter"
+							onclick={() => onRemoveVocabulary?.(chip.fieldId, chip.vocabId)}
+						>
+							<i class="bi bi-x"></i>
+						</button>
+					</span>
+				{/each}
+
+				<button
+					type="button"
+					class="btn btn-link p-0 ms-2 text-dark"
+					onclick={onClearAllAdvancedFilters}
+				>
+					Clear all
+				</button>
+			{/if}
 		</div>
 	</div>
 </div>

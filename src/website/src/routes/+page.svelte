@@ -19,6 +19,64 @@
 	let institutions = data.institutions;
 	let vocabularies = data.vocabularies;
 
+	// Fast lookup maps
+	const institutionsById = $derived.by(() => {
+		const m = new Map();
+		(institutions || []).forEach((i) => m.set(i.id, i));
+		return m;
+	});
+	const vocabById = $derived.by(() => {
+		const m = new Map();
+		(vocabularies || []).forEach((v) => m.set(v.id, v));
+		return m;
+	});
+	const researchFieldById = $derived.by(() => {
+		const m = new Map();
+		(researchFields || []).forEach((f) => m.set(String(f.id), f));
+		return m;
+	});
+	
+	// Build badge models for active filters
+	const institutionChips = $derived.by(() => {
+		const ids = advancedFilters?.institutions || [];
+		return ids.map((id) => ({ id, label: `Institution: ${institutionsById.get(id)?.name ?? id}` }));
+	});
+	const vocabularyChips = $derived.by(() => {
+		const chips = [];
+		for (const [key, arr] of Object.entries(advancedFilters || {})) {
+			if (key === 'institutions') continue;
+			const fieldId = String(key);
+			const fieldName = researchFieldById.get(fieldId)?.name ?? 'Field';
+			(arr || []).forEach((vocabId) => {
+				const vName = vocabById.get(vocabId)?.name ?? vocabId;
+				chips.push({ fieldId, vocabId, label: `${fieldName}: ${vName}` });
+			});
+		}
+		return chips;
+	});
+	const hasActiveFilters = $derived(
+		(institutionChips?.length || 0) + (vocabularyChips?.length || 0) > 0
+	);
+	
+	function removeInstitution(id) {
+		const arr = advancedFilters.institutions || [];
+		const idx = arr.indexOf(id);
+		if (idx > -1) arr.splice(idx, 1);
+		if (arr.length === 0) delete advancedFilters.institutions;
+		runSearch();
+	}
+	function removeVocabulary(fieldId, vocabId) {
+		const arr = advancedFilters[fieldId] || [];
+		const idx = arr.indexOf(vocabId);
+		if (idx > -1) arr.splice(idx, 1);
+		if (arr.length === 0) delete advancedFilters[fieldId];
+		runSearch();
+	}
+	function clearAllAdvancedFilters() {
+		advancedFilters = {};
+		runSearch();
+	}
+	
 	function buildSearchOptions() {
 		// Base options mapped to searchUtils expectations (snake_case where required)
 		const qp = data.queryParams || {};
@@ -30,12 +88,12 @@
 			orderBy: qp.orderBy,
 			direction: qp.direction // 'asc' | 'desc'
 		};
-
+	
 		// Institutions from advanced filters
 		if (advancedFilters?.institutions?.length) {
 			options.institution_ids = advancedFilters.institutions;
 		}
-
+	
 		// Research field vocabulary selections mapping -> researchFieldFilters
 		const researchFieldFilters = [];
 		for (const [key, value] of Object.entries(advancedFilters || {})) {
@@ -47,16 +105,16 @@
 		if (researchFieldFilters.length > 0) {
 			options.researchFieldFilters = researchFieldFilters;
 		}
-
+	
 		return options;
 	}
-
+	
 	async function runSearch() {
 		const options = buildSearchOptions();
 		console.log('[runSearch options]', options);
 		searchResult = await searchObjects(options);
 	}
-
+	
 	async function handleInput(event) {
 		searchTerm = event.target.value;
 		const newUrl = new URL($page.url);
@@ -64,19 +122,19 @@
 		goto(newUrl, { replaceState: true, keepFocus: true, noScroll: true });
 		await runSearch();
 	}
-
+	
 	function handleFiltersClick() {
 		showAdvancedFilters = true;
 	}
-
+	
 	function onFiltersChange() {
 		runSearch();
 	}
-
+	
 	function closeAdvancedFilters() {
 		showAdvancedFilters = false;
 	}
-
+	
 	$inspect(data);
 </script>
 
@@ -85,14 +143,21 @@
 		<div class="col-2 p-3">
 			<Sidebar project={data.project} />
 		</div>
-		<div class="col-10 p-3 border-start">
+		<div class="col-10 p-3 border-start min-vh-100">
 			<h1>Archive</h1>
 			<FilterBar
 				value={searchTerm}
 				onInput={handleInput}
 				{resCount}
 				onFiltersClick={handleFiltersClick}
+				institutionChips={institutionChips}
+				vocabularyChips={vocabularyChips}
+				hasActiveFilters={hasActiveFilters}
+				onRemoveInstitution={removeInstitution}
+				onRemoveVocabulary={removeVocabulary}
+				onClearAllAdvancedFilters={clearAllAdvancedFilters}
 			/>
+
 			{#if searchResult?.items}
 				<Grid
 					items={searchResult.items}
