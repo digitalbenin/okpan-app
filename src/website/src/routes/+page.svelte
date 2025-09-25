@@ -27,7 +27,6 @@
 			project_id: qp.projectId || null,
 			page: qp.page,
 			limit: qp.pageSize,
-			status: qp.status || undefined,
 			orderBy: qp.orderBy,
 			direction: qp.direction // 'asc' | 'desc'
 		};
@@ -54,6 +53,7 @@
 
 	async function runSearch() {
 		const options = buildSearchOptions();
+		console.log('[runSearch options]', options);
 		searchResult = await searchObjects(options);
 	}
 
@@ -76,6 +76,8 @@
 	function closeAdvancedFilters() {
 		showAdvancedFilters = false;
 	}
+
+	$inspect(data);
 </script>
 
 <div class="container-fluid">
@@ -109,6 +111,7 @@
 		{institutions}
 		{vocabularies}
 		{advancedFilters}
+		facets={searchResult?.facets}
 		onClose={closeAdvancedFilters}
 		{onFiltersChange}
 	/>

@@ -1,6 +1,6 @@
 <script>
 	import { fly, fade } from 'svelte/transition';
-	import { onMount } from 'svelte';
+	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 
 	let {
 		advancedFilters,
@@ -8,22 +8,37 @@
 		onClose,
 		researchFields = [],
 		institutions = [],
-		vocabularies = []
+		vocabularies = [],
+		facets
 	} = $props();
 
 	let activeView = $state('main');
 	let selectedField = $state(null);
 	let searchTerm = $state('');
-	let filteredItems = $state([]);
+
+	// Build fast lookup maps for facet counts
+	let institutionFacetMap = $derived.by(() => {
+		const map = new Map();
+		const list = facets?.institution_ids || [];
+		for (const row of list) {
+			const id = row.institution_id ?? row.id;
+			map.set(id, row.count || 0);
+		}
+		return map;
+	});
+
+	let researchFacetMap = $derived.by(() => {
+		const map = new Map();
+		const list = facets?.research_fields || [];
+		for (const row of list) {
+			map.set(`${row.field_id}:${row.vocabulary_id}`, row.count || 0);
+		}
+		return map;
+	});
 
 	function showDetail(field) {
 		selectedField = field;
 		activeView = 'detail';
-		if (field.type === 'institutions') {
-			filteredItems = institutions;
-		} else if (field.type === 'vocabulary') {
-			filteredItems = vocabularies.filter((v) => v.field_id === field.id);
-		}
 	}
 
 	function toggleFilter(itemId) {
@@ -65,23 +80,32 @@
 		searchTerm = '';
 	}
 
-	$effect(() => {
-		if (activeView === 'detail') {
-			let items = [];
-			if (selectedField.type === 'institutions') {
-				items = institutions;
-			} else if (selectedField.type === 'vocabulary') {
-				items = vocabularies.filter((v) => v.field_id === selectedField.id);
-			}
-
-			if (searchTerm) {
-				filteredItems = items.filter((item) =>
-					item.name.toLowerCase().includes(searchTerm.toLowerCase())
-				);
-			} else {
-				filteredItems = items;
-			}
+	function getFacetCountForItem(item) {
+		if (!selectedField) return 0;
+		if (selectedField.type === 'institutions') {
+			return institutionFacetMap.get(item.id) ?? 0;
 		}
+		if (selectedField.type === 'vocabulary') {
+			return researchFacetMap.get(`${selectedField.id}:${item.id}`) ?? 0;
+		}
+		return 0;
+	}
+
+	// Compute filtered items reactively without $effect
+	let filteredItems = $derived.by(() => {
+		if (activeView !== 'detail' || !selectedField) return [];
+		let items = [];
+		if (selectedField.type === 'institutions') {
+			items = institutions;
+		} else if (selectedField.type === 'vocabulary') {
+			items = vocabularies.filter((v) => v.field_id === selectedField.id);
+		}
+
+		const term = (searchTerm || '').toLowerCase().trim();
+		if (term) {
+			return items.filter((item) => (item.name || '').toLowerCase().includes(term));
+		}
+		return items;
 	});
 </script>
 
@@ -107,7 +131,6 @@
 >
 	<div class="d-flex justify-content-between align-items-center p-3 border-bottom">
 		<h5 class="m-0" id="filters-title">Filters</h5>
-		<button type="button" class="btn-close" onclick={onClose} aria-label="Close"></button>
 	</div>
 
 	<div class="flex-grow-1 overflow-auto position-relative">
@@ -151,11 +174,7 @@
 				onoutroend={() => (selectedField = null)}
 			>
 				<div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-					<button
-						type="button"
-						class="btn btn-link p-0 text-decoration-none text-body"
-						onclick={showMain}
-					>
+					<button class="btn btn-link p-0 text-decoration-none text-body" onclick={showMain}>
 						<i class="bi bi-chevron-left me-2"></i>{selectedField.name}
 					</button>
 					<button type="button" class="btn btn-link p-0" onclick={selectAll}>Select all</button>
@@ -172,14 +191,27 @@
 					</div>
 					<div class="list-group border-0">
 						{#each filteredItems as item (item.id)}
-							<label class="list-group-item d-flex align-items-center">
+							<label
+								class={`list-group-item border-0 d-flex align-items-center ${getFacetCountForItem(item) === 0 ? 'text-muted' : ''}`}
+							>
 								<input
 									class="form-check-input me-3"
 									type="checkbox"
 									checked={isSelected(item.id)}
 									onchange={() => toggleFilter(item.id)}
 								/>
+								{#if selectedField.type === 'vocabulary' && item.main_asset_path}
+									<img
+										src={getAssetUrl({ asset_path: item.main_asset_path })}
+										alt={item.name || 'vocabulary thumbnail'}
+										class="me-3"
+										style="width: 32px; height: 32px; object-fit: cover; border: 1px solid #eee; border-radius: 4px;"
+									/>
+								{/if}
 								{item.name}
+								<span class="ms-auto badge bg-light text-secondary"
+									>{getFacetCountForItem(item)}</span
+								>
 							</label>
 						{/each}
 					</div>

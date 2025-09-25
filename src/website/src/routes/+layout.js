@@ -5,7 +5,7 @@ function results_to_objects(res) {
   if (!res || res.length === 0) return [];
   const cols = res[0].columns;
   const values = res[0].values;
-  return values.map(row => {
+  return values.map((row) => {
     const o = {};
     for (let i = 0; i < cols.length; i++) o[cols[i]] = row[i];
     return o;
@@ -63,17 +63,18 @@ export async function load({ url }) {
   if (projectId) {
     vocabularies_res = db.exec(
       `
-      SELECT v.*, t.content as name
+      SELECT v.*, t.content as name, ga.path as main_asset_path
       FROM vocabularies v
       JOIN research_fields rf ON v.field_id = rf.id
       LEFT JOIN texts t ON v.option_id = t.id
+      LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id
       WHERE rf.project_id = ?
     `,
       [projectId]
     );
   } else {
     vocabularies_res = db.exec(
-      'SELECT v.*, t.content as name FROM vocabularies v LEFT JOIN texts t ON v.option_id = t.id'
+      'SELECT v.*, t.content as name, ga.path as main_asset_path FROM vocabularies v LEFT JOIN texts t ON v.option_id = t.id LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id'
     );
   }
 

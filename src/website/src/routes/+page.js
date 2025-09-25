@@ -9,7 +9,6 @@ export async function load({ url }) {
 		page: parseInt(url.searchParams.get('page') || '1'),
 		pageSize: parseInt(url.searchParams.get('pageSize') || '10'),
 		institutionIds: url.searchParams.getAll('institutionId'),
-		status: url.searchParams.get('status') || '',
 		orderBy: url.searchParams.get('orderBy') || 'created_at',
 		direction: url.searchParams.get('direction') || 'desc'
 	};
@@ -21,7 +20,7 @@ export async function load({ url }) {
 				totalCount: 0,
 				page: 0,
 				pageSize: 25,
-				facets: { institution_ids: [], statuses: [], ontology_fields: [] }
+				facets: { institution_ids: [], ontology_fields: [] }
 			},
 			queryParams
 		};
@@ -33,7 +32,6 @@ export async function load({ url }) {
 		page: queryParams.page,
 		pageSize: queryParams.pageSize,
 		institutionIds: queryParams.institutionIds,
-		status: queryParams.status,
 		orderBy: queryParams.orderBy,
 		direction: queryParams.direction
 	});

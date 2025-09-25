@@ -8,7 +8,6 @@ import { getDb, getResults, parseJsonFields, getParamsWithout } from '$lib/utils
  * @param {object} options - The search parameters.
  * @param {string} [options.q] - Full-text search query.
  * @param {string|string[]} [options.institution_ids] - IDs of institutions to filter by.
- * @param {string} [options.status] - Object status to filter by.
  * @param {number} [options.limit=25] - The number of items to return per page.
  * @param {number} [options.page=0] - The page number for pagination.
  * @param {string} [options.project_id] - The ID of the project to scope the search to.
@@ -23,8 +22,8 @@ import { getDb, getResults, parseJsonFields, getParamsWithout } from '$lib/utils
  *   pageSize: number,
  *   facets: {
  *     institution_ids: any[],
- *     statuses: any[],
- *     ontology_fields: any[]
+ *     ontology_fields: any[],
+ *     research_fields: any[]
  *   }
  * }>} - The search results, including items, counts, and facets.
  */
@@ -40,7 +39,7 @@ export async function searchObjects(options = {}) {
   if (typeof institutionIds === 'string') {
     institutionIds = institutionIds.split(',').filter(Boolean);
   }
-  const status = options.status ?? null;
+  // status filter removed
   const limit = Number.isFinite(options.limit) ? options.limit : 25;
   const page = Number.isFinite(options.page) ? options.page : 1;
   const offset = (page > 0 ? page - 1 : 0) * limit;
@@ -63,10 +62,7 @@ export async function searchObjects(options = {}) {
     whereClauses.push(`o.institution_id IN (${placeholders}) /*institution*/`);
     params.push(...institutionIds);
   }
-  if (status) {
-    whereClauses.push('o.status = ? /*status*/');
-    params.push(status);
-  }
+  // status filter removed
   if (ontologyQuery) {
     const searchConditions = [];
     const searchParams = [];
@@ -221,19 +217,7 @@ export async function searchObjects(options = {}) {
   institutionStmt.bind(institutionParams);
   facets.institution_ids = getResults(institutionStmt);
 
-  // 6b. Status Facet
-  const statusParams = getParamsWithout(whereClauses, params, '/*status*/');
-  const statusWhere = whereClauses.filter((c) => !c.includes('/*status*/')).join(' AND ');
-  const statusFacetSql = `
-     SELECT status, COUNT(DISTINCT id) as count
-     FROM objects o
-     ${statusWhere ? `WHERE ${statusWhere}` : ''}
-     GROUP BY status
-     ORDER BY count DESC
-   `;
-  const statusStmt = db.prepare(statusFacetSql);
-  statusStmt.bind(statusParams);
-  facets.statuses = getResults(statusStmt);
+  // status facet removed
 
   // 6c. Ontology Fields Facet
   const ontologyParams = getParamsWithout(whereClauses, params, '/*ontologyQuery*/');
@@ -257,6 +241,34 @@ export async function searchObjects(options = {}) {
   const ontologyStmt = db.prepare(ontologyFacetSql);
   ontologyStmt.bind(ontologyParams);
   facets.ontology_fields = getResults(ontologyStmt);
+
+  // 6d. Research Fields Facet (by vocabulary)
+  const researchParams = getParamsWithout(whereClauses, params, '/*research*/');
+  const researchWhereClauses = whereClauses.filter((c) => !c.includes('/*research*/'));
+  if (projectId) {
+    researchWhereClauses.push('(rf.project_id = ? OR rf.project_id IS NULL)');
+    researchParams.push(projectId);
+  }
+  const researchWhere = researchWhereClauses.length > 0 ? `WHERE ${researchWhereClauses.join(' AND ')}` : '';
+  const researchFacetSql = `
+    SELECT 
+      v.field_id as field_id,
+      orf.vocabulary_id as vocabulary_id,
+      txt.content as name,
+      COUNT(DISTINCT o.id) as count
+    FROM objects o
+    JOIN objects_research_fields orf ON orf.object_id = o.id
+    JOIN vocabularies v ON orf.vocabulary_id = v.id
+    JOIN research_fields rf ON v.field_id = rf.id
+    LEFT JOIN texts txt ON v.option_id = txt.id
+    ${researchWhere}
+    GROUP BY v.field_id, orf.vocabulary_id, name
+    HAVING count > 0
+    ORDER BY count DESC
+  `;
+  const researchStmt = db.prepare(researchFacetSql);
+  researchStmt.bind(researchParams);
+  facets.research_fields = getResults(researchStmt);
 
   // 7. Return final structured response
   return { items, totalCount, page, pageSize: limit, facets };
