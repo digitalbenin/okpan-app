@@ -13,6 +13,7 @@ import { getDb, getResults, parseJsonFields, getParamsWithout } from '$lib/utils
  * @param {string} [options.project_id] - The ID of the project to scope the search to.
  * @param {string[]} [options.ontologyFieldIds] - Optional list of ontology field IDs to search in.
  * @param {Array<Object>} [options.researchFieldFilters] - Optional list of research field filters.
+ * @param {Array<{kind:'ontology', fieldId:string, query:string}>} [options.textFieldFilters] - Optional list of specific ontology text field filters.
  * @param {string} [options.orderBy] - Field to order by.
  * @param {string} [options.direction] - Sort direction (asc/desc).
  * @returns {Promise<{
@@ -46,6 +47,7 @@ export async function searchObjects(options = {}) {
   const projectId = options.project_id ?? null;
   const ontologyFieldIds = options.ontologyFieldIds ?? [];
   const researchFieldFilters = options.researchFieldFilters ?? [];
+  const textFieldFilters = options.textFieldFilters ?? [];
   const orderBy = options.orderBy ?? 'created_at';
   const direction = options.direction === 'asc' ? 'ASC' : 'DESC';
 
@@ -107,6 +109,27 @@ export async function searchObjects(options = {}) {
 
     whereClauses.push(`(${searchConditions.join(' OR ')}) /*ontologyQuery*/`);
     params.push(...searchParams);
+  }
+
+  // Specific text filters targeting ontology fields
+  if (textFieldFilters.length > 0) {
+    const textFieldConditions = [];
+    for (const tf of textFieldFilters) {
+      if (!tf || tf.kind !== 'ontology') continue;
+      if (!tf.fieldId || !tf.query) continue;
+      textFieldConditions.push(`
+        EXISTS (
+          SELECT 1 FROM objects_ontology_fields oof
+          WHERE oof.object_id = o.id
+          AND oof.field_id = ?
+          AND LOWER(oof.value) LIKE ?
+        )
+      `);
+      params.push(String(tf.fieldId), `%${String(tf.query).toLowerCase()}%`);
+    }
+    if (textFieldConditions.length > 0) {
+      whereClauses.push(`(${textFieldConditions.join(' AND ')}) /*ontologyQuery*/`);
+    }
   }
 
   if (researchFieldFilters.length > 0) {

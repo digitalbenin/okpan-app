@@ -9,13 +9,18 @@
 		researchFields = [],
 		institutions = [],
 		vocabularies = [],
-		facets
+		facets,
+		ontologyFields = []
 	} = $props();
 
 	let activeView = $state('main');
 	let selectedField = $state(null);
 	let searchTerm = $state('');
 	let openInfoId = $state(null); // which vocabulary item has its info panel open
+
+	// State for "Add search field" view
+	let textSelectedFieldId = $state(''); // encoded kind:id (e.g., "o:12" or "r:34")
+	let textQuery = $state('');
 
 	// Build fast lookup maps for facet counts
 	let institutionFacetMap = $derived.by(() => {
@@ -43,6 +48,12 @@
 		openInfoId = null; // close any open info when switching view
 	}
 
+	function showAddTextSearch(prefillKey = '', prefillQuery = '') {
+		activeView = 'addText';
+		textSelectedFieldId = prefillKey;
+		textQuery = prefillQuery;
+	}
+
 	function toggleFilter(itemId) {
 		const fieldKey = selectedField.type === 'institutions' ? 'institutions' : selectedField.id;
 		if (!advancedFilters[fieldKey]) {
@@ -62,20 +73,6 @@
 		if (!selectedField) return;
 		const fieldKey = selectedField.type === 'institutions' ? 'institutions' : selectedField.id;
 		advancedFilters[fieldKey] = [];
-		onFiltersChange(advancedFilters);
-	}
-
-	function selectAll() {
-		const fieldKey = selectedField.type === 'institutions' ? 'institutions' : selectedField.id;
-		if (!advancedFilters[fieldKey]) {
-			advancedFilters[fieldKey] = [];
-		}
-
-		filteredItems.forEach((item) => {
-			if (!advancedFilters[fieldKey].includes(item.id)) {
-				advancedFilters[fieldKey].push(item.id);
-			}
-		});
 		onFiltersChange(advancedFilters);
 	}
 
@@ -133,6 +130,91 @@
 
 		return result;
 	});
+
+	// Selectable fields for the "Add search field" UI
+	let selectableTextFields = $derived.by(() => {
+		const list = [];
+		// All ontology fields
+		(ontologyFields || []).forEach((f) =>
+			list.push({ key: `o:${f.id}`, label: f.name, kind: 'ontology', id: f.id })
+		);
+		// All research fields that are NOT vocabulary-based (freetext)
+		(researchFields || [])
+			.filter((f) => f.type !== 'vocabulary')
+			.forEach((f) => list.push({ key: `r:${f.id}`, label: f.name, kind: 'research', id: f.id }));
+		// Sort alphabetically
+		return list.sort((a, b) => (a.label || '').localeCompare(b.label || ''));
+	});
+
+	function ensureTextFiltersArray() {
+		if (!advancedFilters.__textFilters) advancedFilters.__textFilters = [];
+		return advancedFilters.__textFilters;
+	}
+
+	function parseKind(val) {
+		const [k, id] = (val || '').split(':');
+		if (k === 'o') return { kind: 'ontology', id };
+		if (k === 'r') return { kind: 'research', id };
+		return { kind: null, id: null };
+	}
+
+	function upsertOrRemoveTextFilter() {
+		const val = (textSelectedFieldId || '').trim();
+		const q = (textQuery || '').trim();
+		const { kind, id } = parseKind(val);
+		if (!kind || !id) return; // no field selected yet
+
+		const arr = ensureTextFiltersArray();
+		const idx = arr.findIndex((tf) => tf.kind === kind && String(tf.fieldId) === String(id));
+
+		if (!q) {
+			// remove existing filter for this field if the query is empty
+			if (idx > -1) arr.splice(idx, 1);
+		} else {
+			const next = { kind, fieldId: id, query: q };
+			if (idx > -1) arr[idx] = next;
+			else arr.push(next);
+		}
+		onFiltersChange(advancedFilters);
+	}
+
+	function onTextFieldChange() {
+		upsertOrRemoveTextFilter();
+	}
+	function onTextQueryInput() {
+		upsertOrRemoveTextFilter();
+	}
+
+	// Active text filters list and helpers
+	let currentTextFilters = $derived.by(() => advancedFilters?.__textFilters ?? []);
+	function textFilterKey(tf) {
+		return `${tf.kind}:${tf.fieldId}`;
+	}
+	function getTextFieldLabel(tf) {
+		if (tf?.kind === 'ontology') {
+			const f = (ontologyFields || []).find((o) => String(o.id) === String(tf.fieldId));
+			return f?.name || 'Unknown field';
+		}
+		if (tf?.kind === 'research') {
+			const f = (researchFields || []).find((r) => String(r.id) === String(tf.fieldId));
+			return f?.name || 'Unknown field';
+		}
+		return 'Unknown field';
+	}
+	function editTextFilter(tf) {
+		const key = `${tf.kind === 'ontology' ? 'o' : 'r'}:${tf.fieldId}`;
+		showAddTextSearch(key, tf.query || '');
+	}
+	function removeTextFilter(tf) {
+		const arr = ensureTextFiltersArray();
+		const idx = arr.findIndex(
+			(x) => x.kind === tf.kind && String(x.fieldId) === String(tf.fieldId)
+		);
+		if (idx > -1) {
+			arr.splice(idx, 1);
+			onFiltersChange(advancedFilters);
+		}
+	}
 </script>
 
 <!-- Backdrop -->
@@ -191,6 +273,81 @@
 						</div>
 					{/if}
 				{/each}
+				{#each currentTextFilters as tf (textFilterKey(tf))}
+					<div class="p-3 d-flex justify-content-between align-items-center border-bottom">
+						<p class="m-0">
+							<span class="">{getTextFieldLabel(tf)}</span>
+							<span class="text-muted ms-2">{tf.query}</span>
+						</p>
+						<div class="d-flex align-items-center">
+							<button
+								type="button"
+								class="btn btn-outline-danger btn-sm me-2"
+								aria-label="Remove text filter"
+								onclick={(e) => {
+									e?.stopPropagation?.();
+									removeTextFilter(tf);
+								}}
+							>
+								<i class="bi bi-trash"></i>
+							</button>
+							<button
+								type="button"
+								class="btn btn-link text-dark text-decoration-none p-0"
+								aria-label="Edit text filter"
+								onclick={(e) => {
+									e?.stopPropagation?.();
+									editTextFilter(tf);
+								}}
+							>
+								<i class="bi bi-chevron-right"></i>
+							</button>
+						</div>
+					</div>
+				{/each}
+				<button class="btn btn-outline-secondary m-3" onclick={() => showAddTextSearch()}>
+					<i class="bi bi-plus-circle"></i>
+					<span>Add search field</span>
+				</button>
+			</div>
+		{:else if activeView === 'addText'}
+			<div
+				class="w-100 position-absolute"
+				in:fly={{ x: 200, duration: 300 }}
+				out:fly={{ x: 200, duration: 300 }}
+			>
+				<div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+					<button class="btn btn-link p-0 text-decoration-none text-body" onclick={showMain}>
+						<i class="bi bi-chevron-left me-2"></i>Search field
+					</button>
+					<!-- No Add button; search updates as you type -->
+				</div>
+
+				<div class="p-3">
+					<div class="mb-3">
+						<label class="form-label">Field</label>
+						<select
+							class="form-select"
+							bind:value={textSelectedFieldId}
+							onchange={onTextFieldChange}
+						>
+							<option value="" disabled selected>Choose a field</option>
+							{#each selectableTextFields as f (f.key)}
+								<option value={f.key}>{f.label}</option>
+							{/each}
+						</select>
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Search text:</label>
+						<input
+							type="text"
+							class="form-control"
+							placeholder="Type here..."
+							bind:value={textQuery}
+							oninput={onTextQueryInput}
+						/>
+					</div>
+				</div>
 			</div>
 		{:else if selectedField}
 			<div
@@ -249,7 +406,12 @@
 								</div>
 								{#if selectedField.type === 'vocabulary'}
 									<div class="research-field-info">
-										<button type="button" class="btn btn-link p-0 text-secondary" aria-label="Info" onclick={() => toggleInfo(item)}>
+										<button
+											type="button"
+											class="btn btn-link p-0 text-secondary"
+											aria-label="Info"
+											onclick={() => toggleInfo(item)}
+										>
 											<i class="bi bi-info-circle"></i>
 										</button>
 									</div>
@@ -257,7 +419,11 @@
 							</div>
 
 							{#if selectedField.type === 'vocabulary' && openInfoId === item.id}
-								<div class="research-field-info-panel border rounded p-2 my-2" in:fade={{ duration: 150 }} out:fade={{ duration: 150 }}>
+								<div
+									class="research-field-info-panel border rounded p-2 my-2"
+									in:fade={{ duration: 150 }}
+									out:fade={{ duration: 150 }}
+								>
 									{#if item.main_asset_path}
 										<img
 											src={getAssetUrl({ asset_path: item.main_asset_path })}
@@ -265,7 +431,10 @@
 											style="width: 100%; max-height: 240px; object-fit: contain; border-radius: 6px;"
 										/>
 									{:else}
-										<div class="d-flex align-items-center justify-content-center bg-light rounded" style="height: 200px;">
+										<div
+											class="d-flex align-items-center justify-content-center bg-light rounded"
+											style="height: 200px;"
+										>
 											<i class="bi bi-image text-secondary display-6"></i>
 										</div>
 									{/if}

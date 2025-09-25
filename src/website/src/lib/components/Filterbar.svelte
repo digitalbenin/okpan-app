@@ -6,9 +6,11 @@
 		onFiltersClick,
 		institutionChips = [],
 		vocabularyChips = [],
+		textChips = [],
 		hasActiveFilters = false,
 		onRemoveInstitution,
 		onRemoveVocabulary,
+		onRemoveTextFilter,
 		onClearAllAdvancedFilters
 	} = $props();
 </script>
@@ -75,6 +77,20 @@
 							class="btn btn-link btn-sm text-white text-decoration-none ms-2 p-0"
 							aria-label="Remove filter"
 							onclick={() => onRemoveVocabulary?.(chip.fieldId, chip.vocabId)}
+						>
+							<i class="bi bi-x"></i>
+						</button>
+					</span>
+				{/each}
+
+				{#each textChips as chip (chip.key)}
+					<span class="badge bg-secondary text-white d-inline-flex align-items-center ps-3">
+						{chip.label}
+						<button
+							type="button"
+							class="btn btn-link btn-sm text-white text-decoration-none ms-2 p-0"
+							aria-label="Remove filter"
+							onclick={() => onRemoveTextFilter?.(chip.key)}
 						>
 							<i class="bi bi-x"></i>
 						</button>

@@ -35,6 +35,11 @@
 		(researchFields || []).forEach((f) => m.set(String(f.id), f));
 		return m;
 	});
+	const ontologyFieldById = $derived.by(() => {
+		const m = new Map();
+		(ontologyFields || []).forEach((f) => m.set(String(f.id), f));
+		return m;
+	});
 
 	// Build badge models for active filters
 	const institutionChips = $derived.by(() => {
@@ -44,7 +49,7 @@
 	const vocabularyChips = $derived.by(() => {
 		const chips = [];
 		for (const [key, arr] of Object.entries(advancedFilters || {})) {
-			if (key === 'institutions') continue;
+			if (key === 'institutions' || key === '__textFilters') continue;
 			const fieldId = String(key);
 			const fieldName = researchFieldById.get(fieldId)?.name ?? 'Field';
 			(arr || []).forEach((vocabId) => {
@@ -54,8 +59,22 @@
 		}
 		return chips;
 	});
+	const textChips = $derived.by(() => {
+		const chips = [];
+		const arr = advancedFilters?.__textFilters || [];
+		for (const tf of arr) {
+			if (!tf) continue;
+			const fieldId = String(tf.fieldId);
+			const key = `${tf.kind}:${fieldId}:${tf.query}`;
+			let fieldName = 'Field';
+			if (tf.kind === 'ontology') fieldName = ontologyFieldById.get(fieldId)?.name ?? fieldName;
+			else fieldName = researchFieldById.get(fieldId)?.name ?? fieldName;
+			chips.push({ key, kind: tf.kind, fieldId, query: tf.query, label: `${fieldName}: "${tf.query}"` });
+		}
+		return chips;
+	});
 	const hasActiveFilters = $derived(
-		(institutionChips?.length || 0) + (vocabularyChips?.length || 0) > 0
+		(institutionChips?.length || 0) + (vocabularyChips?.length || 0) + (textChips?.length || 0) > 0
 	);
 
 	function removeInstitution(id) {
@@ -70,6 +89,13 @@
 		const idx = arr.indexOf(vocabId);
 		if (idx > -1) arr.splice(idx, 1);
 		if (arr.length === 0) delete advancedFilters[fieldId];
+		runSearch();
+	}
+	function removeTextFilter(key) {
+		const arr = advancedFilters.__textFilters || [];
+		const idx = arr.findIndex((tf) => `${tf.kind}:${String(tf.fieldId)}:${tf.query}` === key);
+		if (idx > -1) arr.splice(idx, 1);
+		if (arr.length === 0) delete advancedFilters.__textFilters;
 		runSearch();
 	}
 	function clearAllAdvancedFilters() {
@@ -97,13 +123,30 @@
 		// Research field vocabulary selections mapping -> researchFieldFilters
 		const researchFieldFilters = [];
 		for (const [key, value] of Object.entries(advancedFilters || {})) {
-			if (key === 'institutions') continue;
+			if (key === 'institutions' || key === '__textFilters') continue;
 			if (Array.isArray(value) && value.length > 0) {
 				researchFieldFilters.push({ fieldId: key, vocabularyIds: value });
 			}
 		}
+
+		// Map custom text filters
+		const textFieldFilters = [];
+		const tfs = advancedFilters.__textFilters || [];
+		for (const tf of tfs) {
+			if (!tf?.query || !tf?.fieldId) continue;
+			if (tf.kind === 'research') {
+				// incorporate into researchFieldFilters with query
+				researchFieldFilters.push({ fieldId: String(tf.fieldId), query: String(tf.query) });
+			} else if (tf.kind === 'ontology') {
+				textFieldFilters.push({ kind: 'ontology', fieldId: String(tf.fieldId), query: String(tf.query) });
+			}
+		}
+
 		if (researchFieldFilters.length > 0) {
 			options.researchFieldFilters = researchFieldFilters;
+		}
+		if (textFieldFilters.length > 0) {
+			options.textFieldFilters = textFieldFilters;
 		}
 
 		return options;
@@ -152,9 +195,11 @@
 				onFiltersClick={handleFiltersClick}
 				{institutionChips}
 				{vocabularyChips}
+				textChips={textChips}
 				{hasActiveFilters}
 				onRemoveInstitution={removeInstitution}
 				onRemoveVocabulary={removeVocabulary}
+				onRemoveTextFilter={removeTextFilter}
 				onClearAllAdvancedFilters={clearAllAdvancedFilters}
 			/>
 
