@@ -72,7 +72,8 @@
 			(id) => ontologyFieldMap[id] === 'designation'
 		);
 		return (
-			object?.objects_ontology_fields_json?.find((f) => f.field_id === typeFieldId)?.value || 'No Type'
+			object?.objects_ontology_fields_json?.find((f) => f.field_id === typeFieldId)?.value ||
+			'No Type'
 		);
 	}
 
@@ -84,7 +85,7 @@
 	}
 </script>
 
-<div class="card h-100">
+<div class="card h-100 border-secondary-subtle rounded-3 p-2">
 	<div class="bg-secondary-subtle w-100 position-relative" style="height: 200px; overflow: hidden;">
 		{#key clampedIndex}
 			<div

@@ -35,7 +35,7 @@
 		(researchFields || []).forEach((f) => m.set(String(f.id), f));
 		return m;
 	});
-	
+
 	// Build badge models for active filters
 	const institutionChips = $derived.by(() => {
 		const ids = advancedFilters?.institutions || [];
@@ -57,7 +57,7 @@
 	const hasActiveFilters = $derived(
 		(institutionChips?.length || 0) + (vocabularyChips?.length || 0) > 0
 	);
-	
+
 	function removeInstitution(id) {
 		const arr = advancedFilters.institutions || [];
 		const idx = arr.indexOf(id);
@@ -76,7 +76,7 @@
 		advancedFilters = {};
 		runSearch();
 	}
-	
+
 	function buildSearchOptions() {
 		// Base options mapped to searchUtils expectations (snake_case where required)
 		const qp = data.queryParams || {};
@@ -88,12 +88,12 @@
 			orderBy: qp.orderBy,
 			direction: qp.direction // 'asc' | 'desc'
 		};
-	
+
 		// Institutions from advanced filters
 		if (advancedFilters?.institutions?.length) {
 			options.institution_ids = advancedFilters.institutions;
 		}
-	
+
 		// Research field vocabulary selections mapping -> researchFieldFilters
 		const researchFieldFilters = [];
 		for (const [key, value] of Object.entries(advancedFilters || {})) {
@@ -105,16 +105,16 @@
 		if (researchFieldFilters.length > 0) {
 			options.researchFieldFilters = researchFieldFilters;
 		}
-	
+
 		return options;
 	}
-	
+
 	async function runSearch() {
 		const options = buildSearchOptions();
 		console.log('[runSearch options]', options);
 		searchResult = await searchObjects(options);
 	}
-	
+
 	async function handleInput(event) {
 		searchTerm = event.target.value;
 		const newUrl = new URL($page.url);
@@ -122,19 +122,19 @@
 		goto(newUrl, { replaceState: true, keepFocus: true, noScroll: true });
 		await runSearch();
 	}
-	
+
 	function handleFiltersClick() {
 		showAdvancedFilters = true;
 	}
-	
+
 	function onFiltersChange() {
 		runSearch();
 	}
-	
+
 	function closeAdvancedFilters() {
 		showAdvancedFilters = false;
 	}
-	
+
 	$inspect(data);
 </script>
 
@@ -150,9 +150,9 @@
 				onInput={handleInput}
 				{resCount}
 				onFiltersClick={handleFiltersClick}
-				institutionChips={institutionChips}
-				vocabularyChips={vocabularyChips}
-				hasActiveFilters={hasActiveFilters}
+				{institutionChips}
+				{vocabularyChips}
+				{hasActiveFilters}
 				onRemoveInstitution={removeInstitution}
 				onRemoveVocabulary={removeVocabulary}
 				onClearAllAdvancedFilters={clearAllAdvancedFilters}

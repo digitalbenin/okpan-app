@@ -15,6 +15,7 @@
 	let activeView = $state('main');
 	let selectedField = $state(null);
 	let searchTerm = $state('');
+	let openInfoId = $state(null); // which vocabulary item has its info panel open
 
 	// Build fast lookup maps for facet counts
 	let institutionFacetMap = $derived.by(() => {
@@ -39,6 +40,7 @@
 	function showDetail(field) {
 		selectedField = field;
 		activeView = 'detail';
+		openInfoId = null; // close any open info when switching view
 	}
 
 	function toggleFilter(itemId) {
@@ -85,6 +87,7 @@
 	function showMain() {
 		activeView = 'main';
 		searchTerm = '';
+		openInfoId = null; // close info panels when going back
 	}
 
 	function getFacetCountForItem(item) {
@@ -96,6 +99,10 @@
 			return researchFacetMap.get(`${selectedField.id}:${item.id}`) ?? 0;
 		}
 		return 0;
+	}
+
+	function toggleInfo(item) {
+		openInfoId = openInfoId === item.id ? null : item.id;
 	}
 
 	// Compute filtered items reactively without $effect
@@ -198,6 +205,7 @@
 					</button>
 					<button type="button" class="btn btn-link p-0" onclick={resetFilter}>Reset</button>
 				</div>
+
 				<div class="p-3">
 					<div class="input-group mb-3 border-0">
 						<input
@@ -210,32 +218,64 @@
 					</div>
 					<div class="list-group border-0">
 						{#each filteredItems as item (item.id)}
-							<label
-								class={`list-group-item border-0 d-flex align-items-center ${getFacetCountForItem(item) === 0 ? 'text-muted' : ''}`}
-							>
-								<input
-									class="form-check-input me-3"
-									type="checkbox"
-									checked={isSelected(item.id)}
-									onchange={() => toggleFilter(item.id)}
-								/>
+							<div class="d-flex align-items-center justify-content-between">
+								<div>
+									<label
+										class={`list-group-item border-0 d-flex align-items-center ${getFacetCountForItem(item) === 0 ? 'text-muted' : ''}`}
+									>
+										<input
+											class="form-check-input me-3"
+											type="checkbox"
+											checked={isSelected(item.id)}
+											onchange={() => toggleFilter(item.id)}
+										/>
+										{#if selectedField.type === 'vocabulary'}
+											{#if item.main_asset_path}
+												<img
+													src={getAssetUrl({ asset_path: item.main_asset_path })}
+													alt={item.name || 'vocabulary thumbnail'}
+													class="me-3"
+													style="width: 32px; height: 32px; object-fit: cover; border: 1px solid #eee; border-radius: 4px;"
+												/>
+											{:else}
+												<i class="text-secondary bi bi-image ms-2 me-4"></i>
+											{/if}
+										{/if}
+										{item.name}
+										<span class=" badge bg-light text-secondary ms-2"
+											>{getFacetCountForItem(item)}</span
+										>
+									</label>
+								</div>
 								{#if selectedField.type === 'vocabulary'}
+									<div class="research-field-info">
+										<button type="button" class="btn btn-link p-0 text-secondary" aria-label="Info" onclick={() => toggleInfo(item)}>
+											<i class="bi bi-info-circle"></i>
+										</button>
+									</div>
+								{/if}
+							</div>
+
+							{#if selectedField.type === 'vocabulary' && openInfoId === item.id}
+								<div class="research-field-info-panel border rounded p-2 my-2" in:fade={{ duration: 150 }} out:fade={{ duration: 150 }}>
 									{#if item.main_asset_path}
 										<img
 											src={getAssetUrl({ asset_path: item.main_asset_path })}
-											alt={item.name || 'vocabulary thumbnail'}
-											class="me-3"
-											style="width: 32px; height: 32px; object-fit: cover; border: 1px solid #eee; border-radius: 4px;"
+											alt={item.name || 'vocabulary image'}
+											style="width: 100%; max-height: 240px; object-fit: contain; border-radius: 6px;"
 										/>
 									{:else}
-										<i class="text-secondary bi bi-image ms-2 me-4"></i>
+										<div class="d-flex align-items-center justify-content-center bg-light rounded" style="height: 200px;">
+											<i class="bi bi-image text-secondary display-6"></i>
+										</div>
 									{/if}
-								{/if}
-								{item.name}
-								<span class="ms-auto badge bg-light text-secondary"
-									>{getFacetCountForItem(item)}</span
-								>
-							</label>
+									{#if item.description}
+										<p class="mt-2 mb-0 small">{item.description}</p>
+									{:else}
+										<p class="mt-2 mb-0 text-muted small">No description available.</p>
+									{/if}
+								</div>
+							{/if}
 						{/each}
 					</div>
 				</div>

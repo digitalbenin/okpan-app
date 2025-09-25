@@ -153,10 +153,11 @@ export function fetchVocabularies(db, projectId) {
   if (projectId) {
     res = db.exec(
       `
-      SELECT v.*, t.content as name, ga.path as main_asset_path
+      SELECT v.*, t.content as name, dt.content as description, ga.path as main_asset_path
       FROM vocabularies v
       JOIN research_fields rf ON v.field_id = rf.id
       LEFT JOIN texts t ON v.option_id = t.id
+      LEFT JOIN texts dt ON v.description_id = dt.id
       LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id
       WHERE rf.project_id = ?
     `,
@@ -164,7 +165,7 @@ export function fetchVocabularies(db, projectId) {
     );
   } else {
     res = db.exec(
-      'SELECT v.*, t.content as name, ga.path as main_asset_path FROM vocabularies v LEFT JOIN texts t ON v.option_id = t.id LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id'
+      'SELECT v.*, t.content as name, dt.content as description, ga.path as main_asset_path FROM vocabularies v LEFT JOIN texts t ON v.option_id = t.id LEFT JOIN texts dt ON v.description_id = dt.id LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id'
     );
   }
   return results_to_objects(res);
