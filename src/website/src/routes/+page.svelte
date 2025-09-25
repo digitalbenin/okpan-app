@@ -1,6 +1,6 @@
 <script>
 	import Grid from '$lib/components/Grid.svelte';
-	import Sidebar from '$lib/components/Sidebar.svelte';
+
 	import FilterBar from '$lib/components/Filterbar.svelte';
 	import AdvancedFilters from '$lib/components/AdvancedFilters.svelte';
 	import { searchObjects } from '$lib/utils/searchUtils.js';
@@ -69,7 +69,13 @@
 			let fieldName = 'Field';
 			if (tf.kind === 'ontology') fieldName = ontologyFieldById.get(fieldId)?.name ?? fieldName;
 			else fieldName = researchFieldById.get(fieldId)?.name ?? fieldName;
-			chips.push({ key, kind: tf.kind, fieldId, query: tf.query, label: `${fieldName}: "${tf.query}"` });
+			chips.push({
+				key,
+				kind: tf.kind,
+				fieldId,
+				query: tf.query,
+				label: `${fieldName}: "${tf.query}"`
+			});
 		}
 		return chips;
 	});
@@ -138,7 +144,11 @@
 				// incorporate into researchFieldFilters with query
 				researchFieldFilters.push({ fieldId: String(tf.fieldId), query: String(tf.query) });
 			} else if (tf.kind === 'ontology') {
-				textFieldFilters.push({ kind: 'ontology', fieldId: String(tf.fieldId), query: String(tf.query) });
+				textFieldFilters.push({
+					kind: 'ontology',
+					fieldId: String(tf.fieldId),
+					query: String(tf.query)
+				});
 			}
 		}
 
@@ -181,36 +191,31 @@
 	$inspect(data);
 </script>
 
-<div class="container-fluid">
-	<div class="row">
-		<div class="col-2 p-3">
-			<Sidebar project={data.project} />
-		</div>
-		<div class="col-10 p-3 border-start min-vh-100">
-			<h1>Archive</h1>
-			<FilterBar
-				value={searchTerm}
-				onInput={handleInput}
-				{resCount}
-				onFiltersClick={handleFiltersClick}
-				{institutionChips}
-				{vocabularyChips}
-				textChips={textChips}
-				{hasActiveFilters}
-				onRemoveInstitution={removeInstitution}
-				onRemoveVocabulary={removeVocabulary}
-				onRemoveTextFilter={removeTextFilter}
-				onClearAllAdvancedFilters={clearAllAdvancedFilters}
-			/>
+<div class="row">
+	<div class="col-12 p-3 min-vh-100">
+		<h1>Archive</h1>
+		<FilterBar
+			value={searchTerm}
+			onInput={handleInput}
+			{resCount}
+			onFiltersClick={handleFiltersClick}
+			{institutionChips}
+			{vocabularyChips}
+			{textChips}
+			{hasActiveFilters}
+			onRemoveInstitution={removeInstitution}
+			onRemoveVocabulary={removeVocabulary}
+			onRemoveTextFilter={removeTextFilter}
+			onClearAllAdvancedFilters={clearAllAdvancedFilters}
+		/>
 
-			{#if searchResult?.items}
-				<Grid
-					items={searchResult.items}
-					ontology_fields={data.ontology_fields}
-					institutions={data.institutions}
-				/>
-			{/if}
-		</div>
+		{#if searchResult?.items}
+			<Grid
+				items={searchResult.items}
+				ontology_fields={data.ontology_fields}
+				institutions={data.institutions}
+			/>
+		{/if}
 	</div>
 </div>
 

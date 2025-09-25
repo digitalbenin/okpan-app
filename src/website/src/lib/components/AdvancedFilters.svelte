@@ -237,8 +237,16 @@
 	aria-modal="true"
 	aria-labelledby="filters-title"
 >
-	<div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+	<div class="d-flex justify-content-between align-items-center px-3 py-4 border-bottom">
 		<h5 class="m-0" id="filters-title">Filters</h5>
+		<button
+			type="button"
+			class="btn btn-link text-dark text-decoration-none p-0"
+			aria-label="Close filters"
+			onclick={onClose}
+		>
+			<i class="bi bi-x fs-3"></i>
+		</button>
 	</div>
 
 	<div class="flex-grow-1 overflow-auto position-relative">

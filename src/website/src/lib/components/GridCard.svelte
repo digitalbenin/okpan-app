@@ -132,7 +132,12 @@
 		{/if}
 	</div>
 	<div class="card-body">
-		<h5 class="card-title mb-3">{getObjectTitle()}</h5>
+		<h5 class="card-title mb-3">
+			<a
+				class="text-dark text-decoration-none"
+				href={`/${object.id}?project_id=${object.project_id}`}>{getObjectTitle()}</a
+			>
+		</h5>
 
 		<p class="card-text mb-2">
 			<small class="text-muted">Designation</small><br />
