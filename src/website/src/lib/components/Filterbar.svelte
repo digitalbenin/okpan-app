@@ -51,10 +51,10 @@
 		<div class="text-nowrap">
 			{resCount} results
 		</div>
-		<div class="d-flex align-items-center flex-wrap gap-2">
+		<div class="d-flex align-items-center justify-content-end flex-wrap gap-1">
 			{#if hasActiveFilters}
 				{#each institutionChips as chip (chip.id)}
-					<span class="badge bg-secondary text-white d-flex align-items-center px-2">
+					<span class="badge bg-secondary text-white d-flex align-items-center">
 						{chip.label}
 						<button
 							type="button"
@@ -68,7 +68,7 @@
 				{/each}
 
 				{#each vocabularyChips as chip (`${chip.fieldId}:${chip.vocabId}`)}
-					<span class="badge bg-secondary text-white d-inline-flex align-items-center px-2">
+					<span class="badge bg-secondary text-white d-inline-flex align-items-center ps-3">
 						{chip.label}
 						<button
 							type="button"
