@@ -211,7 +211,7 @@
 					class="rounded bg-white border"
 					class:border-primary={i === selectedIndex}
 					class:border-2={i === selectedIndex}
-					style="width: 140px; height: 100px;"
+					style="width: 100px; height: 100px;"
 				>
 					<div class="w-100 h-100 d-flex align-items-center justify-content-center overflow-hidden">
 						<img
