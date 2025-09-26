@@ -86,7 +86,7 @@
 </script>
 
 <div class="card h-100 border-secondary-subtle rounded-3 p-2">
-	<div class="bg-secondary-subtle w-100 position-relative" style="height: 200px; overflow: hidden;">
+	<div class="bg-light w-100 position-relative" style="height: 200px; overflow: hidden;">
 		{#key clampedIndex}
 			<div
 				class="position-absolute top-0 start-0 w-100 h-100"

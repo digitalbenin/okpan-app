@@ -33,6 +33,6 @@
 </div>
 <div class="row mt-4">
 	<div class="col-md-12">
-		<ObjectInstitutionData {objectOntologyFields} {ontologyFields} {datasources} />
+		<ObjectInstitutionData {objectOntologyFields} {ontologyFields} {datasources} {institution} />
 	</div>
 </div>

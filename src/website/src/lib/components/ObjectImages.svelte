@@ -209,15 +209,17 @@
 			>
 				<div
 					class="rounded bg-white border"
-					class:border-primary={i === selectedIndex}
+					class:border-secondary={i === selectedIndex}
 					class:border-2={i === selectedIndex}
 					style="width: 100px; height: 100px;"
 				>
-					<div class="w-100 h-100 d-flex align-items-center justify-content-center overflow-hidden">
+					<div
+						class="w-100 h-100 d-flex align-items-center justify-content-center overflow-hidden bg-light"
+					>
 						<img
 							src={getFormatUrl(a, 'sm')}
 							alt={a.asset_filename || `image ${i + 1}`}
-							style="width: 100%; height: 100%; object-fit: cover;"
+							style="width: 100%; height: 100%; object-fit: contain;"
 						/>
 					</div>
 				</div>

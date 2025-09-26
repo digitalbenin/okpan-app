@@ -107,12 +107,31 @@ export function fetchInstitutions(db, projectId) {
   let res;
   if (projectId) {
     res = db.exec(
-      'SELECT i.*, t.content as name FROM institutions i LEFT JOIN texts t ON i.name_id = t.id WHERE i.project_id = ?',
+      `SELECT i.*, 
+              name_txt.content as name,
+              desc_txt.content as description,
+              country_txt.content as country,
+              loc_txt.content as location
+       FROM institutions i 
+       LEFT JOIN texts name_txt ON i.name_id = name_txt.id
+       LEFT JOIN texts desc_txt ON i.description_id = desc_txt.id
+       LEFT JOIN texts country_txt ON i.country_id = country_txt.id
+       LEFT JOIN texts loc_txt ON i.location_id = loc_txt.id
+       WHERE i.project_id = ?`,
       [projectId]
     );
   } else {
     res = db.exec(
-      'SELECT i.*, t.content as name FROM institutions i LEFT JOIN texts t ON i.name_id = t.id'
+      `SELECT i.*, 
+              name_txt.content as name,
+              desc_txt.content as description,
+              country_txt.content as country,
+              loc_txt.content as location
+       FROM institutions i 
+       LEFT JOIN texts name_txt ON i.name_id = name_txt.id
+       LEFT JOIN texts desc_txt ON i.description_id = desc_txt.id
+       LEFT JOIN texts country_txt ON i.country_id = country_txt.id
+       LEFT JOIN texts loc_txt ON i.location_id = loc_txt.id`
     );
   }
   return results_to_objects(res);
