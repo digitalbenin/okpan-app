@@ -4,7 +4,6 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 
 	let { children, data } = $props();
-	$inspect(data);
 </script>
 
 <svelte:head></svelte:head>
