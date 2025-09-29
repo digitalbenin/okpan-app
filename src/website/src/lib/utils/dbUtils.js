@@ -156,12 +156,19 @@ export function fetchResearchFields(db, projectId) {
   let res;
   if (projectId) {
     res = db.exec(
-      'SELECT r.*, t.content as name FROM research_fields r LEFT JOIN texts t ON r.name_id = t.id WHERE r.project_id = ?',
+      `SELECT r.*, name_txt.content as name, desc_txt.content as description
+       FROM research_fields r 
+       LEFT JOIN texts name_txt ON r.name_id = name_txt.id
+       LEFT JOIN texts desc_txt ON r.description_id = desc_txt.id
+       WHERE r.project_id = ?`,
       [projectId]
     );
   } else {
     res = db.exec(
-      'SELECT r.*, t.content as name FROM research_fields r LEFT JOIN texts t ON r.name_id = t.id'
+      `SELECT r.*, name_txt.content as name, desc_txt.content as description
+       FROM research_fields r 
+       LEFT JOIN texts name_txt ON r.name_id = name_txt.id
+       LEFT JOIN texts desc_txt ON r.description_id = desc_txt.id`
     );
   }
   return results_to_objects(res);

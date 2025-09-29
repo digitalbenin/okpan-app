@@ -175,6 +175,17 @@ protocol.registerSchemesAsPrivileged([
       corsEnabled: true,
       stream: true
     }
+  },
+  {
+    scheme: 'website',
+    privileges: {
+      secure: true,
+      standard: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+      corsEnabled: true,
+      stream: true
+    }
   }
 ]);
 
@@ -266,6 +277,32 @@ app.whenReady().then(() => {
       }
     } catch (error) {
       console.error('Media protocol error:', error);
+      callback({ error: -2 });
+    }
+  });
+
+  // Serve SPA build via custom website:// protocol
+  protocol.registerFileProtocol('website', (request, callback) => {
+    try {
+      const url = new URL(request.url);
+      const pathname = decodeURIComponent(url.pathname).replace(/^\//, '');
+      const buildDir = path.join(process.cwd(), 'src', 'website', 'build');
+
+      let filePath;
+      if (!pathname || pathname === '' || pathname === '200.html') {
+        filePath = path.join(buildDir, '200.html');
+      } else {
+        filePath = path.join(buildDir, pathname);
+      }
+
+      if (fs.existsSync(filePath)) {
+        callback({ path: filePath });
+      } else {
+        // Fallback to 200.html for client-side routing
+        callback({ path: path.join(buildDir, '200.html') });
+      }
+    } catch (error) {
+      console.error('Website protocol error:', error);
       callback({ error: -2 });
     }
   });
