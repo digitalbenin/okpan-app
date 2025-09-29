@@ -296,6 +296,11 @@
   resolved "https://registry.yarnpkg.com/@sveltejs/adapter-auto/-/adapter-auto-6.1.0.tgz#614955b8a447eb92dac910cd1db245b82da4fb91"
   integrity sha512-shOuLI5D2s+0zTv2ab5M5PqfknXqWbKi+0UwB9yLTRIdzsK1R93JOO8jNhIYSHdW+IYXIYnLniu+JZqXs7h9Wg==
 
+"@sveltejs/adapter-static@^3.0.9":
+  version "3.0.9"
+  resolved "https://registry.yarnpkg.com/@sveltejs/adapter-static/-/adapter-static-3.0.9.tgz#f31e4c8e54a08598e88eca9d7ebd864e9f4080dc"
+  integrity sha512-aytHXcMi7lb9ljsWUzXYQ0p5X1z9oWud2olu/EpmH7aCu4m84h7QLvb5Wp+CFirKcwoNnYvYWhyP/L8Vh1ztdw==
+
 "@sveltejs/kit@^2.22.0":
   version "2.42.2"
   resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-2.42.2.tgz#bc6316fbe884798ae36854f35f228f5ef1eddf57"

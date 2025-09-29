@@ -199,32 +199,34 @@
 	</div>
 
 	<!-- Thumbnails strip -->
-	<div class="d-flex gap-3 overflow-auto pb-2">
-		{#each items as a, i}
-			<button
-				type="button"
-				onclick={() => setIndex(i)}
-				class="p-0 border-0 bg-transparent flex-shrink-0"
-				aria-label={`Select image ${i + 1}`}
-			>
-				<div
-					class="rounded bg-white border"
-					class:border-secondary={i === selectedIndex}
-					class:border-2={i === selectedIndex}
-					style="width: 100px; height: 100px;"
+	<div class="position-relative fade-right">
+		<div class="d-flex gap-3 overflow-auto pb-2 pe-5">
+			{#each items as a, i}
+				<button
+					type="button"
+					onclick={() => setIndex(i)}
+					class="p-0 border-0 bg-transparent flex-shrink-0"
+					aria-label={`Select image ${i + 1}`}
 				>
 					<div
-						class="w-100 h-100 d-flex align-items-center justify-content-center overflow-hidden bg-light"
+						class="rounded bg-white border"
+						class:border-secondary={i === selectedIndex}
+						class:border-2={i === selectedIndex}
+						style="width: 100px; height: 100px;"
 					>
-						<img
-							src={getFormatUrl(a, 'sm')}
-							alt={a.asset_filename || `image ${i + 1}`}
-							style="width: 100%; height: 100%; object-fit: contain;"
-						/>
+						<div
+							class="w-100 h-100 d-flex align-items-center justify-content-center overflow-hidden bg-light"
+						>
+							<img
+								src={getFormatUrl(a, 'sm')}
+								alt={a.asset_filename || `image ${i + 1}`}
+								style="width: 100%; height: 100%; object-fit: contain;"
+							/>
+						</div>
 					</div>
-				</div>
-			</button>
-		{/each}
+				</button>
+			{/each}
+		</div>
 	</div>
 </div>
 
@@ -277,3 +279,22 @@
 	<!-- Modal backdrop click -->
 	<div class="modal-backdrop fade show"></div>
 {/if}
+
+<style>
+	/* Right-end gradient overlay indicating horizontal overflow */
+	.fade-right::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 40px;
+		height: 100%;
+		pointer-events: none;
+		z-index: 1;
+		background: linear-gradient(to left, rgba(255, 255, 255, 0.9) 10%, rgba(255, 255, 255, 0));
+	}
+	/* Ensure the overlay sits above scrollbar content if present */
+	.fade-right {
+		overflow: auto;
+	}
+</style>

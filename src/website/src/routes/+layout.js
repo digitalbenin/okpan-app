@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+export const ssr = false;
 import { getDb, fetchInstitutions, fetchOntologyFields, fetchResearchFields, fetchVocabularies, fetchProject } from '$lib/utils/dbUtils.js';
 
 /** @type {import('./$types').LayoutLoad} */
