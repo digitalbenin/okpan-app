@@ -31,14 +31,14 @@
 			/>
 		</div>
 		<div class="d-flex flex-row gap-3">
-			<div class="ms-2 d-flex align-items-center">
+			<!--<div class="ms-2 d-flex align-items-center">
 				<span class="pe-2 text-nowrap">Sort by</span>
 				<select class="form-select border-0 outline-0">
 					<option selected>Sort by...</option>
 					<option value="1">Name</option>
 					<option value="2">Date</option>
 				</select>
-			</div>
+			</div> -->
 			<div class="ms-2">
 				<button class="btn btn-link text-dark text-decoration-none" onclick={onFiltersClick}>
 					Filters
@@ -50,8 +50,8 @@
 </div>
 <div class="row">
 	<div class="my-3 d-flex justify-content-between align-items-center">
-		<div class="text-nowrap">
-			{resCount} results
+		<div class="d-flex align-items-center gap-3 text-nowrap">
+			<span>{resCount} results</span>
 		</div>
 		<div class="d-flex align-items-center justify-content-end flex-wrap gap-1">
 			{#if hasActiveFilters}

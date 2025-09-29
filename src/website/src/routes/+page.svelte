@@ -2,10 +2,10 @@
 	import Grid from '$lib/components/Grid.svelte';
 
 	import FilterBar from '$lib/components/Filterbar.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 	import AdvancedFilters from '$lib/components/AdvancedFilters.svelte';
 	import { searchObjects } from '$lib/utils/searchUtils.js';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 
 	let { data } = $props();
 
@@ -13,6 +13,12 @@
 	let advancedFilters = $state({});
 	let searchResult = $state(data.searchResult);
 	let resCount = $derived(searchResult?.totalCount || 0);
+	let currentPage = $state(data.queryParams.page || 1);
+	let pageSize = $state(data.queryParams.pageSize || (searchResult?.pageSize ?? 25));
+	const pageCount = $derived.by(() => {
+		const total = searchResult?.totalCount || 0;
+		return Math.max(1, Math.ceil(total / (pageSize || 1)));
+	});
 	let showAdvancedFilters = $state(false);
 	let researchFields = data.research_fields;
 	let ontologyFields = data.ontology_fields;
@@ -88,6 +94,10 @@
 		const idx = arr.indexOf(id);
 		if (idx > -1) arr.splice(idx, 1);
 		if (arr.length === 0) delete advancedFilters.institutions;
+		currentPage = 1;
+		const newUrl = new URL($page.url);
+		newUrl.searchParams.set('page', String(currentPage));
+		history.replaceState(null, '', newUrl);
 		runSearch();
 	}
 	function removeVocabulary(fieldId, vocabId) {
@@ -95,6 +105,10 @@
 		const idx = arr.indexOf(vocabId);
 		if (idx > -1) arr.splice(idx, 1);
 		if (arr.length === 0) delete advancedFilters[fieldId];
+		currentPage = 1;
+		const newUrl = new URL($page.url);
+		newUrl.searchParams.set('page', String(currentPage));
+		history.replaceState(null, '', newUrl);
 		runSearch();
 	}
 	function removeTextFilter(key) {
@@ -102,10 +116,18 @@
 		const idx = arr.findIndex((tf) => `${tf.kind}:${String(tf.fieldId)}:${tf.query}` === key);
 		if (idx > -1) arr.splice(idx, 1);
 		if (arr.length === 0) delete advancedFilters.__textFilters;
+		currentPage = 1;
+		const newUrl = new URL($page.url);
+		newUrl.searchParams.set('page', String(currentPage));
+		history.replaceState(null, '', newUrl);
 		runSearch();
 	}
 	function clearAllAdvancedFilters() {
 		advancedFilters = {};
+		currentPage = 1;
+		const newUrl = new URL($page.url);
+		newUrl.searchParams.set('page', String(currentPage));
+		history.replaceState(null, '', newUrl);
 		runSearch();
 	}
 
@@ -115,8 +137,8 @@
 		const options = {
 			q: (searchTerm ?? '').trim(),
 			project_id: qp.projectId || null,
-			page: qp.page,
-			limit: qp.pageSize,
+			page: currentPage,
+			pageSize: pageSize,
 			orderBy: qp.orderBy,
 			direction: qp.direction // 'asc' | 'desc'
 		};
@@ -170,10 +192,23 @@
 
 	async function handleInput(event) {
 		searchTerm = event.target.value;
+		currentPage = 1; // reset to first page on new search
 		const newUrl = new URL($page.url);
 		newUrl.searchParams.set('q', searchTerm);
-		goto(newUrl, { replaceState: true, keepFocus: true, noScroll: true });
+		newUrl.searchParams.set('page', String(currentPage));
+		history.replaceState(null, '', newUrl);
 		await runSearch();
+	}
+
+	function onPageChange(nextPage) {
+		if (!Number.isFinite(nextPage)) return;
+		if (nextPage < 1) return;
+		if (nextPage > pageCount) return;
+		currentPage = nextPage;
+		const newUrl = new URL($page.url);
+		newUrl.searchParams.set('page', String(currentPage));
+		history.replaceState(null, '', newUrl);
+		runSearch();
 	}
 
 	function handleFiltersClick() {
@@ -181,6 +216,10 @@
 	}
 
 	function onFiltersChange() {
+		currentPage = 1;
+		const newUrl = new URL($page.url);
+		newUrl.searchParams.set('page', String(currentPage));
+		history.replaceState(null, '', newUrl);
 		runSearch();
 	}
 
@@ -209,12 +248,15 @@
 			onClearAllAdvancedFilters={clearAllAdvancedFilters}
 		/>
 
-		{#if searchResult?.items}
-			<Grid
-				items={searchResult.items}
-				ontology_fields={data.ontology_fields}
-				institutions={data.institutions}
-			/>
+		<Grid
+			items={searchResult?.items || []}
+			ontology_fields={data.ontology_fields}
+			institutions={data.institutions}
+		/>
+		{#if pageCount > 1}
+			<div class="mt-3">
+				<Pagination page={currentPage} {pageCount} {onPageChange} size="sm" />
+			</div>
 		{/if}
 	</div>
 </div>

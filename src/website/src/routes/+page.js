@@ -7,7 +7,7 @@ export async function load({ url }) {
 		projectId: url.searchParams.get('project_id'),
 		q: url.searchParams.get('q') || '',
 		page: parseInt(url.searchParams.get('page') || '1'),
-		pageSize: parseInt(url.searchParams.get('pageSize') || '10'),
+		pageSize: parseInt(url.searchParams.get('pageSize') || url.searchParams.get('limit') || '10'),
 		institutionIds: url.searchParams.getAll('institutionId'),
 		orderBy: url.searchParams.get('orderBy') || 'created_at',
 		direction: url.searchParams.get('direction') || 'desc'
@@ -27,11 +27,11 @@ export async function load({ url }) {
 	}
 
 	const searchResult = await searchObjects({
-		projectId: queryParams.projectId,
+		project_id: queryParams.projectId,
 		q: queryParams.q,
 		page: queryParams.page,
 		pageSize: queryParams.pageSize,
-		institutionIds: queryParams.institutionIds,
+		institution_ids: queryParams.institutionIds,
 		orderBy: queryParams.orderBy,
 		direction: queryParams.direction
 	});

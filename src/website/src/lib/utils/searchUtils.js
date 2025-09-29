@@ -8,7 +8,7 @@ import { getDb, getResults, parseJsonFields, getParamsWithout } from '$lib/utils
  * @param {object} options - The search parameters.
  * @param {string} [options.q] - Full-text search query.
  * @param {string|string[]} [options.institution_ids] - IDs of institutions to filter by.
- * @param {number} [options.limit=25] - The number of items to return per page.
+ * @param {number} [options.pageSize=25] - The number of items to return per page.
  * @param {number} [options.page=0] - The page number for pagination.
  * @param {string} [options.project_id] - The ID of the project to scope the search to.
  * @param {string[]} [options.ontologyFieldIds] - Optional list of ontology field IDs to search in.
@@ -41,9 +41,14 @@ export async function searchObjects(options = {}) {
     institutionIds = institutionIds.split(',').filter(Boolean);
   }
   // status filter removed
-  const limit = Number.isFinite(options.limit) ? options.limit : 25;
+  // Prefer pageSize; accept legacy "limit" for backward compatibility
+  const pageSize = Number.isFinite(options.pageSize)
+    ? options.pageSize
+    : Number.isFinite(options.limit)
+    ? options.limit
+    : 25;
   const page = Number.isFinite(options.page) ? options.page : 1;
-  const offset = (page > 0 ? page - 1 : 0) * limit;
+  const offset = (page > 0 ? page - 1 : 0) * pageSize;
   const projectId = options.project_id ?? null;
   const ontologyFieldIds = options.ontologyFieldIds ?? [];
   const researchFieldFilters = options.researchFieldFilters ?? [];
@@ -201,7 +206,7 @@ export async function searchObjects(options = {}) {
     ORDER BY o.${orderBy} ${direction}
     LIMIT ? OFFSET ?
   `;
-  const mainQueryParams = [...params, limit, offset];
+  const mainQueryParams = [...params, pageSize, offset];
   const mainStmt = db.prepare(mainQuerySql);
   mainStmt.bind(mainQueryParams);
   let items = getResults(mainStmt); // getResults also frees the statement
@@ -294,5 +299,5 @@ export async function searchObjects(options = {}) {
   facets.research_fields = getResults(researchStmt);
 
   // 7. Return final structured response
-  return { items, totalCount, page, pageSize: limit, facets };
+  return { items, totalCount, page, pageSize, facets };
 }
