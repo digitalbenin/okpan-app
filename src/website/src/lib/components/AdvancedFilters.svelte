@@ -230,12 +230,12 @@
 
 <!-- Side Menu -->
 <div
-	class="position-fixed top-0 end-0 vh-100 bg-white shadow d-flex flex-column"
-	style="width: 450px; max-width: 100vw; z-index: 1050;"
-	transition:fly={{ x: 350, duration: 300 }}
-	role="dialog"
-	aria-modal="true"
-	aria-labelledby="filters-title"
+    class="position-fixed top-0 end-0 vh-100 bg-white shadow d-flex flex-column"
+    style="width: min(100%, 450px); max-width: 100%; z-index: 1050;"
+    transition:fly={{ x: 350, duration: 300 }}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="filters-title"
 >
 	<div class="d-flex justify-content-between align-items-center px-3 py-4 border-bottom">
 		<h5 class="m-0" id="filters-title">Filters</h5>

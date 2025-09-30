@@ -40,6 +40,10 @@
   function goTo(p) {
     if (!onPageChange) return;
     onPageChange(p);
+    // Scroll to top after changing page
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 </script>
 
