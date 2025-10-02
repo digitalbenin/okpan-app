@@ -9,7 +9,7 @@
     pageSize: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 2,
+      defaultValue: 25,
     },
     oPage: {
       encode: (value) => value.toString(),

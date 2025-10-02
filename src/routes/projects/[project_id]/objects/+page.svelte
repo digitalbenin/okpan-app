@@ -19,7 +19,7 @@
     pageSize: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 2,
+      defaultValue: 25,
     },
     page: {
       encode: (value) => value.toString(),
@@ -112,7 +112,10 @@
   }
   async function applyBulkStatus() {
     if (!bulkStatusValue || selectedObjects.length === 0) return;
-    const { errors } = await updateObjectsStatusBulk(selectedObjects, bulkStatusValue);
+    const { errors } = await updateObjectsStatusBulk(
+      selectedObjects,
+      bulkStatusValue,
+    );
     if (errors && errors.length) {
       console.error("Bulk status update had errors:", errors);
     }
@@ -162,9 +165,21 @@
             bind:value={bulkStatusValue}
             onchange={applyBulkStatus}
           >
-            <option value="" disabled>{t("common.change-status", { fallback: "Change status" })}</option>
-            <option value="completed">{t("common.mark-as-completed", { fallback: "Mark as completed" })}</option>
-            <option value="in progress">{t("common.mark-as-in-progress", { fallback: "Mark as in progress" })}</option>
+            <option value="" disabled
+              >{t("common.change-status", {
+                fallback: "Change status",
+              })}</option
+            >
+            <option value="completed"
+              >{t("common.mark-as-completed", {
+                fallback: "Mark as completed",
+              })}</option
+            >
+            <option value="in progress"
+              >{t("common.mark-as-in-progress", {
+                fallback: "Mark as in progress",
+              })}</option
+            >
           </select>
           <button class="btn btn-primary btn-sm">
             <i class="bi bi-pencil"></i>

@@ -3,7 +3,6 @@
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import BaseSelectNew from "../../../../lib/components/base/BaseSelectNew.svelte";
   import InstitutionsGrid from "$lib/components/institutions/InstitutionsGrid.svelte";
 
   const { t } = getTranslationStore();
@@ -17,7 +16,7 @@
     pageSize: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 2,
+      defaultValue: 25,
     },
     orderBy: {
       encode: (value) => value,
