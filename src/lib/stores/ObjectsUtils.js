@@ -137,11 +137,51 @@ export const updateObjectStatus = async (objectId, status) => {
     // Invalidate caches to ensure UI reflects status changes immediately
     invalidate("app:objects");
     invalidate("custom:object");
+    // Also invalidate institution-specific listings so institution pages refresh
+    invalidate("app:institution");
 
     return {
         result: resultData || { id: objectId, status: status },
         error: null
     };
+};
+
+// Bulk update objects status
+export const updateObjectsStatusBulk = async (objectIds, status) => {
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { error: "No objects selected for status update" };
+    }
+    if (!status) {
+        return { error: "No status provided for bulk update" };
+    }
+
+    const promises = objectIds.map((objectId) =>
+        executeQuery('objects', 'update', { objectId, status })
+    );
+
+    const settled = await Promise.allSettled(promises);
+    const successes = [];
+    const errors = [];
+
+    settled.forEach((res, idx) => {
+        const id = objectIds[idx];
+        if (res.status === 'fulfilled' && !res.value?.error) {
+            successes.push(id);
+        } else {
+            const errMsg = res.status === 'rejected'
+                ? (res.reason?.message || 'Unknown error')
+                : (res.value?.error || 'Unknown error');
+            errors.push({ objectId: id, error: errMsg });
+        }
+    });
+
+    // Invalidate caches so listings and detail pages reflect status changes
+    invalidate("app:objects");
+    invalidate("custom:object");
+    // Also invalidate institution listings used by institution page loaders
+    invalidate("app:institution");
+
+    return { successes, errors };
 };
 
 // Add: Function to update object's institution

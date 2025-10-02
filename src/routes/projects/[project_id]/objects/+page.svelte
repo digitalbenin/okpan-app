@@ -5,13 +5,11 @@
   import ObjectCard from "$lib/components/objects/ObjectCard.svelte";
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
-  import BaseModal from "$lib/components/base/BaseModal.svelte";
-  import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import { fly } from "svelte/transition";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { queryParameters, ssp } from "sveltekit-search-params";
-  import { deleteObjectsBulk } from "$lib/stores/ObjectsUtils.js";
+  import { updateObjectsStatusBulk } from "$lib/stores/ObjectsUtils.js";
 
   const { t } = getTranslationStore();
 
@@ -48,6 +46,7 @@
 
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
+  let bulkStatusValue = $state("");
 
   // Modal state
   let showBulkDeleteModal = $state(false);
@@ -111,6 +110,15 @@
   function handleDeleted() {
     selectedObjects = [];
   }
+  async function applyBulkStatus() {
+    if (!bulkStatusValue || selectedObjects.length === 0) return;
+    const { errors } = await updateObjectsStatusBulk(selectedObjects, bulkStatusValue);
+    if (errors && errors.length) {
+      console.error("Bulk status update had errors:", errors);
+    }
+    selectedObjects = [];
+    bulkStatusValue = "";
+  }
   $inspect(data);
 </script>
 
@@ -149,11 +157,15 @@
               fallback: "Move objects",
             })}
           </button>
-          <button class="btn btn-primary btn-sm">
-            {t("common.change-status", {
-              fallback: "Change status",
-            })}
-          </button>
+          <select
+            class="form-select form-select-sm d-inline-block w-auto"
+            bind:value={bulkStatusValue}
+            onchange={applyBulkStatus}
+          >
+            <option value="" disabled>{t("common.change-status", { fallback: "Change status" })}</option>
+            <option value="completed">{t("common.mark-as-completed", { fallback: "Mark as completed" })}</option>
+            <option value="in progress">{t("common.mark-as-in-progress", { fallback: "Mark as in progress" })}</option>
+          </select>
           <button class="btn btn-primary btn-sm">
             <i class="bi bi-pencil"></i>
             {t("common.edit-information", {
