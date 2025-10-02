@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 export const ssr = false;
-import { getDb, fetchInstitutions, fetchOntologyFields, fetchResearchFields, fetchVocabularies, fetchProject } from '$lib/utils/dbUtils.js';
+import { getDb, fetchInstitutions, fetchOntologyFields, fetchResearchFields, fetchVocabularies, fetchProject, fetchWebsiteSettings } from '$lib/utils/dbUtils.js';
 
 /** @type {import('./$types').LayoutLoad} */
 export async function load({ url }) {
@@ -17,12 +17,14 @@ export async function load({ url }) {
   const research_fields = fetchResearchFields(db, projectId);
   const vocabularies = fetchVocabularies(db, projectId);
   const project = fetchProject(db, projectId);
+  const settings = fetchWebsiteSettings(db, projectId);
 
   return {
     institutions,
     ontology_fields,
     research_fields,
     vocabularies,
-    project
+    project,
+    settings
   };
 }

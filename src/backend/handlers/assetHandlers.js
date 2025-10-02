@@ -115,7 +115,7 @@ const handleImportAssets = async (event, data) => {
                 percent: totalFiles > 0 ? getProgress(importedFilePaths.length, totalFiles) : 0,
                 files: [...importedFilePaths]
             });
-        } catch {}
+        } catch { }
     };
 
     // Notify renderer that import started
@@ -126,7 +126,7 @@ const handleImportAssets = async (event, data) => {
             processed: 0,
             percent: 0
         });
-    } catch {}
+    } catch { }
 
     for (const filePath of filesToProcess) {
         try {
@@ -159,7 +159,7 @@ const handleImportAssets = async (event, data) => {
             files: [...importedFilePaths],
             errorsCount: errors.length
         });
-    } catch {}
+    } catch { }
 
     return {
         errors,

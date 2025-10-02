@@ -46,7 +46,8 @@
         languageId: defaultLanguage?.id || "",
         titleTranslations: [],
         aboutTranslations: [],
-        logoFile: null,
+        // Prefill logo file with existing generic asset (for preview and no-change)
+        logoFile: websiteSettings?.logo || null,
       };
       // Prefill secondary language translation inputs for title and about
       try {
@@ -94,7 +95,7 @@
   // Submit handler: transforms boolean showUnmapped -> Int and calls proper util
   async function onSubmitForm({ value }) {
     try {
-      console.log("[WebsiteSettingsForm] Submit value:", value);
+      
       const payloadBase = {
         title: value.title?.trim() || "",
         about: value.about?.trim() || "",
@@ -105,17 +106,12 @@
         // Include logo file in payload when present
         logoFile: value.logoFile || null,
       };
-      console.log("[WebsiteSettingsForm] payloadBase:", payloadBase);
-      try {
-        $inspect("WebsiteSettingsForm payloadBase", payloadBase);
-      } catch {}
+      
+      
 
       // Build translation arrays from multilingual AutoForm inputs
       const secondaryLanguages = (languages || []).filter((l) => !l.is_default);
-      console.log("[WebsiteSettingsForm] languages info", {
-        defaultLanguage,
-        secondaryLanguages,
-      });
+      
       const titleTranslations = [];
       const aboutTranslations = [];
       const existingTitleByLang = new Map(
@@ -130,10 +126,7 @@
           t,
         ]),
       );
-      console.log("[WebsiteSettingsForm] existing translations maps", {
-        titleKeys: Array.from(existingTitleByLang.keys()),
-        aboutKeys: Array.from(existingAboutByLang.keys()),
-      });
+      
 
       for (const lang of secondaryLanguages) {
         const tKey = `translations_${lang.id}_title`;
@@ -159,11 +152,7 @@
         }
       }
 
-      console.log(
-        `[WS] built tTr=${titleTranslations.length} aTr=${aboutTranslations.length} langs=${secondaryLanguages
-          .map((l) => l.code)
-          .join(",")}`,
-      );
+      
 
       if (!isEditMode) {
         const createPayload = {
@@ -178,13 +167,8 @@
             ? { aboutTranslations }
             : {}),
         };
-        console.log(
-          `[WS] submit create includeTitleTr=${titleTranslations.length > 0} includeAboutTr=${aboutTranslations.length > 0}`,
-        );
+        
         const res = await createWebsiteSettings(createPayload);
-        console.log(
-          `[WS] create ok=${!(res && res.error)} err=${res?.error ? String(res.error).slice(0, 120) : "none"}`,
-        );
         if (res?.error) throw res.error;
         onSuccess?.(res?.result?.[0] || null);
       } else {
@@ -199,13 +183,8 @@
             ? { aboutTranslations }
             : {}),
         };
-        console.log(
-          `[WS] submit update includeTitleTr=${titleTranslations.length > 0} includeAboutTr=${aboutTranslations.length > 0}`,
-        );
+        
         const res = await updateWebsiteSettings(updatePayload);
-        console.log(
-          `[WS] update ok=${!(res && res.error)} err=${res?.error ? String(res.error).slice(0, 120) : "none"}`,
-        );
         if (res?.error) throw res.error;
         // Prefer updated settings from response to refresh UI (includes nested translations)
         onSuccess?.(res?.websiteSettings?.[0] || websiteSettings || null);
@@ -235,6 +214,8 @@
     languageId: { hidden: true },
     titleTranslations: { hidden: true },
     aboutTranslations: { hidden: true },
+    // Hide technical logoId input if present in validator schema
+    logoId: { hidden: true },
     logoFile: {
       label: t("common.logo", { fallback: "Website Logo" }),
       renderer: FileUpload,
@@ -263,24 +244,24 @@
     authors: {
       label: t("common.authors", { fallback: "Authors" }),
       colSize: 12,
+      hidden: true,
     },
     subfolderPath: {
       label: t("common.subfolder-path", { fallback: "Subfolder Path" }),
       colSize: 12,
+      hidden: true,
     },
     showUnmapped: {
       label: t("common.show-unmapped", { fallback: "Show Unmapped Objects" }),
       type: "checkbox",
       colSize: 12,
+      hidden: true,
     },
   });
 
   const fieldOrder = $derived([
     "title",
     "about",
-    "authors",
-    "subfolderPath",
-    "showUnmapped",
     "logoFile",
   ]);
 
@@ -295,6 +276,7 @@
 </script>
 
 <form
+  class="d-flex flex-column min-vh-100"
   onsubmit={(e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -323,9 +305,9 @@
       </div>
     </div>
   </div>
-
+  
   <div
-    class="position-absolute bottom-0 start-0 w-100 bg-light z-1 p-3 d-flex justify-content-end"
+    class="position-sticky bottom-0 start-0 w-100 bg-white p-3 d-flex justify-content-end border-top mt-auto"
   >
     <BaseButton
       type="submit"

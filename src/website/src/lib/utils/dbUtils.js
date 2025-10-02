@@ -214,3 +214,47 @@ export function fetchProject(db, projectId) {
   const arr = results_to_objects(res);
   return arr[0] || {};
 }
+
+/**
+ * Fetch website settings for a project, including resolved title/about and logo path.
+ * Returns a single row or null if none exist.
+ * @param {import('sql.js').Database} db
+ * @param {string|null} projectId
+ * @returns {Object|null}
+ */
+export function fetchWebsiteSettings(db, projectId) {
+  let res;
+  if (projectId) {
+    res = db.exec(
+      `
+      SELECT ws.*,
+             tt.content AS title,
+             at.content AS about,
+             ga.path AS logo_asset_path
+      FROM website_settings ws
+      LEFT JOIN texts tt ON ws.title_id = tt.id
+      LEFT JOIN texts at ON ws.about_id = at.id
+      LEFT JOIN generic_assets ga ON ws.logo_id = ga.id
+      WHERE ws.project_id = ?
+      LIMIT 1
+    `,
+      [projectId]
+    );
+  } else {
+    res = db.exec(
+      `
+      SELECT ws.*,
+             tt.content AS title,
+             at.content AS about,
+             ga.path AS logo_asset_path
+      FROM website_settings ws
+      LEFT JOIN texts tt ON ws.title_id = tt.id
+      LEFT JOIN texts at ON ws.about_id = at.id
+      LEFT JOIN generic_assets ga ON ws.logo_id = ga.id
+      LIMIT 1
+    `
+    );
+  }
+  const arr = results_to_objects(res);
+  return arr[0] || null;
+}

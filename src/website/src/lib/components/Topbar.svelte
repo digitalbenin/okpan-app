@@ -1,10 +1,14 @@
 <script>
-	let { project } = $props();
-	let expanded = $state(false);
+    import { getAssetUrl } from '$lib/utils/imgUtils.js';
+    let { project, settings } = $props();
+    let expanded = $state(false);
 
-	function toggle() {
-		expanded = !expanded;
-	}
+    const titleText = $derived.by(() => settings?.title || project?.name || 'Untitled Project');
+    const logoUrl = $derived.by(() => (settings?.logo_asset_path ? getAssetUrl({ asset_path: settings.logo_asset_path }) : ''));
+
+    function toggle() {
+        expanded = !expanded;
+    }
 </script>
 
 {#if !expanded}
@@ -15,22 +19,26 @@
 		role="banner"
 	>
 		<!-- Left: image/icon -->
-		<div
-			class="d-flex align-items-center justify-content-center bg-light rounded flex-shrink-0"
-			style="width: 48px; height: 48px;"
-		>
-			<i class="bi bi-image text-secondary opacity-50 fs-3"></i>
-		</div>
+        <div
+            class="d-flex align-items-center justify-content-center bg-light rounded flex-shrink-0"
+            style="width: 48px; height: 48px;"
+        >
+            {#if logoUrl}
+                <img src={logoUrl} alt={titleText} style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+            {:else}
+                <i class="bi bi-image text-secondary opacity-50 fs-3"></i>
+            {/if}
+        </div>
 
 		<!-- Center: title (ellipsed) -->
 		<div class="flex-grow-1 text-center px-2" style="overflow: hidden;">
-			<div
-				class="h5 mb-0 text-truncate"
-				style="white-space: nowrap;"
-				title={project?.name || 'Untitled Project'}
-			>
-				{project?.name || 'Untitled Project'}
-			</div>
+            <div
+                class="h5 mb-0 text-truncate"
+                style="white-space: nowrap;"
+                title={titleText}
+            >
+                {titleText}
+            </div>
 		</div>
 
 		<!-- Right: expand button -->
@@ -45,18 +53,22 @@
 	<div class="border-bottom bg-white px-3 pb-3 pt-2">
 		<div class="d-flex justify-content-end"></div>
 		<div class="d-flex align-items-start justify-content-between gap-3">
-			<div
-				class="d-flex align-items-center justify-content-center bg-light rounded p-4"
-				style="width: 96px; height: 96px;"
-			>
-				<i class="bi bi-image text-secondary opacity-50 display-4"></i>
-			</div>
+            <div
+                class="d-flex align-items-center justify-content-center bg-light rounded p-4"
+                style="width: 96px; height: 96px;"
+            >
+                {#if logoUrl}
+                    <img src={logoUrl} alt={titleText} style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                {:else}
+                    <i class="bi bi-image text-secondary opacity-50 display-4"></i>
+                {/if}
+            </div>
 			<button class="btn btn-light" aria-label="Collapse" onclick={toggle}>
 				<i class="bi bi-chevron-up"></i>
 			</button>
 		</div>
 		<div class="mt-3">
-			<h1 class="mb-3">{project?.name || 'Untitled Project'}</h1>
+            <h1 class="mb-3">{titleText}</h1>
 			<p>{project?.description || ''}</p>
 		</div>
 	</div>

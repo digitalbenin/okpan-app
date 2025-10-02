@@ -5,23 +5,6 @@ import { invalidate } from "$app/navigation";
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
-function logTranslationStep(stepName, stepObj) {
-    try {
-        const processed = stepObj?.processedCount ?? 0;
-        const errCount = Array.isArray(stepObj?.errors) ? stepObj.errors.length : 0;
-        const itemCount = Array.isArray(stepObj?.translationResults) ? stepObj.translationResults.length : 0;
-        console.log(`[WSU] step=${stepName} processed=${processed} items=${itemCount} errors=${errCount}`);
-    } catch {}
-}
-
-function logAggregateTranslationResults(response) {
-    try {
-        const processed = response?.processedCount ?? 0;
-        const items = Array.isArray(response?.translationResults) ? response.translationResults.length : 0;
-        console.log(`[WSU] agg processed=${processed} items=${items}`);
-    } catch {}
-}
-
 export const getWebsiteSettings = async (projectId) => {
     if (!projectId) {
         return { error: "Project ID is required" };
@@ -32,9 +15,6 @@ export const getWebsiteSettings = async (projectId) => {
 };
 
 export const createWebsiteSettings = async (data) => {
-    console.log(
-        `[WSU] create in t=${!!data?.title} a=${!!data?.about} tTr=${Array.isArray(data?.titleTranslations) ? data.titleTranslations.length : 0} aTr=${Array.isArray(data?.aboutTranslations) ? data.aboutTranslations.length : 0}`
-    );
     // Validate the data
     const websiteSettingsSchema = getSchema('websiteSettings', 'insert');
     if (websiteSettingsSchema) {
@@ -44,24 +24,32 @@ export const createWebsiteSettings = async (data) => {
         }
     }
     // Handle logo upload for generic assets and resolve logoId
-    let logoId = null;
+    let logoId = undefined;
+    console.log('[WebsiteSettings:create]', 'input.logoFile', data?.logoFile);
     try {
-        if (data?.logoFile) {
+        if (data?.logoFile?.__cleared) {
+            // Explicitly remove logo link
+            logoId = null;
+            console.log('[WebsiteSettings:create]', 'logo cleared -> logoId = null');
+        } else if (data?.logoFile) {
             // If logo is already a saved asset-like object
             if (typeof data.logoFile === 'object' && data.logoFile.id) {
                 logoId = data.logoFile.id;
+                console.log('[WebsiteSettings:create]', 'using existing asset id', logoId);
             } else if (typeof window !== 'undefined' && window?.api?.importAssets) {
-                const filePath = data.logoFile?.path || data.logoFile?.filepath || data.logoFile?.filePath;
-                console.log('[WebsiteSettingsUtils] create: logo filePath:', filePath);
+                const filePath = (typeof data.logoFile === 'string')
+                    ? data.logoFile
+                    : (data.logoFile?.path || data.logoFile?.filepath || data.logoFile?.filePath);
                 if (filePath && (data.projectId || data.project_id)) {
+                    console.log('[WebsiteSettings:create]', 'importing logo', { filePath, projectId: data.projectId || data.project_id });
                     const importResult = await window.api.importAssets({
                         path: filePath,
                         projectId: data.projectId || data.project_id,
                         isGenericAsset: true,
                     });
-                    console.log('[WebsiteSettingsUtils] create: importAssets result:', importResult);
                     const created = importResult?.createdAssets || [];
-                    logoId = created?.[0]?.id || null;
+                    logoId = created?.[0]?.id || undefined;
+                    console.log('[WebsiteSettings:create]', 'import createdAssets[0].id', logoId);
                 }
             }
         }
@@ -71,23 +59,11 @@ export const createWebsiteSettings = async (data) => {
 
     const finalParams = {
         ...data,
-        logoId: logoId || undefined,
+        // Pass null to remove, pass id to set, omit to leave unchanged
+        logoId: logoId,
     };
-    console.log('[WebsiteSettingsUtils] create: final params:', finalParams);
-    try {
-        console.log('[WebsiteSettingsUtils] create: final params translation codes', {
-            titleCodes: Array.isArray(finalParams?.titleTranslations) ? finalParams.titleTranslations.map(t => t.language_code) : [],
-            aboutCodes: Array.isArray(finalParams?.aboutTranslations) ? finalParams.aboutTranslations.map(t => t.language_code) : []
-        });
-    } catch {}
+    console.log('[WebsiteSettings:create]', 'final logoId', logoId);
     const response = await executeQuery('websiteSettings', 'create', finalParams);
-    console.log(`[WSU] create resp ok=${!(response && response.error)} err=${response?.error ? String(response.error).slice(0,120) : 'none'}`);
-    try {
-        logTranslationStep('processTitleTranslations', response?.processTitleTranslations);
-        logTranslationStep('processAboutTranslations', response?.processAboutTranslations);
-        logTranslationStep('processAboutTranslationsNew', response?.processAboutTranslationsNew);
-        logAggregateTranslationResults(response);
-    } catch {}
     
     if (response && !response.error) {
         // Invalidate caches to reflect the change
@@ -99,9 +75,6 @@ export const createWebsiteSettings = async (data) => {
 };
 
 export const updateWebsiteSettings = async (data) => {
-    console.log(
-        `[WSU] update in t=${!!data?.title} a=${!!data?.about} tTr=${Array.isArray(data?.titleTranslations) ? data.titleTranslations.length : 0} aTr=${Array.isArray(data?.aboutTranslations) ? data.aboutTranslations.length : 0}`
-    );
     // Validate the data
     const websiteSettingsSchema = getSchema('websiteSettings', 'update');
     if (websiteSettingsSchema) {
@@ -111,23 +84,31 @@ export const updateWebsiteSettings = async (data) => {
         }
     }
     // Handle logo upload and resolve logoId for update as well
-    let logoId = null;
+    let logoId = undefined;
+    console.log('[WebsiteSettings:update]', 'input.logoFile', data?.logoFile);
     try {
-        if (data?.logoFile) {
+        if (data?.logoFile === null || data?.logoFile?.__cleared) {
+            // Explicitly remove logo link
+            logoId = null;
+            console.log('[WebsiteSettings:update]', 'logo cleared -> logoId = null');
+        } else if (data?.logoFile) {
             if (typeof data.logoFile === 'object' && data.logoFile.id) {
                 logoId = data.logoFile.id;
+                console.log('[WebsiteSettings:update]', 'using existing asset id', logoId);
             } else if (typeof window !== 'undefined' && window?.api?.importAssets) {
-                const filePath = data.logoFile?.path || data.logoFile?.filepath || data.logoFile?.filePath;
-                console.log('[WebsiteSettingsUtils] update: logo filePath:', filePath);
+                const filePath = (typeof data.logoFile === 'string')
+                    ? data.logoFile
+                    : (data.logoFile?.path || data.logoFile?.filepath || data.logoFile?.filePath);
                 if (filePath && (data.projectId || data.project_id)) {
+                    console.log('[WebsiteSettings:update]', 'importing logo', { filePath, projectId: data.projectId || data.project_id });
                     const importResult = await window.api.importAssets({
                         path: filePath,
                         projectId: data.projectId || data.project_id,
                         isGenericAsset: true,
                     });
-                    console.log('[WebsiteSettingsUtils] update: importAssets result:', importResult);
                     const created = importResult?.createdAssets || [];
-                    logoId = created?.[0]?.id || null;
+                    logoId = created?.[0]?.id || undefined;
+                    console.log('[WebsiteSettings:update]', 'import createdAssets[0].id', logoId);
                 }
             }
         }
@@ -137,32 +118,21 @@ export const updateWebsiteSettings = async (data) => {
 
     const finalParams = {
         ...data,
-        logoId: logoId || undefined,
+        logoId: logoId,
     };
-    console.log(
-        `[WSU] update params logoId=${finalParams.logoId || 'none'} tTr=${Array.isArray(finalParams?.titleTranslations) ? finalParams.titleTranslations.length : 0} aTr=${Array.isArray(finalParams?.aboutTranslations) ? finalParams.aboutTranslations.length : 0}`
-    );
+    console.log('[WebsiteSettings:update]', 'final logoId', logoId);
     const response = await executeQuery('websiteSettings', 'update', finalParams);
-    console.log(`[WSU] update resp ok=${!(response && response.error)} err=${response?.error ? String(response.error).slice(0,120) : 'none'}`);
-    try {
-        logTranslationStep('processTitleTranslations', response?.processTitleTranslations);
-        logTranslationStep('processTitleTranslationsNew', response?.processTitleTranslationsNew);
-        logTranslationStep('processAboutTranslations', response?.processAboutTranslations);
-        logTranslationStep('processAboutTranslationsNew', response?.processAboutTranslationsNew);
-        logAggregateTranslationResults(response);
-    } catch {}
     // Refetch fresh website settings with nested translations if projectId is available
     try {
         const pid = data?.projectId || data?.project_id;
         if (response && !response.error && pid) {
             const fresh = await getWebsiteSettings(pid);
-            console.log('[WebsiteSettingsUtils] update: refetched websiteSettings:', fresh);
             if (fresh && !fresh.error) {
                 response.websiteSettings = fresh?.websiteSettings || response.websiteSettings;
             }
         }
     } catch (e) {
-        console.warn('[WebsiteSettingsUtils] update: refetch failed', e);
+        // suppress debug warnings
     }
     
     if (response && !response.error) {

@@ -315,28 +315,43 @@ export const websiteSettingsOperations = {
       },
       // Update scalar fields
       {
-        name: "updateWebsiteSettingsFields",
-        query: `mutation UpdateWebsiteSettingsFields(
+        name: "updateWebsiteSettingsScalarFields",
+        query: `mutation UpdateWebsiteSettingsScalarFields(
   $id: String!
   $authors: String
   $subfolderPath: String
   $showUnmapped: Int
-  $logoId: String
 ) {
   updateWebsiteSettings(
     set: { 
       authors: $authors,
       subfolder_path: $subfolderPath,
-      show_unmapped: $showUnmapped,
-      logo_id: $logoId
+      show_unmapped: $showUnmapped
     }
     where: { id: { eq: $id } }
-  ) { id authors subfolder_path show_unmapped logo_id }
+  ) { id authors subfolder_path show_unmapped }
 }`,
-        useVariables: ["authors", "subfolderPath", "showUnmapped", "logoId"],
+        useVariables: ["authors", "subfolderPath", "showUnmapped"],
         mapVariables: {
           id: { from: "getWebsiteSettings", path: "websiteSettings.0.id" }
         }
+      },
+      {
+        name: "updateWebsiteLogo",
+        query: `mutation UpdateWebsiteLogo(
+  $id: String!
+  $logoId: String
+) {
+  updateWebsiteSettings(
+    set: { logo_id: $logoId }
+    where: { id: { eq: $id } }
+  ) { id logo_id }
+}`,
+        useVariables: ["logoId"],
+        mapVariables: {
+          id: { from: "getWebsiteSettings", path: "websiteSettings.0.id" }
+        },
+        skipIf: { variableName: "logoId", isUndefined: true }
       },
       // Process translations using existing text IDs
       {
