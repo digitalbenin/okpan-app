@@ -352,3 +352,23 @@ export const reorderAssets = async (objectId, assetOrders) => {
         return { error: `Failed to reorder assets: ${error.message}` };
     }
 };
+
+// Function to link an asset to an object
+export const linkAssetToObject = async (objectId, assetId, order) => {
+    if (!objectId || !assetId) {
+        return { error: "Invalid objectId or assetId for linkAssetToObject" };
+    }
+
+    const result = await executeQuery('objects', 'addAsset', { objectId, assetId, order });
+
+    if (result.error) {
+        return { error: result.error };
+    }
+
+    // Invalidate caches to reflect the change
+    invalidate("app:objects");
+    invalidate("app:assets");
+    invalidate("custom:object");
+
+    return { result: result.insertIntoObjects_assets, error: null };
+};

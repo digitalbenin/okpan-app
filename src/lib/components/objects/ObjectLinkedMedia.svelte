@@ -3,9 +3,11 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import MediaModal from "$lib/components/research_fields/MediaModal.svelte";
+    import LinkMediaModal from "$lib/components/objects/LinkMediaModal.svelte";
     import {
         unlinkAssetFromObject,
         reorderAssets,
+        linkAssetToObject,
     } from "$lib/stores/ObjectsUtils.js";
     import { invalidate } from "$app/navigation";
     import { dragHandleZone, dragHandle } from "svelte-dnd-action";
@@ -25,6 +27,9 @@
     // Track pending changes for removal
     let pendingRemovals = $state(new Set());
 
+    // Track pending additions (assets selected in modal but not yet saved)
+    let pendingAdditions = $state([]); // array of asset objects
+
     // Track reordered assets locally for immediate visual feedback
     let reorderedAssets = $state([]);
     let hasReorderChanges = $state(false);
@@ -36,6 +41,9 @@
     let isModalOpen = $state(false);
     let modalAsset = $state(null);
 
+    // Modal state for linking media
+    let isLinkModalOpen = $state(false);
+
     // Audio elements map for controlling playback
     let audioElements = new Map();
 
@@ -44,10 +52,14 @@
         if (onChangesUpdate) {
             onChangesUpdate({
                 component: "linked_media",
-                hasChanges: pendingRemovals.size > 0 || hasReorderChanges,
+                hasChanges:
+                    pendingRemovals.size > 0 ||
+                    hasReorderChanges ||
+                    (pendingAdditions && pendingAdditions.length > 0),
                 changes: {
                     removals: Array.from(pendingRemovals),
                     reorders: hasReorderChanges ? reorderedAssets : null,
+                    additions: pendingAdditions?.map((a) => a.id) || [],
                 },
                 saveFunction: saveChanges,
             });
@@ -75,21 +87,32 @@
             (objectAsset) => !pendingRemovals.has(objectAsset.asset.id),
         );
 
-        // Use reordered assets if available, otherwise use original order sorted by order field
+        // Represent pending additions as objectAssets for UI/reorder
+        const pendingAsObjectAssets = (pendingAdditions || []).map(
+            (asset, idx) => ({
+                id: `new-${asset.id}`,
+                order: (filtered.length || 0) + idx + 1,
+                asset,
+                pending: true,
+            }),
+        );
+
+        const baseList = [...filtered, ...pendingAsObjectAssets];
+
+        // Use reordered assets if available, otherwise sort by order
         const assets = hasReorderChanges
             ? reorderedAssets
-            : filtered.sort((a, b) => a.order - b.order);
+            : baseList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-        // Ensure each item has an id property for svelte-dnd-action
         return assets.map((objectAsset) => ({
             ...objectAsset,
-            id: objectAsset.id, // svelte-dnd-action requires this
+            id: objectAsset.id,
         }));
     });
 
-    // Handle adding media (placeholder for now)
+    // Handle adding media: open selection modal
     function handleAddMedia() {
-        // TODO: Implement media linking functionality
+        isLinkModalOpen = true;
     }
 
     // Handle viewing media
@@ -169,7 +192,12 @@
 
     // Save all pending changes
     async function saveChanges(objectIdToSave) {
-    if (pendingRemovals.size === 0 && !hasReorderChanges) return;
+    if (
+        pendingRemovals.size === 0 &&
+        !hasReorderChanges &&
+        (!pendingAdditions || pendingAdditions.length === 0)
+    )
+        return;
 
     const objectId = objectIdToSave || object?.id;
     if (!objectId) {
@@ -180,7 +208,26 @@
     try {
         const promises = [];
 
-        // Execute removal operations
+        // 1) Execute link operations first (new additions)
+        if (pendingAdditions && pendingAdditions.length > 0) {
+            const currentCount = linkedAssets.filter(
+                (oa) => !pendingRemovals.has(oa.asset.id),
+            ).length;
+            const addPromises = pendingAdditions.map((asset, index) => {
+                // Determine desired order. If we have reorder changes, find index in reorderedAssets
+                let desiredOrder = currentCount + index + 1;
+                if (hasReorderChanges) {
+                    const pos = reorderedAssets.findIndex(
+                        (item) => item.asset.id === asset.id,
+                    );
+                    desiredOrder = pos >= 0 ? pos + 1 : desiredOrder;
+                }
+                return linkAssetToObject(objectId, asset.id, desiredOrder);
+            });
+            promises.push(...addPromises);
+        }
+
+        // 2) Execute removal operations
         if (pendingRemovals.size > 0) {
             const removePromises = Array.from(pendingRemovals).map((assetId) =>
                 unlinkAssetFromObject(objectId, assetId),
@@ -188,7 +235,7 @@
             promises.push(...removePromises);
         }
 
-        // Execute reorder operations
+        // 3) Execute reorder operations (for existing + newly linked)
         if (hasReorderChanges) {
             const assetOrders = reorderedAssets.map((asset, index) => ({
                 assetId: asset.asset.id,
@@ -206,6 +253,7 @@
                 // Clear pending changes
                 pendingRemovals.clear();
                 pendingRemovals = new Set(pendingRemovals);
+                pendingAdditions = [];
                 notifyParent();
 
                 // Refresh data then clear reorder state to prevent flickering
@@ -359,3 +407,31 @@
 
 <!-- Media Modal -->
 <MediaModal asset={modalAsset} isOpen={isModalOpen} onClose={closeModal} />
+
+<!-- Link Media Modal -->
+<LinkMediaModal
+    isOpen={isLinkModalOpen}
+    initiallySelectedIds={[
+        ...linkedAssets.map((oa) => oa.asset.id),
+        ...(pendingAdditions || []).map((a) => a.id),
+    ]}
+    onClose={() => (isLinkModalOpen = false)}
+    onSave={(selectedAssets) => {
+        // Only keep assets that are not already linked
+        const existingIds = new Set(linkedAssets.map((oa) => oa.asset.id));
+        pendingAdditions = selectedAssets.filter((a) => !existingIds.has(a.id));
+
+        // If we already had a manual reorder, incorporate new items into list
+        if (hasReorderChanges) {
+            const base = displayAssets;
+            const newItems = pendingAdditions.map((asset) => ({
+                id: `new-${asset.id}`,
+                order: (base.length || 0) + 1,
+                asset,
+                pending: true,
+            }));
+            reorderedAssets = [...base, ...newItems];
+        }
+        notifyParent();
+    }}
+/>
