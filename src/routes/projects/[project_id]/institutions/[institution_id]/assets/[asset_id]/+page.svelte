@@ -16,10 +16,11 @@
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { z } from "zod";
     import { back } from "$lib/utils/navigation.js";
+    import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
 
     const { data } = $props();
     const asset = $state(data.asset);
-    const linkedObjects = $state(data.linkedObjects || []);
+    let linkedObjects = $state(data.linkedObjects || []);
     const languages = $state(data.languages);
     const project_id = $state(data.project_id);
     const institution_id = $state(data.institution_id);
@@ -229,6 +230,24 @@
         }
     };
 
+    // --- Link Objects Modal ---
+    let showLinkObjectsModal = $state(false);
+    function openLinkObjectsModal() { showLinkObjectsModal = true; }
+    function handleObjectsLinked(objects) {
+        try {
+            const existing = new Set((linkedObjects || []).map(oa => String(oa.object_id)));
+            const additions = (objects || [])
+                .filter(o => !existing.has(String(o.id)))
+                .map(o => ({ object_id: o.id, object: o }));
+            if (additions.length) {
+                linkedObjects = [...(linkedObjects || []), ...additions];
+            }
+        } catch (e) {
+            console.error("Error updating linked objects list:", e);
+        }
+    }
+    // --- End Link Objects Modal ---
+
     // Helper function to get display field values for an object
     function getDisplayFieldValue(object, displayField) {
         if (!object || !displayField) return null;
@@ -433,7 +452,7 @@
                 {/if}
 
                 <!-- Link Object Button -->
-                <button class="btn btn-outline-primary w-100">
+                <button class="btn btn-outline-primary w-100" onclick={openLinkObjectsModal}>
                     <i class="bi bi-plus-circle me-2"></i> Link object
                 </button>
             </div>
@@ -492,6 +511,14 @@
     />
   {/snippet}
 </BaseModal>
+
+<!-- Link Objects Modal Component -->
+<LinkObjectsModal
+  bind:isOpen={showLinkObjectsModal}
+  projectId={project_id}
+  assetId={asset?.id}
+  onLinked={handleObjectsLinked}
+/>
 
 <style>
     .sticky-bottom-bar {
