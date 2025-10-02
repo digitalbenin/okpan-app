@@ -156,7 +156,7 @@
   });
 </script>
 
-<BaseModal bind:isOpen size="xl">
+<BaseModal bind:isOpen size="lg">
   {#snippet header()}
     Select object to link
   {/snippet}
@@ -164,7 +164,7 @@
   {#snippet body()}
     <div
       class="d-flex flex-column gap-2"
-      style="max-height: 60vh; overflow-y: auto;"
+      style="height: 60vh; overflow-y: auto;"
     >
       <!-- Search Bar -->
       <div class="d-flex align-items-center gap-2">
@@ -187,16 +187,19 @@
         <div class="py-3 text-center text-muted">Loading…</div>
       {:else if searchResults && searchResults.length > 0}
         {#each searchResults as obj}
-          <div class="border rounded p-2 mb-2">
+          <div class="border rounded bg-light p-2 mb-2">
             <div class="d-flex align-items-start gap-2">
               <div class="flex-grow-1">
+                <!-- Header: primary ID + add/remove button -->
                 <div class="d-flex justify-content-between align-items-center">
                   <span class="fw-medium"
                     >{getPrimaryIdentifier(obj) ?? obj.id}</span
                   >
                   <div class="d-flex align-items-center gap-2">
                     <button
-                      class={selectedObjectIds.has(obj.id) ? "btn btn-sm btn-success" : "btn btn-sm btn-outline-secondary"}
+                      class={selectedObjectIds.has(obj.id)
+                        ? "btn btn-sm btn-success"
+                        : "btn btn-sm btn-outline-secondary"}
                       onclick={() => toggleSelectObject(obj.id)}
                     >
                       {#if selectedObjectIds.has(obj.id)}
@@ -207,6 +210,7 @@
                     </button>
                   </div>
                 </div>
+                <div class="border-bottom mt-2 mb-2"></div>
 
                 <!-- Research fields: first 4 -->
                 {#if obj.objectsResearchFields && obj.objectsResearchFields.length > 0}
@@ -230,7 +234,7 @@
                 {/if}
 
                 <!-- Media row below research fields -->
-                <div class="mt-2">
+                <div class="mt-2 border-top py-2">
                   <div class="text-muted small mb-1">Media:</div>
                   {#if getMediaThumbSrc(obj)}
                     <img
