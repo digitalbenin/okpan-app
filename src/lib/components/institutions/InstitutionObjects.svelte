@@ -7,6 +7,7 @@
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { fly } from "svelte/transition";
+  import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
 
   let {
     institution,
@@ -21,6 +22,7 @@
 
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
+  let showBulkDeleteModal = $state(false);
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -70,6 +72,15 @@
   function clearSelection() {
     selectedObjects = [];
   }
+
+  function confirmBulkDelete() {
+    showBulkDeleteModal = true;
+  }
+
+  function handleDeleted() {
+    // Clear selection after deletion completes
+    selectedObjects = [];
+  }
 </script>
 
 <div class="w-100">
@@ -112,7 +123,7 @@
           </button>
         </div>
         <div class="ms-auto">
-          <button class="btn btn-danger btn-sm">
+          <button class="btn btn-danger btn-sm" onclick={confirmBulkDelete}>
             <i class="bi bi-trash"></i>
             {t("common.delete", {
               fallback: "Delete",
@@ -216,3 +227,10 @@
     </div>
   {/if}
 </div>
+
+<!-- Bulk Delete Confirmation Modal (Reusable Component) -->
+<BulkDeleteObjectsModal
+  bind:isOpen={showBulkDeleteModal}
+  selectedIds={selectedObjects}
+  on:deleted={handleDeleted}
+/>

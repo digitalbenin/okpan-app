@@ -5,9 +5,13 @@
   import ObjectCard from "$lib/components/objects/ObjectCard.svelte";
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
+  import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import { fly } from "svelte/transition";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { queryParameters, ssp } from "sveltekit-search-params";
+  import { deleteObjectsBulk } from "$lib/stores/ObjectsUtils.js";
 
   const { t } = getTranslationStore();
 
@@ -44,6 +48,11 @@
 
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
+
+  // Modal state
+  let showBulkDeleteModal = $state(false);
+
+  // Use store utilities for mutations and cache invalidation
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -91,6 +100,15 @@
   ]);
 
   function clearSelection() {
+    selectedObjects = [];
+  }
+
+  function confirmBulkDelete() {
+    showBulkDeleteModal = true;
+  }
+
+  // Clear selection after modal emits deleted event
+  function handleDeleted() {
     selectedObjects = [];
   }
   $inspect(data);
@@ -144,7 +162,7 @@
           </button>
         </div>
         <div class="ms-auto">
-          <button class="btn btn-danger btn-sm">
+          <button class="btn btn-danger btn-sm" onclick={confirmBulkDelete}>
             <i class="bi bi-trash"></i>
             {t("common.delete", {
               fallback: "Delete",
@@ -254,4 +272,11 @@
       </div>
     </div>
   {/if}
+
+  <!-- Bulk Delete Confirmation Modal (Reusable Component) -->
+  <BulkDeleteObjectsModal
+    bind:isOpen={showBulkDeleteModal}
+    selectedIds={selectedObjects}
+    on:deleted={handleDeleted}
+  />
 </div>

@@ -1,6 +1,6 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
-import { invalidate } from "$app/navigation";
+import { invalidate, invalidateAll } from "$app/navigation";
 
 // Get validation store
 const { getSchema, validate } = getValidationStore();
@@ -274,6 +274,46 @@ export const deleteObject = async (objectId) => {
     const result = await executeQuery('objects', 'delete', { objectId });
     invalidate("app:objects");
     return result;
+};
+
+// Bulk delete objects
+export const deleteObjectsBulk = async (objectIds) => {
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { error: "No objects selected for deletion" };
+    }
+
+    const promises = objectIds.map((objectId) =>
+        executeQuery('objects', 'delete', { objectId })
+    );
+
+    const settled = await Promise.allSettled(promises);
+    const successes = [];
+    const errors = [];
+
+    settled.forEach((res, idx) => {
+        const id = objectIds[idx];
+        if (res.status === 'fulfilled' && !res.value?.error) {
+            successes.push(id);
+        } else {
+            const errMsg = res.status === 'rejected'
+                ? (res.reason?.message || 'Unknown error')
+                : (res.value?.error || 'Unknown error');
+            errors.push({ objectId: id, error: errMsg });
+        }
+    });
+
+    // Invalidate caches to reflect deletions
+    invalidate("app:objects");
+    try {
+        // Best-effort: fully refresh route data if available
+        if (typeof invalidateAll === 'function') {
+            await invalidateAll();
+        }
+    } catch (_) {
+        // ignore
+    }
+
+    return { successes, errors };
 };
 
 // Function to unlink an asset from an object
