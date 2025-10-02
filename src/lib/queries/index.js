@@ -20,6 +20,7 @@ import { genericAssetsOperations } from './genericAssets.js';
 import { objectDisplayFieldsOperations } from './object_display_fields.js';
 import { objectSearchOperations } from './objectSearch.js';
 import { vocabularyAssetsOperations } from './vocabulary_assets.js';
+import { websiteSettingsOperations } from './websiteSettings.js';
 
 // Export API sections organized by entity type
 export const API_SECTIONS = {
@@ -106,7 +107,11 @@ export const API_SECTIONS = {
     vocabulary_assets: {
         name: "Vocabulary Assets",
         operations: vocabularyAssetsOperations
+    },
+    websiteSettings: {
+        name: "Website Settings",
+        operations: websiteSettingsOperations
     }
 };
 
-export default API_SECTIONS; 
+export default API_SECTIONS;

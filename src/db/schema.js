@@ -139,6 +139,7 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     genericAssets: many(genericAssets),
     languages: many(languages),
     objectDisplayFields: many(object_display_fields),
+    websiteSettings: many(websiteSettings),
     title: one(texts, {
         fields: [project.title_id],
         references: [texts.id]
@@ -613,6 +614,18 @@ export const globalSettings = sqliteTable('global_settings', {
         .default(sql`CURRENT_TIMESTAMP`)
 });
 
+// Website Settings table
+export const websiteSettings = sqliteTable('website_settings', {
+    ...commonFields,
+    title_id: text('title_id').references(() => texts.id),
+    about_id: text('about_id').references(() => texts.id),
+    authors: text('authors'),
+    logo_id: text('logo_id').references(() => genericAssets.id),
+    subfolder_path: text('subfolder_path'),
+    show_unmapped: integer('show_unmapped').notNull().default(0), // false by default
+    project_id: text('project_id').references(() => project.id).unique()
+});
+
 export const actionsRelations = relations(actions, ({ one }) => ({
     project: one(project, {
         fields: [actions.project_id],
@@ -621,6 +634,26 @@ export const actionsRelations = relations(actions, ({ one }) => ({
     parentAction: one(actions, {
         fields: [actions.parent_action_id],
         references: [actions.id]
+    })
+}));
+
+// Website Settings relations
+export const websiteSettingsRelations = relations(websiteSettings, ({ one }) => ({
+    project: one(project, {
+        fields: [websiteSettings.project_id],
+        references: [project.id]
+    }),
+    title: one(texts, {
+        fields: [websiteSettings.title_id],
+        references: [texts.id]
+    }),
+    about: one(texts, {
+        fields: [websiteSettings.about_id],
+        references: [texts.id]
+    }),
+    logo: one(genericAssets, {
+        fields: [websiteSettings.logo_id],
+        references: [genericAssets.id]
     })
 }));
 

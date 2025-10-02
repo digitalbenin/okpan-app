@@ -50,6 +50,20 @@
     },
   ]);
 
+  const websiteLinks = $derived([
+    {
+      label: t("menu.website-settings", { fallback: "Website Settings" }),
+      url: `/projects/${page.data.project.id}/website-settings`,
+      icon: "gear",
+      exact: true,
+    },
+    {
+      label: t("menu.export-website", { fallback: "Export Website" }),
+      icon: "globe",
+      exact: true,
+    },
+  ]);
+
   const otherLinks = $derived([
     {
       label: t("menu.data-structure", { fallback: "Data Structure" }),
@@ -86,6 +100,8 @@
   <SidebarMenu items={projectLinks} pathname={page.url.pathname} />
   <h5>Actions</h5>
   <SidebarMenu items={actionsLinks} pathname={page.url.pathname} />
+  <h5>Website</h5>
+  <SidebarMenu items={websiteLinks} pathname={page.url.pathname} />
   <h5>Other</h5>
   <SidebarMenu items={otherLinks} pathname={page.url.pathname} />
   <a href="/debug" class="btn btn-link">debug</a>

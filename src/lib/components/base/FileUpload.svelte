@@ -67,6 +67,8 @@
 
             value = validFiles;
             dispatch("fileSelected", { files: validFiles });
+            // Also emit a generic change event for integrators (e.g., AutoForm)
+            dispatch("change", { value: validFiles });
         } else {
             // Handle single file
             const file = files[0];
@@ -93,6 +95,8 @@
 
             value = file;
             dispatch("fileSelected", { file });
+            // Also emit a generic change event for integrators (e.g., AutoForm)
+            dispatch("change", { value: file });
         }
     }
 
