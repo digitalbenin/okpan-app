@@ -4,6 +4,7 @@
   import { createForm } from "@tanstack/svelte-form";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import DynamicArrayField from "$lib/components/base/DynamicArrayField.svelte";
+  import BaseModal from "$lib/components/base/BaseModal.svelte";
   import {
     getValidator,
     createFieldValidator,
@@ -11,9 +12,14 @@
   } from "$lib/stores/formValidationUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
-  import { createInstitution, updateInstitution } from "$lib/stores/InstitutionsUtils.js";
+  import {
+    createInstitution,
+    updateInstitution,
+    deleteInstitution,
+  } from "$lib/stores/InstitutionsUtils.js";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
+  import { back } from "$lib/utils/navigation.js";
 
   const { t } = getTranslationStore();
 
@@ -23,16 +29,16 @@
     institution = null, // Required for edit mode
     languages = [],
     projectId = null, // Required for create mode
-    onSuccess = null // Optional callback after successful operation
+    onSuccess = null, // Optional callback after successful operation
   } = $props();
 
   // Derived values
   const isEditMode = $derived(mode === "edit");
   const defaultLanguage = $derived(
-    languages?.find((lang) => lang.is_default) || languages?.[0]
+    languages?.find((lang) => lang.is_default) || languages?.[0],
   );
   const secondaryLanguages = $derived(
-    languages?.filter((lang) => !lang.is_default) || []
+    languages?.filter((lang) => !lang.is_default) || [],
   );
 
   // Translation state - only for translatable fields
@@ -67,12 +73,18 @@
 
   function getTranslationContent(fieldObj, langCode) {
     if (!fieldObj) return "";
-    const direct = fieldObj?.translations?.find((t) => t.language?.code === langCode);
+    const direct = fieldObj?.translations?.find(
+      (t) => t.language?.code === langCode,
+    );
     return direct?.content ?? "";
   }
 
   function getExistingTranslationId(fieldName, langCode) {
-    if (!institution || !institution[fieldName] || !institution[fieldName].translations) {
+    if (
+      !institution ||
+      !institution[fieldName] ||
+      !institution[fieldName].translations
+    ) {
       return null;
     }
     const translation = institution[fieldName].translations.find(
@@ -162,8 +174,13 @@
           throw new Error("Failed to create institution");
         }
 
-        const { institution: newInstitution, nameId, descriptionId, countryId, locationId } =
-          result;
+        const {
+          institution: newInstitution,
+          nameId,
+          descriptionId,
+          countryId,
+          locationId,
+        } = result;
 
         // Handle translations for secondary languages
         const contentLanguageStore = getContentLanguageStore();
@@ -236,40 +253,71 @@
           const nameMainId = institution.name?.id;
           const nameExistingId = getExistingTranslationId("name", langCode);
           if (nameExistingId) {
-            if (nameVal) translationPromises.push(updateTranslation(nameExistingId, nameVal));
+            if (nameVal)
+              translationPromises.push(
+                updateTranslation(nameExistingId, nameVal),
+              );
           } else if (nameVal && nameMainId) {
-            translationPromises.push(addTranslation(nameMainId, langCode, nameVal));
+            translationPromises.push(
+              addTranslation(nameMainId, langCode, nameVal),
+            );
           }
 
           // Description
-          const descVal = value[`translations_${lang.id}_description`]?.trim() || "";
+          const descVal =
+            value[`translations_${lang.id}_description`]?.trim() || "";
           const descMainId = institution.description?.id;
-          const descExistingId = getExistingTranslationId("description", langCode);
+          const descExistingId = getExistingTranslationId(
+            "description",
+            langCode,
+          );
           if (descExistingId) {
-            if (descVal) translationPromises.push(updateTranslation(descExistingId, descVal));
+            if (descVal)
+              translationPromises.push(
+                updateTranslation(descExistingId, descVal),
+              );
           } else if (descVal && descMainId) {
-            translationPromises.push(addTranslation(descMainId, langCode, descVal));
+            translationPromises.push(
+              addTranslation(descMainId, langCode, descVal),
+            );
           }
 
           // Country
-          const countryVal = value[`translations_${lang.id}_country`]?.trim() || "";
+          const countryVal =
+            value[`translations_${lang.id}_country`]?.trim() || "";
           const countryMainId = institution.country?.id;
-          const countryExistingId = getExistingTranslationId("country", langCode);
+          const countryExistingId = getExistingTranslationId(
+            "country",
+            langCode,
+          );
           if (countryExistingId) {
-            if (countryVal) translationPromises.push(updateTranslation(countryExistingId, countryVal));
+            if (countryVal)
+              translationPromises.push(
+                updateTranslation(countryExistingId, countryVal),
+              );
           } else if (countryVal && countryMainId) {
-            translationPromises.push(addTranslation(countryMainId, langCode, countryVal));
+            translationPromises.push(
+              addTranslation(countryMainId, langCode, countryVal),
+            );
           }
 
           // Location
-          const locationVal = value[`translations_${lang.id}_location`]?.trim() || "";
+          const locationVal =
+            value[`translations_${lang.id}_location`]?.trim() || "";
           const locationMainId = institution.location?.id;
-          const locationExistingId = getExistingTranslationId("location", langCode);
+          const locationExistingId = getExistingTranslationId(
+            "location",
+            langCode,
+          );
           if (locationExistingId) {
             if (locationVal)
-              translationPromises.push(updateTranslation(locationExistingId, locationVal));
+              translationPromises.push(
+                updateTranslation(locationExistingId, locationVal),
+              );
           } else if (locationVal && locationMainId) {
-            translationPromises.push(addTranslation(locationMainId, langCode, locationVal));
+            translationPromises.push(
+              addTranslation(locationMainId, langCode, locationVal),
+            );
           }
         }
 
@@ -292,11 +340,16 @@
         }
       }
     } catch (error) {
-      console.error(`Error ${mode === "create" ? "creating" : "updating"} institution:`, error);
+      console.error(
+        `Error ${mode === "create" ? "creating" : "updating"} institution:`,
+        error,
+      );
       addToast({
         data: {
           title: t("common.error", { fallback: "Error" }),
-          description: error?.message || `Failed to ${mode === "create" ? "create" : "update"} institution`,
+          description:
+            error?.message ||
+            `Failed to ${mode === "create" ? "create" : "update"} institution`,
           type: "danger",
         },
       });
@@ -310,7 +363,7 @@
         defaultValues,
         onSubmit: onSubmitForm,
       }),
-    )
+    ),
   );
 
   // UI Schema
@@ -372,13 +425,49 @@
 
   // Hidden static values
   const hiddenStaticValues = $derived(
-    mode === "create" ? { status: "in progress" } : {}
+    mode === "create" ? { status: "in progress" } : {},
   );
 
   // Field order
   const fieldOrder = $derived(
-    mode === "create" ? ["website", "links"] : ["links"]
+    mode === "create" ? ["website", "links"] : ["links"],
   );
+
+  // Delete Institution Modal state and handlers (only relevant in edit mode)
+  let showDeleteModal = $state(false);
+  let isDeleting = $state(false);
+
+  function openDeleteModal() {
+    if (!isEditMode) return;
+    showDeleteModal = true;
+  }
+
+  function cancelDelete() {
+    showDeleteModal = false;
+  }
+
+  async function confirmDeleteInstitution() {
+    if (!isEditMode || !institution?.id) {
+      showDeleteModal = false;
+      return;
+    }
+
+    isDeleting = true;
+    try {
+      const res = await deleteInstitution(institution.id);
+      if (res?.error) {
+        console.error("Failed to delete institution:", res.error);
+      } else {
+        // Navigate to project overview page after successful deletion
+        goto(`/projects/${projectId || $page.params.project_id}`);
+      }
+    } catch (err) {
+      console.error("Error deleting institution:", err);
+    } finally {
+      isDeleting = false;
+      showDeleteModal = false;
+    }
+  }
 </script>
 
 <form
@@ -394,7 +483,9 @@
         <h2 class="mt-3">
           {isEditMode
             ? t("common.edit-institution", { fallback: "Edit Institution" })
-            : t("common.add-new-institution", { fallback: "Add New Institution" })}
+            : t("common.add-new-institution", {
+                fallback: "Add New Institution",
+              })}
         </h2>
         {#if !isEditMode}
           <p>
@@ -429,10 +520,66 @@
   <div
     class="position-absolute bottom-0 start-0 w-100 bg-light z-1 p-3 d-flex justify-content-end"
   >
+    {#if isEditMode}
+      <BaseButton
+        type="button"
+        class="btn btn-outline-danger me-2"
+        text={t("common.delete", { fallback: "Delete institution" })}
+        icon="trash"
+        onClick={openDeleteModal}
+      />
+    {/if}
     <BaseButton
       type="submit"
       class="btn btn-success"
-      text={t("common.confirm", { fallback: "Confirm" })}
+      text={t("common.confirm", { fallback: "Save changes" })}
     />
   </div>
+
+  <!-- Delete Confirmation Modal -->
+  {#if showDeleteModal}
+    {#snippet header()}
+      {t("common.confirm-delete", { fallback: "Confirm Deletion" })}
+    {/snippet}
+
+    {#snippet body()}
+      <p>
+        {t("common.confirm-delete-institution", {
+          fallback:
+            "Are you sure you want to delete this institution? This action cannot be undone.",
+        })}
+      </p>
+    {/snippet}
+
+    {#snippet actions()}
+      <div class="d-flex justify-content-end gap-2">
+        <BaseButton
+          type="button"
+          class="btn btn-secondary"
+          text={t("common.cancel", { fallback: "Cancel" })}
+          onClick={cancelDelete}
+          disabled={isDeleting}
+        />
+        <BaseButton
+          type="button"
+          class="btn btn-danger"
+          text={isDeleting
+            ? t("common.deleting", { fallback: "Deleting..." })
+            : t("common.confirm-and-delete", {
+                fallback: "Confirm and delete",
+              })}
+          onClick={confirmDeleteInstitution}
+          disabled={isDeleting}
+        />
+      </div>
+    {/snippet}
+
+    <BaseModal
+      bind:isOpen={showDeleteModal}
+      size="md"
+      {header}
+      {body}
+      {actions}
+    />
+  {/if}
 </form>

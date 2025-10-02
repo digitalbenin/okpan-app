@@ -67,7 +67,8 @@ export const updateInstitution = async (institutionId, updatedData) => {
 };
 
 export const deleteInstitution = async (institutionId) => {
-    const result = await executeQuery('institutions', 'delete', { institutionId });
+    // The delete mutation expects variable name `id`, not `institutionId`
+    const result = await executeQuery('institutions', 'delete', { id: institutionId });
     invalidate("app:institutions");
     return result;
 };

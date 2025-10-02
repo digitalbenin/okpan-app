@@ -1,18 +1,21 @@
 <script>
     import { goto } from "$app/navigation";
-    import { page } from "$app/state";
+    import { page } from "$app/stores";
     import { createForm } from "@tanstack/svelte-form";
     import AutoForm from "$lib/components/form/AutoForm.svelte";
+    import BaseModal from "$lib/components/base/BaseModal.svelte";
+    import BaseButton from "$lib/components/base/BaseButton.svelte";
     import {
         getValidator,
         createFieldValidator,
         registerCustomValidator,
     } from "$lib/stores/formValidationUtils.js";
-    import { updateAsset } from "$lib/stores/AssetsUtils.js";
+    import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
     import { unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
     import { getObjectIdentifier } from "$lib/utils/objects.js";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { z } from "zod";
+    import { back } from "$lib/utils/navigation.js";
 
     const { data } = $props();
     const asset = $state(data.asset);
@@ -185,6 +188,40 @@
     const handleCancel = () => goto(`/projects/${project_id}/institutions/${institution_id}`);
     const handleSave = () => form.handleSubmit();
 
+    // Delete Asset Modal state and handlers
+    let showDeleteModal = $state(false);
+    let isDeleting = $state(false);
+
+    function openDeleteModal() {
+        showDeleteModal = true;
+    }
+
+    function cancelDelete() {
+        showDeleteModal = false;
+    }
+
+    async function confirmDeleteAsset() {
+        if (!asset?.id) {
+            showDeleteModal = false;
+            return;
+        }
+        isDeleting = true;
+        try {
+            const res = await deleteAsset(asset.id);
+            if (res?.error) {
+                console.error("Failed to delete asset:", res.error);
+            } else {
+                // Navigate back to previous history page
+                back();
+            }
+        } catch (err) {
+            console.error("Error deleting asset:", err);
+        } finally {
+            isDeleting = false;
+            showDeleteModal = false;
+        }
+    }
+
     // Handle unlinking an object from this asset (add to pending unlinks)
     const handleUnlinkObject = (objectId) => {
         if (!pendingUnlinks.includes(objectId)) {
@@ -238,7 +275,7 @@
             </button>
             <div>
                 <div class="text-muted small">
-                    {page.data.institution?.name?.content || institution_id}
+                    {$page.data?.institution?.name?.content || institution_id}
                 </div>
                 <h1 class="h4 mb-0">{asset.filename}</h1>
             </div>
@@ -408,13 +445,13 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-12 d-flex justify-content-end gap-2 p-2">
-                    <button
+                    <BaseButton
                         type="button"
-                        class="btn btn-sm btn-secondary"
-                        onclick={handleCancel}
-                    >
-                        Cancel
-                    </button>
+                        class="btn btn-sm btn-outline-danger"
+                        text="Delete Asset"
+                        icon="trash"
+                        onClick={openDeleteModal}
+                    />
                     <button
                         type="button"
                         class="btn btn-sm btn-success"
@@ -427,6 +464,34 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<BaseModal bind:isOpen={showDeleteModal}>
+  {#snippet header()}
+    Confirm Deletion
+  {/snippet}
+
+  {#snippet body()}
+    <p>Are you sure you want to delete this asset? This action cannot be undone.</p>
+  {/snippet}
+
+  {#snippet actions()}
+    <BaseButton
+      type="button"
+      class="btn btn-secondary"
+      text="Cancel"
+      onClick={cancelDelete}
+      disabled={isDeleting}
+    />
+    <BaseButton
+      type="button"
+      class="btn btn-danger"
+      text={isDeleting ? "Deleting..." : "Confirm and delete"}
+      onClick={confirmDeleteAsset}
+      disabled={isDeleting}
+    />
+  {/snippet}
+</BaseModal>
 
 <style>
     .sticky-bottom-bar {

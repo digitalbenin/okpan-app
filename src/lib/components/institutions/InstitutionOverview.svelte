@@ -3,12 +3,15 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { goto } from "$app/navigation";
+  import { back } from "$lib/utils/navigation.js";
 
   const { institution } = $props();
   const { t } = getTranslationStore();
 
   const handleEdit = () => {
-    goto(`/projects/${institution.project_id}/institutions/${institution.id}/edit`);
+    goto(
+      `/projects/${institution.project_id}/institutions/${institution.id}/edit`,
+    );
   };
 </script>
 
@@ -36,13 +39,11 @@
           <BaseButton
             class="btn btn-outline-secondary btn border-0"
             onClick={handleEdit}
-            title={$t("common.edit-institution", {
-              fallback: "Edit Institution",
+            text={t("common.edit-institution", {
+              fallback: "Edit",
             })}
             icon="pencil"
-          >
-            <i class="bi bi-pencil"></i>
-          </BaseButton>
+          ></BaseButton>
         </div>
       </div>
     </div>
