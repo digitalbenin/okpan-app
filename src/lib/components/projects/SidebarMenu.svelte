@@ -1,10 +1,10 @@
 <script>
   import SidebarElement from "$lib/components/projects/SidebarElement.svelte";
-  const { items, pathname } = $props();
+  const { items, pathname, disabled } = $props();
 </script>
 
 <div class="w-100 d-flex flex-column fs-7 mb-3">
   {#each items as element}
-    <SidebarElement {element} {pathname} />
+    <SidebarElement {element} {pathname} disabled={element.disabled} />
   {/each}
 </div>

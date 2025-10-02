@@ -1,6 +1,6 @@
 <script>
   import SidebarMenu from "$lib/components/projects/SidebarMenu.svelte";
-  const { pathname, element } = $props();
+  const { pathname, element, disabled = false } = $props();
   let isCollapsed = $state(true);
 
   const hasChildren = $derived(element.children && element.children.length > 0);
@@ -51,6 +51,7 @@
       class="d-flex align-items-center justify-content-between link-underline link-underline-opacity-0"
       class:link-secondary={!isActive}
       class:link-dark={isActive}
+      style={disabled ? "opacity: 0.5;" : ""}
     >
       <div>
         {#if element.icon}

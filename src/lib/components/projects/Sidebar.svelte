@@ -60,6 +60,7 @@
     {
       label: t("menu.export-website", { fallback: "Export Website" }),
       icon: "globe",
+      disabled: true,
       exact: true,
     },
   ]);
