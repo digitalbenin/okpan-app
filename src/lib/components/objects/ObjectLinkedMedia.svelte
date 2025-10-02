@@ -411,6 +411,8 @@
 <!-- Link Media Modal -->
 <LinkMediaModal
     isOpen={isLinkModalOpen}
+    projectId={object?.project_id}
+    institutionId={object?.institution_id}
     initiallySelectedIds={[
         ...linkedAssets.map((oa) => oa.asset.id),
         ...(pendingAdditions || []).map((a) => a.id),

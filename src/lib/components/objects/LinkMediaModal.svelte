@@ -26,6 +26,10 @@
     // Cache of assets we've seen while paginating/searching, so we can return full objects on Save
     let selectedAssetsMap = new Map();
 
+    // Upload state
+    let isUploading = $state(false);
+    let uploadPercent = $state(0);
+
     // Keep selected in sync when modal re-opens with different initial values
     $effect(() => {
         selected = new Set(initiallySelectedIds || []);
@@ -55,6 +59,60 @@
             totalCount = 0;
         } finally {
             isLoading = false;
+        }
+    }
+
+    // Handle image upload via Electron file dialog and backend import
+    async function uploadNewImage() {
+        try {
+            const result = await window.api.openFileDialog({
+                title: "Select Image Files",
+                properties: ["openFile", "multiSelections"],
+            });
+
+            const filePaths = result?.files?.map((f) => f.path) || result?.filePaths || [];
+            if (!filePaths || filePaths.length === 0) return;
+
+            isUploading = true;
+            uploadPercent = 0;
+
+            // Listen to progress events while importing
+            window.api.onImportProgress((event, data) => {
+                if (data?.status === "progress") {
+                    uploadPercent = data.percent || 0;
+                }
+                if (data?.status === "complete") {
+                    uploadPercent = 100;
+                    isUploading = false;
+                    // Clean up listeners
+                    window.api.removeImportProgressListeners?.();
+                }
+            });
+
+            const importResult = await window.api.importAssets({
+                projectId,
+                institutionId,
+                isGenericAsset: false,
+                files: filePaths,
+            });
+
+            const newlyCreated = importResult?.createdAssets || [];
+            // Auto-add uploaded assets to selection and cache
+            for (const a of newlyCreated) {
+                if (!a?.id) continue;
+                selected.add(a.id);
+                selectedAssetsMap.set(a.id, a);
+            }
+            selected = new Set(selected);
+
+            // Refresh to show new assets (sorted by created_at desc)
+            page = 1;
+            await loadAssets();
+        } catch (e) {
+            console.error("Image upload failed:", e);
+        } finally {
+            window.api.removeImportProgressListeners?.();
+            isUploading = false;
         }
     }
 
@@ -145,6 +203,20 @@
                         >
                             {t("common.search", { fallback: "Search" })}
                         </button>
+                        <button
+                            class="btn btn-outline-secondary ms-2"
+                            type="button"
+                            onclick={uploadNewImage}
+                            disabled={isUploading}
+                        >
+                            <i class="bi bi-upload"></i>
+                            {t("common.upload_image", { fallback: "Upload image" })}
+                        </button>
+                        {#if isUploading}
+                            <span class="ms-2 text-muted small align-self-center">
+                                {uploadPercent}%
+                            </span>
+                        {/if}
                     </div>
 
                     <!-- List -->
