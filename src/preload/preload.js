@@ -21,6 +21,8 @@ contextBridge.exposeInMainWorld('api', {
     suggestObjectMatches: (assets, options) => ipcRenderer.invoke('suggest-object-matches', assets, options),
     suggestFieldMappings: (csvFieldNames, options) => ipcRenderer.invoke('suggest-field-mappings', csvFieldNames, options),
     suggestTemplateReuse: (inputHeaders, projectId) => ipcRenderer.invoke('suggest-template-reuse', inputHeaders, projectId),
+    // Languages
+    getLanguages: (lang = 'en') => ipcRenderer.invoke('languages:list', { lang }),
 
     // Embedding methods
     computeAllMissingEmbeddings: () => ipcRenderer.invoke('compute-all-missing-embeddings'),

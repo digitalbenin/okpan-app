@@ -1428,39 +1428,6 @@
   resolved "https://registry.yarnpkg.com/@tanstack/table-core/-/table-core-8.21.3.tgz#2977727d8fc8dfa079112d9f4d4c019110f1732c"
   integrity sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg==
 
-"@thisux/sveltednd@0.0.12":
-  version "0.0.12"
-  resolved "https://registry.yarnpkg.com/@thisux/sveltednd/-/sveltednd-0.0.12.tgz#0e9e8bb0de22fb4bd1d202c901e8bb85d9e7a9a7"
-  integrity sha512-9edVcakYkoCzU6pNIwmJ6Cf+9anECod26Ue/rL3Ssf5LyuLaBLXtBx4H4U8YwQCkwtMeSGFf0OsiMpPpFjvCcg==
-
-"@thisux/sveltednd@^0.0.14":
-  version "0.0.14"
-  resolved "https://registry.yarnpkg.com/@thisux/sveltednd/-/sveltednd-0.0.14.tgz#a3ccbf9830326c318bb4c1b44704659f18e3c94b"
-  integrity sha512-Vbq69SU3HUomPg6oCXtb89OG89hka0YIkdaErYibn3waK7tYE66IcQxD/Fzg8YNW3EVsXoA9kc7kW5EUBCSQGg==
-  dependencies:
-    "@thisux/sveltednd" "0.0.12"
-
-"@thisux/sveltednd@^0.0.17":
-  version "0.0.17"
-  resolved "https://registry.yarnpkg.com/@thisux/sveltednd/-/sveltednd-0.0.17.tgz#62d608b2a91cb8064474f613052ddd63676deaf9"
-  integrity sha512-lRninjw439phhA8xAHqCpMAX0hnwFMdbXW4M0XJgAdnGxeum+QsLiIC4P3HnkNXAygsVKUqxRcbS84CxDZ9hPw==
-  dependencies:
-    "@thisux/sveltednd" "^0.0.14"
-
-"@thisux/sveltednd@^0.0.18":
-  version "0.0.18"
-  resolved "https://registry.yarnpkg.com/@thisux/sveltednd/-/sveltednd-0.0.18.tgz#a7cf259509556471ae2bbf7a25553021fdf8199b"
-  integrity sha512-MO+iR9ZRHApvtwgWujmqwUbhv9mKs0jLOmeG4tn98GmU1/9wVOi02jrNqeggKg3c8dXz6pMmUHfOfmcq7WwYZg==
-  dependencies:
-    "@thisux/sveltednd" "^0.0.17"
-
-"@thisux/sveltednd@^0.0.20":
-  version "0.0.20"
-  resolved "https://registry.yarnpkg.com/@thisux/sveltednd/-/sveltednd-0.0.20.tgz#8b0e748bdd3f5cdc36484b4a3a26b0d3c924828d"
-  integrity sha512-VE0HopIlHIvNOfSZ1SsiIzl1AmTU0VSd2Nz2Q2nIdqIUsT/UP4hiLw2ed2jFqTKTbqC+kbCYL9vuBpkYnEw+Kw==
-  dependencies:
-    "@thisux/sveltednd" "^0.0.18"
-
 "@tootallnate/once@2":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-2.0.0.tgz#f544a148d3ab35801c1f633a7441fd87c2e484bf"
@@ -2137,6 +2104,11 @@ cookie@^0.6.0:
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/cookie/-/cookie-0.6.0.tgz#2798b04b071b0ecbff0dbb62a505a8efa4e19051"
   integrity sha512-U71cyTamuh1CRNCfpGY6to28lxvNwPG4Guz/EVjgf3Jmzv0vlDp1atT9eS5dDjMYHucpHbWns6Lwf3BKz6svdw==
+
+countries-list@^3.1.1:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/countries-list/-/countries-list-3.1.1.tgz#f3a339a06228ff053c0e8e44f17fa5ad4f3cab58"
+  integrity sha512-nPklKJ5qtmY5MdBKw1NiBAoyx5Sa7p2yPpljZyQ7gyCN1m+eMFs9I6CT37Mxt8zvR5L3VzD3DJBE4WQzX3WF4A==
 
 crc-32@~1.2.0, crc-32@~1.2.1:
   version "1.2.2"

@@ -22,6 +22,7 @@ import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { eq, sql, isNull } from 'drizzle-orm';
 import { handleExportProject } from './handlers/exportHandlers.js';
+import { handleListLanguages } from './handlers/languagesHandlers.js';
 
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
@@ -48,6 +49,7 @@ ipcMain.handle('import-assets', (event, data) =>
 ipcMain.handle('open-file-dialog', handleFileDialog);
 ipcMain.handle('import-structured-data', handleStructuredDataImport);
 ipcMain.handle('excel-sheet-selection', handleExcelSheetSelection);
+ipcMain.handle('languages:list', handleListLanguages);
 
 // New generic export channel supports { format: 'sql' | 'json', ... }
 ipcMain.handle('export-project', (event, options) =>
