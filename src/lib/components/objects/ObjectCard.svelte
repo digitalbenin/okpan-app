@@ -80,7 +80,7 @@
         </div>
         <div class="swiper w-100 h-100" {@attach attachSwiper}>
           <div class="swiper-wrapper">
-            {#each object.objectsAssets as image (image.asset.id)}
+            {#each object.objectsAssets as image, i (image.asset.id + '-' + i)}
               <div class="swiper-slide">
                 <img
                   class="object-fit-contain w-100 h-100"

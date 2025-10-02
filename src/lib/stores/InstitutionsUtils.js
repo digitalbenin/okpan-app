@@ -17,6 +17,29 @@ export const getInstitution = async (institutionId, fetchFn) => {
     return result.result;
 };
 
+// Update institution status and invalidate caches
+export const updateInstitutionStatus = async (institutionId, status) => {
+    if (!institutionId) {
+        return { result: null, error: "Missing Institution ID" };
+    }
+    if (!status) {
+        return { result: null, error: "Missing status value" };
+    }
+
+    const result = await executeQuery('institutions', 'update', { id: institutionId, status });
+
+    if (result?.error) {
+        return { result: null, error: result.error };
+    }
+
+    // Invalidate both the detail and listings
+    invalidate("app:institution");
+    invalidate("app:institutions");
+
+    const updated = result?.result?.updateInstitutions || result?.updateInstitutions || [{ id: institutionId, status }];
+    return { result: updated, error: null };
+};
+
 // Function to update an institution, including translations orchestration
 export const updateInstitution = async (institutionId, updatedData) => {
     if (!institutionId) {

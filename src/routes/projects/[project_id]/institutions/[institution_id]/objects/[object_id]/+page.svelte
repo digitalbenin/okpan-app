@@ -14,6 +14,9 @@
     updateObjectInstitution,
     deleteObject,
   } from "$lib/stores/ObjectsUtils.js";
+  import { updateObjectStatus } from "$lib/stores/ObjectsUtils.js";
+  import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
+  
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -168,6 +171,29 @@
       showDeleteModal = false;
     }
   }
+
+  // --- Status Dropdown (object detail header) ---
+  let statusUpdating = $state(false);
+
+  async function setStatus(nextStatus) {
+    if (!data?.object?.id) return;
+    if (statusUpdating) return;
+    statusUpdating = true;
+    try {
+      const res = await updateObjectStatus(data.object.id, nextStatus);
+      if (res?.error) {
+        console.error("Failed to update object status:", res.error);
+      } else {
+        // reflect locally and trigger reactivity
+        data.object = { ...data.object, status: nextStatus };
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+    } finally {
+      statusUpdating = false;
+      showStatusMenu = false;
+    }
+  }
 </script>
 
 <div class="d-flex flex-column min-vh-100">
@@ -187,9 +213,11 @@
               <div class="text-black-50">{data.institution.name.content}</div>
               <h1>
                 {objectId}
-                <span class="badgeWrapper fs-6">
-                  <BaseBadgeStatus status={data.object.status} />
-                </span>
+                <StatusBadgeDropdown
+                  status={data.object.status}
+                  disabled={statusUpdating}
+                  on:change={(e) => setStatus(e.detail)}
+                />
               </h1>
             </div>
 
