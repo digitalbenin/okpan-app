@@ -11,38 +11,48 @@
   const { displayFields, researchFields, projectId } = $props();
   const { t } = getTranslationStore();
 
+  // Normalize incoming props to consistent array shapes
+  const dfArray = $derived(
+    Array.isArray(displayFields)
+      ? displayFields
+      : (displayFields?.result || [])
+  );
+  const rfArray = $derived(
+    Array.isArray(researchFields)
+      ? researchFields
+      : (researchFields?.result || researchFields?.research_fields || [])
+  );
+
   let objectFieldsGroup = $state([
     {
       value: "created_at",
       label: t("common.created-at", { fallback: "Created At" }),
       group: t("common.object-information", { fallback: "Object Information" }),
       groupType: "propertyName",
-      id: getSelectedFieldsId(displayFields.result, "created_at"),
+      id: getSelectedFieldsId(dfArray, "created_at"),
     },
     {
       value: "updated_at",
       label: t("common.updated-at", { fallback: "Updated At" }),
       group: t("common.object-information", { fallback: "Object Information" }),
       groupType: "propertyName",
-      id: getSelectedFieldsId(displayFields.result, "updated_at"),
+      id: getSelectedFieldsId(dfArray, "updated_at"),
     },
   ]);
 
   let researchFieldsGroup = $state(
-    researchFields.result.map((researchField) => {
+    rfArray.map((researchField) => {
       return {
         value: researchField.id,
         label: researchField.name.content,
         group: t("common.research-fields", { fallback: "Research Fields" }),
         groupType: "researchFieldId",
-        id: getSelectedFieldsId(displayFields.result, researchField.id),
+        id: getSelectedFieldsId(dfArray, researchField.id),
       };
     })
   );
 
-  let fieldsSelected = $state(
-    displayFields.result.map((field) => field.value) || []
-  );
+  let fieldsSelected = $state(dfArray.map((field) => field.value) || []);
 
   let fieldsItems = $state([...objectFieldsGroup, ...researchFieldsGroup]);
 

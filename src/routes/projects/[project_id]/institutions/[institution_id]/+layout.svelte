@@ -14,6 +14,19 @@
 
   // Provide reactive-style API via functions to avoid stale snapshots
   setContext("institutionAssetsSelection", { getSelected, setSelected });
+
+  // Separate selection context for objects (bulk edit)
+  let selectedObjectIds = $state([]);
+  function setSelectedObjects(ids) {
+    selectedObjectIds = (ids || []).map((s) => String(s));
+  }
+  function getSelectedObjects() {
+    return selectedObjectIds;
+  }
+  setContext("institutionObjectsSelection", {
+    getSelected: getSelectedObjects,
+    setSelected: setSelectedObjects,
+  });
 </script>
 
 {@render children()}

@@ -1,9 +1,11 @@
 <script>
-  import { onDestroy } from "svelte";
+  import { onDestroy, setContext } from "svelte";
   import Header from "$lib/components/projects/Header.svelte";
   import Sidebar from "$lib/components/projects/Sidebar.svelte";
 
   const { children } = $props();
+
+  // (selection context moved into objects route layout)
 
   // Clear project cache when leaving the projects section
   onDestroy(() => {

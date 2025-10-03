@@ -10,6 +10,7 @@
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
+  import { getContext } from "svelte";
   import {
     updateObjectsStatusBulk,
     updateObjectsInstitutionBulk,
@@ -141,6 +142,14 @@
     selectedObjects = [];
     showBulkInstitutionModal = false;
   }
+
+  function openBulkEdit() {
+    if (!selectedObjects?.length) return;
+    const ids = selectedObjects.map(String).join(",");
+    const returnTo = `/projects/${institution.project_id}/institutions/${institution.id}`;
+    const url = `/projects/${institution.project_id}/objects/bulk-edit?ids=${encodeURIComponent(ids)}&returnTo=${encodeURIComponent(returnTo)}`;
+    window.location.href = url;
+  }
 </script>
 
 <div class="w-100">
@@ -185,6 +194,7 @@
         />
         <button
           class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+          onclick={openBulkEdit}
         >
           <span>
             {t("common.edit-information", {
