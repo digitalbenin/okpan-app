@@ -19,6 +19,8 @@
   const { t, translationState } = getTranslationStore();
 
   let viewAs = $state("grid");
+  import { getContext } from "svelte";
+  const assetsCtx = getContext("institutionAssetsSelection");
   let selectedAssets = $state([]);
   let isDeleteModalOpen = $state(false);
   let isLinkModalOpen = $state(false);
@@ -86,6 +88,12 @@
     linkAssetId = String(selectedAssets[0]);
     isLinkModalOpen = true;
   }
+  import { goto } from "$app/navigation";
+  function openBulkEdit() {
+    if (selectedAssets.length === 0) return;
+    assetsCtx?.setSelected?.(selectedAssets.map(String));
+    goto(`/projects/${institution.project_id}/institutions/${institution.id}/assets/bulk-edit`);
+  }
 
   async function handleModalLinked(payload) {
     try {
@@ -142,25 +150,51 @@
           })}
         </div>
         <div>
-          <button class="btn btn-secondary btn-sm" onclick={clearSelection}>
+          <button
+            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+            onclick={clearSelection}
+          >
+            <span>
+              {t("common.clear-selection", {
+                fallback: "Clear selection",
+              })}
+            </span>
             <i class="bi bi-x-circle"></i>
-            {t("common.clear-selection", {
-              fallback: "Clear selection",
-            })}
           </button>
         </div>
         <div>
-          <button class="btn btn-secondary btn-sm" onclick={openLinkModal}>
+          <button
+            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+            onclick={openLinkModal}
+          >
+            <span>
+              {t("common.link-to-object", { fallback: "Link to object" })}
+            </span>
             <i class="bi bi-link-45deg"></i>
-            {t("common.link-to-object", { fallback: "Link to object" })}
+          </button>
+        </div>
+        <div>
+          <button
+            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+            onclick={openBulkEdit}
+          >
+            <span>
+              {t("common.edit-metadata", { fallback: "Edit metadata" })}
+            </span>
+            <i class="bi bi-pencil-square"></i>
           </button>
         </div>
         <div class="ms-auto">
-          <button class="btn btn-danger btn-sm" onclick={openDeleteModal}>
+          <button
+            class="btn btn-danger btn-sm d-flex align-items-center gap-2"
+            onclick={openDeleteModal}
+          >
+            <span>
+              {t("common.delete", {
+                fallback: "Delete",
+              })}
+            </span>
             <i class="bi bi-trash"></i>
-            {t("common.delete", {
-              fallback: "Delete",
-            })}
           </button>
         </div>
       </div>
