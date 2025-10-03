@@ -9,7 +9,11 @@
   import { fly } from "svelte/transition";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
-  import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/stores/ObjectsUtils.js";
+  import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
+  import {
+    updateObjectsStatusBulk,
+    updateObjectsInstitutionBulk,
+  } from "$lib/stores/ObjectsUtils.js";
 
   let {
     institution,
@@ -154,53 +158,50 @@
             fallback: "selected objects",
           })}
         </div>
-        <div>
-          <button class="btn btn-secondary btn-sm" onclick={clearSelection}>
-            <i class="bi bi-x-circle"></i>
-            {t("common.clear-selection", {
-              fallback: "Clear selection",
-            })}
-          </button>
-          <button class="btn btn-secondary btn-sm" onclick={openBulkInstitutionModal}>
-            <i class="bi bi-bank"></i>
+        <button
+          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+          onclick={clearSelection}
+        >
+          <span>
+            {t("common.clear-selection", { fallback: "Clear selection" })}
+          </span>
+          <i class="bi bi-x-circle"></i>
+        </button>
+        <button
+          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+          onclick={openBulkInstitutionModal}
+        >
+          <span>
             {t("common.change-institution", {
               fallback: "Change institution",
             })}
-          </button>
-          <select
-            class="form-select form-select-sm d-inline-block w-auto"
-            bind:value={bulkStatusValue}
-            onchange={applyBulkStatus}
-          >
-            <option value="" disabled
-              >{t("common.change-status", {
-                fallback: "Change status",
-              })}</option
-            >
-            <option value="completed"
-              >{t("common.mark-as-completed", {
-                fallback: "Mark as completed",
-              })}</option
-            >
-            <option value="in progress"
-              >{t("common.mark-as-in-progress", {
-                fallback: "Mark as in progress",
-              })}</option
-            >
-          </select>
-          <button class="btn btn-primary btn-sm">
-            <i class="bi bi-pencil"></i>
+          </span>
+          <i class="bi bi-bank"></i>
+        </button>
+        <BulkActionsStatusSelect
+          items={statuses.filter((s) => s.value !== "all")}
+          bind:value={bulkStatusValue}
+          onValueChange={applyBulkStatus}
+        />
+        <button
+          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+        >
+          <span>
             {t("common.edit-information", {
               fallback: "Edit information",
             })}
-          </button>
-        </div>
+          </span>
+          <i class="bi bi-pencil"></i>
+        </button>
         <div class="ms-auto">
-          <button class="btn btn-danger btn-sm" onclick={confirmBulkDelete}>
+          <button
+            class="btn btn-danger btn-sm d-flex align-items-center gap-2"
+            onclick={confirmBulkDelete}
+          >
+            <span>
+              {t("common.delete", { fallback: "Delete" })}
+            </span>
             <i class="bi bi-trash"></i>
-            {t("common.delete", {
-              fallback: "Delete",
-            })}
           </button>
         </div>
       </div>
@@ -299,18 +300,18 @@
       </div>
     </div>
   {/if}
-  </div>
+</div>
 
-  <!-- Bulk Delete Confirmation Modal (Reusable Component) -->
-  <BulkDeleteObjectsModal
-    bind:isOpen={showBulkDeleteModal}
-    selectedIds={selectedObjects}
-    on:deleted={handleDeleted}
-  />
+<!-- Bulk Delete Confirmation Modal (Reusable Component) -->
+<BulkDeleteObjectsModal
+  bind:isOpen={showBulkDeleteModal}
+  selectedIds={selectedObjects}
+  on:deleted={handleDeleted}
+/>
 
-  <!-- Bulk Change Institution Modal (Reusable Component) -->
-  <BulkChangeInstitutionModal
-    bind:isOpen={showBulkInstitutionModal}
-    projectId={institution.project_id}
-    onConfirm={handleConfirmInstitution}
-  />
+<!-- Bulk Change Institution Modal (Reusable Component) -->
+<BulkChangeInstitutionModal
+  bind:isOpen={showBulkInstitutionModal}
+  projectId={institution.project_id}
+  onConfirm={handleConfirmInstitution}
+/>

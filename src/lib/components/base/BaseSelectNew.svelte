@@ -9,6 +9,7 @@
     placeholder,
     type = "single",
     size,
+    as = "select",
     ...restProps
   } = $props();
 
@@ -48,11 +49,22 @@
 
 <Select.Root bind:value {type} {...restProps}>
   <Select.Trigger
-    class="form-select text-start text-truncate {restProps.inputClass} {size
-      ? `form-select-${size}`
-      : ''}"
+    class={[
+      "d-flex align-items-center",
+      as === "select" && "justify-content-between w-100 form-select text-start",
+      as === "button" && "btn gap-2",
+      restProps.inputClass,
+      size && `form-select-${size}`,
+    ]
+      .filter(Boolean)
+      .join(" ")}
   >
-    {selectedLabel ? selectedLabel : placeholder}
+    <span class="text-truncate">
+      {selectedLabel ? selectedLabel : placeholder}
+    </span>
+    {#if $$slots.default}
+      <slot />
+    {/if}
   </Select.Trigger>
   <Select.Portal {...portalProps}>
     <Select.Content {...contentProps} align="start">
