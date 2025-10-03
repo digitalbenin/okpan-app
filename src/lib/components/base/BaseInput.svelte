@@ -29,6 +29,14 @@
 
   function clearInput() {
     value = "";
+    // If onInput handler is provided, invoke it so consumers can react
+    if (onInput) {
+      try {
+        onInput({ target: { value } });
+      } catch (e) {
+        console.warn('onInput handler threw during clearInput:', e);
+      }
+    }
   }
 </script>
 
@@ -47,8 +55,8 @@
     {disabled}
     min={validatedType === "number" ? min : undefined}
     max={validatedType === "number" ? max : undefined}
-    {onChange}
-    {onInput}
+    onchange={onChange}
+    oninput={onInput}
   />
   {#if clearable}
     <span class="input-group-text bg-white">

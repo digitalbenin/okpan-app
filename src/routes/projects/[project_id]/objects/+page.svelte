@@ -6,10 +6,12 @@
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
+  import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import { fly } from "svelte/transition";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { queryParameters, ssp } from "sveltekit-search-params";
-  import { updateObjectsStatusBulk } from "$lib/stores/ObjectsUtils.js";
+  import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/stores/ObjectsUtils.js";
+  import { page } from "$app/stores";
 
   const { t } = getTranslationStore();
 
@@ -50,6 +52,10 @@
 
   // Modal state
   let showBulkDeleteModal = $state(false);
+  let showBulkInstitutionModal = $state(false);
+
+  // Project id from route params
+  const projectId = $derived($page.params.project_id);
 
   // Use store utilities for mutations and cache invalidation
 
@@ -106,6 +112,10 @@
     showBulkDeleteModal = true;
   }
 
+  function openBulkInstitutionModal() {
+    showBulkInstitutionModal = true;
+  }
+
   // Clear selection after modal emits deleted event
   function handleDeleted() {
     selectedObjects = [];
@@ -121,6 +131,22 @@
     }
     selectedObjects = [];
     bulkStatusValue = "";
+  }
+
+  async function handleConfirmInstitution({ institutionId }) {
+    if (!institutionId || selectedObjects.length === 0) {
+      showBulkInstitutionModal = false;
+      return;
+    }
+    const { errors } = await updateObjectsInstitutionBulk(
+      selectedObjects,
+      institutionId,
+    );
+    if (errors && errors.length) {
+      console.error("Bulk institution update had errors:", errors);
+    }
+    selectedObjects = [];
+    showBulkInstitutionModal = false;
   }
   $inspect(data);
 </script>
@@ -155,9 +181,10 @@
               fallback: "Clear selection",
             })}
           </button>
-          <button class="btn btn-primary btn-sm">
-            {t("common.move-objects", {
-              fallback: "Move objects",
+          <button class="btn btn-secondary btn-sm" onclick={openBulkInstitutionModal}>
+            <i class="bi bi-bank"></i>
+            {t("common.change-institution", {
+              fallback: "Change institution",
             })}
           </button>
           <select
@@ -305,5 +332,12 @@
     bind:isOpen={showBulkDeleteModal}
     selectedIds={selectedObjects}
     on:deleted={handleDeleted}
+  />
+
+  <!-- Bulk Change Institution Modal (Reusable Component) -->
+  <BulkChangeInstitutionModal
+    bind:isOpen={showBulkInstitutionModal}
+    projectId={projectId}
+    onConfirm={handleConfirmInstitution}
   />
 </div>

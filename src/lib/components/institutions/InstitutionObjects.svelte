@@ -8,7 +8,8 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { fly } from "svelte/transition";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
-  import { updateObjectsStatusBulk } from "$lib/stores/ObjectsUtils.js";
+  import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
+  import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/stores/ObjectsUtils.js";
 
   let {
     institution,
@@ -24,6 +25,7 @@
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
   let showBulkDeleteModal = $state(false);
+  let showBulkInstitutionModal = $state(false);
   let bulkStatusValue = $state("");
 
   const viewAsOptions = $derived([
@@ -79,6 +81,10 @@
     showBulkDeleteModal = true;
   }
 
+  function openBulkInstitutionModal() {
+    showBulkInstitutionModal = true;
+  }
+
   function handleDeleted() {
     // Clear selection after deletion completes
     selectedObjects = [];
@@ -115,6 +121,22 @@
     selectedObjects = [];
     bulkStatusValue = "";
   }
+
+  async function handleConfirmInstitution({ institutionId }) {
+    if (!institutionId || selectedObjects.length === 0) {
+      showBulkInstitutionModal = false;
+      return;
+    }
+    const { errors } = await updateObjectsInstitutionBulk(
+      selectedObjects,
+      institutionId,
+    );
+    if (errors && errors.length) {
+      console.error("Bulk institution update had errors:", errors);
+    }
+    selectedObjects = [];
+    showBulkInstitutionModal = false;
+  }
 </script>
 
 <div class="w-100">
@@ -139,9 +161,10 @@
               fallback: "Clear selection",
             })}
           </button>
-          <button class="btn btn-primary btn-sm">
-            {t("common.move-objects", {
-              fallback: "Move objects",
+          <button class="btn btn-secondary btn-sm" onclick={openBulkInstitutionModal}>
+            <i class="bi bi-bank"></i>
+            {t("common.change-institution", {
+              fallback: "Change institution",
             })}
           </button>
           <select
@@ -276,11 +299,18 @@
       </div>
     </div>
   {/if}
-</div>
+  </div>
 
-<!-- Bulk Delete Confirmation Modal (Reusable Component) -->
-<BulkDeleteObjectsModal
-  bind:isOpen={showBulkDeleteModal}
-  selectedIds={selectedObjects}
-  on:deleted={handleDeleted}
-/>
+  <!-- Bulk Delete Confirmation Modal (Reusable Component) -->
+  <BulkDeleteObjectsModal
+    bind:isOpen={showBulkDeleteModal}
+    selectedIds={selectedObjects}
+    on:deleted={handleDeleted}
+  />
+
+  <!-- Bulk Change Institution Modal (Reusable Component) -->
+  <BulkChangeInstitutionModal
+    bind:isOpen={showBulkInstitutionModal}
+    projectId={institution.project_id}
+    onConfirm={handleConfirmInstitution}
+  />

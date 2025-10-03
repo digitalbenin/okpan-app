@@ -454,3 +454,40 @@ export const linkAssetToObject = async (objectId, assetId, order) => {
 
     return { result: result.insertIntoObjects_assets, error: null };
 };
+
+// Bulk update objects institution
+export const updateObjectsInstitutionBulk = async (objectIds, institutionId) => {
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { error: "No objects selected for institution update" };
+    }
+    if (!institutionId) {
+        return { error: "No institution provided for bulk update" };
+    }
+
+    const promises = objectIds.map((objectId) =>
+        executeQuery('objects', 'update', { objectId, institutionId })
+    );
+
+    const settled = await Promise.allSettled(promises);
+    const successes = [];
+    const errors = [];
+
+    settled.forEach((res, idx) => {
+        const id = objectIds[idx];
+        if (res.status === 'fulfilled' && !res.value?.error) {
+            successes.push(id);
+        } else {
+            const errMsg = res.status === 'rejected'
+                ? (res.reason?.message || 'Unknown error')
+                : (res.value?.error || 'Unknown error');
+            errors.push({ objectId: id, error: errMsg });
+        }
+    });
+
+    // Invalidate caches so listings and detail pages reflect institution changes
+    invalidate("app:objects");
+    invalidate("custom:object");
+    invalidate("app:institution");
+
+    return { successes, errors };
+};
