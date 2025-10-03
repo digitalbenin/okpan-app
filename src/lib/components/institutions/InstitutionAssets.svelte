@@ -5,6 +5,8 @@
   import BaseLinkedStatus from "$lib/components/base/BaseLinkedStatus.svelte";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import BulkDeleteAssetsModal from "$lib/components/assets/BulkDeleteAssetsModal.svelte";
+  import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
+  import { linkAssetsToObjectsBulk } from "$lib/stores/ObjectsUtils.js";
   import Table from "$lib/components/base/table/Table.svelte";
   import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
   import TableLink from "$lib/components/base/table/TableLink.svelte";
@@ -19,6 +21,8 @@
   let viewAs = $state("grid");
   let selectedAssets = $state([]);
   let isDeleteModalOpen = $state(false);
+  let isLinkModalOpen = $state(false);
+  let linkAssetId = $state(null);
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -77,6 +81,35 @@
     isDeleteModalOpen = true;
   }
 
+  function openLinkModal() {
+    if (selectedAssets.length === 0) return;
+    linkAssetId = String(selectedAssets[0]);
+    isLinkModalOpen = true;
+  }
+
+  async function handleModalLinked(payload) {
+    try {
+      // Modal currently sends an array of linked object results; support both shapes
+      const isArrayPayload = Array.isArray(payload);
+      const extractedIds = isArrayPayload
+        ? (payload || []).map((obj) => String(obj?.id)).filter(Boolean)
+        : payload?.objectIds || [];
+      const assetId = isArrayPayload
+        ? linkAssetId
+        : (payload?.assetId ?? linkAssetId);
+      const objectIds = extractedIds;
+      const allAssetIds = selectedAssets.map(String);
+      // Ensure first asset is included in bulk operation as well
+      if (assetId && !allAssetIds.includes(String(assetId))) {
+        allAssetIds.push(String(assetId));
+      }
+      await linkAssetsToObjectsBulk(allAssetIds, objectIds);
+    } finally {
+      isLinkModalOpen = false;
+      clearSelection();
+    }
+  }
+
   function handleBulkDeleted(event) {
     const { successes = [] } = event.detail || {};
     if (successes.length > 0) {
@@ -114,6 +147,12 @@
             {t("common.clear-selection", {
               fallback: "Clear selection",
             })}
+          </button>
+        </div>
+        <div>
+          <button class="btn btn-secondary btn-sm" onclick={openLinkModal}>
+            <i class="bi bi-link-45deg"></i>
+            {t("common.link-to-object", { fallback: "Link to object" })}
           </button>
         </div>
         <div class="ms-auto">
@@ -271,6 +310,16 @@
       bind:isOpen={isDeleteModalOpen}
       selectedIds={selectedAssets}
       on:deleted={handleBulkDeleted}
+    />
+  {/if}
+
+  {#if isLinkModalOpen}
+    <LinkObjectsModal
+      bind:isOpen={isLinkModalOpen}
+      projectId={institution.project_id}
+      assetId={linkAssetId}
+      preselectExisting={false}
+      onLinked={handleModalLinked}
     />
   {/if}
 </div>

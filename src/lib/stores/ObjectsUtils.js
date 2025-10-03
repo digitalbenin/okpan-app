@@ -441,9 +441,14 @@ export const linkAssetToObject = async (objectId, assetId, order) => {
         return { error: "Invalid objectId or assetId for linkAssetToObject" };
     }
 
+    // Attempt insert; rely on DB unique constraint to prevent duplicates
     const result = await executeQuery('objects', 'addAsset', { objectId, assetId, order });
 
-    if (result.error) {
+    if (result?.error) {
+        const msg = typeof result.error === 'string' ? result.error : (result.error?.message || '');
+        if (/UNIQUE|already\s*linked|exists|duplicate/i.test(msg)) {
+            return { result: null, error: null, skipped: true };
+        }
         return { error: result.error };
     }
 
@@ -453,6 +458,64 @@ export const linkAssetToObject = async (objectId, assetId, order) => {
     invalidate("custom:object");
 
     return { result: result.insertIntoObjects_assets, error: null };
+};
+
+// Bulk, additive linking of multiple assets to multiple objects
+// Skips duplicates (unique object-asset pairs) gracefully
+export const linkAssetsToObjectsBulk = async (assetIds, objectIds, { order } = {}) => {
+    // Validate inputs
+    if (!Array.isArray(assetIds) || assetIds.length === 0) {
+        return { successes: [], skippedDuplicates: [], errors: [{ error: "No assets selected for linking" }] };
+    }
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { successes: [], skippedDuplicates: [], errors: [{ error: "No objects selected for linking" }] };
+    }
+
+    const successes = [];
+    const skippedDuplicates = [];
+    const errors = [];
+
+    // Perform additive linking across all combinations, rely on DB unique constraint
+    for (const assetId of assetIds) {
+        for (const objectId of objectIds) {
+            const oid = String(objectId);
+            const aid = String(assetId);
+            try {
+                const res = await executeQuery('objects', 'addAsset', { objectId: oid, assetId: aid, order });
+                if (res?.error) {
+                    const msg = typeof res.error === 'string' ? res.error : (res.error?.message || '');
+                    if (/UNIQUE|already\s*linked|exists|duplicate/i.test(msg)) {
+                        skippedDuplicates.push({ objectId: oid, assetId: aid });
+                        continue;
+                    }
+                    errors.push({ objectId: oid, assetId: aid, error: res.error });
+                    continue;
+                }
+                successes.push({ objectId: oid, assetId: aid });
+            } catch (e) {
+                const msg = e?.message || e;
+                if (/UNIQUE|already\s*linked|exists|duplicate/i.test(msg)) {
+                    skippedDuplicates.push({ objectId: oid, assetId: aid });
+                    continue;
+                }
+                errors.push({ objectId: oid, assetId: aid, error: msg });
+            }
+        }
+    }
+
+    // Consolidated invalidation to refresh listings and detail pages
+    invalidate("app:objects");
+    invalidate("app:assets");
+    invalidate("custom:object");
+    try {
+        if (typeof invalidateAll === 'function') {
+            await invalidateAll();
+        }
+    } catch (_) {
+        // ignore
+    }
+
+    return { successes, skippedDuplicates, errors };
 };
 
 // Bulk update objects institution

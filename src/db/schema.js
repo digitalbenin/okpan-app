@@ -1,4 +1,4 @@
-import { integer, text, blob, sqliteTable } from 'drizzle-orm/sqlite-core';
+import { integer, text, blob, sqliteTable, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Common fields configuration for all tables
@@ -567,7 +567,9 @@ export const objects_assets = sqliteTable('objects_assets', {
     asset_id: text('asset_id').references(() => assets.id, { onDelete: 'cascade' }),
     object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
     order: integer('order')
-});
+}, (table) => ({
+    objectAssetUnique: uniqueIndex('objects_assets_object_asset_unique').on(table.object_id, table.asset_id)
+}));
 
 // Objects Assets relations
 export const objectsAssetsRelations = relations(objects_assets, ({ one }) => ({
