@@ -47,23 +47,31 @@
         for (const field of researchFields) {
           if (!selected[field.id]) continue;
           const isVocabulary = (field.type || "").toLowerCase() === "vocabulary";
-          const newVal = values[field.id];
-          if (isVocabulary && !newVal) continue;
-          if (!isVocabulary && (!newVal || !String(newVal).trim())) continue;
+          const existingForField = currentFields.filter((rf) => (rf?.researchField?.id || rf?.field_id) === field.id);
 
-          const existing = currentFields.find((rf) => (rf?.researchField?.id || rf?.field_id) === field.id);
-          if (existing?.id) {
-            changes.push({
-              id: existing.id,
-              value: isVocabulary ? undefined : String(newVal),
-              vocabularyId: isVocabulary ? String(newVal) : undefined,
-            });
+          if (isVocabulary) {
+            const selectedVocabs = Array.isArray(values[field.id])
+              ? values[field.id]
+              : (values[field.id] ? [values[field.id]] : []);
+            if (selectedVocabs.length === 0) continue;
+
+            for (const vocabId of selectedVocabs) {
+              const match = existingForField.find((rf) => (rf?.vocabulary?.id || rf?.vocabulary_id) === vocabId);
+              if (match?.id) {
+                changes.push({ id: match.id, vocabularyId: String(vocabId) });
+              } else {
+                changes.push({ fieldId: field.id, vocabularyId: String(vocabId) });
+              }
+            }
           } else {
-            changes.push({
-              fieldId: field.id,
-              value: isVocabulary ? undefined : String(newVal),
-              vocabularyId: isVocabulary ? String(newVal) : undefined,
-            });
+            const newVal = values[field.id];
+            if (!newVal || !String(newVal).trim()) continue;
+            const firstExisting = existingForField[0];
+            if (firstExisting?.id) {
+              changes.push({ id: firstExisting.id, value: String(newVal) });
+            } else {
+              changes.push({ fieldId: field.id, value: String(newVal) });
+            }
           }
         }
 
@@ -84,42 +92,52 @@
   }
 </script>
 
-<div class="container py-3">
-  <div class="d-flex align-items-center mb-3">
-    <h3 class="mb-0">{t("common.bulk-edit", { fallback: "Bulk Edit" })}</h3>
-    <div class="ms-3 text-muted">
-      {selectedIds.length}
-      {t("common.selected-objects", { fallback: "selected objects" })}
-    </div>
-    <div class="ms-auto d-flex gap-2">
-      <BaseButton class="btn btn-secondary" text={t("common.cancel", { fallback: "Cancel" })} onClick={handleCancel} />
-      <BaseButton class="btn btn-primary" text={t("common.save", { fallback: "Save" })} onClick={handleSave} />
+<div class="d-flex flex-column min-vh-100">
+  <div class="flex-grow-1">
+    <div class="container py-3">
+      <div class="d-flex align-items-center mb-3">
+        <h3 class="mb-0">{t("common.bulk-edit", { fallback: "Bulk Edit" })}</h3>
+        <div class="ms-3 text-muted">
+          {selectedIds.length}
+          {t("common.selected-objects", { fallback: "selected objects" })}
+        </div>
+      </div>
+
+      {#if researchFields && researchFields.length > 0}
+        <div class="list-group">
+          {#each researchFields as field (field.id)}
+            <div class="list-group-item py-3">
+              <div class="d-flex align-items-center gap-2">
+                <input type="checkbox" bind:checked={selected[field.id]} />
+                <div class="fw-bold">{field?.name?.content || field.id}</div>
+                <span class="badge text-bg-light text-secondary">
+                  {(field?.type || "free text").toLowerCase()}
+                </span>
+              </div>
+
+              <div class="mt-2">
+                {#if (field.type || "").toLowerCase() === "vocabulary"}
+                  <BaseSelect items={itemsForField(field)} bind:value={values[field.id]} type="multiple" size="sm" placeholder={t("common.select", { fallback: "Select" })} />
+                {:else}
+                  <BaseInput bind:value={values[field.id]} placeholder={t("common.new-value", { fallback: "New value" })} />
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="text-muted fst-italic mt-4">{t("common.no-research-fields", { fallback: "No research fields available." })}</div>
+      {/if}
     </div>
   </div>
 
-  {#if researchFields && researchFields.length > 0}
-    <div class="list-group">
-      {#each researchFields as field (field.id)}
-        <div class="list-group-item py-3">
-          <div class="d-flex align-items-center gap-2">
-            <input type="checkbox" bind:checked={selected[field.id]} />
-            <div class="fw-bold">{field?.name?.content || field.id}</div>
-            <span class="badge text-bg-light text-secondary">
-              {(field?.type || "free text").toLowerCase()}
-            </span>
-          </div>
-
-          <div class="mt-2">
-            {#if (field.type || "").toLowerCase() === "vocabulary"}
-              <BaseSelect items={itemsForField(field)} bind:value={values[field.id]} placeholder={t("common.select", { fallback: "Select" })} />
-            {:else}
-              <BaseInput bind:value={values[field.id]} placeholder={t("common.new-value", { fallback: "New value" })} />
-            {/if}
-          </div>
-        </div>
-      {/each}
+  <!-- Sticky bottom bar with Confirm/Cancel -->
+  <div class="position-sticky bottom-0 bg-white border-top p-3 mt-auto" style="z-index: 10;">
+    <div class="container">
+      <div class="d-flex justify-content-end gap-2">
+        <BaseButton type="button" class="btn btn-sm btn-secondary" text={t("common.cancel", { fallback: "Cancel" })} onClick={handleCancel} />
+        <BaseButton type="button" class="btn btn-sm btn-primary" text={t("common.save", { fallback: "Save" })} onClick={handleSave} />
+      </div>
     </div>
-  {:else}
-    <div class="text-muted fst-italic mt-4">{t("common.no-research-fields", { fallback: "No research fields available." })}</div>
-  {/if}
+  </div>
 </div>
