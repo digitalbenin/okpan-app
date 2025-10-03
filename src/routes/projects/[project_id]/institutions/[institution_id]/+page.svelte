@@ -37,7 +37,11 @@
     aOrderBy: ssp.string("filename"),
     aDirection: ssp.string("asc"),
     aSearch: ssp.string(undefined),
-    aLinked: ssp.boolean(undefined),
+    aLinked: {
+      encode: (value) => (value === "all" ? undefined : value),
+      decode: (value) => (value ? value : "all"),
+      defaultValue: undefined,
+    },
     sPage: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),

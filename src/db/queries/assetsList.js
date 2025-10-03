@@ -38,6 +38,11 @@ export const createAssetsListQuery = (db, drizzleResult) => {
                 description: 'Search term to filter assets by filename or path (case-insensitive)'
             },
             {
+                name: 'linked',
+                type: drizzleResult.schema._typeMap.Boolean,
+                description: 'Filter by linked status (true: linked, false: not linked)'
+            },
+            {
                 name: 'page',
                 type: drizzleResult.schema._typeMap.Int,
                 description: 'Page number for pagination (0-based)',
@@ -118,6 +123,13 @@ export const createAssetsListQuery = (db, drizzleResult) => {
             if (args.search && args.search.trim()) {
                 const searchTerm = '%' + args.search.trim().toLowerCase() + '%';
                 conditions.push(sql`(lower(${dbSchema.assets.filename}) LIKE ${searchTerm} OR lower(${dbSchema.assets.path}) LIKE ${searchTerm})`);
+            }
+
+            // Linked filter: true -> require at least one link; false -> require none
+            if (args.linked === true) {
+                conditions.push(sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_assets} oa WHERE oa.asset_id = ${dbSchema.assets.id})`);
+            } else if (args.linked === false) {
+                conditions.push(sql`NOT EXISTS (SELECT 1 FROM ${dbSchema.objects_assets} oa WHERE oa.asset_id = ${dbSchema.assets.id})`);
             }
 
             // Count query
@@ -222,4 +234,4 @@ export const createAssetsListQuery = (db, drizzleResult) => {
             return { items: processedItems, totalCount: totalCount };
         }
     };
-}; 
+};
