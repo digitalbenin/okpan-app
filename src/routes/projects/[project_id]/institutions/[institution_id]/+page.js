@@ -48,7 +48,7 @@ export const load = async ({ params, depends, url }) => {
         orderBy: aOrderBy,
         direction: aDirection,
         search: aSearch,
-        linked: aLinked === 'true' ? true : false
+        linked: aLinked === 'linked' ? true : (aLinked === 'not_linked' ? false : undefined)
     }
     // data sources params
 

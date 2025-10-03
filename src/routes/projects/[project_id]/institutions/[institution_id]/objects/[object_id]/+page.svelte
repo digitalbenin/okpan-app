@@ -4,12 +4,19 @@
   import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
   import ObjectOntologyFields from "$lib/components/objects/ObjectOntologyFields.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import BaseModal from "$lib/components/base/BaseModal.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { back } from "$lib/utils/navigation.js";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import BaseSelectNew from "$lib/components/base/BaseSelectNew.svelte";
-  import { updateObjectInstitution } from "$lib/stores/ObjectsUtils.js";
+  import {
+    updateObjectInstitution,
+    deleteObject,
+  } from "$lib/stores/ObjectsUtils.js";
+  import { updateObjectStatus } from "$lib/stores/ObjectsUtils.js";
+  import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
+  
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -38,13 +45,14 @@
 
   function onInstitutionValueChange(val) {
     selectedInstitutionId = val;
-    institutionHasChanges = selectedInstitutionId !== (data.object.institution_id || null);
+    institutionHasChanges =
+      selectedInstitutionId !== (data.object.institution_id || null);
 
     // Register/update change entry for institution
     componentChanges.set("institution", {
       component: "institution",
       hasChanges: institutionHasChanges,
-      saveFunction: saveInstitutionChange
+      saveFunction: saveInstitutionChange,
     });
     // Trigger reactivity for Map consumers
     componentChanges = new Map(componentChanges);
@@ -52,7 +60,10 @@
 
   async function saveInstitutionChange() {
     if (!institutionHasChanges || !selectedInstitutionId) return;
-    const res = await updateObjectInstitution(data.object.id, selectedInstitutionId);
+    const res = await updateObjectInstitution(
+      data.object.id,
+      selectedInstitutionId,
+    );
     if (res?.error) {
       console.error("Failed to update object institution:", res.error);
       throw res.error;
@@ -63,7 +74,7 @@
     componentChanges.set("institution", {
       component: "institution",
       hasChanges: false,
-      saveFunction: saveInstitutionChange
+      saveFunction: saveInstitutionChange,
     });
     componentChanges = new Map(componentChanges);
   }
@@ -125,6 +136,64 @@
       isSaving = false;
     }
   }
+
+  // Delete object modal state and handlers
+  let showDeleteModal = $state(false);
+  let isDeleting = $state(false);
+
+  function openDeleteModal() {
+    showDeleteModal = true;
+  }
+
+  function cancelDelete() {
+    showDeleteModal = false;
+  }
+
+  async function confirmDeleteObject() {
+    if (!data?.object?.id) {
+      showDeleteModal = false;
+      return;
+    }
+
+    isDeleting = true;
+    try {
+      const res = await deleteObject(data.object.id);
+      if (res?.error) {
+        console.error("Failed to delete object:", res.error);
+      } else {
+        // Navigate back to the previous page
+        back();
+      }
+    } catch (err) {
+      console.error("Error deleting object:", err);
+    } finally {
+      isDeleting = false;
+      showDeleteModal = false;
+    }
+  }
+
+  // --- Status Dropdown (object detail header) ---
+  let statusUpdating = $state(false);
+
+  async function setStatus(nextStatus) {
+    if (!data?.object?.id) return;
+    if (statusUpdating) return;
+    statusUpdating = true;
+    try {
+      const res = await updateObjectStatus(data.object.id, nextStatus);
+      if (res?.error) {
+        console.error("Failed to update object status:", res.error);
+      } else {
+        // reflect locally and trigger reactivity
+        data.object = { ...data.object, status: nextStatus };
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+    } finally {
+      statusUpdating = false;
+      showStatusMenu = false;
+    }
+  }
 </script>
 
 <div class="d-flex flex-column min-vh-100">
@@ -144,12 +213,12 @@
               <div class="text-black-50">{data.institution.name.content}</div>
               <h1>
                 {objectId}
-                <span class="badgeWrapper fs-6">
-                  <BaseBadgeStatus status={data.object.status} />
-                </span>
+                <StatusBadgeDropdown
+                  status={data.object.status}
+                  disabled={statusUpdating}
+                  on:change={(e) => setStatus(e.detail)}
+                />
               </h1>
-
-             
             </div>
 
             <div class="ms-auto">
@@ -164,24 +233,28 @@
     <div class="container-fluid">
       <div class="row">
         <div class="col-8">
-           <!-- Institution selector: after primary id, before research data -->
-              <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
-                <h3 class="">{t("institutions.institution", { fallback: "Institution" })}</h3>
-                <BaseSelectNew
-                  placeholder={t("institutions.select_institution", { fallback: "Select institution" })}
-                  items={institutionItems}
-                  value={selectedInstitutionId}
-                  onValueChange={onInstitutionValueChange}
-                  type="single"
-                  size="sm"
-                  inputClass="w-100"
-                  contentProps={{ width: "anchor" }}
-                />
-              </div>
+          <!-- Institution selector: after primary id, before research data -->
+          <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
+            <h3 class="">
+              {t("institutions.institution", { fallback: "Institution" })}
+            </h3>
+            <BaseSelectNew
+              placeholder={t("institutions.select_institution", {
+                fallback: "Select institution",
+              })}
+              items={institutionItems}
+              value={selectedInstitutionId}
+              onValueChange={onInstitutionValueChange}
+              type="single"
+              size="sm"
+              inputClass="w-100"
+              contentProps={{ width: "anchor" }}
+            />
+          </div>
           <ObjectResearchFields
             object={data.object}
             researchFields={data.researchFields}
-            defaultLanguageId={defaultLanguageId}
+            {defaultLanguageId}
             onChangesUpdate={handleComponentChanges}
           />
           <ObjectOntologyFields object={data.object} />
@@ -206,6 +279,14 @@
         <div class="col-12 d-flex justify-content-end gap-2">
           <BaseButton
             type="button"
+            class="btn btn-sm btn-outline-danger"
+            text={t("common.delete", { fallback: "Delete object" })}
+            disabled={isSaving}
+            icon="trash"
+            onClick={openDeleteModal}
+          />
+          <BaseButton
+            type="button"
             class="btn btn-sm btn-success"
             text={t("common.confirm", { fallback: "Confirm" })}
             disabled={!hasAnyChanges || isSaving}
@@ -215,6 +296,51 @@
       </div>
     </div>
   </div>
+
+  <!-- Delete Confirmation Modal -->
+  {#snippet header()}
+    {t("common.confirm-delete", { fallback: "Confirm Deletion" })}
+  {/snippet}
+
+  {#snippet body()}
+    <p>
+      {t("common.confirm-delete-object", {
+        fallback:
+          "Are you sure you want to delete this object? This action cannot be undone.",
+      })}
+    </p>
+  {/snippet}
+
+  {#snippet actions()}
+    <div class="d-flex justify-content-end gap-2">
+      <BaseButton
+        type="button"
+        class="btn btn-secondary btn-sm"
+        text={t("common.cancel", { fallback: "cancel" })}
+        onClick={cancelDelete}
+        disabled={isDeleting}
+      />
+      <BaseButton
+        type="button"
+        class="btn btn-danger btn-sm"
+        text={isDeleting
+          ? t("common.deleting", { fallback: "Deleting..." })
+          : t("common.confirm-and-delete", { fallback: "Confirm and delete" })}
+        onClick={confirmDeleteObject}
+        disabled={isDeleting}
+      />
+    </div>
+  {/snippet}
+
+  {#if showDeleteModal}
+    <BaseModal
+      bind:isOpen={showDeleteModal}
+      size="md"
+      {header}
+      {body}
+      {actions}
+    />
+  {/if}
 </div>
 
 <style>

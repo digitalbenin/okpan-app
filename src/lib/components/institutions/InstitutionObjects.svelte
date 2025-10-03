@@ -7,6 +7,13 @@
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { fly } from "svelte/transition";
+  import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
+  import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
+  import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
+  import {
+    updateObjectsStatusBulk,
+    updateObjectsInstitutionBulk,
+  } from "$lib/stores/ObjectsUtils.js";
 
   let {
     institution,
@@ -21,6 +28,9 @@
 
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
+  let showBulkDeleteModal = $state(false);
+  let showBulkInstitutionModal = $state(false);
+  let bulkStatusValue = $state("");
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -70,6 +80,67 @@
   function clearSelection() {
     selectedObjects = [];
   }
+
+  function confirmBulkDelete() {
+    showBulkDeleteModal = true;
+  }
+
+  function openBulkInstitutionModal() {
+    showBulkInstitutionModal = true;
+  }
+
+  function handleDeleted() {
+    // Clear selection after deletion completes
+    selectedObjects = [];
+  }
+
+  async function applyBulkStatus() {
+    if (!bulkStatusValue || selectedObjects.length === 0) return;
+    const { successes, errors } = await updateObjectsStatusBulk(
+      selectedObjects,
+      bulkStatusValue,
+    );
+    if (errors && errors.length) {
+      console.error("Bulk status update had errors:", errors);
+    }
+
+    // Optimistically update local list so changes are visible without refresh
+    if (successes && successes.length) {
+      const updatedIds = new Set(successes.map((id) => String(id)));
+      objects.items = objects.items.map((obj) =>
+        updatedIds.has(String(obj.id))
+          ? { ...obj, status: bulkStatusValue }
+          : obj,
+      );
+
+      // If a status filter is active, ensure the view reflects it
+      const currentFilter = (params.oStatus || "all").toLowerCase();
+      if (currentFilter !== "all") {
+        objects.items = objects.items.filter(
+          (obj) => (obj.status || "").toLowerCase() === currentFilter,
+        );
+      }
+    }
+
+    selectedObjects = [];
+    bulkStatusValue = "";
+  }
+
+  async function handleConfirmInstitution({ institutionId }) {
+    if (!institutionId || selectedObjects.length === 0) {
+      showBulkInstitutionModal = false;
+      return;
+    }
+    const { errors } = await updateObjectsInstitutionBulk(
+      selectedObjects,
+      institutionId,
+    );
+    if (errors && errors.length) {
+      console.error("Bulk institution update had errors:", errors);
+    }
+    selectedObjects = [];
+    showBulkInstitutionModal = false;
+  }
 </script>
 
 <div class="w-100">
@@ -87,36 +158,50 @@
             fallback: "selected objects",
           })}
         </div>
-        <div>
-          <button class="btn btn-secondary btn-sm" onclick={clearSelection}>
-            <i class="bi bi-x-circle"></i>
-            {t("common.clear-selection", {
-              fallback: "Clear selection",
+        <button
+          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+          onclick={clearSelection}
+        >
+          <span>
+            {t("common.clear-selection", { fallback: "Clear selection" })}
+          </span>
+          <i class="bi bi-x-circle"></i>
+        </button>
+        <button
+          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+          onclick={openBulkInstitutionModal}
+        >
+          <span>
+            {t("common.change-institution", {
+              fallback: "Change institution",
             })}
-          </button>
-          <button class="btn btn-primary btn-sm">
-            {t("common.move-objects", {
-              fallback: "Move objects",
-            })}
-          </button>
-          <button class="btn btn-primary btn-sm">
-            {t("common.change-status", {
-              fallback: "Change status",
-            })}
-          </button>
-          <button class="btn btn-primary btn-sm">
-            <i class="bi bi-pencil"></i>
+          </span>
+          <i class="bi bi-bank"></i>
+        </button>
+        <BulkActionsStatusSelect
+          items={statuses.filter((s) => s.value !== "all")}
+          bind:value={bulkStatusValue}
+          onValueChange={applyBulkStatus}
+        />
+        <button
+          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+        >
+          <span>
             {t("common.edit-information", {
               fallback: "Edit information",
             })}
-          </button>
-        </div>
+          </span>
+          <i class="bi bi-pencil"></i>
+        </button>
         <div class="ms-auto">
-          <button class="btn btn-danger btn-sm">
+          <button
+            class="btn btn-danger btn-sm d-flex align-items-center gap-2"
+            onclick={confirmBulkDelete}
+          >
+            <span>
+              {t("common.delete", { fallback: "Delete" })}
+            </span>
             <i class="bi bi-trash"></i>
-            {t("common.delete", {
-              fallback: "Delete",
-            })}
           </button>
         </div>
       </div>
@@ -216,3 +301,17 @@
     </div>
   {/if}
 </div>
+
+<!-- Bulk Delete Confirmation Modal (Reusable Component) -->
+<BulkDeleteObjectsModal
+  bind:isOpen={showBulkDeleteModal}
+  selectedIds={selectedObjects}
+  on:deleted={handleDeleted}
+/>
+
+<!-- Bulk Change Institution Modal (Reusable Component) -->
+<BulkChangeInstitutionModal
+  bind:isOpen={showBulkInstitutionModal}
+  projectId={institution.project_id}
+  onConfirm={handleConfirmInstitution}
+/>

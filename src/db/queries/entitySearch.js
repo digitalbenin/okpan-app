@@ -113,7 +113,10 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
                     .leftJoin(institutionNameTexts, eq(dbSchema.institutions.name_id, institutionNameTexts.id))
                     .where(
                         sql.join([
-                            sql`lower(${institutionNameTexts.content}) LIKE ${searchPattern}`,
+                            // If search term is empty, include all institutions without a text filter
+                            searchTerm.trim()
+                                ? sql`lower(${institutionNameTexts.content}) LIKE ${searchPattern}`
+                                : sql`1=1`,
                             project_id ? eq(dbSchema.institutions.project_id, project_id) : sql`1=1`
                         ], sql` AND `)
                     )
@@ -205,4 +208,4 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
             }
         }
     };
-}; 
+};

@@ -11,6 +11,7 @@
   import SidePanelNew from "$lib/components/common/SidePanelNew.svelte";
   import ObjectDetail from "$lib/components/objects/ObjectDetail.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import {
     updateObjectResearchFields,
     updateObjectStatus,
@@ -353,28 +354,17 @@
     isDeleteModalOpen = true;
   }
 
-  // Function called when deletion is confirmed in the modal
-  async function confirmDelete() {
-    if (!objectIdToDelete) {
-      console.error("Cannot confirm delete: objectIdToDelete is null");
-      isDeleteModalOpen = false;
-      return;
+  function handleBulkDeleted(event) {
+    const { successes = [] } = event.detail || {};
+    if (successes.length > 0) {
+      // Remove deleted objects from local list
+      const toRemove = new Set(successes.map((id) => String(id)));
+      objectsList = objectsList.filter((obj) => !toRemove.has(String(obj.id)));
+      // Close detail panel if currently showing a deleted object
+      if (selectedObjectId && toRemove.has(String(selectedObjectId))) {
+        closeObjectDetail(true);
+      }
     }
-
-    console.log(`Confirmed deletion for object ${objectIdToDelete}`);
-    const result = await deleteObject(objectIdToDelete);
-
-    if (result.error) {
-      console.error("Error deleting object:", result.error);
-    } else {
-      console.log("Object deleted successfully:", result);
-      // Remove the deleted object from the local list IMMEDIATELY
-      objectsList = objectsList.filter((obj) => obj.id !== objectIdToDelete);
-
-      // Close the detail panel
-      closeObjectDetail(true);
-    }
-
     // Reset state
     isDeleteModalOpen = false;
     objectIdToDelete = null;
@@ -662,40 +652,12 @@
   {/if}
 </SidePanel> -->
 
-{#snippet header()}
-  Confirm Deletion
-{/snippet}
-
-{#snippet body()}
-  Are you sure you want to delete this object? This action cannot be undone.
-{/snippet}
-
-{#snippet actions()}
-  <div class="d-flex justify-content-end gap-2">
-    <BaseButton
-      text="Cancel"
-      class="btn btn-secondary btn-sm"
-      onClick={() => {
-        isDeleteModalOpen = false;
-        objectIdToDelete = null;
-      }}
-    />
-    <BaseButton
-      text="Confirm Delete"
-      class="btn btn-danger btn-sm"
-      onClick={confirmDelete}
-    />
-  </div>
-{/snippet}
-
-<!-- Render the modal directly here, passing snippets as props -->
+<!-- Bulk Delete Confirmation Modal (Reusable Component) -->
 {#if isDeleteModalOpen}
-  <BaseModal
+  <BulkDeleteObjectsModal
     bind:isOpen={isDeleteModalOpen}
-    size="md"
-    {header}
-    {body}
-    {actions}
+    selectedIds={objectIdToDelete ? [objectIdToDelete] : []}
+    on:deleted={handleBulkDeleted}
   />
 {/if}
 

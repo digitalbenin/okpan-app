@@ -1,5 +1,5 @@
 <script>
-  const { status } = $props();
+  const { status, showChevron = false } = $props();
 </script>
 
 <span
@@ -8,4 +8,8 @@
   class:text-bg-warning={status === "in progress"}
 >
   {status}
+  {#if showChevron}
+    <i class="bi bi-chevron-down ms-1"></i>
+  {/if}
+  
 </span>

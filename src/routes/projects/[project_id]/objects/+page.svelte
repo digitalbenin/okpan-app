@@ -5,9 +5,17 @@
   import ObjectCard from "$lib/components/objects/ObjectCard.svelte";
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
+  import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
+  import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
+  import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import { fly } from "svelte/transition";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { queryParameters, ssp } from "sveltekit-search-params";
+  import {
+    updateObjectsStatusBulk,
+    updateObjectsInstitutionBulk,
+  } from "$lib/stores/ObjectsUtils.js";
+  import { page } from "$app/stores";
 
   const { t } = getTranslationStore();
 
@@ -17,7 +25,7 @@
     pageSize: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 2,
+      defaultValue: 25,
     },
     page: {
       encode: (value) => value.toString(),
@@ -44,6 +52,16 @@
 
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
+  let bulkStatusValue = $state("");
+
+  // Modal state
+  let showBulkDeleteModal = $state(false);
+  let showBulkInstitutionModal = $state(false);
+
+  // Project id from route params
+  const projectId = $derived($page.params.project_id);
+
+  // Use store utilities for mutations and cache invalidation
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -93,6 +111,47 @@
   function clearSelection() {
     selectedObjects = [];
   }
+
+  function confirmBulkDelete() {
+    showBulkDeleteModal = true;
+  }
+
+  function openBulkInstitutionModal() {
+    showBulkInstitutionModal = true;
+  }
+
+  // Clear selection after modal emits deleted event
+  function handleDeleted() {
+    selectedObjects = [];
+  }
+  async function applyBulkStatus() {
+    if (!bulkStatusValue || selectedObjects.length === 0) return;
+    const { errors } = await updateObjectsStatusBulk(
+      selectedObjects,
+      bulkStatusValue,
+    );
+    if (errors && errors.length) {
+      console.error("Bulk status update had errors:", errors);
+    }
+    selectedObjects = [];
+    bulkStatusValue = "";
+  }
+
+  async function handleConfirmInstitution({ institutionId }) {
+    if (!institutionId || selectedObjects.length === 0) {
+      showBulkInstitutionModal = false;
+      return;
+    }
+    const { errors } = await updateObjectsInstitutionBulk(
+      selectedObjects,
+      institutionId,
+    );
+    if (errors && errors.length) {
+      console.error("Bulk institution update had errors:", errors);
+    }
+    selectedObjects = [];
+    showBulkInstitutionModal = false;
+  }
   $inspect(data);
 </script>
 
@@ -119,36 +178,54 @@
             fallback: "selected objects",
           })}
         </div>
-        <div>
-          <button class="btn btn-secondary btn-sm" onclick={clearSelection}>
-            <i class="bi bi-x-circle"></i>
+        <button
+          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+          onclick={clearSelection}
+        >
+          <span>
             {t("common.clear-selection", {
               fallback: "Clear selection",
             })}
-          </button>
-          <button class="btn btn-primary btn-sm">
-            {t("common.move-objects", {
-              fallback: "Move objects",
+          </span>
+          <i class="bi bi-x-circle"></i>
+        </button>
+        <button
+          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+          onclick={openBulkInstitutionModal}
+        >
+          <span>
+            {t("common.change-institution", {
+              fallback: "Change institution",
             })}
-          </button>
-          <button class="btn btn-primary btn-sm">
-            {t("common.change-status", {
-              fallback: "Change status",
-            })}
-          </button>
-          <button class="btn btn-primary btn-sm">
-            <i class="bi bi-pencil"></i>
+          </span>
+          <i class="bi bi-bank"></i>
+        </button>
+        <BulkActionsStatusSelect
+          items={statuses.filter((s) => s.value !== "all")}
+          bind:value={bulkStatusValue}
+          onValueChange={applyBulkStatus}
+        />
+        <button
+          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+        >
+          <span>
             {t("common.edit-information", {
               fallback: "Edit information",
             })}
-          </button>
-        </div>
+          </span>
+          <i class="bi bi-pencil"></i>
+        </button>
         <div class="ms-auto">
-          <button class="btn btn-danger btn-sm">
+          <button
+            class="btn btn-danger btn-sm d-flex align-items-center gap-2"
+            onclick={confirmBulkDelete}
+          >
+            <span>
+              {t("common.delete", {
+                fallback: "Delete",
+              })}
+            </span>
             <i class="bi bi-trash"></i>
-            {t("common.delete", {
-              fallback: "Delete",
-            })}
           </button>
         </div>
       </div>
@@ -254,4 +331,18 @@
       </div>
     </div>
   {/if}
+
+  <!-- Bulk Delete Confirmation Modal (Reusable Component) -->
+  <BulkDeleteObjectsModal
+    bind:isOpen={showBulkDeleteModal}
+    selectedIds={selectedObjects}
+    on:deleted={handleDeleted}
+  />
+
+  <!-- Bulk Change Institution Modal (Reusable Component) -->
+  <BulkChangeInstitutionModal
+    bind:isOpen={showBulkInstitutionModal}
+    {projectId}
+    onConfirm={handleConfirmInstitution}
+  />
 </div>

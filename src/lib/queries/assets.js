@@ -188,4 +188,4 @@ export const assetsOperations = {
   }
 }`
   }
-}; 
+};

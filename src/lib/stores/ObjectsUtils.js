@@ -1,6 +1,6 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
-import { invalidate } from "$app/navigation";
+import { invalidate, invalidateAll } from "$app/navigation";
 
 // Get validation store
 const { getSchema, validate } = getValidationStore();
@@ -134,12 +134,54 @@ export const updateObjectStatus = async (objectId, status) => {
     if (response.updateObjects && Array.isArray(response.updateObjects) && response.updateObjects.length > 0) {
         resultData = response.updateObjects[0];
     }
-    // invalidate("app:objects");
+    // Invalidate caches to ensure UI reflects status changes immediately
+    invalidate("app:objects");
+    invalidate("custom:object");
+    // Also invalidate institution-specific listings so institution pages refresh
+    invalidate("app:institution");
 
     return {
         result: resultData || { id: objectId, status: status },
         error: null
     };
+};
+
+// Bulk update objects status
+export const updateObjectsStatusBulk = async (objectIds, status) => {
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { error: "No objects selected for status update" };
+    }
+    if (!status) {
+        return { error: "No status provided for bulk update" };
+    }
+
+    const promises = objectIds.map((objectId) =>
+        executeQuery('objects', 'update', { objectId, status })
+    );
+
+    const settled = await Promise.allSettled(promises);
+    const successes = [];
+    const errors = [];
+
+    settled.forEach((res, idx) => {
+        const id = objectIds[idx];
+        if (res.status === 'fulfilled' && !res.value?.error) {
+            successes.push(id);
+        } else {
+            const errMsg = res.status === 'rejected'
+                ? (res.reason?.message || 'Unknown error')
+                : (res.value?.error || 'Unknown error');
+            errors.push({ objectId: id, error: errMsg });
+        }
+    });
+
+    // Invalidate caches so listings and detail pages reflect status changes
+    invalidate("app:objects");
+    invalidate("custom:object");
+    // Also invalidate institution listings used by institution page loaders
+    invalidate("app:institution");
+
+    return { successes, errors };
 };
 
 // Add: Function to update object's institution
@@ -274,6 +316,46 @@ export const deleteObject = async (objectId) => {
     return result;
 };
 
+// Bulk delete objects
+export const deleteObjectsBulk = async (objectIds) => {
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { error: "No objects selected for deletion" };
+    }
+
+    const promises = objectIds.map((objectId) =>
+        executeQuery('objects', 'delete', { objectId })
+    );
+
+    const settled = await Promise.allSettled(promises);
+    const successes = [];
+    const errors = [];
+
+    settled.forEach((res, idx) => {
+        const id = objectIds[idx];
+        if (res.status === 'fulfilled' && !res.value?.error) {
+            successes.push(id);
+        } else {
+            const errMsg = res.status === 'rejected'
+                ? (res.reason?.message || 'Unknown error')
+                : (res.value?.error || 'Unknown error');
+            errors.push({ objectId: id, error: errMsg });
+        }
+    });
+
+    // Invalidate caches to reflect deletions
+    invalidate("app:objects");
+    try {
+        // Best-effort: fully refresh route data if available
+        if (typeof invalidateAll === 'function') {
+            await invalidateAll();
+        }
+    } catch (_) {
+        // ignore
+    }
+
+    return { successes, errors };
+};
+
 // Function to unlink an asset from an object
 export const unlinkAssetFromObject = async (objectId, assetId) => {
     if (!objectId || !assetId) {
@@ -351,4 +433,61 @@ export const reorderAssets = async (objectId, assetOrders) => {
     } catch (error) {
         return { error: `Failed to reorder assets: ${error.message}` };
     }
+};
+
+// Function to link an asset to an object
+export const linkAssetToObject = async (objectId, assetId, order) => {
+    if (!objectId || !assetId) {
+        return { error: "Invalid objectId or assetId for linkAssetToObject" };
+    }
+
+    const result = await executeQuery('objects', 'addAsset', { objectId, assetId, order });
+
+    if (result.error) {
+        return { error: result.error };
+    }
+
+    // Invalidate caches to reflect the change
+    invalidate("app:objects");
+    invalidate("app:assets");
+    invalidate("custom:object");
+
+    return { result: result.insertIntoObjects_assets, error: null };
+};
+
+// Bulk update objects institution
+export const updateObjectsInstitutionBulk = async (objectIds, institutionId) => {
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { error: "No objects selected for institution update" };
+    }
+    if (!institutionId) {
+        return { error: "No institution provided for bulk update" };
+    }
+
+    const promises = objectIds.map((objectId) =>
+        executeQuery('objects', 'update', { objectId, institutionId })
+    );
+
+    const settled = await Promise.allSettled(promises);
+    const successes = [];
+    const errors = [];
+
+    settled.forEach((res, idx) => {
+        const id = objectIds[idx];
+        if (res.status === 'fulfilled' && !res.value?.error) {
+            successes.push(id);
+        } else {
+            const errMsg = res.status === 'rejected'
+                ? (res.reason?.message || 'Unknown error')
+                : (res.value?.error || 'Unknown error');
+            errors.push({ objectId: id, error: errMsg });
+        }
+    });
+
+    // Invalidate caches so listings and detail pages reflect institution changes
+    invalidate("app:objects");
+    invalidate("custom:object");
+    invalidate("app:institution");
+
+    return { successes, errors };
 };

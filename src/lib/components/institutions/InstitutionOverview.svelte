@@ -1,15 +1,38 @@
 <script>
-  import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
+  import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { goto } from "$app/navigation";
+  import { back } from "$lib/utils/navigation.js";
+  import { updateInstitutionStatus } from "$lib/stores/InstitutionsUtils.js";
 
   const { institution } = $props();
   const { t } = getTranslationStore();
 
   const handleEdit = () => {
-    goto(`/projects/${institution.project_id}/institutions/${institution.id}/edit`);
+    goto(
+      `/projects/${institution.project_id}/institutions/${institution.id}/edit`,
+    );
   };
+
+  let statusUpdating = $state(false);
+
+  async function setStatus(nextStatus) {
+    if (!institution?.id || statusUpdating) return;
+    statusUpdating = true;
+    try {
+      const res = await updateInstitutionStatus(institution.id, nextStatus);
+      if (res?.error) {
+        console.error("Failed to update institution status:", res.error);
+      } else {
+        institution.status = nextStatus;
+      }
+    } catch (err) {
+      console.error("Error updating institution status:", err);
+    } finally {
+      statusUpdating = false;
+    }
+  }
 </script>
 
 <div class="container-fluid pb-4" style="overflow: visible;">
@@ -28,21 +51,21 @@
         </div>
         <h1>
           {institution.name.content}
-          <span class="badgeWrapper fs-6">
-            <BaseBadgeStatus status={institution.status} />
-          </span>
+          <StatusBadgeDropdown
+            status={institution.status}
+            disabled={statusUpdating}
+            on:change={(e) => setStatus(e.detail)}
+          />
         </h1>
         <div class="ms-auto">
           <BaseButton
             class="btn btn-outline-secondary btn border-0"
             onClick={handleEdit}
-            title={$t("common.edit-institution", {
-              fallback: "Edit Institution",
+            text={t("common.edit-institution", {
+              fallback: "Edit",
             })}
             icon="pencil"
-          >
-            <i class="bi bi-pencil"></i>
-          </BaseButton>
+          ></BaseButton>
         </div>
       </div>
     </div>

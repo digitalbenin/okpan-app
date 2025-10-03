@@ -50,12 +50,28 @@
     },
   ]);
 
+  // Display-level filtering to respect status while backend schema updates propagate
+  const filteredItems = $derived.by(() => {
+    const status = params?.aLinked;
+    if (status === "linked") {
+      return (assets.items || []).filter(
+        (a) => Array.isArray(a.objectsAssets) && a.objectsAssets.length > 0,
+      );
+    }
+    if (status === "not_linked") {
+      return (assets.items || []).filter(
+        (a) => !Array.isArray(a.objectsAssets) || a.objectsAssets.length === 0,
+      );
+    }
+    return assets.items || [];
+  });
+
   function clearSelection() {
     selectedAssets = [];
   }
 </script>
 
-<div class="w-100">
+<div class="w-100 mb-3">
   <div
     class="row align-items-center mb-3 position-relative overflow-hidden py-2"
   >
@@ -109,7 +125,11 @@
         <div class="col-auto fs-7">
           {t("common.status", { fallback: "Status" })}
         </div>
-        <BaseSelect items={statuses} bind:value={params.aLinked} size="sm"
+        <BaseSelect
+          items={statuses}
+          bind:value={params.aLinked}
+          size="sm"
+          placeholder={t("common.all", { fallback: "All" })}
         ></BaseSelect>
       </div>
       <div class="d-flex align-items-center gap-2">
@@ -127,10 +147,10 @@
       >
     </div>
   </div>
-  {#if assets.items.length > 0}
+  {#if filteredItems.length > 0}
     {#if viewAs === "grid"}
       <div class="row">
-        {#each assets.items as asset (asset.id)}
+        {#each filteredItems as asset (asset.id)}
           <div class="col-3">
             <AssetCard {asset} />
           </div>
@@ -138,7 +158,7 @@
       </div>
     {:else if viewAs === "table"}
       <Table
-        items={assets.items}
+        items={filteredItems}
         columns={[
           {
             value: "image",
@@ -205,7 +225,7 @@
         bind:selected={selectedAssets}
       />
     {/if}
-  {:else if assets.items.length === 0}
+  {:else if filteredItems.length === 0}
     <div class="text-center text-black-50 fs-4 fst-italic mt-4">
       {t("common.no-assets-found", { fallback: "No assets found." })}
     </div>
