@@ -4,6 +4,7 @@
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import BaseLinkedStatus from "$lib/components/base/BaseLinkedStatus.svelte";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
+  import BulkDeleteAssetsModal from "$lib/components/assets/BulkDeleteAssetsModal.svelte";
   import Table from "$lib/components/base/table/Table.svelte";
   import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
   import TableLink from "$lib/components/base/table/TableLink.svelte";
@@ -17,6 +18,7 @@
 
   let viewAs = $state("grid");
   let selectedAssets = $state([]);
+  let isDeleteModalOpen = $state(false);
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -69,6 +71,26 @@
   function clearSelection() {
     selectedAssets = [];
   }
+
+  function openDeleteModal() {
+    if (selectedAssets.length === 0) return;
+    isDeleteModalOpen = true;
+  }
+
+  function handleBulkDeleted(event) {
+    const { successes = [] } = event.detail || {};
+    if (successes.length > 0) {
+      const toRemove = new Set(successes.map((id) => String(id)));
+      const current = assets.items || [];
+      assets = {
+        ...assets,
+        items: current.filter((a) => !toRemove.has(String(a.id))),
+        totalCount: Math.max(0, (assets.totalCount || 0) - successes.length),
+      };
+    }
+    isDeleteModalOpen = false;
+    clearSelection();
+  }
 </script>
 
 <div class="w-100 mb-3">
@@ -95,7 +117,7 @@
           </button>
         </div>
         <div class="ms-auto">
-          <button class="btn btn-danger btn-sm">
+          <button class="btn btn-danger btn-sm" onclick={openDeleteModal}>
             <i class="bi bi-trash"></i>
             {t("common.delete", {
               fallback: "Delete",
@@ -242,5 +264,13 @@
         />
       </div>
     </div>
+  {/if}
+
+  {#if isDeleteModalOpen}
+    <BulkDeleteAssetsModal
+      bind:isOpen={isDeleteModalOpen}
+      selectedIds={selectedAssets}
+      on:deleted={handleBulkDeleted}
+    />
   {/if}
 </div>

@@ -1,5 +1,5 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
-import { invalidate } from "$app/navigation";
+import { invalidate, invalidateAll } from "$app/navigation";
 
 
 export const getAssets = async (options) => {
@@ -37,4 +37,43 @@ export const deleteAsset = async (assetId) => {
     let result = await executeQuery('assets', 'delete', { assetId: assetId });
     invalidate("app:assets");
     return result;
+};
+
+// Bulk delete assets
+export const deleteAssetsBulk = async (assetIds) => {
+    if (!Array.isArray(assetIds) || assetIds.length === 0) {
+        return { error: "No assets selected for deletion" };
+    }
+
+    const promises = assetIds.map((assetId) =>
+        executeQuery('assets', 'delete', { assetId })
+    );
+
+    const settled = await Promise.allSettled(promises);
+    const successes = [];
+    const errors = [];
+
+    settled.forEach((res, idx) => {
+        const id = assetIds[idx];
+        if (res.status === 'fulfilled' && !res.value?.error) {
+            successes.push(id);
+        } else {
+            const errMsg = res.status === 'rejected'
+                ? (res.reason?.message || 'Unknown error')
+                : (res.value?.error || 'Unknown error');
+            errors.push({ assetId: id, error: errMsg });
+        }
+    });
+
+    // Invalidate caches to reflect deletions
+    invalidate("app:assets");
+    try {
+        if (typeof invalidateAll === 'function') {
+            await invalidateAll();
+        }
+    } catch (_) {
+        // ignore
+    }
+
+    return { successes, errors };
 };
