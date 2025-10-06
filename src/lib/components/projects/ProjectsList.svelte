@@ -5,6 +5,7 @@
   import ProjectChip from "$lib/components/projects//ProjectChip.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates";
+  import { goto, invalidate } from "$app/navigation";
 
   const { projects = [] } = $props();
   const { t, translationState } = getTranslationStore();
@@ -22,6 +23,18 @@
 
   function openNewProjectModal() {
     newProjectOpen = true;
+  }
+
+  function handleCreated(event) {
+    const projectId = event?.detail?.projectId;
+    // Close modal
+    newProjectOpen = false;
+    // Refresh projects list cache for when user returns
+    try { invalidate('app:projects'); } catch (_) {}
+    // Redirect to project homepage
+    if (projectId) {
+      goto(`/projects/${projectId}`);
+    }
   }
 </script>
 
@@ -62,7 +75,7 @@
     {t("project.create-project", { fallback: "Create a new project" })}
   {/snippet}
   {#snippet description()}
-    <ProjectCreate></ProjectCreate>
+    <ProjectCreate on:created={handleCreated}></ProjectCreate>
   {/snippet}
 </BaseAlertDialog>
 

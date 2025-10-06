@@ -56,6 +56,7 @@
             const { result, error } = await createObject(
                 projectId,
                 selectedInstitutionId,
+                "in progress",
             );
             const newObjectId = result?.id;
 
@@ -152,6 +153,8 @@
                 </div>
                 <div class="col-4">
                     <ObjectLinkedMedia
+                        projectId={projectId}
+                        institutionId={selectedInstitutionId}
                         onChangesUpdate={handleComponentChanges}
                     />
                 </div>

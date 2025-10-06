@@ -77,85 +77,53 @@ export const getProjectLanguages = async (projectId) => {
 };
 
 export const createProject = async (project) => {
-    // Validate the incoming project data
-    if (!project.languages || !project.title || !project.description) {
-        throw new Error("Missing required project data");
+    // Expect: { title: string, description: string, defaultLanguage: { code, name } }
+    if (!project?.title || !project?.description || !project?.defaultLanguage) {
+        throw new Error("Missing required project data: title, description, defaultLanguage");
     }
 
-    // Find the default language
-    const defaultLang = project.languages.find(lang => lang.is_default === 1);
-    if (!defaultLang) {
-        throw new Error("No default language selected");
-    }
-
-    const projectName = project.title.content;
-    const description = project.description.content;
-    const languageCode = defaultLang.code;
-    const languageName = defaultLang.name;
+    const title = project.title;
+    const description = project.description;
+    const languageCode = project.defaultLanguage.code;
+    const languageName = project.defaultLanguage.name || project.defaultLanguage.code;
 
     // Get mutations from the API_SECTIONS
     const mutations = API_SECTIONS.projects.operations.create.mutations;
 
-    // Step 1: Create project first
-    const projectResult = await performCustomMutation(mutations[2], {
-        // We'll need to create empty project first, then update with text IDs
-    });
+    // Step 1: Create project
+    const projectResult = await performCustomMutation(mutations[0], {});
     const projectId = projectResult.insertIntoProject[0].id;
 
-    // Step 2: Create language for the project
-    const languageResult = await performCustomMutation(mutations[3], {
+    // Step 2: Create default language for the project
+    const languageResult = await performCustomMutation(mutations[1], {
         projectId,
         languageCode,
         languageName,
     });
     const languageId = languageResult.insertIntoLanguages[0].id;
 
-    // Step 3: Create title
-    const titleResult = await performCustomMutation(mutations[0], {
-        projectName,
+    // Step 3: Create title text in default language
+    const titleResult = await performCustomMutation(mutations[2], {
+        title,
         languageId,
     });
     const titleId = titleResult.insertIntoTexts[0].id;
 
-    // Step 4: Create description
-    const descriptionResult = await performCustomMutation(mutations[1], {
+    // Step 4: Create description text in default language
+    const descriptionResult = await performCustomMutation(mutations[3], {
         description,
         languageId,
     });
     const descriptionId = descriptionResult.insertIntoTexts[0].id;
 
-    // Step 5: Update project with text IDs
-    await updateProject(projectId, {
-        title: { content: projectName },
-        description: { content: description }
+    // Step 5: Link texts to project
+    await performCustomMutation(mutations[4], {
+        projectId,
+        titleId,
+        descriptionId,
     });
 
-    // Step 6: Add translations if any (both for title and description)
-    if (project.title.translations?.length || project.description.translations?.length) {
-        // For each translation, we need to find or create the corresponding language
-        for (const translation of project.title.translations || []) {
-            if (translation.content && translation.language_id) {
-                await executeQuery('translations', 'create', {
-                    textId: titleId,
-                    languageId: translation.language_id,
-                    content: translation.content,
-                });
-            }
-        }
-
-        for (const translation of project.description.translations || []) {
-            if (translation.content && translation.language_id) {
-                await executeQuery('translations', 'create', {
-                    textId: descriptionId,
-                    languageId: translation.language_id,
-                    content: translation.content,
-                });
-            }
-        }
-    }
-
     invalidate("app:projects");
-    // Return the new project data
     return {
         id: projectId,
         title_id: titleId,

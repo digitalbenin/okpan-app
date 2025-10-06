@@ -16,6 +16,9 @@
     // Props
     const {
         object,
+        // When creating a new object, parent can pass route project/institution
+        projectId = null,
+        institutionId = null,
         onChangesUpdate = null, // Callback to notify parent of changes
     } = $props();
 
@@ -411,8 +414,8 @@
 <!-- Link Media Modal -->
 <LinkMediaModal
     isOpen={isLinkModalOpen}
-    projectId={object?.project_id}
-    institutionId={object?.institution_id}
+    projectId={object?.project_id ?? projectId}
+    institutionId={object?.institution_id ?? institutionId}
     initiallySelectedIds={[
         ...linkedAssets.map((oa) => oa.asset.id),
         ...(pendingAdditions || []).map((a) => a.id),

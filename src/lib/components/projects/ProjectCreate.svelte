@@ -1,6 +1,6 @@
 <script>
   import { Tabs } from "bits-ui";
-  import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte";
+  import { onMount } from "svelte";
   // import { getProjectStore } from "$lib/stores/ProjectStore.svelte.js"; // Removed store usage for creation
   import { executeQuery } from "$lib/stores/GraphqlUtils.js"; // Added GraphqlUtils
   // import { API_SECTIONS } from "$lib/queries/index.js"; // Likely not needed directly
@@ -10,13 +10,17 @@
   import ProjectImportFile from "./ProjectImportFile.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte"; // Corrected path
   import { addToast } from "$lib/components/base/BaseToast.svelte";
+  import { createEventDispatcher } from "svelte";
 
-  // Get the store but don't use $inspect
-  let { contentLanguageState } = getContentLanguageStore();
   // let { createProject, projectState } = getProjectStore(); // Removed store state
-  let selectedLanguages = $state([]);
+  let selectedLanguage = $state("");
   let projectData = $state({});
   let isCreating = $state(false);
+  let worldLanguages = $state([]);
+  let isLoadingLanguages = $state(false);
+  let languagesError = $state(null);
+
+  const dispatch = createEventDispatcher();
 
   // Tab IDs
   const tabIds = [
@@ -28,30 +32,45 @@
   // Active tab tracking
   let activeTab = $state(tabIds[0]);
 
-  // Get language options
+  // Load world languages from IPC on mount
+  onMount(async () => {
+    try {
+      isLoadingLanguages = true;
+      const resp = await window.api.getLanguages();
+      if (resp?.success && Array.isArray(resp.result)) {
+        worldLanguages = resp.result;
+      } else {
+        languagesError = resp?.error || "Failed to load languages";
+        worldLanguages = [];
+      }
+    } catch (e) {
+      console.error("Error loading world languages:", e);
+      languagesError = e?.message || "Error loading languages";
+    } finally {
+      isLoadingLanguages = false;
+    }
+  });
+
+  // Build select options from world languages
   let languageOptions = $derived(
-    contentLanguageState.languages.map((lang) => ({
+    worldLanguages.map((lang) => ({
       value: lang.code,
-      label: lang.name,
+      label: lang.name || lang.native || lang.englishName || lang.code,
     }))
   );
 
-  // Get selected language objects for ProjectData
-  let selectedLanguageObjects = $derived(
-    selectedLanguages
-      ? contentLanguageState.languages.filter((lang) =>
-          selectedLanguages.includes(lang.code)
-        )
-      : []
+  // Selected language object from world languages
+  let selectedLanguageObject = $derived(
+    selectedLanguage
+      ? worldLanguages.find((lang) => lang.code === selectedLanguage)
+      : null
   );
 
   // Handle creating a new project
   async function handleCreateProject() {
     // Basic validation (Example: check if title exists for default language)
-    const defaultLangCode = selectedLanguageObjects.find(
-      (l) => l.is_default
-    )?.code;
-    if (!projectData?.title?.[defaultLangCode]?.trim()) {
+    const defaultLangCode = selectedLanguageObject?.code;
+    if (!projectData?.title?.content?.trim()) {
       addToast({
         data: {
           title: "Validation Error",
@@ -65,34 +84,13 @@
     try {
       isCreating = true;
 
-      // Prepare the payload (ensure it matches the expected GQL input type)
-      // This structure assumes the GQL mutation expects nested objects for translatable fields
+      // Prepare minimal payload for simplified project creation
+      const defaultLangObj = selectedLanguageObject;
       const formattedProject = {
-        languages: selectedLanguageObjects.map((lang) => lang.code), // Send array of codes
-        title: {
-          content: projectData.title[defaultLangCode] || "",
-          translations: selectedLanguageObjects
-            .filter(
-              (lang) => !lang.is_default && projectData.title[lang.code]?.trim()
-            )
-            .map((lang) => ({
-              language_code: lang.code,
-              content: projectData.title[lang.code].trim(),
-            })),
-        },
-        description: {
-          content: projectData.description?.[defaultLangCode] || "",
-          translations: selectedLanguageObjects
-            .filter(
-              (lang) =>
-                !lang.is_default && projectData.description?.[lang.code]?.trim()
-            )
-            .map((lang) => ({
-              language_code: lang.code,
-              content: projectData.description[lang.code].trim(),
-            })),
-        },
-        // Add other fields expected by the mutation if any
+        title: projectData?.title?.content || "",
+        description: projectData?.description?.content || "",
+        languageCode: defaultLangCode,
+        languageName: defaultLangObj?.name || defaultLangCode
       };
 
       console.log("Creating project with payload:", formattedProject);
@@ -102,8 +100,19 @@
 
       console.log("Project creation result:", result);
 
+      // Try to extract newly created project ID
+      const projectId = result?.insertIntoProject?.[0]?.id
+        ?? result?.updateProject?.[0]?.id
+        ?? result?.projectId
+        ?? null;
+
+      // Notify parent about creation so it can close modal and redirect
+      if (projectId) {
+        dispatch("created", { projectId });
+      }
+
       // Reset form after successful creation
-      selectedLanguages = [];
+      selectedLanguage = "";
       projectData = {};
       activeTab = "Create a new project"; // Optionally reset tab
 
@@ -115,9 +124,6 @@
           type: "success",
         },
       });
-
-      // TODO: Optionally redirect or update UI based on 'result'
-      // e.g., if result contains the new project ID
     } catch (error) {
       console.error("Failed to create project:", error);
       addToast({
@@ -155,24 +161,29 @@
     {#each tabIds as id}
       <Tabs.Content value={id}>
         {#if activeTab === "Create a new project"}
-          <p>Select one or more languages</p>
+          <p>Select a default language</p>
+
+          {#if isLoadingLanguages}
+            <div class="alert alert-info">Loading languages…</div>
+          {:else if languagesError}
+            <div class="alert alert-danger">{languagesError}</div>
+          {/if}
 
           <div class="row mb-2">
             <div class="col-md-6">
               <BaseSelect
-                bind:value={selectedLanguages}
+                bind:value={selectedLanguage}
                 items={languageOptions}
-                placeholder="Select languages"
-                type="multiple"
+                placeholder="Select a language"
                 portalProps={{ disabled: true }}
               />
             </div>
           </div>
 
-          {#if selectedLanguages?.length}
+          {#if selectedLanguage}
             <div>
               <ProjectData
-                languages={selectedLanguageObjects}
+                languages={[selectedLanguageObject].filter(Boolean)}
                 bind:projData={projectData}
               />
             </div>
@@ -182,7 +193,7 @@
               text={isCreating ? "Creating..." : "Create Project"}
               class="btn btn-primary"
               disabled={isCreating ||
-                !(selectedLanguages?.length && projectData?.title?.content)}
+                !(selectedLanguage && projectData?.title?.content?.trim())}
               onClick={handleCreateProject}
             />
           </div>

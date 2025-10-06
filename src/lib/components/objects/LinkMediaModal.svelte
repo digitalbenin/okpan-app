@@ -43,6 +43,7 @@
                 pageSize,
                 projectId,
                 institutionId,
+                type: "image",
                 search,
                 orderBy: "created_at",
                 direction: "desc",
@@ -65,6 +66,16 @@
     // Handle image upload via Electron file dialog and backend import
     async function uploadNewImage() {
         try {
+            if (!projectId) {
+                console.error("Image upload failed: Project ID is required");
+                alert("Please select an institution (project) before uploading images.");
+                return;
+            }
+            if (!institutionId) {
+                console.error("Image upload failed: Institution ID is required");
+                alert("Please select an institution before uploading images.");
+                return;
+            }
             const result = await window.api.openFileDialog({
                 title: "Select Image Files",
                 properties: ["openFile", "multiSelections"],
@@ -207,7 +218,7 @@
                             class="btn btn-outline-secondary ms-2"
                             type="button"
                             onclick={uploadNewImage}
-                            disabled={isUploading}
+                            disabled={isUploading || !projectId || !institutionId}
                         >
                             <i class="bi bi-upload"></i>
                             {t("common.upload_image", { fallback: "Upload image" })}

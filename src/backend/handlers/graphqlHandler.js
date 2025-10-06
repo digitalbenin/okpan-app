@@ -1,7 +1,7 @@
 // GraphQL handler with action logging
 import { graphql, parse } from 'graphql';
 import { and } from 'drizzle-orm';
-import { actions } from '../../db/schema.js';
+import { actions, languages, ontology_fields } from '../../db/schema.js';
 import { getClientId } from '../../db/init.js';
 import { getCurrentProjectId } from '../services/projectCache.js';
 import crypto from 'crypto';
@@ -770,12 +770,48 @@ const processProjectCreationActions = async (projectResult, variables, context, 
             return;
         }
 
+        // Avoid duplicate seeding if ontology fields already exist
+        const existingField = await db.query.ontology_fields.findFirst({
+            where: (of, { eq }) => eq(of.project_id, projectId)
+        });
+        if (existingField) {
+            console.log(`Ontology fields already exist for project ${projectId}; skipping seeding.`);
+            return;
+        }
+
         // Seed default ontology fields
         await seedDefaultOntologyFields(projectId, defaultLanguage.id);
         console.log(`Ontology fields seeded for new project ${projectId}`);
 
     } catch (error) {
         console.error('Error processing project creation:', error);
+    }
+};
+
+// Seeding hook triggered after default language creation
+const processDefaultLanguageCreationActions = async (resultData, variables, context, db) => {
+    try {
+        const createdLanguages = resultData.insertIntoLanguages || [];
+        for (const lang of createdLanguages) {
+            // Only seed when a default language is created
+            if (lang.is_default === 1 && lang.project_id && lang.id) {
+                const projectId = lang.project_id;
+
+                // Avoid duplicate seeding
+                const existingField = await db.query.ontology_fields.findFirst({
+                    where: (of, { eq }) => eq(of.project_id, projectId)
+                });
+                if (existingField) {
+                    console.log(`Ontology fields already exist for project ${projectId}; skipping seeding.`);
+                    continue;
+                }
+
+                await seedDefaultOntologyFields(projectId, lang.id);
+                console.log(`Ontology fields seeded for project ${projectId} after default language creation`);
+            }
+        }
+    } catch (error) {
+        console.error('Error processing default language creation:', error);
     }
 };
 
@@ -829,8 +865,11 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
                 await processObjectImportUsingTemplateActions(result.data.objectImportUsingTemplate, variables, context, db);
             }
 
-            // Handle project creation - seed ontology fields
-            if (mutationFields.includes('insertIntoProject') && result.data.insertIntoProject) {
+            // Handle ontology field seeding
+            if (mutationFields.includes('insertIntoLanguages') && result.data.insertIntoLanguages) {
+                await processDefaultLanguageCreationActions(result.data, variables, context, db);
+            } else if (mutationFields.includes('insertIntoProject') && result.data.insertIntoProject) {
+                // Fallback for flows that don't include language creation in the same mutation
                 await processProjectCreationActions(result.data, variables, context, db);
             }
         }
@@ -845,4 +884,4 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
         console.error('Error executing GraphQL:', error);
         return { success: false, error: error.message };
     }
-}; 
+};
