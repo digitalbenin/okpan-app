@@ -3,7 +3,9 @@ import { getDatasource, getObjectsByDatasource } from '$lib/stores/DatasourcesUt
 
 export const load = async ({ params, depends }) => {
     if (!browser) return;
-    depends('app:institution-datasource');
+
+    depends('app:datasources');
+    depends('app:institution');
 
     const projectId = params.project_id;
     const institutionId = params.institution_id;

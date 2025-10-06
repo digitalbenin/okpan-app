@@ -1,5 +1,5 @@
 import { executeQuery, partialUpdate } from "$lib/stores/GraphqlUtils.js";
-import { invalidate } from "$app/navigation";
+import { invalidate, invalidateAll } from "$app/navigation";
 
 // Fetch all data sources for a specific institution within a project
 export const getDatasources = async (options) => {
@@ -142,6 +142,9 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         }
 
         invalidate("app:datasources");
+        invalidate("app:institution");
+      
+
 
         if (translationErrors.length > 0) {
             const errorMessage = `Main data saved, but errors occurred during translation updates: ${translationErrors.join('; ')}`;

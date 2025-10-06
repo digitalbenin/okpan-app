@@ -28,7 +28,7 @@
   const institutionId = $derived(data.institutionId);
   const datasourceId = $derived(data.datasourceId);
   // Support loader returning an array; normalize to single datasource object
-  const datasource = $state(
+  const datasource = $derived(
     Array.isArray(data.datasource)
       ? data.datasource[0] || {}
       : data.datasource || {},
@@ -74,17 +74,6 @@
 
   // Load objects when user interacts with pagination (no $effect)
   let _prevPage = $state(page);
-
-  // Helper: derive title and image from object record
-  function getObjectTitle(obj) {
-    // Show only the primary ontology identifier; no fallback to object.id
-    try {
-      const primary = obj?.objectsOntologyFields?.find((f) => f?.primary);
-      return primary?.value ?? "";
-    } catch (_) {
-      return "";
-    }
-  }
 
   function getObjectImageUrl(obj) {
     const asset = obj?.objectsAssets?.[0]?.asset;
@@ -136,7 +125,15 @@
           const key = `translations_${lang.id}_${field}`;
           const v = values?.[key];
           if (!v || !String(v).trim()) return null;
-          return { languageId: lang.id, content: String(v).trim() };
+          // Include existing translation id if present to perform updates
+          const existing = (datasource?.[field]?.translations || []).find(
+            (t) => t?.language?.code === lang.code,
+          );
+          return {
+            id: existing?.id,
+            language_code: lang.code,
+            content: String(v).trim(),
+          };
         })
         .filter(Boolean);
     return {

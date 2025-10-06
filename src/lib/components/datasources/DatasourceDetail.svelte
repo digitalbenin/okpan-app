@@ -38,7 +38,8 @@
     $effect(() => {
         const currentId = datasource?.id;
 
-        if (!currentId || currentId === previousDatasourceId) {
+        // React whenever datasource changes; only guard against missing ID
+        if (!currentId) {
             return; // Exit the effect early
         }
 
