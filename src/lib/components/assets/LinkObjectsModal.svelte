@@ -10,7 +10,14 @@
   // Note: we’ll derive primary identifier locally to avoid fallback text
 
   // Declare bindable prop inside $props() as required by Svelte runes
-  let { isOpen = $bindable(), projectId, assetId, onLinked } = $props();
+  // preselectExisting controls whether already-linked objects are preselected
+  let {
+    isOpen = $bindable(),
+    projectId,
+    assetId,
+    onLinked,
+    preselectExisting = true,
+  } = $props();
 
   let searchQuery = $state("");
   let isSearching = $state(false);
@@ -43,11 +50,15 @@
       const { items, totalCount } = await getSearch({
         query: searchQuery,
         projectId,
+        // Ensure we only get objects, not institutions or assets
+        entityTypes: ["objects"],
         pageSize: 25,
       });
 
       const enriched = [];
       for (const item of items || []) {
+        // Skip any non-object types defensively
+        if (item?.type && item.type !== "object") continue;
         if (item?.objectsResearchFields?.length) {
           enriched.push(item);
         } else if (item?.id) {
@@ -150,7 +161,12 @@
   // Load results when modal opens
   $effect(() => {
     if (isOpen) {
-      preselectAlreadyLinked();
+      if (preselectExisting) {
+        preselectAlreadyLinked();
+      } else {
+        // Ensure no preselection carried over
+        selectedObjectIds = new Set();
+      }
       loadSearchResults();
     }
   });

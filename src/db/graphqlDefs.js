@@ -11,6 +11,7 @@ import {
     createInstitutionsBulkDeleteMutation,
     createDatasourcesListQuery,
     createObjectsListQuery,
+    createObjectsByDatasourceQuery,
     createAssetsListQuery,
     createEntitySearchQuery,
     createObjectDisplayFieldsTransformedQuery,
@@ -87,6 +88,7 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Query._fields.institutionById = createInstitutionByIdQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.datasourcesList = createDatasourcesListQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.objectsList = createObjectsListQuery(db, drizzleResult);
+    drizzleResult.schema._typeMap.Query._fields.objectsByDatasource = createObjectsByDatasourceQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.assetsList = createAssetsListQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.entitySearch = createEntitySearchQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.objectDisplayFieldsTransformed = createObjectDisplayFieldsTransformedQuery(db, drizzleResult);

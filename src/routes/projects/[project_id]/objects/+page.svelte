@@ -120,6 +120,14 @@
     showBulkInstitutionModal = true;
   }
 
+  function openBulkEdit() {
+    if (!selectedObjects?.length) return;
+    const ids = selectedObjects.map(String).join(",");
+    const returnTo = `/projects/${projectId}/objects`;
+    const url = `/projects/${projectId}/objects/bulk-edit?ids=${encodeURIComponent(ids)}&returnTo=${encodeURIComponent(returnTo)}`;
+    window.location.href = url;
+  }
+
   // Clear selection after modal emits deleted event
   function handleDeleted() {
     selectedObjects = [];
@@ -207,6 +215,7 @@
         />
         <button
           class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+          onclick={openBulkEdit}
         >
           <span>
             {t("common.edit-information", {

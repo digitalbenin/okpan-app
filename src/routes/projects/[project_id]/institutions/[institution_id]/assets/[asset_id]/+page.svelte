@@ -517,6 +517,7 @@
   bind:isOpen={showLinkObjectsModal}
   projectId={project_id}
   assetId={asset?.id}
+  preselectExisting={true}
   onLinked={handleObjectsLinked}
 />
 

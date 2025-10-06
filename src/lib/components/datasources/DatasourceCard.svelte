@@ -3,7 +3,7 @@
   import { formatDate } from "$lib/utils/dates";
 
   const { t, translationState } = getTranslationStore();
-  const { datasource } = $props();
+  const { datasource, projectId } = $props();
 </script>
 
 <div
@@ -37,7 +37,7 @@
     </div>
   </div>
   <a
-    href="/projects/{datasource.project_id}/institutions/{datasource.institution_id}/datasources/{datasource.id}"
+    href="/projects/{projectId}/institutions/{datasource.institution_id}/datasources/{datasource.id}"
     class="stretched-link"
     aria-label={datasource.name.content}
   ></a>
