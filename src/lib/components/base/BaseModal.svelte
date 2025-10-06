@@ -7,6 +7,9 @@
         body = $bindable(),
         actions = $bindable(),
         size = "md", // sm, md, lg, xl
+        dialogClass = "",
+        dialogStyle = "",
+        contentStyle = "",
     } = $props();
 
     function closeModal() {
@@ -37,8 +40,8 @@
         aria-modal="true"
         style="display: block;"
     >
-        <div class="modal-dialog modal-{size}" role="document">
-            <div class="modal-content">
+        <div class="modal-dialog modal-dialog-scrollable modal-{size} {dialogClass}" role="document" style={dialogStyle}>
+            <div class="modal-content" style={contentStyle}>
                 <div class="modal-header">
                     <div class="modal-title h5">
                         {@render header()}

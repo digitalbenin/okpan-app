@@ -1,8 +1,11 @@
 <script>
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { updateProject } from "$lib/stores/ProjectsUtils.js";
+  import { removeLanguageFromProject } from "$lib/stores/ProjectsUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { Tabs } from "melt/builders";
+  import AddProjectLanguagesModal from "$lib/components/projects/AddProjectLanguagesModal.svelte";
+  import { invalidate } from "$app/navigation";
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -16,6 +19,9 @@
     languages.find((l) => l.is_default) || languages[0],
   );
   const secondaryLanguages = $derived(languages.filter((l) => !l.is_default));
+
+  // Add/Remove languages modal state
+  let showAddLanguages = $state(false);
 
   // Tabs state
   let activeLanguageCode = $state(
@@ -75,6 +81,18 @@
   }
 
   initValues();
+
+  async function removeLanguage(lang) {
+    if (!lang || lang.is_default) return; // guard default
+    try {
+      await removeLanguageFromProject(lang.id);
+      try {
+        invalidate("app:project-shared");
+      } catch (_) {}
+    } catch (e) {
+      console.error("Failed to remove language:", e);
+    }
+  }
 
   // Helper to get existing translation ID if present (for updates/deletes)
   function getExistingTranslationId(fieldName, langCode) {
@@ -161,7 +179,7 @@
   }
 </script>
 
-<div class="d-flex flex-column min-vh-100">
+<div class="d-flex flex-column min-vh-100 col-md-6 col-sm-12">
   <form onsubmit={handleSubmit} class="flex-grow-1">
     <div class="container-fluid">
       <div class="row">
@@ -234,6 +252,66 @@
           </div>
         </div>
       {/each}
+
+      <!-- Content languages management -->
+      <div class="mb-3">
+        <p class="form-label mb-2">
+          {t("project.content_languages", { fallback: "Content languages" })}
+        </p>
+        <div class="d-flex flex-column gap-2">
+          {#each languages as lang}
+            <div
+              class="d-flex align-items-center justify-content-between border rounded px-3 py-2"
+            >
+              <div class="d-flex align-items-center gap-2">
+                <span>{lang.name || lang.code}</span>
+              </div>
+              <div>
+                {#if lang.is_default}
+                  <span class="badge bg-success"
+                    >{t("project.default_language", {
+                      fallback: "Default language",
+                    })}</span
+                  >
+                {/if}
+                {#if !lang.is_default}
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link text-dark text-decoration-none"
+                    onclick={() => removeLanguage(lang)}
+                    aria-label="Remove"
+                  >
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                {/if}
+              </div>
+            </div>
+          {/each}
+          <div>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              onclick={() => (showAddLanguages = true)}
+            >
+              <i class="bi bi-plus"></i>
+              {t("project.add_language", { fallback: "Add language" })}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <AddProjectLanguagesModal
+        bind:isOpen={showAddLanguages}
+        projectId={project?.id}
+        existingLanguages={languages}
+        onAdded={() => {
+          // keep tabs consistent when new languages are added
+          if (!languages.find((l) => l.code === activeLanguageCode)) {
+            const def = languages.find((l) => l.is_default) || languages[0];
+            if (def) activeLanguageCode = def.code;
+          }
+        }}
+      />
     </div>
   </form>
 
