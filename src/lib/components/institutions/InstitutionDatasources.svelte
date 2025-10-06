@@ -6,6 +6,7 @@
   import Table from "$lib/components/base/table/Table.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
+  import { page as pageData } from "$app/state";
 
   let { datasources, params = $bindable() } = $props();
 
@@ -29,6 +30,8 @@
       label: t("common.objects-count", { fallback: "Objects Count" }),
     },
   ]);
+
+  const projectId = $derived(pageData.params.project_id);
 </script>
 
 <div class="w-100">
@@ -65,7 +68,7 @@
       <div class="row">
         {#each datasources.items as datasource (datasource.id)}
           <div class="col-4">
-            <DatasourceCard {datasource} />
+            <DatasourceCard {datasource} {projectId} />
           </div>
         {/each}
       </div>

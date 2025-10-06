@@ -24,6 +24,42 @@ export const getDatasource = async (datasourceId) => {
     return { result: response.result, error: null };
 };
 
+// Get distinct objects linked to a datasource
+export const getObjectsByDatasource = async (options) => {
+    const {
+        datasourceId,
+        projectId,
+        institutionId,
+        status,
+        page = 0,
+        pageSize = 25,
+        orderBy,
+        direction
+    } = options || {};
+
+    if (!datasourceId) {
+        return { items: [], totalCount: 0, error: "Missing Datasource ID" };
+    }
+
+    const params = {
+        datasourceId,
+        projectId,
+        institutionId,
+        status,
+        page,
+        pageSize,
+        orderBy,
+        direction
+    };
+
+    const result = await executeQuery('datasources', 'objectsByDatasource', params);
+
+    const items = result?.result?.items ?? [];
+    const totalCount = result?.result?.totalCount ?? items.length;
+
+    return { items, totalCount, error: result?.error || null };
+};
+
 // Get a single datasource by ID
 export const createDatasource = async (params) => {
     const response = await executeQuery('datasources', 'create', params);

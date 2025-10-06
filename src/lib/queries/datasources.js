@@ -109,6 +109,87 @@ export const datasourcesOperations = {
   }`
   },
 
+  // OBJECTS BY DATASOURCE (distinct list linked to a datasource)
+  objectsByDatasource: {
+    type: "query",
+    name: "Objects By Datasource",
+    description: "Retrieves a distinct, paginated list of objects linked to a specific datasource, with optional project/institution/status filters and sorting.",
+    variables: {
+      datasourceId: "ID of the datasource to filter by (required)",
+      projectId: "Optional ID of project to filter by",
+      institutionId: "Optional ID of institution to filter by",
+      status: "Optional status to filter objects by",
+      page: "Optional page number for pagination (0-based, default 0)",
+      pageSize: "Optional number of items per page (default 10)",
+      orderBy: "Optional field to order by (created_at, updated_at, status; default created_at)",
+      direction: "Optional sort direction (asc or desc; default desc)"
+    },
+    query: `query ObjectsByDatasource(
+  $datasourceId: String!
+  $projectId: String
+  $institutionId: String
+  $status: String
+  $page: Int
+  $pageSize: Int
+  $orderBy: String
+  $direction: String
+) {
+  result: objectsByDatasource(
+    datasource_id: $datasourceId
+    project_id: $projectId
+    institution_id: $institutionId
+    status: $status
+    page: $page
+    pageSize: $pageSize
+    orderBy: $orderBy
+    direction: $direction
+  ) {
+    items {
+      id
+      status
+      created_at
+      updated_at
+      institution_id
+      project_id
+      institution {
+        id
+        name { content }
+      }
+      project {
+        id
+        title { content }
+      }
+      objectsAssets {
+        order
+        asset {
+          id
+          filename
+          formats
+          path
+          type
+        }
+      }
+      objectsOntologyFields {
+        id
+        value
+        primary
+        default_description
+        ontologyField { name { content } }
+      }
+      objectsResearchFields {
+        id
+        value
+        vocabulary_id
+        researchField { id name { content } }
+        vocabulary { id option { content } }
+      }
+      displayFields
+    }
+    totalCount
+  }
+}`
+  },
+
   // CREATE
   create: {
     type: "mutation",
@@ -227,8 +308,7 @@ export const datasourcesOperations = {
           methodId: { from: "createMethodText", path: "insertIntoTexts.0.id" },
           notesId: { from: "createNotesText", path: "insertIntoTexts.0.id" }
         }
-      }
-      ,
+  },
       // === TRANSLATION PROCESSING STEPS AFTER CREATE ===
       {
         name: "processNameTranslations",
@@ -562,4 +642,4 @@ export const datasourcesOperations = {
     ],
     query: null
   }
-}; 
+};
