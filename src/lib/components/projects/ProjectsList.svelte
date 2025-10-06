@@ -25,8 +25,7 @@
     newProjectOpen = true;
   }
 
-  function handleCreated(event) {
-    const projectId = event?.detail?.projectId;
+  function handleCreated({ projectId }) {
     // Close modal
     newProjectOpen = false;
     // Refresh projects list cache for when user returns
@@ -75,7 +74,7 @@
     {t("project.create-project", { fallback: "Create a new project" })}
   {/snippet}
   {#snippet description()}
-    <ProjectCreate on:created={handleCreated}></ProjectCreate>
+    <ProjectCreate onCreated={handleCreated}></ProjectCreate>
   {/snippet}
 </BaseAlertDialog>
 

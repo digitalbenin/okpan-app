@@ -302,7 +302,8 @@ export const researchFieldsOperations = {
         mapVariables: {
           nameId: { from: "getResearchField", path: "research_fields.0.name_id" }
         },
-        skipIf: { variableName: "nameId", isUndefined: true }
+        // Skip if nameId is undefined or null/empty to avoid required variable errors
+        skipIf: { variableName: "nameId", isUndefined: true, isEmpty: true }
       },
       {
         name: "updateDescription",
@@ -319,7 +320,8 @@ export const researchFieldsOperations = {
         mapVariables: {
           descriptionId: { from: "getResearchField", path: "research_fields.0.description_id" }
         },
-        skipIf: { variableName: "descriptionId", isUndefined: true }
+        // Skip if descriptionId is undefined or null/empty to avoid required variable errors
+        skipIf: { variableName: "descriptionId", isUndefined: true, isEmpty: true }
       },
       {
         name: "updateType",
@@ -621,4 +623,4 @@ export const researchFieldsOperations = {
   result: researchFieldObjectsCount(fieldId: $fieldId)
 }`
   }
-}; 
+};

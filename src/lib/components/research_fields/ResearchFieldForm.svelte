@@ -85,7 +85,8 @@
     // Prepare default values based on mode
     const getDefaultValues = () => {
         if (mode !== "edit" || !initialData) {
-            return { type: "free text", vocabularies: [] };
+            // Ensure required text fields are present to avoid undefined GraphQL variables
+            return { type: "free text", name: "", description: "", vocabularies: [] };
         }
 
         // Process vocabularies for edit mode
@@ -288,8 +289,9 @@
         const createParams = {
             projectId: value.projectId || projectId,
             languageId: value.languageId || defaultLanguage?.id,
-            name: value.name,
-            description: value.description,
+            // Default to empty strings to satisfy required GraphQL variables
+            name: value.name ?? "",
+            description: value.description ?? "",
             type: value.type,
             nameTranslations:
                 nameTranslations.length > 0 ? nameTranslations : undefined,

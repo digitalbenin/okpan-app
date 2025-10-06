@@ -10,7 +10,7 @@
   import ProjectImportFile from "./ProjectImportFile.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte"; // Corrected path
   import { addToast } from "$lib/components/base/BaseToast.svelte";
-  import { createEventDispatcher } from "svelte";
+  // Runes: use $props for callbacks, no event dispatcher
 
   // let { createProject, projectState } = getProjectStore(); // Removed store state
   let selectedLanguage = $state("");
@@ -20,7 +20,7 @@
   let isLoadingLanguages = $state(false);
   let languagesError = $state(null);
 
-  const dispatch = createEventDispatcher();
+  const { onCreated } = $props();
 
   // Tab IDs
   const tabIds = [
@@ -106,9 +106,9 @@
         ?? result?.projectId
         ?? null;
 
-      // Notify parent about creation so it can close modal and redirect
-      if (projectId) {
-        dispatch("created", { projectId });
+      // Callback to parent (runes style)
+      if (projectId && typeof onCreated === "function") {
+        onCreated({ projectId });
       }
 
       // Reset form after successful creation
@@ -116,14 +116,6 @@
       projectData = {};
       activeTab = "Create a new project"; // Optionally reset tab
 
-      // Show success message
-      addToast({
-        data: {
-          title: "Success",
-          description: "Project created successfully!",
-          type: "success",
-        },
-      });
     } catch (error) {
       console.error("Failed to create project:", error);
       addToast({
