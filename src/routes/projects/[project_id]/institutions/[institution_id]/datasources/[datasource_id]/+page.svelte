@@ -19,6 +19,7 @@
   import { addImageProtocolPrefix } from "$lib/utils/images.js";
   import { goto } from "$app/navigation";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
+  import DatasourceTemplateMappings from "$lib/components/datasources/DatasourceTemplateMappings.svelte";
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -27,6 +28,7 @@
   const projectId = $derived(data.projectId);
   const institutionId = $derived(data.institutionId);
   const datasourceId = $derived(data.datasourceId);
+  const ontologyFields = $derived(data.ontologyFields?.result || []);
   // Support loader returning an array; normalize to single datasource object
   const datasource = $derived(
     Array.isArray(data.datasource)
@@ -224,7 +226,7 @@
   <div class="row g-4">
     <!-- Left column: edit form -->
     <div class="col-12 col-lg-8">
-      <div class="card border-0">
+      <div class="card border-0 mb-1">
         <div class="card-body">
           <AutoForm
             {form}
@@ -275,6 +277,19 @@
           />
         </div>
       </div>
+
+      {#if datasource?.template}
+        <div class="card border-0 mt-1">
+          <div class="card-body">
+            <h2 class="h5 mb-3">Template mappings</h2>
+            <DatasourceTemplateMappings
+              template={datasource.template}
+              {ontologyFields}
+              {objects}
+            />
+          </div>
+        </div>
+      {/if}
     </div>
 
     <!-- Right column: imported objects list -->

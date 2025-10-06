@@ -2,7 +2,7 @@ import { db } from './init.js';
 import {
     languages, project, institutions, texts, objects, assets,
     objects_assets, research_fields, vocabularies, objects_research_fields,
-    ontology_fields, datasources, objects_ontology_fields
+    ontology_fields, datasources, objects_ontology_fields, templates
 } from './schema.js';
 import { v4 as uuidv4 } from 'uuid';
 import { sql, eq } from 'drizzle-orm';
@@ -324,6 +324,37 @@ const seed = async () => {
                 method_id: methodId,
                 date: dsData.date ? new Date(dsData.date) : new Date()
             }).returning();
+
+            // Build a mapping array compatible with the object import template
+            const mappingArray = Array.isArray(dsData.fields) ? dsData.fields.map(f => {
+                const mappedKey = (f.fieldLinks && f.fieldLinks.length > 0)
+                    ? String(f.fieldLinks[0]).toLowerCase()
+                    : String(f.field).toLowerCase();
+                const mappedFieldId = ontologyFieldsByName.get(mappedKey) || null;
+                return {
+                    headerField: f.field,
+                    mappedField: mappedFieldId,
+                    primary: !!f.primary
+                };
+            }) : [];
+
+            // Persist mapping on a Template and bind it to the datasource
+            try {
+                const [createdTemplate] = await db.insert(templates).values({
+                    id: uuidv4(),
+                    mapping: JSON.stringify(mappingArray),
+                    project_id: mainProjectId,
+                    asset_map_rule: null
+                }).returning();
+
+                if (createdTemplate?.id) {
+                    await db.update(datasources)
+                        .set({ template_id: createdTemplate.id })
+                        .where(eq(datasources.id, dbDataSource.id));
+                }
+            } catch (templateErr) {
+                console.warn(`Failed to create/bind template for datasource ${dsData.id}:`, templateErr?.message || templateErr);
+            }
 
             const fieldMappings = new Map();
             dsData.fields.forEach(f => {

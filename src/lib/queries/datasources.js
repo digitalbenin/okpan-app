@@ -80,6 +80,14 @@ export const datasourcesOperations = {
       updated_at
       institution_id
       template_id
+      template {
+        id
+        mapping
+        project_id
+        asset_map_rule
+        created_at
+        updated_at
+      }
       language
       copyright
       contact
@@ -136,8 +144,8 @@ export const datasourcesOperations = {
   $pageSize: Int
   $orderBy: String
   $direction: String
-) {
-  result: objectsByDatasource(
+  ) {
+    result: objectsByDatasource(
     datasource_id: $datasourceId
     project_id: $projectId
     institution_id: $institutionId
@@ -177,7 +185,7 @@ export const datasourcesOperations = {
         value
         primary
         default_description
-        ontologyField { name { content } }
+        ontologyField { id name { content } }
       }
       objectsResearchFields {
         id
