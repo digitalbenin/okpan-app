@@ -12,7 +12,11 @@
       if (!assets.length) {
         return [];
       }
-      const toMap = assets.map((a) => ({ id: a.id, filename: a.filename }));
+      const toMap = assets.map((a) => ({
+        id: a.id,
+        filename: a.filename,
+        formats: $state.snapshot(a.formats),
+      }));
       const suggestions = await window.api.suggestObjectMatches(toMap, {
         institutionId: wizard.institutionId,
         searchFields: [],
@@ -24,8 +28,6 @@
     },
     { initialValue: [] }
   );
-
-  $inspect(matchingSuggestions);
 </script>
 
 <div class="container-fluid mt-3">
@@ -50,9 +52,9 @@
         </div>
       </div>
     </div>
-  {:else}
-    {#each matchingSuggestions.current as suggestion}
-      <MatchPreview {suggestion} />
+  {:else if matchingSuggestions.current.length}
+    {#each matchingSuggestions.current as asset}
+      <MatchPreview asset={asset.asset} results={asset.results} />
     {/each}
   {/if}
 </div>
