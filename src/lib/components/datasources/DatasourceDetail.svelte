@@ -212,6 +212,23 @@
                 delete updatedDataPayload[key],
         );
 
+        // Minimal, pasteable log to debug translation saving
+        try {
+            console.log(
+                `[DS Save] id=${datasource.id} default=${defaultLanguageCode} ` +
+                    `NT=${nameTrans.length} MT=${methodTrans.length} OT=${notesTrans.length} ` +
+                    `names=[${nameTrans
+                        .map((t) => `${t.language_code}:${t.content ? "Y" : "null"}`)
+                        .join(",")}] ` +
+                    `methods=[${methodTrans
+                        .map((t) => `${t.language_code}:${t.content ? "Y" : "null"}`)
+                        .join(",")}] ` +
+                    `notes=[${notesTrans
+                        .map((t) => `${t.language_code}:${t.content ? "Y" : "null"}`)
+                        .join(",")}]`,
+            );
+        } catch (_) {}
+
         dispatch("save", { id: datasource.id, data: updatedDataPayload });
     }
 

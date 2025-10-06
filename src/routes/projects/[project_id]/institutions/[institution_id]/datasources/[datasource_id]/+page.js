@@ -23,6 +23,8 @@ export const load = async ({ params, depends }) => {
         pageSize: 25
     });
 
+    console.log(datasourceRes.result);
+
     return {
         projectId,
         institutionId,

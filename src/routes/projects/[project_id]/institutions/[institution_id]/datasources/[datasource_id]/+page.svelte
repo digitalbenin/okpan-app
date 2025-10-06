@@ -101,31 +101,41 @@
   const translationsValidator = getValidator("translations", "create");
 
   // Gather initial values for form
-  const initialValues = $derived.by(() => {
-    const values = {};
-    // Main language content
-    values.name = datasource?.name?.content || "";
-    values.method = datasource?.method?.content || "";
-    values.notes = datasource?.notes?.content || "";
-    // Simple direct fields (not all editable here, but keep date)
-    values.date = datasource?.date || new Date().toISOString();
-    // Hidden/static fields
-    values.languageId = defaultLanguage?.id || "";
-    values.institutionId = String(institutionId || "");
-    values.templateId = null;
-    return values;
+  const initialValues = $derived({
+    // Direct fields that might not be part of the form UI but needed for submission
+    date: datasource?.date || new Date().toISOString(),
+    language: datasource?.language || "",
+    contact: datasource?.contact || "",
+    copyright: datasource?.copyright || "",
+    template_id: datasource?.template_id || null,
+    // Translatable fields
+    ...translatableFields.reduce((acc, field) => {
+      acc[field] = datasource?.[field]?.content || "";
+      return acc;
+    }, {}),
+    // Translations for other languages
+    ...languages
+      .filter((lang) => !lang.is_default)
+      .reduce((acc, lang) => {
+        for (const field of translatableFields) {
+          const translation = (datasource?.[field]?.translations || []).find(
+            (t) => t.language.code === lang.code,
+          );
+          acc[`translations_${lang.id}_${field}`] = translation?.content || "";
+        }
+        return acc;
+      }, {}),
   });
 
   // Collect translation values for secondary languages
   function collectTranslations(values) {
     const secondary = (languages || []).filter((l) => !l.is_default);
-    const collect = (field) =>
-      secondary
+    return translatableFields.reduce((acc, field) => {
+      acc[`${field}Translations`] = secondary
         .map((lang) => {
           const key = `translations_${lang.id}_${field}`;
           const v = values?.[key];
           if (!v || !String(v).trim()) return null;
-          // Include existing translation id if present to perform updates
           const existing = (datasource?.[field]?.translations || []).find(
             (t) => t?.language?.code === lang.code,
           );
@@ -136,11 +146,8 @@
           };
         })
         .filter(Boolean);
-    return {
-      nameTranslations: collect("name"),
-      methodTranslations: collect("method"),
-      notesTranslations: collect("notes"),
-    };
+      return acc;
+    }, {});
   }
 
   let allValidationErrors = $state([]);
@@ -159,12 +166,16 @@
           method: value.method,
           notes: value.notes,
           date: value.date,
+          language: value.language,
+          contact: value.contact,
+          copyright: value.copyright,
+          template_id: value.template_id,
+          languageId: defaultLanguage?.id,
           ...tx,
         };
         const { error } = await updateDatasource(datasourceId, payload);
         if (!error) {
-          // Reload datasource page to reflect changes
-          // Keeping user on the same page
+          form.reset();
         }
       },
     }),
@@ -326,12 +337,7 @@
     class="sticky-bottom-bar position-sticky bottom-0 bg-white border-top border-light-subtle mt-4 z-1"
   >
     <div class="container-fluid py-2">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="text-muted">
-          {t("common.changes-notice", {
-            fallback: "Changes apply to datasource text only.",
-          })}
-        </div>
+      <div class="d-flex justify-content-end align-items-center">
         <div class="d-flex gap-2">
           <BaseButton
             class="btn btn-outline-danger"
