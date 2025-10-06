@@ -1,16 +1,21 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { getObjectIdentifier } from "$lib/utils/objects.js";
 
-  let { id = $bindable(), primaryId } = $props();
+  let { mappedObject = $bindable(null) } = $props();
   const { t } = getTranslationStore();
 
   function resetFieldMatched() {
-    id = null;
+    mappedObject = null;
   }
-  $inspect(id);
+
+  let primaryId = $derived.by(() => {
+    if (!mappedObject) return null;
+    return getObjectIdentifier(mappedObject);
+  });
 </script>
 
-{#if id}
+{#if mappedObject}
   <div
     class="d-flex align-items-center bg-white rounded overflow-hidden text-capitalize position-relative"
   >
@@ -19,7 +24,7 @@
         <i class="bi bi-stars"></i>
       </div>
     {/if}
-    <div class="ps-2">{id}</div>
+    <div class="ps-2">{primaryId}</div>
 
     <button
       class="btn btn-sm"
