@@ -8,6 +8,7 @@ const { getSchema, validate } = getValidationStore();
 
 export const getObjects = async (options) => {
     const result = await executeQuery('objects', 'list', options);
+    console.log(result, "result")
     if (result && result.result) {
         return { items: result.result.items || [], totalCount: result.result.totalCount || 0 };
     }
@@ -76,39 +77,39 @@ export const createObject = async (
     projectId,
     institutionId,
     status = "draft"
-  ) => {
+) => {
     if (!projectId || !institutionId) {
-      return { error: "Invalid project ID or institution ID for createObject" };
+        return { error: "Invalid project ID or institution ID for createObject" };
     }
-  
+
     const response = await executeQuery("objects", "create", {
-      projectId,
-      institutionId,
-      status,
+        projectId,
+        institutionId,
+        status,
     });
-  
+
     if (response.error) {
-      return { error: response.error };
+        return { error: response.error };
     }
-  
+
     // Extract the result data
     let resultData = null;
     if (
-      response.insertIntoObjects &&
-      Array.isArray(response.insertIntoObjects) &&
-      response.insertIntoObjects.length > 0
+        response.insertIntoObjects &&
+        Array.isArray(response.insertIntoObjects) &&
+        response.insertIntoObjects.length > 0
     ) {
-      resultData = response.insertIntoObjects[0];
+        resultData = response.insertIntoObjects[0];
     }
-  
+
     // Invalidate caches to reflect the change
     invalidate("app:objects");
-  
+
     return {
-      result: resultData,
-      error: null,
+        result: resultData,
+        error: null,
     };
-  };
+};
 
 // Function to update object status
 export const updateObjectStatus = async (objectId, status) => {
@@ -393,10 +394,10 @@ export const updateAssetOrder = async (objectId, assetId, order) => {
         return { error: "Invalid parameters for updateAssetOrder" };
     }
 
-    const result = await executeQuery('objects', 'updateAssetOrder', { 
-        objectId, 
-        assetId, 
-        order 
+    const result = await executeQuery('objects', 'updateAssetOrder', {
+        objectId,
+        assetId,
+        order
     });
 
     if (result.error) {
@@ -417,12 +418,12 @@ export const reorderAssets = async (objectId, assetOrders) => {
     }
 
     try {
-        const updatePromises = assetOrders.map(({ assetId, order }) => 
+        const updatePromises = assetOrders.map(({ assetId, order }) =>
             updateAssetOrder(objectId, assetId, order)
         );
 
         const results = await Promise.all(updatePromises);
-        
+
         // Check for errors
         const errors = results.filter(result => result.error);
         if (errors.length > 0) {

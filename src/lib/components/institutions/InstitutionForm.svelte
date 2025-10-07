@@ -19,7 +19,6 @@
   } from "$lib/stores/InstitutionsUtils.js";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
-  import { back } from "$lib/utils/navigation.js";
 
   const { t } = getTranslationStore();
 

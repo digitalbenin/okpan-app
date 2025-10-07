@@ -139,7 +139,41 @@ export const createObjectsListQuery = (db, drizzleResult) => {
                 conditions.push(eq(dbSchema.objects.status, args.status));
             }
             if (args.search && args.search.trim()) {
-                conditions.push(sql`lower(${dbSchema.objects.status}) LIKE ${'%' + args.search.trim().toLowerCase() + '%'}`);
+                const term = '%' + args.search.trim().toLowerCase() + '%';
+                const searchConditions = [
+
+                    // Match institution name via subquery (safe for count query too)
+                    sql`EXISTS (
+                        SELECT 1 FROM ${dbSchema.institutions} inst
+                        JOIN ${dbSchema.texts} inst_name_texts ON inst.name_id = inst_name_texts.id
+                        WHERE inst.id = ${dbSchema.objects.institution_id}
+                          AND lower(inst_name_texts.content) LIKE ${term}
+                    )`,
+
+                    // Match ontology fields (value or field name)
+                    sql`EXISTS (
+                        SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
+                        JOIN ${dbSchema.ontology_fields} ot ON oof.field_id = ot.id
+                        JOIN ${dbSchema.texts} ot_name_texts ON ot.name_id = ot_name_texts.id
+                        WHERE oof.object_id = ${dbSchema.objects.id}
+                          AND (lower(oof.value) LIKE ${term} OR lower(ot_name_texts.content) LIKE ${term})
+                    )`,
+                    // Match research fields (value, field name, or vocabulary option)
+                    sql`EXISTS (
+                        SELECT 1 FROM ${dbSchema.objects_research_fields} orf
+                        LEFT JOIN ${dbSchema.vocabularies} v ON orf.vocabulary_id = v.id
+                        LEFT JOIN ${dbSchema.texts} v_option_texts ON v.option_id = v_option_texts.id
+                        JOIN ${dbSchema.research_fields} rf ON orf.field_id = rf.id
+                        JOIN ${dbSchema.texts} rf_name_texts ON rf.name_id = rf_name_texts.id
+                        WHERE orf.object_id = ${dbSchema.objects.id}
+                          AND (
+                              lower(orf.value) LIKE ${term}
+                              OR lower(rf_name_texts.content) LIKE ${term}
+                              OR lower(v_option_texts.content) LIKE ${term}
+                          )
+                    )`
+                ];
+                conditions.push(sql`(${sql.join(searchConditions, sql` OR `)})`);
             }
 
             // Count query
@@ -166,7 +200,11 @@ export const createObjectsListQuery = (db, drizzleResult) => {
             }
 
             const queryOrdered = queryFiltered.orderBy(sql`${orderByField}${direction}`);
-            const queryPaginated = queryOrdered.limit(args.pageSize).offset(args.page * args.pageSize).groupBy(dbSchema.objects.id, dbSchema.institutions.id, institutionNameTexts.id, dbSchema.project.id, projectTitleTexts.id);
+            // Reduce GROUP BY to objects.id only to avoid over-grouping that can yield empty result sets
+            const queryPaginated = queryOrdered
+                .limit(args.pageSize)
+                .offset(args.page * args.pageSize)
+                .groupBy(dbSchema.objects.id);
 
             const rawResults = await queryPaginated.execute();
 
@@ -302,4 +340,4 @@ export const createObjectsListQuery = (db, drizzleResult) => {
             return { items: processedItems, totalCount: totalCount };
         }
     };
-}; 
+};
