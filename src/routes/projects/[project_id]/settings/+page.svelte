@@ -5,7 +5,6 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { Tabs } from "melt/builders";
   import AddProjectLanguagesModal from "$lib/components/projects/AddProjectLanguagesModal.svelte";
-  import { invalidate } from "$app/navigation";
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -24,7 +23,7 @@
   let showAddLanguages = $state(false);
 
   // Tabs state
-  let activeLanguageCode = $state(
+  let activeLanguageCode = $derived(
     defaultLanguage?.code || languages?.[0]?.code || "",
   );
   // Melt Tabs (match Edit Institution)
@@ -86,9 +85,6 @@
     if (!lang || lang.is_default) return; // guard default
     try {
       await removeLanguageFromProject(lang.id);
-      try {
-        invalidate("app:project-shared");
-      } catch (_) {}
     } catch (e) {
       console.error("Failed to remove language:", e);
     }

@@ -7,7 +7,7 @@
 </script>
 
 <div class="container-fluid">
-  <div class="row">
+  <div class="row p-3">
     <div class="col-9">
       <!-- <ProjectCreate /> -->
       <h2>{t("common.projects", { fallback: "Projects" })}</h2>
@@ -15,6 +15,7 @@
     </div>
     <div class="col-3 vh-100 border-start">
       <h4>{t("common.resources", { fallback: "Resources and guides" })}</h4>
+      <h5 class="text-muted">Coming soon</h5>
     </div>
   </div>
 </div>

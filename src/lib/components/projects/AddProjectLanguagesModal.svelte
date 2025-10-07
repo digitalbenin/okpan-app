@@ -2,8 +2,10 @@
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { addLanguageToProject, removeLanguageFromProject } from "$lib/stores/ProjectsUtils.js";
-  import { invalidate } from "$app/navigation";
+  import {
+    addLanguageToProject,
+    removeLanguageFromProject,
+  } from "$lib/stores/ProjectsUtils.js";
 
   const { t } = getTranslationStore();
 
@@ -24,12 +26,13 @@
 
   // Cache of existing language codes for quick lookup
   const existingCodes = $derived(
-    (existingLanguages || []).map((l) => l.code.toLowerCase())
+    (existingLanguages || []).map((l) => l.code.toLowerCase()),
   );
 
   // Default project language (cannot be toggled in this modal)
   const defaultLangCode = $derived(
-    (existingLanguages || []).find((l) => l.is_default)?.code?.toLowerCase() || null,
+    (existingLanguages || []).find((l) => l.is_default)?.code?.toLowerCase() ||
+      null,
   );
 
   $effect(() => {
@@ -61,7 +64,13 @@
     const list = worldLanguages || [];
     if (!q) return list;
     return list.filter((lang) => {
-      const label = (lang.name || lang.native || lang.englishName || lang.code || "").toLowerCase();
+      const label = (
+        lang.name ||
+        lang.native ||
+        lang.englishName ||
+        lang.code ||
+        ""
+      ).toLowerCase();
       return label.includes(q) || (lang.code || "").toLowerCase().includes(q);
     });
   });
@@ -70,7 +79,8 @@
     const c = (code || "").toLowerCase();
     if (!c || c === defaultLangCode || existingCodes.includes(c)) return;
     const next = new Set(selectedCodes);
-    if (next.has(c)) next.delete(c); else next.add(c);
+    if (next.has(c)) next.delete(c);
+    else next.add(c);
     selectedCodes = next;
   }
 
@@ -78,7 +88,8 @@
     const c = (code || "").toLowerCase();
     if (!c || c === defaultLangCode || !existingCodes.includes(c)) return;
     const next = new Set(removeCodes);
-    if (next.has(c)) next.delete(c); else next.add(c);
+    if (next.has(c)) next.delete(c);
+    else next.add(c);
     removeCodes = next;
   }
 
@@ -90,14 +101,23 @@
     try {
       // Add each selected language
       for (const code of selectedCodes) {
-        const lang = worldLanguages.find((l) => (l.code || "").toLowerCase() === code);
+        const lang = worldLanguages.find(
+          (l) => (l.code || "").toLowerCase() === code,
+        );
         if (!lang) continue;
-        await addLanguageToProject(projectId, lang.code, lang.name || lang.native || lang.englishName || lang.code, 0);
+        await addLanguageToProject(
+          projectId,
+          lang.code,
+          lang.name || lang.native || lang.englishName || lang.code,
+          0,
+        );
       }
 
       // Remove each selected existing secondary language
       for (const code of removeCodes) {
-        const existing = (existingLanguages || []).find((l) => (l.code || "").toLowerCase() === code);
+        const existing = (existingLanguages || []).find(
+          (l) => (l.code || "").toLowerCase() === code,
+        );
         if (!existing || existing.is_default) continue;
         try {
           await removeLanguageFromProject(existing.id);
@@ -105,11 +125,13 @@
           console.error("Failed removing language:", code, e);
         }
       }
-      // Refresh project shared data to update languages list
-      try { invalidate("app:project-shared"); } catch (_) {}
+
       // Optional callback
       if (typeof onAdded === "function") {
-        onAdded({ added: Array.from(selectedCodes), removed: Array.from(removeCodes) });
+        onAdded({
+          added: Array.from(selectedCodes),
+          removed: Array.from(removeCodes),
+        });
       }
     } catch (e) {
       console.error("Failed adding languages:", e);
@@ -128,9 +150,11 @@
   }
 </script>
 
-<BaseModal bind:isOpen={isOpen} size="lg" contentStyle="height: 75vh;">
+<BaseModal bind:isOpen size="lg" contentStyle="height: 75vh;">
   {#snippet header()}
-    {t("project.select_content_languages", { fallback: "Select content languages" })}
+    {t("project.select_content_languages", {
+      fallback: "Select content languages",
+    })}
   {/snippet}
 
   {#snippet body()}
@@ -158,24 +182,40 @@
           {@const code = (lang.code || "").toLowerCase()}
           {@const isDefault = defaultLangCode && code === defaultLangCode}
           {@const isEnabled = existingCodes.includes(code)}
-          <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div
+            class="list-group-item d-flex justify-content-between align-items-center"
+          >
             <div>
-              <div class="fw-semibold">{lang.name || lang.native || lang.englishName || lang.code}</div>
+              <div class="fw-semibold">
+                {lang.name || lang.native || lang.englishName || lang.code}
+              </div>
               <small class="text-muted">{lang.code}</small>
             </div>
             <div class="d-flex align-items-center gap-2">
               {#if isDefault}
-                <BaseButton class="btn btn-secondary btn-sm" text={t("project.default_language", { fallback: "Default" })} disabled={true} />
+                <BaseButton
+                  class="btn btn-secondary btn-sm"
+                  text={t("project.default_language", { fallback: "Default" })}
+                  disabled={true}
+                />
               {:else if isEnabled}
                 <BaseButton
-                  class="btn btn-sm {removeCodes.has(code) ? 'btn-outline-primary' : 'btn-success'}"
-                  text={removeCodes.has(code) ? t("common.add", { fallback: "Add" }) : t("common.added", { fallback: "Added" })}
+                  class="btn btn-sm {removeCodes.has(code)
+                    ? 'btn-outline-primary'
+                    : 'btn-success'}"
+                  text={removeCodes.has(code)
+                    ? t("common.add", { fallback: "Add" })
+                    : t("common.added", { fallback: "Added" })}
                   onClick={() => toggleRemove(code)}
                 />
               {:else}
                 <BaseButton
-                  class="btn btn-sm {selectedCodes.has(code) ? 'btn-success' : 'btn-outline-primary'}"
-                  text={selectedCodes.has(code) ? t("common.added", { fallback: "Added" }) : t("common.add", { fallback: "Add" })}
+                  class="btn btn-sm {selectedCodes.has(code)
+                    ? 'btn-success'
+                    : 'btn-outline-primary'}"
+                  text={selectedCodes.has(code)
+                    ? t("common.added", { fallback: "Added" })
+                    : t("common.add", { fallback: "Add" })}
                   onClick={() => toggleAdd(code)}
                 />
               {/if}
@@ -188,13 +228,27 @@
 
   {#snippet actions()}
     <div class="d-flex gap-2">
-      <BaseButton class="btn btn-secondary" text={t("common.cancel", { fallback: "Cancel" })} onClick={handleCancel} />
-      <BaseButton class="btn btn-primary" text={t("common.save", { fallback: "Save" })} onClick={handleSave} disabled={selectedCodes.size === 0 && removeCodes.size === 0} />
+      <BaseButton
+        class="btn btn-secondary"
+        text={t("common.cancel", { fallback: "Cancel" })}
+        onClick={handleCancel}
+      />
+      <BaseButton
+        class="btn btn-primary"
+        text={t("common.save", { fallback: "Save" })}
+        onClick={handleSave}
+        disabled={selectedCodes.size === 0 && removeCodes.size === 0}
+      />
     </div>
   {/snippet}
 </BaseModal>
 
 <style>
-  .list-group-item { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-  .fw-semibold { font-weight: 600; }
+  .list-group-item {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .fw-semibold {
+    font-weight: 600;
+  }
 </style>

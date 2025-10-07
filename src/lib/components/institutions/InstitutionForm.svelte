@@ -404,12 +404,12 @@
     },
     name: {
       label: t("common.institution-name", { fallback: "Institution Name" }),
-      colSize: 6,
+      colSize: 7,
     },
     description: {
       type: "textarea",
       label: t("common.description", { fallback: "Description" }),
-      colSize: 6,
+      colSize: 7,
     },
     country: { label: t("common.country", { fallback: "Country" }) },
     location: { label: t("common.location", { fallback: "Location" }) },
@@ -477,63 +477,72 @@
     form.handleSubmit();
   }}
 >
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-12">
-        <h2 class="mt-3">
-          {isEditMode
-            ? t("common.edit-institution", { fallback: "Edit Institution" })
-            : t("common.add-new-institution", {
-                fallback: "Add New Institution",
+  <div class="min-vh-100 d-flex flex-column">
+    <div class="container-fluid flex-grow-1">
+      <div class="row">
+        <div class="col-12">
+          <h2 class="mt-3">
+            {isEditMode
+              ? t("common.edit-institution", { fallback: "Edit Institution" })
+              : t("common.add-new-institution", {
+                  fallback: "Add New Institution",
+                })}
+          </h2>
+          {#if !isEditMode}
+            <p>
+              {t("common.add-new-institution-desc", {
+                fallback:
+                  "Please fill out the details below to add a new institution to your project.",
               })}
-        </h2>
-        {#if !isEditMode}
-          <p>
-            {t("common.add-new-institution-desc", {
-              fallback:
-                "Please fill out the details below to add a new institution to your project.",
-            })}
-          </p>
-        {/if}
+            </p>
+          {/if}
 
-        <AutoForm
-          {form}
-          {validator}
-          {createFieldValidator}
-          entity={"institutions"}
-          operation={operationName}
-          {languages}
-          {translatableFields}
-          setStructuredErrors={setAllValidationErrors}
-          defaultColSize={6}
-          translationsValidator={getValidator("translations", "create")}
-          {fieldOrder}
-          {uiSchema}
-          {hiddenStaticValues}
-          {hiddenValueProviders}
-          structuredErrors={allValidationErrors}
-        />
+          <AutoForm
+            {form}
+            {validator}
+            {createFieldValidator}
+            entity={"institutions"}
+            operation={operationName}
+            {languages}
+            {translatableFields}
+            setStructuredErrors={setAllValidationErrors}
+            defaultColSize={7}
+            translationsValidator={getValidator("translations", "create")}
+            {fieldOrder}
+            {uiSchema}
+            {hiddenStaticValues}
+            {hiddenValueProviders}
+            structuredErrors={allValidationErrors}
+          />
+        </div>
       </div>
     </div>
-  </div>
 
-  <div
-    class="position-absolute bottom-0 start-0 w-100 bg-light z-1 p-3 d-flex justify-content-end"
-  >
-    {#if isEditMode}
-      <BaseButton
-        type="button"
-        class="btn btn-outline-danger me-2"
-        text={t("common.delete", { fallback: "Delete institution" })}
-        icon="trash"
-        onClick={openDeleteModal}
-      />
-    {/if}
-    <BaseButton
-      type="submit"
-      class="btn btn-success"
-      text={t("common.confirm", { fallback: "Save changes" })}
-    />
+    <!-- Sticky bottom action bar -->
+    <div
+      class="sticky-bottom-bar position-sticky bottom-0 bg-white border-top border-light-subtle mt-auto z-1 flex-shrink-0"
+    >
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-12 d-flex justify-content-end gap-2 p-2">
+            {#if isEditMode}
+              <BaseButton
+                type="button"
+                class="btn btn-outline-danger"
+                text={t("common.delete", { fallback: "Delete institution" })}
+                icon="trash"
+                onClick={openDeleteModal}
+              />
+            {/if}
+            <BaseButton
+              type="submit"
+              class="btn btn-success"
+              text={t("common.confirm", { fallback: "Save changes" })}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Delete Confirmation Modal -->
@@ -583,3 +592,21 @@
     />
   {/if}
 </form>
+
+<style>
+  /* Ensure the form takes full viewport height and allows content to scroll */
+  .min-vh-100 {
+    min-height: 100vh;
+  }
+
+  /* Sticky bottom bar consistent with Project Settings */
+  .sticky-bottom-bar {
+    position: sticky;
+    bottom: 0;
+    background-color: white;
+    border-top: 1px solid #dee2e6;
+    margin-top: auto;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+</style>

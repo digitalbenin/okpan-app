@@ -193,14 +193,18 @@ export const addLanguageToProject = async (projectId, languageCode, languageName
         languageName,
         isDefault
     });
+    // Centralized cache refreshes for project language changes
     invalidate("app:projects");
+    try { invalidate("app:project-shared"); } catch (_) {}
     return result;
 };
 
 export const removeLanguageFromProject = async (languageId) => {
     // Use executeQuery which handles errors, logging, and notifications
     const result = await executeQuery('projects', 'removeLanguage', { languageId });
+    // Centralized cache refreshes for project language changes
     invalidate("app:projects");
+    try { invalidate("app:project-shared"); } catch (_) {}
     return result;
 };
 

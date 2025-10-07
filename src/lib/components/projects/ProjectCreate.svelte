@@ -1,13 +1,10 @@
 <script>
   import { onMount } from "svelte";
-  // import { getProjectStore } from "$lib/stores/ProjectStore.svelte.js"; // Removed store usage for creation
   import { executeQuery } from "$lib/stores/GraphqlUtils.js"; // Added GraphqlUtils
-  // import { API_SECTIONS } from "$lib/queries/index.js"; // Likely not needed directly
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte"; // Corrected path
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte"; // Corrected path
   import { addToast } from "$lib/components/base/BaseToast.svelte";
-  // Runes: use $props for callbacks, no event dispatcher
 
   // let { createProject, projectState } = getProjectStore(); // Removed store state
   let selectedLanguage = $state("");
@@ -131,7 +128,7 @@
 
 <div>
   <div class="mb-3">
-    <label class="form-label">Project title *</label>
+    <p class="form-label">Project title *</p>
     <BaseInput
       bind:value={projectData.title.content}
       placeholder={`Enter title ${langDisplayLabel}`}
@@ -139,7 +136,7 @@
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Description</label>
+    <p class="form-label">Description</p>
     <textarea
       class="form-control"
       rows="4"
@@ -149,7 +146,7 @@
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Default language</label>
+    <p class="form-label">Default language</p>
     {#if isLoadingLanguages}
       <div class="alert alert-info">Loading languages…</div>
     {:else if languagesError}
