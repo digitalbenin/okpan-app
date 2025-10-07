@@ -1,20 +1,20 @@
 <script>
-  import { Tabs } from "bits-ui";
   import { onMount } from "svelte";
   // import { getProjectStore } from "$lib/stores/ProjectStore.svelte.js"; // Removed store usage for creation
   import { executeQuery } from "$lib/stores/GraphqlUtils.js"; // Added GraphqlUtils
   // import { API_SECTIONS } from "$lib/queries/index.js"; // Likely not needed directly
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte"; // Corrected path
-  import ProjectData from "./ProjectData.svelte";
-  import ProjectImportUrl from "./ProjectImportUrl.svelte";
-  import ProjectImportFile from "./ProjectImportFile.svelte";
+  import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte"; // Corrected path
   import { addToast } from "$lib/components/base/BaseToast.svelte";
   // Runes: use $props for callbacks, no event dispatcher
 
   // let { createProject, projectState } = getProjectStore(); // Removed store state
   let selectedLanguage = $state("");
-  let projectData = $state({});
+  let projectData = $state({
+    title: { content: "" },
+    description: { content: "" },
+  });
   let isCreating = $state(false);
   let worldLanguages = $state([]);
   let isLoadingLanguages = $state(false);
@@ -22,15 +22,7 @@
 
   const { onCreated } = $props();
 
-  // Tab IDs
-  const tabIds = [
-    "Create a new project",
-    "Import from URL",
-    "Import from file",
-  ];
-
-  // Active tab tracking
-  let activeTab = $state(tabIds[0]);
+  // No tabs: keep only "Create a new project"
 
   // Load world languages from IPC on mount
   onMount(async () => {
@@ -56,14 +48,21 @@
     worldLanguages.map((lang) => ({
       value: lang.code,
       label: lang.name || lang.native || lang.englishName || lang.code,
-    }))
+    })),
   );
 
   // Selected language object from world languages
   let selectedLanguageObject = $derived(
     selectedLanguage
       ? worldLanguages.find((lang) => lang.code === selectedLanguage)
-      : null
+      : null,
+  );
+
+  // Display label for placeholders (default to English)
+  let langDisplayLabel = $derived(
+    selectedLanguageObject
+      ? `- ${selectedLanguageObject.name || selectedLanguageObject.native || selectedLanguageObject.englishName || selectedLanguageObject.code} (${selectedLanguageObject.code})`
+      : "",
   );
 
   // Handle creating a new project
@@ -90,7 +89,7 @@
         title: projectData?.title?.content || "",
         description: projectData?.description?.content || "",
         languageCode: defaultLangCode,
-        languageName: defaultLangObj?.name || defaultLangCode
+        languageName: defaultLangObj?.name || defaultLangCode,
       };
 
       console.log("Creating project with payload:", formattedProject);
@@ -101,10 +100,11 @@
       console.log("Project creation result:", result);
 
       // Try to extract newly created project ID
-      const projectId = result?.insertIntoProject?.[0]?.id
-        ?? result?.updateProject?.[0]?.id
-        ?? result?.projectId
-        ?? null;
+      const projectId =
+        result?.insertIntoProject?.[0]?.id ??
+        result?.updateProject?.[0]?.id ??
+        result?.projectId ??
+        null;
 
       // Callback to parent (runes style)
       if (projectId && typeof onCreated === "function") {
@@ -114,8 +114,6 @@
       // Reset form after successful creation
       selectedLanguage = "";
       projectData = {};
-      activeTab = "Create a new project"; // Optionally reset tab
-
     } catch (error) {
       console.error("Failed to create project:", error);
       addToast({
@@ -131,70 +129,50 @@
   }
 </script>
 
-<Tabs.Root bind:value={activeTab}>
-  <Tabs.List>
-    <ul class="nav nav-underline border-bottom mb-3">
-      {#each tabIds as id}
-        <Tabs.Trigger forceMount value={id}>
-          {#snippet child({ props })}
-            <li {...props} class="nav-item">
-              <div class="nav-link" class:active={activeTab === id}>
-                {id}
-              </div>
-            </li>
-          {/snippet}
-        </Tabs.Trigger>
-      {/each}
-    </ul>
-  </Tabs.List>
-
-  <!-- Tab Content -->
-  <div class="tab-content">
-    {#each tabIds as id}
-      <Tabs.Content value={id}>
-        {#if activeTab === "Create a new project"}
-          <p>Select a default language</p>
-
-          {#if isLoadingLanguages}
-            <div class="alert alert-info">Loading languages…</div>
-          {:else if languagesError}
-            <div class="alert alert-danger">{languagesError}</div>
-          {/if}
-
-          <div class="row mb-2">
-            <div class="col-md-6">
-              <BaseSelect
-                bind:value={selectedLanguage}
-                items={languageOptions}
-                placeholder="Select a language"
-                portalProps={{ disabled: true }}
-              />
-            </div>
-          </div>
-
-          {#if selectedLanguage}
-            <div>
-              <ProjectData
-                languages={[selectedLanguageObject].filter(Boolean)}
-                bind:projData={projectData}
-              />
-            </div>
-          {/if}
-          <div class="d-flex justify-content-end">
-            <BaseButton
-              text={isCreating ? "Creating..." : "Create Project"}
-              class="btn btn-primary"
-              disabled={isCreating ||
-                !(selectedLanguage && projectData?.title?.content?.trim())}
-              onClick={handleCreateProject}
-            />
-          </div>
-        {:else if activeTab === "Import from URL"}
-          <ProjectImportUrl />
-        {:else if activeTab === "Import from file"}
-          <ProjectImportFile />
-        {/if}
-      </Tabs.Content>
-    {/each}
+<div>
+  <div class="mb-3">
+    <label class="form-label">Project title *</label>
+    <BaseInput
+      bind:value={projectData.title.content}
+      placeholder={`Enter title ${langDisplayLabel}`}
+    />
   </div>
-</Tabs.Root>
+
+  <div class="mb-3">
+    <label class="form-label">Description</label>
+    <textarea
+      class="form-control"
+      rows="4"
+      bind:value={projectData.description.content}
+      placeholder={`Enter description ${langDisplayLabel}`}
+    ></textarea>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Default language</label>
+    {#if isLoadingLanguages}
+      <div class="alert alert-info">Loading languages…</div>
+    {:else if languagesError}
+      <div class="alert alert-danger">{languagesError}</div>
+    {/if}
+
+    <BaseSelect
+      bind:value={selectedLanguage}
+      items={languageOptions}
+      placeholder="Select a language"
+      searchable={true}
+      searchPlaceholder="Search languages..."
+      portalProps={{ disabled: true }}
+    />
+  </div>
+
+  <div class="d-flex justify-content-end">
+    <BaseButton
+      text={isCreating ? "Creating..." : "Create Project"}
+      class="btn btn-primary"
+      disabled={isCreating ||
+        !(selectedLanguage && projectData?.title?.content?.trim())}
+      onClick={handleCreateProject}
+    />
+  </div>
+</div>

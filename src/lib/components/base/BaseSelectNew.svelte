@@ -10,8 +10,13 @@
     type = "single",
     size,
     as = "select",
+    searchable = false,
+    searchPlaceholder = "Search...",
     ...restProps
   } = $props();
+
+  // Search term for filtering items within the dropdown
+  let searchTerm = $state("");
 
   const selectedLabel = $derived.by(() => {
     if (!value) {
@@ -27,12 +32,19 @@
     }
   });
 
+  // Filter items by search term (case-insensitive)
+  const filteredItems = $derived.by(() => {
+    if (!searchable || !searchTerm?.trim()) return items;
+    const term = searchTerm.toLowerCase();
+    return items.filter((item) => (item.label || "").toLowerCase().includes(term));
+  });
+
   // Group items by their group property
   const groupedItems = $derived.by(() => {
     const groups = {};
     const ungrouped = [];
 
-    items.forEach((item) => {
+    (filteredItems || items).forEach((item) => {
       if (item.group) {
         if (!groups[item.group]) {
           groups[item.group] = [];
@@ -80,6 +92,17 @@
                 class="border-bottom d-flex justify-content-center"
                 ><i class="bi bi-caret-up-fill"></i></Select.ScrollUpButton
               >
+              {#if searchable}
+                <div class="p-1">
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    bind:value={searchTerm}
+                    placeholder={searchPlaceholder}
+                    autocomplete="off"
+                  />
+                </div>
+              {/if}
               <Select.Viewport>
                 <!-- Render ungrouped items first -->
                 {#each groupedItems.ungrouped as { value, label, disabled } (value)}
