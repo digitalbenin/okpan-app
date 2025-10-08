@@ -15,7 +15,10 @@
     updateObjectInstitution,
     deleteObject,
   } from "$lib/stores/ObjectsUtils.js";
-  import { updateObjectStatus, updateObjectName } from "$lib/stores/ObjectsUtils.js";
+  import {
+    updateObjectStatus,
+    updateObjectName,
+  } from "$lib/stores/ObjectsUtils.js";
   import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
 
   const { data } = $props();
@@ -39,7 +42,7 @@
   });
 
   // Name field state and change tracking
-  let objectName = data.object.name || "";
+  let objectName = $state(data.object.name || "");
   let nameHasChanges = false;
   function handleNameInput(event) {
     const val = event?.target?.value ?? "";
@@ -47,7 +50,8 @@
   }
   function onNameValueChange(val) {
     objectName = val ?? "";
-    nameHasChanges = (objectName?.trim() || "") !== (data.object.name?.trim() || "");
+    nameHasChanges =
+      (objectName?.trim() || "") !== (data.object.name?.trim() || "");
     componentChanges.set("name", {
       component: "name",
       hasChanges: nameHasChanges,
@@ -75,7 +79,7 @@
   }
 
   // Institution selection (event-driven, no runes)
-  let selectedInstitutionId = data.object.institution_id || null;
+  let selectedInstitutionId = $state(data.object.institution_id || null);
   let institutionHasChanges = false;
   const institutionItems = data.institutions || [];
 
