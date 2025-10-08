@@ -56,26 +56,32 @@
 		currentIndex = (clampedIndex + 1) % len;
 	}
 
-	function getObjectTitle() {
-		const titleFieldId = Object.keys(ontologyFieldMap).find(
-			(id) => ontologyFieldMap[id] === 'object id'
-		);
-		return (
-			object?.objects_ontology_fields_json?.find((f) => f.field_id === titleFieldId)?.value ||
-			'No Title'
-		);
-	}
+    function getPrimaryIdentifier() {
+        const field = object?.objects_ontology_fields_json?.find((f) => f.primary);
+        return field?.value ?? null;
+    }
+
+    function getObjectDisplayName() {
+        const name = (object?.name && String(object.name).trim()) || '';
+        if (name) return name;
+        const primaryId = getPrimaryIdentifier();
+        if (primaryId) return primaryId;
+        // Fallback to field named "object id" if available
+        const titleFieldId = Object.keys(ontologyFieldMap).find(
+            (id) => String(ontologyFieldMap[id] || '').toLowerCase() === 'object id'
+        );
+        const byField = object?.objects_ontology_fields_json?.find((f) => f.field_id === titleFieldId)?.value;
+        return byField || object?.id || 'No Title';
+    }
 
 	// TODO: define a way to get a meaningful field
-	function getObjectType() {
-		const typeFieldId = Object.keys(ontologyFieldMap).find(
-			(id) => ontologyFieldMap[id] === 'designation'
-		);
-		return (
-			object?.objects_ontology_fields_json?.find((f) => f.field_id === typeFieldId)?.value ||
-			'No Type'
-		);
-	}
+    function getObjectType() {
+        const typeFieldId = Object.keys(ontologyFieldMap).find(
+            (id) => String(ontologyFieldMap[id] || '').toLowerCase() === 'designation'
+        );
+        const val = object?.objects_ontology_fields_json?.find((f) => f.field_id === typeFieldId)?.value;
+        return val || 'No Type';
+    }
 
 	function getInstitutionName() {
 		if (object?.institution_id) {
@@ -94,12 +100,12 @@
 				out:fly={{ x: slideDir === 'next' ? -120 : 120, duration: 200 }}
 			>
 				{#if imageUrl}
-					<img
-						src={imageUrl}
-						class="card-img-top object-fit-contain"
-						alt={getObjectTitle()}
-						style="height: 100%; width: 100%; object-fit: cover;"
-					/>
+                    <img
+                        src={imageUrl}
+                        class="card-img-top object-fit-contain"
+                        alt={getObjectDisplayName()}
+                        style="height: 100%; width: 100%; object-fit: cover;"
+                    />
 				{:else}
 					<div
 						class="card-img-top d-flex flex-column align-items-center justify-content-center"
@@ -133,10 +139,10 @@
 	</div>
 	<div class="card-body">
 		<h5 class="card-title mb-3">
-			<a
-				class="text-dark text-decoration-none"
-				href={`/${object.id}?project_id=${object.project_id}`}>{getObjectTitle()}</a
-			>
+            <a
+                class="text-dark text-decoration-none"
+                href={`/${object.id}?project_id=${object.project_id}`}>{getObjectDisplayName()}</a
+            >
 		</h5>
 
 		<p class="card-text mb-2">
