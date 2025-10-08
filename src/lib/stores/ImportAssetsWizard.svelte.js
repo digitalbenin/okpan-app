@@ -79,17 +79,15 @@ export function createImportAssetsWizardContext(params) {
         // set errors(value) { errors = value; },
 
         // Helper methods
-        // addMappingEntry(entry) {
-        //     const existingIndex = mapping.findIndex(e => e.headerField === entry.headerField);
-        //     if (existingIndex !== -1) {
-        //         mapping[existingIndex] = entry;
-        //     } else {
-        //         mapping = [...mapping, entry];
-        //     }
-        // },
-        // removeMappingEntry(entry) {
-        //     mapping = mapping.filter(e => e.headerField !== entry.headerField);
-        // },
+        addMappingEntry(object, assetId) {
+            const existingIndex = mapping.findIndex(e => e.assetId === assetId);
+            mapping[existingIndex].objects.push(object.id);
+
+        },
+        removeMappingEntry(object, assetId) {
+            const existingIndex = mapping.findIndex(e => e.assetId === assetId);
+            mapping[existingIndex].objects = mapping[existingIndex].objects.filter(id => id !== object.id);
+        },
         // setMappingIdentifier(id) {
         //     mapping = mapping.map((entry) => {
         //         if (entry.mappedField !== id) {

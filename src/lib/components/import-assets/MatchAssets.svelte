@@ -24,10 +24,18 @@
         minConfidence: 0.3,
       });
       console.log("Received suggestions", suggestions);
+      wizard.mapping = suggestions.map((s) => {
+        return {
+          assetId: s.asset.id,
+          objects: s.results[0] ? [s.results[0].object.id] : [],
+        };
+      });
+      wizard.nextEnabled = true;
       return suggestions;
     },
     { initialValue: [] }
   );
+  $inspect(wizard);
 </script>
 
 <div class="container-fluid mt-3">
