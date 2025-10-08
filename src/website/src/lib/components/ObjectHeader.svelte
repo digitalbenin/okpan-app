@@ -1,6 +1,6 @@
 <script>
 	import { page } from '$app/stores';
-	const { objId, institution } = $props();
+	const { objId, institution, title } = $props();
 	const proj_id = $page.url.searchParams.get('project_id');
 </script>
 
@@ -13,5 +13,5 @@
 		BACK</a
 	>
 	<p class="mb-0">{institution?.name}</p>
-	<h1 class="mt-0">{objId}</h1>
+	<h1 class="mt-0">{title}</h1>
 </div>
