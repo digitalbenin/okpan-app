@@ -6,6 +6,7 @@
   import InstitutionsWidget from "$lib/components/overview/InstitutionsWidget.svelte";
   import ActionsWidget from "$lib/components/overview/ActionsWidget.svelte";
   import SearchWidget from "$lib/components/overview/SearchWidget.svelte";
+  import ProjectWelcome from "$lib/components/projects/ProjectWelcome.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   const { t } = getTranslationStore();
@@ -36,33 +37,37 @@
   ]);
 </script>
 
-<div class="wrapper container-fluid bg-light pb-3">
-  <div class="row">
-    <div class="col-7">
-      <div class="my-3">
-        <SearchWidget projectId={data.project.id} />
+{#if (data.objects?.totalCount ?? 0) === 0}
+  <ProjectWelcome />
+{:else}
+  <div class="wrapper container-fluid bg-light pb-3">
+    <div class="row">
+      <div class="col-7">
+        <div class="my-3">
+          <SearchWidget projectId={data.project.id} />
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-9">
+        <ObjectsWidget
+          objectsEdited={data.objects.items}
+          objectsInProgress={data.objectsInProgress.items}
+        />
+      </div>
+      <div class="col-3"><StatsWidget {stats} /></div>
+    </div>
+    <div class="row">
+      <div class="col-5">
+        <InstitutionsWidget institutions={data.institutions.result} />
+      </div>
+      <div class="col-7">
+        <ActionsWidget actions={data.actions.items} />
       </div>
     </div>
   </div>
-
-  <div class="row mb-3">
-    <div class="col-9">
-      <ObjectsWidget
-        objectsEdited={data.objects.items}
-        objectsInProgress={data.objectsInProgress.items}
-      />
-    </div>
-    <div class="col-3"><StatsWidget {stats} /></div>
-  </div>
-  <div class="row">
-    <div class="col-5">
-      <InstitutionsWidget institutions={data.institutions.result} />
-    </div>
-    <div class="col-7">
-      <ActionsWidget actions={data.actions.items} />
-    </div>
-  </div>
-</div>
+{/if}
 
 <style>
   .wrapper {
