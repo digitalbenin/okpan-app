@@ -9,6 +9,7 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
         fields: () => ({
             type: { type: GraphQLString }, // 'institution', 'asset', or 'object'
             id: { type: GraphQLString },
+            name: { type: GraphQLString },
             title: { type: GraphQLString }, // The matched text
             subtitle: { type: GraphQLString }, // Additional context
             project_id: { type: GraphQLString },
@@ -104,6 +105,7 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
                 const institutionsQuery = db.select({
                     type: sql`'institution'`.as('type'),
                     id: dbSchema.institutions.id,
+                    name: institutionNameTexts.content,
                     title: institutionNameTexts.content,
                     subtitle: sql`'Institution'`.as('subtitle'),
                     project_id: dbSchema.institutions.project_id,
@@ -130,6 +132,7 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
                 const assetsQuery = db.select({
                     type: sql`'asset'`.as('type'),
                     id: dbSchema.assets.id,
+                    name: dbSchema.assets.filename,
                     title: dbSchema.assets.filename,
                     subtitle: dbSchema.assets.type,
                     project_id: dbSchema.assets.project_id,
@@ -147,12 +150,36 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
                 queries.push(assetsQuery.execute());
             }
 
-            // 3. Search objects by primary ontology fields (if requested)
+            // 3. Search objects by name and by primary ontology fields (if requested)
             if (typesToSearch.includes('objects')) {
                 const ontologyFieldTexts = aliasedTable(dbSchema.texts, 'ontology_field_texts');
-                const objectsQuery = db.select({
+
+                // A) Search by object name only (does not require a primary ontology field)
+                const objectsByNameQuery = db.select({
                     type: sql`'object'`.as('type'),
                     id: dbSchema.objects.id,
+                    name: dbSchema.objects.name,
+                    title: dbSchema.objects.name,
+                    subtitle: sql`'Object'`.as('subtitle'),
+                    project_id: dbSchema.objects.project_id,
+                    institution_id: dbSchema.objects.institution_id
+                })
+                    .from(dbSchema.objects)
+                    .where(
+                        sql.join([
+                            sql`lower(${dbSchema.objects.name}) LIKE ${searchPattern}`,
+                            project_id ? eq(dbSchema.objects.project_id, project_id) : sql`1=1`
+                        ], sql` AND `)
+                    )
+                    .limit(limitPerType);
+
+                queries.push(objectsByNameQuery.execute());
+
+                // B) Search by primary ontology field value
+                const objectsByPrimaryIdentifierQuery = db.select({
+                    type: sql`'object'`.as('type'),
+                    id: dbSchema.objects.id,
+                    name: dbSchema.objects.name,
                     title: dbSchema.objects_ontology_fields.value,
                     subtitle: ontologyFieldTexts.content, // The ontology field name
                     project_id: dbSchema.objects.project_id,
@@ -171,7 +198,7 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
                     )
                     .limit(limitPerType);
 
-                queries.push(objectsQuery.execute());
+                queries.push(objectsByPrimaryIdentifierQuery.execute());
             }
 
             try {
@@ -183,8 +210,19 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
                     results.push(...result);
                 });
 
+                // Deduplicate results by type+id
+                const dedupedResults = [];
+                const seen = new Set();
+                for (const r of results) {
+                    const key = `${r.type}:${r.id}`;
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        dedupedResults.push(r);
+                    }
+                }
+
                 // Sort by relevance (exact matches first, then by length)
-                results.sort((a, b) => {
+                dedupedResults.sort((a, b) => {
                     const aExact = a.title?.toLowerCase() === searchTerm.toLowerCase();
                     const bExact = b.title?.toLowerCase() === searchTerm.toLowerCase();
 
@@ -197,7 +235,7 @@ export const createEntitySearchQuery = (db, drizzleResult) => {
 
                 // Limit final results
                 return {
-                    results: results.slice(0, limit)
+                    results: dedupedResults.slice(0, limit)
                 };
 
             } catch (error) {

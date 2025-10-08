@@ -12,7 +12,6 @@
     } from "$lib/stores/formValidationUtils.js";
     import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
     import { unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
-    import { getObjectIdentifier } from "$lib/utils/objects.js";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { z } from "zod";
     import { back } from "$lib/utils/navigation.js";
@@ -70,6 +69,19 @@
     const visibleLinkedObjects = $derived(
         linkedObjects?.filter(objAsset => !pendingUnlinks.includes(objAsset.object_id)) || []
     );
+
+    // Prefer object's name for display; fallback to primary identifier or numeric id
+    function getPrimaryIdentifier(obj) {
+        const field = obj?.objectsOntologyFields?.find((f) => f.primary);
+        return field?.value ?? null;
+    }
+
+    function getObjectDisplayName(obj) {
+        const name =
+            (obj?.name?.content && String(obj.name.content).trim()) ||
+            (typeof obj?.name === "string" && String(obj.name).trim());
+        return name || getPrimaryIdentifier(obj) || obj?.id;
+    }
 
     // Register custom validator for properties field to handle metadata
     registerCustomValidator("assets", "properties", {
@@ -398,14 +410,14 @@
                                     src={objectAsset.object?.objectsAssets?.[0]?.asset?.path 
                                         ? `media://${objectAsset.object.objectsAssets[0].asset.path}` 
                                         : null}
-                                    alt={getObjectIdentifier(objectAsset.object)}
+                                    alt={getObjectDisplayName(objectAsset.object)}
                                     class="rounded"
                                     style="width: 68px; height: 68px; object-fit: cover;"
                                     format="sm"
                                 />
 
                                 <div class="d-flex flex-column">
-                                    <span class="fw-medium mb-2">{getObjectIdentifier(objectAsset.object)}</span>
+                                    <span class="fw-medium mb-2">{getObjectDisplayName(objectAsset.object)}</span>
                                     <button
                                         class="btn btn-sm px-0 btn-link text-danger text-decoration-none"
                                         onclick={() => handleUnlinkObject(objectAsset.object_id)}

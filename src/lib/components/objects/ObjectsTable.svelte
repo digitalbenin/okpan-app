@@ -46,7 +46,10 @@
         label: t("common.object-id", { fallback: "Object ID" }),
         sortable: false,
         accessor: (value) => {
-          const text = getObjectIdentifier(value);
+          const text =
+            (value?.name?.content && String(value.name.content).trim()) ||
+            (typeof value?.name === "string" && String(value.name).trim()) ||
+            getObjectIdentifier(value);
           const url = `/projects/${value.project_id}/institutions/${value.institution_id}/objects/${value.id}`;
           return {
             url,

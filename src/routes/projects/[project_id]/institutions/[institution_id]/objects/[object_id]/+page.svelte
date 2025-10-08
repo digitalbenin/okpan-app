@@ -5,6 +5,7 @@
   import ObjectOntologyFields from "$lib/components/objects/ObjectOntologyFields.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { back } from "$lib/utils/navigation.js";
   import { page } from "$app/stores";
@@ -14,7 +15,7 @@
     updateObjectInstitution,
     deleteObject,
   } from "$lib/stores/ObjectsUtils.js";
-  import { updateObjectStatus } from "$lib/stores/ObjectsUtils.js";
+  import { updateObjectStatus, updateObjectName } from "$lib/stores/ObjectsUtils.js";
   import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
 
   const { data } = $props();
@@ -36,6 +37,42 @@
       "Identifier not set"
     );
   });
+
+  // Name field state and change tracking
+  let objectName = data.object.name || "";
+  let nameHasChanges = false;
+  function handleNameInput(event) {
+    const val = event?.target?.value ?? "";
+    onNameValueChange(val);
+  }
+  function onNameValueChange(val) {
+    objectName = val ?? "";
+    nameHasChanges = (objectName?.trim() || "") !== (data.object.name?.trim() || "");
+    componentChanges.set("name", {
+      component: "name",
+      hasChanges: nameHasChanges,
+      saveFunction: saveNameChange,
+    });
+    componentChanges = new Map(componentChanges);
+  }
+
+  async function saveNameChange() {
+    if (!nameHasChanges) return;
+    const res = await updateObjectName(data.object.id, objectName ?? "");
+    if (res?.error) {
+      console.error("Failed to update object name:", res.error);
+      throw res.error;
+    }
+    // Reflect saved value locally and reset change state
+    data.object.name = objectName ?? "";
+    nameHasChanges = false;
+    componentChanges.set("name", {
+      component: "name",
+      hasChanges: false,
+      saveFunction: saveNameChange,
+    });
+    componentChanges = new Map(componentChanges);
+  }
 
   // Institution selection (event-driven, no runes)
   let selectedInstitutionId = data.object.institution_id || null;
@@ -193,6 +230,12 @@
       showStatusMenu = false;
     }
   }
+
+  // Display title: prefer name, fallback to primary ID
+  const displayTitle = $derived.by(() => {
+    const n = data.object.name?.trim();
+    return n && n.length ? n : objectId;
+  });
 </script>
 
 <div class="d-flex flex-column min-vh-100">
@@ -211,7 +254,7 @@
             <div>
               <div class="text-black-50">{data.institution.name.content}</div>
               <h1>
-                {objectId}
+                {displayTitle}
                 <StatusBadgeDropdown
                   status={data.object.status}
                   disabled={statusUpdating}
@@ -232,6 +275,18 @@
     <div class="container-fluid">
       <div class="row">
         <div class="col-8">
+          <!-- Name: first field before institution -->
+          <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
+            <h3 class="">
+              {t("common.name", { fallback: "Name" })}
+            </h3>
+            <BaseInput
+              placeholder={t("common.name", { fallback: "Name" })}
+              size="sm"
+              bind:value={objectName}
+              onInput={handleNameInput}
+            />
+          </div>
           <!-- Institution selector: after primary id, before research data -->
           <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
             <h3 class="">

@@ -36,6 +36,7 @@ export const objectsOperations = {
   ) {
     items {
       id
+      name
       status
       created_at
       updated_at
@@ -109,6 +110,7 @@ export const objectsOperations = {
     query: `query GetObject($objectId: String!) {
   result: objects(where: { id: { eq: $objectId } }) {
     id
+    name
     status
     created_at
     updated_at
@@ -206,19 +208,22 @@ export const objectsOperations = {
     variables: {
       status: "Status of the object",
       institutionId: "ID of the institution this object belongs to",
-      projectId: "ID of the project this object belongs to"
+      projectId: "ID of the project this object belongs to",
+      name: "Name of the object (optional)"
     },
-    query: `mutation CreateObject($status: String, $institutionId: String!, $projectId: String!) {
+    query: `mutation CreateObject($status: String, $institutionId: String!, $projectId: String!, $name: String) {
   insertIntoObjects(
     values: [
       {
         status: $status
         institution_id: $institutionId
         project_id: $projectId
+        name: $name
       }
     ]
   ) {
     id
+    name
     status
     created_at
     updated_at
@@ -237,23 +242,27 @@ export const objectsOperations = {
       objectId: "ID of the object to update",
       status: "New status of the object (optional)",
       institutionId: "New institution ID for the object (optional)",
-      projectId: "New project ID for the object (optional)"
+      projectId: "New project ID for the object (optional)",
+      name: "New name of the object (optional)"
     },
     query: `mutation UpdateObject(
   $objectId: String!
   $status: String
   $institutionId: String
   $projectId: String
+  $name: String
 ) {
   updateObjects(
     set: {
       status: $status
       institution_id: $institutionId
       project_id: $projectId
+      name: $name
     }
     where: { id: { eq: $objectId } }
   ) {
     id
+    name
     status
     updated_at
     institution_id
@@ -312,6 +321,7 @@ export const objectsOperations = {
         query: `mutation DeleteObjectFinal($objectId: String!) {
   deleteFromObjects(where: { id: { eq: $objectId } }) {
     id
+    name
     status
     institution_id
     project_id
@@ -614,6 +624,7 @@ export const objectsOperations = {
     }
     objects {
       id
+      name
       status
       institution_id
       project_id
@@ -654,6 +665,7 @@ export const objectsOperations = {
     }
     objects {
       id
+      name
       status
       institution_id
       project_id
@@ -662,4 +674,4 @@ export const objectsOperations = {
   }
 }`
   }
-}; 
+};

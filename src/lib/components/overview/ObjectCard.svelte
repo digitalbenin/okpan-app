@@ -4,7 +4,12 @@
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   const { object } = $props();
   const institution = $derived(object.institution?.name.content);
-  const id = $derived(getObjectIdentifier(object));
+  const title = $derived.by(
+    () =>
+      (object?.name?.content && String(object.name.content).trim()) ||
+      (typeof object?.name === "string" && String(object.name).trim()) ||
+      getObjectIdentifier(object)
+  );
 
   const image = $derived(object.objectsAssets[0]?.asset);
 </script>
@@ -17,7 +22,7 @@
       <img
         class="object-fit-contain w-100 h-100"
         src={addImageProtocolPrefix(image.formats.sm)}
-        alt={id || "Object Image"}
+        alt={title || "Object Image"}
       />
     {:else}
       <div class="d-flex align-items-center justify-content-center h-100 w-100">
@@ -26,7 +31,7 @@
     {/if}
   </div>
   <div class="info d-flex flex-column">
-    <div class="text-truncate">{id}</div>
+    <div class="text-truncate">{title}</div>
     <p class="fs-7 text-black-50 mb-0">
       {institution}
     </p>
@@ -36,7 +41,7 @@
     <a
       href="/projects/{object.project_id}/institutions/{object.institution_id}/objects/{object.id}"
       class="stretched-link"
-      aria-label={id}
+      aria-label={title}
     ></a>
   </div>
 </div>

@@ -139,6 +139,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             // Build base query - use explicit column references to avoid ambiguity
             const baseSelect = {
                 id: dbSchema.objects.id,
+                name: dbSchema.objects.name,
                 created_at: dbSchema.objects.created_at,
                 updated_at: dbSchema.objects.updated_at,
                 status: dbSchema.objects.status,
@@ -600,6 +601,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
 
                 return {
                     id: item.id,
+                    name: item.name,
                     created_at: item.created_at,
                     updated_at: item.updated_at,
                     status: item.status,

@@ -10,7 +10,12 @@
   const { object, displayFields, displayInstitution = false } = $props();
   const { t, translationState } = getTranslationStore();
 
-  const id = $derived(getObjectIdentifier(object));
+  const title = $derived.by(
+    () =>
+      (object?.name?.content && String(object.name.content).trim()) ||
+      (typeof object?.name === "string" && String(object.name).trim()) ||
+      getObjectIdentifier(object)
+  );
 
   const attachSwiper = (element) => {
     const swiperInstance = new Swiper(element, {
@@ -115,7 +120,7 @@
   <div class="fs-5 mb-2">
     <a
       href="/projects/{object.project_id}/institutions/{object.institution_id}/objects/{object.id}"
-      class="link-dark">{id}</a
+      class="link-dark">{title}</a
     >
   </div>
   {#if displayInstitution}
