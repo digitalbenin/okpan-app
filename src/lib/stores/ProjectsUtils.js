@@ -1,6 +1,5 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
-import { API_SECTIONS } from "$lib/queries/index.js";
 import { invalidate } from "$app/navigation";
 // Get validation store
 const { getSchema, validate } = getValidationStore();
@@ -78,50 +77,35 @@ export const getProjectLanguages = async (projectId) => {
 
 export const createProject = async (project) => {
     // Expect: { title: string, description: string, defaultLanguage: { code, name } }
-    if (!project?.title || !project?.description || !project?.defaultLanguage) {
-        throw new Error("Missing required project data: title, description, defaultLanguage");
+    if (!project?.title || !project?.defaultLanguage?.code) {
+        throw new Error("Missing required project data: title, defaultLanguage.code");
     }
 
     const title = project.title;
-    const description = project.description;
+    const description = project.description ?? "";
     const languageCode = project.defaultLanguage.code;
     const languageName = project.defaultLanguage.name || project.defaultLanguage.code;
 
-    // Get mutations from the API_SECTIONS
-    const mutations = API_SECTIONS.projects.operations.create.mutations;
+    // Use the registered single-step mutation in queries/projects.js
+    const response = await executeQuery('projects', 'create', { title, description, languageCode, languageName });
 
-    // Step 1: Create project
-    const projectResult = await performCustomMutation(mutations[0], {});
-    const projectId = projectResult.insertIntoProject[0].id;
+    // Preventive logging to aid debugging
+    console.log('[ProjectsUtils] createProject response:', response);
 
-    // Step 2: Create default language for the project
-    const languageResult = await performCustomMutation(mutations[1], {
-        projectId,
-        languageCode,
-        languageName,
-    });
-    const languageId = languageResult.insertIntoLanguages[0].id;
+    const result = response?.result;
+    const projectId = result?.project?.id || null;
+    const titleId = result?.project?.title_id || result?.titleText?.id || null;
+    const descriptionId = result?.project?.description_id || result?.descriptionText?.id || null;
 
-    // Step 3: Create title text in default language
-    const titleResult = await performCustomMutation(mutations[2], {
-        title,
-        languageId,
-    });
-    const titleId = titleResult.insertIntoTexts[0].id;
-
-    // Step 4: Create description text in default language
-    const descriptionResult = await performCustomMutation(mutations[3], {
-        description,
-        languageId,
-    });
-    const descriptionId = descriptionResult.insertIntoTexts[0].id;
-
-    // Step 5: Link texts to project
-    await performCustomMutation(mutations[4], {
-        projectId,
-        titleId,
-        descriptionId,
-    });
+    // Trigger background embeddings computation for any new ontology fields
+    try {
+        if (typeof window !== 'undefined' && window.api?.computeAllMissingEmbeddings) {
+            await window.api.computeAllMissingEmbeddings();
+            console.log('[ProjectsUtils] Embeddings backfill triggered');
+        }
+    } catch (e) {
+        console.warn('[ProjectsUtils] Embeddings backfill failed', e);
+    }
 
     invalidate("app:projects");
     return {

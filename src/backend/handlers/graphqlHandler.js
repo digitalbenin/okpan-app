@@ -19,7 +19,6 @@ import {
     getPrimaryEntityFromActions,
     getParentActionType
 } from '../services/actionService.js';
-import { seedDefaultOntologyFields } from '../services/ontologyFieldsSeeder.js';
 
 // Custom action processor for objectImport mutation
 const processObjectImportActions = async (importResult, variables, context, db) => {
@@ -746,74 +745,6 @@ const processMutationActions = async (mutationFields, result, variables, context
     }
 };
 
-// Custom action processor for project creation - seed ontology fields
-const processProjectCreationActions = async (projectResult, variables, context, db) => {
-    try {
-        // Extract project ID from the creation result
-        const projectId = projectResult.insertIntoProject?.[0]?.id;
-        if (!projectId) {
-            console.warn('Project creation result missing project ID');
-            return;
-        }
-
-        // Find the default language for this project
-        // The language should have been created as part of the project creation mutations
-        const defaultLanguage = await db.query.languages.findFirst({
-            where: (languages, { eq, and }) => and(
-                eq(languages.project_id, projectId),
-                eq(languages.is_default, 1)
-            )
-        });
-
-        if (!defaultLanguage) {
-            console.warn(`No default language found for project ${projectId}`);
-            return;
-        }
-
-        // Avoid duplicate seeding if ontology fields already exist
-        const existingField = await db.query.ontology_fields.findFirst({
-            where: (of, { eq }) => eq(of.project_id, projectId)
-        });
-        if (existingField) {
-            console.log(`Ontology fields already exist for project ${projectId}; skipping seeding.`);
-            return;
-        }
-
-        // Seed default ontology fields
-        await seedDefaultOntologyFields(projectId, defaultLanguage.id);
-        console.log(`Ontology fields seeded for new project ${projectId}`);
-
-    } catch (error) {
-        console.error('Error processing project creation:', error);
-    }
-};
-
-// Seeding hook triggered after default language creation
-const processDefaultLanguageCreationActions = async (resultData, variables, context, db) => {
-    try {
-        const createdLanguages = resultData.insertIntoLanguages || [];
-        for (const lang of createdLanguages) {
-            // Only seed when a default language is created
-            if (lang.is_default === 1 && lang.project_id && lang.id) {
-                const projectId = lang.project_id;
-
-                // Avoid duplicate seeding
-                const existingField = await db.query.ontology_fields.findFirst({
-                    where: (of, { eq }) => eq(of.project_id, projectId)
-                });
-                if (existingField) {
-                    console.log(`Ontology fields already exist for project ${projectId}; skipping seeding.`);
-                    continue;
-                }
-
-                await seedDefaultOntologyFields(projectId, lang.id);
-                console.log(`Ontology fields seeded for project ${projectId} after default language creation`);
-            }
-        }
-    } catch (error) {
-        console.error('Error processing default language creation:', error);
-    }
-};
 
 // Track active workflows to create parent actions
 const activeWorkflows = new Map();
@@ -865,13 +796,7 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
                 await processObjectImportUsingTemplateActions(result.data.objectImportUsingTemplate, variables, context, db);
             }
 
-            // Handle ontology field seeding
-            if (mutationFields.includes('insertIntoLanguages') && result.data.insertIntoLanguages) {
-                await processDefaultLanguageCreationActions(result.data, variables, context, db);
-            } else if (mutationFields.includes('insertIntoProject') && result.data.insertIntoProject) {
-                // Fallback for flows that don't include language creation in the same mutation
-                await processProjectCreationActions(result.data, variables, context, db);
-            }
+
         }
 
         if (result.errors) {

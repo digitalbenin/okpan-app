@@ -3,115 +3,32 @@ export const projectsOperations = {
   create: {
     type: "mutation",
     name: "Create Project",
-    description: "Creates a new project with title and description",
+    description: "Creates a new project, sets default language, creates texts, and seeds ontology fields",
     variables: {
       title: "Title of the project",
       description: "Description of the project",
       languageCode: "Language code for the default language",
       languageName: "Language name for the default language"
     },
-    mutations: [
-      {
-        name: "createProject",
-        query: `mutation CreateProjectEntry {
-  insertIntoProject(
-    values: [
-      {
-        
-      }
-    ]
+    query: `mutation CreateProjectWithDefaults(
+  $title: String!
+  $description: String
+  $languageCode: String!
+  $languageName: String
+) {
+  result:createProjectWithDefaults(
+    title: $title,
+    description: $description,
+    languageCode: $languageCode,
+    languageName: $languageName
   ) {
-    id
-    title_id
-    description_id
+    project { id title_id description_id }
+    defaultLanguage { id code name is_default }
+    titleText { id }
+    descriptionText { id }
+    ontologyFieldsCreated
   }
 }`
-      },
-      {
-        name: "createLanguage",
-        query: `mutation CreateProjectLanguage($projectId: String!, $languageCode: String!, $languageName: String!) {
-  insertIntoLanguages(
-    values: [
-      {
-        project_id: $projectId
-        code: $languageCode
-        name: $languageName
-        is_default: 1
-      }
-    ]
-  ) {
-    id
-    project_id
-    code
-    name
-    is_default
-  }
-}`,
-        useVariables: ["languageCode", "languageName"],
-        mapVariables: {
-          projectId: { from: "createProject", path: "insertIntoProject.0.id" }
-        }
-      },
-      {
-        name: "createTitle",
-        query: `mutation CreateProjectTitle($title: String!, $languageId: String!) {
-  insertIntoTexts(
-    values: [
-      {
-        content: $title
-        context: "project.title"
-        original_language_id: $languageId
-      }
-    ]
-  ) {
-    id
-  }
-}`,
-        useVariables: ["title"],
-        mapVariables: {
-          languageId: { from: "createLanguage", path: "insertIntoLanguages.0.id" }
-        }
-      },
-      {
-        name: "createDescription",
-        query: `mutation CreateProjectDescription($description: String!, $languageId: String!) {
-  insertIntoTexts(
-    values: [
-      {
-        content: $description
-        context: "project.description"
-        original_language_id: $languageId
-      }
-    ]
-  ) {
-    id
-  }
-}`,
-        useVariables: ["description"],
-        mapVariables: {
-          languageId: { from: "createLanguage", path: "insertIntoLanguages.0.id" }
-        }
-      },
-      {
-        name: "linkProjectTexts",
-        query: `mutation LinkProjectTexts($projectId: String!, $titleId: String!, $descriptionId: String!) {
-  updateProject(
-    set: { title_id: $titleId, description_id: $descriptionId }
-    where: { id: { eq: $projectId } }
-  ) {
-    id
-    title_id
-    description_id
-  }
-}`,
-        mapVariables: {
-          projectId: { from: "createProject", path: "insertIntoProject.0.id" },
-          titleId: { from: "createTitle", path: "insertIntoTexts.0.id" },
-          descriptionId: { from: "createDescription", path: "insertIntoTexts.0.id" }
-        }
-      }
-    ],
-    query: null
   },
 
   // UPDATE

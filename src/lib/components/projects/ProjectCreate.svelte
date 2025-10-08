@@ -1,10 +1,11 @@
 <script>
   import { onMount } from "svelte";
-  import { executeQuery } from "$lib/stores/GraphqlUtils.js"; // Added GraphqlUtils
+  import { createProject } from "$lib/stores/ProjectsUtils.js";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte"; // Corrected path
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte"; // Corrected path
   import { addToast } from "$lib/components/base/BaseToast.svelte";
+  import { goto } from "$app/navigation";
 
   // let { createProject, projectState } = getProjectStore(); // Removed store state
   let selectedLanguage = $state("");
@@ -80,32 +81,34 @@
     try {
       isCreating = true;
 
-      // Prepare minimal payload for simplified project creation
-      const defaultLangObj = selectedLanguageObject;
+      // Prepare payload for ProjectsUtils.createProject
       const formattedProject = {
         title: projectData?.title?.content || "",
         description: projectData?.description?.content || "",
-        languageCode: defaultLangCode,
-        languageName: defaultLangObj?.name || defaultLangCode,
+        defaultLanguage: {
+          code: defaultLangCode,
+          name: selectedLanguageObject?.name || defaultLangCode,
+        },
       };
 
       console.log("Creating project with payload:", formattedProject);
 
-      // Use executeQuery for creation
-      const result = await executeQuery("projects", "create", formattedProject);
+      // Use store method for creation
+      const result = await createProject(formattedProject);
 
       console.log("Project creation result:", result);
 
-      // Try to extract newly created project ID
-      const projectId =
-        result?.insertIntoProject?.[0]?.id ??
-        result?.updateProject?.[0]?.id ??
-        result?.projectId ??
-        null;
+      // Extract newly created project ID from store result
+      const projectId = result?.id ?? null;
 
       // Callback to parent (runes style)
       if (projectId && typeof onCreated === "function") {
         onCreated({ projectId });
+      }
+
+      // Redirect to project homepage
+      if (projectId) {
+        goto(`/projects/${projectId}`);
       }
 
       // Reset form after successful creation

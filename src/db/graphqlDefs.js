@@ -18,7 +18,8 @@ import {
     createObjectSearchQuery,
     createObjectImportMutation,
     createObjectImportUsingTemplateMutation,
-    createResearchFieldObjectsCountQuery
+    createResearchFieldObjectsCountQuery,
+    createProjectCreateMutation
 } from './queries';
 
 export function createGraphQLSchema(db) {
@@ -100,6 +101,8 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Mutation._fields.bulkDeleteInstitutions = createInstitutionsBulkDeleteMutation(db, drizzleResult);
     drizzleResult.schema._typeMap.Mutation._fields.objectImport = createObjectImportMutation(db, drizzleResult);
     drizzleResult.schema._typeMap.Mutation._fields.objectImportUsingTemplate = createObjectImportUsingTemplateMutation(db, drizzleResult);
+    // New consolidated project creation mutation
+    drizzleResult.schema._typeMap.Mutation._fields.createProjectWithDefaults = createProjectCreateMutation(db, drizzleResult);
 
     return { schema: drizzleResult.schema, resolvers: drizzleResult.resolvers };
 };
