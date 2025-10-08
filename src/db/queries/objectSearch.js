@@ -1,7 +1,6 @@
 import { sql, eq, aliasedTable, countDistinct, inArray, and, or } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLInt, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema';
-import { addCountField, GraphQLJSON } from './common';
 
 export const createObjectSearchQuery = (db, drizzleResult) => {
     // Define FacetItem type for facets
@@ -60,14 +59,9 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 description: 'Project ID to search within'
             },
             {
-                name: 'ontologyQuery',
-                type: drizzleResult.schema._typeMap.String,
-                description: 'Text query to search in ontology fields'
-            },
-            {
-                name: 'ontologyFieldIds',
-                type: new GraphQLList(drizzleResult.schema._typeMap.String),
-                description: 'List of ontology field IDs to search in (if empty, searches all)'
+                name: 'ontologyFieldQueries',
+                type: drizzleResult.schema._typeMap.JSON,
+                description: 'JSON mapping or array of {fieldId, query}'
             },
             {
                 name: 'institutionIds',
@@ -128,6 +122,32 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                     return parsed;
                 }) : [];
 
+            // Parse ontology field queries and clean up double-quoted strings
+            // Supports either an array of { fieldId, query } or a JSON mapping { [fieldId]: query }
+            let ontologyFieldQueries = [];
+            if (args.ontologyFieldQueries) {
+                let raw = args.ontologyFieldQueries;
+                // If provided as a JSON string, parse first
+                if (typeof raw === 'string') {
+                    try { raw = JSON.parse(raw); } catch (_) { /* ignore parse errors */ }
+                }
+                const list = Array.isArray(raw)
+                    ? raw
+                    : (raw && typeof raw === 'object')
+                        ? Object.entries(raw).map(([fieldId, query]) => ({ fieldId, query }))
+                        : [];
+                ontologyFieldQueries = list.map(item => {
+                    const parsed = typeof item === 'string' ? JSON.parse(item) : item;
+                    if (parsed.fieldId && typeof parsed.fieldId === 'string') {
+                        parsed.fieldId = parsed.fieldId.replace(/^"(.*)"$/, '$1');
+                    }
+                    if (parsed.query && typeof parsed.query === 'string') {
+                        parsed.query = parsed.query.replace(/^"(.*)"$/, '$1');
+                    }
+                    return parsed;
+                });
+            }
+
             // Create aliases for tables (only needed for facets)
             const institutionNameTexts = aliasedTable(dbSchema.texts, 'institution_name_texts_obj_search');
 
@@ -166,25 +186,23 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 statusFilterApplied = true;
             }
 
-            // Ontology field search - we'll handle this with EXISTS clauses
-            if (args.ontologyQuery && args.ontologyQuery.trim()) {
-                const ontologyQuery = `%${args.ontologyQuery.trim().toLowerCase()}%`;
+            // Removed legacy global ontologyQuery/ontologyFieldIds logic
 
-                if (args.ontologyFieldIds && args.ontologyFieldIds.length > 0) {
-                    // Search in specific ontology fields
-                    searchConditions.push(sql`EXISTS (
-                        SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
-                        WHERE oof.object_id = objects.id
-                        AND ${inArray(sql`oof.field_id`, args.ontologyFieldIds)}
-                        AND LOWER(oof.value) LIKE ${ontologyQuery}
-                    )`);
-                } else {
-                    // Search in all ontology fields
-                    searchConditions.push(sql`EXISTS (
-                        SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
-                        WHERE oof.object_id = objects.id
-                        AND LOWER(oof.value) LIKE ${ontologyQuery}
-                    )`);
+            // Per-field ontology queries: require each (fieldId, query) pair to match
+            if (ontologyFieldQueries.length > 0) {
+                const perFieldConds = ontologyFieldQueries
+                    .filter(ofq => ofq && ofq.fieldId && ofq.query && ofq.query.trim())
+                    .map(ofq => {
+                        const qLike = `%${ofq.query.trim().toLowerCase()}%`;
+                        return sql`EXISTS (
+                            SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
+                            WHERE oof.object_id = objects.id
+                            AND oof.field_id = ${ofq.fieldId}
+                            AND LOWER(oof.value) LIKE ${qLike}
+                        )`;
+                    });
+                if (perFieldConds.length > 0) {
+                    searchConditions.push(and(...perFieldConds));
                 }
             }
 
@@ -276,22 +294,23 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 // Remove the institution filter by reconstructing conditions without it
                 nonInstitutionConditions = [eq(dbSchema.objects.project_id, args.project_id)];
 
-                // Add back ontology conditions
-                if (args.ontologyQuery && args.ontologyQuery.trim()) {
-                    const ontologyQuery = `%${args.ontologyQuery.trim().toLowerCase()}%`;
-                    if (args.ontologyFieldIds && args.ontologyFieldIds.length > 0) {
-                        nonInstitutionConditions.push(sql`EXISTS (
-                            SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
-                            WHERE oof.object_id = objects.id
-                            AND ${inArray(sql`oof.field_id`, args.ontologyFieldIds)}
-                            AND LOWER(oof.value) LIKE ${ontologyQuery}
-                        )`);
-                    } else {
-                        nonInstitutionConditions.push(sql`EXISTS (
-                            SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
-                            WHERE oof.object_id = objects.id
-                            AND LOWER(oof.value) LIKE ${ontologyQuery}
-                        )`);
+                // Removed legacy global ontologyQuery/ontologyFieldIds conditions
+
+                // Add back per-field ontology queries
+                if (ontologyFieldQueries.length > 0) {
+                    const perFieldConds = ontologyFieldQueries
+                        .filter(ofq => ofq && ofq.fieldId && ofq.query && ofq.query.trim())
+                        .map(ofq => {
+                            const qLike = `%${ofq.query.trim().toLowerCase()}%`;
+                            return sql`EXISTS (
+                                SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
+                                WHERE oof.object_id = objects.id
+                                AND oof.field_id = ${ofq.fieldId}
+                                AND LOWER(oof.value) LIKE ${qLike}
+                            )`;
+                        });
+                    if (perFieldConds.length > 0) {
+                        nonInstitutionConditions.push(and(...perFieldConds));
                     }
                 }
 
@@ -455,22 +474,21 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                     nonStatusConditions.push(inArray(dbSchema.objects.institution_id, args.institutionIds));
                 }
 
-                // Add back ontology conditions
-                if (args.ontologyQuery && args.ontologyQuery.trim()) {
-                    const ontologyQuery = `%${args.ontologyQuery.trim().toLowerCase()}%`;
-                    if (args.ontologyFieldIds && args.ontologyFieldIds.length > 0) {
-                        nonStatusConditions.push(sql`EXISTS (
-                            SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
-                            WHERE oof.object_id = objects.id
-                            AND ${inArray(sql`oof.field_id`, args.ontologyFieldIds)}
-                            AND LOWER(oof.value) LIKE ${ontologyQuery}
-                        )`);
-                    } else {
-                        nonStatusConditions.push(sql`EXISTS (
-                            SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
-                            WHERE oof.object_id = objects.id
-                            AND LOWER(oof.value) LIKE ${ontologyQuery}
-                        )`);
+                // Add back per-field ontology queries
+                if (ontologyFieldQueries.length > 0) {
+                    const perFieldConds = ontologyFieldQueries
+                        .filter(ofq => ofq && ofq.fieldId && ofq.query && ofq.query.trim())
+                        .map(ofq => {
+                            const qLike = `%${ofq.query.trim().toLowerCase()}%`;
+                            return sql`EXISTS (
+                                SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
+                                WHERE oof.object_id = objects.id
+                                AND oof.field_id = ${ofq.fieldId}
+                                AND LOWER(oof.value) LIKE ${qLike}
+                            )`;
+                        });
+                    if (perFieldConds.length > 0) {
+                        nonStatusConditions.push(and(...perFieldConds));
                     }
                 }
 

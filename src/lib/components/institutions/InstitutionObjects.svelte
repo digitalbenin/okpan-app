@@ -10,10 +10,12 @@
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
+  import ObjectAdvancedFilters from "$lib/components/objects/ObjectAdvancedFilters.svelte";
   import { getContext } from "svelte";
   import {
     updateObjectsStatusBulk,
     updateObjectsInstitutionBulk,
+    searchObjects,
   } from "$lib/stores/ObjectsUtils.js";
 
   let {
@@ -32,6 +34,15 @@
   let showBulkDeleteModal = $state(false);
   let showBulkInstitutionModal = $state(false);
   let bulkStatusValue = $state("");
+  let showAdvancedFilters = $state(false);
+  let advancedFilters = $state({});
+
+  // Client-side search results for institution context
+  let objectsData = $state({
+    items: [],
+    totalCount: 0,
+    facets: { institutions: [], statuses: [], researchFields: [] },
+  });
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -77,6 +88,19 @@
       label: t("common.completed", { fallback: "Completed" }),
     },
   ]);
+
+  // Flatten vocabularies for AdvancedFilters component
+  const vocabularies = $derived.by(() => {
+    const arr = [];
+    (researchFields?.result || researchFields || []).forEach((f) => {
+      if ((f.type || "").toLowerCase() === "vocabulary") {
+        (f.vocabularies || []).forEach((v) => {
+          arr.push({ id: v.id, field_id: f.id, name: v.option?.content || v.option });
+        });
+      }
+    });
+    return arr;
+  });
 
   function clearSelection() {
     selectedObjects = [];
@@ -150,6 +174,98 @@
     const url = `/projects/${institution.project_id}/objects/bulk-edit?ids=${encodeURIComponent(ids)}&returnTo=${encodeURIComponent(returnTo)}`;
     window.location.href = url;
   }
+
+  function handleFiltersClick() {
+    showAdvancedFilters = true;
+  }
+  function closeAdvancedFilters() {
+    showAdvancedFilters = false;
+  }
+  function onFiltersChange() {
+    advancedFilters = { ...advancedFilters };
+    console.debug("Advanced filters changed (institution)", advancedFilters);
+    void loadObjects();
+  }
+
+  async function loadObjects() {
+    try {
+      const opts = {
+        projectId: institution.project_id,
+        institutionIds: [institution.id],
+        page: (params.oPage || 1) - 1,
+        pageSize: params.pageSize || 25,
+        orderBy: params.oOrderBy || "updated_at",
+        direction: params.oDirection || "asc",
+      };
+
+      // Status filter
+      if (params.oStatus && params.oStatus !== "all") {
+        opts.status = params.oStatus;
+      }
+
+      // Research field filters
+      const rfList = researchFields?.result || researchFields || [];
+      const researchFieldFilters = [];
+      rfList.forEach((f) => {
+        const fType = String(f.type || "").toLowerCase();
+        const sel = advancedFilters?.[f.id] || [];
+        if (fType === "vocabulary" && sel.length) {
+          researchFieldFilters.push({ fieldId: f.id, vocabularyIds: sel });
+        } else if (fType !== "vocabulary") {
+          const tf = (advancedFilters?.__textFilters || []).find(
+            (x) => x.kind === "research" && String(x.fieldId) === String(f.id)
+          );
+          if (tf?.query && tf.query.trim()) {
+            researchFieldFilters.push({ fieldId: f.id, query: tf.query });
+          }
+        }
+      });
+      if (researchFieldFilters.length) {
+        opts.researchFieldFilters = researchFieldFilters;
+      }
+
+      // Ontology field queries
+      const ontologyFieldQueries = (advancedFilters?.__textFilters || [])
+        .filter((x) => x.kind === "ontology" && x.query && x.query.trim())
+        .map((x) => ({ fieldId: x.fieldId, query: x.query }));
+
+      // Map top search to a specific ontology field when selected
+      if (params.oSearch && params.oSearch.trim()) {
+        const sf = params.oSearchField;
+        if (sf && sf !== "all") {
+          ontologyFieldQueries.push({ fieldId: sf, query: params.oSearch });
+        }
+      }
+      if (ontologyFieldQueries.length) {
+        opts.ontologyFieldQueries = ontologyFieldQueries;
+      }
+
+      const result = await searchObjects(opts);
+      objectsData = {
+        items: result.items || [],
+        totalCount: result.totalCount || 0,
+        facets: result.facets || { institutions: [], statuses: [], researchFields: [] },
+      };
+    } catch (e) {
+      console.error("Failed to load institution objects via faceted search:", e);
+      objectsData = { items: [], totalCount: 0, facets: { institutions: [], statuses: [], researchFields: [] } };
+    }
+  }
+
+  // Reactive search for institution view
+  $effect(() => {
+    params.oSearch;
+    params.oSearchField;
+    params.oStatus;
+    params.oOrderBy;
+    params.oDirection;
+    params.oPage;
+    params.pageSize;
+    advancedFilters;
+    institution.id;
+    institution.project_id;
+    void loadObjects();
+  });
 </script>
 
 <div class="w-100">
@@ -260,6 +376,10 @@
         <BaseSelect items={viewAsOptions} bind:value={viewAs} size="sm"
         ></BaseSelect>
       </div>
+      <button type="button" class="btn btn-outline-primary btn-sm" onclick={handleFiltersClick}>
+        <i class="bi bi-filter"></i>
+        {t("common.filter", { fallback: "Filter" })}
+      </button>
       <a
         class="btn btn-primary btn-sm"
         href="/projects/{institution.project_id}/objects/add?institution_id={institution.id}"
@@ -274,10 +394,10 @@
       >
     </div>
   </div>
-  {#if objects.items.length > 0}
+  {#if objectsData.items.length > 0}
     {#if viewAs === "grid"}
       <div class="row">
-        {#each objects.items as object (object.id)}
+        {#each objectsData.items as object (object.id)}
           <div class="col-4">
             <ObjectCard {object} {displayFields} />
           </div>
@@ -285,26 +405,26 @@
       </div>
     {:else if viewAs === "table"}
       <ObjectsTable
-        items={objects.items}
+        items={objectsData.items}
         bind:orderBy={params.oOrderBy}
         bind:direction={params.oDirection}
         bind:selectedObjects
         {displayFields}
       ></ObjectsTable>
     {/if}
-  {:else if objects.items.length === 0}
+  {:else if objectsData.items.length === 0}
     <div class="text-center text-black-50 fs-4 fst-italic mt-4">
       {t("common.no-objects-found", { fallback: "No objects found." })}
     </div>
   {/if}
 
-  {#if objects.totalCount > params.pageSize}
+  {#if objectsData.totalCount > params.pageSize}
     <div class="row">
       <div class="col-auto">
         <BasePagination
           bind:page={params.oPage}
           pageSize={params.pageSize}
-          count={objects.totalCount}
+          count={objectsData.totalCount}
           size="sm"
         />
       </div>
@@ -320,8 +440,22 @@
 />
 
 <!-- Bulk Change Institution Modal (Reusable Component) -->
-<BulkChangeInstitutionModal
-  bind:isOpen={showBulkInstitutionModal}
-  projectId={institution.project_id}
-  onConfirm={handleConfirmInstitution}
-/>
+  <BulkChangeInstitutionModal
+    bind:isOpen={showBulkInstitutionModal}
+    projectId={institution.project_id}
+    onConfirm={handleConfirmInstitution}
+  />
+
+  {#if showAdvancedFilters}
+    <ObjectAdvancedFilters
+      researchFields={researchFields?.result || researchFields || []}
+      ontologyFields={ontologyFields?.result || ontologyFields || []}
+      institutions={[institution]}
+      enableInstitutionFilter={false}
+      {vocabularies}
+      bind:advancedFilters
+      facets={objectsData?.facets || {}}
+      onClose={closeAdvancedFilters}
+      onFiltersChange={onFiltersChange}
+    />
+  {/if}
