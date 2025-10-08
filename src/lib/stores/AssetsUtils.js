@@ -77,3 +77,28 @@ export const deleteAssetsBulk = async (assetIds) => {
 
     return { successes, errors };
 };
+
+// Bulk link assets to multiple objects following the same paradigm
+// links format: [{ asset_id: String, object_ids: [String, ...] }, ...]
+export const bulkLinkAssetsToObjects = async (links) => {
+    if (!Array.isArray(links) || links.length === 0) {
+        return { error: "No links provided" };
+    }
+
+    const result = await executeQuery('assets', 'linkObjectsBulk', { links });
+
+    // Invalidate caches to reflect new associations
+    invalidate("app:assets");
+
+    // Normalize response
+    if (result && result.result) {
+        const payload = result.result;
+        return {
+            successes: payload.successes || [],
+            skippedDuplicates: payload.skippedDuplicates || [],
+            errors: payload.errors || []
+        };
+    }
+
+    return { successes: [], skippedDuplicates: [], errors: [], error: result?.error || new Error("Bulk link failed or unexpected response structure") };
+};

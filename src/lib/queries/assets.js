@@ -187,5 +187,22 @@ export const assetsOperations = {
     path
   }
 }`
+  },
+
+  // BULK LINK: associate multiple assets with multiple objects
+  linkObjectsBulk: {
+    type: "mutation",
+    name: "Link Assets To Objects (Bulk)",
+    description: "Bulk associate multiple assets with multiple objects",
+    variables: {
+      links: "Array of { asset_id: String!, object_ids: [String!]! }"
+    },
+    query: `mutation LinkAssetsToObjectsBulk($links: [AssetObjectsLinkInput!]!) {
+  result: linkAssetsToObjectsBulk(links: $links) {
+    successes { asset_id object_id }
+    skippedDuplicates { asset_id object_id }
+    errors { asset_id object_id error }
+  }
+}`
   }
 };
