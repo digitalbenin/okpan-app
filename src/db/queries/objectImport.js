@@ -105,11 +105,24 @@ export const createObjectImportMutation = (db, drizzleResult) => {
                         try {
                             // Parse data row if it's a string
                             const dataRow = typeof rawDataRow === 'string' ? JSON.parse(rawDataRow) : rawDataRow;
+
+                            // Determine the primary identifier value chosen by the user mapping
+                            let primaryValue = null;
+                            for (const m of parsedMapping) {
+                                if (m && m.primary && m.headerField) {
+                                    const v = dataRow[m.headerField];
+                                    if (v !== undefined && v !== null && String(v).trim() !== '') {
+                                        primaryValue = String(v);
+                                        break;
+                                    }
+                                }
+                            }
                             // Create the object
                             const objectData = {
                                 project_id: projectId,
                                 institution_id: datasource.institution_id,
-                                status: 'in progress'
+                                status: 'in progress',
+                                name: primaryValue || null
                             };
 
                             const [objectResult] = await tx.insert(dbSchema.objects)
@@ -277,10 +290,22 @@ export const createObjectImportUsingTemplateMutation = (db, drizzleResult) => {
                         try {
                             const dataRow = typeof rawDataRow === 'string' ? JSON.parse(rawDataRow) : rawDataRow;
 
+                            // Determine the primary identifier value chosen by the user mapping
+                            let primaryValue = null;
+                            for (const m of parsedMapping) {
+                                if (m && m.primary && m.headerField) {
+                                    const v = dataRow[m.headerField];
+                                    if (v !== undefined && v !== null && String(v).trim() !== '') {
+                                        primaryValue = String(v);
+                                        break;
+                                    }
+                                }
+                            }
                             const objectData = {
                                 project_id: projectId,
                                 institution_id: datasource.institution_id,
-                                status: 'in progress'
+                                status: 'in progress',
+                                name: primaryValue || null
                             };
 
                             const [objectResult] = await tx.insert(dbSchema.objects)
