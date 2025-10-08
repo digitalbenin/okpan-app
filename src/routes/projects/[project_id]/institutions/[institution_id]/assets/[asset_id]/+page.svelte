@@ -35,15 +35,17 @@
     const metadata = $derived(() => {
         if (!asset?.properties) return {};
         try {
-            return typeof asset.properties === "string" 
-                ? JSON.parse(asset.properties) 
+            return typeof asset.properties === "string"
+                ? JSON.parse(asset.properties)
                 : asset.properties;
         } catch (e) {
             console.error("Error parsing asset properties:", e);
             return {};
         }
     });
-    const defaultLanguage = $derived(languages?.find(l => l.is_default) || languages?.[0]);
+    const defaultLanguage = $derived(
+        languages?.find((l) => l.is_default) || languages?.[0],
+    );
 
     // Function to get the best image source from formats
     function getImageSrc(currentAsset) {
@@ -51,12 +53,19 @@
         if (currentAsset.type !== "image" || !currentAsset.formats) {
             return currentAsset.path || null;
         }
-        
+
         try {
-            const formats = typeof currentAsset.formats === "string" 
-                ? JSON.parse(currentAsset.formats) 
-                : currentAsset.formats;
-            return formats?.md || formats?.lg || formats?.original || currentAsset.path || null;
+            const formats =
+                typeof currentAsset.formats === "string"
+                    ? JSON.parse(currentAsset.formats)
+                    : currentAsset.formats;
+            return (
+                formats?.md ||
+                formats?.lg ||
+                formats?.original ||
+                currentAsset.path ||
+                null
+            );
         } catch (e) {
             console.error("Error parsing formats:", e);
             return currentAsset.path || null;
@@ -67,7 +76,9 @@
 
     // Derived state for visible linked objects (excluding pending unlinks)
     const visibleLinkedObjects = $derived(
-        linkedObjects?.filter(objAsset => !pendingUnlinks.includes(objAsset.object_id)) || []
+        linkedObjects?.filter(
+            (objAsset) => !pendingUnlinks.includes(objAsset.object_id),
+        ) || [],
     );
 
     // Prefer object's name for display; fallback to primary identifier or numeric id
@@ -85,16 +96,21 @@
 
     // Register custom validator for properties field to handle metadata
     registerCustomValidator("assets", "properties", {
-        validator: z.string().transform(val => {
-            try { return JSON.parse(val); } catch { return {}; }
+        validator: z.string().transform((val) => {
+            try {
+                return JSON.parse(val);
+            } catch {
+                return {};
+            }
         }),
         required: false,
         defaultValue: "{}",
-        transform: data => JSON.stringify({
-            description: data.description || {},
-            copyright: data.copyright || {},
-            author: data.author || {}
-        })
+        transform: (data) =>
+            JSON.stringify({
+                description: data.description || {},
+                copyright: data.copyright || {},
+                author: data.author || {},
+            }),
     });
 
     // Create custom validator schema for metadata fields
@@ -107,7 +123,7 @@
     const validator = {
         schema: metadataSchema,
         requiredFields: new Set([]),
-        validate: data => metadataSchema.safeParse(data)
+        validate: (data) => metadataSchema.safeParse(data),
     };
 
     // Create form with initial data from metadata
@@ -145,18 +161,22 @@
                     const translations = {
                         description: {},
                         copyright: {},
-                        author: {}
+                        author: {},
                     };
 
                     // Set default language content
                     const defaultCode = defaultLanguage?.code;
-                    if (value.description && defaultCode) translations.description[defaultCode] = value.description;
-                    if (value.copyright && defaultCode) translations.copyright[defaultCode] = value.copyright;
-                    if (value.author && defaultCode) translations.author[defaultCode] = value.author;
+                    if (value.description && defaultCode)
+                        translations.description[defaultCode] =
+                            value.description;
+                    if (value.copyright && defaultCode)
+                        translations.copyright[defaultCode] = value.copyright;
+                    if (value.author && defaultCode)
+                        translations.author[defaultCode] = value.author;
 
                     // Collect secondary language translations
-                    for (const lang of languages.filter(l => !l.is_default)) {
-                        const fields = ['description', 'copyright', 'author'];
+                    for (const lang of languages.filter((l) => !l.is_default)) {
+                        const fields = ["description", "copyright", "author"];
                         for (const field of fields) {
                             const key = `translations_${lang.id}_${field}`;
                             if (value[key]?.trim()) {
@@ -171,12 +191,21 @@
                     // Process pending unlinks first
                     for (const objectId of pendingUnlinks) {
                         try {
-                            const unlinkResult = await unlinkAssetFromObject(objectId, asset.id);
+                            const unlinkResult = await unlinkAssetFromObject(
+                                objectId,
+                                asset.id,
+                            );
                             if (unlinkResult.error) {
-                                console.error("Error unlinking object:", unlinkResult.error);
+                                console.error(
+                                    "Error unlinking object:",
+                                    unlinkResult.error,
+                                );
                             }
                         } catch (error) {
-                            console.error("Error during unlink operation:", error);
+                            console.error(
+                                "Error during unlink operation:",
+                                error,
+                            );
                         }
                     }
 
@@ -186,7 +215,9 @@
                     if (result?.result) {
                         console.log("Asset updated successfully");
                         pendingUnlinks = []; // Clear pending unlinks after successful save
-                        goto(`/projects/${project_id}/institutions/${institution_id}`);
+                        goto(
+                            `/projects/${project_id}/institutions/${institution_id}`,
+                        );
                     } else {
                         console.error("Failed to update asset:", result?.error);
                         console.error("Full result object:", result);
@@ -198,7 +229,8 @@
         };
     });
 
-    const handleCancel = () => goto(`/projects/${project_id}/institutions/${institution_id}`);
+    const handleCancel = () =>
+        goto(`/projects/${project_id}/institutions/${institution_id}`);
     const handleSave = () => form.handleSubmit();
 
     // Delete Asset Modal state and handlers
@@ -244,13 +276,17 @@
 
     // --- Link Objects Modal ---
     let showLinkObjectsModal = $state(false);
-    function openLinkObjectsModal() { showLinkObjectsModal = true; }
+    function openLinkObjectsModal() {
+        showLinkObjectsModal = true;
+    }
     function handleObjectsLinked(objects) {
         try {
-            const existing = new Set((linkedObjects || []).map(oa => String(oa.object_id)));
+            const existing = new Set(
+                (linkedObjects || []).map((oa) => String(oa.object_id)),
+            );
             const additions = (objects || [])
-                .filter(o => !existing.has(String(o.id)))
-                .map(o => ({ object_id: o.id, object: o }));
+                .filter((o) => !existing.has(String(o.id)))
+                .map((o) => ({ object_id: o.id, object: o }));
             if (additions.length) {
                 linkedObjects = [...(linkedObjects || []), ...additions];
             }
@@ -299,6 +335,8 @@
         <!-- Header with back button -->
         <div class="d-flex align-items-center mb-4">
             <button
+                type="button"
+                aria-label="Back to institution"
                 class="btn btn-link p-0 me-3 text-muted"
                 onclick={handleCancel}
             >
@@ -352,24 +390,37 @@
                     <div class="col-6">
                         <div class="text-muted small">IMPORT DATE</div>
                         <div>
-                            {new Date(asset.created_at).toLocaleDateString("en-GB", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric"
-                            })}
+                            {new Date(asset.created_at).toLocaleDateString(
+                                "en-GB",
+                                {
+                                    day: "numeric",
+                                    month: "long",
+                                    year: "numeric",
+                                },
+                            )}
                         </div>
                     </div>
                 </div>
 
                 <!-- Media Metadata Form -->
                 <h5 class="mb-3">Media metadata</h5>
-                <form onsubmit={e => { e.preventDefault(); e.stopPropagation(); form.handleSubmit(); }}>
+                <form
+                    onsubmit={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        form.handleSubmit();
+                    }}
+                >
                     <AutoForm
                         {form}
                         {validator}
                         {createFieldValidator}
                         {languages}
-                        translatableFields={["description", "copyright", "author"]}
+                        translatableFields={[
+                            "description",
+                            "copyright",
+                            "author",
+                        ]}
                         uiSchema={{
                             description: {
                                 label: "Description",
@@ -407,20 +458,30 @@
                         >
                             <div class="d-flex flex-row gap-2">
                                 <BaseImage
-                                    src={objectAsset.object?.objectsAssets?.[0]?.asset?.path 
-                                        ? `media://${objectAsset.object.objectsAssets[0].asset.path}` 
+                                    src={objectAsset.object?.objectsAssets?.[0]
+                                        ?.asset?.path
+                                        ? `media://${objectAsset.object.objectsAssets[0].asset.path}`
                                         : null}
-                                    alt={getObjectDisplayName(objectAsset.object)}
+                                    alt={getObjectDisplayName(
+                                        objectAsset.object,
+                                    )}
                                     class="rounded"
                                     style="width: 68px; height: 68px; object-fit: cover;"
                                     format="sm"
                                 />
 
                                 <div class="d-flex flex-column">
-                                    <span class="fw-medium mb-2">{getObjectDisplayName(objectAsset.object)}</span>
+                                    <span class="fw-medium mb-2"
+                                        >{getObjectDisplayName(
+                                            objectAsset.object,
+                                        )}</span
+                                    >
                                     <button
                                         class="btn btn-sm px-0 btn-link text-danger text-decoration-none"
-                                        onclick={() => handleUnlinkObject(objectAsset.object_id)}
+                                        onclick={() =>
+                                            handleUnlinkObject(
+                                                objectAsset.object_id,
+                                            )}
                                     >
                                         <i class="bi bi-dash-circle"></i> Unlink
                                         media
@@ -464,7 +525,10 @@
                 {/if}
 
                 <!-- Link Object Button -->
-                <button class="btn btn-outline-primary w-100" onclick={openLinkObjectsModal}>
+                <button
+                    class="btn btn-outline-primary w-100"
+                    onclick={openLinkObjectsModal}
+                >
                     <i class="bi bi-plus-circle me-2"></i> Link object
                 </button>
             </div>
@@ -498,39 +562,42 @@
 
 <!-- Delete Confirmation Modal -->
 <BaseModal bind:isOpen={showDeleteModal}>
-  {#snippet header()}
-    Confirm Deletion
-  {/snippet}
+    {#snippet header()}
+        Confirm Deletion
+    {/snippet}
 
-  {#snippet body()}
-    <p>Are you sure you want to delete this asset? This action cannot be undone.</p>
-  {/snippet}
+    {#snippet body()}
+        <p>
+            Are you sure you want to delete this asset? This action cannot be
+            undone.
+        </p>
+    {/snippet}
 
-  {#snippet actions()}
-    <BaseButton
-      type="button"
-      class="btn btn-secondary"
-      text="Cancel"
-      onClick={cancelDelete}
-      disabled={isDeleting}
-    />
-    <BaseButton
-      type="button"
-      class="btn btn-danger"
-      text={isDeleting ? "Deleting..." : "Confirm and delete"}
-      onClick={confirmDeleteAsset}
-      disabled={isDeleting}
-    />
-  {/snippet}
+    {#snippet actions()}
+        <BaseButton
+            type="button"
+            class="btn btn-secondary"
+            text="Cancel"
+            onClick={cancelDelete}
+            disabled={isDeleting}
+        />
+        <BaseButton
+            type="button"
+            class="btn btn-danger"
+            text={isDeleting ? "Deleting..." : "Confirm and delete"}
+            onClick={confirmDeleteAsset}
+            disabled={isDeleting}
+        />
+    {/snippet}
 </BaseModal>
 
 <!-- Link Objects Modal Component -->
 <LinkObjectsModal
-  bind:isOpen={showLinkObjectsModal}
-  projectId={project_id}
-  assetId={asset?.id}
-  preselectExisting={true}
-  onLinked={handleObjectsLinked}
+    bind:isOpen={showLinkObjectsModal}
+    projectId={project_id}
+    assetId={asset?.id}
+    preselectExisting={true}
+    onLinked={handleObjectsLinked}
 />
 
 <style>

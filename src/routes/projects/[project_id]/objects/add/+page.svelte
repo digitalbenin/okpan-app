@@ -208,10 +208,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    .badgeWrapper {
-        font-family: var(--bs-body-font-family) !important;
-        vertical-align: text-top;
-    }
-</style>
