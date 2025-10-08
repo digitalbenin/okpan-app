@@ -46,8 +46,8 @@
       <div class="d-flex align-items-center gap-2">
         <div class="text-break fw-bold">{asset.filename}</div>
         <div><i class="bi bi-arrow-right-short fs-4"></i></div>
-        <MatchBadge {mappedObject} />
-        <SetMatch {asset} {mappedObject} suggestions={results} />
+        <MatchBadge bind:mappedObject />
+        <SetMatch {asset} bind:mappedObject suggestions={results} />
       </div>
     </div>
   </div>

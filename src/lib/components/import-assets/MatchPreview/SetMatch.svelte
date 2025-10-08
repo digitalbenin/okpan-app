@@ -1,19 +1,40 @@
 <script>
   import { page } from "$app/state";
+  import { getObjects } from "$lib/stores/ObjectsUtils.js";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseRadioGroup from "$lib/components/base/BaseRadioGroup.svelte";
+  import BaseInput from "$lib/components/base/BaseInput.svelte";
+  import ChipObject from "./ChipObject.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { resource } from "runed";
 
   let {
     asset,
     suggestions = [],
-    mappedObject = $bindable(),
+    mappedObject = $bindable(null),
     disabled = false,
   } = $props();
   const { t } = getTranslationStore();
 
   let open = $state(false);
+  let search = $state();
+
+  const searchResults = resource(
+    () => search,
+    async (search, prevSearch, { data, refetching, onCleanup, signal }) => {
+      const objectsData = await getObjects({
+        search,
+        projectId: page.data.project.id,
+      });
+      return objectsData;
+    },
+    {
+      debounce: 300,
+      lazy: true,
+    }
+  );
+
   // let value = $derived(fieldMatched ? fieldMatched.id : null);
   // const items = $derived.by(() => {
   //   return page.data.ontologyFields.result
@@ -76,11 +97,24 @@
       </div>
     </div>
     <div class="col-9">
-      <div>search</div>
+      <div class="mb-3">
+        <BaseInput
+          icon="search"
+          placeholder={t("common.search", { fallback: "Search" })}
+          size="sm"
+          bind:value={search}
+        />
+      </div>
       {#if suggestions.length}
         <div>
+          <h6>{t("import.suggestions", { fallback: "Suggestions" })}</h6>
           {#each suggestions as suggestion}
-            <div>{suggestion.object.id}</div>
+            <ChipObject
+              assetId={asset.id}
+              object={suggestion.object}
+              suggested={true}
+              bind:mappedObject
+            />
           {/each}
         </div>
       {/if}
