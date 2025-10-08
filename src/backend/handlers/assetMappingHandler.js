@@ -3,131 +3,6 @@ import { db } from '../../db/init.js';
 import * as dbSchema from '../../db/schema.js';
 import { eq, sql, and, inArray, aliasedTable } from 'drizzle-orm';
 
-/**
- * Fetches complete object details, including ontology and research fields.
- * @param {Array<string>} objectIds - Array of object IDs to fetch.
- * @returns {Promise<Array<Object>>} - A promise that resolves to an array of full object details.
- */
-async function getObjectsDetails(objectIds) {
-    if (!objectIds || objectIds.length === 0) {
-        return [];
-    }
-
-    const ontologyFieldsQuery = sql`(SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'primary', oof."primary", 'default_description', oof.default_description, 'ontology_field_name_id', ot.name_id, 'ontology_field_name_content', ot_name_texts.content )) FROM ${dbSchema.objects_ontology_fields} oof LEFT JOIN ${dbSchema.ontology_fields} ot ON oof.field_id = ot.id LEFT JOIN ${dbSchema.texts} ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = ${dbSchema.objects.id})`;
-
-    const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content )) FROM ${dbSchema.objects_research_fields} orf LEFT JOIN ${dbSchema.research_fields} rf ON orf.field_id = rf.id LEFT JOIN ${dbSchema.texts} rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN ${dbSchema.vocabularies} v ON orf.vocabulary_id = v.id LEFT JOIN ${dbSchema.texts} v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = ${dbSchema.objects.id})`;
-
-    let query = db.select({
-        id: dbSchema.objects.id,
-        created_at: dbSchema.objects.created_at,
-        updated_at: dbSchema.objects.updated_at,
-        status: dbSchema.objects.status,
-        institution_id: dbSchema.objects.institution_id,
-        project_id: dbSchema.objects.project_id,
-
-        objects_assets_json: sql`(SELECT json_group_array(json_object('order', oa."order", 'asset_id', oa.asset_id, 'asset_filename', a.filename, 'asset_formats', a.formats, 'asset_path', a.path, 'asset_type', a.type, 'asset_real_id', a.id)) FROM ${dbSchema.objects_assets} oa JOIN ${dbSchema.assets} a ON oa.asset_id = a.id WHERE oa.object_id = ${dbSchema.objects.id})`.as('objects_assets_json'),
-        objects_ontology_fields_json: ontologyFieldsQuery.as('objects_ontology_fields_json'),
-        objects_research_fields_json: researchFieldsQuery.as('objects_research_fields_json'),
-
-    })
-        .from(dbSchema.objects)
-        .where(inArray(dbSchema.objects.id, objectIds))
-        .groupBy(dbSchema.objects.id);
-
-    const rawResults = await query.execute();
-
-    const processedItems = rawResults.map(item => {
-        const institution = item.inst_id ? {
-            id: item.inst_id,
-            name: {
-                id: item.inst_name_text_id,
-                content: item.inst_name_text_content,
-                original_language_id: item.inst_name_text_original_language_id,
-                translations: JSON.parse(item.inst_name_translations_json || '[]').filter(t => t.id !== null)
-            }
-        } : null;
-
-        const project = item.proj_id ? {
-            id: item.proj_id,
-            title: {
-                id: item.proj_title_text_id,
-                content: item.proj_title_text_content,
-                original_language_id: item.proj_title_text_original_language_id,
-                translations: JSON.parse(item.proj_title_translations_json || '[]').filter(t => t.id !== null)
-            }
-        } : null;
-
-        let objectsAssets = [];
-        if (item.objects_assets_json) {
-            try {
-                const parsedAssets = JSON.parse(item.objects_assets_json);
-                objectsAssets = parsedAssets.map(oa => ({
-                    order: oa.order,
-                    asset: {
-                        id: oa.asset_real_id,
-                        filename: oa.asset_filename,
-                        formats: typeof oa.asset_formats === 'string' ? JSON.parse(oa.asset_formats || '{}') : (oa.asset_formats || {}),
-                        path: oa.asset_path,
-                        type: oa.asset_type
-                    }
-                })).filter(oa => oa.asset.id != null);
-            } catch (e) { console.error('Error parsing objects_assets_json:', e); }
-        }
-
-        let objectsOntologyFields = [];
-        if (item.objects_ontology_fields_json) {
-            try {
-                const parsedFields = JSON.parse(item.objects_ontology_fields_json);
-                objectsOntologyFields = parsedFields.map(oof => ({
-                    id: oof.id,
-                    value: oof.value,
-                    primary: oof.primary,
-                    default_description: oof.default_description,
-                    ontologyField: {
-                        id: oof.field_id,
-                        name: { content: oof.ontology_field_name_content }
-                    }
-                })).filter(oof => oof.id != null);
-            } catch (e) { console.error('Error parsing objects_ontology_fields_json:', e); }
-        }
-
-        let objectsResearchFields = [];
-        if (item.objects_research_fields_json) {
-            try {
-                const parsedFields = JSON.parse(item.objects_research_fields_json);
-                objectsResearchFields = parsedFields.map(orf => {
-                    const result = {
-                        id: orf.id,
-                        value: orf.value,
-                        vocabulary_id: orf.vocabulary_id,
-                        researchField: {
-                            id: orf.field_id,
-                            name: { content: orf.research_field_name_content }
-                        }
-                    };
-                    if (orf.vocabulary_id && orf.vocabulary_option_content) {
-                        result.vocabulary = {
-                            id: orf.vocabulary_id,
-                            option: { content: orf.vocabulary_option_content }
-                        };
-                    }
-                    return result;
-                }).filter(orf => orf.id != null);
-            } catch (e) { console.error('Error parsing objects_research_fields_json:', e); }
-        }
-
-        return {
-            id: item.id,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            status: item.status,
-            objectsAssets: objectsAssets,
-            objectsOntologyFields: objectsOntologyFields,
-            objectsResearchFields: objectsResearchFields,
-        };
-    });
-    return processedItems;
-}
 
 
 /**
@@ -195,22 +70,38 @@ export const suggestObjectMatches = async (assets, options = {}) => {
         });
 
         // Step 5: Get all unique object IDs from suggestions
-        const allObjectIds = [...new Set(
-            resultsWithSuggestions.flatMap(r => r.suggestions.map(s => s.objectId))
-        )];
 
-        console.log('before step 6 fetch full objects', allObjectIds);
+        console.log('building object payloads from search data');
+        const objectsById = new Map();
+        for (const obj of objectsForSearch) {
+            // Convert fields to expected objectsOntologyFields shape
+            const objectsOntologyFields = (obj.fields || []).map(f => ({
+                id: f.field_id,
+                value: f.value,
+                primary: (f.field_primary ?? f.primary),
+                default_description: (f.field_label ?? f.label ?? null),
+                ontologyField: {
+                    id: f.field_id,
+                    name: { content: (f.name ?? f.ontology_field_name) }
+                }
+            }));
 
-        // Step 6: Fetch full object data for all suggestions
-        const fullObjects = await getObjectsDetails(allObjectIds);
-        const fullObjectsById = Object.fromEntries(fullObjects.map(o => [o.id, o]));
-        console.log('after step 6 fetch full objects');
+            objectsById.set(obj.id, {
+                id: obj.id,
+                status: (obj.status ?? obj.object_status),
+                institution_id: (obj.institution_id ?? obj.object_institution_id),
+                project_id: (obj.project_id ?? obj.object_project_id),
+                objectsAssets: [],
+                objectsOntologyFields,
+                objectsResearchFields: []
+            });
+        }
 
         // Step 7: Build final response with full objects
         const finalResults = resultsWithSuggestions.map(r => ({
             asset: r.asset,
             results: r.suggestions.map(suggestion => ({
-                object: fullObjectsById[suggestion.objectId],
+                object: objectsById.get(suggestion.objectId),
                 score: suggestion.confidence,
                 matched_field: suggestion.matchedField.fieldName,
                 matched_value: suggestion.matchedField.fieldValue
