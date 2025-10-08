@@ -7,7 +7,7 @@
   import MatchAssets from "$lib/components/import-assets/MatchAssets.svelte";
   // import MatchFields from "$lib/components/import/MatchFields.svelte";
   // import Identifier from "$lib/components/import/Identifier.svelte";
-  // import ReviewSave from "$lib/components/import/ReviewSave.svelte";
+  import ReviewSave from "$lib/components/import-assets/ReviewSave.svelte";
   const { data } = $props();
   const { t } = getTranslationStore();
   const wizard = getImportAssetsWizardContext();
@@ -25,11 +25,7 @@
 {#if wizard.currentStep === 3}
   <MatchAssets />
 {/if}
-<!-- 
-{#if wizard.currentStep === 4}
-  <Identifier ontologyFields={data.ontologyFields} />
-{/if}
 
-{#if wizard.currentStep === 5}
+{#if wizard.currentStep === 4}
   <ReviewSave />
-{/if} -->
+{/if}

@@ -27,7 +27,8 @@
         search,
         projectId: page.data.project.id,
       });
-      return objectsData;
+      console.log(objectsData, "objectsData");
+      return objectsData.items;
     },
     {
       debounce: 300,
@@ -113,6 +114,19 @@
               assetId={asset.id}
               object={suggestion.object}
               suggested={true}
+              bind:mappedObject
+            />
+          {/each}
+        </div>
+      {/if}
+      {#if searchResults.current}
+        <div>
+          <h6>{t("import.other-results", { fallback: "Other Results" })}</h6>
+          {#each searchResults.current as result}
+            <ChipObject
+              assetId={asset.id}
+              object={result}
+              suggested={false}
               bind:mappedObject
             />
           {/each}

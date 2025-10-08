@@ -26,8 +26,8 @@
       console.log("Received suggestions", suggestions);
       wizard.mapping = suggestions.map((s) => {
         return {
-          assetId: s.asset.id,
-          objects: s.results[0] ? [s.results[0].object.id] : [],
+          asset_id: s.asset.id,
+          object_ids: s.results[0] ? [s.results[0].object.id] : [],
         };
       });
       wizard.nextEnabled = true;

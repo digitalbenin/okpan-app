@@ -80,13 +80,13 @@ export function createImportAssetsWizardContext(params) {
 
         // Helper methods
         addMappingEntry(object, assetId) {
-            const existingIndex = mapping.findIndex(e => e.assetId === assetId);
-            mapping[existingIndex].objects.push(object.id);
+            const existingIndex = mapping.findIndex(e => e.asset_id === assetId);
+            mapping[existingIndex].object_ids.push(object.id);
 
         },
         removeMappingEntry(object, assetId) {
-            const existingIndex = mapping.findIndex(e => e.assetId === assetId);
-            mapping[existingIndex].objects = mapping[existingIndex].objects.filter(id => id !== object.id);
+            const existingIndex = mapping.findIndex(e => e.asset_id === assetId);
+            mapping[existingIndex].object_ids = mapping[existingIndex].object_ids.filter(id => id !== object.id);
         },
         // setMappingIdentifier(id) {
         //     mapping = mapping.map((entry) => {
