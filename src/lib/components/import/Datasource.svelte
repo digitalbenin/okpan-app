@@ -13,6 +13,7 @@
   } from "$lib/stores/DatasourcesUtils.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
+  import { queryParameters, ssp } from "sveltekit-search-params";
 
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
@@ -21,6 +22,11 @@
   const { institutions, languages, templates } = $props();
   const defaultLanguage =
     languages?.find((lang) => lang.is_default) || languages?.[0];
+
+  // Read institution_id from query params and set default form value
+  const params = queryParameters({
+    institution_id: ssp.string(undefined)
+  });
 
   // Translation state - used by AutoForm
   const translatableFields = ["name", "method", "notes"];
@@ -41,6 +47,7 @@
       defaultValues: {
         date: new Date().toISOString(),
         languageId: defaultLanguage?.id,
+        institutionId: params.institution_id || undefined,
       },
       onSubmit: async ({ value }) => {
         try {

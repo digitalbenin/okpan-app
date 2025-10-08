@@ -1,5 +1,6 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { queryParameters, ssp } from "sveltekit-search-params";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import Datasource from "$lib/components/import/Datasource.svelte";
   import UploadFile from "$lib/components/import/UploadFile.svelte";
@@ -9,6 +10,7 @@
   const { data } = $props();
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
+  const params = queryParameters({ institution_id: ssp.string(undefined) });
   $inspect(data);
 </script>
 

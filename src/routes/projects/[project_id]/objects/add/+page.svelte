@@ -1,7 +1,6 @@
 <script>
     import ObjectResearchFields from "$lib/components/objects/ObjectResearchFields.svelte";
     import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
-    import ObjectOntologyFields from "$lib/components/objects/ObjectOntologyFields.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { back } from "$lib/utils/navigation.js";
@@ -9,6 +8,7 @@
     import { goto } from "$app/navigation";
     import BaseSelectNew from "$lib/components/base/BaseSelectNew.svelte";
     import { createObject } from "$lib/stores/ObjectsUtils.js";
+    import { queryParameters, ssp } from "sveltekit-search-params";
 
     const { data } = $props();
     const { t } = getTranslationStore();
@@ -25,6 +25,19 @@
     // Institution selection
     let selectedInstitutionId = $state(null);
     const institutionItems = data.institutions || [];
+
+    // Read institution_id from query params using sveltekit-search-params
+    const params = queryParameters({
+        institution_id: ssp.string(undefined),
+    });
+
+    // Prefill selection if institution_id is present
+    $effect(() => {
+        const qId = params.institution_id;
+        if (qId && !selectedInstitutionId) {
+            selectedInstitutionId = qId;
+        }
+    });
 
     function onInstitutionValueChange(val) {
         selectedInstitutionId = val;
@@ -61,7 +74,10 @@
             const newObjectId = result?.id;
 
             if (error || !newObjectId) {
-                console.error("Error creating object:", error || "New object ID not found");
+                console.error(
+                    "Error creating object:",
+                    error || "New object ID not found",
+                );
                 // Optionally, show an error message to the user
                 return;
             }
@@ -153,7 +169,7 @@
                 </div>
                 <div class="col-4">
                     <ObjectLinkedMedia
-                        projectId={projectId}
+                        {projectId}
                         institutionId={selectedInstitutionId}
                         onChangesUpdate={handleComponentChanges}
                     />
@@ -184,10 +200,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    .badgeWrapper {
-        font-family: var(--bs-body-font-family) !important;
-        vertical-align: text-top;
-    }
-</style>

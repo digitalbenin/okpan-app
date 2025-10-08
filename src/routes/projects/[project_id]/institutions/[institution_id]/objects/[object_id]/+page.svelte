@@ -16,7 +16,6 @@
   } from "$lib/stores/ObjectsUtils.js";
   import { updateObjectStatus } from "$lib/stores/ObjectsUtils.js";
   import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
-  
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -342,10 +341,3 @@
     />
   {/if}
 </div>
-
-<style>
-  .badgeWrapper {
-    font-family: var(--bs-body-font-family) !important;
-    vertical-align: text-top;
-  }
-</style>

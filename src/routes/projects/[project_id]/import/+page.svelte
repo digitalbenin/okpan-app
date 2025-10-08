@@ -1,7 +1,13 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { queryParameters, ssp } from "sveltekit-search-params";
   const { t } = getTranslationStore();
   const { data } = $props();
+
+  // Read institution_id from query params and preserve it when navigating to steps
+  const params = queryParameters({
+    institution_id: ssp.string(undefined)
+  });
 </script>
 
 <div
@@ -18,7 +24,7 @@
     <div class="text-center">
       <a
         class="btn btn-primary btn-lg"
-        href="/projects/{data.project.id}/import/steps"
+        href={"/projects/" + data.project.id + "/import/steps" + (params.institution_id ? ("?institution_id=" + encodeURIComponent(params.institution_id)) : "")}
       >
         {t("import.start", { fallback: "Start" })}
       </a>
