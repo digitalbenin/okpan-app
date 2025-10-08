@@ -8,7 +8,7 @@ const { getSchema, validate } = getValidationStore();
 
 export const getObjects = async (options) => {
     const result = await executeQuery('objects', 'list', options);
-    console.log(result, "result")
+    // console.log(result, "result")
     if (result && result.result) {
         return { items: result.result.items || [], totalCount: result.result.totalCount || 0 };
     }
