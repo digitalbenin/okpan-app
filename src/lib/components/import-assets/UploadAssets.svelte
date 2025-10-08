@@ -24,22 +24,22 @@
   }
 
   async function importNow() {
-    // const payload = {
-    //   path: $state.snapshot(filesSelected),
-    //   isDirectory: false,
-    //   projectId: wizard.projectId,
-    //   institutionId: wizard.institutionId,
-    // };
+    const payload = {
+      path: $state.snapshot(filesSelected),
+      isDirectory: false,
+      projectId: wizard.projectId,
+      institutionId: wizard.institutionId,
+    };
 
-    // console.log("Importing with payload", payload);
+    console.log("Importing with payload", payload);
 
-    // const { errors, createdAssets } = await window.api.importAssets(payload);
-    // if (errors?.length) {
-    //   importErrors = errors;
-    // }
+    const { errors, createdAssets } = await window.api.importAssets(payload);
+    if (errors?.length) {
+      importErrors = errors;
+    }
 
-    // wizard.assets = createdAssets ? createdAssets : [];
-    wizard.assets = fakeAssets;
+    wizard.assets = createdAssets ? createdAssets : [];
+    // wizard.assets = fakeAssets;
     if (wizard.assets.length) {
       wizard.nextEnabled = true;
     }

@@ -159,6 +159,7 @@ export const suggestObjectMatches = async (assets, options = {}) => {
         // Step 1: Get all objects with their ontology fields for searching
         const objectsForSearch = await getObjectsWithOntologyFields(institutionId, searchFields);
 
+        console.log(`Loaded ${objectsForSearch.length} objects for searching.`);
         if (objectsForSearch.length === 0) {
             return assets.map(asset => ({
                 asset: asset,
@@ -198,9 +199,12 @@ export const suggestObjectMatches = async (assets, options = {}) => {
             resultsWithSuggestions.flatMap(r => r.suggestions.map(s => s.objectId))
         )];
 
+        console.log('before step 6 fetch full objects', allObjectIds);
+
         // Step 6: Fetch full object data for all suggestions
         const fullObjects = await getObjectsDetails(allObjectIds);
         const fullObjectsById = Object.fromEntries(fullObjects.map(o => [o.id, o]));
+        console.log('after step 6 fetch full objects');
 
         // Step 7: Build final response with full objects
         const finalResults = resultsWithSuggestions.map(r => ({
