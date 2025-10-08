@@ -91,12 +91,10 @@
         },
       };
 
-      console.log("Creating project with payload:", formattedProject);
 
       // Use store method for creation
       const result = await createProject(formattedProject);
 
-      console.log("Project creation result:", result);
 
       // Extract newly created project ID from store result
       const projectId = result?.id ?? null;
@@ -104,11 +102,6 @@
       // Callback to parent (runes style)
       if (projectId && typeof onCreated === "function") {
         onCreated({ projectId });
-      }
-
-      // Redirect to project homepage
-      if (projectId) {
-        goto(`/projects/${projectId}`);
       }
 
       // Reset form after successful creation

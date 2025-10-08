@@ -89,11 +89,8 @@ export const createProject = async (project) => {
     // Use the registered single-step mutation in queries/projects.js
     const response = await executeQuery('projects', 'create', { title, description, languageCode, languageName });
 
-    // Preventive logging to aid debugging
-    console.log('[ProjectsUtils] createProject response:', response);
-
     const result = response?.result;
-    const projectId = result?.project?.id || null;
+    const projectId = result?.project?.id || result?.id || null;
     const titleId = result?.project?.title_id || result?.titleText?.id || null;
     const descriptionId = result?.project?.description_id || result?.descriptionText?.id || null;
 
@@ -101,7 +98,6 @@ export const createProject = async (project) => {
     try {
         if (typeof window !== 'undefined' && window.api?.computeAllMissingEmbeddings) {
             await window.api.computeAllMissingEmbeddings();
-            console.log('[ProjectsUtils] Embeddings backfill triggered');
         }
     } catch (e) {
         console.warn('[ProjectsUtils] Embeddings backfill failed', e);

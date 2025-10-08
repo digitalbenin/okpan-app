@@ -37,8 +37,7 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
             const { title, description, languageCode } = args;
             const languageName = args.languageName || args.languageCode;
 
-            // Preventive logs
-            console.log('[PROJECT_CREATE] Init', { title, descriptionLength: description?.length || 0, languageCode, languageName });
+            // Init
 
             try {
                 // Embedding initialization removed to prevent sharp module load issues
@@ -48,7 +47,7 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                     const [projectInserted] = await tx.insert(dbSchema.project)
                         .values({})
                         .returning();
-                    console.log('[PROJECT_CREATE] Project inserted', { projectId: projectInserted.id });
+                    
 
                     // 2) Create default language
                     const [languageInserted] = await tx.insert(dbSchema.languages)
@@ -59,7 +58,7 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                             is_default: 1
                         })
                         .returning();
-                    console.log('[PROJECT_CREATE] Language inserted', { languageId: languageInserted.id, code: languageCode });
+                    
 
                     // 3) Create title and description texts
                     const [titleTextInserted] = await tx.insert(dbSchema.texts)
@@ -69,7 +68,7 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                             original_language_id: languageInserted.id
                         })
                         .returning();
-                    console.log('[PROJECT_CREATE] Title text inserted', { textId: titleTextInserted.id });
+                    
 
                     let descriptionTextInserted = null;
                     if (description && description.trim().length > 0) {
@@ -80,7 +79,7 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                                 original_language_id: languageInserted.id
                             })
                             .returning();
-                        console.log('[PROJECT_CREATE] Description text inserted', { textId: descriptionTextInserted.id });
+                        
                     }
 
                     // 4) Link texts to project
@@ -91,11 +90,10 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                         })
                         .where(eq(dbSchema.project.id, projectInserted.id))
                         .execute();
-                    console.log('[PROJECT_CREATE] Project updated with text IDs');
+                    
 
                     // 5) Seed ontology fields (explicit absolute path)
                     const resolvedJsonPath = path.join(__dirname, '../src/db/default_ontology_fields.json');
-                    console.log(resolvedJsonPath);
                     let seedData;
                     try {
                         if (!fs.existsSync(resolvedJsonPath)) {
@@ -104,7 +102,6 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                         }
                         const jsonContent = fs.readFileSync(resolvedJsonPath, 'utf8');
                         seedData = JSON.parse(jsonContent);
-                        console.log('[PROJECT_CREATE] Ontology seed loaded', { path: resolvedJsonPath });
                     } catch (e) {
                         console.error('[PROJECT_CREATE] Failed to load ontology seed', { path: resolvedJsonPath, error: e.message });
                         throw new Error('Failed to load default ontology fields configuration');
@@ -124,7 +121,7 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                             .returning();
                         categoryTextIds[key] = categoryText.id;
                     }
-                    console.log('[PROJECT_CREATE] Category texts created', { count: Object.keys(categoryTextIds).length });
+                    
 
                     // Create ontology fields (compute embeddings when available)
                     let createdCount = 0;
@@ -163,7 +160,7 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                             throw fieldErr;
                         }
                     }
-                    console.log('[PROJECT_CREATE] Ontology fields seeded', { createdCount });
+                    
 
                     // Build result
                     return {
@@ -175,7 +172,7 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                     };
                 });
 
-                console.log('[PROJECT_CREATE] Completed successfully');
+                
                 return result;
             } catch (error) {
                 console.error('[PROJECT_CREATE] Error', { message: error.message, stack: error.stack });

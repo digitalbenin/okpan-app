@@ -4,8 +4,7 @@
   import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
   import ProjectChip from "$lib/components/projects//ProjectChip.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { formatDate } from "$lib/utils/dates";
-  import { goto, invalidate } from "$app/navigation";
+  import { goto } from "$app/navigation";
 
   const { projects = [] } = $props();
   const { t, translationState } = getTranslationStore();
@@ -17,22 +16,28 @@
     projects.filter(
       (project) =>
         project.title.content.toLowerCase().includes(search.toLowerCase()) ||
-        project.description.content.toLowerCase().includes(search.toLowerCase())
-    )
+        project.description.content
+          .toLowerCase()
+          .includes(search.toLowerCase()),
+    ),
   );
 
   function openNewProjectModal() {
     newProjectOpen = true;
   }
 
-  function handleCreated({ projectId }) {
+  async function handleCreated({ projectId }) {
     // Close modal
     newProjectOpen = false;
-    // Refresh projects list cache for when user returns
-    try { invalidate('app:projects'); } catch (_) {}
-    // Redirect to project homepage
-    if (projectId) {
-      goto(`/projects/${projectId}`);
+    if (!projectId) {
+      console.warn('[ProjectsList] Missing projectId in handleCreated');
+      return;
+    }
+    const path = `/projects/${projectId}`;
+    try {
+      await goto(path);
+    } catch (err) {
+      console.error('[ProjectsList] Navigation failed', err);
     }
   }
 </script>
