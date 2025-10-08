@@ -38,7 +38,7 @@
     searchField: {
       encode: (value) => (value === "all" ? undefined : value),
       decode: (value) => (value ? value : "all"),
-      defaultValue: undefined,
+      defaultValue: "name",
     },
     status: {
       encode: (value) => (value === "all" ? undefined : value),
@@ -71,6 +71,10 @@
   const ontologyFieldsList = $derived.by(() => {
     return [
       {
+        value: "name",
+        label: t("common.name", { fallback: "Name" }),
+      },
+      {
         value: "all",
         label: t("common.all", { fallback: "All" }),
       },
@@ -82,7 +86,7 @@
   });
 
   const orderBy = $derived([
-    // { value: "name", label: t("common.name", { fallback: "Name" }) },
+    { value: "name", label: t("common.name", { fallback: "Name" }) },
     {
       value: "created_at",
       label: t("common.created-at", { fallback: "Created At" }),

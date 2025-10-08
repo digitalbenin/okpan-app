@@ -1,7 +1,6 @@
 <script>
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BasePagination from "$lib/components/base/BasePagination.svelte";
-    import { getObjectIdentifier } from "$lib/utils/objects.js";
 
     let {
         objects = [],
@@ -85,6 +84,19 @@
             return p ? `media://${p}` : null;
         }
     }
+
+    // Prefer object's name for display; fallback to primary identifier or numeric id
+    function getPrimaryIdentifier(obj) {
+        const field = obj?.objectsOntologyFields?.find((f) => f.primary);
+        return field?.value ?? null;
+    }
+
+    function getObjectDisplayName(obj) {
+        const name =
+            (obj?.name?.content && String(obj.name.content).trim()) ||
+            (typeof obj?.name === "string" && String(obj.name).trim());
+        return name || getPrimaryIdentifier(obj) || obj?.id;
+    }
 </script>
 
 <div class="table-container overflow-auto border border-light-subtle rounded-3">
@@ -122,7 +134,7 @@
                     <td class="image-column">
                         <BaseImage
                             src={getObjectPreviewUrl(object)}
-                            alt={getObjectIdentifier(object)}
+                            alt={getObjectDisplayName(object)}
                             width={48}
                             height={48}
                             class="rounded"
@@ -130,7 +142,7 @@
                     </td>
                     <td class="id-column">
                         <span>
-                            {getObjectIdentifier(object)}
+                            {getObjectDisplayName(object)}
                         </span>
                     </td>
                     <td class="date-column">{formatDate(object.updated_at)}</td>

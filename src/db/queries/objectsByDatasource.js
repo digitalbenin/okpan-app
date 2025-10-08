@@ -79,6 +79,7 @@ export const createObjectsByDatasourceQuery = (db, drizzleResult) => {
                 created_at: dbSchema.objects.created_at,
                 updated_at: dbSchema.objects.updated_at,
                 status: dbSchema.objects.status,
+                name: dbSchema.objects.name,
                 institution_id: dbSchema.objects.institution_id,
                 project_id: dbSchema.objects.project_id,
 
@@ -244,6 +245,7 @@ export const createObjectsByDatasourceQuery = (db, drizzleResult) => {
                     created_at: item.created_at,
                     updated_at: item.updated_at,
                     status: item.status,
+                    name: item.name,
                     institution_id: item.institution_id,
                     project_id: item.project_id,
                     institution,

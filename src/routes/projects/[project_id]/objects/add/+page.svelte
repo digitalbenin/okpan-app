@@ -3,6 +3,7 @@
     import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
     import ObjectOntologyFields from "$lib/components/objects/ObjectOntologyFields.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import BaseInput from "$lib/components/base/BaseInput.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { back } from "$lib/utils/navigation.js";
     import { page } from "$app/stores";
@@ -30,13 +31,19 @@
         selectedInstitutionId = val;
     }
 
+    // Object name input (default language only for now)
+    let objectName = $state("");
+
     // Centralized change management
     let componentChanges = $state(new Map());
     let isSaving = $state(false);
 
     // Derived state for overall changes
     const hasAnyChanges = $derived(
-        Array.from(componentChanges.values()).some((comp) => comp.hasChanges),
+        !!objectName ||
+            Array.from(componentChanges.values()).some(
+                (comp) => comp.hasChanges,
+            ),
     );
 
     // Handle changes from child components
@@ -52,16 +59,20 @@
 
         isSaving = true;
         try {
-            // 1. Create the object and get the new ID
+            // 1. Create the object and get the new ID (include name if provided)
             const { result, error } = await createObject(
                 projectId,
                 selectedInstitutionId,
                 "in progress",
+                objectName?.trim() || undefined,
             );
             const newObjectId = result?.id;
 
             if (error || !newObjectId) {
-                console.error("Error creating object:", error || "New object ID not found");
+                console.error(
+                    "Error creating object:",
+                    error || "New object ID not found",
+                );
                 // Optionally, show an error message to the user
                 return;
             }
@@ -124,6 +135,19 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-8">
+                    <!-- Name: first field before institution -->
+                    <div class="mt-2 mb-2 px-2" style="max-width: 420px;">
+                        <p class="fw-semibold mb-2">
+                            {t("common.name", {
+                                fallback: "Name",
+                            })}
+                        </p>
+                        <BaseInput
+                            placeholder={t("common.name", { fallback: "Name" })}
+                            size="sm"
+                            bind:value={objectName}
+                        />
+                    </div>
                     <!-- Institution selector: after primary id, before research data -->
                     <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
                         <h3 class="">
@@ -153,7 +177,7 @@
                 </div>
                 <div class="col-4">
                     <ObjectLinkedMedia
-                        projectId={projectId}
+                        {projectId}
                         institutionId={selectedInstitutionId}
                         onChangesUpdate={handleComponentChanges}
                     />

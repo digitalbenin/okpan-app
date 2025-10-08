@@ -14,7 +14,7 @@ export const entitySearchOperations = {
   $projectId: String
   $entityTypes: [String!]
   $limit: Int
-) {
+  ) {
   result: entitySearch(
     query: $query
     project_id: $projectId
@@ -24,6 +24,7 @@ export const entitySearchOperations = {
     results {
       type
       id
+      name
       title
       subtitle
       project_id
@@ -32,4 +33,4 @@ export const entitySearchOperations = {
   }
 }`
   }
-}; 
+};

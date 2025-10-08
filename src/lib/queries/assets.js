@@ -119,6 +119,7 @@ export const assetsOperations = {
       object_id
       object {
         id
+        name
         status
       }
     }
