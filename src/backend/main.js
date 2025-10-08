@@ -232,6 +232,7 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 1080,
+    icon: path.join(import.meta.dirname, '../assets/logo_wip.png'),
     webPreferences: {
       preload: path.join(import.meta.dirname, 'preload.js'),
       nodeIntegration: false,

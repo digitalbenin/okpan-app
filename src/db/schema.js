@@ -313,6 +313,7 @@ export const genericAssetsRelations = relations(genericAssets, ({ one, many }) =
 export const objects = sqliteTable('objects', {
     ...commonFields,
     status: text('status').default('in progress'),
+    name: text('name'),
     institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
     project_id: text('project_id').references(() => project.id)
 });
