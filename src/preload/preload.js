@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('api', {
     exportLogs: (filePath) => ipcRenderer.invoke('export-logs', filePath),
     clearLogs: (filters) => ipcRenderer.invoke('clear-logs', filters),
     importAssets: (data) => ipcRenderer.invoke('import-assets', data),
+    // Removed legacy exportProjectSql in favor of unified exportProject
+    exportProject: (options) => ipcRenderer.invoke('export-project', options),
     openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options),
     readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
     importStructuredData: (options) => ipcRenderer.invoke('import-structured-data', options),
@@ -19,6 +21,8 @@ contextBridge.exposeInMainWorld('api', {
     suggestObjectMatches: (assets, options) => ipcRenderer.invoke('suggest-object-matches', assets, options),
     suggestFieldMappings: (csvFieldNames, options) => ipcRenderer.invoke('suggest-field-mappings', csvFieldNames, options),
     suggestTemplateReuse: (inputHeaders, projectId) => ipcRenderer.invoke('suggest-template-reuse', inputHeaders, projectId),
+    // Languages
+    getLanguages: (lang = 'en') => ipcRenderer.invoke('languages:list', { lang }),
 
     // Embedding methods
     computeAllMissingEmbeddings: () => ipcRenderer.invoke('compute-all-missing-embeddings'),
@@ -31,4 +35,6 @@ contextBridge.exposeInMainWorld('api', {
     // Listeners for backend events
     onImportProgress: (callback) => ipcRenderer.on('import-assets-progress', callback),
     removeImportProgressListeners: () => ipcRenderer.removeAllListeners('import-assets-progress'),
+    openPreview: (projectId) => ipcRenderer.send('open-preview', projectId)
 });
+

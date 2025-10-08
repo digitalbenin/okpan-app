@@ -60,7 +60,7 @@
       debounce: 300,
       lazy: true,
       initialValue: [],
-    }
+    },
   );
 
   const icons = {

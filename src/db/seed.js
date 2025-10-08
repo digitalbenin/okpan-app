@@ -222,7 +222,8 @@ const seed = async () => {
             const [ontologyField] = await db.insert(ontology_fields).values({
                 name_id: nameText[0].id,
                 description_id: descriptionText[0].id,
-                category_id: categoryTextEntries[field.category]
+                category_id: categoryTextEntries[field.category],
+                project_id: projectRecord.id
             }).returning();
 
             if (!ontologyField) {

@@ -85,12 +85,13 @@
 
             const result = await window.api.openFileDialog({
                 title: "Select Media Files",
-                multiple: true,
+                properties: ["openFile", "multiSelections"],
                 filters: mediaFilters,
             });
 
-            if (!result.canceled && result.filePaths?.length > 0) {
-                const fileObjects = result.filePaths.map(createFileObject);
+            const filePaths = result?.files?.map((f) => f.path) || result?.filePaths || [];
+            if (!result.canceled && filePaths.length > 0) {
+                const fileObjects = filePaths.map(createFileObject);
                 addMediaFiles(fileObjects);
             }
         } catch (error) {

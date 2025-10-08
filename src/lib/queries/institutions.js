@@ -387,7 +387,7 @@ export const institutionsOperations = {
         mapVariables: {
           nameId: { from: "getInstitution", path: "institution.name.id" }
         },
-        skipIf: { variableName: "nameId", isEmpty: true }
+        skipIf: { variableName: "name", isUndefined: true }
       },
       {
         name: "createDescription",
@@ -495,7 +495,7 @@ export const institutionsOperations = {
         mapVariables: {
           countryId: { from: "getInstitution", path: "institution.country.id" }
         },
-        skipIf: { variableName: "countryId", isEmpty: true }
+        skipIf: { variableName: "country", isUndefined: true }
       },
       {
         name: "createLocation",
@@ -549,7 +549,7 @@ export const institutionsOperations = {
         mapVariables: {
           locationId: { from: "getInstitution", path: "institution.location.id" }
         },
-        skipIf: { variableName: "locationId", isEmpty: true }
+        skipIf: { variableName: "location", isUndefined: true }
       },
       {
         name: "updateStatus",

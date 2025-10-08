@@ -11,13 +11,15 @@ import {
     createInstitutionsBulkDeleteMutation,
     createDatasourcesListQuery,
     createObjectsListQuery,
+    createObjectsByDatasourceQuery,
     createAssetsListQuery,
     createEntitySearchQuery,
     createObjectDisplayFieldsTransformedQuery,
     createObjectSearchQuery,
     createObjectImportMutation,
     createObjectImportUsingTemplateMutation,
-    createResearchFieldObjectsCountQuery
+    createResearchFieldObjectsCountQuery,
+    createProjectCreateMutation
 } from './queries';
 
 export function createGraphQLSchema(db) {
@@ -87,6 +89,7 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Query._fields.institutionById = createInstitutionByIdQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.datasourcesList = createDatasourcesListQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.objectsList = createObjectsListQuery(db, drizzleResult);
+    drizzleResult.schema._typeMap.Query._fields.objectsByDatasource = createObjectsByDatasourceQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.assetsList = createAssetsListQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.entitySearch = createEntitySearchQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.objectDisplayFieldsTransformed = createObjectDisplayFieldsTransformedQuery(db, drizzleResult);
@@ -98,6 +101,8 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Mutation._fields.bulkDeleteInstitutions = createInstitutionsBulkDeleteMutation(db, drizzleResult);
     drizzleResult.schema._typeMap.Mutation._fields.objectImport = createObjectImportMutation(db, drizzleResult);
     drizzleResult.schema._typeMap.Mutation._fields.objectImportUsingTemplate = createObjectImportUsingTemplateMutation(db, drizzleResult);
+    // New consolidated project creation mutation
+    drizzleResult.schema._typeMap.Mutation._fields.createProjectWithDefaults = createProjectCreateMutation(db, drizzleResult);
 
     return { schema: drizzleResult.schema, resolvers: drizzleResult.resolvers };
 };

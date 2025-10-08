@@ -4,6 +4,9 @@
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import BaseLinkedStatus from "$lib/components/base/BaseLinkedStatus.svelte";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
+  import BulkDeleteAssetsModal from "$lib/components/assets/BulkDeleteAssetsModal.svelte";
+  import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
+  import { linkAssetsToObjectsBulk } from "$lib/stores/ObjectsUtils.js";
   import Table from "$lib/components/base/table/Table.svelte";
   import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
   import TableLink from "$lib/components/base/table/TableLink.svelte";
@@ -16,7 +19,12 @@
   const { t, translationState } = getTranslationStore();
 
   let viewAs = $state("grid");
+  import { getContext } from "svelte";
+  const assetsCtx = getContext("institutionAssetsSelection");
   let selectedAssets = $state([]);
+  let isDeleteModalOpen = $state(false);
+  let isLinkModalOpen = $state(false);
+  let linkAssetId = $state(null);
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -50,12 +58,83 @@
     },
   ]);
 
+  // Display-level filtering to respect status while backend schema updates propagate
+  const filteredItems = $derived.by(() => {
+    const status = params?.aLinked;
+    if (status === "linked") {
+      return (assets.items || []).filter(
+        (a) => Array.isArray(a.objectsAssets) && a.objectsAssets.length > 0,
+      );
+    }
+    if (status === "not_linked") {
+      return (assets.items || []).filter(
+        (a) => !Array.isArray(a.objectsAssets) || a.objectsAssets.length === 0,
+      );
+    }
+    return assets.items || [];
+  });
+
   function clearSelection() {
     selectedAssets = [];
   }
+
+  function openDeleteModal() {
+    if (selectedAssets.length === 0) return;
+    isDeleteModalOpen = true;
+  }
+
+  function openLinkModal() {
+    if (selectedAssets.length === 0) return;
+    linkAssetId = String(selectedAssets[0]);
+    isLinkModalOpen = true;
+  }
+  import { goto } from "$app/navigation";
+  function openBulkEdit() {
+    if (selectedAssets.length === 0) return;
+    assetsCtx?.setSelected?.(selectedAssets.map(String));
+    goto(`/projects/${institution.project_id}/institutions/${institution.id}/assets/bulk-edit`);
+  }
+
+  async function handleModalLinked(payload) {
+    try {
+      // Modal currently sends an array of linked object results; support both shapes
+      const isArrayPayload = Array.isArray(payload);
+      const extractedIds = isArrayPayload
+        ? (payload || []).map((obj) => String(obj?.id)).filter(Boolean)
+        : payload?.objectIds || [];
+      const assetId = isArrayPayload
+        ? linkAssetId
+        : (payload?.assetId ?? linkAssetId);
+      const objectIds = extractedIds;
+      const allAssetIds = selectedAssets.map(String);
+      // Ensure first asset is included in bulk operation as well
+      if (assetId && !allAssetIds.includes(String(assetId))) {
+        allAssetIds.push(String(assetId));
+      }
+      await linkAssetsToObjectsBulk(allAssetIds, objectIds);
+    } finally {
+      isLinkModalOpen = false;
+      clearSelection();
+    }
+  }
+
+  function handleBulkDeleted(event) {
+    const { successes = [] } = event.detail || {};
+    if (successes.length > 0) {
+      const toRemove = new Set(successes.map((id) => String(id)));
+      const current = assets.items || [];
+      assets = {
+        ...assets,
+        items: current.filter((a) => !toRemove.has(String(a.id))),
+        totalCount: Math.max(0, (assets.totalCount || 0) - successes.length),
+      };
+    }
+    isDeleteModalOpen = false;
+    clearSelection();
+  }
 </script>
 
-<div class="w-100">
+<div class="w-100 mb-3">
   <div
     class="row align-items-center mb-3 position-relative overflow-hidden py-2"
   >
@@ -71,19 +150,51 @@
           })}
         </div>
         <div>
-          <button class="btn btn-secondary btn-sm" onclick={clearSelection}>
+          <button
+            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+            onclick={clearSelection}
+          >
+            <span>
+              {t("common.clear-selection", {
+                fallback: "Clear selection",
+              })}
+            </span>
             <i class="bi bi-x-circle"></i>
-            {t("common.clear-selection", {
-              fallback: "Clear selection",
-            })}
+          </button>
+        </div>
+        <div>
+          <button
+            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+            onclick={openLinkModal}
+          >
+            <span>
+              {t("common.link-to-object", { fallback: "Link to object" })}
+            </span>
+            <i class="bi bi-link-45deg"></i>
+          </button>
+        </div>
+        <div>
+          <button
+            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+            onclick={openBulkEdit}
+          >
+            <span>
+              {t("common.edit-metadata", { fallback: "Edit metadata" })}
+            </span>
+            <i class="bi bi-pencil-square"></i>
           </button>
         </div>
         <div class="ms-auto">
-          <button class="btn btn-danger btn-sm">
+          <button
+            class="btn btn-danger btn-sm d-flex align-items-center gap-2"
+            onclick={openDeleteModal}
+          >
+            <span>
+              {t("common.delete", {
+                fallback: "Delete",
+              })}
+            </span>
             <i class="bi bi-trash"></i>
-            {t("common.delete", {
-              fallback: "Delete",
-            })}
           </button>
         </div>
       </div>
@@ -109,7 +220,11 @@
         <div class="col-auto fs-7">
           {t("common.status", { fallback: "Status" })}
         </div>
-        <BaseSelect items={statuses} bind:value={params.aLinked} size="sm"
+        <BaseSelect
+          items={statuses}
+          bind:value={params.aLinked}
+          size="sm"
+          placeholder={t("common.all", { fallback: "All" })}
         ></BaseSelect>
       </div>
       <div class="d-flex align-items-center gap-2">
@@ -127,10 +242,10 @@
       >
     </div>
   </div>
-  {#if assets.items.length > 0}
+  {#if filteredItems.length > 0}
     {#if viewAs === "grid"}
       <div class="row">
-        {#each assets.items as asset (asset.id)}
+        {#each filteredItems as asset (asset.id)}
           <div class="col-3">
             <AssetCard {asset} />
           </div>
@@ -138,7 +253,7 @@
       </div>
     {:else if viewAs === "table"}
       <Table
-        items={assets.items}
+        items={filteredItems}
         columns={[
           {
             value: "image",
@@ -205,7 +320,7 @@
         bind:selected={selectedAssets}
       />
     {/if}
-  {:else if assets.items.length === 0}
+  {:else if filteredItems.length === 0}
     <div class="text-center text-black-50 fs-4 fst-italic mt-4">
       {t("common.no-assets-found", { fallback: "No assets found." })}
     </div>
@@ -222,5 +337,23 @@
         />
       </div>
     </div>
+  {/if}
+
+  {#if isDeleteModalOpen}
+    <BulkDeleteAssetsModal
+      bind:isOpen={isDeleteModalOpen}
+      selectedIds={selectedAssets}
+      on:deleted={handleBulkDeleted}
+    />
+  {/if}
+
+  {#if isLinkModalOpen}
+    <LinkObjectsModal
+      bind:isOpen={isLinkModalOpen}
+      projectId={institution.project_id}
+      assetId={linkAssetId}
+      preselectExisting={false}
+      onLinked={handleModalLinked}
+    />
   {/if}
 </div>

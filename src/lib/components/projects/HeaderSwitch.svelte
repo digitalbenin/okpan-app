@@ -6,7 +6,7 @@
 
 <div class="d-flex text-bg-dark rounded p-1 gap-2">
   <a
-    href="/projects/{page.data.project.id}"
+    href={`/projects/${page.data.project.id}`}
     class="btn btn-sm"
     class:btn-light={!page.url.pathname.startsWith(
       `/projects/${page.data.project.id}/explorer`
@@ -19,7 +19,7 @@
   >
 
   <a
-    href="/projects/{page.data.project.id}/explorer"
+    href={`/projects/${page.data.project.id}/explorer`}
     class="btn btn-sm"
     class:btn-light={page.url.pathname.startsWith(
       `/projects/${page.data.project.id}/explorer`

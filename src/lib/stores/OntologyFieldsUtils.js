@@ -1,9 +1,13 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
 
-export const getOntologyFields = async (page, pageSize) => {
-    // Assuming 'ontology_fields' is the section and 'list' is the operation
-    const params = {};
+export const getOntologyFields = async (projectId, page, pageSize) => {
+    // Require projectId for project-specific ontology fields
+    if (!projectId) {
+        throw new Error('Project ID is required to fetch ontology fields');
+    }
+
+    const params = { projectId };
     if (page !== undefined) params.page = page;
     if (pageSize !== undefined) params.pageSize = pageSize;
     const response = await executeQuery('ontology_fields', 'list', params);
@@ -17,8 +21,13 @@ export const getOntologyFieldById = async (fieldId) => {
 };
 
 export const createOntologyField = async (fieldData) => {
-    // Assuming 'ontology_fields' is the section and 'create' is the operation
+    // Ensure projectId is provided for project-specific ontology fields
+    if (!fieldData.projectId) {
+        throw new Error('Project ID is required to create ontology fields');
+    }
+
     const result = await executeQuery('ontology_fields', 'create', fieldData);
+    invalidate("app:ontology_fields");
     return result;
 };
 

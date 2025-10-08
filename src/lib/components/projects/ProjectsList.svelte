@@ -4,7 +4,7 @@
   import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
   import ProjectChip from "$lib/components/projects//ProjectChip.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { formatDate } from "$lib/utils/dates";
+  import { goto } from "$app/navigation";
 
   const { projects = [] } = $props();
   const { t, translationState } = getTranslationStore();
@@ -16,12 +16,29 @@
     projects.filter(
       (project) =>
         project.title.content.toLowerCase().includes(search.toLowerCase()) ||
-        project.description.content.toLowerCase().includes(search.toLowerCase())
-    )
+        project.description.content
+          .toLowerCase()
+          .includes(search.toLowerCase()),
+    ),
   );
 
   function openNewProjectModal() {
     newProjectOpen = true;
+  }
+
+  async function handleCreated({ projectId }) {
+    // Close modal
+    newProjectOpen = false;
+    if (!projectId) {
+      console.warn('[ProjectsList] Missing projectId in handleCreated');
+      return;
+    }
+    const path = `/projects/${projectId}`;
+    try {
+      await goto(path);
+    } catch (err) {
+      console.error('[ProjectsList] Navigation failed', err);
+    }
   }
 </script>
 
@@ -62,7 +79,7 @@
     {t("project.create-project", { fallback: "Create a new project" })}
   {/snippet}
   {#snippet description()}
-    <ProjectCreate></ProjectCreate>
+    <ProjectCreate onCreated={handleCreated}></ProjectCreate>
   {/snippet}
 </BaseAlertDialog>
 

@@ -7,7 +7,7 @@ export async function load({ params, depends, parent }) {
 
     depends("app:ontology_fields");
 
-    const ontologyFieldsResponse = await getOntologyFields();
+    const ontologyFieldsResponse = await getOntologyFields(params.project_id);
 
     return {
         ontologyFields: ontologyFieldsResponse.result || []

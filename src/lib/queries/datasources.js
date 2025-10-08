@@ -80,6 +80,14 @@ export const datasourcesOperations = {
       updated_at
       institution_id
       template_id
+      template {
+        id
+        mapping
+        project_id
+        asset_map_rule
+        created_at
+        updated_at
+      }
       language
       copyright
       contact
@@ -87,6 +95,7 @@ export const datasourcesOperations = {
       name {
         content
         translations {
+          id
           language { code }
           content
         }
@@ -94,6 +103,7 @@ export const datasourcesOperations = {
       method {
         content
         translations {
+          id
           language { code }
           content
         }
@@ -101,12 +111,94 @@ export const datasourcesOperations = {
       notes {
         content
         translations {
+          id
           language { code }
           content
         }
       }
     }
   }`
+  },
+
+  // OBJECTS BY DATASOURCE (distinct list linked to a datasource)
+  objectsByDatasource: {
+    type: "query",
+    name: "Objects By Datasource",
+    description: "Retrieves a distinct, paginated list of objects linked to a specific datasource, with optional project/institution/status filters and sorting.",
+    variables: {
+      datasourceId: "ID of the datasource to filter by (required)",
+      projectId: "Optional ID of project to filter by",
+      institutionId: "Optional ID of institution to filter by",
+      status: "Optional status to filter objects by",
+      page: "Optional page number for pagination (0-based, default 0)",
+      pageSize: "Optional number of items per page (default 10)",
+      orderBy: "Optional field to order by (created_at, updated_at, status; default created_at)",
+      direction: "Optional sort direction (asc or desc; default desc)"
+    },
+    query: `query ObjectsByDatasource(
+  $datasourceId: String!
+  $projectId: String
+  $institutionId: String
+  $status: String
+  $page: Int
+  $pageSize: Int
+  $orderBy: String
+  $direction: String
+  ) {
+    result: objectsByDatasource(
+    datasource_id: $datasourceId
+    project_id: $projectId
+    institution_id: $institutionId
+    status: $status
+    page: $page
+    pageSize: $pageSize
+    orderBy: $orderBy
+    direction: $direction
+  ) {
+    items {
+      id
+      status
+      created_at
+      updated_at
+      institution_id
+      project_id
+      institution {
+        id
+        name { content }
+      }
+      project {
+        id
+        title { content }
+      }
+      objectsAssets {
+        order
+        asset {
+          id
+          filename
+          formats
+          path
+          type
+        }
+      }
+      objectsOntologyFields {
+        id
+        value
+        primary
+        default_description
+        ontologyField { id name { content } }
+      }
+      objectsResearchFields {
+        id
+        value
+        vocabulary_id
+        researchField { id name { content } }
+        vocabulary { id option { content } }
+      }
+      displayFields
+    }
+    totalCount
+  }
+}`
   },
 
   // CREATE
@@ -164,7 +256,7 @@ export const datasourcesOperations = {
       },
       {
         name: "createNotesText",
-        query: `mutation CreateDatasourceNotes($notes: String!, $languageId: String!) {
+        query: `mutation ($notes: String!, $languageId: String!) {
   insertIntoTexts(
     values: [
       {
@@ -227,8 +319,7 @@ export const datasourcesOperations = {
           methodId: { from: "createMethodText", path: "insertIntoTexts.0.id" },
           notesId: { from: "createNotesText", path: "insertIntoTexts.0.id" }
         }
-      }
-      ,
+  },
       // === TRANSLATION PROCESSING STEPS AFTER CREATE ===
       {
         name: "processNameTranslations",
@@ -301,7 +392,7 @@ export const datasourcesOperations = {
 }`,
         useVariables: ["name"],
         mapVariables: { nameId: { from: "getDatasource", path: "datasources.0.name_id" } },
-        skipIf: { variableName: "nameId", isUndefined: true }
+        skipIf: { variableName: "name", isUndefined: true }
       },
       {
         name: "updateMethod",
@@ -312,22 +403,13 @@ export const datasourcesOperations = {
 }`,
         useVariables: ["method"],
         mapVariables: { methodId: { from: "getDatasource", path: "datasources.0.method_id" } },
-        skipIf: { variableName: "methodId", isUndefined: true }
+        skipIf: { variableName: "method", isUndefined: true }
       },
       // Create method text if missing and a method value is provided
       {
-        name: "getDefaultLanguageForMethod",
-        query: `query GetDefaultLanguage($nameId: String!) {\n  texts(where: { id: { eq: $nameId } }) {\n    original_language_id\n  }\n}`,
-        useVariables: ["method"],
-        mapVariables: { nameId: { from: "getDatasource", path: "datasources.0.name_id" } },
-        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: true },
-        skipIf: { variableName: "method", isUndefined: true }
-      },
-      {
         name: "createMethodTextOnUpdate",
-        query: `mutation CreateDatasourceMethod($method: String!, $languageId: String!) {\n  insertIntoTexts(\n    values: [\n      {\n        content: $method\n        context: \"datasources.method\"\n        original_language_id: $languageId\n      }\n    ]\n  ) {\n    id\n  }\n}`,
-        useVariables: ["method"],
-        mapVariables: { languageId: { from: "getDefaultLanguageForMethod", path: "texts.0.original_language_id" } },
+        query: `mutation ($method: String!, $languageId: String!) {\n  insertIntoTexts(\n    values: [\n      {\n        content: $method\n        context: \"datasources.method\"\n        original_language_id: $languageId\n      }\n    ]\n  ) {\n    id\n  }\n}`,
+        useVariables: ["method", "languageId"],
         onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: true },
         skipIf: { variableName: "method", isUndefined: true }
       },
@@ -335,20 +417,9 @@ export const datasourcesOperations = {
         name: "updateMethodId",
         query: `mutation UpdateDatasourceMethodId($datasourceId: String!, $methodId: String!) {\n  updateDatasources(\n    set: { method_id: $methodId }\n    where: { id: { eq: $datasourceId } }\n  ) {\n    id\n    method_id\n  }\n}`,
         useVariables: ["datasourceId"],
-        mapVariables: { methodId: { from: "createMethodTextOnUpdate", path: "insertIntoTexts.0.id" } },
-        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: true }
-      },
-      {
-        name: "getDefaultLanguage",
-        query: `query GetDefaultLanguage($nameId: String!) {
-  texts(where: { id: { eq: $nameId } }) {
-    original_language_id
-  }
-}`,
-        useVariables: [],
-        mapVariables: { nameId: { from: "getDatasource", path: "datasources.0.name_id" } },
-        onlyIf: { from: "getDatasource", path: "datasources.0.notes_id", isNull: true },
-        skipIf: { variableName: "notes", isUndefined: true }
+        mapVariables: { methodId: { from: "createMethodTextOnUpdate", path: "insertIntoTexts.0.id", skipIfUndefined: true } },
+        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: true },
+        skipIf: { variableName: "methodId", isUndefined: true }
       },
       {
         name: "createNotesText",
@@ -365,8 +436,7 @@ export const datasourcesOperations = {
     id
   }
 }`,
-        useVariables: ["notes"],
-        mapVariables: { languageId: { from: "getDefaultLanguage", path: "texts.0.original_language_id" } },
+        useVariables: ["notes", "languageId"],
         onlyIf: { from: "getDatasource", path: "datasources.0.notes_id", isNull: true },
         skipIf: { variableName: "notes", isUndefined: true }
       },
@@ -382,8 +452,9 @@ export const datasourcesOperations = {
   }
 }`,
         useVariables: ["datasourceId"],
-        mapVariables: { notesId: { from: "createNotesText", path: "insertIntoTexts.0.id" } },
-        onlyIf: { from: "getDatasource", path: "datasources.0.notes_id", isNull: true }
+        mapVariables: { notesId: { from: "createNotesText", path: "insertIntoTexts.0.id", skipIfUndefined: true } },
+        onlyIf: { from: "getDatasource", path: "datasources.0.notes_id", isNull: true },
+        skipIf: { variableName: "notesId", isUndefined: true }
       },
       {
         name: "updateNotes",
@@ -438,15 +509,17 @@ export const datasourcesOperations = {
         processTranslations: {
           textIdPath: "getDatasource.datasources.0.name_id",
           translationsParam: "nameTranslations"
-        }
+        },
+        skipIf: { variableName: "nameTranslations", isUndefined: true }
       },
       {
-        name: "processMethodTranslations",
+        name: "processMethodTranslationsExisting",
         processTranslations: {
           textIdPath: "getDatasource.datasources.0.method_id",
           translationsParam: "methodTranslations"
         },
-        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: false }
+        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: false },
+        skipIf: { variableName: "methodTranslations", isUndefined: true }
       },
       {
         name: "processMethodTranslationsNew",
@@ -454,14 +527,26 @@ export const datasourcesOperations = {
           textIdPath: "createMethodTextOnUpdate.insertIntoTexts.0.id",
           translationsParam: "methodTranslations"
         },
-        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: true }
+        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: true },
+        skipIf: { variableName: "methodTranslations", isUndefined: true }
       },
       {
-        name: "processNotesTranslations",
+        name: "processNotesTranslationsExisting",
         processTranslations: {
           textIdPath: "getDatasource.datasources.0.notes_id",
           translationsParam: "notesTranslations"
-        }
+        },
+        onlyIf: { from: "getDatasource", path: "datasources.0.notes_id", isNull: false },
+        skipIf: { variableName: "notesTranslations", isUndefined: true }
+      },
+      {
+        name: "processNotesTranslationsNew",
+        processTranslations: {
+          textIdPath: "createNotesText.insertIntoTexts.0.id",
+          translationsParam: "notesTranslations"
+        },
+        onlyIf: { from: "getDatasource", path: "datasources.0.notes_id", isNull: true },
+        skipIf: { variableName: "notesTranslations", isUndefined: true }
       }
     ],
     query: null
@@ -562,4 +647,4 @@ export const datasourcesOperations = {
     ],
     query: null
   }
-}; 
+};

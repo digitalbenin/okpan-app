@@ -5,6 +5,10 @@ import path from 'path';
 import net from 'net';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import database and schema
 import { db } from '../db/init.js';
@@ -21,6 +25,8 @@ import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.j
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { eq, sql, isNull } from 'drizzle-orm';
+import { handleExportProject } from './handlers/exportHandlers.js';
+import { handleListLanguages } from './handlers/languagesHandlers.js';
 
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
@@ -47,6 +53,12 @@ ipcMain.handle('import-assets', (event, data) =>
 ipcMain.handle('open-file-dialog', handleFileDialog);
 ipcMain.handle('import-structured-data', handleStructuredDataImport);
 ipcMain.handle('excel-sheet-selection', handleExcelSheetSelection);
+ipcMain.handle('languages:list', handleListLanguages);
+
+// New generic export channel supports { format: 'sql' | 'json', ... }
+ipcMain.handle('export-project', (event, options) =>
+  handleExportProject(event, options, { db })
+);
 
 // Project cache handlers
 ipcMain.handle('set-current-project', handleSetCurrentProject);
@@ -138,10 +150,36 @@ ipcMain.handle('read-file', async (event, filePath) => {
   }
 });
 
+ipcMain.on('open-preview', (event, projectId) => {
+  const previewWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      preload: path.join(import.meta.dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  // Se stai usando il dev server:
+  previewWindow.loadURL(`http://localhost:5174?project_id=${projectId}`);
+});
+
 // Register protocol
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'media',
+    privileges: {
+      secure: true,
+      standard: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+      corsEnabled: true,
+      stream: true
+    }
+  },
+  {
+    scheme: 'website',
     privileges: {
       secure: true,
       standard: true,
@@ -208,7 +246,7 @@ const createWindow = () => {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data: 'unsafe-inline'; img-src * 'self' data: media:"
+          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data: 'unsafe-inline'; img-src * 'self' data: media:"
         ]
       }
     });
@@ -245,6 +283,32 @@ app.whenReady().then(() => {
     }
   });
 
+  // Serve SPA build via custom website:// protocol
+  protocol.registerFileProtocol('website', (request, callback) => {
+    try {
+      const url = new URL(request.url);
+      const pathname = decodeURIComponent(url.pathname).replace(/^\//, '');
+      const buildDir = path.join(process.cwd(), 'src', 'website', 'build');
+
+      let filePath;
+      if (!pathname || pathname === '' || pathname === '200.html') {
+        filePath = path.join(buildDir, '200.html');
+      } else {
+        filePath = path.join(buildDir, pathname);
+      }
+
+      if (fs.existsSync(filePath)) {
+        callback({ path: filePath });
+      } else {
+        // Fallback to 200.html for client-side routing
+        callback({ path: path.join(buildDir, '200.html') });
+      }
+    } catch (error) {
+      console.error('Website protocol error:', error);
+      callback({ error: -2 });
+    }
+  });
+
   createWindow();
 });
 
@@ -260,6 +324,8 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.

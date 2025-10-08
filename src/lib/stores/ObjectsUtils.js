@@ -1,6 +1,6 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
-import { invalidate } from "$app/navigation";
+import { invalidate, invalidateAll } from "$app/navigation";
 
 // Get validation store
 const { getSchema, validate } = getValidationStore();
@@ -8,6 +8,7 @@ const { getSchema, validate } = getValidationStore();
 
 export const getObjects = async (options) => {
     const result = await executeQuery('objects', 'list', options);
+    console.log(result, "result")
     if (result && result.result) {
         return { items: result.result.items || [], totalCount: result.result.totalCount || 0 };
     }
@@ -17,7 +18,15 @@ export const getObjects = async (options) => {
 
 // Function to search objects with advanced filtering and faceted results
 export const searchObjects = async (options) => {
-    const result = await executeQuery('object_search', 'search', options);
+    // Ensure payload is JSON-serializable for IPC/structured clone
+    let safeOptions;
+    try {
+        safeOptions = JSON.parse(JSON.stringify(options ?? {}));
+    } catch (e) {
+        console.warn('Failed to serialize search options, falling back to shallow copy', e);
+        safeOptions = { ...(options || {}) };
+    }
+    const result = await executeQuery('object_search', 'search', safeOptions);
     if (result && result.result) {
         return {
             items: result.result.items || [],
@@ -64,6 +73,44 @@ export const getObjectById = async (objectId) => {
     return { result: result.result[0], error: null };
 };
 
+export const createObject = async (
+    projectId,
+    institutionId,
+    status = "draft"
+) => {
+    if (!projectId || !institutionId) {
+        return { error: "Invalid project ID or institution ID for createObject" };
+    }
+
+    const response = await executeQuery("objects", "create", {
+        projectId,
+        institutionId,
+        status,
+    });
+
+    if (response.error) {
+        return { error: response.error };
+    }
+
+    // Extract the result data
+    let resultData = null;
+    if (
+        response.insertIntoObjects &&
+        Array.isArray(response.insertIntoObjects) &&
+        response.insertIntoObjects.length > 0
+    ) {
+        resultData = response.insertIntoObjects[0];
+    }
+
+    // Invalidate caches to reflect the change
+    invalidate("app:objects");
+
+    return {
+        result: resultData,
+        error: null,
+    };
+};
+
 // Function to update object status
 export const updateObjectStatus = async (objectId, status) => {
     if (!objectId) {
@@ -88,10 +135,86 @@ export const updateObjectStatus = async (objectId, status) => {
     if (response.updateObjects && Array.isArray(response.updateObjects) && response.updateObjects.length > 0) {
         resultData = response.updateObjects[0];
     }
-    // invalidate("app:objects");
+    // Invalidate caches to ensure UI reflects status changes immediately
+    invalidate("app:objects");
+    invalidate("custom:object");
+    // Also invalidate institution-specific listings so institution pages refresh
+    invalidate("app:institution");
 
     return {
         result: resultData || { id: objectId, status: status },
+        error: null
+    };
+};
+
+// Bulk update objects status
+export const updateObjectsStatusBulk = async (objectIds, status) => {
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { error: "No objects selected for status update" };
+    }
+    if (!status) {
+        return { error: "No status provided for bulk update" };
+    }
+
+    const promises = objectIds.map((objectId) =>
+        executeQuery('objects', 'update', { objectId, status })
+    );
+
+    const settled = await Promise.allSettled(promises);
+    const successes = [];
+    const errors = [];
+
+    settled.forEach((res, idx) => {
+        const id = objectIds[idx];
+        if (res.status === 'fulfilled' && !res.value?.error) {
+            successes.push(id);
+        } else {
+            const errMsg = res.status === 'rejected'
+                ? (res.reason?.message || 'Unknown error')
+                : (res.value?.error || 'Unknown error');
+            errors.push({ objectId: id, error: errMsg });
+        }
+    });
+
+    // Invalidate caches so listings and detail pages reflect status changes
+    invalidate("app:objects");
+    invalidate("custom:object");
+    // Also invalidate institution listings used by institution page loaders
+    invalidate("app:institution");
+
+    return { successes, errors };
+};
+
+// Add: Function to update object's institution
+export const updateObjectInstitution = async (objectId, institutionId) => {
+    if (!objectId) {
+        return { error: "Invalid object ID for institution update" };
+    }
+
+    if (!institutionId) {
+        return { error: "Invalid institution ID for update" };
+    }
+
+    const response = await executeQuery('objects', 'update', {
+        objectId,
+        institutionId
+    });
+
+    if (response?.error) {
+        return { error: response.error };
+    }
+
+    let resultData = null;
+    if (response.updateObjects && Array.isArray(response.updateObjects) && response.updateObjects.length > 0) {
+        resultData = response.updateObjects[0];
+    }
+
+    // Invalidate caches to reflect the change (object details and listings)
+    invalidate("app:objects");
+    invalidate("custom:object");
+
+    return {
+        result: resultData || { id: objectId, institution_id: institutionId },
         error: null
     };
 };
@@ -106,33 +229,58 @@ export const updateObjectResearchFields = async (objectId, changes) => {
     const errors = [];
 
     for (const change of changes) {
-        // Skip invalid changes
-        if (!change.id) {
-            errors.push("Change missing field ID");
+        let response;
+
+        // If change.action is 'delete', remove the research field record
+        if (change.action === 'delete' && change.id) {
+            const params = {
+                recordId: change.id
+            };
+
+            response = await executeQuery('objects', 'objectRemoveResearchField', params);
+        }
+        // If change.id exists, it's an update to existing objects_research_fields record
+        else if (change.id) {
+            const params = {
+                objectId: objectId,
+                fieldId: change.id,
+                value: change.value,
+                vocabularyId: change.vocabularyId
+            };
+
+            response = await executeQuery('objects', 'objectUpdateResearchField', params);
+        }
+        // If change.id is null/undefined, it's a new assignment
+        else if (change.fieldId) {
+            const params = {
+                objectId: objectId,
+                fieldId: change.fieldId,
+                value: change.value,
+                vocabularyId: change.vocabularyId
+            };
+
+            response = await executeQuery('objects', 'objectAssignResearchField', params);
+        } else {
+            errors.push("Change missing both record ID and field ID");
             continue;
         }
 
-        const params = {
-            objectId: objectId,
-            fieldId: change.id,
-            value: change.value,
-            vocabularyId: change.vocabularyId
-        };
-
-        const response = await executeQuery('objects', 'objectUpdateResearchField', params);
-
         if (response && response.error) {
-            errors.push(`Failed to update field ${change.id}: ${response.error}`);
+            errors.push(`Failed to process field change: ${response.error}`);
         } else {
             let fieldResult = null;
             if (response.result && Array.isArray(response.result) && response.result.length > 0) {
                 // Handle the case where the result is directly in an array under response.result
                 fieldResult = response.result[0];
             } else {
-                // Fallback to previous checks if the structure is different (less likely now)
+                // Fallback to previous checks if the structure is different
                 fieldResult = response.result?.updateObjects_research_fields ||
+                    response.result?.insertIntoObjects_research_fields?.[0] ||
+                    response.result?.deleteFromObjects_research_fields?.[0] ||
                     response.result?.result ||
                     response.updateObjects_research_fields ||
+                    response.insertIntoObjects_research_fields?.[0] ||
+                    response.deleteFromObjects_research_fields?.[0] ||
                     null;
             }
 
@@ -140,7 +288,7 @@ export const updateObjectResearchFields = async (objectId, changes) => {
                 results.push(fieldResult);
             } else {
                 // If no result data but no explicit error, create a minimal result object
-                results.push({ id: change.id, value: change.value });
+                results.push({ id: change.id || change.fieldId, value: change.value });
             }
         }
     }
@@ -157,6 +305,7 @@ export const updateObjectResearchFields = async (objectId, changes) => {
     return { results, error: null };
 };
 
+
 // Function to delete an object
 export const deleteObject = async (objectId) => {
     if (!objectId) {
@@ -166,6 +315,46 @@ export const deleteObject = async (objectId) => {
     const result = await executeQuery('objects', 'delete', { objectId });
     invalidate("app:objects");
     return result;
+};
+
+// Bulk delete objects
+export const deleteObjectsBulk = async (objectIds) => {
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { error: "No objects selected for deletion" };
+    }
+
+    const promises = objectIds.map((objectId) =>
+        executeQuery('objects', 'delete', { objectId })
+    );
+
+    const settled = await Promise.allSettled(promises);
+    const successes = [];
+    const errors = [];
+
+    settled.forEach((res, idx) => {
+        const id = objectIds[idx];
+        if (res.status === 'fulfilled' && !res.value?.error) {
+            successes.push(id);
+        } else {
+            const errMsg = res.status === 'rejected'
+                ? (res.reason?.message || 'Unknown error')
+                : (res.value?.error || 'Unknown error');
+            errors.push({ objectId: id, error: errMsg });
+        }
+    });
+
+    // Invalidate caches to reflect deletions
+    invalidate("app:objects");
+    try {
+        // Best-effort: fully refresh route data if available
+        if (typeof invalidateAll === 'function') {
+            await invalidateAll();
+        }
+    } catch (_) {
+        // ignore
+    }
+
+    return { successes, errors };
 };
 
 // Function to unlink an asset from an object
@@ -197,4 +386,172 @@ export const importObjectsAndTemplate = async (params) => {
     }
 
     return result;
+};
+
+// Function to update asset order in objects_assets table
+export const updateAssetOrder = async (objectId, assetId, order) => {
+    if (!objectId || !assetId || order === undefined) {
+        return { error: "Invalid parameters for updateAssetOrder" };
+    }
+
+    const result = await executeQuery('objects', 'updateAssetOrder', {
+        objectId,
+        assetId,
+        order
+    });
+
+    if (result.error) {
+        return { error: result.error };
+    }
+
+    // Invalidate caches to reflect the change
+    invalidate("app:objects");
+    invalidate("custom:object");
+
+    return { result: result.updateObjects_assets, error: null };
+};
+
+// Function to reorder multiple assets at once
+export const reorderAssets = async (objectId, assetOrders) => {
+    if (!objectId || !assetOrders || assetOrders.length === 0) {
+        return { error: "Invalid parameters for reorderAssets" };
+    }
+
+    try {
+        const updatePromises = assetOrders.map(({ assetId, order }) =>
+            updateAssetOrder(objectId, assetId, order)
+        );
+
+        const results = await Promise.all(updatePromises);
+
+        // Check for errors
+        const errors = results.filter(result => result.error);
+        if (errors.length > 0) {
+            return { error: errors.map(e => e.error).join("; ") };
+        }
+
+        return { results: results.map(r => r.result), error: null };
+    } catch (error) {
+        return { error: `Failed to reorder assets: ${error.message}` };
+    }
+};
+
+// Function to link an asset to an object
+export const linkAssetToObject = async (objectId, assetId, order) => {
+    if (!objectId || !assetId) {
+        return { error: "Invalid objectId or assetId for linkAssetToObject" };
+    }
+
+    // Attempt insert; rely on DB unique constraint to prevent duplicates
+    const result = await executeQuery('objects', 'addAsset', { objectId, assetId, order });
+
+    if (result?.error) {
+        const msg = typeof result.error === 'string' ? result.error : (result.error?.message || '');
+        if (/UNIQUE|already\s*linked|exists|duplicate/i.test(msg)) {
+            return { result: null, error: null, skipped: true };
+        }
+        return { error: result.error };
+    }
+
+    // Invalidate caches to reflect the change
+    invalidate("app:objects");
+    invalidate("app:assets");
+    invalidate("custom:object");
+
+    return { result: result.insertIntoObjects_assets, error: null };
+};
+
+// Bulk, additive linking of multiple assets to multiple objects
+// Skips duplicates (unique object-asset pairs) gracefully
+export const linkAssetsToObjectsBulk = async (assetIds, objectIds, { order } = {}) => {
+    // Validate inputs
+    if (!Array.isArray(assetIds) || assetIds.length === 0) {
+        return { successes: [], skippedDuplicates: [], errors: [{ error: "No assets selected for linking" }] };
+    }
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { successes: [], skippedDuplicates: [], errors: [{ error: "No objects selected for linking" }] };
+    }
+
+    const successes = [];
+    const skippedDuplicates = [];
+    const errors = [];
+
+    // Perform additive linking across all combinations, rely on DB unique constraint
+    for (const assetId of assetIds) {
+        for (const objectId of objectIds) {
+            const oid = String(objectId);
+            const aid = String(assetId);
+            try {
+                const res = await executeQuery('objects', 'addAsset', { objectId: oid, assetId: aid, order });
+                if (res?.error) {
+                    const msg = typeof res.error === 'string' ? res.error : (res.error?.message || '');
+                    if (/UNIQUE|already\s*linked|exists|duplicate/i.test(msg)) {
+                        skippedDuplicates.push({ objectId: oid, assetId: aid });
+                        continue;
+                    }
+                    errors.push({ objectId: oid, assetId: aid, error: res.error });
+                    continue;
+                }
+                successes.push({ objectId: oid, assetId: aid });
+            } catch (e) {
+                const msg = e?.message || e;
+                if (/UNIQUE|already\s*linked|exists|duplicate/i.test(msg)) {
+                    skippedDuplicates.push({ objectId: oid, assetId: aid });
+                    continue;
+                }
+                errors.push({ objectId: oid, assetId: aid, error: msg });
+            }
+        }
+    }
+
+    // Consolidated invalidation to refresh listings and detail pages
+    invalidate("app:objects");
+    invalidate("app:assets");
+    invalidate("custom:object");
+    try {
+        if (typeof invalidateAll === 'function') {
+            await invalidateAll();
+        }
+    } catch (_) {
+        // ignore
+    }
+
+    return { successes, skippedDuplicates, errors };
+};
+
+// Bulk update objects institution
+export const updateObjectsInstitutionBulk = async (objectIds, institutionId) => {
+    if (!Array.isArray(objectIds) || objectIds.length === 0) {
+        return { error: "No objects selected for institution update" };
+    }
+    if (!institutionId) {
+        return { error: "No institution provided for bulk update" };
+    }
+
+    const promises = objectIds.map((objectId) =>
+        executeQuery('objects', 'update', { objectId, institutionId })
+    );
+
+    const settled = await Promise.allSettled(promises);
+    const successes = [];
+    const errors = [];
+
+    settled.forEach((res, idx) => {
+        const id = objectIds[idx];
+        if (res.status === 'fulfilled' && !res.value?.error) {
+            successes.push(id);
+        } else {
+            const errMsg = res.status === 'rejected'
+                ? (res.reason?.message || 'Unknown error')
+                : (res.value?.error || 'Unknown error');
+            errors.push({ objectId: id, error: errMsg });
+        }
+    });
+
+    // Invalidate caches so listings and detail pages reflect institution changes
+    invalidate("app:objects");
+    invalidate("custom:object");
+    invalidate("app:institution");
+
+    return { successes, errors };
 };

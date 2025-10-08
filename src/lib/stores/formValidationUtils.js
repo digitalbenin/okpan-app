@@ -715,3 +715,91 @@ registerCustomValidator('research_fields', 'vocabularies', {
     required: false,
     defaultValue: []
 });
+
+// =============================================================================
+// WEBSITE SETTINGS VALIDATORS
+// =============================================================================
+
+// Project ID validator - required field for website settings
+registerCustomValidator('websiteSettings', 'projectId', {
+    validator: () => z.string().min(1, 'Project ID is required'),
+    required: true,
+    defaultValue: ''
+});
+
+// Language ID validator - required field for text creation
+registerCustomValidator('websiteSettings', 'languageId', {
+    validator: () => z.string().optional(),
+    required: false,
+    defaultValue: ''
+});
+
+// Title validator - required field
+registerCustomValidator('websiteSettings', 'title', {
+    validator: () => z.string().optional(),
+    required: false,
+    defaultValue: ''
+});
+
+// About validator - optional field
+registerCustomValidator('websiteSettings', 'about', {
+    validator: () => z.string().optional(),
+    required: false,
+    defaultValue: ''
+});
+
+// Authors validator - optional field
+registerCustomValidator('websiteSettings', 'authors', {
+    validator: () => z.string().optional(),
+    required: false,
+    defaultValue: ''
+});
+
+// Subfolder path validator - optional field with path validation
+registerCustomValidator('websiteSettings', 'subfolderPath', {
+    validator: () => z.string().refine((val) => {
+        // Allow empty strings, but if provided, must be valid path format
+        const trimmedVal = val?.trim() || '';
+        if (!trimmedVal) {
+            return true; // Empty is allowed since field is optional
+        }
+        // Basic path validation - no spaces, special chars except hyphens and underscores
+        const pathRegex = /^[a-zA-Z0-9\-_\/]*$/;
+        return pathRegex.test(trimmedVal);
+    }, 'Must be a valid path (letters, numbers, hyphens, underscores, and forward slashes only)'),
+    required: false,
+    defaultValue: ''
+});
+
+// Show unmapped validator - boolean field
+registerCustomValidator('websiteSettings', 'showUnmapped', {
+    validator: () => z.boolean().optional(),
+    required: false,
+    defaultValue: false
+});
+
+// Logo file validator - optional file upload
+registerCustomValidator('websiteSettings', 'logoFile', {
+    validator: () => z.any().optional(), // File object or null
+    required: false,
+    defaultValue: null
+});
+
+// Translation arrays for multilingual support
+registerCustomValidator('websiteSettings', 'titleTranslations', {
+    validator: () => z.array(z.object({
+        languageId: z.string().min(1, 'Language ID is required'),
+        content: z.string().min(1, 'Translation content is required')
+    })).optional(),
+    required: false,
+    defaultValue: []
+});
+
+registerCustomValidator('websiteSettings', 'aboutTranslations', {
+    validator: () => z.array(z.object({
+        languageId: z.string().min(1, 'Language ID is required'),
+        content: z.string().optional()
+    })).optional(),
+    required: false,
+    defaultValue: []
+});

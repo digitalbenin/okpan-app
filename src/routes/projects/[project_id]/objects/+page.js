@@ -29,8 +29,10 @@ export const load = async ({ params, depends, url }) => {
         searchField: searchField
     }
 
+    console.log(options, "options")
     // Load all data in parallel
     const objectsData = await getObjects(options)
+
 
     const res = {
         objects: objectsData,

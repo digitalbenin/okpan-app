@@ -10,6 +10,7 @@ const { getAvaliableLocalesForProject, setProjectLanguages } = getContentLanguag
 export const load = async ({ params, depends }) => {
     if (!browser) return;
     depends('app:project-shared');
+    depends('app:projects');
 
     // Cache the current project ID in backend for optimized GraphQL queries
     try {
@@ -21,7 +22,7 @@ export const load = async ({ params, depends }) => {
     const project = await getProject(params.project_id);
     const displayFields = await getDisplayFields({ projectId: params.project_id });
     const researchFields = await getResearchFields(params.project_id);
-    const ontologyFields = await getOntologyFields()
+    const ontologyFields = await getOntologyFields(params.project_id)
     const languages = await getAvaliableLocalesForProject(params.project_id);
     setProjectLanguages(languages);
 

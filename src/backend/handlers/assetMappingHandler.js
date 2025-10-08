@@ -13,15 +13,9 @@ async function getObjectsDetails(objectIds) {
         return [];
     }
 
-    const institutionNameTexts = aliasedTable(dbSchema.texts, 'institution_name_texts_obj_details');
-    const institutionNameTranslations = aliasedTable(dbSchema.translations, 'institution_name_translations_obj_details');
+    const ontologyFieldsQuery = sql`(SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'primary', oof."primary", 'default_description', oof.default_description, 'ontology_field_name_id', ot.name_id, 'ontology_field_name_content', ot_name_texts.content )) FROM ${dbSchema.objects_ontology_fields} oof LEFT JOIN ${dbSchema.ontology_fields} ot ON oof.field_id = ot.id LEFT JOIN ${dbSchema.texts} ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = ${dbSchema.objects.id})`;
 
-    const projectTitleTexts = aliasedTable(dbSchema.texts, 'project_title_texts_obj_details');
-    const projectTitleTranslations = aliasedTable(dbSchema.translations, 'project_title_translations_obj_details');
-
-    const ontologyFieldsQuery = sql`(SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'primary', oof."primary", 'default_description', oof.default_description, 'ontology_field_name_id', ot.name_id, 'ontology_field_name_content', ot_name_texts.content )) FROM ${dbSchema.objects_ontology_fields} oof JOIN ${dbSchema.ontology_fields} ot ON oof.field_id = ot.id JOIN ${dbSchema.texts} ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = ${dbSchema.objects.id})`;
-
-    const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content )) FROM ${dbSchema.objects_research_fields} orf JOIN ${dbSchema.research_fields} rf ON orf.field_id = rf.id JOIN ${dbSchema.texts} rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN ${dbSchema.vocabularies} v ON orf.vocabulary_id = v.id LEFT JOIN ${dbSchema.texts} v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = ${dbSchema.objects.id})`;
+    const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content )) FROM ${dbSchema.objects_research_fields} orf LEFT JOIN ${dbSchema.research_fields} rf ON orf.field_id = rf.id LEFT JOIN ${dbSchema.texts} rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN ${dbSchema.vocabularies} v ON orf.vocabulary_id = v.id LEFT JOIN ${dbSchema.texts} v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = ${dbSchema.objects.id})`;
 
     let query = db.select({
         id: dbSchema.objects.id,
@@ -31,32 +25,14 @@ async function getObjectsDetails(objectIds) {
         institution_id: dbSchema.objects.institution_id,
         project_id: dbSchema.objects.project_id,
 
-        inst_id: dbSchema.institutions.id,
-        inst_name_text_id: institutionNameTexts.id,
-        inst_name_text_content: institutionNameTexts.content,
-        inst_name_text_original_language_id: institutionNameTexts.original_language_id,
-        inst_name_translations: sql`json_group_array(json_object('id', ${institutionNameTranslations.id}, 'language_id', ${institutionNameTranslations.language_id}, 'content', ${institutionNameTranslations.content}))`.append(sql`FILTER (WHERE ${institutionNameTranslations.id} IS NOT NULL)`).as('inst_name_translations_json'),
-
-        proj_id: dbSchema.project.id,
-        proj_title_text_id: projectTitleTexts.id,
-        proj_title_text_content: projectTitleTexts.content,
-        proj_title_text_original_language_id: projectTitleTexts.original_language_id,
-        proj_title_translations: sql`json_group_array(json_object('id', ${projectTitleTranslations.id}, 'language_id', ${projectTitleTranslations.language_id}, 'content', ${projectTitleTranslations.content}))`.append(sql`FILTER (WHERE ${projectTitleTranslations.id} IS NOT NULL)`).as('proj_title_translations_json'),
-
         objects_assets_json: sql`(SELECT json_group_array(json_object('order', oa."order", 'asset_id', oa.asset_id, 'asset_filename', a.filename, 'asset_formats', a.formats, 'asset_path', a.path, 'asset_type', a.type, 'asset_real_id', a.id)) FROM ${dbSchema.objects_assets} oa JOIN ${dbSchema.assets} a ON oa.asset_id = a.id WHERE oa.object_id = ${dbSchema.objects.id})`.as('objects_assets_json'),
         objects_ontology_fields_json: ontologyFieldsQuery.as('objects_ontology_fields_json'),
         objects_research_fields_json: researchFieldsQuery.as('objects_research_fields_json'),
 
     })
         .from(dbSchema.objects)
-        .leftJoin(dbSchema.institutions, eq(dbSchema.objects.institution_id, dbSchema.institutions.id))
-        .leftJoin(institutionNameTexts, eq(dbSchema.institutions.name_id, institutionNameTexts.id))
-        .leftJoin(institutionNameTranslations, eq(institutionNameTexts.id, institutionNameTranslations.text_id))
-        .leftJoin(dbSchema.project, eq(dbSchema.objects.project_id, dbSchema.project.id))
-        .leftJoin(projectTitleTexts, eq(dbSchema.project.title_id, projectTitleTexts.id))
-        .leftJoin(projectTitleTranslations, eq(projectTitleTexts.id, projectTitleTranslations.text_id))
         .where(inArray(dbSchema.objects.id, objectIds))
-        .groupBy(dbSchema.objects.id, dbSchema.institutions.id, institutionNameTexts.id, dbSchema.project.id, projectTitleTexts.id);
+        .groupBy(dbSchema.objects.id);
 
     const rawResults = await query.execute();
 
@@ -145,7 +121,6 @@ async function getObjectsDetails(objectIds) {
             created_at: item.created_at,
             updated_at: item.updated_at,
             status: item.status,
-            institution: institution,
             objectsAssets: objectsAssets,
             objectsOntologyFields: objectsOntologyFields,
             objectsResearchFields: objectsResearchFields,

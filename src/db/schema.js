@@ -1,4 +1,4 @@
-import { integer, text, blob, sqliteTable } from 'drizzle-orm/sqlite-core';
+import { integer, text, blob, sqliteTable, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Common fields configuration for all tables
@@ -115,7 +115,8 @@ export const project = sqliteTable('project', {
     ...commonFields,
     title_id: text('title_id').references(() => texts.id),
     description_id: text('description_id').references(() => texts.id),
-    exports: text('exports', { mode: 'json' })
+    exports: text('exports', { mode: 'json' }),
+    password: text('password')
 });
 
 // Object Display Fields table - stores configuration for how objects are displayed in lists
@@ -132,11 +133,13 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     institutions: many(institutions),
     objects: many(objects),
     researchFields: many(research_fields),
+    ontologyFields: many(ontology_fields),
     settings: one(settings),
     assets: many(assets),
     genericAssets: many(genericAssets),
     languages: many(languages),
     objectDisplayFields: many(object_display_fields),
+    websiteSettings: many(websiteSettings),
     title: one(texts, {
         fields: [project.title_id],
         references: [texts.id]
@@ -309,7 +312,7 @@ export const genericAssetsRelations = relations(genericAssets, ({ one, many }) =
 // Objects table
 export const objects = sqliteTable('objects', {
     ...commonFields,
-    status: text('status'),
+    status: text('status').default('in progress'),
     institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
     project_id: text('project_id').references(() => project.id)
 });
@@ -444,7 +447,7 @@ export const objects_research_fields = sqliteTable('objects_research_fields', {
     ...commonFields,
     object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
     field_id: text('field_id').references(() => research_fields.id, { onDelete: 'cascade' }),
-    vocabulary_id: text('vocabulary_id').references(() => vocabularies.id),
+    vocabulary_id: text('vocabulary_id').references(() => vocabularies.id, { onDelete: 'cascade' }),
     value: text('value')
 });
 
@@ -471,13 +474,18 @@ export const ontology_fields = sqliteTable('ontology_fields', {
     description_id: text('description_id').references(() => texts.id),
     category_id: text('category_id').references(() => texts.id),
     embeddings: text('embeddings'),
-    onwebsite: integer('onwebsite').default(1)
+    onwebsite: integer('onwebsite').default(1),
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' })
 });
 
 // Ontology Fields relations
 export const ontologyFieldsRelations = relations(ontology_fields, ({ many, one }) => ({
     objectsOntologyFields: many(objects_ontology_fields),
     objectDisplayFields: many(object_display_fields),
+    project: one(project, {
+        fields: [ontology_fields.project_id],
+        references: [project.id]
+    }),
     name: one(texts, {
         fields: [ontology_fields.name_id],
         references: [texts.id]
@@ -560,7 +568,9 @@ export const objects_assets = sqliteTable('objects_assets', {
     asset_id: text('asset_id').references(() => assets.id, { onDelete: 'cascade' }),
     object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
     order: integer('order')
-});
+}, (table) => ({
+    objectAssetUnique: uniqueIndex('objects_assets_object_asset_unique').on(table.object_id, table.asset_id)
+}));
 
 // Objects Assets relations
 export const objectsAssetsRelations = relations(objects_assets, ({ one }) => ({
@@ -606,6 +616,18 @@ export const globalSettings = sqliteTable('global_settings', {
         .default(sql`CURRENT_TIMESTAMP`)
 });
 
+// Website Settings table
+export const websiteSettings = sqliteTable('website_settings', {
+    ...commonFields,
+    title_id: text('title_id').references(() => texts.id),
+    about_id: text('about_id').references(() => texts.id),
+    authors: text('authors'),
+    logo_id: text('logo_id').references(() => genericAssets.id),
+    subfolder_path: text('subfolder_path'),
+    show_unmapped: integer('show_unmapped').notNull().default(0), // false by default
+    project_id: text('project_id').references(() => project.id).unique()
+});
+
 export const actionsRelations = relations(actions, ({ one }) => ({
     project: one(project, {
         fields: [actions.project_id],
@@ -614,6 +636,26 @@ export const actionsRelations = relations(actions, ({ one }) => ({
     parentAction: one(actions, {
         fields: [actions.parent_action_id],
         references: [actions.id]
+    })
+}));
+
+// Website Settings relations
+export const websiteSettingsRelations = relations(websiteSettings, ({ one }) => ({
+    project: one(project, {
+        fields: [websiteSettings.project_id],
+        references: [project.id]
+    }),
+    title: one(texts, {
+        fields: [websiteSettings.title_id],
+        references: [texts.id]
+    }),
+    about: one(texts, {
+        fields: [websiteSettings.about_id],
+        references: [texts.id]
+    }),
+    logo: one(genericAssets, {
+        fields: [websiteSettings.logo_id],
+        references: [genericAssets.id]
     })
 }));
 

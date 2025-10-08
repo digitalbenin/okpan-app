@@ -162,6 +162,7 @@ export const objectsOperations = {
       label
       value
       field_id
+      datasources_id
       primary
       default_description
       ontologyField {
@@ -170,6 +171,15 @@ export const objectsOperations = {
           content
         }
         category {
+          content
+        }
+        description {
+          content
+        }
+      }
+      datasource {
+        id
+        name {
           content
         }
       }
@@ -466,6 +476,21 @@ export const objectsOperations = {
     field_id
     value
     vocabulary_id
+  }
+}`
+  },
+  objectRemoveResearchField: {
+    type: "mutation",
+    name: "Remove Research Field Value from Object",
+    description: "Deletes a specific research field record from an object",
+    variables: {
+      recordId: "ID of the objects_research_fields record to delete"
+    },
+    query: `mutation RemoveResearchFieldValue($recordId: String!) {
+  result: deleteFromObjects_research_fields(
+    where: { id: { eq: $recordId } }
+  ) {
+    id
   }
 }`
   },

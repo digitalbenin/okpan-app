@@ -171,9 +171,9 @@ export async function executeMultiStepMutation(mutations, params) {
 
             if (isUndefined !== undefined) {
                 const value = stepVariables[variableName];
-                const valueIsUndefinedOrNull = value === undefined || value === null;
-                shouldSkip = (isUndefined && valueIsUndefinedOrNull) ||
-                    (!isUndefined && !valueIsUndefinedOrNull);
+                // Treat undefined strictly; allow null to pass through so mutations can explicitly clear fields
+                const valueIsUndefined = value === undefined;
+                shouldSkip = (isUndefined && valueIsUndefined) || (!isUndefined && !valueIsUndefined);
             }
 
             if (isEmpty !== undefined) {
@@ -706,4 +706,4 @@ export function useGraphQL() {
         bulkDelete,
         performQuery  // Expose the base performQuery for direct use
     };
-} 
+}

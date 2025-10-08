@@ -1,7 +1,7 @@
 // GraphQL handler with action logging
 import { graphql, parse } from 'graphql';
 import { and } from 'drizzle-orm';
-import { actions } from '../../db/schema.js';
+import { actions, languages, ontology_fields } from '../../db/schema.js';
 import { getClientId } from '../../db/init.js';
 import { getCurrentProjectId } from '../services/projectCache.js';
 import crypto from 'crypto';
@@ -745,6 +745,7 @@ const processMutationActions = async (mutationFields, result, variables, context
     }
 };
 
+
 // Track active workflows to create parent actions
 const activeWorkflows = new Map();
 
@@ -794,6 +795,8 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
             if (mutationFields.includes('objectImportUsingTemplate') && result.data.objectImportUsingTemplate) {
                 await processObjectImportUsingTemplateActions(result.data.objectImportUsingTemplate, variables, context, db);
             }
+
+
         }
 
         if (result.errors) {
@@ -806,4 +809,4 @@ export const handleGraphQL = async (event, { query, variables, context }, { sche
         console.error('Error executing GraphQL:', error);
         return { success: false, error: error.message };
     }
-}; 
+};

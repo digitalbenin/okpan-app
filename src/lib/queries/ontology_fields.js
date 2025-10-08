@@ -2,12 +2,16 @@ export const ontologyFieldsOperations = {
   list: {
     type: "query",
     name: "List Ontology Fields",
-    description: "Retrieves all ontology fields",
-    query: `{
-  result: ontology_fields {
+    description: "Retrieves all ontology fields for a specific project",
+    variables: {
+      projectId: "ID of the project to filter ontology fields"
+    },
+    query: `query ListOntologyFields($projectId: String!) {
+  result: ontology_fields(where: { project_id: { eq: $projectId } }) {
     id
     created_at
     updated_at
+    project_id
     name {
       id
       content
@@ -52,6 +56,7 @@ export const ontologyFieldsOperations = {
     id
     created_at
     updated_at
+    project_id
     name {
       id
       content
@@ -90,6 +95,7 @@ export const ontologyFieldsOperations = {
     description: "Creates a new ontology field with name, description, and category",
     variables: {
       languageId: "Language ID for the initial text",
+      projectId: "ID of the project this ontology field belongs to",
       name: "Name of the ontology field",
       description: "Description of the ontology field",
       category: "Category of the ontology field",
@@ -157,6 +163,7 @@ export const ontologyFieldsOperations = {
   $nameId: String!
   $descriptionId: String!
   $categoryId: String!
+  $projectId: String!
   $embeddings: String
   $onwebsite: Int
 ) {
@@ -166,6 +173,7 @@ export const ontologyFieldsOperations = {
         name_id: $nameId
         description_id: $descriptionId
         category_id: $categoryId
+        project_id: $projectId
         embeddings: $embeddings
         onwebsite: $onwebsite
       }
@@ -175,11 +183,12 @@ export const ontologyFieldsOperations = {
     name_id
     description_id
     category_id
+    project_id
     embeddings
     onwebsite
   }
 }`,
-        useVariables: ["embeddings", "onwebsite"],
+        useVariables: ["projectId", "embeddings", "onwebsite"],
         mapVariables: {
           nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
           descriptionId: { from: "createDescriptionText", path: "insertIntoTexts.0.id" },
@@ -231,7 +240,7 @@ export const ontologyFieldsOperations = {
         mapVariables: {
           nameId: { from: "getOntologyField", path: "ontology_fields.0.name_id" }
         },
-        skipIf: { variableName: "nameId", isUndefined: true }
+        skipIf: { variableName: "name", isUndefined: true }
       },
       {
         name: "updateDescription",
@@ -248,7 +257,7 @@ export const ontologyFieldsOperations = {
         mapVariables: {
           descriptionId: { from: "getOntologyField", path: "ontology_fields.0.description_id" }
         },
-        skipIf: { variableName: "descriptionId", isUndefined: true }
+        skipIf: { variableName: "description", isUndefined: true }
       },
       {
         name: "updateCategory",
@@ -265,7 +274,7 @@ export const ontologyFieldsOperations = {
         mapVariables: {
           categoryId: { from: "getOntologyField", path: "ontology_fields.0.category_id" }
         },
-        skipIf: { variableName: "categoryId", isUndefined: true }
+        skipIf: { variableName: "category", isUndefined: true }
       },
       {
         name: "updateEmbeddings",

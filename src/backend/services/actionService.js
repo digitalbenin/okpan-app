@@ -253,7 +253,7 @@ export const generateActionMetadata = async (actionType, entityType, entityId, d
                     const metadata = {
                         referenced_id: relations.object_id,
                         referenced_type: 'objects',
-                        referenced_name: relations.object_id.slice(-6),
+                        referenced_name: relations.object_id ? relations.object_id.slice(-6) : 'unknown',
                         action_type: mappedActionType
                     };
 
@@ -292,7 +292,7 @@ export const generateActionMetadata = async (actionType, entityType, entityId, d
         return JSON.stringify({
             referenced_id: entityId,
             referenced_type: entityType,
-            referenced_name: `${entityType} ${entityId.slice(-6)}`,
+            referenced_name: `${entityType} ${entityId ? entityId.slice(-6) : 'unknown'}`,
             action_type: mappedActionType
         });
 
@@ -302,7 +302,7 @@ export const generateActionMetadata = async (actionType, entityType, entityId, d
         return JSON.stringify({
             referenced_id: entityId,
             referenced_type: entityType,
-            referenced_name: `${entityType} ${entityId.slice(-6)}`,
+            referenced_name: `${entityType} ${entityId ? entityId.slice(-6) : 'unknown'}`,
             action_type: mapActionType(actionType, entityType)
         });
     }

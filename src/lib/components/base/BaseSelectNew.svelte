@@ -9,8 +9,14 @@
     placeholder,
     type = "single",
     size,
+    as = "select",
+    searchable = false,
+    searchPlaceholder = "Search...",
     ...restProps
   } = $props();
+
+  // Search term for filtering items within the dropdown
+  let searchTerm = $state("");
 
   const selectedLabel = $derived.by(() => {
     if (!value) {
@@ -26,12 +32,19 @@
     }
   });
 
+  // Filter items by search term (case-insensitive)
+  const filteredItems = $derived.by(() => {
+    if (!searchable || !searchTerm?.trim()) return items;
+    const term = searchTerm.toLowerCase();
+    return items.filter((item) => (item.label || "").toLowerCase().includes(term));
+  });
+
   // Group items by their group property
   const groupedItems = $derived.by(() => {
     const groups = {};
     const ungrouped = [];
 
-    items.forEach((item) => {
+    (filteredItems || items).forEach((item) => {
       if (item.group) {
         if (!groups[item.group]) {
           groups[item.group] = [];
@@ -48,11 +61,22 @@
 
 <Select.Root bind:value {type} {...restProps}>
   <Select.Trigger
-    class="form-select text-start text-truncate {restProps.inputClass} {size
-      ? `form-select-${size}`
-      : ''}"
+    class={[
+      "d-flex align-items-center",
+      as === "select" && "justify-content-between w-100 form-select text-start",
+      as === "button" && "btn gap-2",
+      restProps.inputClass,
+      size && `form-select-${size}`,
+    ]
+      .filter(Boolean)
+      .join(" ")}
   >
-    {selectedLabel ? selectedLabel : placeholder}
+    <span class="text-truncate">
+      {selectedLabel ? selectedLabel : placeholder}
+    </span>
+    {#if $$slots.default}
+      <slot />
+    {/if}
   </Select.Trigger>
   <Select.Portal {...portalProps}>
     <Select.Content {...contentProps} align="start">
@@ -68,6 +92,17 @@
                 class="border-bottom d-flex justify-content-center"
                 ><i class="bi bi-caret-up-fill"></i></Select.ScrollUpButton
               >
+              {#if searchable}
+                <div class="p-1">
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    bind:value={searchTerm}
+                    placeholder={searchPlaceholder}
+                    autocomplete="off"
+                  />
+                </div>
+              {/if}
               <Select.Viewport>
                 <!-- Render ungrouped items first -->
                 {#each groupedItems.ungrouped as { value, label, disabled } (value)}

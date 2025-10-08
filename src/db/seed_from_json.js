@@ -2,7 +2,7 @@ import { db } from './init.js';
 import {
     languages, project, institutions, texts, objects, assets,
     objects_assets, research_fields, vocabularies, objects_research_fields,
-    ontology_fields, datasources, objects_ontology_fields
+    ontology_fields, datasources, objects_ontology_fields, templates
 } from './schema.js';
 import { v4 as uuidv4 } from 'uuid';
 import { sql, eq } from 'drizzle-orm';
@@ -210,7 +210,8 @@ const seed = async () => {
                 id: uuidv4(),
                 name_id: nameId,
                 description_id: descriptionId,
-                category_id: categoryId
+                category_id: categoryId,
+                project_id: mainProjectId
             }).returning();
             ontologyFieldsByName.set(field.name.toLowerCase(), dbField.id);
         }
@@ -324,6 +325,37 @@ const seed = async () => {
                 date: dsData.date ? new Date(dsData.date) : new Date()
             }).returning();
 
+            // Build a mapping array compatible with the object import template
+            const mappingArray = Array.isArray(dsData.fields) ? dsData.fields.map(f => {
+                const mappedKey = (f.fieldLinks && f.fieldLinks.length > 0)
+                    ? String(f.fieldLinks[0]).toLowerCase()
+                    : String(f.field).toLowerCase();
+                const mappedFieldId = ontologyFieldsByName.get(mappedKey) || null;
+                return {
+                    headerField: f.field,
+                    mappedField: mappedFieldId,
+                    primary: !!f.primary
+                };
+            }) : [];
+
+            // Persist mapping on a Template and bind it to the datasource
+            try {
+                const [createdTemplate] = await db.insert(templates).values({
+                    id: uuidv4(),
+                    mapping: JSON.stringify(mappingArray),
+                    project_id: mainProjectId,
+                    asset_map_rule: null
+                }).returning();
+
+                if (createdTemplate?.id) {
+                    await db.update(datasources)
+                        .set({ template_id: createdTemplate.id })
+                        .where(eq(datasources.id, dbDataSource.id));
+                }
+            } catch (templateErr) {
+                console.warn(`Failed to create/bind template for datasource ${dsData.id}:`, templateErr?.message || templateErr);
+            }
+
             const fieldMappings = new Map();
             dsData.fields.forEach(f => {
                 if (f.fieldLinks && f.fieldLinks.length > 0) {
@@ -396,9 +428,24 @@ const seed = async () => {
         }
         console.log(`Edo Designation research field and ${edoDesignationsData.length} vocabularies seeded.`);
 
+        // Add freetext research field: 'notes'
+        const notesRfNameId = await createTextEntry('notes', 'research_fields.name', englishLang.id);
+        const notesRfDescId = await createTextEntry('Free text notes on objects.', 'research_fields.description', englishLang.id);
+        const [notesResearchField] = await db.insert(research_fields).values({
+            id: uuidv4(),
+            name_id: notesRfNameId,
+            description_id: notesRfDescId,
+            project_id: mainProjectId,
+            type: 'freetext'
+        }).returning();
+        console.log(`Seeded freetext research field 'notes' with id ${notesResearchField.id}`);
+
         // --- 7. Seed Objects ---
         // Define which ontology fields are considered "description-like"
         const descriptionOntologyFieldNames = new Set(['description', 'designation']);
+
+        // Track created object IDs to attach notes later
+        const seededObjectIds = [];
 
         for (const objData of objectsData) {
             const newInstitutionId = institutionMap.get(objData.institution);
@@ -413,6 +460,9 @@ const seed = async () => {
                 project_id: mainProjectId,
                 status: 'in progress' // Default status
             }).returning();
+
+            // Keep for later to attach notes
+            seededObjectIds.push(dbObject.id);
 
             // Handle Edo Designations
             if (objData.edo_designations && objData.edo_designations.length > 0) {
@@ -507,6 +557,37 @@ const seed = async () => {
                 }
             }
         }
+
+        // After creating all objects, attach two different notes to two random objects (if available)
+        if (seededObjectIds.length > 0) {
+            const pickUniqueIndices = (count, max) => {
+                const set = new Set();
+                while (set.size < Math.min(count, max)) {
+                    set.add(Math.floor(Math.random() * max));
+                }
+                return Array.from(set);
+            };
+
+            const indices = pickUniqueIndices(2, seededObjectIds.length);
+            const notesTexts = [
+                'Curator note: requires condition assessment.',
+                'Curator note: potential duplicate entry, verify provenance.'
+            ];
+
+            for (let i = 0; i < indices.length; i++) {
+                const objId = seededObjectIds[indices[i]];
+                const noteContent = notesTexts[i] || `Curator note #${i + 1}`;
+                await db.insert(objects_research_fields).values({
+                    id: uuidv4(),
+                    object_id: objId,
+                    field_id: notesResearchField.id,
+                    vocabulary_id: null,
+                    value: noteContent
+                });
+                console.log(`Added note to object ${objId.substring(0, 8)}…: ${noteContent}`);
+            }
+        }
+
         console.log(`${objectsData.length} objects seeded.`);
 
         console.log('Seed completed successfully!');
@@ -516,4 +597,4 @@ const seed = async () => {
     }
 };
 
-seed(); 
+seed();

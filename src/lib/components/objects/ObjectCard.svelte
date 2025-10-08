@@ -41,17 +41,21 @@
           ),
         };
       } else if (field.type === "research_field") {
-        const research_field = object.objectsResearchFields.find(
-          (rf) => rf.researchField.id === field.value
+        const research_field = (object.objectsResearchFields || []).find(
+          (rf) => rf?.researchField?.id === field.value
         );
         if (!research_field)
           return {
-            label: field.name.content,
+            label: field?.name?.content || "",
             value: null,
           };
+        const value =
+          research_field?.vocabulary?.option?.content ??
+          research_field?.value ??
+          null;
         return {
-          label: field.name.content,
-          value: research_field.vocabulary.option.content,
+          label: field?.name?.content || "",
+          value,
         };
       }
     });
@@ -80,7 +84,7 @@
         </div>
         <div class="swiper w-100 h-100" {@attach attachSwiper}>
           <div class="swiper-wrapper">
-            {#each object.objectsAssets as image (image.asset.id)}
+            {#each object.objectsAssets as image, i (image.asset.id + '-' + i)}
               <div class="swiper-slide">
                 <img
                   class="object-fit-contain w-100 h-100"

@@ -1,4 +1,4 @@
-import { executeQuery, partialUpdate } from "$lib/stores/GraphqlUtils.js";
+import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
 
 // Fetch all data sources for a specific institution within a project
@@ -22,6 +22,42 @@ export const getDatasource = async (datasourceId) => {
         return { result: null, error: response?.error || "Failed to fetch datasource" };
     }
     return { result: response.result, error: null };
+};
+
+// Get distinct objects linked to a datasource
+export const getObjectsByDatasource = async (options) => {
+    const {
+        datasourceId,
+        projectId,
+        institutionId,
+        status,
+        page = 0,
+        pageSize = 25,
+        orderBy,
+        direction
+    } = options || {};
+
+    if (!datasourceId) {
+        return { items: [], totalCount: 0, error: "Missing Datasource ID" };
+    }
+
+    const params = {
+        datasourceId,
+        projectId,
+        institutionId,
+        status,
+        page,
+        pageSize,
+        orderBy,
+        direction
+    };
+
+    const result = await executeQuery('datasources', 'objectsByDatasource', params);
+
+    const items = result?.result?.items ?? [];
+    const totalCount = result?.result?.totalCount ?? items.length;
+
+    return { items, totalCount, error: result?.error || null };
 };
 
 // Get a single datasource by ID
@@ -57,6 +93,7 @@ export const updateDatasource = async (datasourceId, updatedData) => {
     // Prepare all parameters for the multi-step mutation
     const updateParams = {
         datasourceId: datasourceId,
+        templateId: updatedData.template_id,
         // Direct fields
         language: updatedData.language,
         contact: updatedData.contact,
@@ -66,15 +103,17 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         name: updatedData.name,
         method: updatedData.method,
         notes: updatedData.notes,
+        // Default language id for creating missing base texts on update
+        languageId: updatedData.languageId,
         // Translation arrays
         nameTranslations: updatedData.nameTranslations,
         methodTranslations: updatedData.methodTranslations,
         notesTranslations: updatedData.notesTranslations
     };
 
-    // Remove undefined values to prevent GraphQL errors
+    // Remove undefined values to prevent GraphQL errors, but allow nulls
     Object.keys(updateParams).forEach(key =>
-        (updateParams[key] === undefined || updateParams[key] === null) && delete updateParams[key]
+        updateParams[key] === undefined && delete updateParams[key]
     );
 
 
@@ -83,8 +122,6 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         // Execute the multi-step mutation that includes translation processing
         const result = await executeQuery('datasources', 'update', updateParams);
 
-
-
         if (!result || result.error) {
             const errorMessage = result?.error?.message ||
                 (Array.isArray(result?.error) ? result.error[0]?.message : result?.error) ||
@@ -92,7 +129,6 @@ export const updateDatasource = async (datasourceId, updatedData) => {
             console.error('Update failed:', errorMessage);
             return { result: null, error: errorMessage };
         }
-
         // Check for translation errors in the result
         const translationErrors = [];
         if (result.processNameTranslations?.errors) {
@@ -106,10 +142,13 @@ export const updateDatasource = async (datasourceId, updatedData) => {
         }
 
         invalidate("app:datasources");
+        invalidate("app:institution");
+        console.log("invalidate :)")
+
 
         if (translationErrors.length > 0) {
             const errorMessage = `Main data saved, but errors occurred during translation updates: ${translationErrors.join('; ')}`;
-            console.warn(errorMessage);
+            console.warn(`[DS Utils] translation errors: ${errorMessage}`);
             return {
                 result: result,
                 error: errorMessage
@@ -121,7 +160,7 @@ export const updateDatasource = async (datasourceId, updatedData) => {
             error: null
         };
     } catch (error) {
-        console.error('Error during datasource update:', error);
+        console.error('[DS Utils] update error:', error?.message || error);
         return { result: null, error: error.message };
     }
 };
