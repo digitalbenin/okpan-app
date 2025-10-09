@@ -5,13 +5,17 @@
   import { createFetcher } from "$lib/stores/useFetcher.svelte.js";
   import { importObjectsAndTemplate } from "$lib/stores/ObjectsUtils.js";
   import { parseData } from "$lib/utils/import.js";
+  import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
+  import { goto } from "$app/navigation";
 
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
 
+  let open = $state(false);
+
   const saveFetcher = createFetcher(importObjectsAndTemplate);
 
-  async function handleSave() {
+  const handleSave = async function () {
     try {
       const saveParams = {
         data: $state.snapshot(finalData),
@@ -22,16 +26,23 @@
 
       const response = await saveFetcher.fetch(saveParams);
       console.log("Datasource saved:", response);
+      open = true;
     } catch (error) {
       console.error("Error saving datasource:", error);
       // Handle error appropriately, e.g., show a notification
     }
-  }
+  };
+
+  wizard.save = handleSave;
 
   const finalData = $derived(
-    parseData(wizard.data, wizard.mapping, wizard.file.format),
+    parseData(wizard.data, wizard.mapping, wizard.file.format)
   );
   $inspect(finalData);
+  function closeAndHome() {
+    open = false;
+    goto("/projects/" + wizard.projectId);
+  }
 </script>
 
 <div class="container-fluid mt-3">
@@ -79,11 +90,11 @@
           >{wizard.mapping.find((m) => m.primary).headerField}</span
         >
       </div>
-      <button class="btn btn-success btn-lg mt-3" onclick={handleSave}>
+      <!-- <button class="btn btn-success btn-lg mt-3" onclick={handleSave}>
         {t("common.save-data", {
           fallback: "Save Data",
         })}
-      </button>
+      </button> -->
       {#if saveFetcher.isLoading}
         <div>loading</div>
       {/if}
@@ -95,3 +106,26 @@
     </div>
   </div>
 </div>
+
+<BaseAlertDialog bind:open>
+  {#snippet title()}
+    {t("import.objects-imported", { fallback: "Objects imported correctly" })}
+  {/snippet}
+  <!-- {#snippet trigger()}
+    <i class="bi bi-pencil"></i>
+    {t("import.edit-link", {
+      fallback: "Edit linked asset",
+    })}
+  {/snippet} -->
+  {#snippet description()}
+    <span class="fw-bold">{wizard.data.length}</span>
+    {t("import.match-description", {
+      fallback: "objects imported correctly",
+    })}
+  {/snippet}
+  {#snippet footer()}
+    <button class="btn btn-success" onclick={closeAndHome}>
+      {t("common.continue", { fallback: "Continue" })}
+    </button>
+  {/snippet}
+</BaseAlertDialog>

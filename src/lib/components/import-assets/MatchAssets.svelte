@@ -3,6 +3,8 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import MatchPreview from "./MatchPreview/MatchPreview.svelte";
+  import { getObjectIdentifier } from "$lib/utils/objects.js";
+
   const wizard = getImportAssetsWizardContext();
   const { t } = getTranslationStore();
 
@@ -27,13 +29,17 @@
       wizard.mapping = suggestions.map((s) => {
         return {
           asset_id: s.asset.id,
+          asset: s.asset,
           object_ids: s.results[0] ? [s.results[0].object.id] : [],
+          objects_primary_ids: s.results[0]
+            ? [getObjectIdentifier(s.results[0].object)]
+            : [],
         };
       });
       wizard.nextEnabled = true;
       return suggestions;
     },
-    { initialValue: [] }
+    { initialValue: [] },
   );
   $inspect(wizard);
 </script>

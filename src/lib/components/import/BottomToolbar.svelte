@@ -18,12 +18,18 @@
     {wizard.steps.length}
   </div>
 
-  <button
-    class="btn btn-success"
-    class:invisible={wizard.currentStep === wizard.steps.length}
-    disabled={!wizard.nextEnabled}
-    onclick={wizard.nextStep}
-  >
-    {t("common.next", { fallback: "Next" })}
-  </button>
+  {#if wizard.currentStep < wizard.steps.length}
+    <button
+      class="btn btn-success"
+      disabled={!wizard.nextEnabled}
+      onclick={wizard.nextStep}
+    >
+      {t("common.next", { fallback: "Next" })}
+    </button>
+  {/if}
+  {#if wizard.currentStep === wizard.steps.length}
+    <button class="btn btn-success" onclick={() => wizard.save()}>
+      {t("common.save", { fallback: "Save" })}
+    </button>
+  {/if}
 </div>

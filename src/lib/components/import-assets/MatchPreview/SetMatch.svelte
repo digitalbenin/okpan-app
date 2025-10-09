@@ -89,7 +89,9 @@
 
   <div class="row mt-3">
     <div class="col-3">
-      <div class="w-100 position-relative overflow-hidden aspect-ratio-1x1">
+      <div
+        class="w-100 position-relative overflow-hidden aspect-ratio-1x1 bg-light p-2 rounded"
+      >
         <img
           src={addImageProtocolPrefix(asset.formats.md)}
           alt={asset.filename}
@@ -108,7 +110,9 @@
       </div>
       {#if suggestions.length}
         <div>
-          <h6>{t("import.suggestions", { fallback: "Suggestions" })}</h6>
+          <h6 class="fw-bold">
+            {t("import.suggestions", { fallback: "Suggestions" })}
+          </h6>
           {#each suggestions as suggestion}
             <ChipObject
               assetId={asset.id}
@@ -121,7 +125,9 @@
       {/if}
       {#if searchResults.current}
         <div>
-          <h6>{t("import.other-results", { fallback: "Other Results" })}</h6>
+          <h6 class="fw-bold">
+            {t("import.other-results", { fallback: "Other Results" })}
+          </h6>
           {#each searchResults.current as result}
             <ChipObject
               assetId={asset.id}
@@ -134,9 +140,9 @@
       {/if}
     </div>
   </div>
-  {#snippet footer()}
+  <!-- {#snippet footer()}
     <button class="btn btn-success" onclick={updateMatch}>
       {t("common.confirm", { fallback: "Confirm" })}
     </button>
-  {/snippet}
+  {/snippet} -->
 </BaseAlertDialog>

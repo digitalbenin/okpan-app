@@ -1,4 +1,5 @@
 import { getContext, setContext } from 'svelte';
+import { getObjectIdentifier } from '$lib/utils/objects.js';
 
 const IMPORT_WIZARD_KEY = 'importAssetsWizard';
 
@@ -82,11 +83,13 @@ export function createImportAssetsWizardContext(params) {
         addMappingEntry(object, assetId) {
             const existingIndex = mapping.findIndex(e => e.asset_id === assetId);
             mapping[existingIndex].object_ids.push(object.id);
+            mapping[existingIndex].objects_primary_ids.push(getObjectIdentifier(object));
 
         },
         removeMappingEntry(object, assetId) {
             const existingIndex = mapping.findIndex(e => e.asset_id === assetId);
             mapping[existingIndex].object_ids = mapping[existingIndex].object_ids.filter(id => id !== object.id);
+            mapping[existingIndex].objects_primary_ids = mapping[existingIndex].objects_primary_ids.filter(id => id !== getObjectIdentifier(object));
         },
         // setMappingIdentifier(id) {
         //     mapping = mapping.map((entry) => {

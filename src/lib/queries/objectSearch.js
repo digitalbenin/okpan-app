@@ -1,23 +1,21 @@
 export const objectSearchOperations = {
-    // SEARCH
-    search: {
-        type: "query",
-        name: "Search Objects",
-        description: "Advanced search for objects with ontology and research field filtering, pagination, and faceted results.",
-        variables: {
-            projectId: "Project ID to search within",
-            ontologyFieldQueries: "Optional JSON mapping of ontology field IDs to queries",
-            institutionIds: "Optional list of institution IDs to filter by (if empty, includes all)",
-            researchFieldFilters: "Optional array of research field filters: {fieldId, query?, vocabularyIds?}",
-            status: "Optional filter objects by status",
-            page: "Optional page number for pagination (0-based, default 0)",
-            pageSize: "Optional number of items per page (default 10)",
-            orderBy: "Optional field to order by (created_at, updated_at, status; default created_at)",
-            direction: "Optional sort direction (asc or desc; default desc)"
-        },
-        query: `query ObjectSearch(
+  // SEARCH
+  search: {
+    type: "query",
+    name: "Search Objects",
+    description: "Advanced search for objects with ontology and research field filtering, pagination, and faceted results.",
+    variables: {
+      projectId: "Project ID to search within",
+      institutionIds: "Optional list of institution IDs to filter by (if empty, includes all)",
+      researchFieldFilters: "Optional array of research field filters: {fieldId, query?, vocabularyIds?}",
+      status: "Optional filter objects by status",
+      page: "Optional page number for pagination (0-based, default 0)",
+      pageSize: "Optional number of items per page (default 10)",
+      orderBy: "Optional field to order by (created_at, updated_at, status; default created_at)",
+      direction: "Optional sort direction (asc or desc; default desc)"
+    },
+    query: `query ObjectSearch(
   $projectId: String!
-  $ontologyFieldQueries: JSON
   $institutionIds: [String!]
   $researchFieldFilters: [JSON!]
   $status: String
@@ -28,7 +26,6 @@ export const objectSearchOperations = {
 ) {
   result:objectSearch(
     project_id: $projectId
-    ontologyFieldQueries: $ontologyFieldQueries
     institutionIds: $institutionIds
     researchFieldFilters: $researchFieldFilters
     status: $status
@@ -109,5 +106,5 @@ export const objectSearchOperations = {
     }
   }
 }`
-    }
+  }
 };

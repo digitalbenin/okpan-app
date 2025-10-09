@@ -13,7 +13,7 @@
     },
     {
       value: "assets",
-      label: `Assets [${restProps.assets.totalCount}/${restProps.institution.assetsCount}]`,
+      label: `Media [${restProps.assets.totalCount}/${restProps.institution.assetsCount}]`,
     },
     {
       value: "datasources",
