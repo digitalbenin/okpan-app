@@ -36,7 +36,7 @@
     if (object.objectsOntologyFields) {
       const titleField = object.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "object id"
+          field.ontologyField?.name?.content?.toLowerCase() === "object id",
       );
       if (titleField && titleField.value) {
         return titleField.value;
@@ -50,7 +50,7 @@
     if (object.objectsOntologyFields) {
       const designationField = object.objectsOntologyFields.find(
         (field) =>
-          field.ontologyField?.name?.content?.toLowerCase() === "designation"
+          field.ontologyField?.name?.content?.toLowerCase() === "designation",
       );
       // Return the value if found, otherwise null
       return designationField?.value || null;
@@ -110,6 +110,56 @@
 
   // Computed property for filtered objects (implement actual filtering later)
   let filteredObjects = $derived(objectsList); // Now derived from mutable objectsList
+
+  // Derived total count
+  const totalCount = $derived(() => filteredObjects?.length ?? 0);
+
+  // Build removable filter badges (institution and status for now)
+  const institutionLabel = $derived(() => {
+    const first = objectsList && objectsList.length > 0 ? objectsList[0] : null;
+    return first?.institution?.name?.content || null;
+  });
+
+  const projectId = $derived(() => {
+    const first = objectsList && objectsList.length > 0 ? objectsList[0] : null;
+    return first?.project_id || null;
+  });
+
+  function clearInstitutionFilter() {
+    if (!projectId) return;
+    const params = new URLSearchParams(page.url.search);
+    params.delete("institutions");
+    goto(
+      `/projects/${projectId}/objects${params.toString() ? `?${params.toString()}` : ""}`,
+    );
+  }
+
+  function clearStatusFilter() {
+    statusFilter = "all";
+  }
+
+  const filterBadges = $derived(() => {
+    const badges = [];
+    if (institutionLabel && projectId) {
+      badges.push({
+        label: `Institution: ${institutionLabel}`,
+        onClear: clearInstitutionFilter,
+      });
+    }
+    if (statusFilter && statusFilter !== "all") {
+      const statusText =
+        statusFilter === "completed"
+          ? "Completed"
+          : statusFilter === "in progress"
+            ? "In progress"
+            : statusFilter;
+      badges.push({
+        label: `Status: ${statusText}`,
+        onClear: clearStatusFilter,
+      });
+    }
+    return badges;
+  });
 
   // Selected object state
   let selectedObjectId = $state(null);
@@ -259,7 +309,7 @@
 
     console.log(
       `Saving ${changes?.length || 0} field changes for object ${objectId}`,
-      statusChange ? `and status change to "${statusChange}"` : ""
+      statusChange ? `and status change to "${statusChange}"` : "",
     );
 
     // Find the object to update
@@ -333,11 +383,11 @@
       // Show success message
       if (fieldUpdateSuccess && statusUpdateSuccess) {
         console.log(
-          `Object "${getObjectTitle(selectedObject)}" updated successfully!`
+          `Object "${getObjectTitle(selectedObject)}" updated successfully!`,
         );
       } else {
         console.warn(
-          `Object "${getObjectTitle(selectedObject)}" updated with some errors.`
+          `Object "${getObjectTitle(selectedObject)}" updated with some errors.`,
         );
       }
     } catch (error) {
@@ -381,7 +431,7 @@
   async function confirmAndUnlinkAsset() {
     if (!assetToUnlinkDetails.objectId || !assetToUnlinkDetails.assetId) {
       console.error(
-        "Cannot confirm asset unlink: Missing objectId or assetId."
+        "Cannot confirm asset unlink: Missing objectId or assetId.",
       );
       isUnlinkAssetModalOpen = false;
       return;
@@ -389,7 +439,7 @@
 
     const result = await unlinkAssetFromObject(
       assetToUnlinkDetails.objectId,
-      assetToUnlinkDetails.assetId
+      assetToUnlinkDetails.assetId,
     );
 
     if (result.error) {
@@ -398,7 +448,7 @@
       alert(`Error unlinking asset: ${result.error.message || result.error}`); // Placeholder
     } else {
       console.log(
-        `Asset '${assetToUnlinkDetails.assetFilename}' unlinked successfully from object '${assetToUnlinkDetails.objectId}'.`
+        `Asset '${assetToUnlinkDetails.assetFilename}' unlinked successfully from object '${assetToUnlinkDetails.objectId}'.`,
       );
       // TODO: Show user-friendly success message (e.g., toast)
       onActionCompletesDataRefresh(); // Called the new prop
@@ -408,7 +458,7 @@
         selectedObject.id === assetToUnlinkDetails.objectId
       ) {
         selectedObject.objectsAssets = selectedObject.objectsAssets.filter(
-          (oa) => oa.asset.id !== assetToUnlinkDetails.assetId
+          (oa) => oa.asset.id !== assetToUnlinkDetails.assetId,
         );
         // ObjectDetail's selectedImage will update via its own $effect
         // when its 'object' prop's 'objectsAssets' array changes.
@@ -416,14 +466,14 @@
 
       // Update the object in the main objectsList
       const objectIndex = objectsList.findIndex(
-        (obj) => obj.id === assetToUnlinkDetails.objectId
+        (obj) => obj.id === assetToUnlinkDetails.objectId,
       );
       if (objectIndex !== -1) {
         const updatedObjectInList = { ...objectsList[objectIndex] };
         if (updatedObjectInList.objectsAssets) {
           updatedObjectInList.objectsAssets =
             updatedObjectInList.objectsAssets.filter(
-              (oa) => oa.asset.id !== assetToUnlinkDetails.assetId
+              (oa) => oa.asset.id !== assetToUnlinkDetails.assetId,
             );
         }
         const newObjectsList = [...objectsList];
@@ -480,6 +530,30 @@
           /* TODO: Implement import action */
         }}
       />
+    </div>
+  </div>
+
+  <!-- Results row with removable badges on the right -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="text-muted">
+      Results: {totalCount}
+    </div>
+    <div class="d-flex flex-wrap gap-2 justify-content-end">
+      {#each filterBadges as badge (badge.label)}
+        <span
+          class="badge rounded-pill text-bg-secondary d-inline-flex align-items-center gap-2"
+        >
+          <span class="fw-semibold">{badge.label}</span>
+          <button
+            type="button"
+            class="btn btn-link p-0 text-white text-decoration-none"
+            aria-label="Clear filter"
+            onclick={badge.onClear}
+          >
+            <i class="bi bi-x"></i>
+          </button>
+        </span>
+      {/each}
     </div>
   </div>
 

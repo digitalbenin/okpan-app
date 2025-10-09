@@ -89,6 +89,52 @@
     },
   ]);
 
+  // Label helpers for badges
+  const ontologyFieldsLabelById = $derived.by(() => {
+    const map = {};
+    (ontologyFieldsList || []).forEach((f) => {
+      map[String(f.value)] = f.label;
+    });
+    return map;
+  });
+
+  const activeStatusLabel = $derived.by(() => {
+    const s = (statuses || []).find((x) => x.value === (params.oStatus || "all"));
+    return s?.label || t("common.all", { fallback: "All" });
+  });
+
+  const activeSearchFieldLabel = $derived.by(() => {
+    const id = params.oSearchField || "all";
+    return ontologyFieldsLabelById[String(id)] || t("common.all", { fallback: "All" });
+  });
+
+  const advancedFiltersCount = $derived.by(() => {
+    let count = 0;
+    const af = advancedFilters || {};
+    Object.entries(af).forEach(([key, val]) => {
+      if (key === "__textFilters") return;
+      if (Array.isArray(val) && val.length) count += val.length;
+    });
+    count += (af.__textFilters || []).filter((tf) => tf?.query && String(tf.query).trim()).length;
+    return count;
+  });
+
+  function clearStatusFilter() {
+    params.oStatus = "all";
+    params.oPage = 1;
+  }
+
+  function clearSearchFilter() {
+    params.oSearch = undefined;
+    params.oSearchField = "all";
+    params.oPage = 1;
+  }
+
+  function clearAllAdvancedFilters() {
+    advancedFilters = {};
+    params.oPage = 1;
+  }
+
   // Flatten vocabularies for AdvancedFilters component
   const vocabularies = $derived.by(() => {
     const arr = [];
@@ -100,6 +146,122 @@
       }
     });
     return arr;
+  });
+
+  // Match objects page: lookup maps and badges
+  const researchFieldsById = $derived.by(() => {
+    const list = researchFields?.result || researchFields || [];
+    const m = new Map();
+    for (const f of list) {
+      m.set(String(f.id), f.name?.content || f.name || String(f.id));
+    }
+    return m;
+  });
+  const vocabularyFieldIds = $derived.by(() => {
+    const list = researchFields?.result || researchFields || [];
+    const set = new Set();
+    for (const f of list) {
+      const fType = String(f.type || "").toLowerCase();
+      if (fType === "vocabulary") set.add(String(f.id));
+    }
+    return set;
+  });
+  const ontologyFieldsById = $derived.by(() => {
+    const list = ontologyFields?.result || ontologyFields || [];
+    const m = new Map();
+    for (const f of list) {
+      m.set(String(f.id), f.name?.content || f.name || String(f.id));
+    }
+    return m;
+  });
+  const vocabById = $derived.by(() => {
+    const m = new Map();
+    for (const v of vocabularies) {
+      m.set(String(v.id), v.name);
+    }
+    return m;
+  });
+
+  const hasAppliedFilters = $derived.by(() => {
+    const hasStatus = params.oStatus && params.oStatus !== "all";
+    const hasSearch = params.oSearch && params.oSearch.trim().length > 0;
+    const hasVocabSelections = Object.entries(advancedFilters || {}).some(
+      ([key, val]) => key !== "__textFilters" && Array.isArray(val) && val.length > 0,
+    );
+    const hasTextFilters = (advancedFilters?.__textFilters || []).length > 0;
+    return hasStatus || hasSearch || hasVocabSelections || hasTextFilters;
+  });
+
+  const filterBadges = $derived.by(() => {
+    const badges = [];
+
+    if (params.oStatus && params.oStatus !== "all") {
+      const label = statuses.find((s) => s.value === params.oStatus)?.label || params.oStatus;
+      badges.push({
+        text: `${t("common.status", { fallback: "Status" })}: ${label}`,
+        onClear: () => {
+          params.oStatus = "all";
+          params.oPage = 1;
+          void loadObjects();
+        },
+      });
+    }
+
+    if (params.oSearch && params.oSearch.trim()) {
+      const fieldLabel = (ontologyFieldsList || []).find((o) => o.value === params.oSearchField)?.label ||
+        t("common.search", { fallback: "Search" });
+      badges.push({
+        text: `${fieldLabel}: ${params.oSearch}`,
+        onClear: () => {
+          params.oSearch = "";
+          params.oPage = 1;
+          void loadObjects();
+        },
+      });
+    }
+
+    const rfSelections = Object.entries(advancedFilters || {}).filter(([key, val]) => {
+      if (key === "__textFilters") return false;
+      return Array.isArray(val) && val.length > 0 && vocabularyFieldIds.has(String(key));
+    });
+    for (const [fieldId, ids] of rfSelections) {
+      const fieldName = researchFieldsById.get(String(fieldId)) || String(fieldId);
+      for (const vocabId of ids) {
+        const optionName = vocabById.get(String(vocabId)) || String(vocabId);
+        badges.push({
+          text: `${fieldName}: ${optionName}`,
+          onClear: () => {
+            const nextIds = (advancedFilters?.[fieldId] || []).filter((id) => String(id) !== String(vocabId));
+            const next = { ...advancedFilters };
+            next[fieldId] = nextIds;
+            advancedFilters = next;
+            params.oPage = 1;
+            void loadObjects();
+          },
+        });
+      }
+    }
+
+    for (const tf of advancedFilters?.__textFilters || []) {
+      const isResearch = tf.kind === "research";
+      const fieldName = isResearch
+        ? researchFieldsById.get(String(tf.fieldId)) || String(tf.fieldId)
+        : ontologyFieldsById.get(String(tf.fieldId)) || String(tf.fieldId);
+      badges.push({
+        text: `${fieldName}: ${tf.query}`,
+        onClear: () => {
+          const nextText = (advancedFilters?.__textFilters || []).filter(
+            (x) => !(String(x.kind) === String(tf.kind) && String(x.fieldId) === String(tf.fieldId)),
+          );
+          const next = { ...advancedFilters, __textFilters: nextText };
+          advancedFilters = next;
+          params.oPage = 1;
+          void loadObjects();
+        },
+      });
+    }
+
+    return badges;
   });
 
   function clearSelection() {
@@ -394,7 +556,33 @@
       >
     </div>
   </div>
-  {#if objectsData.items.length > 0}
+  {#if objectsData.totalCount}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        {objectsData.totalCount}
+        {#if objectsData.totalCount > 1}
+          {t("common.objects", { fallback: "objects" })}
+        {:else}
+          {t("common.object", { fallback: "object" })}
+        {/if}
+      </div>
+      {#if hasAppliedFilters}
+        <div class="d-flex align-items-center justify-content-end gap-2 flex-wrap">
+          {#each filterBadges as b}
+            <span class="badge rounded-pill text-bg-secondary d-flex align-items-center gap-1">
+              <span class="text-truncate" style="max-width: 240px;">{b.text}</span>
+              <button
+                class="btn btn-sm btn-link text-white p-0 m-0"
+                aria-label={t("common.remove", { fallback: "Remove" })}
+                onclick={b.onClear}
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </span>
+          {/each}
+        </div>
+      {/if}
+    </div>
     {#if viewAs === "grid"}
       <div class="row">
         {#each objectsData.items as object (object.id)}
@@ -412,8 +600,8 @@
         {displayFields}
       ></ObjectsTable>
     {/if}
-  {:else if objectsData.items.length === 0}
-    <div class="text-center text-black-50 fs-4 fst-italic mt-4">
+  {:else}
+    <div class="text-center fst-italic text-muted mt-5">
       {t("common.no-objects-found", { fallback: "No objects found." })}
     </div>
   {/if}
