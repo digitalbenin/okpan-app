@@ -267,6 +267,31 @@
       .filter(Boolean);
     return names.length ? names.join(", ") : "All";
   }
+
+  // Label helpers for textual research and ontology fields
+  function getCurrentTextQuery(kind, fieldId) {
+    const tf = (currentTextFilters || []).find(
+      (x) => x.kind === kind && String(x.fieldId) === String(fieldId),
+    );
+    return (tf?.query || "").trim();
+  }
+
+  function getTextResearchSelectionLabel(fieldId) {
+    const q = getCurrentTextQuery("research", fieldId);
+    return q ? q : "All";
+  }
+
+  function getOntologyTextSelectionLabel(fieldId) {
+    const q = getCurrentTextQuery("ontology", fieldId);
+    return q ? q : "All";
+  }
+
+  function getResearchFieldSelectionLabel(field) {
+    const isVocab = (field.type || "").toLowerCase() === "vocabulary";
+    return isVocab
+      ? getVocabularySelectionLabel(field.id)
+      : getTextResearchSelectionLabel(field.id);
+  }
 </script>
 
 <!-- Backdrop -->
@@ -324,37 +349,44 @@
 
         <div class="px-3 py-3 text-muted">Research fields</div>
 
-        {#each (researchFields || []).filter((f) => (f.type || "").toLowerCase() === "vocabulary") as field (field.id)}
+        {#each researchFields || [] as field (field.id)}
           <button
             type="button"
             class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
-            onclick={() => showDetail({ type: "vocabulary", id: field.id })}
+            onclick={() =>
+              (field.type || "").toLowerCase() === "vocabulary"
+                ? showDetail({ type: "vocabulary", id: field.id })
+                : showAddTextSearch(
+                    `r:${field.id}`,
+                    getCurrentTextQuery("research", field.id),
+                  )}
             aria-label={`Filter by ${field.name?.content || field.name}`}
           >
             <div class="fw-semibold">{field.name?.content || field.name}</div>
             <div class="d-flex align-items-center gap-2">
               <span class="text-muted"
-                >{getVocabularySelectionLabel(field.id)}</span
+                >{getResearchFieldSelectionLabel(field)}</span
               >
               <i class="bi bi-chevron-right"></i>
             </div>
           </button>
         {/each}
 
+        <!-- Ontology fields list removed; use Active text filters overview -->
+
         <!-- Active text filters overview (shown in main list) -->
         <div class="list-group-item py-3">
-          <div class="d-flex justify-content-between align-items-center">
-            <div class="fw-semibold">Active text filters</div>
+          <div
+            class="d-flex flex-column justify-content-between align-items-start"
+          >
+            <div class="text-muted mb-2">Institution fields</div>
             <button
               type="button"
               class="btn btn-outline-secondary btn-sm"
               onclick={() => showAddTextSearch()}
             >
-              Add
+              <i class="bi bi-plus-circle"></i> Add instituion field filter
             </button>
-          </div>
-          <div class="text-muted fs-7 mt-2">
-            Search in a specific field (ontology or research field)
           </div>
 
           {#each currentTextFilters as tf (textFilterKey(tf))}
@@ -381,9 +413,6 @@
               </div>
             </div>
           {/each}
-          {#if currentTextFilters.length === 0}
-            <div class="text-muted fs-7 mt-2">No text filters</div>
-          {/if}
         </div>
       </div>
     </div>
