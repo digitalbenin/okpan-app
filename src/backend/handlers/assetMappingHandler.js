@@ -2,9 +2,6 @@ import Fuse from 'fuse.js';
 import { db } from '../../db/init.js';
 import * as dbSchema from '../../db/schema.js';
 import { eq, sql, and, inArray, aliasedTable } from 'drizzle-orm';
-
-
-
 /**
  * Suggests object matches for a batch of assets using fuzzy matching.
  * The response includes the full asset object and the full matched objects, including their ontology and research fields.
@@ -71,31 +68,13 @@ export const suggestObjectMatches = async (assets, options = {}) => {
 
         // Step 5: Get all unique object IDs from suggestions
 
-        console.log('building object payloads from search data');
-        const objectsById = new Map();
-        for (const obj of objectsForSearch) {
-            // Convert fields to expected objectsOntologyFields shape
-            const objectsOntologyFields = (obj.fields || []).map(f => ({
-                id: f.field_id,
-                value: f.value,
-                primary: (f.field_primary ?? f.primary),
-                default_description: (f.field_label ?? f.label ?? null),
-                ontologyField: {
-                    id: f.field_id,
-                    name: { content: (f.name ?? f.ontology_field_name) }
-                }
-            }));
+        console.log('building object payloads from DB for suggested IDs');
+        const suggestedObjectIds = Array.from(new Set(
+            resultsWithSuggestions.flatMap(r => r.suggestions.map(s => s.objectId))
+        ));
 
-            objectsById.set(obj.id, {
-                id: obj.id,
-                status: (obj.status ?? obj.object_status),
-                institution_id: (obj.institution_id ?? obj.object_institution_id),
-                project_id: (obj.project_id ?? obj.object_project_id),
-                objectsAssets: [],
-                objectsOntologyFields,
-                objectsResearchFields: []
-            });
-        }
+        const detailedObjects = await getFullObjectsByIds(suggestedObjectIds);
+        const objectsById = new Map(detailedObjects.map(o => [o.id, o]));
 
         // Step 7: Build final response with full objects
         const finalResults = resultsWithSuggestions.map(r => ({
@@ -291,3 +270,88 @@ function findMatches(fuse, searchQuery, maxSuggestions, minConfidence) {
 export default {
     suggestObjectMatches
 };
+
+/**
+ * Fetch full objects (assets, ontology fields, research fields) by IDs
+ */
+async function getFullObjectsByIds(objectIds) {
+    if (objectIds.length === 0) return [];
+
+    try {
+        const objects_get_full = aliasedTable(dbSchema.objects, 'objects_get_full');
+
+        // Subquery for assets
+        const assets_subquery = sql`(SELECT json_group_array(json_object(
+      'order', oa."order",
+      'asset', json_object(
+        'id', a.id,
+        'filename', a.filename,
+        'formats', a.formats,
+        'path', a.path,
+        'type', a.type
+      )
+    )) FROM objects_assets oa JOIN assets a ON oa.asset_id = a.id WHERE oa.object_id = ${sql.raw(`"objects_get_full"."id"`)} )`;
+
+        // Subquery for ontology fields
+        const ontology_fields_subquery = sql`(SELECT json_group_array(json_object(
+      'id', oof.id,
+      'value', oof.value,
+      'primary', oof."primary",
+      'default_description', oof.default_description,
+      'ontologyField', json_object(
+        'id', ot.id,
+        'name', json_object(
+          'content', ot_name_texts.content
+        )
+      )
+    )) FROM objects_ontology_fields oof JOIN ontology_fields ot ON oof.field_id = ot.id JOIN texts ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = ${sql.raw(`"objects_get_full"."id"`)} )`;
+
+        // Subquery for research fields
+        const research_fields_subquery = sql`(SELECT json_group_array(json_object(
+      'id', orf.id,
+      'value', orf.value,
+      'vocabulary_id', orf.vocabulary_id,
+      'researchField', json_object(
+        'id', rf.id,
+        'name', json_object(
+          'content', rf_name_texts.content
+        )
+      ),
+      'vocabulary', json_object(
+        'id', v.id,
+        'option', json_object(
+          'content', v_option_texts.content
+        )
+      )
+    )) FROM objects_research_fields orf JOIN research_fields rf ON orf.field_id = rf.id JOIN texts rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN vocabularies v ON orf.vocabulary_id = v.id LEFT JOIN texts v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = ${sql.raw(`"objects_get_full"."id"`)} )`;
+
+     const query = db
+       .select({
+         id: objects_get_full.id,
+         name: objects_get_full.name,
+         created_at: objects_get_full.created_at,
+         updated_at: objects_get_full.updated_at,
+         status: objects_get_full.status,
+         institution_id: objects_get_full.institution_id,
+         project_id: objects_get_full.project_id,
+         objectsAssets: assets_subquery.as('objects_assets_json'),
+         objectsOntologyFields: ontology_fields_subquery.as('objects_ontology_fields_json'),
+         objectsResearchFields: research_fields_subquery.as('objects_research_fields_json')
+       })
+       .from(objects_get_full)
+       .where(inArray(objects_get_full.id, objectIds));
+
+     const results = await query.execute();
+
+    // Normalize the JSON fields
+    return results.map(obj => ({
+        ...obj,
+        objectsAssets: obj.objectsAssets ? JSON.parse(obj.objectsAssets) : [],
+        objectsOntologyFields: obj.objectsOntologyFields ? JSON.parse(obj.objectsOntologyFields) : [],
+        objectsResearchFields: obj.objectsResearchFields ? JSON.parse(obj.objectsResearchFields) : []
+    }));
+    } catch (error) {
+        console.error('Error fetching full objects:', error);
+        return [];
+    }
+}
