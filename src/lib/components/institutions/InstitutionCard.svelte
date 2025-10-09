@@ -67,9 +67,9 @@
       <div class="col">
         {institution.assetsCount}
         {#if institution.assetsCount < 2}
-          {t("common.asset", { fallback: "asset" })}
+          {t("common.asset", { fallback: "media" })}
         {:else}
-          {t("common.assets", { fallback: "assets" })}
+          {t("common.assets", { fallback: "media" })}
         {/if}
       </div>
     </div>

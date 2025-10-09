@@ -312,22 +312,22 @@
   </form>
 
   <!-- Sticky bottom action bar -->
-  <div
-    class="sticky-bottom-bar position-sticky bottom-0 bg-white border-top border-light-subtle mt-auto z-1 flex-shrink-0"
-  >
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-12 d-flex justify-content-end gap-2 p-2">
-          <BaseButton
-            type="submit"
-            class="btn btn-sm btn-success"
-            text={isSaving
-              ? t("common.saving", { fallback: "Saving..." })
-              : t("common.confirm", { fallback: "Confirm" })}
-            disabled={isSaving || !defaultLanguage}
-            onClick={handleSubmit}
-          />
-        </div>
+</div>
+<div
+  class="sticky-bottom-bar position-sticky bottom-0 bg-white border-top border-light-subtle mt-auto z-1 flex-shrink-0"
+>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-12 d-flex justify-content-end gap-2 p-2">
+        <BaseButton
+          type="submit"
+          class="btn btn-sm btn-success"
+          text={isSaving
+            ? t("common.saving", { fallback: "Saving..." })
+            : t("common.confirm", { fallback: "Confirm" })}
+          disabled={isSaving || !defaultLanguage}
+          onClick={handleSubmit}
+        />
       </div>
     </div>
   </div>

@@ -300,7 +300,7 @@
         <div class="assets-section mb-4">
             <label class="asset-option d-flex align-items-center gap-2">
                 <input type="checkbox" bind:checked={includeAssets} />
-                <span>Include assets in the export</span>
+                <span>Include media in the export</span>
             </label>
         </div>
 

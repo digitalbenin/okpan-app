@@ -43,7 +43,7 @@
       icon: "box-arrow-in-right",
     },
     {
-      label: t("menu.import-assets", { fallback: "Import Assets" }),
+      label: t("menu.import-assets", { fallback: "Import Media" }),
       url: `/projects/${page.data.project.id}/import-assets`,
       icon: "box-arrow-in-right",
     },
