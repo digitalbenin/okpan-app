@@ -57,7 +57,8 @@
   }
 
   function toggleFilter(itemId) {
-    const fieldKey = selectedField.type === "institutions" ? "institutions" : selectedField.id;
+    const fieldKey =
+      selectedField.type === "institutions" ? "institutions" : selectedField.id;
     if (!advancedFilters[fieldKey]) {
       advancedFilters[fieldKey] = [];
     }
@@ -72,14 +73,18 @@
 
   function resetFilter() {
     if (!selectedField) return;
-    const fieldKey = selectedField.type === "institutions" ? "institutions" : selectedField.id;
+    const fieldKey =
+      selectedField.type === "institutions" ? "institutions" : selectedField.id;
     advancedFilters[fieldKey] = [];
     onFiltersChange(advancedFilters);
   }
 
   function isSelected(itemId) {
-    const fieldKey = selectedField.type === "institutions" ? "institutions" : selectedField.id;
-    return advancedFilters[fieldKey] && advancedFilters[fieldKey].includes(itemId);
+    const fieldKey =
+      selectedField.type === "institutions" ? "institutions" : selectedField.id;
+    return (
+      advancedFilters[fieldKey] && advancedFilters[fieldKey].includes(itemId)
+    );
   }
 
   function showMain() {
@@ -113,12 +118,16 @@
         name: inst?.name?.content || inst?.name || "",
       }));
     } else if (selectedField.type === "vocabulary") {
-      items = (vocabularies || []).filter((v) => v.field_id === selectedField.id);
+      items = (vocabularies || []).filter(
+        (v) => v.field_id === selectedField.id,
+      );
     }
     const term = (searchTerm || "").toLowerCase().trim();
     let result = items;
     if (term) {
-      result = items.filter((item) => (item.name || "").toLowerCase().includes(term));
+      result = items.filter((item) =>
+        (item.name || "").toLowerCase().includes(term),
+      );
     }
     // Sort by facet count desc; tiebreak by name asc
     result = [...result].sort((a, b) => {
@@ -137,13 +146,23 @@
     const list = [];
     // Ontology fields
     (ontologyFields || []).forEach((f) =>
-      list.push({ key: `o:${f.id}`, label: f.name?.content || f.name, kind: "ontology", id: f.id })
+      list.push({
+        key: `o:${f.id}`,
+        label: f.name?.content || f.name,
+        kind: "ontology",
+        id: f.id,
+      }),
     );
     // Research fields that are NOT vocabulary-based
     (researchFields || [])
       .filter((f) => (f.type || "").toLowerCase() !== "vocabulary")
       .forEach((f) =>
-        list.push({ key: `r:${f.id}`, label: f.name?.content || f.name, kind: "research", id: f.id })
+        list.push({
+          key: `r:${f.id}`,
+          label: f.name?.content || f.name,
+          kind: "research",
+          id: f.id,
+        }),
       );
     return list.sort((a, b) => (a.label || "").localeCompare(b.label || ""));
   });
@@ -167,7 +186,9 @@
     if (!kind || !id) return;
 
     const arr = ensureTextFiltersArray();
-    const idx = arr.findIndex((tf) => tf.kind === kind && String(tf.fieldId) === String(id));
+    const idx = arr.findIndex(
+      (tf) => tf.kind === kind && String(tf.fieldId) === String(id),
+    );
 
     if (!q) {
       if (idx > -1) arr.splice(idx, 1);
@@ -186,17 +207,23 @@
     upsertOrRemoveTextFilter();
   }
 
-  let currentTextFilters = $derived.by(() => advancedFilters?.__textFilters ?? []);
+  let currentTextFilters = $derived.by(
+    () => advancedFilters?.__textFilters ?? [],
+  );
   function textFilterKey(tf) {
     return `${tf.kind}:${tf.fieldId}`;
   }
   function getTextFieldLabel(tf) {
     if (tf?.kind === "ontology") {
-      const f = (ontologyFields || []).find((o) => String(o.id) === String(tf.fieldId));
+      const f = (ontologyFields || []).find(
+        (o) => String(o.id) === String(tf.fieldId),
+      );
       return f?.name?.content || f?.name || "Unknown field";
     }
     if (tf?.kind === "research") {
-      const f = (researchFields || []).find((r) => String(r.id) === String(tf.fieldId));
+      const f = (researchFields || []).find(
+        (r) => String(r.id) === String(tf.fieldId),
+      );
       return f?.name?.content || f?.name || "Unknown field";
     }
     return "Unknown field";
@@ -207,11 +234,38 @@
   }
   function removeTextFilter(tf) {
     const arr = ensureTextFiltersArray();
-    const idx = arr.findIndex((x) => x.kind === tf.kind && String(x.fieldId) === String(tf.fieldId));
+    const idx = arr.findIndex(
+      (x) => x.kind === tf.kind && String(x.fieldId) === String(tf.fieldId),
+    );
     if (idx > -1) {
       arr.splice(idx, 1);
       onFiltersChange(advancedFilters);
     }
+  }
+
+  // Display helpers for main view rows
+  function getInstitutionSelectionLabel() {
+    const selected = advancedFilters?.institutions || [];
+    if (!selected.length) return "All";
+    const names = (institutions || [])
+      .filter((inst) => selected.some((id) => String(id) === String(inst.id)))
+      .map((inst) => inst?.name?.content || inst?.name || "")
+      .filter(Boolean);
+    return names.length ? names.join(", ") : "All";
+  }
+
+  function getVocabularySelectionLabel(fieldId) {
+    const selected = advancedFilters?.[fieldId] || [];
+    if (!selected.length) return "All";
+    const names = (vocabularies || [])
+      .filter(
+        (v) =>
+          String(v.field_id) === String(fieldId) &&
+          selected.some((id) => String(id) === String(v.id)),
+      )
+      .map((v) => v?.name?.content || v?.name || v?.option?.content || "")
+      .filter(Boolean);
+    return names.length ? names.join(", ") : "All";
   }
 </script>
 
@@ -235,51 +289,102 @@
   aria-modal="true"
   aria-labelledby="filters-title"
 >
-  <div class="d-flex justify-content-between align-items-center px-3 py-4 border-bottom">
+  <div
+    class="d-flex justify-content-between align-items-center px-3 py-4 border-bottom"
+  >
     <h5 class="m-0" id="filters-title">Filters</h5>
-    <button type="button" class="btn btn-link text-dark text-decoration-none p-0" aria-label="Close filters" onclick={onClose}>
+    <button
+      type="button"
+      class="btn btn-link text-dark text-decoration-none p-0"
+      aria-label="Close filters"
+      onclick={onClose}
+    >
       <i class="bi bi-x fs-3"></i>
     </button>
   </div>
 
   {#if activeView === "main"}
-    <div class="p-3 d-flex flex-column gap-3 overflow-auto">
-      {#if enableInstitutionFilter}
-        <div class="border rounded-3 p-3">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="fw-semibold">Institutions</div>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onclick={() => showDetail({ type: "institutions", id: "institutions" })}>
-              Select
+    <div class="p-3 overflow-auto">
+      <div class="list-group list-group-flush">
+        {#if enableInstitutionFilter}
+          <button
+            type="button"
+            class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
+            onclick={() =>
+              showDetail({ type: "institutions", id: "institutions" })}
+            aria-label="Filter by institution"
+          >
+            <div class="fw-semibold">Institution</div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-muted">{getInstitutionSelectionLabel()}</span>
+              <i class="bi bi-chevron-right"></i>
+            </div>
+          </button>
+        {/if}
+
+        <div class="px-3 py-3 text-muted">Research fields</div>
+
+        {#each (researchFields || []).filter((f) => (f.type || "").toLowerCase() === "vocabulary") as field (field.id)}
+          <button
+            type="button"
+            class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
+            onclick={() => showDetail({ type: "vocabulary", id: field.id })}
+            aria-label={`Filter by ${field.name?.content || field.name}`}
+          >
+            <div class="fw-semibold">{field.name?.content || field.name}</div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-muted"
+                >{getVocabularySelectionLabel(field.id)}</span
+              >
+              <i class="bi bi-chevron-right"></i>
+            </div>
+          </button>
+        {/each}
+
+        <!-- Active text filters overview (shown in main list) -->
+        <div class="list-group-item py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="fw-semibold">Active text filters</div>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              onclick={() => showAddTextSearch()}
+            >
+              Add
             </button>
           </div>
-          <div class="text-muted fs-7">Filter objects by institution</div>
-        </div>
-      {/if}
+          <div class="text-muted fs-7 mt-2">
+            Search in a specific field (ontology or research field)
+          </div>
 
-      <!-- Research fields (vocabularies only) -->
-      <div class="border rounded-3 p-3">
-        <div class="fw-semibold mb-2">Research fields</div>
-        <div class="d-flex flex-column gap-2">
-          {#each (researchFields || []).filter((f) => (f.type || "").toLowerCase() === "vocabulary") as field (field.id)}
-            <div class="d-flex align-items-center justify-content-between">
-              <div class="text-truncate">{field.name?.content || field.name}</div>
-              <button type="button" class="btn btn-outline-secondary btn-sm" onclick={() => showDetail({ type: "vocabulary", id: field.id })}>
-                Select
-              </button>
+          {#each currentTextFilters as tf (textFilterKey(tf))}
+            <div
+              class="d-flex align-items-center justify-content-between border rounded p-2 mb-2 mt-2"
+            >
+              <div>
+                <div class="fw-semibold">{getTextFieldLabel(tf)}</div>
+                <div class="text-muted fs-7">"{tf.query}"</div>
+              </div>
+              <div class="d-flex gap-2">
+                <button
+                  class="btn btn-outline-secondary btn-sm"
+                  onclick={() => editTextFilter(tf)}
+                >
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button
+                  class="btn btn-outline-danger btn-sm"
+                  onclick={() => removeTextFilter(tf)}
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
             </div>
           {/each}
+          {#if currentTextFilters.length === 0}
+            <div class="text-muted fs-7 mt-2">No text filters</div>
+          {/if}
         </div>
-      </div>
-
-      <!-- Add text search -->
-      <div class="border rounded-3 p-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="fw-semibold">Add search field</div>
-          <button type="button" class="btn btn-outline-secondary btn-sm" onclick={() => showAddTextSearch()}>
-            Add
-          </button>
-        </div>
-        <div class="text-muted fs-7">Search in a specific field (ontology or research field)</div>
       </div>
     </div>
   {/if}
@@ -291,7 +396,9 @@
           <i class="bi bi-arrow-left"></i>
           Back
         </button>
-        <button class="btn btn-outline-secondary btn-sm" onclick={resetFilter}>Reset</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick={resetFilter}
+          >Reset</button
+        >
       </div>
 
       <div class="position-relative">
@@ -305,30 +412,24 @@
 
       <div class="list-group list-group-flush">
         {#each filteredItems as item (item.id)}
-          <div class="list-group-item d-flex align-items-start justify-content-between gap-2">
-            <div class="d-flex align-items-start gap-2 w-100">
-              <div class="flex-grow-1">
-                <div class="fw-semibold">{item.name}</div>
-                <div class="text-muted fs-7">Facet count: {getFacetCountForItem(item)}</div>
-                {#if selectedField.type === "vocabulary"}
-                  {#if openInfoId === item.id}
-                    <div class="text-muted fs-7">Vocabulary ID: {item.id}</div>
-                  {/if}
-                {/if}
-              </div>
-            </div>
+          <div class="list-group-item">
             <div class="d-flex align-items-center gap-2">
-              <button class="btn btn-sm btn-outline-secondary" onclick={() => toggleInfo(item)} aria-expanded={openInfoId === item.id}>
-                <i class="bi bi-info-circle"></i>
-              </button>
-              <button
-                class="btn btn-sm"
-                class:btn-primary={!isSelected(item.id)}
-                class:btn-secondary={isSelected(item.id)}
-                onclick={() => toggleFilter(item.id)}
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id={`filter-${selectedField.id}-${item.id}`}
+                checked={isSelected(item.id)}
+                onchange={() => toggleFilter(item.id)}
+              />
+              <label
+                class="form-check-label"
+                for={`filter-${selectedField.id}-${item.id}`}
               >
-                {#if isSelected(item.id)}Remove{:else}Add{/if}
-              </button>
+                <span class="fw-semibold">{item.name}</span>
+                <span class="text-muted fs-7">
+                  ({getFacetCountForItem(item)})</span
+                >
+              </label>
             </div>
           </div>
         {/each}
@@ -349,7 +450,11 @@
       </div>
 
       <div class="mb-2">Select a field</div>
-      <select class="form-select" bind:value={textSelectedFieldId} onchange={onTextFieldChange}>
+      <select
+        class="form-select"
+        bind:value={textSelectedFieldId}
+        onchange={onTextFieldChange}
+      >
         <option value="">Choose...</option>
         {#each selectableTextFields as f (f.key)}
           <option value={f.key}>{f.label}</option>
@@ -357,31 +462,13 @@
       </select>
 
       <div class="mb-2">Enter query</div>
-      <input type="text" class="form-control" placeholder="Type to search" bind:value={textQuery} oninput={onTextQueryInput} />
-
-      <!-- Current text filters -->
-      <div class="mt-3">
-        <div class="fw-semibold mb-2">Active text filters</div>
-        {#each currentTextFilters as tf (textFilterKey(tf))}
-          <div class="d-flex align-items-center justify-content-between border rounded p-2 mb-2">
-            <div>
-              <div class="fw-semibold">{getTextFieldLabel(tf)}</div>
-              <div class="text-muted fs-7">"{tf.query}"</div>
-            </div>
-            <div class="d-flex gap-2">
-              <button class="btn btn-outline-secondary btn-sm" onclick={() => editTextFilter(tf)}>
-                Edit
-              </button>
-              <button class="btn btn-outline-danger btn-sm" onclick={() => removeTextFilter(tf)}>
-                Remove
-              </button>
-            </div>
-          </div>
-        {/each}
-        {#if currentTextFilters.length === 0}
-          <div class="text-muted fs-7">No text filters</div>
-        {/if}
-      </div>
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Type to search"
+        bind:value={textQuery}
+        oninput={onTextQueryInput}
+      />
     </div>
   {/if}
 </div>

@@ -156,42 +156,10 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
 
             const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content )) FROM objects_research_fields orf JOIN research_fields rf ON orf.field_id = rf.id JOIN texts rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN vocabularies v ON orf.vocabulary_id = v.id LEFT JOIN texts v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = objects.id)`;
 
-            // Build base query - use explicit column references to avoid ambiguity
-            const baseSelect = {
-                id: dbSchema.objects.id,
-                name: dbSchema.objects.name,
-                created_at: dbSchema.objects.created_at,
-                updated_at: dbSchema.objects.updated_at,
-                status: dbSchema.objects.status,
-                institution_id: dbSchema.objects.institution_id,
-                project_id: dbSchema.objects.project_id,
-                objects_assets_json: sql`(SELECT json_group_array(json_object('order', oa."order", 'asset_id', oa.asset_id, 'asset_filename', a.filename, 'asset_formats', a.formats, 'asset_path', a.path, 'asset_type', a.type, 'asset_real_id', a.id)) FROM objects_assets oa JOIN assets a ON oa.asset_id = a.id WHERE oa.object_id = objects.id)`.as('objects_assets_json'),
-                objects_ontology_fields_json: ontologyFieldsQuery.as('objects_ontology_fields_json'),
-                objects_research_fields_json: researchFieldsQuery.as('objects_research_fields_json'),
-            };
-
-            // Build search conditions
-            const searchConditions = [eq(dbSchema.objects.project_id, args.project_id)];
-
-            // Institution filter
-            let institutionFilterApplied = false;
-            if (args.institutionIds && args.institutionIds.length > 0) {
-                searchConditions.push(inArray(dbSchema.objects.institution_id, args.institutionIds));
-                institutionFilterApplied = true;
-            }
-
-            // Status filter
-            let statusFilterApplied = false;
-            if (args.status) {
-                searchConditions.push(eq(dbSchema.objects.status, args.status));
-                statusFilterApplied = true;
-            }
-
-            // Removed legacy global ontologyQuery/ontologyFieldIds logic
-
-            // Per-field ontology queries: require each (fieldId, query) pair to match
-            if (ontologyFieldQueries.length > 0) {
-                const perFieldConds = ontologyFieldQueries
+            // Helper builders to keep condition construction DRY and precise
+            const buildOntologyConditions = (queries) => {
+                if (!queries || queries.length === 0) return [];
+                const perFieldConds = queries
                     .filter(ofq => ofq && ofq.fieldId && ofq.query && ofq.query.trim())
                     .map(ofq => {
                         const qLike = `%${ofq.query.trim().toLowerCase()}%`;
@@ -202,20 +170,15 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                             AND LOWER(oof.value) LIKE ${qLike}
                         )`;
                     });
-                if (perFieldConds.length > 0) {
-                    searchConditions.push(and(...perFieldConds));
-                }
-            }
+                return perFieldConds.length > 0 ? [and(...perFieldConds)] : [];
+            };
 
-            // Research field filters
-            if (researchFieldFilters.length > 0) {
+            const buildResearchFieldConditions = (filters) => {
+                if (!filters || filters.length === 0) return [];
                 const researchFieldConditions = [];
-
-                for (const filter of researchFieldFilters) {
+                for (const filter of filters) {
                     const fieldConditions = [];
-
-                    if (filter.query && filter.query.trim()) {
-                        // Free text search in research field
+                    if (filter?.query && filter.query.trim()) {
                         const researchQuery = `%${filter.query.trim().toLowerCase()}%`;
                         fieldConditions.push(sql`EXISTS (
                             SELECT 1 FROM ${dbSchema.objects_research_fields} orf
@@ -224,29 +187,61 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                             AND LOWER(orf.value) LIKE ${researchQuery}
                         )`);
                     }
-
-                    if (filter.vocabularyIds && filter.vocabularyIds.length > 0) {
-                        // Vocabulary search
-                        const vocabConditions = filter.vocabularyIds.map(vocabId => {
-                            return sql`EXISTS (
-                                SELECT 1 FROM ${dbSchema.objects_research_fields} orf
-                                WHERE orf.object_id = objects.id
-                                AND orf.field_id = ${filter.fieldId}
-                                AND orf.vocabulary_id = ${vocabId}
-                            )`;
-                        });
+                    if (filter?.vocabularyIds && filter.vocabularyIds.length > 0) {
+                        const vocabConditions = filter.vocabularyIds.map(vocabId => sql`EXISTS (
+                            SELECT 1 FROM ${dbSchema.objects_research_fields} orf
+                            WHERE orf.object_id = objects.id
+                            AND orf.field_id = ${filter.fieldId}
+                            AND orf.vocabulary_id = ${vocabId}
+                        )`);
                         fieldConditions.push(or(...vocabConditions));
                     }
-
                     if (fieldConditions.length > 0) {
                         researchFieldConditions.push(or(...fieldConditions));
                     }
                 }
+                return researchFieldConditions.length > 0 ? [and(...researchFieldConditions)] : [];
+            };
 
-                if (researchFieldConditions.length > 0) {
-                    searchConditions.push(and(...researchFieldConditions));
+            const buildBaseConditions = (args, { includeInstitution = true, includeStatus = true } = {}) => {
+                const conds = [eq(dbSchema.objects.project_id, args.project_id)];
+                if (includeInstitution && args.institutionIds && args.institutionIds.length > 0) {
+                    conds.push(inArray(dbSchema.objects.institution_id, args.institutionIds));
                 }
-            }
+                if (includeStatus && args.status) {
+                    conds.push(eq(dbSchema.objects.status, args.status));
+                }
+                return conds;
+            };
+
+            // Build base query - use explicit column references to avoid ambiguity
+            const baseSelect = {
+                id: dbSchema.objects.id,
+                name: dbSchema.objects.name,
+                created_at: dbSchema.objects.created_at,
+                updated_at: dbSchema.objects.updated_at,
+                status: dbSchema.objects.status,
+                institution_id: dbSchema.objects.institution_id,
+                project_id: dbSchema.objects.project_id,
+                // Include institution details for UI components (ObjectCard expects object.institution.name.content)
+                institution_json: sql`(SELECT json_object(
+                    'id', inst.id,
+                    'name', json_object('content', inst_name_texts.content)
+                ) FROM institutions inst LEFT JOIN texts inst_name_texts ON inst.name_id = inst_name_texts.id WHERE inst.id = objects.institution_id)`.as('institution_json'),
+                objects_assets_json: sql`(SELECT json_group_array(json_object('order', oa."order", 'asset_id', oa.asset_id, 'asset_filename', a.filename, 'asset_formats', a.formats, 'asset_path', a.path, 'asset_type', a.type, 'asset_real_id', a.id)) FROM objects_assets oa JOIN assets a ON oa.asset_id = a.id WHERE oa.object_id = objects.id)`.as('objects_assets_json'),
+                objects_ontology_fields_json: ontologyFieldsQuery.as('objects_ontology_fields_json'),
+                objects_research_fields_json: researchFieldsQuery.as('objects_research_fields_json'),
+            };
+
+            // Build search conditions using helpers
+            const institutionFilterApplied = Boolean(args.institutionIds && args.institutionIds.length > 0);
+            const statusFilterApplied = Boolean(args.status);
+
+            const searchConditions = [
+                ...buildBaseConditions(args),
+                ...buildOntologyConditions(ontologyFieldQueries),
+                ...buildResearchFieldConditions(researchFieldFilters)
+            ];
 
             // Build main query
 
@@ -292,64 +287,13 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             // Institution facets - show distribution across institutions with ALL other filters applied but NO institution filter
             let nonInstitutionConditions;
             if (institutionFilterApplied) {
-                // Remove the institution filter by reconstructing conditions without it
-                nonInstitutionConditions = [eq(dbSchema.objects.project_id, args.project_id)];
-
-                // Removed legacy global ontologyQuery/ontologyFieldIds conditions
-
-                // Add back per-field ontology queries
-                if (ontologyFieldQueries.length > 0) {
-                    const perFieldConds = ontologyFieldQueries
-                        .filter(ofq => ofq && ofq.fieldId && ofq.query && ofq.query.trim())
-                        .map(ofq => {
-                            const qLike = `%${ofq.query.trim().toLowerCase()}%`;
-                            return sql`EXISTS (
-                                SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
-                                WHERE oof.object_id = objects.id
-                                AND oof.field_id = ${ofq.fieldId}
-                                AND LOWER(oof.value) LIKE ${qLike}
-                            )`;
-                        });
-                    if (perFieldConds.length > 0) {
-                        nonInstitutionConditions.push(and(...perFieldConds));
-                    }
-                }
-
-                // Add back research field conditions
-                if (researchFieldFilters.length > 0) {
-                    const researchFieldConditions = [];
-                    for (const filter of researchFieldFilters) {
-                        const fieldConditions = [];
-                        if (filter.query && filter.query.trim()) {
-                            const researchQuery = `%${filter.query.trim().toLowerCase()}%`;
-                            fieldConditions.push(sql`EXISTS (
-                                SELECT 1 FROM ${dbSchema.objects_research_fields} orf
-                                WHERE orf.object_id = objects.id
-                                AND orf.field_id = ${filter.fieldId}
-                                AND LOWER(orf.value) LIKE ${researchQuery}
-                            )`);
-                        }
-                        if (filter.vocabularyIds && filter.vocabularyIds.length > 0) {
-                            const vocabConditions = filter.vocabularyIds.map(vocabId =>
-                                sql`EXISTS (
-                                    SELECT 1 FROM ${dbSchema.objects_research_fields} orf
-                                    WHERE orf.object_id = objects.id
-                                    AND orf.field_id = ${filter.fieldId}
-                                    AND orf.vocabulary_id = ${vocabId}
-                                )`
-                            );
-                            fieldConditions.push(or(...vocabConditions));
-                        }
-                        if (fieldConditions.length > 0) {
-                            researchFieldConditions.push(or(...fieldConditions));
-                        }
-                    }
-                    if (researchFieldConditions.length > 0) {
-                        nonInstitutionConditions.push(and(...researchFieldConditions));
-                    }
-                }
+                // Rebuild without institution filter but with all other filters
+                nonInstitutionConditions = [
+                    ...buildBaseConditions(args, { includeInstitution: false }),
+                    ...buildOntologyConditions(ontologyFieldQueries),
+                    ...buildResearchFieldConditions(researchFieldFilters)
+                ];
             } else {
-                // No institution filter was applied, so use all current conditions
                 nonInstitutionConditions = searchConditions;
             }
 
@@ -419,11 +363,11 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                     .where(eq(dbSchema.vocabularies.field_id, field.id))
                     .execute();
 
-                // Get conditions excluding ALL research field filters (not just this field)
-                const nonResearchFieldConditions = searchConditions.filter(condition => {
-                    const conditionStr = condition.toString();
-                    return !conditionStr.includes('objects_research_fields orf');
-                });
+                // Conditions WITHOUT any research-field filters for vocabulary counts
+                const nonResearchFieldConditions = [
+                    ...buildBaseConditions(args),
+                    ...buildOntologyConditions(ontologyFieldQueries)
+                ];
 
                 // Build the WHERE clause without any research field filters
                 const baseConditions = [
@@ -467,67 +411,13 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             // Status facets - show distribution across statuses with ALL other filters applied but NO status filter
             let nonStatusConditions;
             if (statusFilterApplied) {
-                // Remove the status filter by reconstructing conditions without it
-                nonStatusConditions = [eq(dbSchema.objects.project_id, args.project_id)];
-
-                // Add back institution conditions
-                if (args.institutionIds && args.institutionIds.length > 0) {
-                    nonStatusConditions.push(inArray(dbSchema.objects.institution_id, args.institutionIds));
-                }
-
-                // Add back per-field ontology queries
-                if (ontologyFieldQueries.length > 0) {
-                    const perFieldConds = ontologyFieldQueries
-                        .filter(ofq => ofq && ofq.fieldId && ofq.query && ofq.query.trim())
-                        .map(ofq => {
-                            const qLike = `%${ofq.query.trim().toLowerCase()}%`;
-                            return sql`EXISTS (
-                                SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
-                                WHERE oof.object_id = objects.id
-                                AND oof.field_id = ${ofq.fieldId}
-                                AND LOWER(oof.value) LIKE ${qLike}
-                            )`;
-                        });
-                    if (perFieldConds.length > 0) {
-                        nonStatusConditions.push(and(...perFieldConds));
-                    }
-                }
-
-                // Add back research field conditions
-                if (researchFieldFilters.length > 0) {
-                    const researchFieldConditions = [];
-                    for (const filter of researchFieldFilters) {
-                        const fieldConditions = [];
-                        if (filter.query && filter.query.trim()) {
-                            const researchQuery = `%${filter.query.trim().toLowerCase()}%`;
-                            fieldConditions.push(sql`EXISTS (
-                                SELECT 1 FROM ${dbSchema.objects_research_fields} orf
-                                WHERE orf.object_id = objects.id
-                                AND orf.field_id = ${filter.fieldId}
-                                AND LOWER(orf.value) LIKE ${researchQuery}
-                            )`);
-                        }
-                        if (filter.vocabularyIds && filter.vocabularyIds.length > 0) {
-                            const vocabConditions = filter.vocabularyIds.map(vocabId =>
-                                sql`EXISTS (
-                                    SELECT 1 FROM ${dbSchema.objects_research_fields} orf
-                                    WHERE orf.object_id = objects.id
-                                    AND orf.field_id = ${filter.fieldId}
-                                    AND orf.vocabulary_id = ${vocabId}
-                                )`
-                            );
-                            fieldConditions.push(or(...vocabConditions));
-                        }
-                        if (fieldConditions.length > 0) {
-                            researchFieldConditions.push(or(...fieldConditions));
-                        }
-                    }
-                    if (researchFieldConditions.length > 0) {
-                        nonStatusConditions.push(and(...researchFieldConditions));
-                    }
-                }
+                // Rebuild without status filter but with all other filters
+                nonStatusConditions = [
+                    ...buildBaseConditions(args, { includeStatus: false }),
+                    ...buildOntologyConditions(ontologyFieldQueries),
+                    ...buildResearchFieldConditions(researchFieldFilters)
+                ];
             } else {
-                // No status filter was applied, so use all current conditions
                 nonStatusConditions = searchConditions;
             }
 
@@ -555,6 +445,19 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
 
             // Process results
             const processedItems = rawResults.map(item => {
+                // Institution parsing
+                let institution = null;
+                if (item.institution_json) {
+                    try {
+                        const parsedInst = JSON.parse(item.institution_json);
+                        if (parsedInst && parsedInst.id) {
+                            institution = {
+                                id: parsedInst.id,
+                                name: { content: parsedInst?.name?.content }
+                            };
+                        }
+                    } catch (e) { console.error('Error parsing institution_json:', e); }
+                }
 
                 let objectsAssets = [];
                 if (item.objects_assets_json) {
@@ -624,6 +527,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                     updated_at: item.updated_at,
                     status: item.status,
                     institution_id: item.institution_id,
+                    institution: institution,
                     project_id: item.project_id,
                     objectsAssets: objectsAssets,
                     objectsOntologyFields: objectsOntologyFields,

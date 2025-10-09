@@ -8,6 +8,7 @@
   import { Navigation } from "swiper/modules";
 
   const { object, displayFields, displayInstitution = false } = $props();
+  console.log('Debug ObjectCard object:', object);
   const { t, translationState } = getTranslationStore();
 
   const title = $derived.by(
@@ -123,7 +124,7 @@
       class="link-dark">{title}</a
     >
   </div>
-  {#if displayInstitution}
+  {#if displayInstitution && object?.institution?.name?.content}
     <div class="mb-1">
       <div class="text-muted fs-7">
         {t("common.institution", { fallback: "Institution" })}
@@ -135,6 +136,15 @@
         >
           {object.institution.name.content}
         </a>
+      </div>
+    </div>
+  {:else if displayInstitution}
+    <div class="mb-1">
+      <div class="text-muted fs-7">
+        {t("common.institution", { fallback: "Institution" })}
+      </div>
+      <div class="text-truncate text-black-50 fst-italic">
+        {t("common.no-value", { fallback: "No value" })}
       </div>
     </div>
   {/if}
