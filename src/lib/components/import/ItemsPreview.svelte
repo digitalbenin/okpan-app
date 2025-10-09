@@ -38,7 +38,7 @@
   const item = $derived.by(() => {
     return Object.entries(data[page - 1]).map(([key, value]) => {
       const mappedField = mapping.find(
-        (m) => m.headerField === key
+        (m) => m.headerField === key,
       ).mappedField;
 
       const ontologyLabel = mappedField ? getOntologyLabel(mappedField) : null;
@@ -50,7 +50,7 @@
             .map((v) =>
               v.trim()
                 ? v.trim()
-                : `<i>${t("common.null", { fallback: "null" })}</i>`
+                : `<i>${t("common.null", { fallback: "null" })}</i>`,
             )
             .join("<br/>");
         } else {
@@ -72,9 +72,11 @@
   });
 
   function getOntologyLabel(id) {
+    console.log(id, pageData?.data?.ontologyFields);
     const ontologyField = pageData.data.ontologyFields.result.find(
-      (f) => f.id === id
+      (f) => f.id === id,
     );
+    console.log("ontologyField", ontologyField);
     return ontologyField.name.content;
   }
 </script>

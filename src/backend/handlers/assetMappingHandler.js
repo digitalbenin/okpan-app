@@ -325,31 +325,31 @@ async function getFullObjectsByIds(objectIds) {
       )
     )) FROM objects_research_fields orf JOIN research_fields rf ON orf.field_id = rf.id JOIN texts rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN vocabularies v ON orf.vocabulary_id = v.id LEFT JOIN texts v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = ${sql.raw(`"objects_get_full"."id"`)} )`;
 
-     const query = db
-       .select({
-         id: objects_get_full.id,
-         name: objects_get_full.name,
-         created_at: objects_get_full.created_at,
-         updated_at: objects_get_full.updated_at,
-         status: objects_get_full.status,
-         institution_id: objects_get_full.institution_id,
-         project_id: objects_get_full.project_id,
-         objectsAssets: assets_subquery.as('objects_assets_json'),
-         objectsOntologyFields: ontology_fields_subquery.as('objects_ontology_fields_json'),
-         objectsResearchFields: research_fields_subquery.as('objects_research_fields_json')
-       })
-       .from(objects_get_full)
-       .where(inArray(objects_get_full.id, objectIds));
+        const query = db
+            .select({
+                id: objects_get_full.id,
+                name: objects_get_full.name,
+                created_at: objects_get_full.created_at,
+                updated_at: objects_get_full.updated_at,
+                status: objects_get_full.status,
+                institution_id: objects_get_full.institution_id,
+                project_id: objects_get_full.project_id,
+                objectsAssets: assets_subquery.as('objects_assets_json'),
+                objectsOntologyFields: ontology_fields_subquery.as('objects_ontology_fields_json'),
+                objectsResearchFields: research_fields_subquery.as('objects_research_fields_json')
+            })
+            .from(objects_get_full)
+            .where(inArray(objects_get_full.id, objectIds));
 
-     const results = await query.execute();
+        const results = await query.execute();
 
-    // Normalize the JSON fields
-    return results.map(obj => ({
-        ...obj,
-        objectsAssets: obj.objectsAssets ? JSON.parse(obj.objectsAssets) : [],
-        objectsOntologyFields: obj.objectsOntologyFields ? JSON.parse(obj.objectsOntologyFields) : [],
-        objectsResearchFields: obj.objectsResearchFields ? JSON.parse(obj.objectsResearchFields) : []
-    }));
+        // Normalize the JSON fields
+        return results.map(obj => ({
+            ...obj,
+            objectsAssets: obj.objectsAssets ? JSON.parse(obj.objectsAssets) : [],
+            objectsOntologyFields: obj.objectsOntologyFields ? JSON.parse(obj.objectsOntologyFields) : [],
+            objectsResearchFields: obj.objectsResearchFields ? JSON.parse(obj.objectsResearchFields) : []
+        }));
     } catch (error) {
         console.error('Error fetching full objects:', error);
         return [];

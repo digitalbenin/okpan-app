@@ -39,7 +39,7 @@
       wizard.nextEnabled = true;
       return suggestions;
     },
-    { initialValue: [] }
+    { initialValue: [] },
   );
   $inspect(wizard);
 </script>
