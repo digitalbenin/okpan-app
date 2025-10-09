@@ -38,12 +38,6 @@
       exact: true,
     },
     {
-      label: t("menu.add-media", { fallback: "Add Media" }),
-      url: `/projects/${page.data.project.id}/media/add`,
-      icon: "plus-lg",
-      exact: true,
-    },
-    {
       label: t("menu.import-data", { fallback: "Import Data" }),
       url: `/projects/${page.data.project.id}/import`,
       icon: "box-arrow-in-right",
