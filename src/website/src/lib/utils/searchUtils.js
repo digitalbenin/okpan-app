@@ -89,6 +89,12 @@ export async function searchObjects(options = {}) {
     }
     searchParams.push(`%${ontologyQuery.toLowerCase()}%`);
 
+    // Object name search
+    searchConditions.push(`
+      LOWER(o.name) LIKE ?
+    `);
+    searchParams.push(`%${ontologyQuery.toLowerCase()}%`);
+
     // Research fields search
     searchConditions.push(`
       EXISTS (
@@ -183,7 +189,7 @@ export async function searchObjects(options = {}) {
       WHERE oa.object_id = o.id
     )`,
     ontology: `(
-      SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id))
+      SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'primary', oof."primary"))
       FROM objects_ontology_fields oof
       WHERE oof.object_id = o.id
     )`,
@@ -197,7 +203,7 @@ export async function searchObjects(options = {}) {
   // 4. Main query for fetching paginated items
   const mainQuerySql = `
     SELECT
-      o.id, o.created_at, o.updated_at, o.status, o.institution_id, o.project_id,
+      o.id, o.name, o.created_at, o.updated_at, o.status, o.institution_id, o.project_id,
       ${subqueries.assets} as objects_assets_json,
       ${subqueries.ontology} as objects_ontology_fields_json,
       ${subqueries.research} as objects_research_fields_json

@@ -8,7 +8,7 @@ const { getSchema, validate } = getValidationStore();
 
 export const getObjects = async (options) => {
     const result = await executeQuery('objects', 'list', options);
-    console.log(result, "result")
+    // console.log(result, "result")
     if (result && result.result) {
         return { items: result.result.items || [], totalCount: result.result.totalCount || 0 };
     }
@@ -76,17 +76,18 @@ export const getObjectById = async (objectId) => {
 export const createObject = async (
     projectId,
     institutionId,
-    status = "draft"
+    status = "draft",
+    name
 ) => {
     if (!projectId || !institutionId) {
         return { error: "Invalid project ID or institution ID for createObject" };
     }
 
-    const response = await executeQuery("objects", "create", {
-        projectId,
-        institutionId,
-        status,
-    });
+    const params = { projectId, institutionId, status, name };
+    // Remove undefined to avoid GraphQL variable issues
+    Object.keys(params).forEach((k) => params[k] === undefined && delete params[k]);
+
+    const response = await executeQuery("objects", "create", params);
 
     if (response.error) {
         return { error: response.error };
@@ -554,4 +555,35 @@ export const updateObjectsInstitutionBulk = async (objectIds, institutionId) => 
     invalidate("app:institution");
 
     return { successes, errors };
+};
+
+// Function to update object name
+export const updateObjectName = async (objectId, name) => {
+    if (!objectId) {
+        return { error: "Invalid object ID for name update" };
+    }
+
+    // Allow empty string to explicitly clear the name
+    const params = { objectId, name };
+    Object.keys(params).forEach((k) => params[k] === undefined && delete params[k]);
+
+    const response = await executeQuery('objects', 'update', params);
+
+    if (response?.error) {
+        return { error: response.error };
+    }
+
+    let resultData = null;
+    if (response.updateObjects && Array.isArray(response.updateObjects) && response.updateObjects.length > 0) {
+        resultData = response.updateObjects[0];
+    }
+
+    // Invalidate caches to reflect the change (object details and listings)
+    invalidate("app:objects");
+    invalidate("custom:object");
+
+    return {
+        result: resultData || { id: objectId, name },
+        error: null
+    };
 };

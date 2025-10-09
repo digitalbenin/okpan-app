@@ -15,12 +15,18 @@
 	const vocabularies = $derived(data.vocabularies);
 	const datasources = $derived(data.datasources);
 	const objId = $derived(data?.objectOntologyFields?.find((e) => e.primary)?.value);
+	const title = $derived.by(() => {
+		const name = (data?.object?.name && String(data.object.name).trim()) || '';
+		if (name) return name;
+		const primary = data?.objectOntologyFields?.find((e) => e.primary)?.value;
+		return primary || 'Untitled';
+	});
 	const assets = $derived(data?.assets);
 </script>
 
 <div class="row p-3">
 	<div class="col-12">
-		<ObjectHeader {objId} {institution} />
+		<ObjectHeader {title} {institution} />
 	</div>
 </div>
 <div class="row mb-2">

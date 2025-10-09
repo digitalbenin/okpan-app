@@ -464,6 +464,10 @@ const seed = async () => {
             // Keep for later to attach notes
             seededObjectIds.push(dbObject.id);
 
+            // Track the object's primary identifier to set the new title field
+            // Default to the generated object UUID if no external primary id is found
+            let objectPrimaryIdValue = dbObject.id;
+
             // Handle Edo Designations
             if (objData.edo_designations && objData.edo_designations.length > 0) {
                 const oldEdoDesignationId = objData.edo_designations[0];
@@ -532,6 +536,17 @@ const seed = async () => {
                         const targetOntologyFieldName = ontologyFieldName || sourceFieldName.toLowerCase();
                         const ontologyFieldDbId = ontologyFieldsByName.get(targetOntologyFieldName);
 
+                        // Capture the "primary id" value for the object title if present
+                        if (
+                            fieldValuePair.primary &&
+                            targetOntologyFieldName === 'object id' &&
+                            fieldValuePair.value !== null &&
+                            typeof fieldValuePair.value !== 'undefined' &&
+                            String(fieldValuePair.value).trim() !== ''
+                        ) {
+                            objectPrimaryIdValue = String(fieldValuePair.value);
+                        }
+
                         if (ontologyFieldDbId && fieldValuePair.value !== null && typeof fieldValuePair.value !== "undefined" && String(fieldValuePair.value).trim() !== "") {
 
                             // Determine if this should be the default description
@@ -556,6 +571,11 @@ const seed = async () => {
                     }
                 }
             }
+
+            // Update the object title (name) with the resolved primary identifier value
+            await db.update(objects)
+                .set({ name: objectPrimaryIdValue })
+                .where(eq(objects.id, dbObject.id));
         }
 
         // After creating all objects, attach two different notes to two random objects (if available)

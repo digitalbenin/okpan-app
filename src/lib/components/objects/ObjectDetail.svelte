@@ -142,8 +142,13 @@
     return fieldType === "vocabulary";
   }
 
-  // Get object title
+  // Get object title (prefer name, then ontology "object id", then numeric id)
   function getObjectTitle(currentObject) {
+    const name =
+      (currentObject?.name?.content && String(currentObject.name.content).trim()) ||
+      (typeof currentObject?.name === "string" && String(currentObject.name).trim());
+    if (name) return name;
+
     if (currentObject?.objectsOntologyFields) {
       const titleField = currentObject.objectsOntologyFields.find(
         (field) =>

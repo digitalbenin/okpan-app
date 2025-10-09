@@ -95,6 +95,14 @@
     return field?.value ?? null;
   }
 
+  // Display label: prefer object's name, then primary identifier, then numeric id
+  function getObjectDisplayName(obj) {
+    const name =
+      (obj?.name?.content && String(obj.name.content).trim()) ||
+      (typeof obj?.name === "string" && String(obj.name).trim());
+    return name || getPrimaryIdentifier(obj) || obj?.id;
+  }
+
   // Resolve thumbnail src from the first media asset
   function getMediaThumbSrc(obj) {
     const asset = obj?.objectsAssets?.[0]?.asset;
@@ -208,9 +216,7 @@
               <div class="flex-grow-1">
                 <!-- Header: primary ID + add/remove button -->
                 <div class="d-flex justify-content-between align-items-center">
-                  <span class="fw-medium"
-                    >{getPrimaryIdentifier(obj) ?? obj.id}</span
-                  >
+                  <span class="fw-medium">{getObjectDisplayName(obj)}</span>
                   <div class="d-flex align-items-center gap-2">
                     <button
                       class={selectedObjectIds.has(obj.id)

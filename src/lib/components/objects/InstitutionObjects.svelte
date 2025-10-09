@@ -28,8 +28,11 @@
   // Mutable array of objects that can be updated
   let objectsList = $state(page.data.objects);
 
-  // Function to get object title from mapped ontology field
+  // Function to get object title prioritizing the object's own name
   function getObjectTitle(object) {
+    if (object?.name && String(object.name).trim()) {
+      return String(object.name).trim();
+    }
     if (object.objectsOntologyFields) {
       const titleField = object.objectsOntologyFields.find(
         (field) =>
@@ -39,7 +42,6 @@
         return titleField.value;
       }
     }
-    // Fallback to the object's ID if no mapped field is found or value is empty
     return object.id || "Unknown ID";
   }
 
