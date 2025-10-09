@@ -33,8 +33,20 @@
 </script>
 
 <div class="rounded bg-secondary-subtle p-2 mb-2">
-  <div class="border-bottom border-secondary">
-    {primaryId}
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <div class="fw-bold">{primaryId}</div>
+      <button class="btn btn-sm btn-outline-secondary" aria-label="Expand"
+        ><i class="bi bi-arrows-expand"></i></button
+      >
+      {#if suggested}
+        <span class="badge text-bg-primary"
+          >{t("import.suggested", { fallback: "Suggested" })}
+          <i class="bi bi-stars"></i></span
+        >
+      {/if}
+    </div>
+
     <button
       class="btn btn-sm"
       class:btn-success={selected}
@@ -44,6 +56,6 @@
       select{selected ? "ed" : ""}</button
     >
   </div>
-  <div>meta</div>
-  <div>other media</div>
+  <!-- <div>meta</div>
+  <div>other media</div> -->
 </div>
