@@ -142,6 +142,8 @@ export const createObjectsListQuery = (db, drizzleResult) => {
             if (args.search && args.search.trim()) {
                 const term = '%' + args.search.trim().toLowerCase() + '%';
                 const searchConditions = [
+                    // Match object name
+                    sql`lower(coalesce(${dbSchema.objects.name}, '')) LIKE ${term}`,
 
                     // Match institution name via subquery (safe for count query too)
                     sql`EXISTS (
