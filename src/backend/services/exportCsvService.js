@@ -2,7 +2,7 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
-import { execFile } from 'child_process';
+import yazl from 'yazl';
 import { and, inArray, eq } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
@@ -22,11 +22,31 @@ async function writeCsv(filePath, header, rows) {
   await fsPromises.writeFile(filePath, lines.join('\n'), 'utf-8');
 }
 function zipFolder(folderPath, zipPath) {
-  const isWin = process.platform === 'win32';
-  if (!isWin) throw new Error('ZIP export currently supported only on Windows environment');
-  return new Promise((resolve, reject) => {
-    const args = ['-NoProfile','-Command',`Compress-Archive -Path "${folderPath}/*" -DestinationPath "${zipPath}" -Force`];
-    execFile('powershell', args, { windowsHide: true }, (err, stdout, stderr) => err ? reject(new Error(`ZIP failed: ${stderr || err.message}`)) : resolve(true));
+  return new Promise(async (resolve, reject) => {
+    try {
+      await ensureDir(path.dirname(zipPath));
+      const zipfile = new yazl.ZipFile();
+      const out = fs.createWriteStream(zipPath);
+      zipfile.outputStream.pipe(out).on('close', () => resolve(true));
+
+      async function addDir(dir) {
+        const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            await addDir(fullPath);
+          } else if (entry.isFile()) {
+            const relPath = path.relative(folderPath, fullPath).replace(/\\/g, '/');
+            zipfile.addFile(fullPath, relPath);
+          }
+        }
+      }
+
+      await addDir(folderPath);
+      zipfile.end();
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 const idx = (rows, k='id') => Object.fromEntries(rows.map(r=>[r?.[k], r]));

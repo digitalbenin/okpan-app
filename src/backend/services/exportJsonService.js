@@ -1,7 +1,8 @@
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
 import fsPromises from 'fs/promises';
-import { execFile } from 'child_process';
+import yazl from 'yazl';
 import { eq, inArray, and } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
@@ -10,12 +11,13 @@ async function ensureDir(dirPath) { await fsPromises.mkdir(dirPath, { recursive:
 async function writeJson(filePath, obj) { await ensureDir(path.dirname(filePath)); await fsPromises.writeFile(filePath, JSON.stringify(obj, null, 2), 'utf-8'); }
 
 // Helper to clean objects by removing timestamps and IDs
-function cleanEntity(obj) {
+function cleanEntity(table, obj) {
   if (!obj || typeof obj !== 'object') return obj;
   const cleaned = { ...obj };
   delete cleaned.created_at;
   delete cleaned.updated_at;
-  delete cleaned.id;
+  // Preserve `id` for top-level exported objects per request
+  if (table !== 'objects') delete cleaned.id;
   // Remove status from all entities in JSON export
   if ('status' in cleaned) delete cleaned.status;
   return cleaned;
@@ -60,19 +62,36 @@ const TEXT_FIELD_MAP = Object.fromEntries(
 );
 
 // Helper to clean arrays of entities
-function cleanEntities(entities) {
-  return entities.map(cleanEntity);
+function cleanEntities(table, entities) {
+  return entities.map((e) => cleanEntity(table, e));
 }
 
 async function createZipFromFolder(folderPath, zipPath) {
-  const isWin = process.platform === 'win32';
-  if (!isWin) throw new Error('ZIP export currently supported only on Windows environment');
-  return new Promise((resolve, reject) => {
-    const args = ['-NoProfile', '-Command', `Compress-Archive -Path "${folderPath}/*" -DestinationPath "${zipPath}" -Force`];
-    execFile('powershell', args, { windowsHide: true }, (error, stdout, stderr) => {
-      if (error) return reject(new Error(`ZIP failed: ${stderr || error.message}`));
-      resolve(true);
-    });
+  await ensureDir(path.dirname(zipPath));
+  return new Promise(async (resolve, reject) => {
+    try {
+      const zipfile = new yazl.ZipFile();
+      const out = fs.createWriteStream(zipPath);
+      zipfile.outputStream.pipe(out).on('close', () => resolve(true));
+
+      async function addDir(dir) {
+        const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            await addDir(fullPath);
+          } else if (entry.isFile()) {
+            const relPath = path.relative(folderPath, fullPath).replace(/\\/g, '/');
+            zipfile.addFile(fullPath, relPath);
+          }
+        }
+      }
+
+      await addDir(folderPath);
+      zipfile.end();
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
@@ -203,7 +222,7 @@ export async function exportProjectJson(options, { db }) {
 
   function sanitizeRow(table, row) {
     if (!row) return null;
-    const base = cleanEntity(row);
+    const base = cleanEntity(table, row);
     const rm = [
       ...(FOREIGN_KEY_MAP[table] || []),
       ...(Object.keys(TEXT_FIELD_LABEL_MAP[table] || {})),
@@ -242,6 +261,8 @@ export async function exportProjectJson(options, { db }) {
   const dataDir = path.join(outRoot, 'data');
   await ensureDir(dataDir);
 
+  // Aggregate all objects into a single array file
+  const objectsOut = [];
   for (const obj of objects) {
     const oJson = sanitizeRow('objects', obj);
 
@@ -319,9 +340,12 @@ export async function exportProjectJson(options, { db }) {
 
     // Exclude catalog entirely per request
 
-    const outPath = path.join(dataDir, `${obj.id}.json`);
-    await writeJson(outPath, oJson);
+    objectsOut.push(oJson);
   }
+
+  // Write a single consolidated objects file
+  const outPath = path.join(dataDir, 'objects.json');
+  await writeJson(outPath, objectsOut);
 
   // Optionally copy binary assets referenced by these objects next to JSON files
   if (includeAssets) {
