@@ -27,7 +27,7 @@
     params = $bindable(),
   } = $props();
 
-  const { t, translationState } = getTranslationStore();
+  const { t } = getTranslationStore();
 
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
@@ -62,17 +62,7 @@
     ];
   });
 
-  const orderBy = $derived([
-    // { value: "name", label: t("common.name", { fallback: "Name" }) },
-    {
-      value: "created_at",
-      label: t("common.created-at", { fallback: "Created At" }),
-    },
-    {
-      value: "updated_at",
-      label: t("common.updated-at", { fallback: "Updated At" }),
-    },
-  ]);
+  // removed unused orderBy options
 
   const statuses = $derived([
     {
@@ -98,42 +88,9 @@
     return map;
   });
 
-  const activeStatusLabel = $derived.by(() => {
-    const s = (statuses || []).find((x) => x.value === (params.oStatus || "all"));
-    return s?.label || t("common.all", { fallback: "All" });
-  });
+  // removed unused derived labels and counts
 
-  const activeSearchFieldLabel = $derived.by(() => {
-    const id = params.oSearchField || "all";
-    return ontologyFieldsLabelById[String(id)] || t("common.all", { fallback: "All" });
-  });
-
-  const advancedFiltersCount = $derived.by(() => {
-    let count = 0;
-    const af = advancedFilters || {};
-    Object.entries(af).forEach(([key, val]) => {
-      if (key === "__textFilters") return;
-      if (Array.isArray(val) && val.length) count += val.length;
-    });
-    count += (af.__textFilters || []).filter((tf) => tf?.query && String(tf.query).trim()).length;
-    return count;
-  });
-
-  function clearStatusFilter() {
-    params.oStatus = "all";
-    params.oPage = 1;
-  }
-
-  function clearSearchFilter() {
-    params.oSearch = undefined;
-    params.oSearchField = "all";
-    params.oPage = 1;
-  }
-
-  function clearAllAdvancedFilters() {
-    advancedFilters = {};
-    params.oPage = 1;
-  }
+  // removed unused clear helpers
 
   // Flatten vocabularies for AdvancedFilters component
   const vocabularies = $derived.by(() => {

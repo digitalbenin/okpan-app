@@ -95,18 +95,7 @@
       })),
     ];
   });
-
-  const orderBy = $derived([
-    { value: "name", label: t("common.name", { fallback: "Name" }) },
-    {
-      value: "created_at",
-      label: t("common.created-at", { fallback: "Created At" }),
-    },
-    {
-      value: "updated_at",
-      label: t("common.updated-at", { fallback: "Updated At" }),
-    },
-  ]);
+  // removed unused orderBy options
 
   const statuses = $derived([
     {
@@ -172,10 +161,8 @@
     showAdvancedFilters = false;
   }
   function onFiltersChange() {
-    // Placeholder: calling page will implement visualization/search later
     advancedFilters = { ...advancedFilters };
     console.debug("Advanced filters changed", advancedFilters);
-    // Trigger search immediately when filters change
     void loadObjects();
   }
   async function applyBulkStatus() {
@@ -206,7 +193,7 @@
     selectedObjects = [];
     showBulkInstitutionModal = false;
   }
-  $inspect(data);
+  // removed debug inspect
 
   // Lookup maps for labels
   const institutionsById = $derived.by(() => {
@@ -381,7 +368,7 @@
     return badges;
   });
 
-  // No auto-reset; generic search can combine with advanced filters
+  // generic search can combine with advanced filters
 
   // Build and execute faceted search using current params and advanced filters
   async function loadObjects() {
