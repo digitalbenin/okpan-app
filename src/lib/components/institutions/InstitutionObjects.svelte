@@ -11,7 +11,7 @@
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import ObjectAdvancedFilters from "$lib/components/objects/ObjectAdvancedFilters.svelte";
-  import { getContext } from "svelte";
+
   import {
     updateObjectsStatusBulk,
     updateObjectsInstitutionBulk,
@@ -396,6 +396,9 @@
         const sf = params.oSearchField;
         if (sf && sf !== "all") {
           ontologyFieldQueries.push({ fieldId: sf, query: params.oSearch });
+        } else {
+          // Use generic text search when "all" is selected
+          opts.genericQuery = params.oSearch;
         }
       }
       if (ontologyFieldQueries.length) {

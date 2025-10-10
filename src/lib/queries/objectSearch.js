@@ -6,6 +6,8 @@ export const objectSearchOperations = {
     description: "Advanced search for objects with ontology and research field filtering, pagination, and faceted results.",
     variables: {
       projectId: "Project ID to search within",
+      ontologyFieldQueries: "Optional array of ontology text filters: {fieldId, query}",
+      genericQuery: "Optional generic text query across name and fields",
       institutionIds: "Optional list of institution IDs to filter by (if empty, includes all)",
       researchFieldFilters: "Optional array of research field filters: {fieldId, query?, vocabularyIds?}",
       status: "Optional filter objects by status",
@@ -16,6 +18,8 @@ export const objectSearchOperations = {
     },
     query: `query ObjectSearch(
   $projectId: String!
+  $ontologyFieldQueries: JSON
+  $genericQuery: String
   $institutionIds: [String!]
   $researchFieldFilters: [JSON!]
   $status: String
@@ -26,6 +30,8 @@ export const objectSearchOperations = {
 ) {
   result:objectSearch(
     project_id: $projectId
+    ontologyFieldQueries: $ontologyFieldQueries
+    genericQuery: $genericQuery
     institutionIds: $institutionIds
     researchFieldFilters: $researchFieldFilters
     status: $status

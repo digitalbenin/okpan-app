@@ -341,7 +341,9 @@
           >
             <div class="fw-semibold">Institution</div>
             <div class="d-flex align-items-center gap-2">
-              <span class="text-muted">{getInstitutionSelectionLabel()}</span>
+              <span class="text-muted ps-3"
+                >{getInstitutionSelectionLabel()}</span
+              >
               <i class="bi bi-chevron-right"></i>
             </div>
           </button>
@@ -364,7 +366,7 @@
           >
             <div class="fw-semibold">{field.name?.content || field.name}</div>
             <div class="d-flex align-items-center gap-2">
-              <span class="text-muted"
+              <span class="text-muted ps-3"
                 >{getResearchFieldSelectionLabel(field)}</span
               >
               <i class="bi bi-chevron-right"></i>

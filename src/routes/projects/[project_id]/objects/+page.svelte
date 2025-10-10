@@ -381,6 +381,8 @@
     return badges;
   });
 
+  // No auto-reset; generic search can combine with advanced filters
+
   // Build and execute faceted search using current params and advanced filters
   async function loadObjects() {
     try {
@@ -429,11 +431,15 @@
         .filter((x) => x.kind === "ontology" && x.query && x.query.trim())
         .map((x) => ({ fieldId: x.fieldId, query: x.query }));
 
-      // Top search input mapped into ontology field query when a specific field is chosen
+      // Top search input behavior:
+      // - If specific field chosen, map to ontologyFieldQueries
+      // - If "all" chosen, use genericQuery for backend to OR across name/fields
       if (params.search && params.search.trim()) {
         const sf = params.searchField;
         if (sf && sf !== "all") {
           ontologyFieldQueries.push({ fieldId: sf, query: params.search });
+        } else if (sf === "all") {
+          opts.genericQuery = params.search;
         }
       }
       if (ontologyFieldQueries.length) {

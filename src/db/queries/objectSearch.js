@@ -64,6 +64,11 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 description: 'JSON mapping or array of {fieldId, query}'
             },
             {
+                name: 'genericQuery',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Generic text query across object name and fields'
+            },
+            {
                 name: 'institutionIds',
                 type: new GraphQLList(drizzleResult.schema._typeMap.String),
                 description: 'List of institution IDs to filter by (if empty, includes all)'
@@ -173,6 +178,26 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 return perFieldConds.length > 0 ? [and(...perFieldConds)] : [];
             };
 
+            const buildGenericConditions = (rawQuery) => {
+                if (!rawQuery || !rawQuery.trim()) return [];
+                const qLike = `%${rawQuery.trim().toLowerCase()}%`;
+                // OR across object name, any ontology field value, and any research field value
+                const cond = or(
+                    sql`LOWER(${dbSchema.objects.name}) LIKE ${qLike}`,
+                    sql`EXISTS (
+                        SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
+                        WHERE oof.object_id = objects.id
+                        AND LOWER(oof.value) LIKE ${qLike}
+                    )`,
+                    sql`EXISTS (
+                        SELECT 1 FROM ${dbSchema.objects_research_fields} orf
+                        WHERE orf.object_id = objects.id
+                        AND LOWER(orf.value) LIKE ${qLike}
+                    )`
+                );
+                return [cond];
+            };
+
             const buildResearchFieldConditions = (filters) => {
                 if (!filters || filters.length === 0) return [];
                 const researchFieldConditions = [];
@@ -239,6 +264,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
 
             const searchConditions = [
                 ...buildBaseConditions(args),
+                ...buildGenericConditions(args.genericQuery),
                 ...buildOntologyConditions(ontologyFieldQueries),
                 ...buildResearchFieldConditions(researchFieldFilters)
             ];
@@ -287,9 +313,10 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             // Institution facets - show distribution across institutions with ALL other filters applied but NO institution filter
             let nonInstitutionConditions;
             if (institutionFilterApplied) {
-                // Rebuild without institution filter but with all other filters
+                // Rebuild without institution filter but with all other filters, including generic text search
                 nonInstitutionConditions = [
                     ...buildBaseConditions(args, { includeInstitution: false }),
+                    ...buildGenericConditions(args.genericQuery),
                     ...buildOntologyConditions(ontologyFieldQueries),
                     ...buildResearchFieldConditions(researchFieldFilters)
                 ];
@@ -366,6 +393,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 // Conditions WITHOUT any research-field filters for vocabulary counts
                 const nonResearchFieldConditions = [
                     ...buildBaseConditions(args),
+                    ...buildGenericConditions(args.genericQuery),
                     ...buildOntologyConditions(ontologyFieldQueries)
                 ];
 
@@ -411,9 +439,10 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             // Status facets - show distribution across statuses with ALL other filters applied but NO status filter
             let nonStatusConditions;
             if (statusFilterApplied) {
-                // Rebuild without status filter but with all other filters
+                // Rebuild without status filter but with all other filters, including generic text search
                 nonStatusConditions = [
                     ...buildBaseConditions(args, { includeStatus: false }),
+                    ...buildGenericConditions(args.genericQuery),
                     ...buildOntologyConditions(ontologyFieldQueries),
                     ...buildResearchFieldConditions(researchFieldFilters)
                 ];
