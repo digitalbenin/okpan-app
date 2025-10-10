@@ -2,8 +2,9 @@ import { eq, inArray, and } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
 import fsPromises from 'fs/promises';
-import { execFile } from 'child_process';
+import yazl from 'yazl';
 import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
 
 // Utility: escape single quotes for SQL
@@ -224,14 +225,31 @@ const generateSchemaDDL = () => {
 async function ensureDir(dirPath) { await fsPromises.mkdir(dirPath, { recursive: true }); }
 async function copyFileIfExists(src, dest) { try { await ensureDir(path.dirname(dest)); await fsPromises.copyFile(src, dest); return true; } catch { return false; } }
 async function createZipFromFolder(folderPath, zipPath) {
-  const isWin = process.platform === 'win32';
-  if (!isWin) throw new Error('ZIP export currently supported only on Windows environment');
-  return new Promise((resolve, reject) => {
-    const args = ['-NoProfile', '-Command', `Compress-Archive -Path "${folderPath}/*" -DestinationPath "${zipPath}" -Force`];
-    execFile('powershell', args, { windowsHide: true }, (error, stdout, stderr) => {
-      if (error) return reject(new Error(`ZIP failed: ${stderr || error.message}`));
-      resolve(true);
-    });
+  await ensureDir(path.dirname(zipPath));
+  return new Promise(async (resolve, reject) => {
+    try {
+      const zipfile = new yazl.ZipFile();
+      const out = fs.createWriteStream(zipPath);
+      zipfile.outputStream.pipe(out).on('close', () => resolve(true));
+
+      async function addDir(dir) {
+        const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            await addDir(fullPath);
+          } else if (entry.isFile()) {
+            const relPath = path.relative(folderPath, fullPath).replace(/\\/g, '/');
+            zipfile.addFile(fullPath, relPath);
+          }
+        }
+      }
+
+      await addDir(folderPath);
+      zipfile.end();
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
