@@ -29,6 +29,22 @@
       decode: (value) => (value ? value : "all"),
       defaultValue: undefined,
     },
+    // Persist institution advanced filters in the querystring (JSON-encoded)
+    oFilters: {
+      encode: (value) =>
+        value && Object.keys(value).length
+          ? encodeURIComponent(JSON.stringify(value))
+          : undefined,
+      decode: (value) => {
+        if (!value) return {};
+        try {
+          return JSON.parse(decodeURIComponent(value));
+        } catch (_) {
+          return {};
+        }
+      },
+      defaultValue: {},
+    },
     aPage: {
       encode: (value) => value.toString(),
       decode: (value) => (value ? parseInt(value) : null),

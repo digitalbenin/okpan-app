@@ -11,6 +11,7 @@
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import ObjectAdvancedFilters from "$lib/components/objects/ObjectAdvancedFilters.svelte";
+  import { afterNavigate } from "$app/navigation";
 
   import {
     updateObjectsStatusBulk,
@@ -20,7 +21,6 @@
 
   let {
     institution,
-    objects,
     ontologyFields,
     researchFields,
     displayFields,
@@ -35,7 +35,8 @@
   let showBulkInstitutionModal = $state(false);
   let bulkStatusValue = $state("");
   let showAdvancedFilters = $state(false);
-  let advancedFilters = $state({});
+  // Initialize from querystring via bound params (oFilters)
+  let advancedFilters = $state(params?.oFilters || {});
 
   // Client-side search results for institution context
   let objectsData = $state({
@@ -62,8 +63,6 @@
     ];
   });
 
-  // removed unused orderBy options
-
   const statuses = $derived([
     {
       value: "all",
@@ -79,26 +78,17 @@
     },
   ]);
 
-  // Label helpers for badges
-  const ontologyFieldsLabelById = $derived.by(() => {
-    const map = {};
-    (ontologyFieldsList || []).forEach((f) => {
-      map[String(f.value)] = f.label;
-    });
-    return map;
-  });
-
-  // removed unused derived labels and counts
-
-  // removed unused clear helpers
-
   // Flatten vocabularies for AdvancedFilters component
   const vocabularies = $derived.by(() => {
     const arr = [];
     (researchFields?.result || researchFields || []).forEach((f) => {
       if ((f.type || "").toLowerCase() === "vocabulary") {
         (f.vocabularies || []).forEach((v) => {
-          arr.push({ id: v.id, field_id: f.id, name: v.option?.content || v.option });
+          arr.push({
+            id: v.id,
+            field_id: f.id,
+            name: v.option?.content || v.option,
+          });
         });
       }
     });
@@ -143,7 +133,8 @@
     const hasStatus = params.oStatus && params.oStatus !== "all";
     const hasSearch = params.oSearch && params.oSearch.trim().length > 0;
     const hasVocabSelections = Object.entries(advancedFilters || {}).some(
-      ([key, val]) => key !== "__textFilters" && Array.isArray(val) && val.length > 0,
+      ([key, val]) =>
+        key !== "__textFilters" && Array.isArray(val) && val.length > 0,
     );
     const hasTextFilters = (advancedFilters?.__textFilters || []).length > 0;
     return hasStatus || hasSearch || hasVocabSelections || hasTextFilters;
@@ -153,7 +144,9 @@
     const badges = [];
 
     if (params.oStatus && params.oStatus !== "all") {
-      const label = statuses.find((s) => s.value === params.oStatus)?.label || params.oStatus;
+      const label =
+        statuses.find((s) => s.value === params.oStatus)?.label ||
+        params.oStatus;
       badges.push({
         text: `${t("common.status", { fallback: "Status" })}: ${label}`,
         onClear: () => {
@@ -165,8 +158,9 @@
     }
 
     if (params.oSearch && params.oSearch.trim()) {
-      const fieldLabel = (ontologyFieldsList || []).find((o) => o.value === params.oSearchField)?.label ||
-        t("common.search", { fallback: "Search" });
+      const fieldLabel =
+        (ontologyFieldsList || []).find((o) => o.value === params.oSearchField)
+          ?.label || t("common.search", { fallback: "Search" });
       badges.push({
         text: `${fieldLabel}: ${params.oSearch}`,
         onClear: () => {
@@ -177,21 +171,31 @@
       });
     }
 
-    const rfSelections = Object.entries(advancedFilters || {}).filter(([key, val]) => {
-      if (key === "__textFilters") return false;
-      return Array.isArray(val) && val.length > 0 && vocabularyFieldIds.has(String(key));
-    });
+    const rfSelections = Object.entries(advancedFilters || {}).filter(
+      ([key, val]) => {
+        if (key === "__textFilters") return false;
+        return (
+          Array.isArray(val) &&
+          val.length > 0 &&
+          vocabularyFieldIds.has(String(key))
+        );
+      },
+    );
     for (const [fieldId, ids] of rfSelections) {
-      const fieldName = researchFieldsById.get(String(fieldId)) || String(fieldId);
+      const fieldName =
+        researchFieldsById.get(String(fieldId)) || String(fieldId);
       for (const vocabId of ids) {
         const optionName = vocabById.get(String(vocabId)) || String(vocabId);
         badges.push({
           text: `${fieldName}: ${optionName}`,
           onClear: () => {
-            const nextIds = (advancedFilters?.[fieldId] || []).filter((id) => String(id) !== String(vocabId));
+            const nextIds = (advancedFilters?.[fieldId] || []).filter(
+              (id) => String(id) !== String(vocabId),
+            );
             const next = { ...advancedFilters };
             next[fieldId] = nextIds;
             advancedFilters = next;
+            params.oFilters = advancedFilters;
             params.oPage = 1;
             void loadObjects();
           },
@@ -208,10 +212,15 @@
         text: `${fieldName}: ${tf.query}`,
         onClear: () => {
           const nextText = (advancedFilters?.__textFilters || []).filter(
-            (x) => !(String(x.kind) === String(tf.kind) && String(x.fieldId) === String(tf.fieldId)),
+            (x) =>
+              !(
+                String(x.kind) === String(tf.kind) &&
+                String(x.fieldId) === String(tf.fieldId)
+              ),
           );
           const next = { ...advancedFilters, __textFilters: nextText };
           advancedFilters = next;
+          params.oFilters = advancedFilters;
           params.oPage = 1;
           void loadObjects();
         },
@@ -246,24 +255,6 @@
     );
     if (errors && errors.length) {
       console.error("Bulk status update had errors:", errors);
-    }
-
-    // Optimistically update local list so changes are visible without refresh
-    if (successes && successes.length) {
-      const updatedIds = new Set(successes.map((id) => String(id)));
-      objects.items = objects.items.map((obj) =>
-        updatedIds.has(String(obj.id))
-          ? { ...obj, status: bulkStatusValue }
-          : obj,
-      );
-
-      // If a status filter is active, ensure the view reflects it
-      const currentFilter = (params.oStatus || "all").toLowerCase();
-      if (currentFilter !== "all") {
-        objects.items = objects.items.filter(
-          (obj) => (obj.status || "").toLowerCase() === currentFilter,
-        );
-      }
     }
 
     selectedObjects = [];
@@ -302,7 +293,9 @@
   }
   function onFiltersChange() {
     advancedFilters = { ...advancedFilters };
-    console.debug("Advanced filters changed (institution)", advancedFilters);
+    // Persist to querystring via bound params
+    params.oFilters = advancedFilters;
+    params.oPage = 1;
     void loadObjects();
   }
 
@@ -332,7 +325,7 @@
           researchFieldFilters.push({ fieldId: f.id, vocabularyIds: sel });
         } else if (fType !== "vocabulary") {
           const tf = (advancedFilters?.__textFilters || []).find(
-            (x) => x.kind === "research" && String(x.fieldId) === String(f.id)
+            (x) => x.kind === "research" && String(x.fieldId) === String(f.id),
           );
           if (tf?.query && tf.query.trim()) {
             researchFieldFilters.push({ fieldId: f.id, query: tf.query });
@@ -366,11 +359,22 @@
       objectsData = {
         items: result.items || [],
         totalCount: result.totalCount || 0,
-        facets: result.facets || { institutions: [], statuses: [], researchFields: [] },
+        facets: result.facets || {
+          institutions: [],
+          statuses: [],
+          researchFields: [],
+        },
       };
     } catch (e) {
-      console.error("Failed to load institution objects via faceted search:", e);
-      objectsData = { items: [], totalCount: 0, facets: { institutions: [], statuses: [], researchFields: [] } };
+      console.error(
+        "Failed to load institution objects via faceted search:",
+        e,
+      );
+      objectsData = {
+        items: [],
+        totalCount: 0,
+        facets: { institutions: [], statuses: [], researchFields: [] },
+      };
     }
   }
 
@@ -387,6 +391,11 @@
     institution.id;
     institution.project_id;
     void loadObjects();
+  });
+
+  // Sync local advancedFilters from querystring on navigation/back-forward
+  afterNavigate(() => {
+    advancedFilters = params?.oFilters || {};
   });
 </script>
 
@@ -465,13 +474,6 @@
       />
     </div>
     <div class="col-8 d-flex justify-content-end gap-3 align-items-center">
-      <!-- <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.order-by", { fallback: "Order by" })}
-        </div>
-        <BaseSelect items={orderBy} bind:value={params.oOrderBy} size="sm"
-        ></BaseSelect>
-      </div> -->
       <div class="d-flex align-items-center text-truncate gap-2">
         <div class="col-auto fs-7">
           {t("common.select-fields", { fallback: "Select Fields" })}
@@ -498,7 +500,11 @@
         <BaseSelect items={viewAsOptions} bind:value={viewAs} size="sm"
         ></BaseSelect>
       </div>
-      <button type="button" class="btn btn-outline-primary btn-sm" onclick={handleFiltersClick}>
+      <button
+        type="button"
+        class="btn btn-outline-primary btn-sm"
+        onclick={handleFiltersClick}
+      >
         <i class="bi bi-filter"></i>
         {t("common.filter", { fallback: "Filter" })}
       </button>
@@ -527,10 +533,16 @@
         {/if}
       </div>
       {#if hasAppliedFilters}
-        <div class="d-flex align-items-center justify-content-end gap-2 flex-wrap">
+        <div
+          class="d-flex align-items-center justify-content-end gap-2 flex-wrap"
+        >
           {#each filterBadges as b}
-            <span class="badge rounded-pill text-bg-secondary d-flex align-items-center gap-1">
-              <span class="text-truncate" style="max-width: 240px;">{b.text}</span>
+            <span
+              class="badge rounded-pill text-bg-secondary d-flex align-items-center gap-1"
+            >
+              <span class="text-truncate" style="max-width: 240px;"
+                >{b.text}</span
+              >
               <button
                 class="btn btn-sm btn-link text-white p-0 m-0"
                 aria-label={t("common.remove", { fallback: "Remove" })}
@@ -588,22 +600,22 @@
 />
 
 <!-- Bulk Change Institution Modal (Reusable Component) -->
-  <BulkChangeInstitutionModal
-    bind:isOpen={showBulkInstitutionModal}
-    projectId={institution.project_id}
-    onConfirm={handleConfirmInstitution}
-  />
+<BulkChangeInstitutionModal
+  bind:isOpen={showBulkInstitutionModal}
+  projectId={institution.project_id}
+  onConfirm={handleConfirmInstitution}
+/>
 
-  {#if showAdvancedFilters}
-    <ObjectAdvancedFilters
-      researchFields={researchFields?.result || researchFields || []}
-      ontologyFields={ontologyFields?.result || ontologyFields || []}
-      institutions={[institution]}
-      enableInstitutionFilter={false}
-      {vocabularies}
-      bind:advancedFilters
-      facets={objectsData?.facets || {}}
-      onClose={closeAdvancedFilters}
-      onFiltersChange={onFiltersChange}
-    />
-  {/if}
+{#if showAdvancedFilters}
+  <ObjectAdvancedFilters
+    researchFields={researchFields?.result || researchFields || []}
+    ontologyFields={ontologyFields?.result || ontologyFields || []}
+    institutions={[institution]}
+    enableInstitutionFilter={false}
+    {vocabularies}
+    bind:advancedFilters
+    facets={objectsData?.facets || {}}
+    onClose={closeAdvancedFilters}
+    {onFiltersChange}
+  />
+{/if}

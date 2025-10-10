@@ -18,6 +18,7 @@
     searchObjects,
   } from "$lib/stores/ObjectsUtils.js";
   import { page } from "$app/stores";
+  import { afterNavigate } from "$app/navigation";
 
   const { t } = getTranslationStore();
 
@@ -47,6 +48,27 @@
       decode: (value) => (value ? value : "all"),
       defaultValue: undefined,
     },
+    // Persist advanced filters in querystring as a compact JSON string
+    filters: {
+      encode: (value) => {
+        try {
+          if (!value || Object.keys(value).length === 0) return undefined;
+          return encodeURIComponent(JSON.stringify(value));
+        } catch (e) {
+          console.warn("Failed to encode advanced filters", e);
+          return undefined;
+        }
+      },
+      decode: (value) => {
+        try {
+          return value ? JSON.parse(decodeURIComponent(value)) : {};
+        } catch (e) {
+          console.warn("Failed to decode advanced filters", e);
+          return {};
+        }
+      },
+      defaultValue: undefined,
+    },
   };
   const params = queryParameters(paramsOptions);
 
@@ -56,7 +78,8 @@
   let selectedObjects = $state([]);
   let bulkStatusValue = $state("");
   let showAdvancedFilters = $state(false);
-  let advancedFilters = $state({});
+  // Initialize advanced filters from querystring if present
+  let advancedFilters = $state(params.filters || {});
 
   // Client-side search results (items + facets)
   let searchData = $state({
@@ -162,7 +185,9 @@
   }
   function onFiltersChange() {
     advancedFilters = { ...advancedFilters };
-    console.debug("Advanced filters changed", advancedFilters);
+    // Persist advanced filters to querystring
+    params.filters = advancedFilters;
+    params.page = 1;
     void loadObjects();
   }
   async function applyBulkStatus() {
@@ -193,7 +218,12 @@
     selectedObjects = [];
     showBulkInstitutionModal = false;
   }
-  // removed debug inspect
+  
+
+  // Keep advanced filters in sync with back/forward navigation without $effect
+  afterNavigate(() => {
+    advancedFilters = params.filters || {};
+  });
 
   // Lookup maps for labels
   const institutionsById = $derived.by(() => {
@@ -302,6 +332,7 @@
             (id) => String(id) !== String(instId),
           );
           advancedFilters = { ...advancedFilters, institutions: next };
+          params.filters = advancedFilters;
           params.page = 1;
           void loadObjects();
         },
@@ -334,6 +365,7 @@
             const next = { ...advancedFilters };
             next[fieldId] = nextIds;
             advancedFilters = next;
+            params.filters = advancedFilters;
             params.page = 1;
             void loadObjects();
           },
@@ -359,6 +391,7 @@
           );
           const next = { ...advancedFilters, __textFilters: nextText };
           advancedFilters = next;
+          params.filters = advancedFilters;
           params.page = 1;
           void loadObjects();
         },

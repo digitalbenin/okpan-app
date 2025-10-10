@@ -34,7 +34,7 @@
       try {
         onInput({ target: { value } });
       } catch (e) {
-        console.warn('onInput handler threw during clearInput:', e);
+        console.warn("onInput handler threw during clearInput:", e);
       }
     }
   }
