@@ -32,7 +32,7 @@
     },
     {
       label: t("common.institutions", { fallback: "Institutions" }),
-      value: data.institutions.count,
+      value: data.institutions?.count,
     },
   ]);
 </script>

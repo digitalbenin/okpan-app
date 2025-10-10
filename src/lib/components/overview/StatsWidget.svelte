@@ -1,10 +1,11 @@
 <script>
   const { stats } = $props();
+  $inspect(stats);
 </script>
 
 <div class="bg-white rounded border p-3 h-100 d-flex flex-column">
   {#each stats as stat, i}
-    {@const percentage = Math.round((stat.percentage * 100) / stat.value)}
+    {@const percentage = Math.round((stat.percentage * 100) / stat.value) || 0}
     <div
       class="stat py-2 flex-grow-1"
       class:border-bottom={i < stats.length - 1}
