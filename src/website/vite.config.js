@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
+	base: './',
 	define: {
 		'process.env.DB_FILE_NAME': JSON.stringify('../db/local.db')
 	},

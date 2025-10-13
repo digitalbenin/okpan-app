@@ -13,7 +13,14 @@ export default defineConfig({
     },
     optimizeDeps: {
         holdUntilCrawlEnd: false,
-        exclude: ['@libsql/client', '@libsql/win32-x64-msvc', 'sharp', '@xenova/transformers', 'onnxruntime-node']
+        exclude: [
+            'graphql',
+            'libsql',
+            '@libsql/client',
+            '@libsql/win32-x64-msvc',
+            'sharp',
+            '@xenova/transformers',
+            'onnxruntime-node']
     },
     build: {
         outDir: '.vite',
@@ -23,17 +30,22 @@ export default defineConfig({
             formats: ['es'],
             fileName: () => '[name].js',
         },
+        commonjsOptions: {
+            // Keep dynamic requires untouched inside external deps
+            ignoreDynamicRequires: true
+        },
         rollupOptions: {
             external: [
                 'electron',
                 'graphql',
+                /^graphql\/.*/,
                 'sharp',
+                'libsql',
                 '@libsql/client',
                 '@libsql/win32-x64-msvc',
                 '@xenova/transformers',
                 'onnxruntime-node',
-                /^onnxruntime.*/,
-                /^graphql\/.*/  // Ensure all graphql subpaths are treated as external
+                /^onnxruntime.*/
             ],
             input: {
                 main: 'src/backend/main.js',
@@ -42,6 +54,7 @@ export default defineConfig({
             },
             output: {
                 format: 'es',
+                // Ensure ESM subpath import resolves with extension
                 paths: {
                     'graphql/execution/values': 'graphql/execution/values.js'
                 }

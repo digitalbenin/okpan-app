@@ -7,6 +7,9 @@ const config = {
             // SPA fallback page per SvelteKit docs
             fallback: '200.html'
         }),
+        paths: {
+            relative: true,
+        },
         alias: {
             '~bootstrap': 'node_modules/bootstrap',
             '~bootstrap-icons': 'node_modules/bootstrap-icons'
