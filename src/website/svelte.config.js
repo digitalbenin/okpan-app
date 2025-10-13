@@ -4,8 +4,8 @@ import adapter from '@sveltejs/adapter-static';
 const config = {
     kit: {
         adapter: adapter({
-            // SPA fallback page per SvelteKit docs
-            fallback: '200.html'
+            // Emit index.html as SPA fallback to match Electron loader
+            fallback: 'index.html'
         }),
         paths: {
             relative: true,

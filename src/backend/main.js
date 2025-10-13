@@ -289,11 +289,13 @@ app.whenReady().then(() => {
     try {
       const url = new URL(request.url);
       const pathname = decodeURIComponent(url.pathname).replace(/^\//, '');
-      const buildDir = path.join(process.cwd(), 'src', 'website', 'build');
+      // Read website SPA from packaged resources
+      const buildDir = path.join(process.resourcesPath, 'src', 'website', 'build');
 
       let filePath;
-      if (!pathname || pathname === '' || pathname === '200.html') {
-        filePath = path.join(buildDir, '200.html');
+      // Default to index.html for SPA fallback
+      if (!pathname || pathname === '' || pathname === 'index.html') {
+        filePath = path.join(buildDir, 'index.html');
       } else {
         filePath = path.join(buildDir, pathname);
       }
@@ -301,8 +303,8 @@ app.whenReady().then(() => {
       if (fs.existsSync(filePath)) {
         callback({ path: filePath });
       } else {
-        // Fallback to 200.html for client-side routing
-        callback({ path: path.join(buildDir, '200.html') });
+        // Fallback to index.html for client-side routing
+        callback({ path: path.join(buildDir, 'index.html') });
       }
     } catch (error) {
       console.error('Website protocol error:', error);

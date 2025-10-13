@@ -202,10 +202,7 @@ export default {
                                 .replace(/href="\/_app\//g, 'href="./_app/')
                                 .replace(/src="\/_app\//g, 'src="./_app/')
                                 .replace(/import\("\/_app\//g, 'import("./_app/')
-                                .replace(/<base\s+href="\/">/g, '<base href="./">')
-                                // Relax meta CSP script-src to allow inline bootstrap after rewrites
-                                .replace(/script-src[^;]*;/g, "script-src 'self' 'unsafe-inline' 'unsafe-eval';")
-                                .replace(/'sha256-[^']+'/g, "'unsafe-inline'");
+                                .replace(/<base\s+href="\/">/g, '<base href="./">');
                             await fs.writeFile(fp, content);
                             console.log(`packageAfterCopy: Rewrote asset URLs in '${html}' to relative paths`);
                         } catch (err) {
