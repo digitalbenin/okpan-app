@@ -21,7 +21,7 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: yarn ci
+        run: yarn install
 
       - name: Build Electron app (ARM64)
         run: yarn make -- --arch=arm64
@@ -46,7 +46,7 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: yarn ci
+        run: yarn install
 
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64
