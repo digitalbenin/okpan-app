@@ -309,12 +309,12 @@ app.whenReady().then(() => {
     try {
       const url = new URL(request.url);
       const pathname = decodeURIComponent(url.pathname).replace(/^\//, '');
-      // Read website SPA from packaged resources
-      const buildDir = path.join(process.resourcesPath, 'src', 'website', 'build');
+      // Read website SPA from app resources (handles dev and packaged via app.getAppPath())
+      const buildDir = path.join(app.getAppPath(), 'src', 'website', 'build');
 
       let filePath;
       // Default to index.html for SPA fallback
-      if (!pathname || pathname === '' || pathname === 'index.html') {
+      if (!pathname || pathname === '' || pathname === 'index.html' || pathname === '200.html') {
         filePath = path.join(buildDir, 'index.html');
       } else {
         filePath = path.join(buildDir, pathname);
@@ -323,8 +323,14 @@ app.whenReady().then(() => {
       if (fs.existsSync(filePath)) {
         callback({ path: filePath });
       } else {
-        // Fallback to index.html for client-side routing
-        callback({ path: path.join(buildDir, 'index.html') });
+        const fallbackPath = path.join(buildDir, 'index.html');
+        if (fs.existsSync(fallbackPath)) {
+          // Fallback to index.html for client-side routing
+          callback({ path: fallbackPath });
+        } else {
+          // If even the fallback is missing, signal not found
+          callback({ error: -6 });
+        }
       }
     } catch (error) {
       console.error('Website protocol error:', error);

@@ -226,6 +226,21 @@ export default {
             } catch (err) {
                 console.warn('packageAfterCopy: Failed to copy assets directory:', err);
             }
+
+            // Copy the separate website frontend build so website:// can serve it
+            try {
+                const srcWebsiteBuild = path.join(process.cwd(), 'src', 'website', 'build');
+                const destWebsiteBuild = path.join(buildPath, 'src', 'website', 'build');
+                if (await fs.pathExists(srcWebsiteBuild)) {
+                    await fs.ensureDir(destWebsiteBuild);
+                    await fs.copy(srcWebsiteBuild, destWebsiteBuild, { overwrite: true });
+                    console.log(`packageAfterCopy: Copied website build to '${destWebsiteBuild}'`);
+                } else {
+                    console.warn('packageAfterCopy: Website build not found at src/website/build; run "npm run build:sveltekit" before packaging.');
+                }
+            } catch (err) {
+                console.warn('packageAfterCopy: Failed to copy website build:', err);
+            }
         }
     }
 };
