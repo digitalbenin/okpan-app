@@ -1,0 +1,392 @@
+[
+  {
+    "id": "0b1a4b9c69e64cae5c4d20b1c6e00089",
+    "date": "2021-10-01",
+    "institution": "DB_institution_79",
+    "method": "The data was transferred directly by the institution.",
+    "languages": [
+      "english"
+    ],
+    "fields": [
+      {
+        "field": "ID",
+        "fieldLinks": [
+          "object id"
+        ]
+      },
+      {
+        "field": "Object Details",
+        "fieldLinks": [
+          "description"
+        ]
+      },
+      {
+        "field": "Measurements",
+        "fieldLinks": [
+          "dimensions"
+        ]
+      },
+      {
+        "field": "Type",
+        "fieldLinks": [
+          "object type"
+        ]
+      },
+      {
+        "field": "Date made",
+        "fieldLinks": [
+          "date made"
+        ]
+      },
+      {
+        "field": "Creator",
+        "fieldLinks": [
+          "producer"
+        ]
+      },
+      {
+        "field": "Credit",
+        "fieldLinks": [
+          "prior source"
+        ]
+      },
+      {
+        "field": "People",
+        "fieldLinks": [
+          "prior source"
+        ]
+      },
+      {
+        "field": "Events",
+        "fieldLinks": [
+          "event"
+        ]
+      },
+      {
+        "field": "Collection",
+        "fieldLinks": [
+          "department and institution"
+        ]
+      },
+      {
+        "field": "Exhibition",
+        "fieldLinks": [
+          "exhibition history"
+        ]
+      },
+      {
+        "field": "Display location",
+        "fieldLinks": [
+          "display status"
+        ]
+      },
+      {
+        "field": "URL",
+        "fieldLinks": [
+          "weblink"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "8632852ca863a0f8cd8cb4639ddbe8d6",
+    "date": "2022-01-12",
+    "institution": "DB_institution_18",
+    "method": "The data was transferred directly by the institution.",
+    "languages": [
+      "english"
+    ],
+    "fields": [
+      {
+        "field": "Reg No.",
+        "fieldLinks": [
+          "object id"
+        ]
+      },
+      {
+        "field": "Object name",
+        "fieldLinks": [
+          "designation",
+          "object type"
+        ]
+      },
+      {
+        "field": "Dimension/s, materials, technique",
+        "fieldLinks": [
+          "material",
+          "dimensions",
+          "production technique"
+        ]
+      },
+      {
+        "field": "Collector/Previous Owner",
+        "fieldLinks": [
+          "prior source",
+          "provenance"
+        ]
+      },
+      {
+        "field": "Acquisition details",
+        "fieldLinks": [
+          "provenance"
+        ]
+      },
+      {
+        "field": "Institution",
+        "fieldLinks": [
+          "department and institution"
+        ]
+      },
+      {
+        "field": "Institution acquisition date",
+        "fieldLinks": [
+          "accession date"
+        ]
+      },
+      {
+        "field": "Comments",
+        "fieldLinks": [
+          "notes"
+        ]
+      },
+      {
+        "field": "Additional IDs"
+      },
+      {
+        "field": "Material analysis"
+      }
+    ]
+  },
+  {
+    "id": "02b85a2299838e14e4d9cc58c2c3f389",
+    "date": "2022-07-04",
+    "institution": "DB_institution_44",
+    "method": "The data was transferred directly through the Swiss Benin Initiative.",
+    "languages": [
+      "english"
+    ],
+    "fields": [
+      {
+        "field": "Reg No.",
+        "fieldLinks": [
+          "object id"
+        ]
+      },
+      {
+        "field": "Object name and materials",
+        "fieldLinks": [
+          "designation"
+        ]
+      },
+      {
+        "field": "Material",
+        "fieldLinks": [
+          "material"
+        ]
+      },
+      {
+        "field": "Dimension/s",
+        "fieldLinks": [
+          "dimensions"
+        ]
+      },
+      {
+        "field": "Provisional dating",
+        "fieldLinks": [
+          "date made"
+        ]
+      },
+      {
+        "field": "Creditline",
+        "fieldLinks": [
+          "prior source"
+        ]
+      },
+      {
+        "field": "Provenances",
+        "fieldLinks": [
+          "provenance"
+        ]
+      },
+      {
+        "field": "Institution",
+        "fieldLinks": [
+          "department and institution"
+        ]
+      },
+      {
+        "field": "Institution acquisition date",
+        "fieldLinks": [
+          "accession date"
+        ]
+      },
+      {
+        "field": "Additional IDs"
+      }
+    ]
+  },
+  {
+    "id": "37f89557354aefd4ccac37953cae8f92",
+    "date": "2021-06-01",
+    "institution": "DB_institution_155",
+    "method": "The data was transferred directly by the institution.",
+    "languages": [
+      "german"
+    ],
+    "fields": [
+      {
+        "field": "Inventarnummer",
+        "fieldLinks": [
+          "object id"
+        ]
+      },
+      {
+        "field": "Bezeichnung im Inventar",
+        "fieldLinks": [
+          "designation",
+          "object type"
+        ]
+      },
+      {
+        "field": "Material",
+        "fieldLinks": [
+          "material"
+        ]
+      },
+      {
+        "field": "Measurements",
+        "fieldLinks": [
+          "dimensions"
+        ]
+      },
+      {
+        "field": "Erwerb von",
+        "fieldLinks": [
+          "prior source"
+        ]
+      },
+      {
+        "field": "Eingangsdatum",
+        "fieldLinks": [
+          "accession date"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "9fa8cb31702c8811311b0522db69ed0e",
+    "date": "2022-01-12",
+    "institution": "DB_institution_100",
+    "method": "The data was transferred directly by the institution.",
+    "languages": [
+      "english"
+    ],
+    "fields": [
+      {
+        "field": "Accession number",
+        "fieldLinks": [
+          "object id"
+        ]
+      },
+      {
+        "field": "Alternate number",
+        "fieldLinks": [
+          "object id"
+        ]
+      },
+      {
+        "field": "Museum number",
+        "fieldLinks": [
+          "object id"
+        ]
+      },
+      {
+        "field": "Description",
+        "fieldLinks": [
+          "description"
+        ]
+      },
+      {
+        "field": "Materials",
+        "fieldLinks": [
+          "material"
+        ]
+      },
+      {
+        "field": "Object type",
+        "fieldLinks": [
+          "object type"
+        ]
+      },
+      {
+        "field": "Object count",
+        "fieldLinks": [
+          "object count"
+        ]
+      },
+      {
+        "field": "Donor",
+        "fieldLinks": [
+          "prior source"
+        ]
+      },
+      {
+        "field": "Collector",
+        "fieldLinks": [
+          "provenance"
+        ]
+      },
+      {
+        "field": "Collection date",
+        "fieldLinks": [
+          "date collected"
+        ]
+      },
+      {
+        "field": "Collection place",
+        "fieldLinks": [
+          "place collected"
+        ]
+      },
+      {
+        "field": "Verbatim coll. Place",
+        "fieldLinks": [
+          "place collected"
+        ]
+      },
+      {
+        "field": "Culture or time period",
+        "fieldLinks": [
+          "ethnic attribution"
+        ]
+      },
+      {
+        "field": "Department",
+        "fieldLinks": [
+          "department and institution"
+        ]
+      },
+      {
+        "field": "Accession date",
+        "fieldLinks": [
+          "accession date"
+        ]
+      },
+      {
+        "field": "Comment",
+        "fieldLinks": [
+          "notes"
+        ]
+      },
+      {
+        "field": "Permalink",
+        "fieldLinks": [
+          "weblink"
+        ]
+      },
+      {
+        "field": "Function"
+      }
+    ]
+  }
+]

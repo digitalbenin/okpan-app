@@ -1,0 +1,1183 @@
+[
+  {
+    "id": "DB_benin_object_79_AAA2815",
+    "institution": "DB_institution_79",
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/13038fda62dfd20522f67560eaa60148951e043f-1280x766.jpg",
+        "asset": "13038fda62dfd20522f67560eaa60148951e043f-1280x766.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "0b1a4b9c69e64cae5c4d20b1c6e00089",
+        "metadata": [
+          {
+            "field": "ID",
+            "value": "AAA2815",
+            "primary": true
+          },
+          {
+            "field": "Object Details",
+            "value": "Wooden Staff\nA wooden staff with a point at one end. It is flattened in section. The head has a rounded top and is carved with three rows of zigzag lines. It was acquired during the Benin Expedition of 1897 by Engineer Rear-Admiral G.W. Baldwin (1871-1955).",
+            "primary": false
+          },
+          {
+            "field": "Measurements",
+            "value": "Overall: 925 x 40 mm",
+            "primary": false
+          },
+          {
+            "field": "Type",
+            "value": "Staff",
+            "primary": false
+          },
+          {
+            "field": "Date made",
+            "value": "Before 1897",
+            "primary": false
+          },
+          {
+            "field": "Creator",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Credit",
+            "value": "National Maritime Museum, Greenwich, London",
+            "primary": false
+          },
+          {
+            "field": "People",
+            "value": "Baldwin, Engineer George William",
+            "primary": false
+          },
+          {
+            "field": "Events",
+            "value": "Benin Expedition, 1897",
+            "primary": false
+          },
+          {
+            "field": "Collection",
+            "value": "World Cultures",
+            "primary": false
+          },
+          {
+            "field": "Exhibition",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Display location",
+            "value": "Display - Atlantic Gallery\n",
+            "primary": false
+          },
+          {
+            "field": "URL",
+            "value": "https://www.rmg.co.uk/collections/objects/rmgc-object-2812",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_79_AAA2817",
+    "institution": "DB_institution_79",
+    "edo_designations": [
+      "DB_edo_designation_111"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/6a6cf8b7eb2dc592e5a96e3ccce42b138bababe5-1280x1261.jpg",
+        "asset": "6a6cf8b7eb2dc592e5a96e3ccce42b138bababe5-1280x1261.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "0b1a4b9c69e64cae5c4d20b1c6e00089",
+        "metadata": [
+          {
+            "field": "ID",
+            "value": "AAA2817",
+            "primary": true
+          },
+          {
+            "field": "Object Details",
+            "value": "Cow hide Fan\nA circular shape fan made of cow hide with the brown and white hair left on. The decoration is made of red woollen trade cloth sewn on with hide thongs. The fan has a wooden hide-covered handle with carving at one end.\n\nThe fan acquired during the Benin expedition of 1897 by Engineer Rear-Admiral G.W. Baldwin (1871-1955).\n\nA similar fan with a Benin expedition provenance is shown in 'The Illustrated London News' 10 April 1897, and was given to the Horniman Museum. There are other examples in the Fowler Museum, UCLA and The British Museum.",
+            "primary": false
+          },
+          {
+            "field": "Measurements",
+            "value": "Overall: 435 mm x 280 mm x 30 mm",
+            "primary": false
+          },
+          {
+            "field": "Type",
+            "value": "Fan",
+            "primary": false
+          },
+          {
+            "field": "Date made",
+            "value": "1897",
+            "primary": false
+          },
+          {
+            "field": "Creator",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Credit",
+            "value": "National Maritime Museum, Greenwich, London",
+            "primary": false
+          },
+          {
+            "field": "People",
+            "value": "Baldwin, Engineer George William\n",
+            "primary": false
+          },
+          {
+            "field": "Events",
+            "value": "Benin Expedition, 1897",
+            "primary": false
+          },
+          {
+            "field": "Collection",
+            "value": "World Cultures",
+            "primary": false
+          },
+          {
+            "field": "Exhibition",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Display location",
+            "value": "Not on display",
+            "primary": false
+          },
+          {
+            "field": "URL",
+            "value": "",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_79_ZBA2454",
+    "institution": "DB_institution_79",
+    "edo_designations": [
+      "DB_edo_designation_53"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/7d1214ad9cfd6843205042d36d97430d43bbe9f0-1280x772.jpg",
+        "asset": "7d1214ad9cfd6843205042d36d97430d43bbe9f0-1280x772.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "0b1a4b9c69e64cae5c4d20b1c6e00089",
+        "metadata": [
+          {
+            "field": "ID",
+            "value": "ZBA2454",
+            "primary": true
+          },
+          {
+            "field": "Object Details",
+            "value": "Benin chair seat\nThis woodcarving is probably a stool panel from the kingdom of Benin, in today’s Nigeria. The precise date of the carving is uncertain. It may have been made as a specially commissioned object for the Oba (King) of Benin, showing an African tribunal and representing the Oba’s status, wealth and power.\n\nHowever, it is more probable that it represents the punitive expedition carried out by the British against Oba Ovonramwen Nogbaisi, the king of Benin in 1897. To pay for the expedition, British forces looted Benin’s bronze art treasures – the famous Benin Bronzes – and sold them to collectors in Europe.\n",
+            "primary": false
+          },
+          {
+            "field": "Measurements",
+            "value": "Chair seat: 335 x 630 mm",
+            "primary": false
+          },
+          {
+            "field": "Type",
+            "value": "Chair seat",
+            "primary": false
+          },
+          {
+            "field": "Date made",
+            "value": "Late 19th century; circa 1870",
+            "primary": false
+          },
+          {
+            "field": "Creator",
+            "value": "Unknown",
+            "primary": false
+          },
+          {
+            "field": "Credit",
+            "value": "National Maritime Museum, Greenwich, London, Michael Graham-Stewart Slavery Collection. Acquired with the assistance of the Heritage Lottery Fund\n",
+            "primary": false
+          },
+          {
+            "field": "People",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Events",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Collection",
+            "value": "World Cultures; Special collections",
+            "primary": false
+          },
+          {
+            "field": "Exhibition",
+            "value": "The Atlantic: Slavery, Trade, Empire; Enslavement and Resistance\n",
+            "primary": false
+          },
+          {
+            "field": "Display location",
+            "value": "Display - Atlantic Gallery",
+            "primary": false
+          },
+          {
+            "field": "URL",
+            "value": "https://www.rmg.co.uk/collections/objects/rmgc-object-254388",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_18_2595",
+    "institution": "DB_institution_18",
+    "edo_designations": [
+      "DB_edo_designation_8"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/ff17c3a92982c20c6a1bda9678a777ae4463f15a-3909x5681.jpg",
+        "asset": "ff17c3a92982c20c6a1bda9678a777ae4463f15a-3909x5681.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/bea762815b695e419fd5571616cd26728b630c44-5792x8688.jpg",
+        "asset": "bea762815b695e419fd5571616cd26728b630c44-5792x8688.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/fe15a53dd73c0d471b8dd0200509b2a7f6ace5eb-5792x8688.jpg",
+        "asset": "fe15a53dd73c0d471b8dd0200509b2a7f6ace5eb-5792x8688.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/979961e0faafefd4556a4b1bd8904ac156fa3cff-5792x8688.jpg",
+        "asset": "979961e0faafefd4556a4b1bd8904ac156fa3cff-5792x8688.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/5476185e4694dc10c8ef39b3aaff017a884e762d-5792x8688.jpg",
+        "asset": "5476185e4694dc10c8ef39b3aaff017a884e762d-5792x8688.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/9210c5691bfed17addfab4f98da3138ff634629a-5792x8688.jpg",
+        "asset": "9210c5691bfed17addfab4f98da3138ff634629a-5792x8688.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/0c01afd1c595889998362bc2875a02421e2a7513-5792x8688.jpg",
+        "asset": "0c01afd1c595889998362bc2875a02421e2a7513-5792x8688.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/4fd8b07075f7379ce6777e3c4e443a69322a746d-5792x8688.jpg",
+        "asset": "4fd8b07075f7379ce6777e3c4e443a69322a746d-5792x8688.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688.jpg",
+        "asset": "3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/cfd00f5e7437672fd59159ffdce5134e8e609730-5792x8688.jpg",
+        "asset": "cfd00f5e7437672fd59159ffdce5134e8e609730-5792x8688.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/dcdaebad6ef36f57f03d98289c88eced5a55dd2d-5792x8688.jpg",
+        "asset": "dcdaebad6ef36f57f03d98289c88eced5a55dd2d-5792x8688.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/32a555e3b7ccaca11a2858d70d110688e8a4e54e-3478x2053.jpg",
+        "asset": "32a555e3b7ccaca11a2858d70d110688e8a4e54e-3478x2053.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/1a41b8c7927ab2b5a6556bce653eae988a5f07b2-4021x5664.jpg",
+        "asset": "1a41b8c7927ab2b5a6556bce653eae988a5f07b2-4021x5664.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/6afd914016e55d6057875353e4b31ddd968e3547-3989x5712.jpg",
+        "asset": "6afd914016e55d6057875353e4b31ddd968e3547-3989x5712.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/2019b6cd9235bf5d0300d841faaefb5c560282fa-3667x5632.jpg",
+        "asset": "2019b6cd9235bf5d0300d841faaefb5c560282fa-3667x5632.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/8ff94c8f54518ff9c2f5033e504b59bb3314e907-3159x2088.jpg",
+        "asset": "8ff94c8f54518ff9c2f5033e504b59bb3314e907-3159x2088.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/80e04696dc37b928ac6fae5c6489a7c1fb66ee6c-4150x5473.jpg",
+        "asset": "80e04696dc37b928ac6fae5c6489a7c1fb66ee6c-4150x5473.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/c4915053cffeb6737966b0972181c8a380bb37fd-3203x2176.jpg",
+        "asset": "c4915053cffeb6737966b0972181c8a380bb37fd-3203x2176.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/8d1052510a71e1cb823c5ec33dd8aa1cfac54c87-5076x7216.jpg",
+        "asset": "8d1052510a71e1cb823c5ec33dd8aa1cfac54c87-5076x7216.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/87e50334fa7b1ae0347d22bfaa0fa4d8fad943c6-5044x6448.jpg",
+        "asset": "87e50334fa7b1ae0347d22bfaa0fa4d8fad943c6-5044x6448.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/d58f8b8c06285be214d9d2069b39dee0ed63eac6-4821x6833.jpg",
+        "asset": "d58f8b8c06285be214d9d2069b39dee0ed63eac6-4821x6833.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/0d501c15c966c964bb9d623e39bec6e64135b255-2497x4113.jpg",
+        "asset": "0d501c15c966c964bb9d623e39bec6e64135b255-2497x4113.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/d9b78bcec5173c2d4f0939dfe5ab475311efb912-4724x6528.jpg",
+        "asset": "d9b78bcec5173c2d4f0939dfe5ab475311efb912-4724x6528.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/4e1468fe94695be771decb505827de2170f409a0-4740x6464.jpg",
+        "asset": "4e1468fe94695be771decb505827de2170f409a0-4740x6464.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/ca0d2491263ff302bd46af52aa764905c3650d26-4127x2000.jpg",
+        "asset": "ca0d2491263ff302bd46af52aa764905c3650d26-4127x2000.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/4bbe0da4fff9ca691ac1e249ae4bf9d7db35d495-4564x6512.jpg",
+        "asset": "4bbe0da4fff9ca691ac1e249ae4bf9d7db35d495-4564x6512.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/b891203ce319c2b9a664b20c67dfda8ce30095ae-4341x6304.jpg",
+        "asset": "b891203ce319c2b9a664b20c67dfda8ce30095ae-4341x6304.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/118d2e14eee75a8f3ac7362d5cf8ec6c85d35121-2930x5788.jpg",
+        "asset": "118d2e14eee75a8f3ac7362d5cf8ec6c85d35121-2930x5788.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/15ce0e8b162b023c921191e49c5198e86ab0c36a-2584x2299.jpg",
+        "asset": "15ce0e8b162b023c921191e49c5198e86ab0c36a-2584x2299.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/89745ecc743e8ac18e7ce2fc26264b04375c3da9-3846x2896.jpg",
+        "asset": "89745ecc743e8ac18e7ce2fc26264b04375c3da9-3846x2896.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "8632852ca863a0f8cd8cb4639ddbe8d6",
+        "metadata": [
+          {
+            "field": "Reg No.",
+            "value": "2595",
+            "primary": true
+          },
+          {
+            "field": "Object name",
+            "value": "Commemorative head (for an Edo king), c. mid 19th century",
+            "primary": false
+          },
+          {
+            "field": "Dimension/s, materials, technique",
+            "value": "H. 52cm\nD. 26cm\nWeight. 30kg\n\nLost wax cas in brass (copper, zink and lead)",
+            "primary": false
+          },
+          {
+            "field": "Collector/Previous Owner",
+            "value": "until 1897: Royal Court of the Edo Kingdom, Benin City (Nigeria)\n1897: 'prize'/official booty or loot / British Admirality, British officers or civilans connected to the British military expedition to the Edo kingdom in 1897 \nc. 1897/98: purchased by Eduard Schmidt, the German Consul in Lagos, who bought about 80 objects on the spot and translocated them to Germany (first Hamburg, then Berlin)\nc. 1898: purchased by Max Schoeller (1865-1943), factory owner and colonial activist, in Berlin (or Hamburg)\n1898: Schoeller donated the commemorative head to the Linden-Museum Stuttgart in exchange for the Ritterkreuz 1. Klasse of the Friedrichs-Orden (by the King of Württemberg)",
+            "primary": false
+          },
+          {
+            "field": "Acquisition details",
+            "value": "acquired through exchange with the Linden-Museum Stuttgart\n(732 objects from Afghanistan/Pakistan exchanged for 637 objects mainly from Oceania and Africa from the Linden-Museum)",
+            "primary": false
+          },
+          {
+            "field": "Institution",
+            "value": "Ethnographic Collection\nDept. of Anthropology and African Studies, Johannes Gutenberg University Mainz",
+            "primary": false
+          },
+          {
+            "field": "Institution acquisition date",
+            "value": "1971",
+            "primary": false
+          },
+          {
+            "field": "Comments",
+            "value": "Schmidt bought objects from the 'prize' (i.e. 'official' booty), which was also distributed among the officers of the expedition, and from the more unofficial 'loot' (seized by officers and other members of the expedition)\n\n(cf. Felicity Bodenstein 2020: \"Une typologie des prises du butin à Benin City en février 1897\". In: Monde(s) 17 (1): 57-77)\n\nMax Schoeller bought the Benin bronze on 14.07.1898. A telegram in which Schoeller informs von Luschan that he has purchased the commemorative head from Schmidt is dated July 14, 1898.\n \nSchoeller donated the royal object to the Linden-Museum on December 6th, 1898 – in exchange for a medal of the King of Wurttemberg. 50 years ago the object was moved to Mainz. In September 2020, the University of Mainz has offered Nigeria (Edo State) to return the commemorative head.\n \nInformation on the object in the Mainz collection is available online in the new database of the DDB collections from colonial contexts, as well as in the database of the Contact Point on Benin Collections in Germany.\n \n1. DDB collections from colonial contexts:\nhttps://ccc.deutsche-digitale-bibliothek.de/item/S6FZFVEAATC5Z2526ZDUYADGBUXOV3YJ?query=&offset=0&facetValues%5B%5D=provider_fct%3DSammlungen+der+Johannes+Gutenberg-Universit%C3%A4t+Mainz&facetValues%5B%5D=affiliate_fct_role%3DMax+Schoeller&_=1642003323535&rows=20&viewType=list&firstHit=S6FZFVEAATC5Z2526ZDUYADGBUXOV3YJ&lastHit=lasthit&hitNumber=1\n2. https://www.cp3c.org/benin-bronzes/object.php?o=1155\n",
+            "primary": false
+          },
+          {
+            "field": "Additional IDs",
+            "value": "old registration number, Linden-Museum Stuttgart: 3173",
+            "primary": false
+          },
+          {
+            "field": "Material analysis",
+            "value": "Material analysis of the memorial head for an Edo king in the Ethnographic Studies Collection, Institute of Ethnology and African Studies, Johannes Gutenberg University Mainz.\n\nAnalyzed in December 2014\n\nAnalyzed by \nDr. Martin Panthöfer\nMöller Group \nDepartment of Chemistry\nJohannes Gutenberg University Mainz\n\nE-mail Panthöfer to Brandstetter, 2014-12-30\nAs far as I can see, this is all based on elemental analyses.\nWe have used X-ray diffraction, a technique that opens access to the configuration of the elements in a crystalline solid. That means from our analyses we can determine on the compounds or the different phases / modifications.\n\nA rough overview\n- the brown / reddish patina consists mainly of cuprite (Cu2O). There is another component which could be an oxide of lead. Possibly there is also a very small amount of Nantokite (CuCl). The latter is probably known as a component in Cuprite Patina (Scott, Copper and Bronze in Art: Corrossion, Colorants, Conservation, I just quickly read a paragraph via GoogleBooks).\n- the green patina consists of cuprite and atacamite or paraatacamite, both minerals of the composition Cu2Cl(OH)3, which is known for patina.\n- the earthy crusts consist of kaolinite or a similar clay, they are usually very difficult to distinguish, and quartz.\n- The alloy is now exciting. It is clearly the α-brass phase. Since copper and zinc are of different sizes, the size of the elementary cell, in the case of this phase a cube, changes with the composition. Owen and Pickup have already investigated this in 1993 (Proceedings of the Royal Society of London. Series A, Vol 140, No. 840, pp 179-191). The edge length of the cube (we call this the \"lattice parameter a\") fits 68%wt Cu quite well. According to the classification in Riederer, this would be alloy group 12 / dark type 8, i.e. a rather young head / But we have to be careful with this, I did not consider other alloy components. We have to have a closer look at this - if there is any interest.\n- in addition, lead is found: not as an alloying component, but as an element. Lead does not alloy into the α-brass phase, but is finely distributed in it. This clears everything up: the lead was already present in the melt during casting.\n",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_44_RAF602",
+    "institution": "DB_institution_44",
+    "edo_designations": [
+      "DB_edo_designation_1"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/1d4cd7b0ead76e1d4df59853dc621dba78432e38-1557x2095.jpg",
+        "asset": "1d4cd7b0ead76e1d4df59853dc621dba78432e38-1557x2095.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/bd9440a48b0961e22e79b63b1d241899ee6993e5-3096x4128.jpg",
+        "asset": "bd9440a48b0961e22e79b63b1d241899ee6993e5-3096x4128.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "02b85a2299838e14e4d9cc58c2c3f389",
+        "metadata": [
+          {
+            "field": "Reg No.",
+            "value": "RAF 602",
+            "primary": true
+          },
+          {
+            "field": "Object name and materials",
+            "value": "Relief plaque showing a war chief",
+            "primary": false
+          },
+          {
+            "field": "Material",
+            "value": "brass",
+            "primary": false
+          },
+          {
+            "field": "Dimension/s",
+            "value": "H. 40 cm         W. 34 cm              D. 8 cm ",
+            "primary": false
+          },
+          {
+            "field": "Provisional dating",
+            "value": "16th/17th century",
+            "primary": false
+          },
+          {
+            "field": "Creditline",
+            "value": "Gift from: Eduard von der Heydt",
+            "primary": false
+          },
+          {
+            "field": "Provenances",
+            "value": "16th / 17th century, commissioned from the Royal Bronze-casting Guild (Igun Eronmwon) by the Royal Palace of Benin; by descent to Oba Ovonramwen (Ovonramwen Nogbaisi, b. about 1857 - d. about 1914; r. 1888 - 1897); 1897, probably looted from the Royal Palace during the British military occupation of Benin; [...]; until 1931 Han Coray (Reg.No.: BP 4) (collector, Agnuzzo); 1931-1940, Schweizerische Volksbank; 1940, Völkerkundemuseum der Universität Zürich; 1940 -1952 Eduard von der Heydt (collector Ascona) (Reg. No. AF,197); 1952, gifted to the Museum Rietberg Zürich ",
+            "primary": false
+          },
+          {
+            "field": "Institution",
+            "value": "MRZ\nMuseum Rietberg Zürich",
+            "primary": false
+          },
+          {
+            "field": "Institution acquisition date",
+            "value": "1952",
+            "primary": false
+          },
+          {
+            "field": "Additional IDs",
+            "value": "BP 4 (Coray-Nummer)\n\nA.F. 197 (Eduard von der Heydt)",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_44_RAF603",
+    "institution": "DB_institution_44",
+    "edo_designations": [
+      "DB_edo_designation_1"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/b7287579d1559f6e5f0f7436d7c799079e4f6f1a-3425x4331.jpg",
+        "asset": "b7287579d1559f6e5f0f7436d7c799079e4f6f1a-3425x4331.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "02b85a2299838e14e4d9cc58c2c3f389",
+        "metadata": [
+          {
+            "field": "Reg No.",
+            "value": "RAF 603",
+            "primary": true
+          },
+          {
+            "field": "Object name and materials",
+            "value": "Relief plaque showing a naked boy",
+            "primary": false
+          },
+          {
+            "field": "Material",
+            "value": "brass",
+            "primary": false
+          },
+          {
+            "field": "Dimension/s",
+            "value": "H. 37.5 cm         W. 18 cm              D. 5.5 cm ",
+            "primary": false
+          },
+          {
+            "field": "Provisional dating",
+            "value": "16th/17th century",
+            "primary": false
+          },
+          {
+            "field": "Creditline",
+            "value": "Gift from: Eduard von der Heydt",
+            "primary": false
+          },
+          {
+            "field": "Provenances",
+            "value": "16th/17th century commissioned from the Royal Bronze-casting Guild (Igun Eronmwon) by the Royal Palace of Benin; by descent to Oba Ovonramwen (Ovonramwen Nogbaisi, b. about 1857 - d. about 1914; r. 1888 - 1897); 1897, probably looted from the Royal Palace during the British military occupation of Benin; [...] ; ca. 1925-1931, Paul Eluard (artist, Paris); 1931, Hôtel Drouot auction; 1931, Charles Ratton (dealer, Paris); 1932-1952 Eduard von der Heydt (collector, Ascona); 1952, gifted to Museum Rietberg Züich; 1968, stolen from Museum Rietberg Zürich; [...]; 1993, acquired by Frank Paulig (Weisbaden); 1993, purchased by Museum Rietberg Zürich with funds from Pierre Uldry ",
+            "primary": false
+          },
+          {
+            "field": "Institution",
+            "value": "MRZ\nMuseum Rietberg Zürich",
+            "primary": false
+          },
+          {
+            "field": "Institution acquisition date",
+            "value": "1952",
+            "primary": false
+          },
+          {
+            "field": "Additional IDs",
+            "value": "",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_44_RAF608",
+    "institution": "DB_institution_44",
+    "edo_designations": [
+      "DB_edo_designation_38"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/da0a37ba962b776f8b7edaa98bfc502045bb7143-5301x7027.jpg",
+        "asset": "da0a37ba962b776f8b7edaa98bfc502045bb7143-5301x7027.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/8d98258201b99b7d0d042dcb20609f1d9e31abca-5504x7340.jpg",
+        "asset": "8d98258201b99b7d0d042dcb20609f1d9e31abca-5504x7340.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/89eb3c675955727524ea8840c3946c589023d64f-5403x7208.jpg",
+        "asset": "89eb3c675955727524ea8840c3946c589023d64f-5403x7208.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/d8545822678e95d6b37fb56a49e7b40853a66dae-5453x7272.jpg",
+        "asset": "d8545822678e95d6b37fb56a49e7b40853a66dae-5453x7272.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "02b85a2299838e14e4d9cc58c2c3f389",
+        "metadata": [
+          {
+            "field": "Reg No.",
+            "value": "RAF 608",
+            "primary": true
+          },
+          {
+            "field": "Object name and materials",
+            "value": "Armlet",
+            "primary": false
+          },
+          {
+            "field": "Material",
+            "value": "ivory",
+            "primary": false
+          },
+          {
+            "field": "Dimension/s",
+            "value": "H. 12.3 cm\nW. 8,3\nD. 7,5",
+            "primary": false
+          },
+          {
+            "field": "Provisional dating",
+            "value": "18th/19th century",
+            "primary": false
+          },
+          {
+            "field": "Creditline",
+            "value": "Purchased from: Hans W. Kopp",
+            "primary": false
+          },
+          {
+            "field": "Provenances",
+            "value": "18th/19th century, comissioned from the Royal Ivory-sculptors Guild (Igbesanmwan) by the Royal Palace of Benin; by descent to Oba Ovonramwen (Ovonramwen Nogbaisi, b. about 1857 - d. about 1914; r. 1888 - 1897); 1897, looted from the Royal Palace during the British military occupation of Benin by Admiral Harry Rawson (1843-1910); 1897 - 1910, Admiral Harry Rawson; 1910 - at least 1919, heirs Rawson (?); [...]; 1928-1979, Han Coray (collector, Agnuzzo) (Reg. No: EA 1(?)); 1979-1985, Hans Coray (Zürich) (Reg. No.:HC 40); 1985-2001, Hans W. Kopp, Zumikon; 2011, purchased by the Rietberg Museum Zurich with private funds and with support of the Rietberg Circle ",
+            "primary": false
+          },
+          {
+            "field": "Institution",
+            "value": "MRZ\nMuseum Rietberg Zürich",
+            "primary": false
+          },
+          {
+            "field": "Institution acquisition date",
+            "value": "2001",
+            "primary": false
+          },
+          {
+            "field": "Additional IDs",
+            "value": "",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_44_RAF604",
+    "institution": "DB_institution_44",
+    "edo_designations": [
+      "DB_edo_designation_135"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/985627d6b75e2431036c09f89e14ccf359295320-5846x7727.jpg",
+        "asset": "985627d6b75e2431036c09f89e14ccf359295320-5846x7727.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/270922fd70f5d5eeaa8e84a796fa831b5a9a6605-3389x5084.jpg",
+        "asset": "270922fd70f5d5eeaa8e84a796fa831b5a9a6605-3389x5084.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/3018519b897211b3ac5e5e0f92f99fe478b59e50-3400x5101.jpg",
+        "asset": "3018519b897211b3ac5e5e0f92f99fe478b59e50-3400x5101.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "02b85a2299838e14e4d9cc58c2c3f389",
+        "metadata": [
+          {
+            "field": "Reg No.",
+            "value": "RAF 604",
+            "primary": true
+          },
+          {
+            "field": "Object name and materials",
+            "value": "Hip ornament",
+            "primary": false
+          },
+          {
+            "field": "Material",
+            "value": "brass",
+            "primary": false
+          },
+          {
+            "field": "Dimension/s",
+            "value": "H. 17.7 cm         W. 12.2 cm              D. 5.7 cm ",
+            "primary": false
+          },
+          {
+            "field": "Provisional dating",
+            "value": "18th/19th century",
+            "primary": false
+          },
+          {
+            "field": "Creditline",
+            "value": "Transfer from: the Kunstgewerbemuseum Zürich",
+            "primary": false
+          },
+          {
+            "field": "Provenances",
+            "value": "19th century, possibly commissioned from the Royal Bronze-casting Guild (Igun Eronmwon) by the Royal Palace of Benin; possibly by descent to Oba Ovonramwen (Ovonramwen Nogbaisi, b. about 1857 - d. about 1914; r. 1888 - 1897); 1897, probably looted from the Royal Palace during the British military occupation of Benin; [...]; until 1931 Han Coray (Reg.No.: BM8) (collector, Agnuzzo) ; 1931-1940, Schweizerische Volksbank; 1940, Völkerkundemuseum der Universität Zürich; 1940 - 1961 Kunstgewerbemuseum Zürich; 1961, transfered to the Museum Rietberg Zürich ",
+            "primary": false
+          },
+          {
+            "field": "Institution",
+            "value": "MRZ\nMuseum Rietberg Zürich",
+            "primary": false
+          },
+          {
+            "field": "Institution acquisition date",
+            "value": "1961",
+            "primary": false
+          },
+          {
+            "field": "Additional IDs",
+            "value": "BM 8 (Coray-Nummer)",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_44_RAF606",
+    "institution": "DB_institution_44",
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/4230b8f2fef16ad4a60f91574e0e3769fad3aebc-5318x7092.jpg",
+        "asset": "4230b8f2fef16ad4a60f91574e0e3769fad3aebc-5318x7092.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/b71a9564d4da02de1d753598a401587f61daad3e-5520x7364.jpg",
+        "asset": "b71a9564d4da02de1d753598a401587f61daad3e-5520x7364.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "02b85a2299838e14e4d9cc58c2c3f389",
+        "metadata": [
+          {
+            "field": "Reg No.",
+            "value": "RAF 606",
+            "primary": true
+          },
+          {
+            "field": "Object name and materials",
+            "value": "Pendant showing an Oba (king) and two dignitaries",
+            "primary": false
+          },
+          {
+            "field": "Material",
+            "value": "ivory",
+            "primary": false
+          },
+          {
+            "field": "Dimension/s",
+            "value": "H. 9.5 cm         W. 9.5 cm              D. 4.5 cm ",
+            "primary": false
+          },
+          {
+            "field": "Provisional dating",
+            "value": "16th/17th century",
+            "primary": false
+          },
+          {
+            "field": "Creditline",
+            "value": "Gift from: Elisabeth Zink-Niehus, Bern",
+            "primary": false
+          },
+          {
+            "field": "Provenances",
+            "value": "16th / 17th century comissioned from the Royal Ivory-sculptors Guild (Igbesanmwan) by the Royal Palace of Benin; possibly looted from the Royal Palace during the British military occupation of Benin; [...]; until 1965, unknown Nigerian trader;1965 purchased by Elisabeth Zink-Niehus (collector) at Globus Department Store (Zürich) from unknown Nigerian trader at the temporary exhibition \"Verschenkt die Schweiz Geld\"; 1965-1991, Elisabeth Zink-Nieuhus, Bern; 1991, gifted to Museum Rietberg Zürich ",
+            "primary": false
+          },
+          {
+            "field": "Institution",
+            "value": "MRZ\nMuseum Rietberg Zürich",
+            "primary": false
+          },
+          {
+            "field": "Institution acquisition date",
+            "value": "January 1991",
+            "primary": false
+          },
+          {
+            "field": "Additional IDs",
+            "value": "",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_155_5790",
+    "institution": "DB_institution_155",
+    "edo_designations": [
+      "DB_edo_designation_10"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/d8d1b9f52eff0c3e558c47fe385242a6c5057196-2950x3226.jpg",
+        "asset": "d8d1b9f52eff0c3e558c47fe385242a6c5057196-2950x3226.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "37f89557354aefd4ccac37953cae8f92",
+        "metadata": [
+          {
+            "field": "Inventarnummer",
+            "value": "5790",
+            "primary": true
+          },
+          {
+            "field": "Bezeichnung im Inventar",
+            "value": "Figur eines Hahnes ",
+            "primary": false
+          },
+          {
+            "field": "Material",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Measurements",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Erwerb von",
+            "value": "Ankauf von Unbekannt",
+            "primary": false
+          },
+          {
+            "field": "Eingangsdatum",
+            "value": "1907",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_155_Kar615d",
+    "institution": "DB_institution_155",
+    "edo_designations": [
+      "DB_edo_designation_107"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/50694bee569797ba110e5f6fc40e7cdfcaa3711c-4147x5000.jpg",
+        "asset": "50694bee569797ba110e5f6fc40e7cdfcaa3711c-4147x5000.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "37f89557354aefd4ccac37953cae8f92",
+        "metadata": [
+          {
+            "field": "Inventarnummer",
+            "value": "Kar 615d  ",
+            "primary": true
+          },
+          {
+            "field": "Bezeichnung im Inventar",
+            "value": "Glocke",
+            "primary": false
+          },
+          {
+            "field": "Material",
+            "value": "Bronze",
+            "primary": false
+          },
+          {
+            "field": "Measurements",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Erwerb von",
+            "value": "Geschenk des Museumsdirektors Richard Karutz ",
+            "primary": false
+          },
+          {
+            "field": "Eingangsdatum",
+            "value": "1913",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_155_Kar615c",
+    "institution": "DB_institution_155",
+    "edo_designations": [
+      "DB_edo_designation_107"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/3bc5b0336fe65eed61b2ba8d2cc51ba6feedfa50-2274x3289.jpg",
+        "asset": "3bc5b0336fe65eed61b2ba8d2cc51ba6feedfa50-2274x3289.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "37f89557354aefd4ccac37953cae8f92",
+        "metadata": [
+          {
+            "field": "Inventarnummer",
+            "value": "Kar 615c ",
+            "primary": true
+          },
+          {
+            "field": "Bezeichnung im Inventar",
+            "value": "Glocke",
+            "primary": false
+          },
+          {
+            "field": "Material",
+            "value": "Bronze",
+            "primary": false
+          },
+          {
+            "field": "Measurements",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Erwerb von",
+            "value": "Geschenk des Museumsdirektors Richard Karutz ",
+            "primary": false
+          },
+          {
+            "field": "Eingangsdatum",
+            "value": "1913",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_155_Kar616",
+    "institution": "DB_institution_155",
+    "edo_designations": [
+      "DB_edo_designation_1"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/382f5829d1b47ea4494a3072232c75dd7df5d2de-4035x5000.jpg",
+        "asset": "382f5829d1b47ea4494a3072232c75dd7df5d2de-4035x5000.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "37f89557354aefd4ccac37953cae8f92",
+        "metadata": [
+          {
+            "field": "Inventarnummer",
+            "value": "Kar 616",
+            "primary": true
+          },
+          {
+            "field": "Bezeichnung im Inventar",
+            "value": "Reliefplatte mit Fischdarstellung",
+            "primary": false
+          },
+          {
+            "field": "Material",
+            "value": "Bronze",
+            "primary": false
+          },
+          {
+            "field": "Measurements",
+            "value": "40x60 cm",
+            "primary": false
+          },
+          {
+            "field": "Erwerb von",
+            "value": "Geschenk des Museumsdirektors Richard Karutz ",
+            "primary": false
+          },
+          {
+            "field": "Eingangsdatum",
+            "value": "1913",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_155_5069",
+    "institution": "DB_institution_155",
+    "edo_designations": [
+      "DB_edo_designation_1"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/4ddf8986456b31625fa99d62e81ec9fd69effaca-2471x3430.jpg",
+        "asset": "4ddf8986456b31625fa99d62e81ec9fd69effaca-2471x3430.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "37f89557354aefd4ccac37953cae8f92",
+        "metadata": [
+          {
+            "field": "Inventarnummer",
+            "value": "5069",
+            "primary": true
+          },
+          {
+            "field": "Bezeichnung im Inventar",
+            "value": "Fragment einer Reliefplatte mit Schlangendarstellung",
+            "primary": false
+          },
+          {
+            "field": "Material",
+            "value": "Bronze",
+            "primary": false
+          },
+          {
+            "field": "Measurements",
+            "value": "",
+            "primary": false
+          },
+          {
+            "field": "Erwerb von",
+            "value": "Tauschobjekt Museum für Völkerkunde Berlin ",
+            "primary": false
+          },
+          {
+            "field": "Eingangsdatum",
+            "value": "1907",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "DB_benin_object_100_53360",
+    "institution": "DB_institution_100",
+    "edo_designations": [
+      "DB_edo_designation_107"
+    ],
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/e61faff7f20db1a84fb2c9ebbdb4f5accc399fcc-3744x5616.jpg",
+        "asset": "e61faff7f20db1a84fb2c9ebbdb4f5accc399fcc-3744x5616.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/361e85ff4c5201f265bd3b7029ce5cd34b448f0c-3744x5616.jpg",
+        "asset": "361e85ff4c5201f265bd3b7029ce5cd34b448f0c-3744x5616.jpg"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8q01xvhz/development/b02a47d9a26ac24de61ad4e6ede311c8735057a3-2412x1520.jpg",
+        "asset": "b02a47d9a26ac24de61ad4e6ede311c8735057a3-2412x1520.jpg"
+      }
+    ],
+    "metadata": [
+      {
+        "data_source": "9fa8cb31702c8811311b0522db69ed0e",
+        "metadata": [
+          {
+            "field": "Accession number",
+            "value": "Acc.1770",
+            "primary": false
+          },
+          {
+            "field": "Alternate number",
+            "value": "TBD (previous number (Bascom’s number))",
+            "primary": false
+          },
+          {
+            "field": "Museum number",
+            "value": "5-3360",
+            "primary": true
+          },
+          {
+            "field": "Description",
+            "value": "Rectangular, truncated, brass bell with strap handle. Geometric all-over design. Height: 7.0 inches.",
+            "primary": false
+          },
+          {
+            "field": "Materials",
+            "value": "Brass (alloy)",
+            "primary": false
+          },
+          {
+            "field": "Object type",
+            "value": "ethnography",
+            "primary": false
+          },
+          {
+            "field": "Object count",
+            "value": "1",
+            "primary": false
+          },
+          {
+            "field": "Donor",
+            "value": "University Appropriation and William Russell Bascom",
+            "primary": false
+          },
+          {
+            "field": "Collector",
+            "value": "William Russell Bascom",
+            "primary": false
+          },
+          {
+            "field": "Collection date",
+            "value": "July 1963",
+            "primary": false
+          },
+          {
+            "field": "Collection place",
+            "value": "Benin City, Nigeria",
+            "primary": false
+          },
+          {
+            "field": "Verbatim coll. Place",
+            "value": "Africa; Nigeria; Benin City; Bini",
+            "primary": false
+          },
+          {
+            "field": "Culture or time period",
+            "value": "Bini Tribe",
+            "primary": false
+          },
+          {
+            "field": "Department",
+            "value": "Cat. 5 - Africa (except the Hearst Reisner Egyptian Collection)",
+            "primary": false
+          },
+          {
+            "field": "Accession date",
+            "value": "1963",
+            "primary": false
+          },
+          {
+            "field": "Comment",
+            "value": "Murdock 31:19Note: The “Original Number” appearing on the catalogue card is the Appraisers number; not a Bascom index number.",
+            "primary": false
+          },
+          {
+            "field": "Permalink",
+            "value": "ark:/21549/hm21050003360",
+            "primary": false
+          },
+          {
+            "field": "Function",
+            "value": "5.4 Secular and Religious Musical Instruments",
+            "primary": false
+          }
+        ]
+      }
+    ]
+  }
+]

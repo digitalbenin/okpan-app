@@ -23,6 +23,18 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
+      - name: Install website dependencies
+        run: yarn --cwd src/website install
+
+      - name: Build website (SvelteKit)
+        run: yarn --cwd src/website build
+
+      - name: Prepare database (push, seed, search setup)
+        run: |
+          yarn db:push
+          yarn db:seed
+          yarn db:search-setup
+
       - name: Build Electron app (ARM64)
         run: yarn make -- --arch=arm64
 
@@ -47,6 +59,18 @@ jobs:
 
       - name: Install dependencies
         run: yarn install
+
+      - name: Install website dependencies
+        run: yarn --cwd src/website install
+
+      - name: Build website (SvelteKit)
+        run: yarn --cwd src/website build
+
+      - name: Prepare database (push, seed, search setup)
+        run: |
+          yarn db:push
+          yarn db:seed
+          yarn db:search-setup
 
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64

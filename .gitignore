@@ -101,11 +101,11 @@ dist/
 
 # Database
 *.db
-src/db/seed_data
+
 
 # Assets
 src/assets/project_assets/*
-src/assets/models/
+src/assets/models
 
 .vscode
 .cursor

@@ -1,0 +1,97 @@
+[
+  {
+    "id": "DB_institution_79",
+    "name": "Royal Museums Greenwich",
+    "location": "Romney Rd, London SE10 9NF, UK",
+    "links": [
+      {
+        "url": "https://www.rmg.co.uk/",
+        "_type": "external_link",
+        "_key": "obuBBjSz",
+        "title": "Website"
+      },
+      {
+        "_type": "external_link",
+        "_key": "naXzyG9o",
+        "title": "Online Catalogue",
+        "url": "https://www.rmg.co.uk/collections"
+      },
+      {
+        "_type": "external_link",
+        "_key": "1p0wdMFv",
+        "title": "Caird Library and Archive",
+        "url": "https://www.rmg.co.uk/collections/caird-library"
+      }
+    ]
+  },
+  {
+    "id": "DB_institution_18",
+    "name": "Institut für Ethnologie und Afrikastudien, Johannes Gutenberg-Universität Mainz",
+    "location": "Forum universitatis 6, 55099 Mainz, Germany",
+    "links": [
+      {
+        "title": "Website",
+        "url": "https://www.blogs.uni-mainz.de/fb07-ifeas-eng/ethnographic-collection/",
+        "_type": "external_link",
+        "_key": "Ap8cRZlR"
+      }
+    ]
+  },
+  {
+    "id": "DB_institution_44",
+    "name": "Museum Rietberg Zürich",
+    "location": "Gablerstrasse 15, 8002 Zürich, Switzerland",
+    "links": [
+      {
+        "title": "Website",
+        "url": "https://rietberg.ch/",
+        "_type": "external_link",
+        "_key": "KMKMxLtf"
+      },
+      {
+        "_type": "external_link",
+        "_key": "M5l0suaw",
+        "title": "Online Catalogue",
+        "url": "https://rietberg.ch/en/collection/online-collection"
+      },
+      {
+        "_type": "external_link",
+        "_key": "iWkoS1PG",
+        "title": "Library & Archive",
+        "url": "https://rietberg.ch/en/library"
+      },
+      {
+        "_type": "external_link",
+        "_key": "bpQ6DGBK",
+        "title": "Photographic collection",
+        "url": "https://rietberg.ch/en/stories/84"
+      }
+    ]
+  },
+  {
+    "id": "DB_institution_155",
+    "name": "Völkerkundesammlung",
+    "location": "Großer Bauhof 14, 23552 Lübeck, Germany",
+    "links": [
+      {
+        "title": "Website",
+        "url": "https://vks.die-luebecker-museen.de/",
+        "_type": "external_link",
+        "_key": "gsGzNTvf"
+      }
+    ]
+  },
+  {
+    "id": "DB_institution_100",
+    "name": "Phoebe A. Hearst Museum of Anthropology, University of California at Berkeley",
+    "location": "Kroeber Hall, 103, Berkeley, CA 94720, United States",
+    "links": [
+      {
+        "_type": "external_link",
+        "_key": "hwuzmDnq",
+        "title": "Website",
+        "url": "https://hearstmuseum.berkeley.edu/"
+      }
+    ]
+  }
+]
