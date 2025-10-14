@@ -18,9 +18,10 @@ export default {
                 'object-src': ['none']
             }
         },
-        // Use relative asset paths for file:// loading in packaged app
         paths: {
-            relative: true,
+            base: '',
+            assets: '',
+            relative: true
         },
         alias: {
             '~bootstrap': 'node_modules/bootstrap',

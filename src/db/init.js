@@ -3,15 +3,26 @@ import { createClient } from '@libsql/client';
 import * as schema from './schema.js';
 import { globalSettings } from './schema.js';
 import { eq } from 'drizzle-orm';
-import { dirname } from 'path';
+import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
 
-// Get the database path from env
-const dbPath = process.env.DB_FILE_NAME || 'src/db/local.db';
+// Resolve the database path for dev and packaged production
+const defaultRel = 'src/db/local.db';
+const envPath = process.env.DB_FILE_NAME || defaultRel;
+let dbPath;
+if (path.isAbsolute(envPath)) {
+    dbPath = envPath;
+} else if (process?.versions?.electron && process.resourcesPath) {
+    // In packaged Electron, reference file under resources/app
+    dbPath = path.join(process.resourcesPath, 'app', envPath);
+} else {
+    // In development or non-Electron, resolve relative to CWD
+    dbPath = path.resolve(envPath);
+}
 
 // Ensure the database directory exists
-const dbDir = dirname(dbPath);
+const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
 }

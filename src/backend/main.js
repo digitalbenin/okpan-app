@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, protocol } from 'electron';
+import serve from 'electron-serve';
 import started from 'electron-squirrel-startup';
 import 'dotenv/config';
 import path from 'path';
@@ -9,6 +10,9 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize electron-serve early (before app is ready) so its protocol is registered in time
+const loadURLProd = serve({ directory: 'build' });
 
 // Import database and schema
 import { db } from '../db/init.js';
@@ -218,10 +222,19 @@ function resolveMediaPath(urlObj) {
 
   // Try relative paths in project
   const projectRoot = process.cwd();
+  const appRoot = app.getAppPath?.() || '';
+  const resourcesApp = process.resourcesPath ? path.join(process.resourcesPath, 'app') : '';
+
   const candidates = [
+    // Packaged app locations
+    appRoot ? path.join(appRoot, pathStr) : null,
+    appRoot ? path.join(appRoot, 'src', pathStr) : null,
+    resourcesApp ? path.join(resourcesApp, pathStr) : null,
+    resourcesApp ? path.join(resourcesApp, 'src', pathStr) : null,
+    // Dev locations
     path.join(projectRoot, 'src', pathStr),
     path.join(projectRoot, pathStr)
-  ];
+  ].filter(Boolean);
 
   return candidates.find(fs.existsSync) || null;
 }
@@ -259,11 +272,12 @@ const createWindow = () => {
     callback({ responseHeaders });
   });
 
-  // and load the index.html of the app.
+  // Load app: dev uses Vite server, production uses electron-serve
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(path.join(process.resourcesPath, 'build/index.html'));
+    // Use electron-serve initialized before app ready
+    loadURLProd(mainWindow);
   }
 
   // Open the DevTools.

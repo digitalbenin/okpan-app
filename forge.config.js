@@ -168,11 +168,9 @@ export default {
                 await ensureCopyDeep(pkg);
             }
 
-            // Ensure renderer output is placed where main.js expects it
-            // main.js loads '../../build/index.html' relative to its dir,
-            // which resolves to 'resources/build/index.html' in the installed app.
-            const resourcesDir = path.join(buildPath, '..');
-            const targetBuildDir = path.join(resourcesDir, 'build');
+            // Ensure renderer output is placed under the app root so electron-serve can find it
+            // electron-serve uses app root as base ('resources/app'), so we copy to 'resources/app/build'
+            const targetBuildDir = path.join(buildPath, 'build');
             const candidateRendererDirs = [
                 // SvelteKit adapter-static default output
                 path.join(process.cwd(), 'build'),
@@ -191,29 +189,42 @@ export default {
                 }
                 if (copiedFrom) {
                     console.log(`packageAfterCopy: Copied renderer from '${copiedFrom}' to '${targetBuildDir}'`);
-
-                    // Post-process HTML to convert absolute '/_app/...' URLs to relative './_app/...'
-                    const htmlFiles = (await fs.readdir(targetBuildDir)).filter(f => f.toLowerCase().endsWith('.html'));
-                    for (const html of htmlFiles) {
-                        const fp = path.join(targetBuildDir, html);
-                        try {
-                            let content = await fs.readFile(fp, 'utf-8');
-                            content = content
-                                .replace(/href="\/_app\//g, 'href="./_app/')
-                                .replace(/src="\/_app\//g, 'src="./_app/')
-                                .replace(/import\("\/_app\//g, 'import("./_app/')
-                                .replace(/<base\s+href="\/">/g, '<base href="./">');
-                            await fs.writeFile(fp, content);
-                            console.log(`packageAfterCopy: Rewrote asset URLs in '${html}' to relative paths`);
-                        } catch (err) {
-                            console.warn(`packageAfterCopy: Failed to rewrite '${html}':`, err);
-                        }
-                    }
                 } else {
                     console.warn('packageAfterCopy: Renderer output not found in expected locations');
                 }
             } catch (err) {
                 console.warn('packageAfterCopy: Failed to place renderer build:', err);
+            }
+
+            // Copy the development SQLite database into the packaged app
+            try {
+                const srcDb = path.join(process.cwd(), 'src', 'db', 'local.db');
+                const destDbDir = path.join(buildPath, 'src', 'db');
+                const destDb = path.join(destDbDir, 'local.db');
+                if (await fs.pathExists(srcDb)) {
+                    await fs.ensureDir(destDbDir);
+                    await fs.copy(srcDb, destDb, { overwrite: true });
+                    console.log(`packageAfterCopy: Copied database to '${destDb}'`);
+                } else {
+                    console.warn('packageAfterCopy: Database file src/db/local.db not found; packaged app will create a new DB.');
+                }
+            } catch (err) {
+                console.warn('packageAfterCopy: Failed to copy database file:', err);
+            }
+
+            // Copy static assets used by the main process (e.g., icon)
+            try {
+                const srcAssets = path.join(process.cwd(), 'src', 'assets');
+                const destAssets = path.join(buildPath, 'src', 'assets');
+                if (await fs.pathExists(srcAssets)) {
+                    await fs.ensureDir(destAssets);
+                    await fs.copy(srcAssets, destAssets, { overwrite: true });
+                    console.log(`packageAfterCopy: Copied assets to '${destAssets}'`);
+                } else {
+                    console.warn('packageAfterCopy: Assets directory src/assets not found; icon may fail to load.');
+                }
+            } catch (err) {
+                console.warn('packageAfterCopy: Failed to copy assets directory:', err);
             }
         }
     }
