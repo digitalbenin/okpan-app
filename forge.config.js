@@ -5,7 +5,7 @@ import path from 'path';
 
 export default {
     packagerConfig: {
-        name: 'Data Connection Tool',
+        name: 'DataConnectionTool',
         executableName: "DataConnectionTool",
         // Disable ASAR to prevent native .node extraction to temp, ensuring DLLs
         // like libvips are loaded from their adjacent directory on Windows

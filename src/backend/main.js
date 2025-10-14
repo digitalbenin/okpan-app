@@ -232,32 +232,38 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 1080,
-    icon: path.join(import.meta.dirname, '../assets/logo_wip.png'),
+    icon: path.join(app.getAppPath(), 'src/assets/logo_wip.png'),
     webPreferences: {
-      preload: path.join(import.meta.dirname, 'preload.js'),
+      preload: path.join(app.getAppPath(), '.vite/preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true  // Enable sandboxing
     },
   });
 
-  // Set a secure CSP
+  // Handle CSP for inline scripts by intercepting and updating headers
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data: 'unsafe-inline'; img-src * 'self' data: media:"
-        ]
-      }
-    });
+    const responseHeaders = { ...details.responseHeaders };
+    
+    // If there's already a CSP header, update it to allow inline scripts
+    if (responseHeaders['content-security-policy']) {
+      const cspHeader = responseHeaders['content-security-policy'][0];
+      // Replace script-src to allow unsafe-inline for inline scripts
+      const updatedCSP = cspHeader.replace(
+        /script-src[^;]*/,
+        "script-src 'self' 'unsafe-inline'"
+      );
+      responseHeaders['content-security-policy'] = [updatedCSP];
+    }
+    
+    callback({ responseHeaders });
   });
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(path.join(import.meta.dirname, '../../build/index.html'));
+    mainWindow.loadFile(path.join(process.resourcesPath, 'build/index.html'));
   }
 
   // Open the DevTools.

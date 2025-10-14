@@ -2,7 +2,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-    base: './',
+    base: '',
     plugins: [sveltekit()],
     build: {
         rollupOptions: {

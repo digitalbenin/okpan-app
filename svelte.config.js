@@ -7,9 +7,16 @@ export default {
             fallback: 'index.html'
         }),
         csp: {
+            mode: 'auto',
             directives: {
-                'script-src': ['self']
-            },
+                'script-src': ['self', 'unsafe-inline'],
+                'style-src': ['self', 'unsafe-inline'],
+                'img-src': ['self', 'data:', 'blob:'],
+                'font-src': ['self', 'data:'],
+                'connect-src': ['self'],
+                'base-uri': ['none'],
+                'object-src': ['none']
+            }
         },
         // Use relative asset paths for file:// loading in packaged app
         paths: {
