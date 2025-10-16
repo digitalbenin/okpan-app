@@ -2,6 +2,7 @@
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
+    import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
     import MediaModal from "$lib/components/research_fields/MediaModal.svelte";
     import LinkMediaModal from "$lib/components/objects/LinkMediaModal.svelte";
     import {
@@ -117,6 +118,12 @@
     function handleAddMedia() {
         isLinkModalOpen = true;
     }
+
+    // Disable linking if no institution is selected or available
+    const effectiveInstitutionId = $derived(
+        object?.institution_id ?? institutionId ?? null,
+    );
+    const isLinkDisabled = $derived(!effectiveInstitutionId);
 
     // Handle viewing media
     function handleViewMedia(asset) {
@@ -286,14 +293,32 @@
 
     <!-- Add media button at the top -->
     <div class="mb-3">
-        <BaseButton
-            class="btn btn-outline-secondary"
-            icon="plus"
-            text={t("objects.linked_media.link_media", {
-                fallback: "Link media",
-            })}
-            onClick={handleAddMedia}
-        />
+        {#if isLinkDisabled}
+            <BaseTooltip>
+                {#snippet trigger(props)}
+                    <div class="d-inline-block" {...(({ type, ...rest }) => rest)(props)}>
+                        <BaseButton
+                            class="btn btn-outline-secondary"
+                            icon="plus"
+                            text={t("objects.linked_media.link_media", {
+                                fallback: "Link media",
+                            })}
+                            disabled={true}
+                        />
+                    </div>
+                {/snippet}
+                select an institution first
+            </BaseTooltip>
+        {:else}
+            <BaseButton
+                class="btn btn-outline-secondary"
+                icon="plus"
+                text={t("objects.linked_media.link_media", {
+                    fallback: "Link media",
+                })}
+                onClick={handleAddMedia}
+            />
+        {/if}
     </div>
 
     <!-- Linked assets list -->

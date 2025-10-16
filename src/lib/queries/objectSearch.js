@@ -27,7 +27,7 @@ export const objectSearchOperations = {
   $pageSize: Int
   $orderBy: String
   $direction: String
-) {
+  ) {
   result:objectSearch(
     project_id: $projectId
     ontologyFieldQueries: $ontologyFieldQueries
@@ -47,6 +47,12 @@ export const objectSearchOperations = {
       created_at
       updated_at
       institution_id
+      institution {
+        id
+        name {
+          content
+        }
+      }
       project_id
       objectsAssets {
         order
