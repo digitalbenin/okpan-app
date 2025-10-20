@@ -250,12 +250,14 @@ export default {
                 'ontology defaults JSON'
             );
 
-            // Copy static assets used by main process (icons, models) into packaged app
+            // Copy static assets used by main process (icons, styles, models) into packaged app
             await copyPathIfExists(
                 path.join(process.cwd(), 'src', 'assets'),
                 path.join(buildPath, 'src', 'assets'),
                 'assets directory'
             );
+
+            // Models are bundled under 'resources/app/src/assets/models'; embedding service resolves packaged path.
         }
     }
 };

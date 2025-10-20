@@ -1,12 +1,18 @@
 import { pipeline } from '@xenova/transformers';
 import path from 'path';
+import fs from 'fs';
 
 class EmbeddingService {
     constructor() {
         this.model = null;
         this.isInitializing = false;
         this.modelName = 'Snowflake/snowflake-arctic-embed-m-v2.0';
-        this.modelPath = path.join(process.cwd(), 'src', 'assets', 'models');
+        const isElectron = !!process.versions.electron;
+        const resourcesPath = process.resourcesPath || '';
+        const isDevResources = /node_modules[\\/]/i.test(resourcesPath);
+        this.modelPath = isElectron && !isDevResources
+            ? path.join(process.resourcesPath, 'app', 'src', 'assets', 'models')
+            : path.join(process.cwd(), 'src', 'assets', 'models');
     }
 
     async initialize() {
@@ -17,6 +23,8 @@ class EmbeddingService {
         try {
             this.isInitializing = true;
             console.log(`Initializing embedding model: ${this.modelName}`);
+
+            await fs.promises.mkdir(this.modelPath, { recursive: true });
 
             this.model = await pipeline('feature-extraction', this.modelName, {
                 cache_dir: this.modelPath,
@@ -154,4 +162,4 @@ class EmbeddingService {
 }
 
 // Export singleton instance
-export const embeddingService = new EmbeddingService(); 
+export const embeddingService = new EmbeddingService();
