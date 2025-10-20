@@ -6,15 +6,17 @@ import { eq } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
-import { app } from 'electron';
+import electron from 'electron';
+const { app } = electron;
 
 // Resolve the database path for dev and packaged production
 const defaultRel = 'src/db/local.db';
 const envPath = process.env.DB_FILE_NAME || defaultRel;
+const isElectron = !!process.versions.electron;
 let dbPath;
 if (path.isAbsolute(envPath)) {
     dbPath = envPath;
-} else if (app?.isPackaged) {
+} else if (isElectron && app?.isPackaged) {
     // In packaged Electron, resolve relative to the app path
     const base = app.getAppPath?.() || (process.resourcesPath ? path.join(process.resourcesPath, 'app') : process.cwd());
     dbPath = path.join(base, envPath);
