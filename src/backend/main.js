@@ -203,12 +203,15 @@ function resolveMediaPath(urlObj) {
   if (urlObj.hostname && /^[a-zA-Z]$/.test(urlObj.hostname)) {
     pathStr = urlObj.hostname + decodeURIComponent(urlObj.pathname);
   } else {
-    pathStr = decodeURIComponent(urlObj.pathname).replace(/^\//, '');
+    // In dev, addImageProtocolPrefix("src/...") produces hostname="src" and pathname="/assets/..."
+    const host = urlObj.hostname || '';
+    const pathname = decodeURIComponent(urlObj.pathname || '');
+    pathStr = (host ? host + pathname : pathname).replace(/^\//, '');
   }
 
   // Convert to absolute path if needed
   if (/^[a-zA-Z]\//.test(pathStr)) {
-    // Windows drive format (c/Users/... -> C:\Users\...)
+    // Windows drive format (c/Users/... -> C:\\Users\\...)
     const driveLetter = pathStr.charAt(0).toUpperCase();
     const restOfPath = pathStr.substring(2);
     return process.platform === 'win32'
@@ -220,10 +223,19 @@ function resolveMediaPath(urlObj) {
     return path.normalize(pathStr);
   }
 
-  // Try relative paths in project
+  // Try relative paths in project and packaged app
   const projectRoot = process.cwd();
   const appRoot = app.getAppPath?.() || '';
   const resourcesApp = process.resourcesPath ? path.join(process.resourcesPath, 'app') : '';
+  const userData = app?.getPath?.('userData') || '';
+  const userAssetsRoot = userData ? path.join(userData, 'assets', 'project_assets') : '';
+
+  // Special mapping: logical seeded path -> userData assets
+  let userDataCandidate = null;
+  if (pathStr.startsWith('src/assets/project_assets')) {
+    const rest = pathStr.replace(/^src\/assets\/project_assets\/?/, '');
+    userDataCandidate = userAssetsRoot ? path.join(userAssetsRoot, rest) : null;
+  }
 
   const candidates = [
     // Packaged app locations
@@ -231,9 +243,11 @@ function resolveMediaPath(urlObj) {
     appRoot ? path.join(appRoot, 'src', pathStr) : null,
     resourcesApp ? path.join(resourcesApp, pathStr) : null,
     resourcesApp ? path.join(resourcesApp, 'src', pathStr) : null,
+    // userData mapping for writable assets
+    userDataCandidate,
     // Dev locations
-    path.join(projectRoot, 'src', pathStr),
-    path.join(projectRoot, pathStr)
+    path.join(projectRoot, pathStr),
+    path.join(projectRoot, 'src', pathStr)
   ].filter(Boolean);
 
   return candidates.find(fs.existsSync) || null;

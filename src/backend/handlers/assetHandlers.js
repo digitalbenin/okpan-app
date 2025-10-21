@@ -4,10 +4,36 @@ import { db } from '../../db/init.js';
 import { assets, genericAssets } from '../../db/schema.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { app } from 'electron';
 
 const sm = 300
 const md = 1400
-const assetPath = "./src/assets/project_assets"
+// const assetPath = "./src/assets/project_assets"
+
+// Resolve a writable base path for assets that works in dev and packaged app
+const getAssetBasePath = () => {
+  try {
+    const userData = app?.getPath?.('userData');
+    if (userData) return path.join(userData, 'assets', 'project_assets');
+  } catch {}
+  // Fallback to project-relative path in dev
+  return path.join(process.cwd(), 'src', 'assets', 'project_assets');
+};
+
+const toPosix = (p) => (p ? p.replace(/\\/g, '/') : p);
+const toLogicalFormats = (fmts, basePath) => {
+  const basePosix = toPosix(basePath);
+  const logicalRoot = 'src/assets/project_assets';
+  const replaceBase = (p) => {
+    const pos = toPosix(p);
+    return pos.startsWith(basePosix) ? logicalRoot + pos.substring(basePosix.length) : pos;
+  };
+  return {
+    sm: replaceBase(fmts.sm),
+    md: replaceBase(fmts.md),
+    original: replaceBase(fmts.original),
+  };
+};
 
 // Configuration object for file types and limits
 const assetConfig = {
@@ -77,7 +103,8 @@ const handleImportAssets = async (event, data) => {
 
 
     //check if folder with projectid is present, otherwise create it
-    const projectFolder = path.join(assetPath, data.projectId);
+    const basePath = getAssetBasePath();
+    const projectFolder = path.join(basePath, data.projectId);
     if (!fs.existsSync(projectFolder)) {
         fs.mkdirSync(projectFolder, { recursive: true });
     }
@@ -131,7 +158,7 @@ const handleImportAssets = async (event, data) => {
     for (const filePath of filesToProcess) {
         try {
             console.debug('[import-assets] processing file:', filePath);
-            const asset = await processAssetFile(filePath, projectFolder, data);
+            const asset = await processAssetFile(filePath, projectFolder, data, basePath);
 
             if (asset) {
                 const newAsset = await saveAssetToDb(asset, data.isGenericAsset);
@@ -230,7 +257,7 @@ const processMediaFile = async (filePath, destPath, assetType) => {
 }
 
 // Unified file processor that handles all asset types
-const processAssetFile = async (filePath, projectFolder, data) => {
+const processAssetFile = async (filePath, projectFolder, data, basePath) => {
     const assetType = checkAssetType(filePath);
     let formats = null;
 
@@ -243,13 +270,15 @@ const processAssetFile = async (filePath, projectFolder, data) => {
         return null;
     }
 
+    const logicalFormats = toLogicalFormats(formats, basePath);
+
     return {
         project_id: data?.projectId,
         institution_id: data.isGenericAsset ? undefined : data?.institutionId,
-        path: formats.original,
+        path: logicalFormats.original,
         filename: path.basename(filePath),
         type: assetType,
-        formats
+        formats: logicalFormats
     };
 }
 
