@@ -236,6 +236,13 @@ export default {
                 console.warn('packageAfterCopy: Failed to place renderer build:', err);
             }
 
+            // Copy the website SPA build so the website:// protocol can serve it
+            await copyPathIfExists(
+                path.join(process.cwd(), 'src', 'website', 'build'),
+                path.join(buildPath, 'src', 'website', 'build'),
+                'website SPA build'
+            );
+
             // Copy the development SQLite database into the packaged app
             await copyPathIfExists(
                 path.join(process.cwd(), 'src', 'db', 'local.db'),
