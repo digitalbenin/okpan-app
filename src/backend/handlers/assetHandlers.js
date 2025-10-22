@@ -4,7 +4,8 @@ import { db } from '../../db/init.js';
 import { assets, genericAssets } from '../../db/schema.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { app } from 'electron';
+import electron from 'electron';
+const { app } = electron;
 
 const sm = 300
 const md = 1400
