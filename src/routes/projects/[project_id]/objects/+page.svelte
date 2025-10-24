@@ -15,10 +15,11 @@
   import {
     updateObjectsStatusBulk,
     updateObjectsInstitutionBulk,
-    searchObjects,
+    // searchObjects,
   } from "$lib/stores/ObjectsUtils.js";
   import { page } from "$app/stores";
   import { afterNavigate } from "$app/navigation";
+  import { throttle } from "$lib/utils/throttle.js";
 
   const { t } = getTranslationStore();
 
@@ -41,7 +42,7 @@
     searchField: {
       encode: (value) => (value === "all" ? undefined : value),
       decode: (value) => (value ? value : "all"),
-      defaultValue: "name",
+      defaultValue: "all",
     },
     status: {
       encode: (value) => (value === "all" ? undefined : value),
@@ -71,8 +72,16 @@
     },
   };
   const params = queryParameters(paramsOptions);
+  let paramsBinding = $derived({ current: params });
 
-  let paramsBinding = $derived({ current: params }); //workaround for SvelteKit's reactivity issue with query parameters
+  let searchText = $state(params.search || "");
+  const throttledSetSearch = throttle((val) => {
+    params.search = val;
+    params.page = 1;
+  }, 300);
+  $effect(() => {
+    searchText = params.search || "";
+  });
 
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
@@ -82,11 +91,18 @@
   let advancedFilters = $state(params.filters || {});
 
   // Client-side search results (items + facets)
-  let searchData = $state({
-    items: [],
-    totalCount: 0,
-    facets: { institutions: [], statuses: [], researchFields: [] },
-  });
+  // let searchData = $state({
+  //   items: [],
+  //   totalCount: 0,
+  //   facets: { institutions: [], statuses: [], researchFields: [] },
+  // });
+  const searchData = $derived(
+    data.objects || {
+      items: [],
+      totalCount: 0,
+      facets: { institutions: [], statuses: [], researchFields: [] },
+    }
+  );
 
   // Modal state
   let showBulkDeleteModal = $state(false);
@@ -188,7 +204,7 @@
     // Persist advanced filters to querystring
     params.filters = advancedFilters;
     params.page = 1;
-    void loadObjects();
+    // void loadObjects();
   }
   async function applyBulkStatus() {
     if (!bulkStatusValue || selectedObjects.length === 0) return;
@@ -302,7 +318,7 @@
         onClear: () => {
           params.status = "all";
           params.page = 1;
-          void loadObjects();
+          // void loadObjects();
         },
       });
     }
@@ -317,7 +333,7 @@
         onClear: () => {
           params.search = "";
           params.page = 1;
-          void loadObjects();
+          // void loadObjects();
         },
       });
     }
@@ -334,7 +350,7 @@
           advancedFilters = { ...advancedFilters, institutions: next };
           params.filters = advancedFilters;
           params.page = 1;
-          void loadObjects();
+          // void loadObjects();
         },
       });
     }
@@ -367,7 +383,7 @@
             advancedFilters = next;
             params.filters = advancedFilters;
             params.page = 1;
-            void loadObjects();
+            // void loadObjects();
           },
         });
       }
@@ -393,7 +409,7 @@
           advancedFilters = next;
           params.filters = advancedFilters;
           params.page = 1;
-          void loadObjects();
+          // void loadObjects();
         },
       });
     }
@@ -404,102 +420,22 @@
   // generic search can combine with advanced filters
 
   // Build and execute faceted search using current params and advanced filters
-  async function loadObjects() {
-    try {
-      const opts = {
-        projectId: projectId,
-        page: (params.page || 1) - 1,
-        pageSize: params.pageSize || 25,
-        orderBy: paramsBinding.current.orderBy || "updated_at",
-        direction: paramsBinding.current.direction || "asc",
-      };
-
-      // Status filter
-      if (params.status && params.status !== "all") {
-        opts.status = params.status;
-      }
-
-      // Institution filter from advanced panel
-      const instIds = (advancedFilters?.institutions || []).filter(Boolean);
-      if (instIds.length) {
-        opts.institutionIds = instIds;
-      }
-
-      // Research field filters (vocabularies + text queries on non-vocab fields)
-      const rfList = data.researchFields?.result || data.researchFields || [];
-      const researchFieldFilters = [];
-      rfList.forEach((f) => {
-        const fType = String(f.type || "").toLowerCase();
-        const sel = advancedFilters?.[f.id] || [];
-        if (fType === "vocabulary" && sel.length) {
-          researchFieldFilters.push({ fieldId: f.id, vocabularyIds: sel });
-        } else if (fType !== "vocabulary") {
-          const tf = (advancedFilters?.__textFilters || []).find(
-            (x) => x.kind === "research" && String(x.fieldId) === String(f.id),
-          );
-          if (tf?.query && tf.query.trim()) {
-            researchFieldFilters.push({ fieldId: f.id, query: tf.query });
-          }
-        }
-      });
-      if (researchFieldFilters.length) {
-        opts.researchFieldFilters = researchFieldFilters;
-      }
-
-      // Ontology field text queries
-      const ontologyFieldQueries = (advancedFilters?.__textFilters || [])
-        .filter((x) => x.kind === "ontology" && x.query && x.query.trim())
-        .map((x) => ({ fieldId: x.fieldId, query: x.query }));
-
-      // Top search input behavior:
-      // - If specific field chosen, map to ontologyFieldQueries
-      // - If "all" chosen, use genericQuery for backend to OR across name/fields
-      if (params.search && params.search.trim()) {
-        const sf = params.searchField;
-        if (sf && sf !== "all") {
-          ontologyFieldQueries.push({ fieldId: sf, query: params.search });
-        } else if (sf === "all") {
-          opts.genericQuery = params.search;
-        }
-      }
-      if (ontologyFieldQueries.length) {
-        opts.ontologyFieldQueries = ontologyFieldQueries;
-      }
-
-      const result = await searchObjects(opts);
-      searchData = {
-        items: result.items || [],
-        totalCount: result.totalCount || 0,
-        facets: result.facets || {
-          institutions: [],
-          statuses: [],
-          researchFields: [],
-        },
-      };
-    } catch (e) {
-      console.error("Failed to load objects via faceted search:", e);
-      searchData = {
-        items: [],
-        totalCount: 0,
-        facets: { institutions: [], statuses: [], researchFields: [] },
-      };
-    }
-  }
+  // async function loadObjects() { /* moved to +page.js */ }
 
   // Reactive search: run whenever params or filters change
-  $effect(() => {
-    // track dependencies explicitly for reactivity
-    params.search;
-    params.searchField;
-    params.status;
-    paramsBinding.current.orderBy;
-    paramsBinding.current.direction;
-    params.page;
-    params.pageSize;
-    advancedFilters;
-    projectId;
-    void loadObjects();
-  });
+  // $effect(() => {
+  //   // track dependencies explicitly for reactivity
+  //   params.search;
+  //   params.searchField;
+  //   params.status;
+  //   paramsBinding.current.orderBy;
+  //   paramsBinding.current.direction;
+  //   params.page;
+  //   params.pageSize;
+  //   advancedFilters;
+  //   projectId;
+  //   // void loadObjects();
+  // });
 </script>
 
 <div class="container-fluid">
@@ -583,7 +519,8 @@
         icon="search"
         placeholder={t("common.search", { fallback: "Search" })}
         size="sm"
-        bind:value={params.search}
+        bind:value={searchText}
+        onInput={(e) => throttledSetSearch(e.target.value)}
         optionsList={ontologyFieldsList}
         bind:optionsValue={params.searchField}
       />

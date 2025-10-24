@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { populateInstitutionsSearchIndex } from './populateInstitutionsSearch.js';
+import { populateObjectSearchIndexes } from './populateObjectSearchIndexes.js';
 
 // Get the directory name of the current module
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -110,6 +111,57 @@ async function applyMigration() {
         await populateInstitutionsSearchIndex(client, db);
 
         console.log('✅ Search setup complete! The FTS index is ready to use.');
+
+        // --- Objects search migration and population ---
+        console.log('Setting up objects search...');
+        const objectsMigrationPath = path.resolve(__dirname, '../migrations/002_create_object_search_fts.sql');
+        const objectsSql = fs.readFileSync(objectsMigrationPath, 'utf8');
+
+        // Build statements, keeping CREATE TRIGGER blocks intact
+        let objStatements = [];
+        let objCurrent = '';
+        let objInTrigger = false;
+        for (const rawLine of objectsSql.split('\n')) {
+            const line = rawLine.trimEnd();
+            if (line.trim().startsWith('--')) continue;
+
+            if (line.includes('CREATE TRIGGER') && !objInTrigger) {
+                objInTrigger = true;
+                objCurrent = line.trim();
+                continue;
+            }
+            if (objInTrigger) {
+                objCurrent += '\n' + line;
+                if (line.trim() === 'END;') {
+                    objStatements.push(objCurrent.trim());
+                    objCurrent = '';
+                    objInTrigger = false;
+                }
+                continue;
+            }
+
+            if (line.trim() !== '') {
+                objCurrent += ' ' + line.trim();
+                if (line.trim().endsWith(';')) {
+                    objStatements.push(objCurrent.trim());
+                    objCurrent = '';
+                }
+            }
+        }
+
+        for (const stmt of objStatements) {
+            if (!stmt) continue;
+            try {
+                await client.execute({ sql: stmt });
+                console.log('✓ Executed objects migration statement');
+            } catch (err) {
+                console.warn(`⚠ Warning (objects migration): ${err.message}`);
+            }
+        }
+
+        console.log('FTS setup for objects complete, now populating search index...');
+        await populateObjectSearchIndexes(client, db);
+        console.log('✅ Objects search setup complete!');
     } catch (error) {
         console.error('❌ Search setup failed:', error);
     } finally {
@@ -122,4 +174,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     applyMigration().catch(console.error);
 }
 
-export { applyMigration }; 
+export { applyMigration };

@@ -57,16 +57,23 @@
   }
 
   function toggleFilter(itemId) {
+    if (!selectedField) return;
     const fieldKey =
       selectedField.type === "institutions" ? "institutions" : selectedField.id;
-    if (!advancedFilters[fieldKey]) {
+    // Ensure advancedFilters is an object
+    if (!advancedFilters || typeof advancedFilters !== "object") {
+      advancedFilters = {};
+    }
+    // Initialize array for this field if absent or invalid
+    if (!Array.isArray(advancedFilters[fieldKey])) {
       advancedFilters[fieldKey] = [];
     }
-    const index = advancedFilters[fieldKey].indexOf(itemId);
-    if (index > -1) {
-      advancedFilters[fieldKey].splice(index, 1);
+    const list = advancedFilters[fieldKey];
+    const idx = list.findIndex((id) => String(id) === String(itemId));
+    if (idx > -1) {
+      list.splice(idx, 1);
     } else {
-      advancedFilters[fieldKey].push(itemId);
+      list.push(itemId);
     }
     onFiltersChange(advancedFilters);
   }
@@ -82,9 +89,8 @@
   function isSelected(itemId) {
     const fieldKey =
       selectedField.type === "institutions" ? "institutions" : selectedField.id;
-    return (
-      advancedFilters[fieldKey] && advancedFilters[fieldKey].includes(itemId)
-    );
+    const arr = Array.isArray(advancedFilters?.[fieldKey]) ? advancedFilters[fieldKey] : [];
+    return arr.some((id) => String(id) === String(itemId));
   }
 
   function showMain() {
