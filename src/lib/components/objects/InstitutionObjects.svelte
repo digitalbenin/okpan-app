@@ -4,9 +4,11 @@
   import { getContext } from "svelte";
   import { page } from "$app/state";
   import { goto, invalidateAll, preloadData, pushState } from "$app/navigation";
+  import { queryParameters, ssp } from "sveltekit-search-params";
   import LinkShallow from "$lib/components/common/LinkShallow.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import BaseInput from "$lib/components/base/BaseInput.svelte";
   import SidePanel from "$lib/components/common/SidePanel.svelte";
   import SidePanelNew from "$lib/components/common/SidePanelNew.svelte";
   import ObjectDetail from "$lib/components/objects/ObjectDetail.svelte";
@@ -27,6 +29,33 @@
 
   // Mutable array of objects that can be updated
   let objectsList = $state(page.data.objects);
+
+  // URL query params wiring (search, searchField, pagination)
+  const paramsOptions = {
+    pageSize: {
+      encode: (value) => value.toString(),
+      decode: (value) => (value ? parseInt(value) : null),
+      defaultValue: 25,
+    },
+    page: {
+      encode: (value) => value.toString(),
+      decode: (value) => (value ? parseInt(value) : null),
+      defaultValue: 1,
+    },
+    search: ssp.string(undefined),
+    searchField: {
+      encode: (value) => (value === "all" ? undefined : value),
+      decode: (value) => (value ? value : "all"),
+      defaultValue: "all",
+    },
+    status: {
+      encode: (value) => (value === "all" ? undefined : value),
+      decode: (value) => (value ? value : "all"),
+      defaultValue: undefined,
+    },
+  };
+  const params = queryParameters(paramsOptions);
+
 
   // Function to get object title prioritizing the object's own name
   function getObjectTitle(object) {
@@ -509,7 +538,13 @@
       </div>
     </div>
     <div class="d-flex align-items-center gap-2">
-      <!-- Search Input REMOVED -->
+      <BaseInput
+           icon="search"
+           size="sm"
+           placeholder="Search"
+           bind:value={params.search}
+           onInput={(e) => { params.search = e.target.value; params.page = 1; }}
+         />
 
       <!-- Action Buttons -->
       <BaseButton

@@ -19,7 +19,6 @@
   } from "$lib/stores/ObjectsUtils.js";
   import { page } from "$app/stores";
   import { afterNavigate } from "$app/navigation";
-  import { throttle } from "$lib/utils/throttle.js";
 
   const { t } = getTranslationStore();
 
@@ -74,14 +73,6 @@
   const params = queryParameters(paramsOptions);
   let paramsBinding = $derived({ current: params });
 
-  let searchText = $state(params.search || "");
-  const throttledSetSearch = throttle((val) => {
-    params.search = val;
-    params.page = 1;
-  }, 300);
-  $effect(() => {
-    searchText = params.search || "";
-  });
 
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
@@ -519,8 +510,8 @@
         icon="search"
         placeholder={t("common.search", { fallback: "Search" })}
         size="sm"
-        bind:value={searchText}
-        onInput={(e) => throttledSetSearch(e.target.value)}
+        bind:value={params.search}
+        onInput={(e) => { params.search = e.target.value; params.page = 1; }}
         optionsList={ontologyFieldsList}
         bind:optionsValue={params.searchField}
       />
