@@ -19,6 +19,7 @@
   } from "$lib/stores/ObjectsUtils.js";
   import { page } from "$app/stores";
   import { afterNavigate } from "$app/navigation";
+  import { debounce } from "$lib/utils/throttle.js";
 
   const { t } = getTranslationStore();
 
@@ -73,6 +74,17 @@
   const params = queryParameters(paramsOptions);
   let paramsBinding = $derived({ current: params });
 
+  // Debounced local search text to prevent UI from being overwritten
+  let searchText = $state(params.search || "");
+  let isUserEditing = $state(false);
+  const debouncedSetSearch = debounce((val) => {
+    params.search = val;
+    params.page = 1;
+    isUserEditing = false;
+  }, 1000);
+  $effect(() => {
+    if (!isUserEditing) searchText = params.search || "";
+  });
 
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
@@ -92,7 +104,7 @@
       items: [],
       totalCount: 0,
       facets: { institutions: [], statuses: [], researchFields: [] },
-    }
+    },
   );
 
   // Modal state
@@ -225,7 +237,6 @@
     selectedObjects = [];
     showBulkInstitutionModal = false;
   }
-  
 
   // Keep advanced filters in sync with back/forward navigation without $effect
   afterNavigate(() => {
@@ -510,8 +521,12 @@
         icon="search"
         placeholder={t("common.search", { fallback: "Search" })}
         size="sm"
-        bind:value={params.search}
-        onInput={(e) => { params.search = e.target.value; params.page = 1; }}
+        bind:value={searchText}
+        onInput={(e) => {
+          isUserEditing = true;
+          searchText = e.target.value;
+          debouncedSetSearch(e.target.value);
+        }}
         optionsList={ontologyFieldsList}
         bind:optionsValue={params.searchField}
       />

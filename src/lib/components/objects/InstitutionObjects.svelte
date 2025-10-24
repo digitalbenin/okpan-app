@@ -1,10 +1,11 @@
 <script>
   import ObjectPage from "../../../routes/projects/[project_id]/institutions/[institution_id]/objects/[object_id]/+page.svelte";
 
-  import { getContext } from "svelte";
-  import { page } from "$app/state";
-  import { goto, invalidateAll, preloadData, pushState } from "$app/navigation";
+  import { getContext, onDestroy } from "svelte";
+  import { page } from "$app/stores";
+  import { goto, invalidateAll, preloadData, pushState, beforeNavigate } from "$app/navigation";
   import { queryParameters, ssp } from "sveltekit-search-params";
+  import { debounce } from "$lib/utils/throttle.js";
   import LinkShallow from "$lib/components/common/LinkShallow.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
@@ -56,6 +57,27 @@
   };
   const params = queryParameters(paramsOptions);
 
+  // Debounced local search text to prevent UI from being overwritten
+  let searchText = $state(params.search || "");
+  let isUserEditing = $state(false);
+  const debouncedSetSearch = debounce((val) => {
+    if ((params.search || "") !== (val || "")) {
+      params.search = val;
+      params.page = 1;
+    }
+    isUserEditing = false;
+  }, 1000);
+  $effect(() => {
+    if (!isUserEditing) searchText = params.search || "";
+  });
+
+  // Cancel any pending debounced updates on navigation or unmount to avoid stale writes
+  beforeNavigate(() => {
+    if (debouncedSetSearch?.cancel) debouncedSetSearch.cancel();
+  });
+  onDestroy(() => {
+    if (debouncedSetSearch?.cancel) debouncedSetSearch.cancel();
+  });
 
   // Function to get object title prioritizing the object's own name
   function getObjectTitle(object) {
@@ -539,12 +561,16 @@
     </div>
     <div class="d-flex align-items-center gap-2">
       <BaseInput
-           icon="search"
-           size="sm"
-           placeholder="Search"
-           bind:value={params.search}
-           onInput={(e) => { params.search = e.target.value; params.page = 1; }}
-         />
+        icon="search"
+        size="sm"
+        placeholder="Search"
+        bind:value={searchText}
+        onInput={(e) => {
+          isUserEditing = true;
+          searchText = e.target.value;
+          debouncedSetSearch(e.target.value);
+        }}
+      />
 
       <!-- Action Buttons -->
       <BaseButton

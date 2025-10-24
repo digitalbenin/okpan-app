@@ -11,7 +11,9 @@
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import ObjectAdvancedFilters from "$lib/components/objects/ObjectAdvancedFilters.svelte";
-  import { afterNavigate } from "$app/navigation";
+  import { afterNavigate, beforeNavigate } from "$app/navigation";
+  import { onDestroy } from "svelte";
+  import { debounce } from "$lib/utils/throttle.js";
 
   import {
     updateObjectsStatusBulk,
@@ -37,6 +39,28 @@
   let showAdvancedFilters = $state(false);
   // Initialize from querystring via bound params (oFilters)
   let advancedFilters = $state(params?.oFilters || {});
+
+  // Debounced local search text to prevent UI from being overwritten while typing
+  let searchText = $state(params.oSearch || "");
+  let isUserEditing = $state(false);
+  const debouncedSetSearch = debounce((val) => {
+    const next = val || "";
+    const current = params.oSearch || "";
+    if (next !== current) {
+      params.oSearch = next;
+      params.oPage = 1;
+    }
+    isUserEditing = false;
+  }, 1000);
+  $effect(() => {
+    if (!isUserEditing) searchText = params.oSearch || "";
+  });
+  beforeNavigate(() => {
+    debouncedSetSearch?.cancel?.();
+  });
+  onDestroy(() => {
+    debouncedSetSearch?.cancel?.();
+  });
 
   // Client-side search results for institution context
   let objectsData = $state({
@@ -468,7 +492,12 @@
         icon="search"
         placeholder={t("common.search", { fallback: "Search" })}
         size="sm"
-        bind:value={params.oSearch}
+        bind:value={searchText}
+        onInput={(e) => {
+          isUserEditing = true;
+          searchText = e.target.value;
+          debouncedSetSearch(e.target.value);
+        }}
         optionsList={ontologyFieldsList}
         bind:optionsValue={params.oSearchField}
       />
