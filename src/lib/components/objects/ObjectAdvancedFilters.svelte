@@ -1,5 +1,7 @@
 <script>
   import { fly, fade } from "svelte/transition";
+  import { debounce } from "$lib/utils/throttle.js";
+  import { onDestroy } from "svelte";
 
   let {
     advancedFilters = $bindable({}),
@@ -209,9 +211,20 @@
   function onTextFieldChange() {
     upsertOrRemoveTextFilter();
   }
+  // Debounce text query updates to avoid triggering searches on every key
+  const debouncedUpdateTextFilter = debounce(() => {
+    try {
+      upsertOrRemoveTextFilter();
+    } catch (e) {
+      console.warn("debouncedUpdateTextFilter error:", e);
+    }
+  }, 1000);
   function onTextQueryInput() {
-    upsertOrRemoveTextFilter();
+    debouncedUpdateTextFilter();
   }
+  onDestroy(() => {
+    debouncedUpdateTextFilter?.cancel?.();
+  });
 
   let currentTextFilters = $derived.by(
     () => advancedFilters?.__textFilters ?? [],
