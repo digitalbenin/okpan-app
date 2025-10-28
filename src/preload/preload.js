@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld('api', {
     getCurrentProject: () => ipcRenderer.invoke('get-current-project'),
     clearCurrentProject: () => ipcRenderer.invoke('clear-current-project'),
 
+    // Y.Doc inspection
+    inspectYDoc: (projectId) => ipcRenderer.invoke('ydoc-dump', projectId),
+
     // Listeners for backend events
     onImportProgress: (callback) => ipcRenderer.on('import-assets-progress', callback),
     removeImportProgressListeners: () => ipcRenderer.removeAllListeners('import-assets-progress'),

@@ -122,7 +122,7 @@ This document describes a fresh, database-native synchronization backbone that d
   - Operational safety: Persisted `yjs_updates` provides an exact “what was applied” record; relying solely on re-derivation risks divergence if ingest logic changes across versions.
 - Runtime use:
   - Ingestion reads `change_log` in order and applies changes to the project’s `Y.Doc` inside a single CRDT transaction (batch).
-  - The transaction produces Yjs bytes; these are appended to `yjs_updates` with `project_id`, `(from_change_id, to_change_id)`, and `timestamp`.
+  - The transaction produces Yjs bytes; these are appended to `yjs_updates` with `project_id`, `(from_change_id, to_change_id)`, and `created_at`.
   - The watermark (`last_processed_change_id`) advances atomically after persisting, ensuring exactly-once replay semantics.
 - Snapshots and retention:
   - Boot: Load latest snapshot, then replay `yjs_updates` strictly after the snapshot’s watermark; skip re-derivation from `change_log`.
@@ -141,7 +141,7 @@ This document describes a fresh, database-native synchronization backbone that d
 - Per-table triggers: Define AFTER INSERT/UPDATE/DELETE triggers on primary domain tables (e.g., `objects`, `institutions`, `datasources`, `texts`, `translations`, junction tables).
 - Payload content:
   - Table name, row ID, operation type (`INSERT`, `UPDATE`, `DELETE`).
-  - Project ID (if the entity carries it or can be resolved), client ID (from a singleton `globalSettings`), timestamp.
+  - Project ID (if the entity carries it or can be resolved), client ID (from a singleton `globalSettings`), `created_at`.
   - Row data as JSON:
     - For INSERT/UPDATE: new row fields (minimal or full; see “Delta vs Full” below).
     - For UPDATE/DELETE: old row fields when helpful for diffing.
@@ -162,7 +162,7 @@ This document describes a fresh, database-native synchronization backbone that d
   - Bursts (thousands of rows) produce contiguous log blocks; tailer processes them in order after commit.
   - Ensure readers consume committed ranges; ingestion runs after commit to avoid lock contention.
 - Ordering:
-  - Process log entries ordered by `(timestamp, id)` to maintain a deterministic sequence across same-second events.
+  - Process log entries ordered by `(created_at, id)` to maintain a deterministic sequence across same-second events.
 - Idempotency:
   - Treat each change log row as a unique event; ensure downstream update derivation is idempotent.
   - Track a watermark (`last_processed_change_id`) to avoid reprocessing.
@@ -177,7 +177,7 @@ This document describes a fresh, database-native synchronization backbone that d
     - One Yjs update per row (simpler, more updates).
     - One Yjs update per batch (fewer updates, better performance).
 - Persist updates:
-  - Append the resulting Yjs update bytes to `yjs_updates` with `change_id` range, `project_id`, and timestamp.
+  - Append the resulting Yjs update bytes to `yjs_updates` with `change_id` range, `project_id`, and `created_at`.
   - Advance the watermark atomically after successful persistence.
 - Reprocessing & failure handling:
   - If a batch fails after update generation but before persistence, re-run the batch; updates are idempotent.
@@ -188,7 +188,7 @@ This document describes a fresh, database-native synchronization backbone that d
   - Use SQLite-first reception for inbound remote updates. The live `Y.Doc` is driven only by committed database changes (`change_log`). Remote bytes are used to derive SQL mutations and are not applied to the live `Y.Doc` prior to commit.
 - Workflow (receive → commit → project):
   - Receive remote Yjs update bytes via transport (e.g., `y-webrtc`).
-  - Stage on a shadow `Y.Doc` to compute row-level mutations against array projections (e.g., `objects`, `institutions`, junction arrays).
+  - Stage on a shadow `Y.Doc` to compute row-level mutations against map projections keyed by `id` (e.g., `objects`, `institutions`); use arrays of IDs only for derived order views when needed.
   - Map mutations to SQL (`INSERT`/`UPDATE`/`DELETE`) and execute them inside a single SQLite transaction in dependency order; include `project_id`, `client_id`, and `origin='remote'` where applicable.
   - On commit, triggers write `change_log` rows. The tailer later processes these rows, produces `yjs_updates`, and applies them to the live `Y.Doc` deterministically.
 - Why SQLite-first:
@@ -219,10 +219,10 @@ This document describes a fresh, database-native synchronization backbone that d
   - Extract `project_id` and sender `client_id` from envelope/transport metadata.
 - Stage on shadow doc
   - Apply inbound Yjs bytes to a shadow `Y.Doc` for the target project.
-  - Compute domain mutations against the array-based projection (e.g., `objects`, `institutions`, `objects_ontology_fields`, junction arrays).
-    - Insert: Shadow doc shows a new entry in the relevant array → `INSERT` row.
+  - Compute domain mutations against the map-based canonical projection keyed by `id` (e.g., `objects`, `institutions`, `objects_ontology_fields`); maintain optional arrays of IDs if order views are required.
+    - Insert: Shadow doc shows a new key under the relevant table map (`id`) → `INSERT` row.
     - Update: Entry with matching `id` has changed fields → `UPDATE` row.
-    - Delete: Entry removed or tombstoned → `DELETE` row.
+    - Delete: Entry removed (key deleted) or tombstoned → `DELETE` row.
 - Map to SQL
   - Generate SQL statements in dependency order (parents before children) to satisfy foreign keys.
   - Include provenance fields where applicable: `project_id`, `client_id`, and `origin='remote'`.
@@ -278,7 +278,7 @@ This document describes a fresh, database-native synchronization backbone that d
 ### Examples (Remote)
 - Remote Object Insert
   - Remote peer inserts an object with fields: `id`, `status`, `name`, `institution_id`, `project_id`, `created_at`, `updated_at` (matching `src/db/schema.js`).
-  - Transport delivers Yjs bytes → shadow `Y.Doc` shows a new entry in `objects` array.
+  - Transport delivers Yjs bytes → shadow `Y.Doc` shows a new key in the `objects` map keyed by `id`.
   - SQL (single transaction): `INSERT INTO objects (id, status, name, institution_id, project_id, created_at, updated_at) VALUES (...)` with provenance.
   - Commit → triggers write `change_log` → tailer ingests, persists `yjs_updates`, updates live `Y.Doc`, advances watermark.
 - Remote Update & Delete
@@ -307,8 +307,8 @@ This document describes a fresh, database-native synchronization backbone that d
 
 ## Performance & Operational Settings
 - Indexing:
-  - Index change log on `(project_id, timestamp, id)`.
-  - Index yjs updates on `(project_id, timestamp)`.
+  - Index change log on `(project_id, created_at, id)`.
+  - Index yjs updates on `(project_id, created_at)`.
 - Batching:
   - Tailer processes rows in bounded batches and applies them in a single Y.Doc transaction per batch.
   - Tune batch sizes empirically (start with 100–500 rows).
@@ -387,12 +387,12 @@ This walkthrough uses actual names from `src/db/schema.js` for the `objects` tab
   - `objects.updated_at = <timestamp_ms>`
 
 - Trigger emission (after commit): A single change log row is written representing the committed `INSERT` on table `objects` with:
-  - `table = "objects"`, `op = "INSERT"`, `project_id = "proj-987..."`, `timestamp = <ts>`, `id = <change_id>`
+  - `table = "objects"`, `op = "INSERT"`, `project_id = "proj-987..."`, `created_at = <ts>`, `id = <change_id>`
   - `row_json` containing the full new row: `{ id, status, name, institution_id, project_id, created_at, updated_at }`
 
 - Ingestion (batch tail): The tailer reads committed change log rows strictly after its watermark, groups by `project_id`, and begins a Y.Doc transaction for the batch.
 
-- Array-based projection (Y.Doc update): Within the Y.Doc transaction, append a new entry to the `objects` array representing the inserted row (array-based, not keyed by table maps). If an entry with the same `id` already exists (rare for inserts), replace it to maintain determinism.
+- Map-based projection (Y.Doc update): Within the Y.Doc transaction, set the row under `objects` map keyed by `id` (create if missing; merge on update). If an entry with the same `id` already exists (rare for inserts), overwrite or merge deterministically.
 
 - Persist Yjs update: The Yjs update bytes produced by the transaction are appended to `yjs_updates` with the associated `project_id`, the processed `change_id` range, and `timestamp`. The ingestion watermark advances atomically.
 

@@ -24,7 +24,9 @@ import { suggestFieldMappings } from './handlers/importHandler.js';
 import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.js';
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
-import { eq, sql, isNull } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
+import { getProjectDoc } from './services/projectCache.js';
+import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { handleExportProject } from './handlers/exportHandlers.js';
 import { handleListLanguages } from './handlers/languagesHandlers.js';
 
@@ -64,6 +66,22 @@ ipcMain.handle('export-project', (event, options) =>
 ipcMain.handle('set-current-project', handleSetCurrentProject);
 ipcMain.handle('get-current-project', handleGetCurrentProject);
 ipcMain.handle('clear-current-project', handleClearCurrentProject);
+
+// Y.Doc inspection handler (returns plain JS object)
+ipcMain.handle('ydoc-dump', async (event, projectId) => {
+  try {
+    if (!projectId || typeof projectId !== 'string') {
+      throw new Error('ydoc-dump requires a valid projectId string');
+    }
+    const doc = getProjectDoc(projectId);
+    const meta = doc.getMap('meta').toJSON();
+    const tables = doc.getMap('tables').toJSON();
+    return { meta, tables };
+  } catch (error) {
+    console.error('Error in ydoc-dump:', error);
+    throw error;
+  }
+});
 
 // Asset mapping handlers
 ipcMain.handle('suggest-object-matches', async (event, assets, options) => {
@@ -311,6 +329,9 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+
+  // Start Step 8 tailer to ingest change_log into Y.Doc and persist yjs_updates
+  startChangeLogTailer();
 });
 
 // Quit when all windows are closed, except on macOS.
