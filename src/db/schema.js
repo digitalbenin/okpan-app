@@ -1,4 +1,4 @@
-import { integer, text, blob, sqliteTable, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { integer, text, blob, sqliteTable, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Common fields configuration for all tables
@@ -644,17 +644,24 @@ export const actionsRelations = relations(actions, ({ one }) => ({
 // These tables support deterministic ingestion, updates transport, and snapshotting.
 
 // Canonical change log written by SQLite triggers
-export const change_log = sqliteTable('change_log', {
-    ...commonFields,
-    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
-    table_name: text('table_name').notNull(), // e.g., 'objects', 'institutions'
-    op: text('op').notNull(), // 'INSERT' | 'UPDATE' | 'DELETE'
-    row_id: text('row_id').notNull(),
-    client_id: text('client_id'),
-    origin: text('origin').default('local'), // 'local' | 'remote'
-    new_row: text('new_row', { mode: 'json' }),
-    old_row: text('old_row', { mode: 'json' })
-});
+export const change_log = sqliteTable(
+    'change_log',
+    {
+        ...commonFields,
+        project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
+        table_name: text('table_name').notNull(), // e.g., 'objects', 'institutions'
+        op: text('op').notNull(), // 'INSERT' | 'UPDATE' | 'DELETE'
+        row_id: text('row_id').notNull(),
+        client_id: text('client_id'),
+        origin: text('origin').default('local'), // 'local' | 'remote'
+        new_row: text('new_row', { mode: 'json' }),
+        old_row: text('old_row', { mode: 'json' })
+    },
+    (table) => ({
+        // Deterministic ingestion ordering per project
+        changeLogOrderIdx: index('change_log_order_idx').on(table.project_id, table.created_at, table.id)
+    })
+);
 
 // Append-only stream of Yjs update bytes derived from change_log
 export const yjs_updates = sqliteTable('yjs_updates', {
