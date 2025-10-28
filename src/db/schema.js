@@ -640,6 +640,47 @@ export const actionsRelations = relations(actions, ({ one }) => ({
     })
 }));
 
+// Sync tables: change_log, yjs_updates, yjs_snapshots, ingestion_state
+// These tables support deterministic ingestion, updates transport, and snapshotting.
+
+// Canonical change log written by SQLite triggers
+export const change_log = sqliteTable('change_log', {
+    ...commonFields,
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
+    table_name: text('table_name').notNull(), // e.g., 'objects', 'institutions'
+    op: text('op').notNull(), // 'INSERT' | 'UPDATE' | 'DELETE'
+    row_id: text('row_id').notNull(),
+    client_id: text('client_id'),
+    origin: text('origin').default('local'), // 'local' | 'remote'
+    new_row: text('new_row', { mode: 'json' }),
+    old_row: text('old_row', { mode: 'json' })
+});
+
+// Append-only stream of Yjs update bytes derived from change_log
+export const yjs_updates = sqliteTable('yjs_updates', {
+    ...commonFields,
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
+    from_change_id: text('from_change_id').references(() => change_log.id),
+    to_change_id: text('to_change_id').references(() => change_log.id),
+    update_bytes: blob('update_bytes').notNull()
+});
+
+// Periodic full-state Yjs snapshots with precise watermark
+export const yjs_snapshots = sqliteTable('yjs_snapshots', {
+    ...commonFields,
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
+    last_change_id: text('last_change_id').references(() => change_log.id),
+    snapshot_bytes: blob('snapshot_bytes').notNull(),
+    state_vector: blob('state_vector')
+});
+
+// Optional ingestion state per project to track watermarks
+export const ingestion_state = sqliteTable('ingestion_state', {
+    ...commonFields,
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }).unique(),
+    last_processed_change_id: text('last_processed_change_id').references(() => change_log.id)
+});
+
 // Website Settings relations
 export const websiteSettingsRelations = relations(websiteSettings, ({ one }) => ({
     project: one(project, {
