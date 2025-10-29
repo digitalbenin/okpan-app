@@ -27,6 +27,7 @@ import { ontology_fields, texts } from '../db/schema.js';
 import { eq, isNull } from 'drizzle-orm';
 import { getProjectDoc } from './services/projectCache.js';
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
+import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';
 import { handleExportProject } from './handlers/exportHandlers.js';
 import { handleListLanguages } from './handlers/languagesHandlers.js';
 
@@ -63,7 +64,26 @@ ipcMain.handle('export-project', (event, options) =>
 );
 
 // Project cache handlers
-ipcMain.handle('set-current-project', handleSetCurrentProject);
+let tailerStarted = false;
+ipcMain.handle('set-current-project', async (event, projectId) => {
+  // Set project in cache using existing handler
+  const res = handleSetCurrentProject(event, projectId);
+  if (!res?.success) {
+    return res;
+  }
+  // Hydrate from latest snapshot before starting tailer
+  try {
+    await hydrateProjectFromLatestSnapshot(projectId);
+  } catch (err) {
+    console.error('Hydration failed for project', projectId, err);
+  }
+  // Start tailer once, after hydration
+  if (!tailerStarted) {
+    startChangeLogTailer();
+    tailerStarted = true;
+  }
+  return { ...res, hydrated: true };
+});
 ipcMain.handle('get-current-project', handleGetCurrentProject);
 ipcMain.handle('clear-current-project', handleClearCurrentProject);
 
@@ -181,6 +201,33 @@ ipcMain.on('open-preview', (event, projectId) => {
 
   // Se stai usando il dev server:
   previewWindow.loadURL(`http://localhost:5174?project_id=${projectId}`);
+});
+
+// Snapshot management IPC
+ipcMain.handle('snapshot-create', async (event, projectId) => {
+  try {
+    if (!projectId || typeof projectId !== 'string') {
+      throw new Error('snapshot-create requires a valid projectId');
+    }
+    const result = await createProjectSnapshot(projectId);
+    return { success: true, result };
+  } catch (error) {
+    console.error('Error in snapshot:create:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('snapshot-hydrate', async (event, projectId) => {
+  try {
+    if (!projectId || typeof projectId !== 'string') {
+      throw new Error('snapshot-hydrate requires a valid projectId');
+    }
+    const result = await hydrateProjectFromLatestSnapshot(projectId);
+    return { success: true, result };
+  } catch (error) {
+    console.error('Error in snapshot-hydrate:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 // Register protocol
@@ -310,8 +357,8 @@ app.whenReady().then(() => {
       const buildDir = path.join(process.cwd(), 'src', 'website', 'build');
 
       let filePath;
-      if (!pathname || pathname === '' || pathname === '200.html') {
-        filePath = path.join(buildDir, '200.html');
+      if (!pathname || pathname === '' || pathname === 'index.html') {
+        filePath = path.join(buildDir, 'index.html');
       } else {
         filePath = path.join(buildDir, pathname);
       }
@@ -329,9 +376,6 @@ app.whenReady().then(() => {
   });
 
   createWindow();
-
-  // Start Step 8 tailer to ingest change_log into Y.Doc and persist yjs_updates
-  startChangeLogTailer();
 });
 
 // Quit when all windows are closed, except on macOS.

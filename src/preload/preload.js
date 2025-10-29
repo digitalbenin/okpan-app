@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld('api', {
     // Y.Doc inspection
     inspectYDoc: (projectId) => ipcRenderer.invoke('ydoc-dump', projectId),
 
+    // Snapshot management
+    createSnapshot: (projectId) => ipcRenderer.invoke('snapshot-create', projectId),
+    hydrateFromSnapshot: (projectId) => ipcRenderer.invoke('snapshot-hydrate', projectId),
+
     // Listeners for backend events
     onImportProgress: (callback) => ipcRenderer.on('import-assets-progress', callback),
     removeImportProgressListeners: () => ipcRenderer.removeAllListeners('import-assets-progress'),

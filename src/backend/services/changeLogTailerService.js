@@ -21,32 +21,30 @@ async function fetchNextChangeBatch(projectId, batchSize) {
     .select()
     .from(ingestion_state)
     .where(eq(ingestion_state.project_id, projectId))
-    .limit(1);
+    .limit(1)
+    .execute();
 
   const lastId = stateRows[0]?.last_processed_change_id || null;
-  let lastTs = 0;
+
+  // Use rowid for deterministic, monotonic ordering regardless of created_at formatting
+  let lastRowid = 0;
   if (lastId) {
-    const lastRows = await db
-      .select({ created_at: change_log.created_at })
+    const lastRowidRows = await db
+      .select({ rowid: sql`rowid` })
       .from(change_log)
       .where(eq(change_log.id, lastId))
-      .limit(1);
-    lastTs = lastRows[0]?.created_at || 0;
+      .limit(1)
+      .execute();
+    lastRowid = lastRowidRows[0]?.rowid || 0;
   }
-
-  const afterWatermarkCond = lastId
-    ? or(
-      gt(change_log.created_at, lastTs),
-      and(eq(change_log.created_at, lastTs), gt(change_log.id, lastId))
-    )
-    : sql`1=1`;
 
   const rows = await db
     .select()
     .from(change_log)
-    .where(and(eq(change_log.project_id, projectId), afterWatermarkCond))
-    .orderBy(change_log.created_at, change_log.id)
-    .limit(batchSize);
+    .where(and(eq(change_log.project_id, projectId), gt(sql`rowid`, lastRowid)))
+    .orderBy(sql`rowid`)
+    .limit(batchSize)
+    .execute();
 
   return rows;
 }
@@ -56,6 +54,14 @@ async function applyBatchToDoc(projectId, rows) {
 
   const doc = getProjectDoc(projectId);
   const stateVector = Y.encodeStateVector(doc);
+
+  // Track if the transaction produced any Yjs changes
+  let changed = false;
+  const onUpdate = (_update, origin) => {
+    // Only count updates originating from this ingestion transaction
+    if (origin === 'ingestion') changed = true;
+  };
+  doc.on('update', onUpdate);
 
   doc.transact(() => {
     for (const row of rows) {
@@ -89,27 +95,48 @@ async function applyBatchToDoc(projectId, rows) {
     }
   }, 'ingestion');
 
+  doc.off('update', onUpdate);
+
   const updateBytes = Y.encodeStateAsUpdate(doc, stateVector);
 
   const fromId = rows[0].id;
   const toId = rows[rows.length - 1].id;
-  await db.insert(yjs_updates).values({
-    project_id: projectId,
-    from_change_id: fromId,
-    to_change_id: toId,
-    update_bytes: Buffer.from(updateBytes)
-  });
+  // If no actual changes occurred (idempotent apply), skip persisting update bytes
+  // Persist update bytes only if the doc actually changed
+  if (changed && updateBytes && updateBytes.length > 0) {
+    // Avoid inserting duplicates for the same change-id window
+    const existing = await db
+      .select({ id: yjs_updates.id })
+      .from(yjs_updates)
+      .where(and(
+        eq(yjs_updates.project_id, projectId),
+        eq(yjs_updates.from_change_id, fromId),
+        eq(yjs_updates.to_change_id, toId)
+      ))
+      .limit(1)
+      .execute();
+
+    if (!existing.length) {
+      await db.insert(yjs_updates).values({
+        project_id: projectId,
+        from_change_id: fromId,
+        to_change_id: toId,
+        update_bytes: Buffer.from(updateBytes)
+      }).execute();
+    }
+  }
 
   const stateRows = await db
     .select()
     .from(ingestion_state)
     .where(eq(ingestion_state.project_id, projectId))
-    .limit(1);
+    .limit(1)
+    .execute();
   if (stateRows.length === 0) {
     await db.insert(ingestion_state).values({
       project_id: projectId,
       last_processed_change_id: toId
-    });
+    }).execute();
   } else {
     await db
       .update(ingestion_state)
@@ -118,7 +145,7 @@ async function applyBatchToDoc(projectId, rows) {
       .execute();
   }
 
-  return { fromId, toId };
+  return { fromId, toId, changed };
 }
 
 export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST_BATCH_SIZE) {
