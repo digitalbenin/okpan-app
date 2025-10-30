@@ -1,4 +1,5 @@
 import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
+import { joinRoom } from 'trystero'
 import { RTCPeerConnection } from 'node-datachannel/polyfill'
 import WebSocket from 'ws'
 import { Awareness } from 'y-protocols/awareness'
@@ -40,17 +41,15 @@ export async function startP2PForProject(projectId) {
   }
   awareness.on('update', onUpdate)
 
-  // Pass rtcPolyfill for server-side usage; provider will use Trystero under the hood
+  // Join a Trystero room server-side with rtcPolyfill
+  const trysteroRoom = joinRoom({ appId, rtcPolyfill: RTCPeerConnection }, roomId)
+
+  // Initialize provider with existing Trystero room (no explicit connect)
   const provider = new TrysteroProvider(roomId, doc, {
     appId,
     awareness,
-    trysteroConfig: { rtcPolyfill: RTCPeerConnection }
+    trysteroRoom
   })
-
-  // Connect if the provider exposes a connect() method
-  if (typeof provider.connect === 'function') {
-    try { await provider.connect() } catch (e) { console.log(e) }
-  }
 
   providers.set(projectId, { provider, awareness, onUpdate })
   return provider
