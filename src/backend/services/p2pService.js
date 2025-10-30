@@ -30,8 +30,16 @@ export async function startP2PForProject(projectId) {
   const appId = process.env.TRYSTERO_APP_ID || 'db-conn-tool'
   const awareness = new awarenessProtocol.Awareness(doc)
 
-  // Log peer connect/disconnect via awareness updates
-  const onUpdate = ({ added = [], removed = [] }) => {
+  // Set initial local presence and enable 5s heartbeat for debug visibility
+  awareness.setLocalState({
+    clientId: doc.clientID,
+    projectId,
+    role: 'backend-main',
+    heartbeat: Date.now()
+  })
+
+  // Log peer connect/disconnect via awareness change events
+  const onChange = ({ added = [], removed = [] }) => {
     for (const clientId of added) {
       console.log('[P2P] Peer connected', { projectId, clientId })
     }
@@ -39,19 +47,23 @@ export async function startP2PForProject(projectId) {
       console.log('[P2P] Peer disconnected', { projectId, clientId })
     }
   }
-  awareness.on('update', onUpdate)
+  awareness.on('change', onChange)
+
+  // Heartbeat every 5s to propagate liveness
+  const heartbeatInterval = setInterval(() => {
+    try { awareness.setLocalStateField('heartbeat', Date.now()) } catch (_) { }
+  }, 5000)
   // Join a Trystero room server-side with rtcPolyfill
   const trysteroRoom = joinRoom({ appId, rtcPolyfill: RTCPeerConnection }, roomId)
 
   // Initialize provider with existing Trystero room (no explicit connect)
   const provider = new TrysteroProvider(roomId, doc, {
     appId,        // Required: Your Trystero app ID
-    //password: ROOM_PASSWORD, // Optional: password for room access
-    maxConns: 30,           // Optional: maximum peer connections
-    awareness // Optional: awareness protocol
+    awareness,    // Awareness protocol
+    trysteroRoom  // Use pre-configured room (server-side)
   })
 
-  providers.set(projectId, { provider, awareness, onUpdate })
+  providers.set(projectId, { provider, awareness, onChange, heartbeatInterval })
   return provider
 }
 
@@ -62,8 +74,9 @@ export async function stopP2PForProject(projectId) {
   const entry = providers.get(projectId)
   if (!entry) return
   try {
-    // Remove awareness listener
-    try { entry.awareness?.off('update', entry.onUpdate) } catch (_) { }
+    // Remove awareness listener & heartbeat
+    try { entry.awareness?.off('change', entry.onChange) } catch (_) { }
+    try { clearInterval(entry.heartbeatInterval) } catch (_) { }
 
     const provider = entry.provider
     if (typeof provider.destroy === 'function') await provider.destroy()
