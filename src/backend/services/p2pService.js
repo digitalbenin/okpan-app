@@ -2,7 +2,7 @@ import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
 import { joinRoom } from 'trystero'
 import { RTCPeerConnection } from 'node-datachannel/polyfill'
 import WebSocket from 'ws'
-import { Awareness } from 'y-protocols/awareness'
+import * as awarenessProtocol from 'y-protocols/awareness.js'
 import { getProjectDoc } from './projectCache.js'
 
 // Minimal P2P provider registry keyed by projectId
@@ -28,7 +28,7 @@ export async function startP2PForProject(projectId) {
   const doc = getProjectDoc(projectId)
   const roomId = `project-${projectId}`
   const appId = process.env.TRYSTERO_APP_ID || 'db-conn-tool'
-  const awareness = new Awareness(doc)
+  const awareness = new awarenessProtocol.Awareness(doc)
 
   // Log peer connect/disconnect via awareness updates
   const onUpdate = ({ added = [], removed = [] }) => {
@@ -40,15 +40,15 @@ export async function startP2PForProject(projectId) {
     }
   }
   awareness.on('update', onUpdate)
-
   // Join a Trystero room server-side with rtcPolyfill
   const trysteroRoom = joinRoom({ appId, rtcPolyfill: RTCPeerConnection }, roomId)
 
   // Initialize provider with existing Trystero room (no explicit connect)
   const provider = new TrysteroProvider(roomId, doc, {
-    appId,
-    awareness,
-    trysteroRoom
+    appId,        // Required: Your Trystero app ID
+    //password: ROOM_PASSWORD, // Optional: password for room access
+    maxConns: 30,           // Optional: maximum peer connections
+    awareness // Optional: awareness protocol
   })
 
   providers.set(projectId, { provider, awareness, onUpdate })
@@ -63,12 +63,12 @@ export async function stopP2PForProject(projectId) {
   if (!entry) return
   try {
     // Remove awareness listener
-    try { entry.awareness?.off('update', entry.onUpdate) } catch (_) {}
+    try { entry.awareness?.off('update', entry.onUpdate) } catch (_) { }
 
     const provider = entry.provider
     if (typeof provider.destroy === 'function') await provider.destroy()
     else if (typeof provider.disconnect === 'function') await provider.disconnect()
-  } catch (_) {}
+  } catch (_) { }
   providers.delete(projectId)
 }
 
