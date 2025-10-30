@@ -66,6 +66,43 @@ function resolveTable(tableName) {
   return schema[k]
 }
 
+// Minimum fields required so triggers can resolve project_id for change_log
+const CONTEXT_REQUIREMENTS = {
+  project: [],
+  languages: ['project_id'],
+  texts: ['original_language_id'],
+  translations: ['language_id'],
+  institutions: ['project_id'],
+  objects: ['project_id', 'institution_id'], // either
+  templates: ['project_id'],
+  datasources: ['institution_id', 'template_id'], // either
+  imports: ['template_id'],
+  ontology_fields: ['project_id'],
+  research_fields: ['project_id'],
+  assets: ['project_id', 'institution_id'], // either
+  generic_assets: ['project_id'],
+  objects_assets: ['object_id', 'asset_id'], // either
+  assets_institutions: ['asset_id', 'institution_id'], // either
+  objects_research_fields: ['object_id', 'field_id'], // either
+  objects_ontology_fields: ['object_id', 'field_id', 'datasources_id'], // any
+  vocabularies: ['field_id', 'main_asset_id'], // either
+  vocabularies_generic_assets: ['generic_asset_id', 'vocabulary_id'], // either
+  object_display_fields: ['project_id'],
+  settings: ['project_id'],
+  website_settings: ['project_id']
+}
+
+function hasProjectContext(tableName, row) {
+  const req = CONTEXT_REQUIREMENTS[tableName]
+  if (!req) return true // unknown tables: assume safe
+  if (req.length === 0) return true
+  // Passes if any required field is present and truthy
+  for (const key of req) {
+    if (row && row[key]) return true
+  }
+  return false
+}
+
 function jsonTables(doc) {
   try {
     const tables = doc.getMap('tables')
@@ -165,7 +202,14 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
       if (!tableRef) continue
       for (const ins of inserts.filter(x => x.table === t)) {
         try {
-          await tx.insert(tableRef).values({ id: ins.id, ...sanitizeRowForDb(ins.row, { dropCreatedAt: true }) }).execute()
+          const payload = sanitizeRowForDb(ins.row, { dropCreatedAt: true })
+          // Ensure triggers can resolve project_id for change_log before attempting INSERT
+          if (!hasProjectContext(t, { id: ins.id, ...payload })) {
+            console.warn('[RemoteIngestion] Deferring insert lacking project context', { table: t, id: ins.id })
+            deferredInserts += 1
+            continue
+          }
+          await tx.insert(tableRef).values({ id: ins.id, ...payload }).execute()
           applied += 1
         } catch (err) {
           if (isFkError(err)) {
