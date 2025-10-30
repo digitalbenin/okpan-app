@@ -43,12 +43,6 @@ export async function startP2PForProject(projectId) {
     heartbeat: Date.now()
   })
 
-  // Heartbeat every 5s to keep presence visible during debugging
-  const heartbeatInterval = setInterval(() => {
-    const state = awareness.getLocalState() || {}
-    awareness.setLocalState({ ...state, heartbeat: Date.now() })
-  }, 5000)
-
   // Log peer connect/disconnect via awareness change events
   const onChange = ({ added = [], updated = [], removed = [] }) => {
     for (const clientId of added) {
@@ -108,7 +102,7 @@ export async function startP2PForProject(projectId) {
   }
   doc.on('update', localUpdateHandler)
 
-  providers.set(projectId, { provider, awareness, onChange, heartbeatInterval, transportDoc, remoteUpdateHandler, localUpdateHandler })
+  providers.set(projectId, { provider, awareness, onChange, transportDoc, remoteUpdateHandler, localUpdateHandler })
   return provider
 }
 
@@ -121,7 +115,6 @@ export async function stopP2PForProject(projectId) {
   try {
     // Remove awareness listener & heartbeat
     try { entry.awareness?.off('change', entry.onChange) } catch (err) { console.warn('[P2P] Failed to remove awareness change listener', err) }
-    try { clearInterval(entry.heartbeatInterval) } catch (err) { console.warn('[P2P] Failed to clear heartbeat interval', err) }
     try { entry.transportDoc?.off('update', entry.remoteUpdateHandler) } catch (err) { console.warn('[P2P] Failed to remove transportDoc update handler', err) }
     try { getProjectDoc(projectId)?.off('update', entry.localUpdateHandler) } catch (err) { console.warn('[P2P] Failed to remove canonical doc update handler', err) }
 

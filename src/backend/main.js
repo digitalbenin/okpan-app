@@ -103,7 +103,17 @@ ipcMain.handle('ydoc-dump', async (event, projectId) => {
     const doc = getProjectDoc(projectId);
     const meta = doc.getMap('meta').toJSON();
     const tables = doc.getMap('tables').toJSON();
-    return { meta, tables };
+    // Compute simple row counts to aid debugging/hydration verification
+    let totalRows = 0;
+    const rowCounts = {};
+    try {
+      doc.getMap('tables').forEach((tableMap, key) => {
+        const size = typeof tableMap?.size === 'number' ? tableMap.size : 0;
+        rowCounts[key] = size;
+        totalRows += size;
+      });
+    } catch {}
+    return { meta, tables, guid: doc.guid, rowCounts, totalRows };
   } catch (error) {
     console.error('Error in ydoc-dump:', error);
     throw error;

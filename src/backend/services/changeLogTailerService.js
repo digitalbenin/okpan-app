@@ -8,7 +8,7 @@ import {
   setRowFields,
   deleteRow,
   getCurrentProjectId,
-  hasCurrentProjectId
+  hasCurrentProjectId,
 } from './projectCache.js';
 
 const DEFAULT_INGEST_BATCH_SIZE = 200;
@@ -87,6 +87,7 @@ async function applyBatchToDoc(projectId, rows) {
             payload = payloadRaw;
           }
         }
+        // Ensure table exists and row map exists within the same transaction
         const rowMap = ensureRowMap(projectId, tableName, rowId);
         setRowFields(rowMap, payload);
       } catch (err) {
@@ -155,7 +156,8 @@ export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST
   try {
     const rows = await fetchNextChangeBatch(projectId, batchSize);
     if (!rows || rows.length === 0) return false;
-    await applyBatchToDoc(projectId, rows);
+    const res = await applyBatchToDoc(projectId, rows);
+    console.log('[Tailer] Applied batch', { projectId, fromId: res?.fromId, toId: res?.toId, changed: !!res?.changed });
     return true;
   } catch (error) {
     console.error('Error ingesting change_log:', error);

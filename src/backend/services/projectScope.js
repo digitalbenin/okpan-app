@@ -2,6 +2,31 @@ import { db } from '../../db/init.js';
 import { change_log, ingestion_state, project } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 
+// Central FK order used for SQLite-safe insert/update/delete sequences
+export const FK_ORDER = [
+  'project',
+  'languages',
+  'texts',
+  'institutions',
+  'objects',
+  'templates',
+  'datasources',
+  'imports',
+  'ontology_fields',
+  'research_fields',
+  'assets',
+  'generic_assets',
+  'objects_assets',
+  'assets_institutions',
+  'objects_research_fields',
+  'objects_ontology_fields',
+  'vocabularies',
+  'vocabularies_generic_assets',
+  'object_display_fields',
+  'settings',
+  'website_settings'
+];
+
 // Snapshot manifest for a project closure, including counts and sync watermarks
 export async function getProjectSnapshotManifest(projectId) {
   if (!projectId) throw new Error('getProjectSnapshotManifest requires projectId');

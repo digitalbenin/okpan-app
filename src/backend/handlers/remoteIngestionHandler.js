@@ -3,31 +3,9 @@ import { db } from '../../db/init.js'
 import * as schema from '../../db/schema.js'
 import { eq } from 'drizzle-orm'
 import { getProjectDoc } from '../services/projectCache.js'
+import { FK_ORDER } from '../services/projectScope.js'
 
-// FK-safe processing order for inserts/updates; deletes run in reverse.
-const FK_ORDER = [
-  'project',
-  'languages',
-  'texts',
-  'institutions',
-  'objects',
-  'templates',
-  'datasources',
-  'imports',
-  'ontology_fields',
-  'research_fields',
-  'assets',
-  'generic_assets',
-  'objects_assets',
-  'assets_institutions',
-  'objects_research_fields',
-  'objects_ontology_fields',
-  'vocabularies',
-  'vocabularies_generic_assets',
-  'object_display_fields',
-  'settings',
-  'website_settings'
-]
+// FK order centralized in projectScope.js
 
 function jsonTables(doc) {
   try {
