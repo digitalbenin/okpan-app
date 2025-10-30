@@ -26,6 +26,7 @@ import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { eq, isNull } from 'drizzle-orm';
 import { getProjectDoc } from './services/projectCache.js';
+import { startP2PForProject } from './services/p2pService.js';
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';
 import { handleExportProject } from './handlers/exportHandlers.js';
@@ -81,6 +82,12 @@ ipcMain.handle('set-current-project', async (event, projectId) => {
   if (!tailerStarted) {
     startChangeLogTailer();
     tailerStarted = true;
+  }
+  // Start P2P provider for this project (Trystero + Yjs)
+  try {
+    await startP2PForProject(projectId);
+  } catch (err) {
+    console.error('Failed to start P2P provider for project', projectId, err);
   }
   return { ...res, hydrated: true };
 });

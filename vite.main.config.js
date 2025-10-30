@@ -13,7 +13,18 @@ export default defineConfig({
     },
     optimizeDeps: {
         holdUntilCrawlEnd: false,
-        exclude: ['@libsql/client', '@libsql/win32-x64-msvc', 'sharp', '@xenova/transformers', 'onnxruntime-node']
+        exclude: [
+            '@libsql/client',
+            '@libsql/win32-x64-msvc',
+            'sharp',
+            '@xenova/transformers',
+            'onnxruntime-node',
+            'node-datachannel',
+            'ws',
+            'yjs',
+            'trystero',
+            '@winstonfassett/y-webrtc-trystero'
+        ]
     },
     build: {
         outDir: '.vite',
@@ -33,7 +44,15 @@ export default defineConfig({
                 '@xenova/transformers',
                 'onnxruntime-node',
                 /^onnxruntime.*/,
-                /^graphql\/.*/  // Ensure all graphql subpaths are treated as external
+                /^graphql\/.*/,  // Ensure all graphql subpaths are treated as external
+                'y-protocols/awareness', // Avoid bundling deep import used by y-webrtc-trystero
+                'node-datachannel',
+                /^node-datachannel.*/,
+                'ws',
+                'yjs',
+                '@winstonfassett/y-webrtc-trystero',
+                'trystero',
+                /^trystero.*/
             ],
             input: {
                 main: 'src/backend/main.js',

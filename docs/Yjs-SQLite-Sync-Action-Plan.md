@@ -65,44 +65,43 @@ This document describes a database-native synchronization backbone powered by SQ
 12) Implement remote transport provider (Trystero)
 - Outcome: Use `providers/YTrysteroProvider.js` to carry Yjs sync and awareness peer‑to‑peer via Trystero strategies (Nostr, MQTT, Torrent, Supabase, Firebase, IPFS).
 - Test: Connect two peers; verify initial sync (state vector → updates) and ongoing updates/awareness.
+ - Initial sync semantics: On first connect, peers exchange state vectors. If the receiver's doc is empty or far behind, the sender emits a compact full‑state update (`Y.encodeStateAsUpdate`) as part of the native handshake. This functions as a "bootstrap snapshot" and avoids replaying thousands of historical updates.
 
-13) Implement snapshot packaging and send/receive
-- Outcome: Produce `snapshot_bytes` via `Y.encodeStateAsUpdate(doc)` with a watermark; send over the provider; apply on the receiver before tail replay.
-- Test: Send a snapshot; reconstruct on receiver; verify hydration succeeds and the `watermarkId` advances as expected.
+ 
 
-14) Implement `src/backend/services/remoteIngestion.js` (SQLite‑first)
+13) Implement `src/backend/services/remoteIngestion.js` (SQLite‑first)
 - Outcome: Apply inbound bytes to a shadow `Y.Doc`; derive SQL mutations; commit atomically; triggers emit `change_log`.
 - Test: Simulate remote inserts/updates/deletes; confirm DB commits and subsequent live `Y.Doc` updates via tailer.
 
-15) Implement DB rebuild from snapshot
+14) Implement DB rebuild from snapshot
 - Outcome: FK‑safe insertion order: parents (`project`, `languages`, `texts`) → dependents (`institutions`, `objects`) → junctions; apply snapshot rows accordingly.
 - Test: Wipe DB; rebuild from snapshot; verify schema constraints and joins hold.
 
-16) Implement incremental updates after snapshot
-- Outcome: After snapshot hydration, consume `yjs_updates` over the provider; process exactly‑once with watermarks.
+15) Implement incremental updates after initial sync
+- Outcome: After the Yjs handshake, consume native Yjs updates over Trystero; process exactly‑once with watermarks.
 - Test: Perform edits on sender across core and junction tables; verify receiver consistency and watermark advancement.
 
-17) Implement echo prevention
+16) Implement echo prevention
 - Outcome: Stamp `origin='remote'` and `client_id` on remote commits; skip re‑emitting remote‑origin changes in broadcaster logic.
 - Test: Round‑trip a remote mutation; ensure no duplicate outbound broadcast.
 
-18) Optional conflict policies
+17) Optional conflict policies
 - Outcome: Add CAS on `updated_at` (or a version field) for sensitive rows; buffer dependent ops; maintain deterministic inbound ordering.
 - Test: Simulate competing edits (e.g., uniqueness collisions); verify behavior per policy.
 
-19) Observability metrics
+18) Observability metrics
 - Outcome: Emit lag, rows per batch, update sizes, snapshot duration, replay times; add a lightweight debug IPC endpoint.
 - Test: Run a burst import; confirm metrics captured and lag returns to baseline.
 
-20) Retention and pruning
+19) Retention and pruning
 - Outcome: Keep the latest two snapshots; retain `yjs_updates` from the penultimate snapshot forward; prune older updates.
 - Test: After new snapshot, run pruning; verify safe fallback remains via penultimate snapshot.
 
-21) Crash and restart resilience
+20) Crash and restart resilience
 - Outcome: Ensure tailer idempotency if a crash occurs after update generation but before persistence; resume cleanly from the watermark.
 - Test: Simulate a crash at the boundary; restart; verify no duplicate application and correct watermark.
 
-22) Production readiness gate
+21) Production readiness gate
 - Outcome: Checklist covering trigger coverage, deterministic rebuild, exactly‑once updates, conflict policy decisions, observability, recovery, retention, and transport sanity.
 - Test: Execute against staged datasets; sign off when all gates pass.
 
