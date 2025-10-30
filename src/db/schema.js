@@ -116,7 +116,8 @@ export const project = sqliteTable('project', {
     title_id: text('title_id').references(() => texts.id),
     description_id: text('description_id').references(() => texts.id),
     exports: text('exports', { mode: 'json' }),
-    password: text('password')
+    password: text('password'),
+    created_app_version: text('created_app_version')
 });
 
 // Object Display Fields table - stores configuration for how objects are displayed in lists

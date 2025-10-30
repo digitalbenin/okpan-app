@@ -43,9 +43,16 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                 // Embedding initialization removed to prevent sharp module load issues
 
                 const result = await db.transaction(async (tx) => {
-                    // 1) Create project shell
+                    // 1) Create project shell (record app version at creation)
+                    const [settingsRow] = await tx
+                        .select()
+                        .from(dbSchema.globalSettings)
+                        .where(eq(dbSchema.globalSettings.id, 1))
+                        .limit(1);
+                    const appVersion = settingsRow?.app_version || process.env.npm_package_version || 'dev';
+
                     const [projectInserted] = await tx.insert(dbSchema.project)
-                        .values({})
+                        .values({ created_app_version: appVersion })
                         .returning();
                     
 
