@@ -141,11 +141,11 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     // Inserts and updates forward in FK order
     for (const t of FK_ORDER) {
       for (const ins of inserts.filter(x => x.table === t)) {
-        await tx.insert(schema[t]).values({ id: ins.id, ...ins.row }).execute()
+        await tx.insert(schema[t]).values({ id: ins.id, ...sanitizeRowForDb(ins.row, { dropCreatedAt: true }) }).execute()
         applied += 1
       }
       for (const up of updates.filter(x => x.table === t)) {
-        await tx.update(schema[t]).set({ ...up.row }).where(eq(schema[t].id, up.id)).execute()
+        await tx.update(schema[t]).set({ ...sanitizeRowForDb(up.row, { dropCreatedAt: true }) }).where(eq(schema[t].id, up.id)).execute()
         applied += 1
       }
     }
