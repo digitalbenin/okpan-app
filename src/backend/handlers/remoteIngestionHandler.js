@@ -7,6 +7,13 @@ import { FK_ORDER } from '../services/projectScope.js'
 
 // FK order centralized in projectScope.js
 
+function isFkError(err) {
+  const code = err?.code ?? err?.rawCode
+  if (code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || code === 787) return true
+  const msg = String(err?.message || '')
+  return /FOREIGN KEY constraint failed/i.test(msg)
+}
+
 // Normalize timestamp-ish fields so Drizzle's timestamp_ms columns receive Date
 const TIMESTAMP_FIELDS = new Set(['created_at', 'updated_at', 'date', 'initialized_at'])
 
@@ -48,6 +55,17 @@ function sanitizeRowForDb(row, { dropCreatedAt = true } = {}) {
   return out
 }
 
+// Map Y.Doc snake_case table names to Drizzle schema export names where needed
+const TABLE_NAME_MAP = {
+  generic_assets: 'genericAssets',
+  website_settings: 'websiteSettings'
+}
+
+function resolveTable(tableName) {
+  const k = TABLE_NAME_MAP[tableName] || tableName
+  return schema[k]
+}
+
 function jsonTables(doc) {
   try {
     const tables = doc.getMap('tables')
@@ -87,7 +105,7 @@ function computeDiff(beforeTables, afterTables) {
 }
 
 async function applyInsert(tableName, id, row) {
-  const table = schema[tableName]
+  const table = resolveTable(tableName)
   if (!table) return
   // Ensure id field present
   const values = { id, ...sanitizeRowForDb(row, { dropCreatedAt: true }) }
@@ -95,14 +113,14 @@ async function applyInsert(tableName, id, row) {
 }
 
 async function applyUpdate(tableName, id, row) {
-  const table = schema[tableName]
+  const table = resolveTable(tableName)
   if (!table) return
   const values = { ...sanitizeRowForDb(row, { dropCreatedAt: true }) }
   await db.update(table).set(values).where(eq(table.id, id)).execute()
 }
 
 async function applyDelete(tableName, id) {
-  const table = schema[tableName]
+  const table = resolveTable(tableName)
   if (!table) return
   await db.delete(table).where(eq(table.id, id)).execute()
 }
@@ -136,29 +154,65 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   const { inserts, updates, deletes } = computeDiff(beforeTables, afterTables)
 
   let applied = 0
+  let deferredInserts = 0
+  let deferredUpdates = 0
+  let deferredDeletes = 0
   // Run transaction for deterministic commit
   await db.transaction(async (tx) => {
     // Inserts and updates forward in FK order
     for (const t of FK_ORDER) {
+      const tableRef = resolveTable(t)
+      if (!tableRef) continue
       for (const ins of inserts.filter(x => x.table === t)) {
-        await tx.insert(schema[t]).values({ id: ins.id, ...sanitizeRowForDb(ins.row, { dropCreatedAt: true }) }).execute()
-        applied += 1
+        try {
+          await tx.insert(tableRef).values({ id: ins.id, ...sanitizeRowForDb(ins.row, { dropCreatedAt: true }) }).execute()
+          applied += 1
+        } catch (err) {
+          if (isFkError(err)) {
+            deferredInserts += 1
+            continue
+          }
+          throw err
+        }
       }
       for (const up of updates.filter(x => x.table === t)) {
-        await tx.update(schema[t]).set({ ...sanitizeRowForDb(up.row, { dropCreatedAt: true }) }).where(eq(schema[t].id, up.id)).execute()
-        applied += 1
+        try {
+          await tx.update(tableRef).set({ ...sanitizeRowForDb(up.row, { dropCreatedAt: true }) }).where(eq(tableRef.id, up.id)).execute()
+          applied += 1
+        } catch (err) {
+          if (isFkError(err)) {
+            deferredUpdates += 1
+            continue
+          }
+          throw err
+        }
       }
     }
 
     // Deletes reverse order to satisfy FKs
     for (const t of [...FK_ORDER].reverse()) {
+      const tableRef = resolveTable(t)
+      if (!tableRef) continue
       for (const del of deletes.filter(x => x.table === t)) {
-        await tx.delete(schema[t]).where(eq(schema[t].id, del.id)).execute()
-        applied += 1
+        try {
+          await tx.delete(tableRef).where(eq(tableRef.id, del.id)).execute()
+          applied += 1
+        } catch (err) {
+          if (isFkError(err)) {
+            deferredDeletes += 1
+            continue
+          }
+          throw err
+        }
       }
     }
   })
 
-  console.log('[RemoteIngestion] Committed', { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length })
-  return { applied, inserts: inserts.length, updates: updates.length, deletes: deletes.length }
+  const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length }
+  if (deferredInserts || deferredUpdates || deferredDeletes) {
+    console.log('[RemoteIngestion] Committed with deferrals', { ...summary, deferredInserts, deferredUpdates, deferredDeletes })
+  } else {
+    console.log('[RemoteIngestion] Committed', summary)
+  }
+  return { applied, ...summary, deferredInserts, deferredUpdates, deferredDeletes }
 }
