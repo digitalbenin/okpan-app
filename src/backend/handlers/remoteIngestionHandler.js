@@ -7,6 +7,47 @@ import { FK_ORDER } from '../services/projectScope.js'
 
 // FK order centralized in projectScope.js
 
+// Normalize timestamp-ish fields so Drizzle's timestamp_ms columns receive Date
+const TIMESTAMP_FIELDS = new Set(['created_at', 'updated_at', 'date', 'initialized_at'])
+
+function coerceTimestamp(v) {
+  if (v === null || v === undefined) return undefined
+  if (v instanceof Date) return v
+  if (typeof v === 'number') {
+    const d = new Date(v)
+    return isNaN(d.getTime()) ? undefined : d
+  }
+  if (typeof v === 'string') {
+    // Try ISO then numeric
+    const d1 = new Date(v)
+    if (!isNaN(d1.getTime())) return d1
+    const n = Number(v)
+    if (!Number.isNaN(n)) {
+      const d2 = new Date(n)
+      if (!isNaN(d2.getTime())) return d2
+    }
+    return undefined
+  }
+  // Yjs JSON for unknown types may come as {} — drop it
+  return undefined
+}
+
+function sanitizeRowForDb(row, { dropCreatedAt = true } = {}) {
+  if (!row || typeof row !== 'object') return {}
+  const out = {}
+  for (const [k, v] of Object.entries(row)) {
+    if (TIMESTAMP_FIELDS.has(k)) {
+      if (k === 'created_at' && dropCreatedAt) continue // let DEFAULT handle
+      const ts = coerceTimestamp(v)
+      if (ts !== undefined) out[k] = ts
+      // else omit so DEFAULT / $onUpdateFn applies
+      continue
+    }
+    out[k] = v
+  }
+  return out
+}
+
 function jsonTables(doc) {
   try {
     const tables = doc.getMap('tables')
@@ -49,14 +90,14 @@ async function applyInsert(tableName, id, row) {
   const table = schema[tableName]
   if (!table) return
   // Ensure id field present
-  const values = { id, ...row }
+  const values = { id, ...sanitizeRowForDb(row, { dropCreatedAt: true }) }
   await db.insert(table).values(values).execute()
 }
 
 async function applyUpdate(tableName, id, row) {
   const table = schema[tableName]
   if (!table) return
-  const values = { ...row }
+  const values = { ...sanitizeRowForDb(row, { dropCreatedAt: true }) }
   await db.update(table).set(values).where(eq(table.id, id)).execute()
 }
 
