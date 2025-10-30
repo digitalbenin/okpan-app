@@ -14,6 +14,16 @@ function isFkError(err) {
   return /FOREIGN KEY constraint failed/i.test(msg)
 }
 
+function isChangeLogProjectIdNotNull(err) {
+  const code = err?.code ?? err?.rawCode
+  const msg = String(err?.message || '')
+  if (code === 'SQLITE_CONSTRAINT_NOTNULL' || code === 1299) {
+    if (/change_log\.project_id/i.test(msg)) return true
+  }
+  if (/NOT NULL constraint failed: change_log\.project_id/i.test(msg)) return true
+  return false
+}
+
 // Normalize timestamp-ish fields so Drizzle's timestamp_ms columns receive Date
 const TIMESTAMP_FIELDS = new Set(['created_at', 'updated_at', 'date', 'initialized_at'])
 
@@ -212,7 +222,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
           await tx.insert(tableRef).values({ id: ins.id, ...payload }).execute()
           applied += 1
         } catch (err) {
-          if (isFkError(err)) {
+          if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
             deferredInserts += 1
             continue
           }
@@ -224,7 +234,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
           await tx.update(tableRef).set({ ...sanitizeRowForDb(up.row, { dropCreatedAt: true }) }).where(eq(tableRef.id, up.id)).execute()
           applied += 1
         } catch (err) {
-          if (isFkError(err)) {
+          if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
             deferredUpdates += 1
             continue
           }
@@ -242,7 +252,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
           await tx.delete(tableRef).where(eq(tableRef.id, del.id)).execute()
           applied += 1
         } catch (err) {
-          if (isFkError(err)) {
+          if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
             deferredDeletes += 1
             continue
           }
