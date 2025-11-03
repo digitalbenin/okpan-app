@@ -58,7 +58,14 @@ export async function startP2PForProject(projectId) {
   }
   awareness.on('change', onChange)
 
-  const trysteroRoom = joinRoom({ appId, rtcPolyfill: RTCPeerConnection }, roomId)
+  const trysteroRoom = joinRoom({
+    appId,
+    rtcPolyfill: RTCPeerConnection,
+    trackerUrls: [
+      "wss://tracker.ghostchu-services.top:443/announce",
+      "wss://tracker.files.fm:7073/announce"
+    ]
+  }, roomId)
 
   // Initialize provider with transport doc (no explicit connect)
   const provider = new TrysteroProvider(roomId, transportDoc, {
@@ -66,6 +73,7 @@ export async function startP2PForProject(projectId) {
     awareness,    // Awareness protocol
     trysteroRoom  // Use pre-configured room (server-side)
   })
+  // Provider initializes on creation; no explicit connect call required
 
   // Seed transport doc from current canonical state so peers can catch up
   try {
@@ -77,12 +85,33 @@ export async function startP2PForProject(projectId) {
     console.warn('[P2P] Failed to seed transport doc from canonical snapshot', err)
   }
 
+  // Bootstrap: proactively send canonical snapshot to newly discovered peers
+  try {
+    const [sendBootstrap, onBootstrap] = trysteroRoom.makeAction('yjs-bootstrap')
+    onBootstrap((peerId, data) => {
+      try {
+        transportDoc.transact(() => { Y.applyUpdate(transportDoc, data) }, 'remote-bootstrap')
+        console.log('[P2P] Applied bootstrap from peer', { projectId, peerId, bytes: data?.length || 0 })
+      } catch (err) {
+        console.warn('[P2P] Failed to apply bootstrap', err)
+      }
+    })
+    const snapshotBytes = Y.encodeStateAsUpdate(doc)
+    if (snapshotBytes?.length) {
+      sendBootstrap(snapshotBytes)
+      console.log('[P2P] Sent bootstrap snapshot', { projectId, bytes: snapshotBytes.length })
+    }
+  } catch (err) {
+    console.warn('[P2P] Bootstrap action setup failed', err)
+  }
+
   // Bridge inbound remote updates → SQLite-first commit
   const remoteUpdateHandler = async (update, origin) => {
     // Ignore updates originating from our local bridge
     if (origin === 'local-bridge') return
     try {
-      await ingestRemoteUpdate(projectId, update)
+      const res = await ingestRemoteUpdate(projectId, update)
+      console.log('[P2P] Remote ingested update', { projectId, origin, bytes: update?.length || 0, ...res })
     } catch (err) {
       console.error('[P2P] Remote ingestion failed', err)
     }
