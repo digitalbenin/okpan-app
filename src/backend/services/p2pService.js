@@ -1,6 +1,6 @@
 import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
 // Use Trystero Torrent (WebTorrent) strategy for matchmaking
-import { joinRoom } from 'trystero/torrent'
+import { joinRoom } from 'trystero/nostr'
 import { RTCPeerConnection } from 'node-datachannel/polyfill'
 import WebSocket from 'ws'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
@@ -61,9 +61,13 @@ export async function startP2PForProject(projectId) {
   const trysteroRoom = joinRoom({
     appId,
     rtcPolyfill: RTCPeerConnection,
-    trackerUrls: [
-      "wss://tracker.ghostchu-services.top:443/announce",
-      "wss://tracker.files.fm:7073/announce"
+    // Nostr relay URLs for signaling; adjust as needed
+    relayUrls: [
+      "wss://nostr.mutinywallet.com",
+      "wss://relay.snort.social",
+      "wss://nostr.wine",
+      "wss://nos.lol",
+      "wss://relay.damus.io"
     ]
   }, roomId)
 
@@ -73,51 +77,6 @@ export async function startP2PForProject(projectId) {
     awareness,    // Awareness protocol
     trysteroRoom  // Use pre-configured room (server-side)
   })
-  // Provider initializes on creation; no explicit connect call required
-
-  // Seed transport doc from current canonical state so peers can catch up
-  try {
-    const snap = Y.encodeStateAsUpdate(doc)
-    if (snap && snap.length) {
-      transportDoc.transact(() => { Y.applyUpdate(transportDoc, snap) }, 'local-bridge')
-    }
-  } catch (err) {
-    console.warn('[P2P] Failed to seed transport doc from canonical snapshot', err)
-  }
-
-  // Bootstrap: proactively send canonical snapshot to newly discovered peers
-  try {
-    const [sendBootstrap, onBootstrap] = trysteroRoom.makeAction('bootstrap')
-    onBootstrap((peerId, data) => {
-      try {
-        transportDoc.transact(() => { Y.applyUpdate(transportDoc, data) }, 'remote-bootstrap')
-        console.log('[P2P] Applied bootstrap from peer', { projectId, peerId, bytes: data?.length || 0 })
-      } catch (err) {
-        console.warn('[P2P] Failed to apply bootstrap', err)
-      }
-    })
-    const snapshotBytes = Y.encodeStateAsUpdate(doc)
-    if (snapshotBytes?.length) {
-      sendBootstrap(snapshotBytes)
-      console.log('[P2P] Sent bootstrap snapshot', { projectId, bytes: snapshotBytes.length })
-      // Also send to newly joining peers to avoid missing early broadcast
-      if (typeof trysteroRoom.onPeerJoin === 'function') {
-        trysteroRoom.onPeerJoin((peerId) => {
-          try {
-            const bytes = Y.encodeStateAsUpdate(doc)
-            if (bytes?.length) {
-              try { sendBootstrap(bytes, [peerId]) } catch { sendBootstrap(bytes) }
-              console.log('[P2P] Sent bootstrap to joining peer', { projectId, peerId, bytes: bytes.length })
-            }
-          } catch (err) {
-            console.warn('[P2P] Failed to send bootstrap on peer join', err)
-          }
-        })
-      }
-    }
-  } catch (err) {
-    console.warn('[P2P] Bootstrap action setup failed', err)
-  }
 
   // Bridge inbound remote updates → SQLite-first commit
   const remoteUpdateHandler = async (update, origin) => {
