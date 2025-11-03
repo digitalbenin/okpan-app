@@ -329,6 +329,12 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     const remainingUpdates = updates.map(x => ({ ...x }))
     const remainingDeletes = deletes.map(x => ({ ...x }))
 
+    // Cyclic FK fields that should be excluded on initial insert and applied later via update
+    // This breaks the cycle: project → languages → texts → project
+    const CYCLIC_FK_FIELDS = {
+      project: ['title_id', 'description_id']
+    }
+
     let pass = 0
     let progress = true
     while (progress && pass < 3) {
@@ -348,6 +354,24 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
             let payload = sanitizeRowForDb(ins.row, { dropCreatedAt: true })
             // Inject minimal project context when required
             payload = injectProjectContextIfMissing(t, payload, projectId)
+            // Break cyclic FK: for project inserts, drop text FK fields on first insert
+            // and schedule them to be applied via an update in a subsequent pass
+            const cyclicKeys = CYCLIC_FK_FIELDS[t]
+            if (Array.isArray(cyclicKeys) && cyclicKeys.length > 0) {
+              const fkPayload = {}
+              let hasFk = false
+              for (const key of cyclicKeys) {
+                if (payload[key] !== undefined && payload[key] !== null) {
+                  fkPayload[key] = payload[key]
+                  delete payload[key]
+                  hasFk = true
+                }
+              }
+              if (hasFk) {
+                // Queue an update for this row so FK fields are set after dependencies exist
+                remainingUpdates.push({ table: t, id: ins.id, row: fkPayload })
+              }
+            }
             if (!hasProjectContext(t, { id: ins.id, ...payload })) {
               console.warn('[RemoteIngestion] Deferring insert lacking project context', { table: t, id: ins.id, requires: CONTEXT_REQUIREMENTS[t] })
               continue
