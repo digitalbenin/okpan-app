@@ -31,6 +31,7 @@ import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';
 import { handleExportProject } from './handlers/exportHandlers.js';
 import { handleListLanguages } from './handlers/languagesHandlers.js';
+import { applyMigration } from '../db/scripts/applyMigration.js';
 
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
@@ -350,6 +351,12 @@ const createWindow = () => {
 
 // Initialize app
 app.whenReady().then(() => {
+  // Ensure DB migrations and change_log triggers are applied before any ingestion/tailer
+  // This makes ongoing local changes appear in change_log for syncing
+  applyMigration().catch((err) => {
+    console.error('Database migration/setup failed at startup:', err);
+  });
+
   // Register media protocol handler
   protocol.registerFileProtocol('media', (request, callback) => {
     try {
