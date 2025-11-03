@@ -87,7 +87,7 @@ export async function startP2PForProject(projectId) {
 
   // Bootstrap: proactively send canonical snapshot to newly discovered peers
   try {
-    const [sendBootstrap, onBootstrap] = trysteroRoom.makeAction('yjs-bootstrap')
+    const [sendBootstrap, onBootstrap] = trysteroRoom.makeAction('bootstrap')
     onBootstrap((peerId, data) => {
       try {
         transportDoc.transact(() => { Y.applyUpdate(transportDoc, data) }, 'remote-bootstrap')
@@ -100,6 +100,20 @@ export async function startP2PForProject(projectId) {
     if (snapshotBytes?.length) {
       sendBootstrap(snapshotBytes)
       console.log('[P2P] Sent bootstrap snapshot', { projectId, bytes: snapshotBytes.length })
+      // Also send to newly joining peers to avoid missing early broadcast
+      if (typeof trysteroRoom.onPeerJoin === 'function') {
+        trysteroRoom.onPeerJoin((peerId) => {
+          try {
+            const bytes = Y.encodeStateAsUpdate(doc)
+            if (bytes?.length) {
+              try { sendBootstrap(bytes, [peerId]) } catch { sendBootstrap(bytes) }
+              console.log('[P2P] Sent bootstrap to joining peer', { projectId, peerId, bytes: bytes.length })
+            }
+          } catch (err) {
+            console.warn('[P2P] Failed to send bootstrap on peer join', err)
+          }
+        })
+      }
     }
   } catch (err) {
     console.warn('[P2P] Bootstrap action setup failed', err)
