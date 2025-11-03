@@ -138,13 +138,17 @@ function computeDiff(beforeTables, afterTables) {
   const makeKey = (table, id) => `${table}#${id}`
   const getBeforeRows = (table) => (beforeTables?.[table] || {})
   const getAfterRows = (table) => (afterTables?.[table] || {})
+  const toSegs = (p) => {
+    if (Array.isArray(p)) return p
+    if (typeof p === 'string') return p.split(/[./]/).filter(Boolean)
+    return []
+  }
 
   for (const d of diffs) {
     const t = d?.t
-    const p = d?.p
-    if (!Array.isArray(p)) continue
+    const segs = toSegs(d?.p)
 
-    if (p.length === 0) {
+    if (segs.length === 0) {
       // Root-level structural replacement → add inserts for rows present in AFTER but absent in BEFORE
       for (const table of Object.keys(afterTables || {})) {
         const beforeRows = getBeforeRows(table)
@@ -156,31 +160,36 @@ function computeDiff(beforeTables, afterTables) {
       continue
     }
 
-    if (p.length === 1) {
-      const table = String(p[0])
+    if (segs.length === 1) {
+      const table = String(segs[0])
+      const beforeRows = getBeforeRows(table)
+      const afterRows = getAfterRows(table)
       if (t === 1) {
         // Table created → explicit inserts for all new rows
-        const beforeRows = getBeforeRows(table)
-        const afterRows = getAfterRows(table)
         for (const id of Object.keys(afterRows)) {
           if (!(id in beforeRows)) insertKeys.add(makeKey(table, id))
         }
       } else if (t === 0) {
         // Table deleted → explicit bulk deletes for all existing rows
-        const beforeRows = getBeforeRows(table)
         for (const id of Object.keys(beforeRows)) {
           deleteKeys.add(makeKey(table, id))
         }
-      } else {
-        // Table updated → rely on nested row-level diffs
+      } else if (t === 2) {
+        // Table updated → when BEFORE is empty and AFTER has rows, treat as creation
+        if (Object.keys(beforeRows).length === 0 && Object.keys(afterRows).length > 0) {
+          for (const id of Object.keys(afterRows)) {
+            insertKeys.add(makeKey(table, id))
+          }
+        }
+        // else rely on nested row-level diffs
       }
       continue
     }
 
-    // p.length >= 2 → row-level or nested field-level
-    const table = String(p[0])
-    const id = String(p[1])
-    if (p.length === 2) {
+    // segs.length >= 2 → row-level or nested field-level
+    const table = String(segs[0])
+    const id = String(segs[1])
+    if (segs.length === 2) {
       if (t === 0) deleteKeys.add(makeKey(table, id))
       else if (t === 1) insertKeys.add(makeKey(table, id))
       else if (t === 2) updateKeys.add(makeKey(table, id))
@@ -203,6 +212,19 @@ function computeDiff(beforeTables, afterTables) {
     const [table, id] = k.split('#')
     deletes.push({ table, id })
   }
+
+  // Optional debug: enable by setting env P2P_DEBUG_COMPUTEDIFF=1
+  try {
+    if (process?.env?.P2P_DEBUG_COMPUTEDIFF === '1') {
+      console.log('[RemoteIngestion] Diff classification', {
+        diffs: diffs.length,
+        inserts: inserts.length,
+        updates: updates.length,
+        deletes: deletes.length,
+        sample: diffs.slice(0, 5)
+      })
+    }
+  } catch (_) {}
 
   return { inserts, updates, deletes }
 }

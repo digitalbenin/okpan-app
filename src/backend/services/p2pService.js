@@ -1,6 +1,6 @@
 import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
 // Use Trystero Torrent (WebTorrent) strategy for matchmaking
-import { joinRoom } from 'trystero/ipfs'
+import { joinRoom } from 'trystero/torrent'
 import { RTCPeerConnection } from 'node-datachannel/polyfill'
 import WebSocket from 'ws'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
@@ -71,7 +71,7 @@ export async function startP2PForProject(projectId) {
   try {
     const snap = Y.encodeStateAsUpdate(doc)
     if (snap && snap.length) {
-      Y.applyUpdate(transportDoc, snap)
+      transportDoc.transact(() => { Y.applyUpdate(transportDoc, snap) }, 'local-bridge')
     }
   } catch (err) {
     console.warn('[P2P] Failed to seed transport doc from canonical snapshot', err)
