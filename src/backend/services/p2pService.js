@@ -1,6 +1,6 @@
 import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
 // Use Trystero Torrent (WebTorrent) strategy for matchmaking
-import { joinRoom } from 'trystero/nostr'
+import { joinRoom } from 'trystero'
 import { RTCPeerConnection } from 'node-datachannel/polyfill'
 import WebSocket from 'ws'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
@@ -32,13 +32,12 @@ export async function startP2PForProject(projectId) {
   const doc = getProjectDoc(projectId)
   const roomId = `project-${projectId}`
   const appId = process.env.TRYSTERO_APP_ID || 'db-conn-tool'
-  // Transport-only doc for provider; prevents mutating canonical before DB commit
-  const transportDoc = new Y.Doc()
-  const awareness = new awarenessProtocol.Awareness(transportDoc)
+  // Attach provider directly to canonical doc (single Y.Doc architecture)
+  const awareness = new awarenessProtocol.Awareness(doc)
 
   // Set initial local presence and enable 5s heartbeat for debug visibility
   awareness.setLocalState({
-    clientId: transportDoc.clientID,
+    clientId: doc.clientID,
     projectId,
     role: 'backend-main',
     heartbeat: Date.now()
@@ -61,50 +60,31 @@ export async function startP2PForProject(projectId) {
   const trysteroRoom = joinRoom({
     appId,
     rtcPolyfill: RTCPeerConnection,
-    // Nostr relay URLs for signaling; adjust as needed
-    relayUrls: [
-      "wss://nostr.mutinywallet.com",
-      "wss://relay.snort.social",
-      "wss://nostr.wine",
-      "wss://nos.lol",
-      "wss://relay.damus.io"
-    ]
   }, roomId)
 
-  // Initialize provider with transport doc (no explicit connect)
-  const provider = new TrysteroProvider(roomId, transportDoc, {
+  // Initialize provider with canonical doc (no explicit connect)
+  const provider = new TrysteroProvider(roomId, doc, {
     appId,        // Required: Your Trystero app ID
     awareness,    // Awareness protocol
     trysteroRoom  // Use pre-configured room (server-side)
   })
 
-  // Bridge inbound remote updates → SQLite-first commit
-  const remoteUpdateHandler = async (update, origin) => {
-    // Ignore updates originating from our local bridge
-    if (origin === 'local-bridge') return
+  // Persist non-ingestion updates to SQLite via remote ingestion pipeline
+  const onDocUpdatePersist = async (update, origin) => {
     try {
+      // Ignore updates originating from DB tailer projections
+      if (origin === 'ingestion') return
       const res = await ingestRemoteUpdate(projectId, update)
-      console.log('[P2P] Remote ingested update', { projectId, origin, bytes: update?.length || 0, ...res })
-    } catch (err) {
-      console.error('[P2P] Remote ingestion failed', err)
-    }
-  }
-  transportDoc.on('update', remoteUpdateHandler)
-
-  // Bridge local canonical projection (from DB ingestion) → broadcast to peers
-  const localUpdateHandler = (update, origin) => {
-    // Only echo ingestion-origin updates to transport for broadcast
-    if (origin === 'ingestion') {
-      try {
-        transportDoc.transact(() => { Y.applyUpdate(transportDoc, update) }, 'local-bridge')
-      } catch (err) {
-        console.warn('[P2P] Failed to bridge local ingestion update to transport', err)
+      if (res?.applied || res?.inserts || res?.updates || res?.deletes) {
+        console.log('[P2P] Persisted Yjs update to SQLite', { projectId, origin, bytes: update?.length || 0, ...res })
       }
+    } catch (err) {
+      console.error('[P2P] Failed to persist Yjs update to SQLite', err)
     }
   }
-  doc.on('update', localUpdateHandler)
+  doc.on('update', onDocUpdatePersist)
 
-  providers.set(projectId, { provider, awareness, onChange, transportDoc, remoteUpdateHandler, localUpdateHandler })
+  providers.set(projectId, { provider, awareness, onChange, onDocUpdatePersist })
   return provider
 }
 
@@ -117,8 +97,7 @@ export async function stopP2PForProject(projectId) {
   try {
     // Remove awareness listener & heartbeat
     try { entry.awareness?.off('change', entry.onChange) } catch (err) { console.warn('[P2P] Failed to remove awareness change listener', err) }
-    try { entry.transportDoc?.off('update', entry.remoteUpdateHandler) } catch (err) { console.warn('[P2P] Failed to remove transportDoc update handler', err) }
-    try { getProjectDoc(projectId)?.off('update', entry.localUpdateHandler) } catch (err) { console.warn('[P2P] Failed to remove canonical doc update handler', err) }
+    try { getProjectDoc(projectId)?.off('update', entry.onDocUpdatePersist) } catch (err) { console.warn('[P2P] Failed to remove canonical doc persistence handler', err) }
 
     const provider = entry.provider
     if (typeof provider.destroy === 'function') await provider.destroy()
