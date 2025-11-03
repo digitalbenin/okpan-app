@@ -259,11 +259,13 @@ async function applyDelete(tableName, id) {
  */
 export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   if (!projectId || !updateBytes) return { applied: 0 }
-  const canonical = getProjectDoc(projectId)
+  // Allow callers to provide a baseline doc representing the BEFORE state
+  // This fixes zero-diff when the canonical doc has already integrated the update.
+  const baseline = options?.beforeDoc || getProjectDoc(projectId)
 
   // Seed shadow doc from canonical state
   const shadow = new Y.Doc()
-  const snapshot = Y.encodeStateAsUpdate(canonical)
+  const snapshot = Y.encodeStateAsUpdate(baseline)
   Y.applyUpdate(shadow, snapshot)
   // Capture BEFORE tables from the shadow seeded at a single point-in-time
   // This avoids races from reading the live canonical doc, which can mutate concurrently
@@ -341,7 +343,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     }
   })
 
-  const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: 'shadow-before-after' }
+  const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: options?.beforeDoc ? 'baseline-before-after' : 'shadow-before-after' }
   if (deferredInserts || deferredUpdates || deferredDeletes) {
     console.log('[RemoteIngestion] Committed with deferrals', { ...summary, deferredInserts, deferredUpdates, deferredDeletes })
   } else {

@@ -35,6 +35,16 @@ export async function startP2PForProject(projectId) {
   // Attach provider directly to canonical doc (single Y.Doc architecture)
   const awareness = new awarenessProtocol.Awareness(doc)
 
+  // Maintain a baseline doc representing the last state persisted to SQLite
+  // Used to compute BEFORE vs AFTER diffs for remote updates.
+  const baselineDoc = new Y.Doc()
+  try {
+    const initialSnapshot = Y.encodeStateAsUpdate(doc)
+    Y.applyUpdate(baselineDoc, initialSnapshot)
+  } catch (err) {
+    console.warn('[P2P] Failed to seed baseline doc from canonical', err)
+  }
+
   // Set initial local presence and enable 5s heartbeat for debug visibility
   awareness.setLocalState({
     clientId: doc.clientID,
@@ -74,9 +84,16 @@ export async function startP2PForProject(projectId) {
     try {
       // Ignore updates originating from DB tailer projections
       if (origin === 'ingestion') return
-      const res = await ingestRemoteUpdate(projectId, update)
+      // Persist using baseline BEFORE snapshot to avoid zero-diff after local integration
+      const res = await ingestRemoteUpdate(projectId, update, { beforeDoc: baselineDoc })
       if (res?.applied || res?.inserts || res?.updates || res?.deletes) {
         console.log('[P2P] Persisted Yjs update to SQLite', { projectId, origin, bytes: update?.length || 0, ...res })
+        // Advance baseline to reflect the newly persisted update
+        try {
+          Y.applyUpdate(baselineDoc, update)
+        } catch (advErr) {
+          console.warn('[P2P] Failed to advance baseline doc', advErr)
+        }
       }
     } catch (err) {
       console.error('[P2P] Failed to persist Yjs update to SQLite', err)
@@ -84,7 +101,7 @@ export async function startP2PForProject(projectId) {
   }
   doc.on('update', onDocUpdatePersist)
 
-  providers.set(projectId, { provider, awareness, onChange, onDocUpdatePersist })
+  providers.set(projectId, { provider, awareness, onChange, onDocUpdatePersist, baselineDoc })
   return provider
 }
 
@@ -98,6 +115,7 @@ export async function stopP2PForProject(projectId) {
     // Remove awareness listener & heartbeat
     try { entry.awareness?.off('change', entry.onChange) } catch (err) { console.warn('[P2P] Failed to remove awareness change listener', err) }
     try { getProjectDoc(projectId)?.off('update', entry.onDocUpdatePersist) } catch (err) { console.warn('[P2P] Failed to remove canonical doc persistence handler', err) }
+    // Baseline doc is local-only; rely on GC
 
     const provider = entry.provider
     if (typeof provider.destroy === 'function') await provider.destroy()
