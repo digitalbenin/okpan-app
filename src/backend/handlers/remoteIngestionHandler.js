@@ -1,4 +1,5 @@
 import * as Y from 'yjs'
+import { diff as deepDiff } from '@opentf/obj-diff'
 import { db } from '../../db/init.js'
 import * as schema from '../../db/schema.js'
 import { eq } from 'drizzle-orm'
@@ -142,9 +143,8 @@ function computeDiff(beforeTables, afterTables) {
       if (!b && a) inserts.push({ table: t, id, row: a })
       else if (b && !a) deletes.push({ table: t, id })
       else if (b && a) {
-        const beforeStr = JSON.stringify(b)
-        const afterStr = JSON.stringify(a)
-        if (beforeStr !== afterStr) updates.push({ table: t, id, row: a })
+        const changes = deepDiff(b, a)
+        if (Array.isArray(changes) && changes.length > 0) updates.push({ table: t, id, row: a })
       }
     }
   }
@@ -175,7 +175,7 @@ async function applyDelete(tableName, id) {
 /**
  * Ingest a remote Yjs update for a project using SQLite-first order.
  * - Applies inbound bytes to a shadow doc seeded from the canonical doc
- * - Computes row-level diffs against canonical projection
+ * - Computes row-level diffs using shadow BEFORE vs AFTER to avoid races
  * - Commits INSERT/UPDATE/DELETE in FK-safe order inside a single transaction
  * - SQLite triggers emit change_log; tailer will project and persist yjs_updates
  */
@@ -187,16 +187,17 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   const shadow = new Y.Doc()
   const snapshot = Y.encodeStateAsUpdate(canonical)
   Y.applyUpdate(shadow, snapshot)
+  // Capture BEFORE tables from the shadow seeded at a single point-in-time
+  // This avoids races from reading the live canonical doc, which can mutate concurrently
+  const beforeTables = jsonTables(shadow)
 
-  // Apply inbound remote update to shadow
+  // Apply inbound remote update to the same shadow and capture AFTER tables
   try {
     Y.applyUpdate(shadow, updateBytes)
   } catch (err) {
     console.error('[RemoteIngestion] Failed to apply inbound Yjs update', err)
     return { applied: 0, error: err?.message }
   }
-
-  const beforeTables = jsonTables(canonical)
   const afterTables = jsonTables(shadow)
   const { inserts, updates, deletes } = computeDiff(beforeTables, afterTables)
 
@@ -262,7 +263,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     }
   })
 
-  const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length }
+  const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: 'shadow-before-after' }
   if (deferredInserts || deferredUpdates || deferredDeletes) {
     console.log('[RemoteIngestion] Committed with deferrals', { ...summary, deferredInserts, deferredUpdates, deferredDeletes })
   } else {

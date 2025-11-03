@@ -1,5 +1,6 @@
 // GraphQL handler with action logging
 import { graphql, parse } from 'graphql';
+import { diff as deepDiff } from '@opentf/obj-diff';
 import { and } from 'drizzle-orm';
 import { actions, languages, ontology_fields } from '../../db/schema.js';
 import { getClientId } from '../../db/init.js';
@@ -421,18 +422,15 @@ const getChangedFields = (variables, before, after) => {
         if (typeof beforeValue === 'string' && (beforeValue.startsWith('[') || beforeValue.startsWith('{'))) {
             try { normalizedBefore = JSON.parse(beforeValue); } catch { /* ignore */ }
         }
-
-        if (JSON.stringify(normalizedBefore) !== JSON.stringify(afterValue)) {
+        const hasChanged = (Array.isArray(deepDiff(normalizedBefore, afterValue)) && deepDiff(normalizedBefore, afterValue).length > 0);
+        if (hasChanged) {
             for (const [varName, varValue] of Object.entries(variables)) {
                 if (varName.endsWith('Id')) continue;
-
-                let matches = JSON.stringify(varValue) === JSON.stringify(afterValue);
-                if (!matches && typeof varValue === 'string') {
-                    try {
-                        matches = JSON.stringify(JSON.parse(varValue)) === JSON.stringify(afterValue);
-                    } catch { /* ignore */ }
+                let candidate = varValue;
+                if (typeof candidate === 'string') {
+                    try { candidate = JSON.parse(candidate); } catch { /* ignore */ }
                 }
-
+                const matches = Array.isArray(deepDiff(candidate, afterValue)) && deepDiff(candidate, afterValue).length === 0;
                 if (matches) {
                     changes[varName] = varValue;
                     break;

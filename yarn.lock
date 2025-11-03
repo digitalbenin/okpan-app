@@ -2007,6 +2007,18 @@
     mkdirp "^1.0.4"
     rimraf "^3.0.2"
 
+"@opentf/obj-diff@^0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@opentf/obj-diff/-/obj-diff-0.12.0.tgz#5eff78c32cb09fa405eaaee2ad14d8b1f240c93d"
+  integrity sha512-mxgT/RaarPGIcdFeQsdBxY7jFAFoH5L6P5BHOG8c+uytKAzylTchHa7tXhlXRt1bTW0gnqQ6fcTL8ex2GsXo1w==
+  dependencies:
+    "@opentf/std" "^0.12.0"
+
+"@opentf/std@^0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@opentf/std/-/std-0.12.0.tgz#f7529a262812be368f46de94ffa80ca97b15e6dd"
+  integrity sha512-UVK4sKbjtBmad8rbv3i5iIYR6xGjdBX75JN7uIKTKzZ40MObstuZkUoGfA5OpnVDCCOPLsPqioSYTBENJgcrMw==
+
 "@petamoriken/float16@^3.8.7":
   version "3.9.2"
   resolved "https://registry.yarnpkg.com/@petamoriken/float16/-/float16-3.9.2.tgz#217a5d349f3655b8e286be447e0ed1eae063a78f"
