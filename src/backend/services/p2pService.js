@@ -8,6 +8,20 @@ import * as Y from 'yjs'
 import { getProjectDoc } from './projectCache.js'
 import { ingestRemoteUpdate } from '../handlers/remoteIngestionHandler.js'
 
+// Helper: count tables and rows in a Y.Doc's `tables` map
+function countDocTables(doc) {
+  try {
+    const tables = doc.getMap('tables')
+    const json = tables ? tables.toJSON() : {}
+    const tablesCount = Object.keys(json).length
+    let rowsCount = 0
+    for (const v of Object.values(json)) rowsCount += Object.keys(v || {}).length
+    return { tables: tablesCount, rows: rowsCount }
+  } catch (_) {
+    return { tables: 0, rows: 0 }
+  }
+}
+
 // Minimal P2P provider registry keyed by projectId
 // Stores { provider, awareness, onUpdate }
 const providers = new Map()
@@ -41,6 +55,9 @@ export async function startP2PForProject(projectId) {
   try {
     const initialSnapshot = Y.encodeStateAsUpdate(doc)
     Y.applyUpdate(baselineDoc, initialSnapshot)
+    const baseStats = countDocTables(baselineDoc)
+    const canonStats = countDocTables(doc)
+    console.log('[P2P] Baseline seeded', { projectId, baseline: baseStats, canonical: canonStats })
   } catch (err) {
     console.warn('[P2P] Failed to seed baseline doc from canonical', err)
   }
@@ -83,7 +100,15 @@ export async function startP2PForProject(projectId) {
   const onDocUpdatePersist = async (update, origin) => {
     try {
       // Ignore updates originating from DB tailer projections
-      if (origin === 'ingestion') return
+      if (origin === 'ingestion') {
+        const baseStats = countDocTables(baselineDoc)
+        const canonStats = countDocTables(doc)
+        console.log('[P2P] Ingestion update observed on canonical', { projectId, bytes: update?.length || 0, baseline: baseStats, canonical: canonStats })
+        return
+      }
+      const beforeBase = countDocTables(baselineDoc)
+      const beforeCanon = countDocTables(doc)
+      console.log('[P2P] Doc update observed', { projectId, origin, bytes: update?.length || 0, baselineBefore: beforeBase, canonicalBefore: beforeCanon })
       // Persist using baseline BEFORE snapshot to avoid zero-diff after local integration
       const res = await ingestRemoteUpdate(projectId, update, { beforeDoc: baselineDoc })
       if (res?.applied || res?.inserts || res?.updates || res?.deletes) {
@@ -91,6 +116,9 @@ export async function startP2PForProject(projectId) {
         // Advance baseline to reflect the newly persisted update
         try {
           Y.applyUpdate(baselineDoc, update)
+          const afterBase = countDocTables(baselineDoc)
+          const afterCanon = countDocTables(doc)
+          console.log('[P2P] Baseline advanced', { projectId, baselineAfter: afterBase, canonicalAfter: afterCanon })
         } catch (advErr) {
           console.warn('[P2P] Failed to advance baseline doc', advErr)
         }

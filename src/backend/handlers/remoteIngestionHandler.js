@@ -123,6 +123,20 @@ function jsonTables(doc) {
   }
 }
 
+// Simple stats helper for logging
+function tablesStats(tablesJson) {
+  try {
+    const tables = Object.keys(tablesJson || {}).length
+    let rows = 0
+    for (const v of Object.values(tablesJson || {})) {
+      rows += Object.keys(v || {}).length
+    }
+    return { tables, rows }
+  } catch (_) {
+    return { tables: 0, rows: 0 }
+  }
+}
+
 
 function computeDiff(beforeTables, afterTables) {
   const diffs = deepDiff(beforeTables || {}, afterTables || {}) || []
@@ -270,6 +284,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   // Capture BEFORE tables from the shadow seeded at a single point-in-time
   // This avoids races from reading the live canonical doc, which can mutate concurrently
   const beforeTables = jsonTables(shadow)
+  const beforeStats = tablesStats(beforeTables)
 
   // Apply inbound remote update to the same shadow and capture AFTER tables
   try {
@@ -279,6 +294,16 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     return { applied: 0, error: err?.message }
   }
   const afterTables = jsonTables(shadow)
+  const afterStats = tablesStats(afterTables)
+  try {
+    console.log('[RemoteIngestion] BEFORE/AFTER tables snapshot', {
+      projectId,
+      updateBytes: updateBytes?.length || 0,
+      source: options?.beforeDoc ? 'baseline' : 'shadow',
+      before: beforeStats,
+      after: afterStats
+    })
+  } catch (_) {}
   const { inserts, updates, deletes } = computeDiff(beforeTables, afterTables)
 
   let applied = 0
