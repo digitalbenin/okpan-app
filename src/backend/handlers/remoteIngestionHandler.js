@@ -123,31 +123,57 @@ function jsonTables(doc) {
   }
 }
 
+
 function computeDiff(beforeTables, afterTables) {
+  const diffs = deepDiff(beforeTables || {}, afterTables || {}) || []
+
   const inserts = []
   const updates = []
   const deletes = []
 
-  const tableNames = Array.from(new Set([
-    ...Object.keys(beforeTables || {}),
-    ...Object.keys(afterTables || {})
-  ]))
+  const insertKeys = new Set()
+  const updateKeys = new Set()
+  const deleteKeys = new Set()
 
-  for (const t of tableNames) {
-    const before = beforeTables?.[t] || {}
-    const after = afterTables?.[t] || {}
-    const rowIds = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]))
-    for (const id of rowIds) {
-      const b = before[id]
-      const a = after[id]
-      if (!b && a) inserts.push({ table: t, id, row: a })
-      else if (b && !a) deletes.push({ table: t, id })
-      else if (b && a) {
-        const changes = deepDiff(b, a)
-        if (Array.isArray(changes) && changes.length > 0) updates.push({ table: t, id, row: a })
-      }
+  const makeKey = (table, id) => `${table}#${id}`
+  const isRowPath = (p) => Array.isArray(p) && p.length >= 2
+
+  for (const d of diffs) {
+    const t = d?.t
+    const p = d?.p
+    if (!isRowPath(p)) {
+      // Root/table-level structural changes are ignored for mutation classification
+      continue
+    }
+    const table = String(p[0])
+    const id = String(p[1])
+
+    if (p.length === 2) {
+      // Row-level classification
+      if (t === 0) deleteKeys.add(makeKey(table, id))
+      else if (t === 1) insertKeys.add(makeKey(table, id))
+      else if (t === 2) updateKeys.add(makeKey(table, id))
+    } else {
+      // Nested field change under a row → update
+      updateKeys.add(makeKey(table, id))
     }
   }
+
+  for (const k of insertKeys) {
+    const [table, id] = k.split('#')
+    const row = afterTables?.[table]?.[id]
+    if (row !== undefined) inserts.push({ table, id, row })
+  }
+  for (const k of updateKeys) {
+    const [table, id] = k.split('#')
+    const row = afterTables?.[table]?.[id]
+    if (row !== undefined) updates.push({ table, id, row })
+  }
+  for (const k of deleteKeys) {
+    const [table, id] = k.split('#')
+    deletes.push({ table, id })
+  }
+
   return { inserts, updates, deletes }
 }
 

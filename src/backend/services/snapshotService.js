@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { db } from '../../db/init.js';
-import { eq, and, gt, desc } from 'drizzle-orm';
+import { eq, and, gt, desc, sql } from 'drizzle-orm';
 import { yjs_snapshots, yjs_updates, change_log, ingestion_state } from '../../db/schema.js';
 import { getProjectDoc } from './projectCache.js';
 
@@ -165,13 +165,24 @@ async function replayAllUpdates(projectId) {
 export async function hydrateProjectFromLatestSnapshot(projectId) {
   try {
     const doc = getProjectDoc(projectId);
-    // Ensure parents so older update batches (missing type creation) can apply
-    ensureParentTypes(doc);
     const before = countDocRows(doc);
     console.log('[Snapshot] Hydration start', { projectId, guid: doc.guid, rows: before.total });
     const snap = await loadLatestSnapshot(projectId);
     if (!snap) {
-      // No snapshot exists yet; fall back to replaying all yjs_updates
+      // No snapshot exists yet; fall back to replaying all yjs_updates.
+      // Only ensure parent maps if there are updates to replay (legacy logs).
+      try {
+        const cntRows = await db
+          .select({ c: sql`COUNT(*)` })
+          .from(yjs_updates)
+          .where(eq(yjs_updates.project_id, projectId))
+          .limit(1)
+          .execute();
+        const count = Number(cntRows?.[0]?.c ?? 0);
+        if (count > 0) ensureParentTypes(doc);
+      } catch {
+        // If count fails, be conservative and do not pre-create parents
+      }
       const applied = await replayAllUpdates(projectId);
       const after = countDocRows(doc);
       console.log('[Snapshot] No snapshot found; applied updates from log', { projectId, applied, rows: after.total });
