@@ -136,25 +136,55 @@ function computeDiff(beforeTables, afterTables) {
   const deleteKeys = new Set()
 
   const makeKey = (table, id) => `${table}#${id}`
-  const isRowPath = (p) => Array.isArray(p) && p.length >= 2
+  const getBeforeRows = (table) => (beforeTables?.[table] || {})
+  const getAfterRows = (table) => (afterTables?.[table] || {})
 
   for (const d of diffs) {
     const t = d?.t
     const p = d?.p
-    if (!isRowPath(p)) {
-      // Root/table-level structural changes are ignored for mutation classification
+    if (!Array.isArray(p)) continue
+
+    if (p.length === 0) {
+      // Root-level structural replacement → add inserts for rows present in AFTER but absent in BEFORE
+      for (const table of Object.keys(afterTables || {})) {
+        const beforeRows = getBeforeRows(table)
+        const afterRows = getAfterRows(table)
+        for (const id of Object.keys(afterRows)) {
+          if (!(id in beforeRows)) insertKeys.add(makeKey(table, id))
+        }
+      }
       continue
     }
+
+    if (p.length === 1) {
+      const table = String(p[0])
+      if (t === 1) {
+        // Table created → explicit inserts for all new rows
+        const beforeRows = getBeforeRows(table)
+        const afterRows = getAfterRows(table)
+        for (const id of Object.keys(afterRows)) {
+          if (!(id in beforeRows)) insertKeys.add(makeKey(table, id))
+        }
+      } else if (t === 0) {
+        // Table deleted → explicit bulk deletes for all existing rows
+        const beforeRows = getBeforeRows(table)
+        for (const id of Object.keys(beforeRows)) {
+          deleteKeys.add(makeKey(table, id))
+        }
+      } else {
+        // Table updated → rely on nested row-level diffs
+      }
+      continue
+    }
+
+    // p.length >= 2 → row-level or nested field-level
     const table = String(p[0])
     const id = String(p[1])
-
     if (p.length === 2) {
-      // Row-level classification
       if (t === 0) deleteKeys.add(makeKey(table, id))
       else if (t === 1) insertKeys.add(makeKey(table, id))
       else if (t === 2) updateKeys.add(makeKey(table, id))
     } else {
-      // Nested field change under a row → update
       updateKeys.add(makeKey(table, id))
     }
   }

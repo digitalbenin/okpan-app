@@ -1,5 +1,6 @@
 import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
-import { joinRoom } from 'trystero'
+// Use Trystero Torrent (WebTorrent) strategy for matchmaking
+import { joinRoom } from 'trystero/ipfs'
 import { RTCPeerConnection } from 'node-datachannel/polyfill'
 import WebSocket from 'ws'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
@@ -57,7 +58,6 @@ export async function startP2PForProject(projectId) {
   }
   awareness.on('change', onChange)
 
-  // Join a Trystero room server-side with rtcPolyfill
   const trysteroRoom = joinRoom({ appId, rtcPolyfill: RTCPeerConnection }, roomId)
 
   // Initialize provider with transport doc (no explicit connect)
