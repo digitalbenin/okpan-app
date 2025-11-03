@@ -66,6 +66,19 @@ function sanitizeRowForDb(row, { dropCreatedAt = true } = {}) {
   return out
 }
 
+// Inject minimal context required so triggers can resolve change_log.project_id
+function injectProjectContextIfMissing(tableName, row, projectId) {
+  try {
+    const req = CONTEXT_REQUIREMENTS[tableName]
+    if (req && req.includes('project_id') && projectId) {
+      if (!row || row.project_id === undefined || row.project_id === null) {
+        return { ...row, project_id: projectId }
+      }
+    }
+  } catch (_) {}
+  return row
+}
+
 // Map Y.Doc snake_case table names to Drizzle schema export names where needed
 const TABLE_NAME_MAP = {
   generic_assets: 'genericAssets',
@@ -310,62 +323,94 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   let deferredInserts = 0
   let deferredUpdates = 0
   let deferredDeletes = 0
-  // Run transaction for deterministic commit
+  // Multi-pass transaction to satisfy FKs: attempt in FK order repeatedly (max 3 passes)
   await db.transaction(async (tx) => {
-    // Inserts and updates forward in FK order
-    for (const t of FK_ORDER) {
-      const tableRef = resolveTable(t)
-      if (!tableRef) continue
-      for (const ins of inserts.filter(x => x.table === t)) {
-        try {
-          const payload = sanitizeRowForDb(ins.row, { dropCreatedAt: true })
-          // Ensure triggers can resolve project_id for change_log before attempting INSERT
-          if (!hasProjectContext(t, { id: ins.id, ...payload })) {
-            console.warn('[RemoteIngestion] Deferring insert lacking project context', { table: t, id: ins.id })
-            deferredInserts += 1
-            continue
+    const remainingInserts = inserts.map(x => ({ ...x }))
+    const remainingUpdates = updates.map(x => ({ ...x }))
+    const remainingDeletes = deletes.map(x => ({ ...x }))
+
+    let pass = 0
+    let progress = true
+    while (progress && pass < 3) {
+      progress = false
+      pass += 1
+      console.log('[RemoteIngestion] Commit pass start', { projectId, pass, remainingInserts: remainingInserts.length, remainingUpdates: remainingUpdates.length, remainingDeletes: remainingDeletes.length })
+
+      // Inserts and updates forward in FK order
+      for (const t of FK_ORDER) {
+        const tableRef = resolveTable(t)
+        if (!tableRef) continue
+
+        for (let i = remainingInserts.length - 1; i >= 0; i--) {
+          const ins = remainingInserts[i]
+          if (ins.table !== t) continue
+          try {
+            let payload = sanitizeRowForDb(ins.row, { dropCreatedAt: true })
+            // Inject minimal project context when required
+            payload = injectProjectContextIfMissing(t, payload, projectId)
+            if (!hasProjectContext(t, { id: ins.id, ...payload })) {
+              console.warn('[RemoteIngestion] Deferring insert lacking project context', { table: t, id: ins.id, requires: CONTEXT_REQUIREMENTS[t] })
+              continue
+            }
+            await tx.insert(tableRef).values({ id: ins.id, ...payload }).execute()
+            applied += 1
+            remainingInserts.splice(i, 1)
+            progress = true
+          } catch (err) {
+            if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
+              console.warn('[RemoteIngestion] Insert deferred due to FK/ProjectId', { table: t, id: ins.id, err: err?.message })
+              continue
+            }
+            throw err
           }
-          await tx.insert(tableRef).values({ id: ins.id, ...payload }).execute()
-          applied += 1
-        } catch (err) {
-          if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
-            deferredInserts += 1
-            continue
+        }
+
+        for (let i = remainingUpdates.length - 1; i >= 0; i--) {
+          const up = remainingUpdates[i]
+          if (up.table !== t) continue
+          try {
+            let payload = sanitizeRowForDb(up.row, { dropCreatedAt: true })
+            payload = injectProjectContextIfMissing(t, payload, projectId)
+            await tx.update(tableRef).set({ ...payload }).where(eq(tableRef.id, up.id)).execute()
+            applied += 1
+            remainingUpdates.splice(i, 1)
+            progress = true
+          } catch (err) {
+            if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
+              console.warn('[RemoteIngestion] Update deferred due to FK/ProjectId', { table: t, id: up.id, err: err?.message })
+              continue
+            }
+            throw err
           }
-          throw err
         }
       }
-      for (const up of updates.filter(x => x.table === t)) {
-        try {
-          await tx.update(tableRef).set({ ...sanitizeRowForDb(up.row, { dropCreatedAt: true }) }).where(eq(tableRef.id, up.id)).execute()
-          applied += 1
-        } catch (err) {
-          if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
-            deferredUpdates += 1
-            continue
+
+      // Deletes reverse order to satisfy FKs
+      for (const t of [...FK_ORDER].reverse()) {
+        const tableRef = resolveTable(t)
+        if (!tableRef) continue
+        for (let i = remainingDeletes.length - 1; i >= 0; i--) {
+          const del = remainingDeletes[i]
+          if (del.table !== t) continue
+          try {
+            await tx.delete(tableRef).where(eq(tableRef.id, del.id)).execute()
+            applied += 1
+            remainingDeletes.splice(i, 1)
+            progress = true
+          } catch (err) {
+            if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
+              console.warn('[RemoteIngestion] Delete deferred due to FK/ProjectId', { table: t, id: del.id, err: err?.message })
+              continue
+            }
+            throw err
           }
-          throw err
         }
       }
     }
 
-    // Deletes reverse order to satisfy FKs
-    for (const t of [...FK_ORDER].reverse()) {
-      const tableRef = resolveTable(t)
-      if (!tableRef) continue
-      for (const del of deletes.filter(x => x.table === t)) {
-        try {
-          await tx.delete(tableRef).where(eq(tableRef.id, del.id)).execute()
-          applied += 1
-        } catch (err) {
-          if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
-            deferredDeletes += 1
-            continue
-          }
-          throw err
-        }
-      }
-    }
+    deferredInserts = remainingInserts.length
+    deferredUpdates = remainingUpdates.length
+    deferredDeletes = remainingDeletes.length
   })
 
   const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: options?.beforeDoc ? 'baseline-before-after' : 'shadow-before-after' }
