@@ -113,11 +113,19 @@ export async function startP2PForProject(projectId) {
       const res = await ingestRemoteUpdate(projectId, update, { beforeDoc: baselineDoc })
       if (res?.applied || res?.inserts || res?.updates || res?.deletes) {
         console.log('[P2P] Persisted Yjs update to SQLite', { projectId, origin, bytes: update?.length || 0, ...res })
-        // Advance baseline to reflect the newly persisted update
+        // Advance baseline to reflect the newly persisted update.
+        // If the update bytes don't change baseline structurally, resync baseline to canonical.
         try {
+          const beforeBase = countDocTables(baselineDoc)
           Y.applyUpdate(baselineDoc, update)
-          const afterBase = countDocTables(baselineDoc)
+          let afterBase = countDocTables(baselineDoc)
           const afterCanon = countDocTables(doc)
+          if (afterBase.tables === beforeBase.tables && afterBase.rows === beforeBase.rows && (afterCanon.tables !== beforeBase.tables || afterCanon.rows !== beforeBase.rows)) {
+            // Resync baseline from canonical snapshot to avoid accumulating stale state
+            const snapshot = Y.encodeStateAsUpdate(doc)
+            Y.applyUpdate(baselineDoc, snapshot)
+            afterBase = countDocTables(baselineDoc)
+          }
           console.log('[P2P] Baseline advanced', { projectId, baselineAfter: afterBase, canonicalAfter: afterCanon })
         } catch (advErr) {
           console.warn('[P2P] Failed to advance baseline doc', advErr)

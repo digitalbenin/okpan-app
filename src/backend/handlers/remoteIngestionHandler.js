@@ -75,7 +75,7 @@ function injectProjectContextIfMissing(tableName, row, projectId) {
         return { ...row, project_id: projectId }
       }
     }
-  } catch (_) { }
+  } catch (_) {}
   return row
 }
 
@@ -251,7 +251,7 @@ function computeDiff(beforeTables, afterTables) {
         sample: diffs.slice(0, 5)
       })
     }
-  } catch (_) { }
+  } catch (_) {}
 
   return { inserts, updates, deletes }
 }
@@ -306,17 +306,34 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     console.error('[RemoteIngestion] Failed to apply inbound Yjs update', err)
     return { applied: 0, error: err?.message }
   }
-  const afterTables = jsonTables(shadow)
-  const afterStats = tablesStats(afterTables)
+  let afterTables = jsonTables(shadow)
+  let afterStats = tablesStats(afterTables)
+  let source = options?.beforeDoc ? 'baseline' : 'shadow'
+
+  // Fallback: if AFTER equals BEFORE structurally, compare against canonical doc
+  // This captures table/row changes that may not be present in the single update delta
+  try {
+    if (afterStats.tables === beforeStats.tables && afterStats.rows === beforeStats.rows) {
+      const canonical = getProjectDoc(projectId)
+      const canonicalTables = jsonTables(canonical)
+      const canonicalStats = tablesStats(canonicalTables)
+      if (canonicalStats.tables !== beforeStats.tables || canonicalStats.rows !== beforeStats.rows) {
+        afterTables = canonicalTables
+        afterStats = canonicalStats
+        source = 'canonical-fallback'
+      }
+    }
+  } catch (_) {}
+
   try {
     console.log('[RemoteIngestion] BEFORE/AFTER tables snapshot', {
       projectId,
       updateBytes: updateBytes?.length || 0,
-      source: options?.beforeDoc ? 'baseline' : 'shadow',
+      source,
       before: beforeStats,
       after: afterStats
     })
-  } catch (_) { }
+  } catch (_) {}
   const { inserts, updates, deletes } = computeDiff(beforeTables, afterTables)
 
   let applied = 0
