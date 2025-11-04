@@ -97,13 +97,13 @@ const CONTEXT_REQUIREMENTS = {
   texts: ['original_language_id'],
   translations: ['language_id'],
   institutions: ['project_id'],
-  objects: ['project_id', 'institution_id'], // either
+  objects: ['project_id'],
   templates: ['project_id'],
   datasources: ['institution_id', 'template_id'], // either
   imports: ['template_id'],
   ontology_fields: ['project_id'],
   research_fields: ['project_id'],
-  assets: ['project_id', 'institution_id'], // either
+  assets: ['project_id'],
   generic_assets: ['project_id'],
   objects_assets: ['object_id', 'asset_id'], // either
   assets_institutions: ['asset_id', 'institution_id'], // either
