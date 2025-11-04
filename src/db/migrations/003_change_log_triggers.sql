@@ -1445,7 +1445,6 @@ BEGIN
     json_object(
       'id', NEW.id,
       'filename', NEW.filename,
-      'data', NEW.data,
       'template_id', NEW.template_id,
       'created_at', NEW.created_at,
       'updated_at', NEW.updated_at
@@ -1472,7 +1471,6 @@ BEGIN
     json_object(
       'id', COALESCE(NEW.id, OLD.id),
       'filename', COALESCE(NEW.filename, OLD.filename),
-      'data', COALESCE(NEW.data, OLD.data),
       'template_id', COALESCE(NEW.template_id, OLD.template_id),
       'created_at', COALESCE(NEW.created_at, OLD.created_at),
       'updated_at', COALESCE(NEW.updated_at, OLD.updated_at)
@@ -1480,7 +1478,6 @@ BEGIN
     json_object(
       'id', COALESCE(NEW.id, OLD.id),
       'filename', OLD.filename,
-      'data', OLD.data,
       'template_id', OLD.template_id,
       'created_at', OLD.created_at,
       'updated_at', OLD.updated_at
@@ -1504,7 +1501,6 @@ BEGIN
     json_object(
       'id', OLD.id,
       'filename', OLD.filename,
-      'data', OLD.data,
       'template_id', OLD.template_id,
       'created_at', OLD.created_at,
       'updated_at', OLD.updated_at

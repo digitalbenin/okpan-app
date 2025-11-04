@@ -1,7 +1,33 @@
 import * as Y from 'yjs';
 import { db } from '../../db/init.js';
 import { eq, and, or, gt, sql } from 'drizzle-orm';
-import { change_log, yjs_updates, ingestion_state } from '../../db/schema.js';
+import {
+  change_log,
+  yjs_updates,
+  ingestion_state,
+  project,
+  settings,
+  websiteSettings,
+  object_display_fields,
+  research_fields,
+  ontology_fields,
+  assets,
+  genericAssets,
+  objects,
+  templates,
+  languages,
+  institutions,
+  texts,
+  translations,
+  vocabularies,
+  datasources,
+  imports,
+  objects_assets,
+  assets_institutions,
+  objects_research_fields,
+  objects_ontology_fields,
+  vocabularies_generic_assets
+} from '../../db/schema.js';
 import {
   getProjectDoc,
   ensureRowMap,
@@ -38,8 +64,16 @@ async function fetchNextChangeBatch(projectId, batchSize) {
     lastRowid = lastRowidRows[0]?.rowid || 0;
   }
 
+  // Select only metadata columns to avoid materializing huge JSON strings
   const rows = await db
-    .select()
+    .select({
+      id: change_log.id,
+      project_id: change_log.project_id,
+      table_name: change_log.table_name,
+      op: change_log.op,
+      row_id: change_log.row_id,
+      created_at: change_log.created_at
+    })
     .from(change_log)
     .where(and(eq(change_log.project_id, projectId), gt(sql`rowid`, lastRowid)))
     .orderBy(sql`rowid`)
@@ -47,6 +81,106 @@ async function fetchNextChangeBatch(projectId, batchSize) {
     .execute();
 
   return rows;
+}
+
+// Helper: load a single row from a table by id; skip heavy fields for certain tables
+async function loadRowPayload(tableName, rowId) {
+  try {
+    switch (tableName) {
+      case 'project': {
+        const res = await db.select().from(project).where(eq(project.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'settings': {
+        const res = await db.select().from(settings).where(eq(settings.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'website_settings': {
+        const res = await db.select().from(websiteSettings).where(eq(websiteSettings.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'object_display_fields': {
+        const res = await db.select().from(object_display_fields).where(eq(object_display_fields.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'research_fields': {
+        const res = await db.select().from(research_fields).where(eq(research_fields.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'ontology_fields': {
+        const res = await db.select().from(ontology_fields).where(eq(ontology_fields.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'assets': {
+        const res = await db.select().from(assets).where(eq(assets.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'generic_assets': {
+        const res = await db.select().from(genericAssets).where(eq(genericAssets.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'objects': {
+        const res = await db.select().from(objects).where(eq(objects.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'templates': {
+        const res = await db.select().from(templates).where(eq(templates.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'languages': {
+        const res = await db.select().from(languages).where(eq(languages.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'institutions': {
+        const res = await db.select().from(institutions).where(eq(institutions.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'texts': {
+        const res = await db.select().from(texts).where(eq(texts.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'translations': {
+        const res = await db.select().from(translations).where(eq(translations.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'vocabularies': {
+        const res = await db.select().from(vocabularies).where(eq(vocabularies.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'datasources': {
+        const res = await db.select().from(datasources).where(eq(datasources.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'imports': {
+        // Skip heavy imports payloads entirely during hydration
+        return null;
+      }
+      case 'objects_assets': {
+        const res = await db.select().from(objects_assets).where(eq(objects_assets.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'assets_institutions': {
+        const res = await db.select().from(assets_institutions).where(eq(assets_institutions.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'objects_research_fields': {
+        const res = await db.select().from(objects_research_fields).where(eq(objects_research_fields.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'objects_ontology_fields': {
+        const res = await db.select().from(objects_ontology_fields).where(eq(objects_ontology_fields.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'vocabularies_generic_assets': {
+        const res = await db.select().from(vocabularies_generic_assets).where(eq(vocabularies_generic_assets.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      default:
+        return null;
+    }
+  } catch (_) {
+    return null;
+  }
 }
 
 async function applyBatchToDoc(projectId, rows) {
@@ -63,36 +197,44 @@ async function applyBatchToDoc(projectId, rows) {
   };
   doc.on('update', onUpdate);
 
-  doc.transact(() => {
-    for (const row of rows) {
-      try {
-        const tableName = row.table_name;
-        const rowId = row.row_id;
-        const op = row.op;
+  // Build ops with payloads outside of Yjs transaction (no awaits inside transact)
+  const ops = [];
+  for (const row of rows) {
+    try {
+      const tableName = row.table_name;
+      const rowId = row.row_id;
+      const op = row.op;
+      // Skip hydration for imports rows to avoid huge JSON payloads
+      if (tableName === 'imports') {
         if (op === 'DELETE') {
-          deleteRow(projectId, tableName, rowId);
-          continue;
+          ops.push({ kind: 'delete', tableName, rowId });
         }
-        const payloadRaw = row.new_row ?? row.old_row ?? null;
-        let payload = {};
-        if (payloadRaw != null) {
-          if (typeof payloadRaw === 'string') {
-            try {
-              payload = JSON.parse(payloadRaw);
-            } catch (e) {
-              console.error('Failed to parse payload string as JSON', e);
-              payload = {};
-            }
-          } else if (typeof payloadRaw === 'object') {
-            payload = payloadRaw;
-          }
-        }
-        // Ensure table exists and row map exists within the same transaction
-        const rowMap = ensureRowMap(projectId, tableName, rowId);
-        setRowFields(rowMap, payload);
-      } catch (err) {
-        console.error('Tailer apply error:', err);
+        continue;
       }
+      if (op === 'DELETE') {
+        ops.push({ kind: 'delete', tableName, rowId });
+        continue;
+      }
+      // Load current row payload directly from the actual table
+      const payload = await loadRowPayload(tableName, rowId) || {};
+      ops.push({ kind: 'set', tableName, rowId, payload });
+    } catch (err) {
+      console.error('Tailer prep error:', err);
+    }
+  }
+
+  doc.transact(() => {
+    try {
+      for (const op of ops) {
+        if (op.kind === 'delete') {
+          deleteRow(projectId, op.tableName, op.rowId);
+        } else if (op.kind === 'set') {
+          const rowMap = ensureRowMap(projectId, op.tableName, op.rowId);
+          setRowFields(rowMap, op.payload);
+        }
+      }
+    } catch (err) {
+      console.error('Tailer apply error:', err);
     }
   }, 'ingestion');
 
