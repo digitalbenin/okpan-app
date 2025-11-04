@@ -5,6 +5,7 @@ import * as schema from '../../db/schema.js'
 import { eq, and, sql } from 'drizzle-orm'
 import { getProjectDoc } from '../services/projectCache.js'
 import { FK_ORDER } from '../services/projectScope.js'
+import { withProjectLock } from '../services/lockService.js'
 
 // FK order centralized in projectScope.js
 
@@ -376,7 +377,8 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   let deferredUpdates = 0
   let deferredDeletes = 0
   // Multi-pass transaction to satisfy FKs: attempt in FK order repeatedly (max 3 passes)
-  await db.transaction(async (tx) => {
+  const result = await withProjectLock(projectId, async () => {
+    await db.transaction(async (tx) => {
     // Capture starting change_log rowid to stamp provenance only for rows created by this transaction
     let startRowid = 0
     try {
@@ -542,13 +544,15 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     deferredInserts = remainingInserts.length
     deferredUpdates = remainingUpdates.length
     deferredDeletes = remainingDeletes.length
+    })
+    const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: options?.beforeDoc ? 'baseline-before-after' : 'shadow-before-after' }
+    if (deferredInserts || deferredUpdates || deferredDeletes) {
+      console.log('[RemoteIngestion] Committed with deferrals', { ...summary, deferredInserts, deferredUpdates, deferredDeletes })
+    } else {
+      console.log('[RemoteIngestion] Committed', summary)
+    }
+    return { applied, ...summary, deferredInserts, deferredUpdates, deferredDeletes }
   })
 
-  const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: options?.beforeDoc ? 'baseline-before-after' : 'shadow-before-after' }
-  if (deferredInserts || deferredUpdates || deferredDeletes) {
-    console.log('[RemoteIngestion] Committed with deferrals', { ...summary, deferredInserts, deferredUpdates, deferredDeletes })
-  } else {
-    console.log('[RemoteIngestion] Committed', summary)
-  }
-  return { applied, ...summary, deferredInserts, deferredUpdates, deferredDeletes }
+  return result
 }
