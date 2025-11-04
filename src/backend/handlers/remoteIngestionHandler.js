@@ -393,7 +393,13 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
               console.warn('[RemoteIngestion] Deferring insert lacking project context', { table: t, id: ins.id, requires: CONTEXT_REQUIREMENTS[t] })
               continue
             }
-            await tx.insert(tableRef).values({ id: ins.id, ...payload }).execute()
+            // Avoid aborting the transaction when rows already exist locally.
+            // If the PK (id) is already present, treat the insert as idempotent.
+            await tx
+              .insert(tableRef)
+              .values({ id: ins.id, ...payload })
+              .onConflictDoNothing({ target: tableRef.id })
+              .execute()
             applied += 1
             remainingInserts.splice(i, 1)
             progress = true
