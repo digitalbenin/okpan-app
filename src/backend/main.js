@@ -113,7 +113,7 @@ ipcMain.handle('ydoc-dump', async (event, projectId) => {
         rowCounts[key] = size;
         totalRows += size;
       });
-    } catch {}
+    } catch { }
     return { meta, tables, guid: doc.guid, rowCounts, totalRows };
   } catch (error) {
     console.error('Error in ydoc-dump:', error);
@@ -391,7 +391,7 @@ app.whenReady().then(() => {
         callback({ path: filePath });
       } else {
         // Fallback to 200.html for client-side routing
-        callback({ path: path.join(buildDir, '200.html') });
+        callback({ path: path.join(buildDir, 'index.html') });
       }
     } catch (error) {
       console.error('Website protocol error:', error);

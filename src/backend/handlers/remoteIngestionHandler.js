@@ -2,7 +2,7 @@ import * as Y from 'yjs'
 import { diff as deepDiff } from '@opentf/obj-diff'
 import { db } from '../../db/init.js'
 import * as schema from '../../db/schema.js'
-import { eq } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { getProjectDoc } from '../services/projectCache.js'
 import { FK_ORDER } from '../services/projectScope.js'
 
@@ -50,7 +50,28 @@ function coerceTimestamp(v) {
   return undefined
 }
 
-function sanitizeRowForDb(row, { dropCreatedAt = true } = {}) {
+// NOT NULL fields per table to avoid setting nulls on updates
+const NOT_NULL_FIELDS = {
+  languages: ['project_id', 'code', 'name']
+}
+
+// Required fields for a successful INSERT (beyond id and project_id injection)
+const INSERT_REQUIRED_FIELDS = {
+  languages: ['code', 'name']
+}
+
+function hasRequiredForInsert(tableName, row) {
+  const req = INSERT_REQUIRED_FIELDS[tableName]
+  if (!req || req.length === 0) return true
+  for (const key of req) {
+    const v = row?.[key]
+    // Treat empty string as missing for safety; DB allows it but we prefer real values
+    if (v === undefined || v === null || (typeof v === 'string' && v.trim() === '')) return false
+  }
+  return true
+}
+
+function sanitizeRowForDb(row, { dropCreatedAt = true, tableName } = {}) {
   if (!row || typeof row !== 'object') return {}
   const out = {}
   for (const [k, v] of Object.entries(row)) {
@@ -59,6 +80,12 @@ function sanitizeRowForDb(row, { dropCreatedAt = true } = {}) {
       const ts = coerceTimestamp(v)
       if (ts !== undefined) out[k] = ts
       // else omit so DEFAULT / $onUpdateFn applies
+      continue
+    }
+    // Avoid setting nulls on NOT NULL columns for specific tables
+    const notNullCols = NOT_NULL_FIELDS[tableName] || []
+    if ((v === null || v === undefined) && notNullCols.includes(k)) {
+      // drop null assignment to satisfy NOT NULL constraints
       continue
     }
     out[k] = v
@@ -260,14 +287,14 @@ async function applyInsert(tableName, id, row) {
   const table = resolveTable(tableName)
   if (!table) return
   // Ensure id field present
-  const values = { id, ...sanitizeRowForDb(row, { dropCreatedAt: true }) }
+  const values = { id, ...sanitizeRowForDb(row, { dropCreatedAt: true, tableName }) }
   await db.insert(table).values(values).execute()
 }
 
 async function applyUpdate(tableName, id, row) {
   const table = resolveTable(tableName)
   if (!table) return
-  const values = { ...sanitizeRowForDb(row, { dropCreatedAt: true }) }
+  const values = { ...sanitizeRowForDb(row, { dropCreatedAt: true, tableName }) }
   await db.update(table).set(values).where(eq(table.id, id)).execute()
 }
 
@@ -350,6 +377,18 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   let deferredDeletes = 0
   // Multi-pass transaction to satisfy FKs: attempt in FK order repeatedly (max 3 passes)
   await db.transaction(async (tx) => {
+    // Capture starting change_log rowid to stamp provenance only for rows created by this transaction
+    let startRowid = 0
+    try {
+      const lastRow = await tx
+        .select({ rid: sql`rowid` })
+        .from(schema.change_log)
+        .where(eq(schema.change_log.project_id, projectId))
+        .orderBy(sql`rowid desc`)
+        .limit(1)
+        .execute()
+      startRowid = Number(lastRow?.[0]?.rid || 0)
+    } catch (_) {}
     const remainingInserts = inserts.map(x => ({ ...x }))
     const remainingUpdates = updates.map(x => ({ ...x }))
     const remainingDeletes = deletes.map(x => ({ ...x }))
@@ -376,7 +415,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
           const ins = remainingInserts[i]
           if (ins.table !== t) continue
           try {
-            let payload = sanitizeRowForDb(ins.row, { dropCreatedAt: true })
+            let payload = sanitizeRowForDb(ins.row, { dropCreatedAt: true, tableName: t })
             // Inject minimal project context when required
             payload = injectProjectContextIfMissing(t, payload, projectId)
             // Break cyclic FK: for project inserts, drop text FK fields on first insert
@@ -399,6 +438,11 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
             }
             if (!hasProjectContext(t, { id: ins.id, ...payload })) {
               console.warn('[RemoteIngestion] Deferring insert lacking project context', { table: t, id: ins.id, requires: CONTEXT_REQUIREMENTS[t] })
+              continue
+            }
+            // Enforce required fields for INSERT on specific tables (e.g., languages)
+            if (!hasRequiredForInsert(t, payload)) {
+              console.warn('[RemoteIngestion] Deferring insert lacking required fields', { table: t, id: ins.id, required: INSERT_REQUIRED_FIELDS[t] })
               continue
             }
             // Avoid aborting the transaction when rows already exist locally.
@@ -424,9 +468,20 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
           const up = remainingUpdates[i]
           if (up.table !== t) continue
           try {
-            let payload = sanitizeRowForDb(up.row, { dropCreatedAt: true })
+            let payload = sanitizeRowForDb(up.row, { dropCreatedAt: true, tableName: t })
             payload = injectProjectContextIfMissing(t, payload, projectId)
-            await tx.update(tableRef).set({ ...payload }).where(eq(tableRef.id, up.id)).execute()
+            // If this table requires certain fields to exist on insert, and payload has them,
+            // perform an upsert to ensure the row is created if missing.
+            const canUpsertInsert = hasRequiredForInsert(t, payload)
+            if (canUpsertInsert && INSERT_REQUIRED_FIELDS[t]) {
+              await tx
+                .insert(tableRef)
+                .values({ id: up.id, ...payload })
+                .onConflictDoUpdate({ target: tableRef.id, set: { ...payload } })
+                .execute()
+            } else {
+              await tx.update(tableRef).set({ ...payload }).where(eq(tableRef.id, up.id)).execute()
+            }
             applied += 1
             remainingUpdates.splice(i, 1)
             progress = true
@@ -461,6 +516,27 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
           }
         }
       }
+    }
+    // Stamp provenance for change_log rows created during this transaction to prevent echo loops
+    try {
+      const newRowsWhere = and(
+        eq(schema.change_log.project_id, projectId),
+        sql`rowid > ${startRowid}`
+      )
+      await tx
+        .update(schema.change_log)
+        .set({ origin: 'remote' })
+        .where(newRowsWhere)
+        .execute()
+      if (options?.remoteClientId) {
+        await tx
+          .update(schema.change_log)
+          .set({ client_id: options.remoteClientId })
+          .where(newRowsWhere)
+          .execute()
+      }
+    } catch (stampErr) {
+      console.warn('[RemoteIngestion] Failed to stamp provenance on change_log', stampErr)
     }
 
     deferredInserts = remainingInserts.length
