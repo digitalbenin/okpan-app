@@ -310,18 +310,26 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   let afterStats = tablesStats(afterTables)
   let source = options?.beforeDoc ? 'baseline' : 'shadow'
 
-  // Fallback: if AFTER equals BEFORE structurally, compare against canonical doc
-  // This captures table/row changes that may not be present in the single update delta
+  // Fallbacks:
+  // 1) Structural: if AFTER equals BEFORE by counts, and canonical differs by counts → use canonical.
+  // 2) Content: if AFTER has no diffs vs BEFORE, but canonical has diffs → use canonical.
   try {
-    if (afterStats.tables === beforeStats.tables && afterStats.rows === beforeStats.rows) {
-      const canonical = getProjectDoc(projectId)
-      const canonicalTables = jsonTables(canonical)
-      const canonicalStats = tablesStats(canonicalTables)
-      if (canonicalStats.tables !== beforeStats.tables || canonicalStats.rows !== beforeStats.rows) {
-        afterTables = canonicalTables
-        afterStats = canonicalStats
-        source = 'canonical-fallback'
-      }
+    const canonical = getProjectDoc(projectId)
+    const canonicalTables = jsonTables(canonical)
+    const canonicalStats = tablesStats(canonicalTables)
+
+    const structuralUnchanged = afterStats.tables === beforeStats.tables && afterStats.rows === beforeStats.rows
+    const canonicalStructurallyDiffers = canonicalStats.tables !== beforeStats.tables || canonicalStats.rows !== beforeStats.rows
+
+    // Compute content-level diffs only if structural unchanged
+    const firstDiffs = deepDiff(beforeTables || {}, afterTables || {}) || []
+    const noContentDiff = firstDiffs.length === 0
+    const canonicalDiffs = noContentDiff ? (deepDiff(beforeTables || {}, canonicalTables || {}) || []) : []
+
+    if ((structuralUnchanged && canonicalStructurallyDiffers) || (noContentDiff && canonicalDiffs.length > 0)) {
+      afterTables = canonicalTables
+      afterStats = canonicalStats
+      source = noContentDiff ? 'canonical-fallback-diff' : 'canonical-fallback-struct'
     }
   } catch (_) {}
 
