@@ -75,7 +75,7 @@ function injectProjectContextIfMissing(tableName, row, projectId) {
         return { ...row, project_id: projectId }
       }
     }
-  } catch (_) {}
+  } catch (_) { }
   return row
 }
 
@@ -251,7 +251,7 @@ function computeDiff(beforeTables, afterTables) {
         sample: diffs.slice(0, 5)
       })
     }
-  } catch (_) {}
+  } catch (_) { }
 
   return { inserts, updates, deletes }
 }
@@ -316,7 +316,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
       before: beforeStats,
       after: afterStats
     })
-  } catch (_) {}
+  } catch (_) { }
   const { inserts, updates, deletes } = computeDiff(beforeTables, afterTables)
 
   let applied = 0
@@ -372,6 +372,10 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
                 remainingUpdates.push({ table: t, id: ins.id, row: fkPayload })
               }
             }
+            if (!hasProjectContext(t, { id: ins.id, ...payload })) {
+              console.warn('[RemoteIngestion] Deferring insert lacking project context', { table: t, id: ins.id, requires: CONTEXT_REQUIREMENTS[t] })
+              continue
+            }
             await tx.insert(tableRef).values({ id: ins.id, ...payload }).execute()
             applied += 1
             remainingInserts.splice(i, 1)
@@ -389,10 +393,8 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
           const up = remainingUpdates[i]
           if (up.table !== t) continue
           try {
-            // For updates, do NOT require project context in the payload.
-            // Triggers can derive project_id using OLD row references.
-            // Only sanitize fields; avoid injecting project_id or other context on updates.
-            const payload = sanitizeRowForDb(up.row, { dropCreatedAt: true })
+            let payload = sanitizeRowForDb(up.row, { dropCreatedAt: true })
+            payload = injectProjectContextIfMissing(t, payload, projectId)
             await tx.update(tableRef).set({ ...payload }).where(eq(tableRef.id, up.id)).execute()
             applied += 1
             remainingUpdates.splice(i, 1)
