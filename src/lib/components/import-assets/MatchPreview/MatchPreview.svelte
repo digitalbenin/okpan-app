@@ -4,7 +4,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
-  import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { getAssetImageUrl } from "$lib/utils/images.js";
 
   const { asset, results } = $props();
   const wizard = getImportAssetsWizardContext();
@@ -34,7 +34,7 @@
       <!-- <div class="text-break fw-bold lh-0 mb-2">{asset.filename}</div> -->
       <div class="square-image-container">
         <img
-          src={addImageProtocolPrefix(asset.formats.md)}
+          src={getAssetImageUrl(asset, 'md')}
           alt={asset.filename}
           class="object-fit-contain w-100 h-100"
         />

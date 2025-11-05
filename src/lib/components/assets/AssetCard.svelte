@@ -1,6 +1,6 @@
 <script>
   import BaseLinkedStatus from "$lib/components/base/BaseLinkedStatus.svelte";
-  import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { getAssetImageUrl } from "$lib/utils/images.js";
 
   const { asset } = $props();
 
@@ -14,7 +14,7 @@
     <div>
       <img
         class="object-fit-contain w-100 h-100"
-        src={addImageProtocolPrefix(asset.formats.md)}
+        src={getAssetImageUrl(asset, 'md')}
         loading="lazy"
         alt={asset.id || "Asset Image"}
       />

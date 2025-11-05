@@ -1,5 +1,5 @@
 <script>
-  import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { getAssetImageUrl } from "$lib/utils/images.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   const { object } = $props();
@@ -21,7 +21,7 @@
     {#if image}
       <img
         class="object-fit-contain w-100 h-100"
-        src={addImageProtocolPrefix(image.formats.sm)}
+        src={getAssetImageUrl(image, 'sm')}
         alt={title || "Object Image"}
       />
     {:else}

@@ -116,41 +116,10 @@
   }
 
   // Function to find image URL from the object's linked assets
+  import { getObjectImageUrl as getImgUrl } from "$lib/utils/images.js";
+  
   function getObjectImageUrl(object) {
-    if (!object.objectsAssets || object.objectsAssets.length === 0) {
-      return null; // No linked assets
-    }
-
-    const firstObjectAsset = object.objectsAssets[0];
-    if (!firstObjectAsset || !firstObjectAsset.asset) {
-      return null; // Malformed object asset link
-    }
-
-    const asset = firstObjectAsset.asset;
-    let imageUrl = null;
-
-    if (asset.formats) {
-      try {
-        // Parse formats if it's a string (safer check)
-        const formats =
-          typeof asset.formats === "string"
-            ? JSON.parse(asset.formats)
-            : asset.formats;
-
-        // Prefer thumbnail or small format for the card view
-        imageUrl = formats.thumbnail || formats.sm || formats.original || null;
-      } catch (e) {
-        console.error("Error parsing asset formats:", e);
-        // Fallback to path if formats parsing fails
-        imageUrl = asset.path || null;
-      }
-    } else {
-      // Fallback to path if formats field doesn't exist
-      imageUrl = asset.path || null;
-    }
-
-    // Prefix with media protocol if a URL/path was found
-    return imageUrl ? `media://${imageUrl}` : null;
+    return getImgUrl(object, 'thumbnail');
   }
 
   // Placeholder for status filter

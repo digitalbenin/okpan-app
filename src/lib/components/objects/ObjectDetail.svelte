@@ -9,6 +9,7 @@
   import BaseSelect from "$lib/components/base/BaseSelect.svelte";
   import { invalidate, invalidateAll } from "$app/navigation";
   import { updateObjectStatus } from "$lib/stores/ObjectsUtils.js";
+  import { getObjectImageUrl as getImgUrl } from "$lib/utils/images.js";
 
   let {
     object,
@@ -178,30 +179,7 @@
 
   // Get object image URL
   function getObjectImageUrl(currentObject) {
-    if (!currentObject?.objectsAssets?.length) return null;
-
-    const firstObjectAsset = currentObject.objectsAssets[0];
-    if (!firstObjectAsset?.asset) return null;
-
-    const asset = firstObjectAsset.asset;
-    let imageUrl = null;
-
-    if (asset.formats) {
-      try {
-        const formats =
-          typeof asset.formats === "string"
-            ? JSON.parse(asset.formats)
-            : asset.formats;
-
-        imageUrl = formats.md || formats.lg || formats.original || null;
-      } catch (e) {
-        imageUrl = asset.path || null;
-      }
-    } else {
-      imageUrl = asset.path || null;
-    }
-
-    return imageUrl ? `media://${imageUrl}` : null;
+    return getImgUrl(currentObject, 'md');
   }
 
   function handleDelete() {

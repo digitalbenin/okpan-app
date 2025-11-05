@@ -2,12 +2,10 @@
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getSearch } from "$lib/stores/SearchUtils.js";
-  import {
-    linkAssetToObject,
-    getObjectById,
-  } from "$lib/stores/ObjectsUtils.js";
+  import { linkAssetToObject, getObjectById } from "$lib/stores/ObjectsUtils.js";
   import { getAssetById } from "$lib/stores/AssetsUtils.js";
-  // Note: we’ll derive primary identifier locally to avoid fallback text
+  import { getObjectImageUrl } from "$lib/utils/images.js";
+  // Note: we'll derive primary identifier locally to avoid fallback text
 
   // Declare bindable prop inside $props() as required by Svelte runes
   // preselectExisting controls whether already-linked objects are preselected
@@ -104,25 +102,7 @@
   }
 
   // Resolve thumbnail src from the first media asset
-  function getMediaThumbSrc(obj) {
-    const asset = obj?.objectsAssets?.[0]?.asset;
-    if (!asset) return null;
-    try {
-      const formats =
-        typeof asset.formats === "string"
-          ? JSON.parse(asset.formats)
-          : asset.formats;
-      const src =
-        formats?.sm ||
-        formats?.md ||
-        formats?.lg ||
-        formats?.original ||
-        asset.path;
-      return src ? `media://${src}` : null;
-    } catch (e) {
-      return asset.path ? `media://${asset.path}` : null;
-    }
-  }
+  const getMediaThumbSrc = (obj) => getObjectImageUrl(obj, 'sm');
 
   function toggleSelectObject(id) {
     const next = new Set(selectedObjectIds);

@@ -9,7 +9,7 @@
   import { createForm } from "@tanstack/svelte-form";
   import { getValidator, createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
   import { updateDatasource, deleteDatasource, getObjectsByDatasource } from "$lib/stores/DatasourcesUtils.js";
-  import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { getObjectImageUrl } from "$lib/utils/images.js";
   import { goto } from "$app/navigation";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
   import DatasourceTemplateMappings from "$lib/components/datasources/DatasourceTemplateMappings.svelte";
@@ -58,19 +58,6 @@
       totalCount = 0;
     } finally {
       isLoadingObjects = false;
-    }
-  };
-
-  // Helper - get object image URL
-  const getObjectImageUrl = (obj) => {
-    const asset = obj?.objectsAssets?.[0]?.asset;
-    if (!asset) return null;
-    try {
-      const formats = typeof asset.formats === "string" ? JSON.parse(asset.formats) : asset.formats;
-      const src = formats?.sm || formats?.md || formats?.lg || formats?.original || asset.path;
-      return addImageProtocolPrefix(src || null);
-    } catch (_) {
-      return addImageProtocolPrefix(asset.path || null);
     }
   };
 

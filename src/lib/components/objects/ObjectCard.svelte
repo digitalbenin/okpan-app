@@ -1,14 +1,13 @@
 <script>
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { getAssetImageUrl } from "$lib/utils/images.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
   import { formatDate } from "$lib/utils/dates";
   import Swiper from "swiper";
   import { Navigation } from "swiper/modules";
 
   const { object, displayFields, displayInstitution = false } = $props();
-  console.log('Debug ObjectCard object:', object);
   const { t, translationState } = getTranslationStore();
 
   const title = $derived.by(
@@ -94,7 +93,7 @@
               <div class="swiper-slide">
                 <img
                   class="object-fit-contain w-100 h-100"
-                  src={addImageProtocolPrefix(image.asset.formats.md)}
+                  src={getAssetImageUrl(image.asset, 'md')}
                   loading="lazy"
                   alt={image.asset.id || "Object Image"}
                 />

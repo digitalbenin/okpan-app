@@ -6,7 +6,7 @@
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import ChipObject from "./ChipObject.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { getAssetImageUrl } from "$lib/utils/images.js";
   import { resource } from "runed";
 
   let {
@@ -93,7 +93,7 @@
         class="w-100 position-relative overflow-hidden aspect-ratio-1x1 bg-light p-2 rounded"
       >
         <img
-          src={addImageProtocolPrefix(asset.formats.md)}
+          src={getAssetImageUrl(asset, 'md')}
           alt={asset.filename}
           class="object-fit-contain w-100 h-100"
         />
