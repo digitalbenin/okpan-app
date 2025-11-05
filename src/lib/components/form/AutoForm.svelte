@@ -2,64 +2,45 @@
     import { Tabs } from "melt/builders";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { API_SECTIONS } from "$lib/queries/index.js";
+    import FormField from "./FormField.svelte";
 
-    // Runes props: presentational, universal
     const {
-        // Required in presentational mode
         form = null,
         validator = null,
         createFieldValidator = null,
-
-        // Optional metadata to auto-derive translations when not provided
         entity = null,
         operation = null,
-
-        // i18n
-        languages = [], // [{ id, code, name, is_default }]
-        translatableFields = null, // optional explicit list; if null, attempt to derive
-        translationsValidator = null, // optional field-level validator generator for translation inputs
-
-        // UI schema / configuration
-        fieldOrder = [], // preferred order for non-translatable fields
-        uiSchema = {}, // { [name]: { label?, placeholder?, type?, options?, hidden?, colSize?, renderer?, rendererProps? } }
-        hiddenFields = [], // additional hidden field names
-        defaultColSize = 12, // default bootstrap col size
-
-        // Structured errors for complex fields (e.g., array/object). Caller can pass the form-level errors.
+        languages = [],
+        translatableFields = null,
+        translationsValidator = null,
+        fieldOrder = [],
+        uiSchema = {},
+        hiddenFields = [],
+        defaultColSize = 12,
         structuredErrors = [],
         setStructuredErrors = null,
-
-        // Hidden value strategy
-        // - hiddenStaticValues: static values applied to hidden fields
-        // - hiddenValueProviders: functions returning values (e.g., from stores/utils), synced into the form reactively
-        hiddenStaticValues = {}, // { [name]: any }
-        hiddenValueProviders = {}, // { [name]: () => any }
+        hiddenStaticValues = {},
+        hiddenValueProviders = {},
     } = $props();
 
     const { t } = getTranslationStore();
 
-    // Determine default/secondary languages
-    const defaultLanguage =
-        languages?.find((l) => l.is_default) || languages?.[0] || null;
-    const secondaryLanguages = languages?.filter((l) => !l.is_default) || [];
+    // Languages
+    const defaultLanguage = $derived(languages?.find((l) => l.is_default) || languages?.[0] || null);
+    const secondaryLanguages = $derived(languages?.filter((l) => !l.is_default) || []);
 
-    // Tabs state for multilingual UI
+    // Tabs state
     let activeLanguageCode = $state("default");
     const tabs = new Tabs({
         value: "default",
-        onValueChange: (value) => {
-            activeLanguageCode = value;
-        },
+        onValueChange: (value) => (activeLanguageCode = value),
     });
 
-    // Helper: label/placeholder/type/options/hidden/renderer resolution
-    function getFieldConfig(fieldName) {
+    // Helpers
+    const getFieldConfig = (fieldName) => {
         const base = uiSchema?.[fieldName] || {};
         return {
-            label:
-                base.label ??
-                // fallback to translation key if available
-                fieldName,
+            label: base.label ?? fieldName,
             placeholder: base.placeholder ?? "",
             type: base.type ?? inferTypeFromSchema(fieldName),
             hidden: base.hidden ?? hiddenFields.includes(fieldName),
@@ -68,209 +49,142 @@
             rendererProps: base.rendererProps ?? {},
             options: base.options ?? [],
         };
-    }
+    };
 
-    // Minimal inference to avoid strict name checks
-    function inferTypeFromSchema(fieldName) {
+    const inferTypeFromSchema = (fieldName) => {
         try {
             const shape = validator?.schema?.shape || {};
             const s = shape[fieldName];
             if (!s) return "text";
-
-            const typeName =
-                s?._def?.typeName || s?._def?.innerType?._def?.typeName;
-            switch (typeName) {
-                case "ZodBoolean":
-                    return "checkbox";
-                case "ZodNumber":
-                case "ZodBigInt":
-                    return "number";
-                case "ZodArray":
-                    return "array";
-                case "ZodObject":
-                    return "object";
-                default:
-                    return "text";
-            }
-        } catch (_e) {
+            const typeName = s?._def?.typeName || s?._def?.innerType?._def?.typeName;
+            const typeMap = {
+                ZodBoolean: "checkbox",
+                ZodNumber: "number",
+                ZodBigInt: "number",
+                ZodArray: "array",
+                ZodObject: "object",
+            };
+            return typeMap[typeName] || "text";
+        } catch {
             return "text";
         }
-    }
+    };
 
-    function isRequired(fieldName) {
-        return Boolean(validator?.requiredFields?.has(fieldName));
-    }
+    const isRequired = (fieldName) => Boolean(validator?.requiredFields?.has(fieldName));
 
-    // Track whether the form has been submitted to control when to show errors
+    // Form submission tracking
     let formSubmitted = $state(false);
     $effect(() => {
-        if (!form || typeof form.subscribe !== "function") return;
+        if (!form?.subscribe) return;
         const unsubscribe = form.subscribe((state) => {
-            try {
-                const submitCount = state?.submitCount ?? 0;
-                const isSubmitted = Boolean(state?.isSubmitted);
-                formSubmitted = isSubmitted || submitCount > 0;
-            } catch {}
+            formSubmitted = Boolean(state?.isSubmitted || state?.submitCount > 0);
         });
-        return () => {
-            try {
-                unsubscribe?.();
-            } catch {}
-        };
+        return () => unsubscribe?.();
     });
 
-    function shouldShowError(meta) {
-        if (!meta) return false;
-        const hasErrors = Array.isArray(meta.errors) && meta.errors.length > 0;
-        if (!hasErrors) return false;
-        const touched = Boolean(meta.touched || meta.isTouched);
-        return touched || formSubmitted;
-    }
+    const shouldShowError = (meta) => 
+        meta && Array.isArray(meta.errors) && meta.errors.length > 0 && (meta.touched || meta.isTouched || formSubmitted);
 
-    // Normalize error values to readable strings
-    function formatErrors(errors) {
-        try {
-            if (!Array.isArray(errors)) return "";
-            return errors
-                .map((err) =>
-                    typeof err === "string"
-                        ? err
-                        : (err?.message ??
-                          (typeof err === "object"
-                              ? JSON.stringify(err)
-                              : String(err))),
-                )
-                .filter(Boolean)
-                .join(", ");
-        } catch {
-            return "";
-        }
-    }
+    const formatErrors = (errors) => {
+        if (!Array.isArray(errors)) return "";
+        return errors
+            .map((err) => typeof err === "string" ? err : (err?.message ?? (typeof err === "object" ? JSON.stringify(err) : String(err))))
+            .filter(Boolean)
+            .join(", ");
+    };
 
-    // Derive fields from validator schema
-    const schemaFields = Object.keys(validator?.schema?.shape || {});
+    // Derive fields
+    const schemaFields = $derived(Object.keys(validator?.schema?.shape || {}));
 
-    // Derive translatable fields if not provided
-    function deriveTranslatableFields() {
+    const deriveTranslatableFields = () => {
         if (Array.isArray(translatableFields)) return translatableFields;
         try {
-            const opDef =
-                entity && operation
-                    ? API_SECTIONS?.[entity]?.operations?.[operation]
-                    : null;
-            if (!opDef || !Array.isArray(opDef.mutations)) return [];
+            const opDef = entity && operation ? API_SECTIONS?.[entity]?.operations?.[operation] : null;
+            if (!opDef?.mutations) return [];
             const resultSet = new Set();
-            for (const m of opDef.mutations) {
-                const q = m?.query || "";
-                // Heuristic: any variable used as content: $var, and present in current schema, is considered translatable
-                const re = /content\s*:\s*\$(\w+)/g;
+            const re = /content\s*:\s*\$(\w+)/g;
+            opDef.mutations.forEach((m) => {
                 let match;
-                while ((match = re.exec(q))) {
-                    const varName = match[1];
-                    if (schemaFields.includes(varName)) {
-                        resultSet.add(varName);
-                    }
+                while ((match = re.exec(m?.query || ""))) {
+                    if (schemaFields.includes(match[1])) resultSet.add(match[1]);
                 }
-            }
+            });
             return Array.from(resultSet);
-        } catch (_e) {
+        } catch {
             return [];
         }
-    }
+    };
 
-    const derivedTranslatable = deriveTranslatableFields();
+    const derivedTranslatable = $derived(deriveTranslatableFields());
 
-    // Compute non-translatable visible fields in order (include fields listed in fieldOrder/uiSchema
-    // even if they are not present in validator schema)
-    const nonTranslatableCandidates = schemaFields.filter(
-        (f) => !derivedTranslatable.includes(f),
-    );
+    const orderedFields = $derived.by(() => {
+        const nonTranslatable = schemaFields.filter((f) => !derivedTranslatable.includes(f));
+        const ordered = [];
+        // Honor fieldOrder
+        fieldOrder?.forEach((f) => {
+            if (!derivedTranslatable.includes(f) && !getFieldConfig(f).hidden && !ordered.includes(f)) {
+                ordered.push(f);
+            }
+        });
+        // Add remaining schema fields
+        nonTranslatable.forEach((f) => {
+            if (!getFieldConfig(f).hidden && !ordered.includes(f)) ordered.push(f);
+        });
+        // Add uiSchema-only fields
+        Object.keys(uiSchema || {}).forEach((f) => {
+            if (!derivedTranslatable.includes(f) && !getFieldConfig(f).hidden && !ordered.includes(f)) {
+                ordered.push(f);
+            }
+        });
+        return ordered;
+    });
 
-    const orderedFields = [];
-    // 1) honor fieldOrder first
-    for (const f of fieldOrder || []) {
-        if (!derivedTranslatable.includes(f) && !getFieldConfig(f).hidden) {
-            if (!orderedFields.includes(f)) orderedFields.push(f);
-        }
-    }
-    // 2) add remaining schema fields
-    for (const f of nonTranslatableCandidates) {
-        if (!getFieldConfig(f).hidden && !orderedFields.includes(f)) {
-            orderedFields.push(f);
-        }
-    }
-    // 3) add any extra uiSchema-only fields that are not hidden
-    for (const f of Object.keys(uiSchema || {})) {
-        if (
-            !derivedTranslatable.includes(f) &&
-            !getFieldConfig(f).hidden &&
-            !orderedFields.includes(f)
-        ) {
-            orderedFields.push(f);
-        }
-    }
-
-    // Sync hidden values with guards to avoid loops
-    function valuesEqual(a, b) {
+    // Hidden values sync
+    const valuesEqual = (a, b) => {
         try {
             return JSON.stringify(a) === JSON.stringify(b);
         } catch {
             return a === b;
         }
-    }
+    };
 
-    let lastHiddenStatic = {};
-    let lastHiddenProvided = {};
+    let lastHiddenStatic = $state({});
+    let lastHiddenProvided = $state({});
 
     $effect(() => {
-        if (!form) return;
-        const setter = form.setFieldValue || form.setValue || null;
+        const setter = form?.setFieldValue || form?.setValue;
         if (!setter) return;
-        for (const [name, value] of Object.entries(hiddenStaticValues || {})) {
+        Object.entries(hiddenStaticValues || {}).forEach(([name, value]) => {
             if (!valuesEqual(value, lastHiddenStatic[name])) {
                 try {
                     setter(name, value);
                     lastHiddenStatic[name] = value;
                 } catch {}
             }
-        }
+        });
     });
 
     $effect(() => {
-        if (!form) return;
-        const setter = form.setFieldValue || form.setValue || null;
+        const setter = form?.setFieldValue || form?.setValue;
         if (!setter) return;
-        for (const [name, provide] of Object.entries(
-            hiddenValueProviders || {},
-        )) {
+        Object.entries(hiddenValueProviders || {}).forEach(([name, provide]) => {
             try {
-                const next =
-                    typeof provide === "function" ? provide() : undefined;
-                if (
-                    next !== undefined &&
-                    !valuesEqual(next, lastHiddenProvided[name])
-                ) {
+                const next = typeof provide === "function" ? provide() : undefined;
+                if (next !== undefined && !valuesEqual(next, lastHiddenProvided[name])) {
                     setter(name, next);
                     lastHiddenProvided[name] = next;
                 }
             } catch {}
-        }
+        });
     });
 
-    // Log form-level errors from script via subscription (no template logging)
+    // Log form errors
     $effect(() => {
-        if (!form || typeof form.subscribe !== "function") return;
+        if (!form?.subscribe) return;
         const unsubscribe = form.subscribe((state) => {
-            const errors = state?.errors || [];
-            if (errors.length > 0) {
-                console.error("Form validation errors:", errors);
-            }
+            if (state?.errors?.length > 0) console.error("Form validation errors:", state.errors);
         });
-        return () => {
-            try {
-                unsubscribe?.();
-            } catch {}
-        };
+        return () => unsubscribe?.();
     });
 </script>
 
@@ -280,13 +194,9 @@
             <button
                 {...tabs.getTrigger("default")}
                 type="button"
-                class={"btn btn-link rounded-0 text-decoration-none " +
-                    (activeLanguageCode === "default"
-                        ? "text-primary border-0 border-bottom border-primary"
-                        : "text-dark")}
+                class={"btn btn-link rounded-0 text-decoration-none " + (activeLanguageCode === "default" ? "text-primary border-0 border-bottom border-primary" : "text-dark")}
                 role="tab"
                 aria-selected={activeLanguageCode === "default"}
-                data-active={activeLanguageCode === "default" ? "" : undefined}
             >
                 {defaultLanguage?.name || "Default"}
             </button>
@@ -294,260 +204,68 @@
                 <button
                     {...tabs.getTrigger(lang.id)}
                     type="button"
-                    class={"btn btn-link rounded-0 text-decoration-none " +
-                        (activeLanguageCode === lang.id
-                            ? "text-primary border-0 border-bottom border-primary"
-                            : "text-dark")}
+                    class={"btn btn-link rounded-0 text-decoration-none " + (activeLanguageCode === lang.id ? "text-primary border-0 border-bottom border-primary" : "text-dark")}
                     role="tab"
                     aria-selected={activeLanguageCode === lang.id}
-                    data-active={activeLanguageCode === lang.id
-                        ? ""
-                        : undefined}
                 >
                     {lang.name}
                 </button>
             {/each}
         </div>
 
-        <!-- Default language fields -->
+        <!-- Default language -->
         <div {...tabs.getContent("default")}>
-            <div class="pt-2">
-                <div class="row">
-                    {#each derivedTranslatable as fieldName}
-                        {#key fieldName}
-                            <div
-                                class={`col-md-${Math.min(Math.max(getFieldConfig(fieldName).colSize, 1), 12)}`}
-                            >
-                                <form.Field
-                                    name={fieldName}
-                                    validators={typeof createFieldValidator ===
-                                    "function"
-                                        ? createFieldValidator(
-                                              fieldName,
-                                              validator,
-                                              form,
-                                              setStructuredErrors,
-                                              { validateOnChange: true },
-                                          )
-                                        : undefined}
-                                >
-                                    {#snippet children(field)}
-                                        {#if getFieldConfig(fieldName).hidden}
-                                            <input
-                                                type="hidden"
-                                                name={field.name}
-                                                value={field.state.value}
-                                            />
-                                        {:else}
-                                            <div class="mb-3">
-                                                <p
-                                                    class="form-label"
-                                                    for={field.name}
-                                                >
-                                                    {getFieldConfig(fieldName)
-                                                        .label} ({defaultLanguage?.code ||
-                                                        "default"})
-                                                    {#if isRequired(fieldName)}<span
-                                                            class="text-danger"
-                                                            >*</span
-                                                        >{/if}
-                                                </p>
-
-                                                {#if getFieldConfig(fieldName).type === "textarea"}
-                                                    <textarea
-                                                        id={field.name}
-                                                        name={field.name}
-                                                        class={"form-control " +
-                                                            (shouldShowError(
-                                                                field.state
-                                                                    .meta,
-                                                            )
-                                                                ? "is-invalid"
-                                                                : "")}
-                                                        rows="3"
-                                                        placeholder={getFieldConfig(
-                                                            fieldName,
-                                                        ).placeholder}
-                                                        value={field.state
-                                                            .value}
-                                                        oninput={(e) =>
-                                                            field.handleChange(
-                                                                e.target.value,
-                                                            )}
-                                                        onblur={field.handleBlur}
-                                                    ></textarea>
-                                                {:else if getFieldConfig(fieldName).type === "checkbox"}
-                                                    <input
-                                                        id={field.name}
-                                                        name={field.name}
-                                                        type="checkbox"
-                                                        class="form-check-input"
-                                                        checked={Boolean(
-                                                            field.state.value,
-                                                        )}
-                                                        onchange={(e) =>
-                                                            field.handleChange(
-                                                                e.target
-                                                                    .checked,
-                                                            )}
-                                                        onblur={field.handleBlur}
-                                                    />
-                                                {:else}
-                                                    <input
-                                                        id={field.name}
-                                                        name={field.name}
-                                                        type="text"
-                                                        class={"form-control " +
-                                                            (shouldShowError(
-                                                                field.state
-                                                                    .meta,
-                                                            )
-                                                                ? "is-invalid"
-                                                                : "")}
-                                                        placeholder={getFieldConfig(
-                                                            fieldName,
-                                                        ).placeholder}
-                                                        value={field.state
-                                                            .value}
-                                                        oninput={(e) =>
-                                                            field.handleChange(
-                                                                e.target.value,
-                                                            )}
-                                                        onblur={field.handleBlur}
-                                                    />
-                                                {/if}
-
-                                                {#if shouldShowError(field.state.meta)}
-                                                    <div
-                                                        class="invalid-feedback"
-                                                    >
-                                                        {formatErrors(
-                                                            field.state.meta
-                                                                .errors,
-                                                        )}
-                                                    </div>
-                                                {/if}
-                                            </div>
-                                        {/if}
-                                    {/snippet}
-                                </form.Field>
-                            </div>
-                        {/key}
-                    {/each}
-                </div>
+            <div class="pt-2 row">
+                {#each derivedTranslatable as fieldName}
+                    <div class={`col-md-${Math.min(Math.max(getFieldConfig(fieldName).colSize, 1), 12)}`}>
+                        <form.Field
+                            name={fieldName}
+                            validators={createFieldValidator?.(fieldName, validator, form, setStructuredErrors, { validateOnChange: true })}
+                        >
+                            {#snippet children(field)}
+                                <FormField
+                                    {field}
+                                    config={getFieldConfig(fieldName)}
+                                    isRequired={isRequired(fieldName)}
+                                    languageCode={defaultLanguage?.code || "default"}
+                                    {shouldShowError}
+                                    {formatErrors}
+                                    {structuredErrors}
+                                    {activeLanguageCode}
+                                    {t}
+                                />
+                            {/snippet}
+                        </form.Field>
+                    </div>
+                {/each}
             </div>
         </div>
 
         <!-- Secondary languages -->
         {#each secondaryLanguages as lang}
             <div {...tabs.getContent(lang.id)}>
-                <div class="pt-2">
-                    <div class="row">
-                        {#each derivedTranslatable as baseField}
-                            {#key `${lang.id}-${baseField}`}
-                                <div
-                                    class={`col-md-${Math.min(Math.max(getFieldConfig(baseField).colSize, 1), 12)}`}
-                                >
-                                    <form.Field
-                                        name={`translations_${lang.id}_${baseField}`}
-                                        validators={translationsValidator &&
-                                        typeof createFieldValidator ===
-                                            "function"
-                                            ? createFieldValidator(
-                                                  `translations_${lang.id}_${baseField}`,
-                                                  translationsValidator,
-                                                  form,
-                                                  setStructuredErrors,
-                                                  { validateOnChange: true },
-                                              )
-                                            : undefined}
-                                    >
-                                        {#snippet children(field)}
-                                            {#if getFieldConfig(baseField).hidden}
-                                                <input
-                                                    type="hidden"
-                                                    name={field.name}
-                                                    value={field.state.value}
-                                                />
-                                            {:else}
-                                                <div class="mb-3">
-                                                    <p
-                                                        class="form-label"
-                                                        for={field.name}
-                                                    >
-                                                        {getFieldConfig(
-                                                            baseField,
-                                                        ).label} ({lang.code})
-                                                    </p>
-
-                                                    {#if getFieldConfig(baseField).type === "textarea"}
-                                                        <textarea
-                                                            id={field.name}
-                                                            name={field.name}
-                                                            class={"form-control " +
-                                                                (shouldShowError(
-                                                                    field.state
-                                                                        .meta,
-                                                                )
-                                                                    ? "is-invalid"
-                                                                    : "")}
-                                                            rows="3"
-                                                            placeholder={getFieldConfig(
-                                                                baseField,
-                                                            ).placeholder}
-                                                            value={field.state
-                                                                .value}
-                                                            oninput={(e) =>
-                                                                field.handleChange(
-                                                                    e.target
-                                                                        .value,
-                                                                )}
-                                                            onblur={field.handleBlur}
-                                                        ></textarea>
-                                                    {:else}
-                                                        <input
-                                                            id={field.name}
-                                                            name={field.name}
-                                                            type="text"
-                                                            class={"form-control " +
-                                                                (shouldShowError(
-                                                                    field.state
-                                                                        .meta,
-                                                                )
-                                                                    ? "is-invalid"
-                                                                    : "")}
-                                                            placeholder={getFieldConfig(
-                                                                baseField,
-                                                            ).placeholder}
-                                                            value={field.state
-                                                                .value}
-                                                            oninput={(e) =>
-                                                                field.handleChange(
-                                                                    e.target
-                                                                        .value,
-                                                                )}
-                                                            onblur={field.handleBlur}
-                                                        />
-                                                    {/if}
-
-                                                    {#if shouldShowError(field.state.meta)}
-                                                        <div
-                                                            class="invalid-feedback"
-                                                        >
-                                                            {formatErrors(
-                                                                field.state.meta
-                                                                    .errors,
-                                                            )}
-                                                        </div>
-                                                    {/if}
-                                                </div>
-                                            {/if}
-                                        {/snippet}
-                                    </form.Field>
-                                </div>
-                            {/key}
-                        {/each}
-                    </div>
+                <div class="pt-2 row">
+                    {#each derivedTranslatable as baseField}
+                        <div class={`col-md-${Math.min(Math.max(getFieldConfig(baseField).colSize, 1), 12)}`}>
+                            <form.Field
+                                name={`translations_${lang.id}_${baseField}`}
+                                validators={translationsValidator && createFieldValidator?.(`translations_${lang.id}_${baseField}`, translationsValidator, form, setStructuredErrors, { validateOnChange: true })}
+                            >
+                                {#snippet children(field)}
+                                    <FormField
+                                        {field}
+                                        config={getFieldConfig(baseField)}
+                                        languageCode={lang.code}
+                                        {shouldShowError}
+                                        {formatErrors}
+                                        {structuredErrors}
+                                        {activeLanguageCode}
+                                        {t}
+                                    />
+                                {/snippet}
+                            </form.Field>
+                        </div>
+                    {/each}
                 </div>
             </div>
         {/each}
@@ -559,162 +277,22 @@
     <div class="row">
         {#each orderedFields as fieldName}
             {#if !getFieldConfig(fieldName).hidden && !derivedTranslatable.includes(fieldName)}
-                <div
-                    class={`col-md-${Math.min(Math.max(getFieldConfig(fieldName).colSize, 1), 12)}`}
-                >
+                <div class={`col-md-${Math.min(Math.max(getFieldConfig(fieldName).colSize, 1), 12)}`}>
                     <form.Field
                         name={fieldName}
-                        validators={typeof createFieldValidator === "function"
-                            ? createFieldValidator(
-                                  fieldName,
-                                  validator,
-                                  form,
-                                  setStructuredErrors,
-                                  { validateOnChange: true },
-                              )
-                            : undefined}
+                        validators={createFieldValidator?.(fieldName, validator, form, setStructuredErrors, { validateOnChange: true })}
                     >
                         {#snippet children(field)}
-                            <div class="mb-3">
-                                <p class="form-label" for={field.name}>
-                                    {getFieldConfig(fieldName).label}
-                                    {#if isRequired(fieldName)}<span
-                                            class="text-danger">*</span
-                                        >{/if}
-                                </p>
-
-                                {#if getFieldConfig(fieldName).renderer}
-                                    {@const Renderer =
-                                        getFieldConfig(fieldName).renderer}
-                                    <Renderer
-                                        bind:value={field.state.value}
-                                        {...getFieldConfig(fieldName)
-                                            .rendererProps}
-                                        errors={field.state.meta.errors}
-                                        {structuredErrors}
-                                        {activeLanguageCode}
-                                        onChange={(v) => field.handleChange(v)}
-                                        on:change={(e) =>
-                                            field.handleChange(e.detail ?? e)}
-                                        on:blur={field.handleBlur}
-                                    />
-                                {:else if getFieldConfig(fieldName).type === "select"}
-                                    <select
-                                        id={field.name}
-                                        name={field.name}
-                                        class={"form-select " +
-                                            (shouldShowError(field.state.meta)
-                                                ? "is-invalid"
-                                                : "")}
-                                        value={field.state.value}
-                                        onchange={(e) =>
-                                            field.handleChange(e.target.value)}
-                                        onblur={field.handleBlur}
-                                    >
-                                        <option value=""
-                                            >{t("common.select", {
-                                                fallback: "Select",
-                                            })}</option
-                                        >
-                                        {#each getFieldConfig(fieldName).options as opt}
-                                            <option value={opt.value}
-                                                >{opt.label}</option
-                                            >
-                                        {/each}
-                                    </select>
-                                {:else if getFieldConfig(fieldName).type === "date"}
-                                    <input
-                                        id={field.name}
-                                        name={field.name}
-                                        type="date"
-                                        class={"form-control " +
-                                            (shouldShowError(field.state.meta)
-                                                ? "is-invalid"
-                                                : "")}
-                                        value={field.state.value
-                                            ? new Date(field.state.value)
-                                                  .toISOString()
-                                                  .split("T")[0]
-                                            : ""}
-                                        onchange={(e) =>
-                                            field.handleChange(
-                                                e.target.value
-                                                    ? new Date(
-                                                          e.target.value,
-                                                      ).toISOString()
-                                                    : null,
-                                            )}
-                                        onblur={field.handleBlur}
-                                    />
-                                {:else if getFieldConfig(fieldName).type === "textarea"}
-                                    <textarea
-                                        id={field.name}
-                                        name={field.name}
-                                        class={"form-control " +
-                                            (shouldShowError(field.state.meta)
-                                                ? "is-invalid"
-                                                : "")}
-                                        rows="3"
-                                        placeholder={getFieldConfig(fieldName)
-                                            .placeholder}
-                                        value={field.state.value}
-                                        oninput={(e) =>
-                                            field.handleChange(e.target.value)}
-                                        onblur={field.handleBlur}
-                                    ></textarea>
-                                {:else if getFieldConfig(fieldName).type === "checkbox"}
-                                    <input
-                                        id={field.name}
-                                        name={field.name}
-                                        type="checkbox"
-                                        class="form-check-input"
-                                        checked={Boolean(field.state.value)}
-                                        onchange={(e) =>
-                                            field.handleChange(
-                                                e.target.checked,
-                                            )}
-                                        onblur={field.handleBlur}
-                                    />
-                                {:else if getFieldConfig(fieldName).type === "number"}
-                                    <input
-                                        id={field.name}
-                                        name={field.name}
-                                        type="number"
-                                        class={"form-control " +
-                                            (shouldShowError(field.state.meta)
-                                                ? "is-invalid"
-                                                : "")}
-                                        placeholder={getFieldConfig(fieldName)
-                                            .placeholder}
-                                        value={field.state.value}
-                                        oninput={(e) =>
-                                            field.handleChange(e.target.value)}
-                                        onblur={field.handleBlur}
-                                    />
-                                {:else}
-                                    <input
-                                        id={field.name}
-                                        name={field.name}
-                                        type="text"
-                                        class={"form-control " +
-                                            (field.state.meta.errors.length > 0
-                                                ? "is-invalid"
-                                                : "")}
-                                        placeholder={getFieldConfig(fieldName)
-                                            .placeholder}
-                                        value={field.state.value}
-                                        oninput={(e) =>
-                                            field.handleChange(e.target.value)}
-                                        onblur={field.handleBlur}
-                                    />
-                                {/if}
-
-                                {#if shouldShowError(field.state.meta)}
-                                    <div class="invalid-feedback">
-                                        {formatErrors(field.state.meta.errors)}
-                                    </div>
-                                {/if}
-                            </div>
+                            <FormField
+                                {field}
+                                config={getFieldConfig(fieldName)}
+                                isRequired={isRequired(fieldName)}
+                                {shouldShowError}
+                                {formatErrors}
+                                {structuredErrors}
+                                {activeLanguageCode}
+                                {t}
+                            />
                         {/snippet}
                     </form.Field>
                 </div>
@@ -722,16 +300,12 @@
         {/each}
     </div>
 
-    <!-- Hidden fields rendered to ensure inclusion in submit values -->
+    <!-- Hidden fields -->
     {#each schemaFields as name}
         {#if getFieldConfig(name).hidden}
             <form.Field {name}>
                 {#snippet children(field)}
-                    <input
-                        type="hidden"
-                        name={field.name}
-                        value={field.state.value}
-                    />
+                    <input type="hidden" name={field.name} value={field.state.value} />
                 {/snippet}
             </form.Field>
         {/if}
