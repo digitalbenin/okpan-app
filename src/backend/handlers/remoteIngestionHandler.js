@@ -2,10 +2,9 @@ import * as Y from 'yjs'
 import { diff as deepDiff } from '@opentf/obj-diff'
 import { db } from '../../db/init.js'
 import * as schema from '../../db/schema.js'
-import { eq, and, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { getProjectDoc } from '../services/projectCache.js'
 import { FK_ORDER } from '../services/projectScope.js'
-import { withProjectLock } from '../services/lockService.js'
 
 // FK order centralized in projectScope.js
 
@@ -377,20 +376,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   let deferredUpdates = 0
   let deferredDeletes = 0
   // Multi-pass transaction to satisfy FKs: attempt in FK order repeatedly (max 3 passes)
-  const result = await withProjectLock(projectId, async () => {
-    await db.transaction(async (tx) => {
-    // Capture starting change_log rowid to stamp provenance only for rows created by this transaction
-    let startRowid = 0
-    try {
-      const lastRow = await tx
-        .select({ rid: sql`rowid` })
-        .from(schema.change_log)
-        .where(eq(schema.change_log.project_id, projectId))
-        .orderBy(sql`rowid desc`)
-        .limit(1)
-        .execute()
-      startRowid = Number(lastRow?.[0]?.rid || 0)
-    } catch (_) {}
+  await db.transaction(async (tx) => {
     const remainingInserts = inserts.map(x => ({ ...x }))
     const remainingUpdates = updates.map(x => ({ ...x }))
     const remainingDeletes = deletes.map(x => ({ ...x }))
@@ -519,40 +505,17 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
         }
       }
     }
-    // Stamp provenance for change_log rows created during this transaction to prevent echo loops
-    try {
-      const newRowsWhere = and(
-        eq(schema.change_log.project_id, projectId),
-        sql`rowid > ${startRowid}`
-      )
-      await tx
-        .update(schema.change_log)
-        .set({ origin: 'remote' })
-        .where(newRowsWhere)
-        .execute()
-      if (options?.remoteClientId) {
-        await tx
-          .update(schema.change_log)
-          .set({ client_id: options.remoteClientId })
-          .where(newRowsWhere)
-          .execute()
-      }
-    } catch (stampErr) {
-      console.warn('[RemoteIngestion] Failed to stamp provenance on change_log', stampErr)
-    }
 
     deferredInserts = remainingInserts.length
     deferredUpdates = remainingUpdates.length
     deferredDeletes = remainingDeletes.length
-    })
-    const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: options?.beforeDoc ? 'baseline-before-after' : 'shadow-before-after' }
-    if (deferredInserts || deferredUpdates || deferredDeletes) {
-      console.log('[RemoteIngestion] Committed with deferrals', { ...summary, deferredInserts, deferredUpdates, deferredDeletes })
-    } else {
-      console.log('[RemoteIngestion] Committed', summary)
-    }
-    return { applied, ...summary, deferredInserts, deferredUpdates, deferredDeletes }
   })
 
-  return result
+  const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: options?.beforeDoc ? 'baseline-before-after' : 'shadow-before-after' }
+  if (deferredInserts || deferredUpdates || deferredDeletes) {
+    console.log('[RemoteIngestion] Committed with deferrals', { ...summary, deferredInserts, deferredUpdates, deferredDeletes })
+  } else {
+    console.log('[RemoteIngestion] Committed', summary)
+  }
+  return { applied, ...summary, deferredInserts, deferredUpdates, deferredDeletes }
 }

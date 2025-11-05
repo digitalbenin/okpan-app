@@ -36,12 +36,11 @@ import {
   getCurrentProjectId,
   hasCurrentProjectId,
 } from './projectCache.js';
-import { withProjectLock } from './lockService.js';
 
 const DEFAULT_INGEST_BATCH_SIZE = 200;
 const DEFAULT_INGEST_INTERVAL_MS = 1000;
 
-// Use shared project-level lock to serialize with other writers
+const tailerLocks = new Map(); // projectId → boolean
 
 async function fetchNextChangeBatch(projectId, batchSize) {
   const stateRows = await db
@@ -294,18 +293,20 @@ async function applyBatchToDoc(projectId, rows) {
 
 export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST_BATCH_SIZE) {
   if (!projectId) return false;
-  return await withProjectLock(projectId, async () => {
-    try {
-      const rows = await fetchNextChangeBatch(projectId, batchSize);
-      if (!rows || rows.length === 0) return false;
-      const res = await applyBatchToDoc(projectId, rows);
-      console.log('[Tailer] Applied batch', { projectId, fromId: res?.fromId, toId: res?.toId, changed: !!res?.changed });
-      return true;
-    } catch (error) {
-      console.error('Error ingesting change_log:', error);
-      return false;
-    }
-  });
+  if (tailerLocks.get(projectId)) return false;
+  tailerLocks.set(projectId, true);
+  try {
+    const rows = await fetchNextChangeBatch(projectId, batchSize);
+    if (!rows || rows.length === 0) return false;
+    const res = await applyBatchToDoc(projectId, rows);
+    console.log('[Tailer] Applied batch', { projectId, fromId: res?.fromId, toId: res?.toId, changed: !!res?.changed });
+    return true;
+  } catch (error) {
+    console.error('Error ingesting change_log:', error);
+    return false;
+  } finally {
+    tailerLocks.delete(projectId);
+  }
 }
 
 export function startChangeLogTailer({ intervalMs = DEFAULT_INGEST_INTERVAL_MS, batchSize = DEFAULT_INGEST_BATCH_SIZE } = {}) {
