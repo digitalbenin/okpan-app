@@ -5,357 +5,190 @@
     import AutoForm from "$lib/components/form/AutoForm.svelte";
     import BaseModal from "$lib/components/base/BaseModal.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
-    import {
-        getValidator,
-        createFieldValidator,
-        registerCustomValidator,
-    } from "$lib/stores/formValidationUtils.js";
+    import BaseImage from "$lib/components/base/BaseImage.svelte";
+    import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
+    import { createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
+    import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
     import { unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
-    import BaseImage from "$lib/components/base/BaseImage.svelte";
-    import { z } from "zod";
     import { back } from "$lib/utils/navigation.js";
-    import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
+    import { getAssetImageUrl, getObjectImageUrl } from "$lib/utils/images.js";
+    import { z } from "zod";
 
     const { data } = $props();
+    const contentLanguageStore = getContentLanguageStore();
+
+    // Constants
+    const TRANSLATABLE_FIELDS = ["description", "copyright", "author"];
+
+    // State
     const asset = $state(data.asset);
     let linkedObjects = $state(data.linkedObjects || []);
     const languages = $state(data.languages);
     const project_id = $state(data.project_id);
     const institution_id = $state(data.institution_id);
-
-    $inspect("linked objects", linkedObjects);
-
-    // Track pending unlinks (objects to be unlinked on save)
     let pendingUnlinks = $state([]);
+    let showDeleteModal = $state(false);
+    let isDeleting = $state(false);
+    let showLinkObjectsModal = $state(false);
 
-    $inspect("object asstes", asset.objectsAssets);
-
-    // Extract metadata from properties JSON field
-    const metadata = $derived(() => {
-        if (!asset?.properties) return {};
+    // Derived
+    const defaultLanguage = $derived(languages?.find((l) => l.is_default) || languages?.[0]);
+    const secondaryLanguages = $derived(languages?.filter((l) => !l.is_default) || []);
+    const metadata = $derived.by(() => {
         try {
-            return typeof asset.properties === "string"
-                ? JSON.parse(asset.properties)
-                : asset.properties;
-        } catch (e) {
-            console.error("Error parsing asset properties:", e);
-            return {};
-        }
-    });
-    const defaultLanguage = $derived(
-        languages?.find((l) => l.is_default) || languages?.[0],
-    );
-
-    // Function to get the best image source from formats
-    function getImageSrc(currentAsset) {
-        if (!currentAsset) return null;
-        if (currentAsset.type !== "image" || !currentAsset.formats) {
-            return currentAsset.path || null;
-        }
-
-        try {
-            const formats =
-                typeof currentAsset.formats === "string"
-                    ? JSON.parse(currentAsset.formats)
-                    : currentAsset.formats;
-            return (
-                formats?.md ||
-                formats?.lg ||
-                formats?.original ||
-                currentAsset.path ||
-                null
-            );
-        } catch (e) {
-            console.error("Error parsing formats:", e);
-            return currentAsset.path || null;
-        }
-    }
-
-    const imageSrc = $derived(getImageSrc(asset));
-
-    // Derived state for visible linked objects (excluding pending unlinks)
-    const visibleLinkedObjects = $derived(
-        linkedObjects?.filter(
-            (objAsset) => !pendingUnlinks.includes(objAsset.object_id),
-        ) || [],
-    );
-
-    // Prefer object's name for display; fallback to primary identifier or numeric id
-    function getPrimaryIdentifier(obj) {
-        const field = obj?.objectsOntologyFields?.find((f) => f.primary);
-        return field?.value ?? null;
-    }
-
-    function getObjectDisplayName(obj) {
-        const name =
-            (obj?.name?.content && String(obj.name.content).trim()) ||
-            (typeof obj?.name === "string" && String(obj.name).trim());
-        return name || getPrimaryIdentifier(obj) || obj?.id;
-    }
-
-    // Register custom validator for properties field to handle metadata
-    registerCustomValidator("assets", "properties", {
-        validator: z.string().transform((val) => {
-            try {
-                return JSON.parse(val);
-            } catch {
-                return {};
-            }
-        }),
-        required: false,
-        defaultValue: "{}",
-        transform: (data) =>
-            JSON.stringify({
-                description: data.description || {},
-                copyright: data.copyright || {},
-                author: data.author || {},
-            }),
+            return typeof asset?.properties === "string" ? JSON.parse(asset.properties) : asset?.properties || {};
+        } catch { return {}; }
     });
 
-    // Create custom validator schema for metadata fields
+    const imageSrc = $derived(getAssetImageUrl(asset, 'md', false));
+    const visibleLinkedObjects = $derived(linkedObjects?.filter((oa) => !pendingUnlinks.includes(oa.object_id)) || []);
+
+    const getObjectDisplayName = (obj) => {
+        const name = obj?.name?.content?.trim() || (typeof obj?.name === "string" && obj.name.trim());
+        const primaryField = obj?.objectsOntologyFields?.find((f) => f.primary);
+        return name || primaryField?.value || obj?.id;
+    };
+
+    // Validator
     const metadataSchema = z.object({
         description: z.string().optional(),
         copyright: z.string().optional(),
         author: z.string().optional(),
     });
 
-    const validator = {
-        schema: metadataSchema,
-        requiredFields: new Set([]),
-        validate: (data) => metadataSchema.safeParse(data),
-    };
+    const validator = { schema: metadataSchema, requiredFields: new Set([]), validate: (data) => metadataSchema.safeParse(data) };
 
-    // Create form with initial data from metadata
-    const form = createForm(() => {
-        const meta = metadata();
-        const defaultValues = {
-            // For translatable fields, set the default language value as string
-            description: meta?.description?.[defaultLanguage?.code] || "",
-            copyright: meta?.copyright?.[defaultLanguage?.code] || "",
-            author: meta?.author?.[defaultLanguage?.code] || "",
+    // Build default values using ContentLanguageStore
+    const defaultValues = $derived.by(() => {
+        const defaultCode = defaultLanguage?.code;
+        const values = {
+            description: metadata?.description?.[defaultCode] || "",
+            copyright: metadata?.copyright?.[defaultCode] || "",
+            author: metadata?.author?.[defaultCode] || "",
         };
 
-        // Add translation fields for secondary languages
-        if (languages && meta) {
-            for (const lang of languages) {
-                if (!lang.is_default) {
-                    defaultValues[`translations_${lang.id}_description`] =
-                        meta?.description?.[lang.code] || "";
-                    defaultValues[`translations_${lang.id}_copyright`] =
-                        meta?.copyright?.[lang.code] || "";
-                    defaultValues[`translations_${lang.id}_author`] =
-                        meta?.author?.[lang.code] || "";
-                }
-            }
-        }
+        // Add secondary language translations from properties JSON
+        secondaryLanguages.forEach((lang) => {
+            TRANSLATABLE_FIELDS.forEach((field) => {
+                values[`translations_${lang.id}_${field}`] = metadata?.[field]?.[lang.code] || "";
+            });
+        });
 
-        return {
-            defaultValues,
-            validators: {
-                onChange: validator.schema,
-            },
-            onSubmit: async ({ value }) => {
-                try {
-                    // Collect translations for all languages
-                    const translations = {
-                        description: {},
-                        copyright: {},
-                        author: {},
-                    };
-
-                    // Set default language content
-                    const defaultCode = defaultLanguage?.code;
-                    if (value.description && defaultCode)
-                        translations.description[defaultCode] =
-                            value.description;
-                    if (value.copyright && defaultCode)
-                        translations.copyright[defaultCode] = value.copyright;
-                    if (value.author && defaultCode)
-                        translations.author[defaultCode] = value.author;
-
-                    // Collect secondary language translations
-                    for (const lang of languages.filter((l) => !l.is_default)) {
-                        const fields = ["description", "copyright", "author"];
-                        for (const field of fields) {
-                            const key = `translations_${lang.id}_${field}`;
-                            if (value[key]?.trim()) {
-                                translations[field][lang.code] = value[key];
-                            }
-                        }
-                    }
-
-                    // Create properties JSON
-                    const properties = JSON.stringify(translations);
-
-                    // Process pending unlinks first
-                    for (const objectId of pendingUnlinks) {
-                        try {
-                            const unlinkResult = await unlinkAssetFromObject(
-                                objectId,
-                                asset.id,
-                            );
-                            if (unlinkResult.error) {
-                                console.error(
-                                    "Error unlinking object:",
-                                    unlinkResult.error,
-                                );
-                            }
-                        } catch (error) {
-                            console.error(
-                                "Error during unlink operation:",
-                                error,
-                            );
-                        }
-                    }
-
-                    const result = await updateAsset(asset.id, { properties });
-                    console.log("updateAsset result:", result);
-
-                    if (result?.result) {
-                        console.log("Asset updated successfully");
-                        pendingUnlinks = []; // Clear pending unlinks after successful save
-                        goto(
-                            `/projects/${project_id}/institutions/${institution_id}`,
-                        );
-                    } else {
-                        console.error("Failed to update asset:", result?.error);
-                        console.error("Full result object:", result);
-                    }
-                } catch (error) {
-                    console.error("Error updating asset:", error);
-                }
-            },
-        };
+        return values;
     });
 
-    const handleCancel = () =>
-        goto(`/projects/${project_id}/institutions/${institution_id}`);
-    const handleSave = () => form.handleSubmit();
+    // Submit handler
+    async function onSubmitForm({ value }) {
+        try {
+            // Process pending unlinks
+            await Promise.all(pendingUnlinks.map(async (objectId) => {
+                const unlinkResult = await unlinkAssetFromObject(objectId, asset.id);
+                if (unlinkResult.error) console.error("Error unlinking object:", unlinkResult.error);
+            }));
 
-    // Delete Asset Modal state and handlers
-    let showDeleteModal = $state(false);
-    let isDeleting = $state(false);
+            // Collect translations
+            const translations = { description: {}, copyright: {}, author: {} };
+            const defaultCode = defaultLanguage?.code;
 
-    function openDeleteModal() {
-        showDeleteModal = true;
-    }
+            if (defaultCode) {
+                if (value.description) translations.description[defaultCode] = value.description;
+                if (value.copyright) translations.copyright[defaultCode] = value.copyright;
+                if (value.author) translations.author[defaultCode] = value.author;
+            }
 
-    function cancelDelete() {
-        showDeleteModal = false;
-    }
+            secondaryLanguages.forEach((lang) => {
+                TRANSLATABLE_FIELDS.forEach((field) => {
+                    const key = `translations_${lang.id}_${field}`;
+                    if (value[key]?.trim()) translations[field][lang.code] = value[key];
+                });
+            });
 
-    async function confirmDeleteAsset() {
-        if (!asset?.id) {
-            showDeleteModal = false;
-            return;
+            const properties = JSON.stringify(translations);
+            const result = await updateAsset(asset.id, { properties });
+
+            // Check for success - updateAsset returns the GraphQL result which might have different structures
+            if (!result?.error) {
+                // Process secondary language translations using ContentLanguageStore
+                // Note: Assets don't have separate text fields for translations like other entities
+                // They store everything in the properties JSON field, which we already updated
+                
+                pendingUnlinks = [];
+                goto(`/projects/${project_id}/institutions/${institution_id}`);
+            } else {
+                console.error("Failed to update asset:", result?.error);
+            }
+        } catch (error) {
+            console.error("Error updating asset:", error);
         }
+    }
+
+    // Create form
+    const form = $derived(createForm(() => getFormConfig("assets", "update", { defaultValues, onSubmit: onSubmitForm })));
+
+    // UI Schema
+    const uiSchema = $derived({
+        description: { label: "Description", type: "textarea", colSize: 12, required: false },
+        copyright: { label: "Copyright", type: "textarea", colSize: 12, required: false },
+        author: { label: "Author", type: "textarea", colSize: 12, required: false },
+    });
+
+    // Handlers
+    const handleCancel = () => goto(`/projects/${project_id}/institutions/${institution_id}`);
+    const handleSave = () => form.handleSubmit();
+    const openDeleteModal = () => showDeleteModal = true;
+    const cancelDelete = () => showDeleteModal = false;
+
+    const confirmDeleteAsset = async () => {
+        if (!asset?.id) return showDeleteModal = false;
         isDeleting = true;
         try {
             const res = await deleteAsset(asset.id);
-            if (res?.error) {
-                console.error("Failed to delete asset:", res.error);
-            } else {
-                // Navigate back to previous history page
-                back();
-            }
+            res?.error ? console.error("Failed to delete asset:", res.error) : back();
         } catch (err) {
             console.error("Error deleting asset:", err);
         } finally {
             isDeleting = false;
             showDeleteModal = false;
         }
-    }
-
-    // Handle unlinking an object from this asset (add to pending unlinks)
-    const handleUnlinkObject = (objectId) => {
-        if (!pendingUnlinks.includes(objectId)) {
-            pendingUnlinks = [...pendingUnlinks, objectId];
-        }
     };
 
-    // --- Link Objects Modal ---
-    let showLinkObjectsModal = $state(false);
-    function openLinkObjectsModal() {
-        showLinkObjectsModal = true;
-    }
-    function handleObjectsLinked(objects) {
+    const handleUnlinkObject = (objectId) => {
+        if (!pendingUnlinks.includes(objectId)) pendingUnlinks = [...pendingUnlinks, objectId];
+    };
+
+    const openLinkObjectsModal = () => showLinkObjectsModal = true;
+
+    const handleObjectsLinked = (objects) => {
         try {
-            const existing = new Set(
-                (linkedObjects || []).map((oa) => String(oa.object_id)),
-            );
-            const additions = (objects || [])
-                .filter((o) => !existing.has(String(o.id)))
-                .map((o) => ({ object_id: o.id, object: o }));
-            if (additions.length) {
-                linkedObjects = [...(linkedObjects || []), ...additions];
-            }
+            const existing = new Set((linkedObjects || []).map((oa) => String(oa.object_id)));
+            const additions = (objects || []).filter((o) => !existing.has(String(o.id))).map((o) => ({ object_id: o.id, object: o }));
+            if (additions.length) linkedObjects = [...linkedObjects, ...additions];
         } catch (e) {
             console.error("Error updating linked objects list:", e);
         }
-    }
-    // --- End Link Objects Modal ---
-
-    // Helper function to get display field values for an object
-    function getDisplayFieldValue(object, displayField) {
-        if (!object || !displayField) return null;
-
-        switch (displayField.type) {
-            case "object_property":
-                return object[displayField.value];
-
-            case "research_field":
-                // Handle research fields
-                const researchField = object.objectsResearchFields?.find(
-                    (rf) => rf.researchField.id === displayField.value,
-                );
-                if (researchField) {
-                    return (
-                        researchField.vocabulary?.option?.content ||
-                        researchField.value
-                    );
-                }
-                return null;
-
-            case "ontology_field":
-                // Handle ontology fields
-                const ontologyField = object.objectsOntologyFields?.find(
-                    (of) => of.field_id === displayField.value,
-                );
-                return ontologyField?.value || null;
-
-            default:
-                return null;
-        }
-    }
+    };
 </script>
 
 <div class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4 py-3 flex-grow-1">
-        <!-- Header with back button -->
+        <!-- Header -->
         <div class="d-flex align-items-center mb-4">
-            <button
-                type="button"
-                aria-label="Back to institution"
-                class="btn btn-link p-0 me-3 text-muted"
-                onclick={handleCancel}
-            >
+            <button type="button" aria-label="Back to institution" class="btn btn-link p-0 me-3 text-muted" onclick={handleCancel}>
                 <i class="bi bi-arrow-left fs-5"></i>
             </button>
             <div>
-                <div class="text-muted small">
-                    {$page.data?.institution?.name?.content || institution_id}
-                </div>
+                <div class="text-muted small">{$page.data?.institution?.name?.content || institution_id}</div>
                 <h1 class="h4 mb-0">{asset.filename}</h1>
             </div>
         </div>
 
         <div class="row">
-            <!-- Main Content Area - Media -->
+            <!-- Main Content - Media -->
             <div class="col-lg-8">
                 <h5 class="mb-3">Media</h5>
 
-                <!-- Large Image Display -->
+                <!-- Media Display -->
                 <div class="mb-4">
                     {#if asset.type === "image"}
                         <BaseImage
@@ -365,17 +198,9 @@
                             style="max-height: 500px; object-fit: contain; background-color: #f8f9fa;"
                         />
                     {:else}
-                        <div
-                            class="w-100 d-flex flex-column align-items-center justify-content-center rounded bg-light text-muted border"
-                            style="height: 400px;"
-                        >
-                            <i
-                                class="bi bi-file-earmark"
-                                style="font-size: 4rem;"
-                            ></i>
-                            <span class="mt-2 fw-medium"
-                                >{asset.type?.toUpperCase() || "FILE"}</span
-                            >
+                        <div class="w-100 d-flex flex-column align-items-center justify-content-center rounded bg-light text-muted border" style="height: 400px;">
+                            <i class="bi bi-file-earmark" style="font-size: 4rem;"></i>
+                            <span class="mt-2 fw-medium">{asset.type?.toUpperCase() || "FILE"}</span>
                             <span class="mt-1 small">{asset.filename}</span>
                         </div>
                     {/if}
@@ -390,58 +215,22 @@
                     <div class="col-6">
                         <div class="text-muted small">IMPORT DATE</div>
                         <div>
-                            {new Date(asset.created_at).toLocaleDateString(
-                                "en-GB",
-                                {
-                                    day: "numeric",
-                                    month: "long",
-                                    year: "numeric",
-                                },
-                            )}
+                            {new Date(asset.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
                         </div>
                     </div>
                 </div>
 
                 <!-- Media Metadata Form -->
                 <h5 class="mb-3">Media metadata</h5>
-                <form
-                    onsubmit={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        form.handleSubmit();
-                    }}
-                >
+                <form onsubmit={(e) => { e.preventDefault(); e.stopPropagation(); form.handleSubmit(); }}>
                     <AutoForm
                         {form}
                         {validator}
                         {createFieldValidator}
                         {languages}
-                        translatableFields={[
-                            "description",
-                            "copyright",
-                            "author",
-                        ]}
-                        uiSchema={{
-                            description: {
-                                label: "Description",
-                                type: "textarea",
-                                colSize: 12,
-                                required: false,
-                            },
-                            copyright: {
-                                label: "Copyright",
-                                type: "textarea",
-                                colSize: 12,
-                                required: false,
-                            },
-                            author: {
-                                label: "Author",
-                                type: "textarea",
-                                colSize: 12,
-                                required: false,
-                            },
-                        }}
-                        fieldOrder={["description", "copyright", "author"]}
+                        translatableFields={TRANSLATABLE_FIELDS}
+                        {uiSchema}
+                        fieldOrder={TRANSLATABLE_FIELDS}
                     />
                 </form>
             </div>
@@ -450,85 +239,31 @@
             <div class="col-lg-4">
                 <h5 class="mb-3">Linked objects</h5>
 
-                {#if visibleLinkedObjects && visibleLinkedObjects.length > 0}
+                {#if visibleLinkedObjects?.length > 0}
                     {#each visibleLinkedObjects as objectAsset}
-                        <!-- Linked Object Item -->
-                        <div
-                            class="d-flex flex-column align-items-start gap-2 mb-3 p-2 border rounded"
-                        >
+                        <div class="d-flex flex-column align-items-start gap-2 mb-3 p-2 border rounded">
                             <div class="d-flex flex-row gap-2">
                                 <BaseImage
-                                    src={objectAsset.object?.objectsAssets?.[0]
-                                        ?.asset?.path
-                                        ? `media://${objectAsset.object.objectsAssets[0].asset.path}`
-                                        : null}
-                                    alt={getObjectDisplayName(
-                                        objectAsset.object,
-                                    )}
+                                    src={getObjectImageUrl(objectAsset.object, 'sm')}
+                                    alt={getObjectDisplayName(objectAsset.object)}
                                     class="rounded"
                                     style="width: 68px; height: 68px; object-fit: cover;"
                                     format="sm"
                                 />
 
                                 <div class="d-flex flex-column">
-                                    <span class="fw-medium mb-2"
-                                        >{getObjectDisplayName(
-                                            objectAsset.object,
-                                        )}</span
-                                    >
-                                    <button
-                                        class="btn btn-sm px-0 btn-link text-danger text-decoration-none"
-                                        onclick={() =>
-                                            handleUnlinkObject(
-                                                objectAsset.object_id,
-                                            )}
-                                    >
-                                        <i class="bi bi-dash-circle"></i> Unlink
-                                        media
+                                    <span class="fw-medium mb-2">{getObjectDisplayName(objectAsset.object)}</span>
+                                    <button class="btn btn-sm px-0 btn-link text-danger text-decoration-none" onclick={() => handleUnlinkObject(objectAsset.object_id)}>
+                                        <i class="bi bi-dash-circle"></i> Unlink media
                                     </button>
                                 </div>
-
-                                <!-- Display Fields -->
-                                <!--
-                                {#if data.displayFields && data.displayFields.length > 0}
-                                    <div class="small text-muted">
-                                        {#each data.displayFields as displayField}
-                                            {@const fieldValue =
-                                                getDisplayFieldValue(
-                                                    objectAsset.object,
-                                                    displayField,
-                                                )}
-                                            {#if fieldValue}
-                                                <div
-                                                    class="d-flex justify-content-between align-items-center py-1 border-bottom border-light"
-                                                >
-                                                    <span
-                                                        class="text-truncate"
-                                                        style="max-width: 60%;"
-                                                        >{displayField.name
-                                                            ?.content ||
-                                                            displayField.value}:</span
-                                                    >
-                                                    <span
-                                                        class="fw-medium text-end"
-                                                        style="max-width: 40%;"
-                                                        >{fieldValue}</span
-                                                    >
-                                                </div>
-                                            {/if}
-                                        {/each}
-                                    </div>
-                                {/if}-->
                             </div>
                         </div>
                     {/each}
                 {/if}
 
                 <!-- Link Object Button -->
-                <button
-                    class="btn btn-outline-primary w-100"
-                    onclick={openLinkObjectsModal}
-                >
+                <button class="btn btn-outline-primary w-100" onclick={openLinkObjectsModal}>
                     <i class="bi bi-plus-circle me-2"></i> Link object
                 </button>
             </div>
@@ -540,20 +275,8 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-12 d-flex justify-content-end gap-2 p-2">
-                    <BaseButton
-                        type="button"
-                        class="btn btn-sm btn-outline-danger"
-                        text="Delete Asset"
-                        icon="trash"
-                        onClick={openDeleteModal}
-                    />
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-success"
-                        onclick={handleSave}
-                    >
-                        Save Changes
-                    </button>
+                    <BaseButton type="button" class="btn btn-sm btn-outline-danger" text="Delete Asset" icon="trash" onClick={openDeleteModal} />
+                    <button type="button" class="btn btn-sm btn-success" onclick={handleSave}>Save Changes</button>
                 </div>
             </div>
         </div>
@@ -562,36 +285,17 @@
 
 <!-- Delete Confirmation Modal -->
 <BaseModal bind:isOpen={showDeleteModal}>
-    {#snippet header()}
-        Confirm Deletion
-    {/snippet}
-
+    {#snippet header()}Confirm Deletion{/snippet}
     {#snippet body()}
-        <p>
-            Are you sure you want to delete this asset? This action cannot be
-            undone.
-        </p>
+        <p>Are you sure you want to delete this asset? This action cannot be undone.</p>
     {/snippet}
-
     {#snippet actions()}
-        <BaseButton
-            type="button"
-            class="btn btn-secondary"
-            text="Cancel"
-            onClick={cancelDelete}
-            disabled={isDeleting}
-        />
-        <BaseButton
-            type="button"
-            class="btn btn-danger"
-            text={isDeleting ? "Deleting..." : "Confirm and delete"}
-            onClick={confirmDeleteAsset}
-            disabled={isDeleting}
-        />
+        <BaseButton type="button" class="btn btn-secondary" text="Cancel" onClick={cancelDelete} disabled={isDeleting} />
+        <BaseButton type="button" class="btn btn-danger" text={isDeleting ? "Deleting..." : "Confirm and delete"} onClick={confirmDeleteAsset} disabled={isDeleting} />
     {/snippet}
 </BaseModal>
 
-<!-- Link Objects Modal Component -->
+<!-- Link Objects Modal -->
 <LinkObjectsModal
     bind:isOpen={showLinkObjectsModal}
     projectId={project_id}
