@@ -10,6 +10,43 @@ export const getDatasources = async (options) => {
     return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch data sources or unexpected response structure") };
 };
 
+// Fetch datasources linked to a specific object
+export const getDatasourcesByObject = async (objectId) => {
+    if (!objectId) {
+        return { items: [], totalCount: 0, error: "Missing object ID" };
+    }
+    
+    const result = await executeQuery('datasources', 'list', { 
+        objectId: objectId,  // Use camelCase to match GraphQL variable name
+        page: 0,
+        pageSize: 100 // Get all datasources for the object
+    });
+    
+    if (result && result.result) {
+        return { items: result.result || [], totalCount: result.result.length || 0 };
+    }
+    return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch data sources for object") };
+};
+
+// Unlink a datasource from an object by removing ontology field associations
+export const unlinkDatasourceFromObject = async (objectId, datasourceId) => {
+    if (!objectId || !datasourceId) {
+        return { deletedCount: 0, error: "Missing object or datasource ID" };
+    }
+
+    try {
+        const result = await executeQuery('datasources', 'unlinkObjectFromDatasource', {
+            objectId,
+            datasourceId
+        });
+
+        const deletedCount = (result?.deletedCount ?? 0);
+        return { deletedCount, error: null };
+    } catch (error) {
+        return { deletedCount: 0, error };
+    }
+};
+
 // Get a single datasource by ID
 export const getDatasource = async (datasourceId) => {
     if (!datasourceId) {

@@ -20,7 +20,8 @@ import {
     createObjectImportUsingTemplateMutation,
     createResearchFieldObjectsCountQuery,
     createProjectCreateMutation,
-    createAssetsObjectsBulkLinkMutation
+    createAssetsObjectsBulkLinkMutation,
+    createObjectsOntologyFieldsUnlinkMutation
 } from './queries';
 
 export function createGraphQLSchema(db) {
@@ -106,6 +107,8 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Mutation._fields.createProjectWithDefaults = createProjectCreateMutation(db, drizzleResult);
     // Bulk link assets to objects
     drizzleResult.schema._typeMap.Mutation._fields.linkAssetsToObjectsBulk = createAssetsObjectsBulkLinkMutation(db, drizzleResult);
+    // Unlink datasource from object
+    drizzleResult.schema._typeMap.Mutation._fields.unlinkDatasourceFromObject = createObjectsOntologyFieldsUnlinkMutation(db, drizzleResult);
 
     return { schema: drizzleResult.schema, resolvers: drizzleResult.resolvers };
 };

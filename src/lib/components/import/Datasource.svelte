@@ -96,6 +96,7 @@
   const uiSchema = $derived({
     languageId: { hidden: true },
     templateId: { hidden: true },
+    source: { hidden: true },
     name: { label: t("common.datasource-name", { fallback: "Datasource Name" }), colSize: 6 },
     method: { type: "textarea", label: t("common.method", { fallback: "Method" }), colSize: 6 },
     notes: { type: "textarea", label: t("common.notes", { fallback: "Notes" }), colSize: 6 },

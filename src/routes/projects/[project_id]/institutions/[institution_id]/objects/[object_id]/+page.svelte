@@ -1,5 +1,4 @@
 <script>
-  import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import ObjectResearchFields from "$lib/components/objects/ObjectResearchFields.svelte";
   import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
   import ObjectOntologyFields from "$lib/components/objects/ObjectOntologyFields.svelte";
@@ -315,7 +314,7 @@
             {defaultLanguageId}
             onChangesUpdate={handleComponentChanges}
           />
-          <ObjectOntologyFields object={data.object} />
+          <ObjectOntologyFields object={data.object} datasources={data.datasources} />
         </div>
         <div class="col-4">
           <ObjectLinkedMedia

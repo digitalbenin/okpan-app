@@ -21,6 +21,7 @@
         data: $state.snapshot(finalData),
         mapping: $state.snapshot(wizard.mapping),
         datasourceId: $state.snapshot(wizard.datasourceId),
+        sourceFileName: wizard.file?.fileName || null,
       };
       console.log("Save parameters:", saveParams);
 
