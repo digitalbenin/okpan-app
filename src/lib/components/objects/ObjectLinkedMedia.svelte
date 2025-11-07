@@ -255,75 +255,75 @@
             {#each displayAssets as objectAsset, index (objectAsset.id)}
                 {@const asset = objectAsset.asset}
                 <div
-                    class="d-flex align-items-center gap-3 mb-3 p-3 bg-white border border-secondary border-opacity-25 rounded"
+                    class="d-flex align-items-stretch gap-2 mb-3"
                     animate:flip={{ duration: flipDurationMs }}
                 >
-                    <!-- Asset thumbnail -->
-                    <div
-                        class="flex-shrink-0"
-                        style="cursor: pointer;"
-                        role="button"
-                        tabindex="0"
-                        onclick={() => handleViewMedia(asset)}
-                        onkeydown={(e) =>
-                            e.key === "Enter" && handleViewMedia(asset)}
-                    >
-                        <BaseImage
-                            src={asset?.path ? `media://${asset.path}` : null}
-                            alt={asset?.filename || "Asset"}
-                            width={64}
-                            height={64}
-                            class="rounded"
-                            ratio="1/1"
-                        />
-                    </div>
-
-                    <!-- Asset info -->
-                    <div class="flex-grow-1 min-w-0 me-3 overflow-hidden">
+                    <!-- Main media card -->
+                    <div class="flex-grow-1 bg-white border border-secondary border-opacity-25 rounded overflow-hidden">
+                        <!-- Asset thumbnail (square) -->
                         <div
-                            class="fw-medium text-truncate"
-                            style="cursor: pointer;"
+                            class="w-100"
+                            style="cursor: pointer; position: relative; padding-bottom: 100%;"
                             role="button"
                             tabindex="0"
                             onclick={() => handleViewMedia(asset)}
                             onkeydown={(e) =>
                                 e.key === "Enter" && handleViewMedia(asset)}
                         >
-                            {asset?.filename || "Unnamed file"}
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                                <BaseImage
+                                    src={asset?.path ? `media://${asset.path}` : null}
+                                    alt={asset?.filename || "Asset"}
+                                    class="w-100 h-100"
+                                    style="object-fit: contain;"
+                                />
+                            </div>
+                            {#if getAssetType(asset) === "video"}
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
+                                    <i class="bi bi-play-circle-fill text-white" style="font-size: 3rem; opacity: 0.8;"></i>
+                                </div>
+                            {/if}
+                            {#if getAssetType(asset) === "audio"}
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
+                                    <i class="bi bi-music-note-beamed text-white" style="font-size: 3rem; opacity: 0.8;"></i>
+                                </div>
+                            {/if}
                         </div>
-                        {#if asset?.type}
-                            <small class="text-muted">
-                                {asset.type.toUpperCase()}
-                            </small>
-                        {/if}
+
+                        <!-- Asset info -->
+                        <div class="p-2">
+                            <div class="text-truncate small mb-2" title={asset?.filename || "Unnamed file"}>
+                                {asset?.filename || "Unnamed file"}
+                            </div>
+
+                            <!-- Unlink button -->
+                            <button
+                                class="btn btn-sm btn-link text-danger p-0 text-decoration-none d-flex align-items-center gap-1"
+                                type="button"
+                                onclick={(e) => {
+                                    e.stopPropagation();
+                                    handleAssetRemove(objectAsset.asset.id);
+                                }}
+                            >
+                                <i class="bi bi-dash-circle"></i>
+                                <span class="small">
+                                    {t("objects.linked_media.unlink", {
+                                        fallback: "Unlink media",
+                                    })}
+                                </span>
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Actions -->
-                    <div class="flex-shrink-0 d-flex align-items-center gap-1">
-                        <!-- Drag handle -->
+                    <!-- Drag handle on the right -->
+                    <div class="flex-shrink-0 d-flex align-items-center">
                         <button
                             class="btn btn-link text-muted p-1 drag-handle"
                             style="cursor: grab;"
                             aria-label="drag item"
                             use:dragHandle
-                            ><i class="bi bi-grip-vertical"></i>
-                        </button>
-                        <!-- Unlink button -->
-                        <button
-                            class="btn btn-link text-danger p-1"
-                            type="button"
-                            aria-label={t("objects.linked_media.unlink", {
-                                fallback: "Unlink media",
-                            })}
-                            title={t("objects.linked_media.unlink", {
-                                fallback: "Unlink media",
-                            })}
-                            onclick={(e) => {
-                                e.stopPropagation();
-                                handleAssetRemove(objectAsset.asset.id);
-                            }}
                         >
-                            <i class="bi bi-dash-circle"></i>
+                            <i class="bi bi-grip-vertical"></i>
                         </button>
                     </div>
                 </div>

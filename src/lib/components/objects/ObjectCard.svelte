@@ -34,6 +34,11 @@
     };
   };
 
+  const sortedAssets = $derived.by(() => {
+    if (!object?.objectsAssets || object.objectsAssets.length === 0) return [];
+    return [...object.objectsAssets].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  });
+
   const parsedFields = $derived.by(() => {
     return displayFields.result.map((field) => {
       if (field.type === "object_property") {
@@ -76,10 +81,10 @@
     <div><i class="bi bi-three-dots-vertical"></i></div>
   </div>
   <div class="bg-light rounded ratio ratio-1x1 mb-3">
-    {#if object.objectsAssets && object.objectsAssets.length > 0}
+    {#if sortedAssets.length > 0}
       <div>
         <div
-          class:d-none={object.objectsAssets.length === 1}
+          class:d-none={sortedAssets.length === 1}
           class="position-absolute top-50 start-0 translate-middle-y z-2 ps-1"
         >
           <button
@@ -89,7 +94,7 @@
         </div>
         <div class="swiper w-100 h-100" {@attach attachSwiper}>
           <div class="swiper-wrapper">
-            {#each object.objectsAssets as image, i (image.asset.id + '-' + i)}
+            {#each sortedAssets as image, i (image.asset.id + '-' + i)}
               <div class="swiper-slide">
                 <img
                   class="object-fit-contain w-100 h-100"
@@ -102,7 +107,7 @@
           </div>
         </div>
         <div
-          class:d-none={object.objectsAssets.length === 1}
+          class:d-none={sortedAssets.length === 1}
           class="position-absolute top-50 end-0 translate-middle-y z-2 pe-1"
         >
           <button
