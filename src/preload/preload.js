@@ -1,7 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 
 contextBridge.exposeInMainWorld('api', {
@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('api', {
     selectBackupFile: () => ipcRenderer.invoke('backup-select-file'),
     checkBackupFile: (options) => ipcRenderer.invoke('backup-check-file', options),
     restoreBackup: (options) => ipcRenderer.invoke('backup-restore', options),
+    getPathForFile: (file) => webUtils.getPathForFile(file),
     openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options),
     readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
     importStructuredData: (options) => ipcRenderer.invoke('import-structured-data', options),
@@ -41,4 +42,5 @@ contextBridge.exposeInMainWorld('api', {
     removeImportProgressListeners: () => ipcRenderer.removeAllListeners('import-assets-progress'),
     openPreview: (projectId) => ipcRenderer.send('open-preview', projectId)
 });
+
 

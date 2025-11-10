@@ -1,6 +1,7 @@
 <script>
   import { fade } from "svelte/transition";
   import { AlertDialog } from "bits-ui";
+  import { onDestroy } from 'svelte';
 
   let {
     open = $bindable(false),
@@ -14,6 +15,22 @@
     size = "",
     ...restProps
   } = $props();
+
+  // Workaround for bits-ui pointer-events bug
+  $effect(() => {
+    if (!open) {
+      setTimeout(() => {
+        document.body.style.pointerEvents = '';
+      }, 150);
+    }
+  });
+
+  // Also clean up on component destroy
+  onDestroy(() => {
+    setTimeout(() => {
+      document.body.style.pointerEvents = '';
+    }, 100);
+  });
 </script>
 
 <AlertDialog.Root bind:open {...restProps} class="modal d-block">
