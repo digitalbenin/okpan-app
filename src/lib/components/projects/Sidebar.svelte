@@ -47,6 +47,11 @@
       url: `/projects/${page.data.project.id}/import-assets`,
       icon: "box-arrow-in-right",
     },
+    {
+      label: t("menu.export-data", { fallback: "Export Data" }),
+      url: `/projects/${page.data.project.id}/export`,
+      icon: "box-arrow-up-right",
+    },
   ]);
 
   const websiteLinks = $derived([
@@ -82,15 +87,20 @@
       ],
     },
     {
-      label: t("menu.export", { fallback: "Export" }),
-      url: `/projects/${page.data.project.id}/export`,
-      icon: "box-arrow-left",
-      exact: true,
-    },
-    {
-      label: t("menu.settings", { fallback: "Settings" }),
-      url: `/projects/${page.data.project.id}/settings`,
+      label: t("menu.settings", { fallback: "Project Settings" }),
       icon: "gear-fill",
+      children: [
+        {
+          label: t("menu.general", { fallback: "General" }),
+          url: `/projects/${page.data.project.id}/settings`,
+          icon: "",
+        },
+        {
+          label: t("menu.sharing", { fallback: "Sharing" }),
+          url: `/projects/${page.data.project.id}/settings/sharing`,
+          icon: "",
+        },
+      ],
     },
   ]);
 </script>

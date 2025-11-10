@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
     importAssets: (data) => ipcRenderer.invoke('import-assets', data),
     // Removed legacy exportProjectSql in favor of unified exportProject
     exportProject: (options) => ipcRenderer.invoke('export-project', options),
+    createBackup: (options) => ipcRenderer.invoke('backup-create', options),
     openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options),
     readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
     importStructuredData: (options) => ipcRenderer.invoke('import-structured-data', options),

@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain, dialog, protocol } from 'electron';
 import started from 'electron-squirrel-startup';
 import 'dotenv/config';
 import path from 'path';
-import net from 'net';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -27,6 +26,7 @@ import { ontology_fields, texts } from '../db/schema.js';
 import { eq, sql, isNull } from 'drizzle-orm';
 import { handleExportProject } from './handlers/exportHandlers.js';
 import { handleListLanguages } from './handlers/languagesHandlers.js';
+import { handleCreateBackup } from './handlers/backupHandler.js';
 
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
@@ -58,6 +58,11 @@ ipcMain.handle('languages:list', handleListLanguages);
 // New generic export channel supports { format: 'sql' | 'json', ... }
 ipcMain.handle('export-project', (event, options) =>
   handleExportProject(event, options, { db })
+);
+
+// Backup handler
+ipcMain.handle('backup-create', (event, options) =>
+  handleCreateBackup(event, options, { db })
 );
 
 // Project cache handlers

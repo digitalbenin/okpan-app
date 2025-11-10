@@ -1,0 +1,614 @@
+import path from 'path';
+import os from 'os';
+import fs from 'fs';
+import fsPromises from 'fs/promises';
+import yazl from 'yazl';
+import { eq, inArray } from 'drizzle-orm';
+import * as dbSchema from '../../db/schema.js';
+
+const sqlEscape = (val) => String(val).replace(/'/g, "''");
+
+const formatValue = (val) => {
+  if (val === null || val === undefined) return 'NULL';
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'boolean') return val ? '1' : '0';
+  if (typeof val === 'object') return `'${sqlEscape(JSON.stringify(val))}'`;
+  return `'${sqlEscape(val)}'`;
+};
+
+const generateInsertStatements = (tableName, rows) => {
+  if (!rows || rows.length === 0) return '';
+  const allCols = Array.from(
+    rows.reduce((set, row) => {
+      Object.keys(row).forEach((k) => set.add(k));
+      return set;
+    }, new Set())
+  );
+  const colList = allCols.map((c) => `"${c}"`).join(', ');
+  return rows
+    .map((row) => {
+      const values = allCols.map((c) => formatValue(row[c]));
+      return `INSERT OR REPLACE INTO ${tableName} (${colList}) VALUES (${values.join(', ')});`;
+    })
+    .join('\n') + '\n';
+};
+
+const generateSchemaDDL = () => {
+  const ddls = [];
+  const push = (table, createSql) => {
+    ddls.push(createSql.trim().replace(/;?$/, ';'));
+  };
+
+  push('project', `CREATE TABLE IF NOT EXISTS project (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    title_id TEXT REFERENCES texts(id),
+    description_id TEXT REFERENCES texts(id),
+    exports TEXT,
+    password TEXT
+  )`);
+
+  push('languages', `CREATE TABLE IF NOT EXISTS languages (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    project_id TEXT NOT NULL REFERENCES project(id),
+    code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    is_default INTEGER NOT NULL DEFAULT 0
+  )`);
+
+  push('texts', `CREATE TABLE IF NOT EXISTS texts (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    content TEXT NOT NULL,
+    context TEXT NOT NULL,
+    original_language_id TEXT NOT NULL REFERENCES languages(id)
+  )`);
+
+  push('translations', `CREATE TABLE IF NOT EXISTS translations (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    text_id TEXT NOT NULL REFERENCES texts(id),
+    language_id TEXT NOT NULL REFERENCES languages(id),
+    content TEXT NOT NULL
+  )`);
+
+  push('institutions', `CREATE TABLE IF NOT EXISTS institutions (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    name_id TEXT NOT NULL REFERENCES texts(id),
+    description_id TEXT REFERENCES texts(id),
+    country_id TEXT REFERENCES texts(id),
+    location_id TEXT REFERENCES texts(id),
+    lon INTEGER,
+    lat INTEGER,
+    website TEXT,
+    links TEXT,
+    project_id TEXT REFERENCES project(id),
+    status TEXT,
+    logo TEXT
+  )`);
+
+  push('assets', `CREATE TABLE IF NOT EXISTS assets (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    filename TEXT,
+    path TEXT,
+    type TEXT,
+    formats TEXT,
+    properties TEXT,
+    institution_id TEXT REFERENCES institutions(id) ON DELETE CASCADE,
+    project_id TEXT REFERENCES project(id)
+  )`);
+
+  push('generic_assets', `CREATE TABLE IF NOT EXISTS generic_assets (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    filename TEXT,
+    path TEXT,
+    type TEXT,
+    formats TEXT,
+    properties TEXT,
+    project_id TEXT REFERENCES project(id)
+  )`);
+
+  push('research_fields', `CREATE TABLE IF NOT EXISTS research_fields (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    name_id TEXT REFERENCES texts(id),
+    type TEXT,
+    description_id TEXT REFERENCES texts(id),
+    project_id TEXT REFERENCES project(id),
+    private INTEGER NOT NULL DEFAULT 0,
+    onwebsite INTEGER NOT NULL DEFAULT 1
+  )`);
+
+  push('vocabularies', `CREATE TABLE IF NOT EXISTS vocabularies (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    option_id TEXT REFERENCES texts(id),
+    description_id TEXT REFERENCES texts(id),
+    main_asset_id TEXT REFERENCES generic_assets(id),
+    field_id TEXT REFERENCES research_fields(id) ON DELETE CASCADE
+  )`);
+
+  push('vocabularies_generic_assets', `CREATE TABLE IF NOT EXISTS vocabularies_generic_assets (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    vocabulary_id TEXT REFERENCES vocabularies(id) ON DELETE CASCADE,
+    generic_asset_id TEXT REFERENCES generic_assets(id) ON DELETE CASCADE,
+    "order" INTEGER
+  )`);
+
+  push('ontology_fields', `CREATE TABLE IF NOT EXISTS ontology_fields (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    name_id TEXT REFERENCES texts(id),
+    description_id TEXT REFERENCES texts(id),
+    category_id TEXT REFERENCES texts(id),
+    embeddings TEXT,
+    onwebsite INTEGER DEFAULT 1,
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE
+  )`);
+
+  push('templates', `CREATE TABLE IF NOT EXISTS templates (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    mapping TEXT,
+    project_id TEXT REFERENCES project(id) ON DELETE CASCADE,
+    asset_map_rule TEXT
+  )`);
+
+  push('datasources', `CREATE TABLE IF NOT EXISTS datasources (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    name_id TEXT REFERENCES texts(id),
+    institution_id TEXT REFERENCES institutions(id) ON DELETE CASCADE,
+    template_id TEXT REFERENCES templates(id),
+    source TEXT,
+    language TEXT,
+    copyright TEXT,
+    method_id TEXT REFERENCES texts(id),
+    contact TEXT,
+    notes_id TEXT REFERENCES texts(id),
+    date INTEGER
+  )`);
+
+  push('objects', `CREATE TABLE IF NOT EXISTS objects (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status TEXT,
+    name TEXT,
+    institution_id TEXT REFERENCES institutions(id) ON DELETE CASCADE,
+    project_id TEXT REFERENCES project(id)
+  )`);
+
+  push('objects_research_fields', `CREATE TABLE IF NOT EXISTS objects_research_fields (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    object_id TEXT REFERENCES objects(id) ON DELETE CASCADE,
+    field_id TEXT REFERENCES research_fields(id) ON DELETE CASCADE,
+    vocabulary_id TEXT REFERENCES vocabularies(id) ON DELETE CASCADE,
+    value TEXT
+  )`);
+
+  push('objects_ontology_fields', `CREATE TABLE IF NOT EXISTS objects_ontology_fields (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    label TEXT,
+    value TEXT,
+    object_id TEXT REFERENCES objects(id) ON DELETE CASCADE,
+    field_id TEXT REFERENCES ontology_fields(id),
+    datasources_id TEXT REFERENCES datasources(id),
+    "primary" INTEGER,
+    default_description INTEGER
+  )`);
+
+  push('objects_assets', `CREATE TABLE IF NOT EXISTS objects_assets (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    asset_id TEXT REFERENCES assets(id) ON DELETE CASCADE,
+    object_id TEXT REFERENCES objects(id) ON DELETE CASCADE,
+    "order" INTEGER
+  )`);
+
+  push('assets_institutions', `CREATE TABLE IF NOT EXISTS assets_institutions (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    asset_id TEXT REFERENCES assets(id) ON DELETE CASCADE,
+    institution_id TEXT REFERENCES institutions(id) ON DELETE CASCADE,
+    rule TEXT
+  )`);
+
+  push('settings', `CREATE TABLE IF NOT EXISTS settings (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    username TEXT,
+    password TEXT,
+    sync_url TEXT,
+    sig_server TEXT,
+    project_id TEXT REFERENCES project(id)
+  )`);
+
+  push('object_display_fields', `CREATE TABLE IF NOT EXISTS object_display_fields (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    ontology_field_id TEXT REFERENCES ontology_fields(id) ON DELETE CASCADE,
+    research_field_id TEXT REFERENCES research_fields(id) ON DELETE CASCADE,
+    property_name TEXT
+  )`);
+
+  push('website_settings', `CREATE TABLE IF NOT EXISTS website_settings (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    title_id TEXT REFERENCES texts(id),
+    about_id TEXT REFERENCES texts(id),
+    authors TEXT,
+    logo_id TEXT REFERENCES generic_assets(id),
+    subfolder_path TEXT,
+    show_unmapped INTEGER NOT NULL DEFAULT 0,
+    project_id TEXT REFERENCES project(id)
+  )`);
+
+  push('imports', `CREATE TABLE IF NOT EXISTS imports (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    filename TEXT,
+    data TEXT,
+    template_id TEXT REFERENCES templates(id)
+  )`);
+
+  return ddls.join('\n') + '\n';
+};
+
+async function ensureDir(dirPath) {
+  await fsPromises.mkdir(dirPath, { recursive: true });
+}
+
+async function copyFileIfExists(src, dest) {
+  try {
+    await ensureDir(path.dirname(dest));
+    await fsPromises.copyFile(src, dest);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function createZipFromFolder(folderPath, zipPath) {
+  await ensureDir(path.dirname(zipPath));
+  return new Promise(async (resolve, reject) => {
+    try {
+      const zipfile = new yazl.ZipFile();
+      const out = fs.createWriteStream(zipPath);
+      zipfile.outputStream.pipe(out).on('close', () => resolve(true));
+
+      async function addDir(dir) {
+        const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            await addDir(fullPath);
+          } else if (entry.isFile()) {
+            const relPath = path.relative(folderPath, fullPath).replace(/\\/g, '/');
+            zipfile.addFile(fullPath, relPath);
+          }
+        }
+      }
+
+      await addDir(folderPath);
+      zipfile.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+export async function createProjectBackup(options, { db }) {
+  const { project_id, filePath } = options || {};
+  
+  if (!project_id) {
+    throw new Error('project_id is required');
+  }
+  
+  if (!filePath) {
+    throw new Error('filePath is required');
+  }
+
+  // Ensure the file has .dctx extension
+  const backupPath = filePath.toLowerCase().endsWith('.dctx') 
+    ? filePath 
+    : filePath + '.dctx';
+
+  const projects = await db.select().from(dbSchema.project)
+    .where(eq(dbSchema.project.id, project_id))
+    .execute();
+  
+  if (!projects || projects.length === 0) {
+    throw new Error(`Project ${project_id} not found`);
+  }
+  const project = projects[0];
+
+  const languages = await db.select().from(dbSchema.languages)
+    .where(eq(dbSchema.languages.project_id, project_id))
+    .execute();
+  const languageIds = languages.map(l => l.id);
+
+  // Collect all text IDs from the project and related entities
+  const textIds = new Set();
+  if (project.title_id) textIds.add(project.title_id);
+  if (project.description_id) textIds.add(project.description_id);
+
+  // Settings
+  const settings = await db.select().from(dbSchema.settings)
+    .where(eq(dbSchema.settings.project_id, project_id))
+    .execute();
+
+  // Website settings
+  const websiteSettings = await db.select().from(dbSchema.websiteSettings)
+    .where(eq(dbSchema.websiteSettings.project_id, project_id))
+    .execute();
+  
+  websiteSettings.forEach(ws => {
+    if (ws.title_id) textIds.add(ws.title_id);
+    if (ws.about_id) textIds.add(ws.about_id);
+  });
+
+  // Object display fields
+  const objectDisplayFields = await db.select().from(dbSchema.object_display_fields)
+    .where(eq(dbSchema.object_display_fields.project_id, project_id))
+    .execute();
+
+  // Institutions
+  const institutions = await db.select().from(dbSchema.institutions)
+    .where(eq(dbSchema.institutions.project_id, project_id))
+    .execute();
+  
+  institutions.forEach(inst => {
+    if (inst.name_id) textIds.add(inst.name_id);
+    if (inst.description_id) textIds.add(inst.description_id);
+    if (inst.country_id) textIds.add(inst.country_id);
+    if (inst.location_id) textIds.add(inst.location_id);
+  });
+  const institutionIds = institutions.map(i => i.id);
+
+  // Research fields
+  const researchFields = await db.select().from(dbSchema.research_fields)
+    .where(eq(dbSchema.research_fields.project_id, project_id))
+    .execute();
+  
+  researchFields.forEach(rf => {
+    if (rf.name_id) textIds.add(rf.name_id);
+    if (rf.description_id) textIds.add(rf.description_id);
+  });
+  const researchFieldIds = researchFields.map(rf => rf.id);
+
+  // Vocabularies
+  const vocabularies = researchFieldIds.length > 0
+    ? await db.select().from(dbSchema.vocabularies)
+        .where(inArray(dbSchema.vocabularies.field_id, researchFieldIds))
+        .execute()
+    : [];
+  
+  vocabularies.forEach(v => {
+    if (v.option_id) textIds.add(v.option_id);
+    if (v.description_id) textIds.add(v.description_id);
+  });
+  const vocabularyIds = vocabularies.map(v => v.id);
+
+  // Vocabularies generic assets junction
+  const vocabulariesGenericAssets = vocabularyIds.length > 0
+    ? await db.select().from(dbSchema.vocabularies_generic_assets)
+        .where(inArray(dbSchema.vocabularies_generic_assets.vocabulary_id, vocabularyIds))
+        .execute()
+    : [];
+
+  // Ontology fields
+  const ontologyFields = await db.select().from(dbSchema.ontology_fields)
+    .where(eq(dbSchema.ontology_fields.project_id, project_id))
+    .execute();
+  
+  ontologyFields.forEach(of => {
+    if (of.name_id) textIds.add(of.name_id);
+    if (of.description_id) textIds.add(of.description_id);
+    if (of.category_id) textIds.add(of.category_id);
+  });
+  const ontologyFieldIds = ontologyFields.map(of => of.id);
+
+  // Templates
+  const templates = await db.select().from(dbSchema.templates)
+    .where(eq(dbSchema.templates.project_id, project_id))
+    .execute();
+  const templateIds = templates.map(t => t.id);
+
+  // Imports
+  const imports = templateIds.length > 0
+    ? await db.select().from(dbSchema.imports)
+        .where(inArray(dbSchema.imports.template_id, templateIds))
+        .execute()
+    : [];
+
+  // Datasources
+  const datasources = institutionIds.length > 0
+    ? await db.select().from(dbSchema.datasources)
+        .where(inArray(dbSchema.datasources.institution_id, institutionIds))
+        .execute()
+    : [];
+  
+  datasources.forEach(ds => {
+    if (ds.name_id) textIds.add(ds.name_id);
+    if (ds.method_id) textIds.add(ds.method_id);
+    if (ds.notes_id) textIds.add(ds.notes_id);
+  });
+  const datasourceIds = datasources.map(ds => ds.id);
+
+  // Objects
+  const objects = await db.select().from(dbSchema.objects)
+    .where(eq(dbSchema.objects.project_id, project_id))
+    .execute();
+  const objectIds = objects.map(o => o.id);
+
+  // Objects relationships
+  const objectsResearchFields = objectIds.length > 0
+    ? await db.select().from(dbSchema.objects_research_fields)
+        .where(inArray(dbSchema.objects_research_fields.object_id, objectIds))
+        .execute()
+    : [];
+
+  const objectsOntologyFields = objectIds.length > 0
+    ? await db.select().from(dbSchema.objects_ontology_fields)
+        .where(inArray(dbSchema.objects_ontology_fields.object_id, objectIds))
+        .execute()
+    : [];
+
+  const objectsAssets = objectIds.length > 0
+    ? await db.select().from(dbSchema.objects_assets)
+        .where(inArray(dbSchema.objects_assets.object_id, objectIds))
+        .execute()
+    : [];
+
+  // Assets
+  const assets = await db.select().from(dbSchema.assets)
+    .where(eq(dbSchema.assets.project_id, project_id))
+    .execute();
+  const assetIds = assets.map(a => a.id);
+
+  // Assets institutions junction
+  const assetsInstitutions = assetIds.length > 0
+    ? await db.select().from(dbSchema.assets_institutions)
+        .where(inArray(dbSchema.assets_institutions.asset_id, assetIds))
+        .execute()
+    : [];
+
+  // Generic assets
+  const genericAssets = await db.select().from(dbSchema.genericAssets)
+    .where(eq(dbSchema.genericAssets.project_id, project_id))
+    .execute();
+
+  // Texts and translations
+  const textIdsArray = Array.from(textIds);
+  const texts = textIdsArray.length > 0
+    ? await db.select().from(dbSchema.texts)
+        .where(inArray(dbSchema.texts.id, textIdsArray))
+        .execute()
+    : [];
+
+  const translations = textIdsArray.length > 0 && languageIds.length > 0
+    ? await db.select().from(dbSchema.translations)
+        .where(inArray(dbSchema.translations.text_id, textIdsArray))
+        .execute()
+    : [];
+
+  const tmpBase = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'backup-'));
+  const dataDir = path.join(tmpBase, 'data');
+  await ensureDir(dataDir);
+
+  const ddl = generateSchemaDDL();
+  const inserts = [
+    generateInsertStatements('project', [project]),
+    generateInsertStatements('languages', languages),
+    generateInsertStatements('texts', texts),
+    generateInsertStatements('translations', translations),
+    generateInsertStatements('settings', settings),
+    generateInsertStatements('website_settings', websiteSettings),
+    generateInsertStatements('object_display_fields', objectDisplayFields),
+    generateInsertStatements('institutions', institutions),
+    generateInsertStatements('research_fields', researchFields),
+    generateInsertStatements('vocabularies', vocabularies),
+    generateInsertStatements('vocabularies_generic_assets', vocabulariesGenericAssets),
+    generateInsertStatements('ontology_fields', ontologyFields),
+    generateInsertStatements('templates', templates),
+    generateInsertStatements('imports', imports),
+    generateInsertStatements('datasources', datasources),
+    generateInsertStatements('objects', objects),
+    generateInsertStatements('objects_research_fields', objectsResearchFields),
+    generateInsertStatements('objects_ontology_fields', objectsOntologyFields),
+    generateInsertStatements('objects_assets', objectsAssets),
+    generateInsertStatements('assets', assets),
+    generateInsertStatements('assets_institutions', assetsInstitutions),
+    generateInsertStatements('generic_assets', genericAssets),
+  ].join('\n');
+
+  const sqlContent = ddl + '\n' + inserts;
+  const sqlFile = path.join(dataDir, 'backup.sql');
+  await fsPromises.writeFile(sqlFile, sqlContent, 'utf-8');
+
+  let projectTitle = project.title_id;
+  if (project.title_id) {
+    const titleText = texts.find(t => t.id === project.title_id);
+    if (titleText) {
+      projectTitle = titleText.content;
+    }
+  }
+
+  const metadata = {
+    version: '1.0',
+    created_at: new Date().toISOString(),
+    project_id: project_id,
+    project_title: projectTitle,
+    counts: {
+      objects: objects.length,
+      institutions: institutions.length,
+      assets: assets.length,
+      genericAssets: genericAssets.length,
+      languages: languages.length,
+      texts: texts.length,
+      translations: translations.length,
+    }
+  };
+  await fsPromises.writeFile(
+    path.join(tmpBase, 'metadata.json'),
+    JSON.stringify(metadata, null, 2),
+    'utf-8'
+  );
+
+  const projectAssetsFolder = path.join(process.cwd(), 'src', 'assets', 'project_assets', project_id);
+  let copiedAssets = 0;
+  
+  if (fs.existsSync(projectAssetsFolder)) {
+    const assetsDestDir = path.join(tmpBase, 'project_assets');
+    await fsPromises.cp(projectAssetsFolder, assetsDestDir, { recursive: true });
+    
+    const files = await fsPromises.readdir(assetsDestDir, { recursive: true });
+    copiedAssets = files.filter(f => {
+      const fullPath = path.join(assetsDestDir, f);
+      return fs.statSync(fullPath).isFile();
+    }).length;
+  }
+
+  await createZipFromFolder(tmpBase, backupPath);
+
+  try {
+    await fsPromises.rm(tmpBase, { recursive: true, force: true });
+  } catch { }
+
+  return {
+    success: true,
+    filePath: backupPath,
+    metadata,
+    copiedAssets
+  };
+}
