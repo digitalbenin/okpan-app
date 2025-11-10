@@ -3,6 +3,7 @@ import os from 'os';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import yazl from 'yazl';
+import yauzl from 'yauzl';
 import { eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 
@@ -12,8 +13,23 @@ const formatValue = (val) => {
   if (val === null || val === undefined) return 'NULL';
   if (typeof val === 'number') return String(val);
   if (typeof val === 'boolean') return val ? '1' : '0';
-  if (typeof val === 'object') return `'${sqlEscape(JSON.stringify(val))}'`;
-  return `'${sqlEscape(val)}'`;
+  
+  // Handle Date objects - convert to Unix timestamp in milliseconds
+  if (val instanceof Date) {
+    return String(val.getTime());
+  }
+  
+  // Handle other objects/arrays
+  if (typeof val === 'object') {
+    return `'${sqlEscape(JSON.stringify(val))}'`;
+  }
+  
+  // Handle strings
+  if (typeof val === 'string') {
+    return `'${sqlEscape(val)}'`;
+  }
+  
+  return `'${sqlEscape(String(val))}'`;
 };
 
 const generateInsertStatements = (tableName, rows) => {
@@ -26,8 +42,31 @@ const generateInsertStatements = (tableName, rows) => {
   );
   const colList = allCols.map((c) => `"${c}"`).join(', ');
   return rows
-    .map((row) => {
-      const values = allCols.map((c) => formatValue(row[c]));
+    .map((row, rowIndex) => {
+      // Ensure created_at and updated_at have values
+      const processedRow = { ...row };
+      const now = Date.now();
+      
+      let hadNullTimestamp = false;
+      if (allCols.includes('created_at') && (processedRow.created_at === null || processedRow.created_at === undefined || processedRow.created_at === '')) {
+        console.warn(`[BACKUP] Table "${tableName}" row ${rowIndex} (id: ${row.id}): created_at is NULL, replacing with current timestamp`);
+        processedRow.created_at = now;
+        hadNullTimestamp = true;
+      }
+      if (allCols.includes('updated_at') && (processedRow.updated_at === null || processedRow.updated_at === undefined || processedRow.updated_at === '')) {
+        console.warn(`[BACKUP] Table "${tableName}" row ${rowIndex} (id: ${row.id}): updated_at is NULL, replacing with current timestamp`);
+        processedRow.updated_at = now;
+        hadNullTimestamp = true;
+      }
+      
+      // Check for any other NULL values in non-nullable fields
+      allCols.forEach(col => {
+        if (processedRow[col] === null || processedRow[col] === undefined) {
+          console.warn(`[BACKUP] Table "${tableName}" row ${rowIndex} (id: ${row.id}): column "${col}" is NULL`);
+        }
+      });
+      
+      const values = allCols.map((c) => formatValue(processedRow[c]));
       return `INSERT OR REPLACE INTO ${tableName} (${colList}) VALUES (${values.join(', ')});`;
     })
     .join('\n') + '\n';
@@ -527,29 +566,68 @@ export async function createProjectBackup(options, { db }) {
   await ensureDir(dataDir);
 
   const ddl = generateSchemaDDL();
+  // Insert in correct order to respect foreign key constraints:
+  // 1. Independent tables (no FK dependencies)
+  // 2. Tables that reference only step 1
+  // 3. Tables that reference step 1 & 2, etc.
   const inserts = [
+    // First: project (root entity)
     generateInsertStatements('project', [project]),
+    
+    // Second: languages (no FK to other tables)
     generateInsertStatements('languages', languages),
+    
+    // Third: texts (depends on languages)
     generateInsertStatements('texts', texts),
+    
+    // Fourth: translations (depends on texts and languages)
     generateInsertStatements('translations', translations),
+    
+    // Fifth: settings and website_settings (depend on project and texts)
     generateInsertStatements('settings', settings),
     generateInsertStatements('website_settings', websiteSettings),
-    generateInsertStatements('object_display_fields', objectDisplayFields),
+    
+    // Sixth: institutions (depends on project and texts)
     generateInsertStatements('institutions', institutions),
-    generateInsertStatements('research_fields', researchFields),
-    generateInsertStatements('vocabularies', vocabularies),
-    generateInsertStatements('vocabularies_generic_assets', vocabulariesGenericAssets),
-    generateInsertStatements('ontology_fields', ontologyFields),
+    
+    // Seventh: templates (depends on project)
     generateInsertStatements('templates', templates),
-    generateInsertStatements('imports', imports),
+    
+    // Eighth: research_fields (depends on project and texts)
+    generateInsertStatements('research_fields', researchFields),
+    
+    // Ninth: generic_assets (depends on project and texts)
+    generateInsertStatements('generic_assets', genericAssets),
+    
+    // Tenth: vocabularies (depends on research_fields, texts, and generic_assets)
+    generateInsertStatements('vocabularies', vocabularies),
+    
+    // Eleventh: vocabularies_generic_assets (depends on vocabularies and generic_assets)
+    generateInsertStatements('vocabularies_generic_assets', vocabulariesGenericAssets),
+    
+    // Twelfth: ontology_fields (depends on project and texts)
+    generateInsertStatements('ontology_fields', ontologyFields),
+    
+    // Thirteenth: object_display_fields (depends on project, ontology_fields, research_fields)
+    generateInsertStatements('object_display_fields', objectDisplayFields),
+    
+    // Fourteenth: datasources (depends on institutions, templates, and texts)
     generateInsertStatements('datasources', datasources),
+    
+    // Fifteenth: imports (depends on templates)
+    generateInsertStatements('imports', imports),
+    
+    // Sixteenth: assets (depends on project and institutions)
+    generateInsertStatements('assets', assets),
+    
+    // Seventeenth: objects (depends on project and institutions)
     generateInsertStatements('objects', objects),
+    
+    // Eighteenth: junction/relationship tables (depend on their parent tables)
     generateInsertStatements('objects_research_fields', objectsResearchFields),
     generateInsertStatements('objects_ontology_fields', objectsOntologyFields),
     generateInsertStatements('objects_assets', objectsAssets),
-    generateInsertStatements('assets', assets),
     generateInsertStatements('assets_institutions', assetsInstitutions),
-    generateInsertStatements('generic_assets', genericAssets),
   ].join('\n');
 
   const sqlContent = ddl + '\n' + inserts;
@@ -611,4 +689,158 @@ export async function createProjectBackup(options, { db }) {
     metadata,
     copiedAssets
   };
+}
+
+async function extractZipToFolder(zipPath, destFolder) {
+  await ensureDir(destFolder);
+  
+  return new Promise((resolve, reject) => {
+    yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
+      if (err) return reject(err);
+
+      zipfile.readEntry();
+      
+      zipfile.on('entry', (entry) => {
+        if (/\/$/.test(entry.fileName)) {
+          zipfile.readEntry();
+        } else {
+          zipfile.openReadStream(entry, async (err, readStream) => {
+            if (err) return reject(err);
+            
+            const destPath = path.join(destFolder, entry.fileName);
+            await ensureDir(path.dirname(destPath));
+            
+            const writeStream = fs.createWriteStream(destPath);
+            readStream.pipe(writeStream);
+            
+            writeStream.on('close', () => {
+              zipfile.readEntry();
+            });
+            
+            writeStream.on('error', reject);
+          });
+        }
+      });
+      
+      zipfile.on('end', () => resolve(true));
+      zipfile.on('error', reject);
+    });
+  });
+}
+
+export async function checkProjectExists(project_id, { db }) {
+  const projects = await db.select().from(dbSchema.project)
+    .where(eq(dbSchema.project.id, project_id))
+    .execute();
+  
+  return projects && projects.length > 0;
+}
+
+export async function restoreProjectBackup(options, { db }) {
+  const { filePath, strategy = 'merge' } = options || {};
+  
+  if (!filePath) {
+    throw new Error('filePath is required');
+  }
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error('Backup file not found');
+  }
+
+  const tmpBase = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'restore-'));
+  
+  try {
+    await extractZipToFolder(filePath, tmpBase);
+
+    const metadataPath = path.join(tmpBase, 'metadata.json');
+    if (!fs.existsSync(metadataPath)) {
+      throw new Error('Invalid backup file: missing metadata.json');
+    }
+
+    const metadata = JSON.parse(await fsPromises.readFile(metadataPath, 'utf-8'));
+    const { project_id } = metadata;
+
+    if (!project_id) {
+      throw new Error('Invalid backup: missing project_id in metadata');
+    }
+
+    const projectExists = await checkProjectExists(project_id, { db });
+
+    const sqlPath = path.join(tmpBase, 'data', 'backup.sql');
+    if (!fs.existsSync(sqlPath)) {
+      throw new Error('Invalid backup file: missing backup.sql');
+    }
+
+    const sqlContent = await fsPromises.readFile(sqlPath, 'utf-8');
+    
+    // Temporarily disable foreign key checks to handle restore order issues
+    await db.run('PRAGMA foreign_keys = OFF;');
+    
+    try {
+      // Execute SQL statements
+      const statements = sqlContent
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+      for (const stmt of statements) {
+        try {
+          await db.run(stmt + ';');
+        } catch (err) {
+          const tableName = stmt.match(/INSERT OR REPLACE INTO (\w+)/i)?.[1] || 'unknown';
+          const idMatch = stmt.match(/"id"\s*,.*?VALUES\s*\('([^']+)'/i);
+          const rowId = idMatch?.[1] || 'unknown';
+          
+          console.error(`[RESTORE] Error in table "${tableName}", row id: "${rowId}"`);
+          console.error(`[RESTORE] SQL statement: ${stmt.substring(0, 200)}...`);
+          console.error(`[RESTORE] Error:`, err.message);
+          // Continue with other statements even if one fails
+        }
+      }
+    } finally {
+      // Re-enable foreign key checks
+      await db.run('PRAGMA foreign_keys = ON;');
+    }
+
+    const assetsSourceDir = path.join(tmpBase, 'project_assets');
+    let copiedAssets = 0;
+
+    if (fs.existsSync(assetsSourceDir)) {
+      const assetsDestDir = path.join(process.cwd(), 'src', 'assets', 'project_assets', project_id);
+      
+      if (strategy === 'overwrite' && fs.existsSync(assetsDestDir)) {
+        await fsPromises.rm(assetsDestDir, { recursive: true, force: true });
+      }
+      
+      await ensureDir(assetsDestDir);
+      await fsPromises.cp(assetsSourceDir, assetsDestDir, { 
+        recursive: true,
+        force: strategy === 'overwrite'
+      });
+      
+      const files = await fsPromises.readdir(assetsDestDir, { recursive: true });
+      copiedAssets = files.filter(f => {
+        const fullPath = path.join(assetsDestDir, f);
+        return fs.statSync(fullPath).isFile();
+      }).length;
+    }
+
+    try {
+      await fsPromises.rm(tmpBase, { recursive: true, force: true });
+    } catch { }
+
+    return {
+      success: true,
+      project_id,
+      metadata,
+      copiedAssets,
+      existed: projectExists,
+      strategy
+    };
+  } catch (error) {
+    try {
+      await fsPromises.rm(tmpBase, { recursive: true, force: true });
+    } catch { }
+    throw error;
+  }
 }
