@@ -165,6 +165,7 @@
             type="button"
             aria-label="Remove image"
             class="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 m-0"
+            style="width: 32px; height: 32px; padding: 0;"
             onclick={(e) => {
               e.stopPropagation();
               clearFile();
@@ -172,7 +173,7 @@
             {disabled}
             title="Remove image"
           >
-            <i class="bi bi-x-lg"></i>
+            <i class="bi bi-x"></i>
           </button>
         </div>
         <div class="mt-2 text-muted small">{displayName}</div>

@@ -28,6 +28,11 @@ $red: #A41F32; // primitive
 $yellow: #D3A621; // primitive
 $green-highlight: #36BE78; // primitive
 $green: #008060; // primitive
+$primary: $green;
+$success: $green;
+$info: $blue;
+$warning: $yellow;
+$danger: $red;
 $font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; // primitive
 $font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; // primitive
 $headings-font-family: "Georgia", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; // primitive
@@ -141,12 +146,8 @@ $green-highlights: (
     "green-highlight-800": $green-highlight-800,
     "green-highlight-900": $green-highlight-900
 );
-$primary: $green;
+
 $secondary: $gray-600;
-$success: $green;
-$info: $blue;
-$warning: $yellow;
-$danger: $red;
 $light: $gray-100;
 $dark: $gray-900;
 $link-color: $primary-text-emphasis;
@@ -302,6 +303,9 @@ html {
   text-rendering: optimizeLegibility;
   -moz-osx-font-smoothing: grayscale;
 }
+
+
+
 
 .cursor-pointer {
   cursor: pointer;

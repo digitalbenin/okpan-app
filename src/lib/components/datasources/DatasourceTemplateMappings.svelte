@@ -1,8 +1,10 @@
 <script>
   const { template, ontologyFields = [], objects = [] } = $props();
 
+$inspect(template, "template");
+
   const mappings = $derived(
-    Array.isArray(template?.mapping) ? template.mapping : [],
+    Array.isArray(template?.mapping) ? template.mapping.map(e => JSON.parse(e)) : [],
   );
 
   function getFieldName(fieldId) {
