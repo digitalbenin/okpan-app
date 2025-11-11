@@ -1,7 +1,8 @@
 <script>
     let { asset = null, isOpen = false, onClose = null } = $props();
 
-    let videoElement;
+    // svelte-ignore non_reactive_update
+        let videoElement;
 
     function handleClose() {
         // Pause video if it's playing

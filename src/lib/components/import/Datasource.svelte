@@ -144,7 +144,7 @@
       </div>
     </div>
 
-    <div class="row mt-4">
+    <div class="row mt-0">
       <div class="col-12">
         <BaseButton type="submit" class="btn btn-success" text={t("common.confirm", { fallback: "Confirm" })} />
       </div>

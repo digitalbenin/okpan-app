@@ -84,7 +84,7 @@
           </p>
         </div>
         <div>
-          <a class="btn btn-primary" href={`${baseUrl}/import`}>Import data</a>
+          <a class="btn btn-primary" href={`${baseUrl}/import-data`}>Import data</a>
         </div>
       </div>
     </div>

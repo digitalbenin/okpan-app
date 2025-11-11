@@ -39,7 +39,7 @@
     },
     {
       label: t("menu.import-data", { fallback: "Import Data" }),
-      url: `/projects/${page.data.project.id}/import`,
+      url: `/projects/${page.data.project.id}/import-data`,
       icon: "box-arrow-in-right",
     },
     {
@@ -92,7 +92,7 @@
       children: [
         {
           label: t("menu.general", { fallback: "General" }),
-          url: `/projects/${page.data.project.id}/settings`,
+          url: `/projects/${page.data.project.id}/settings/general`,
           icon: "",
         },
         {
