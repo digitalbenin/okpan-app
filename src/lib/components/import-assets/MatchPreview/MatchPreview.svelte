@@ -3,8 +3,7 @@
   import SetMatch from "./SetMatch.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
-  import { getObjectIdentifier } from "$lib/utils/objects.js";
-  import { getAssetImageUrl } from "$lib/utils/images.js";
+  import { getAssetImageUrl } from "$lib/utils/media.js";
 
   const { asset, results } = $props();
   const wizard = getImportAssetsWizardContext();

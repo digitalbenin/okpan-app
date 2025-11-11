@@ -9,7 +9,7 @@
   import { createForm } from "@tanstack/svelte-form";
   import { getValidator, createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
   import { updateDatasource, deleteDatasource, getObjectsByDatasource } from "$lib/stores/DatasourcesUtils.js";
-  import { getObjectImageUrl } from "$lib/utils/images.js";
+  import { getObjectImageUrl } from "$lib/utils/media.js";
   import { goto } from "$app/navigation";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
   import DatasourceTemplateMappings from "$lib/components/datasources/DatasourceTemplateMappings.svelte";

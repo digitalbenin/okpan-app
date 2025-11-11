@@ -6,7 +6,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
-  import { getObjectImageUrl } from "$lib/utils/images.js";
+  import { getObjectImageUrl } from "$lib/utils/media.js";
 
   let {
     items,

@@ -4,7 +4,7 @@
   import { getSearch } from "$lib/stores/SearchUtils.js";
   import { linkAssetToObject, getObjectById } from "$lib/stores/ObjectsUtils.js";
   import { getAssetById } from "$lib/stores/AssetsUtils.js";
-  import { getObjectImageUrl } from "$lib/utils/images.js";
+  import { getObjectImageUrl } from "$lib/utils/media.js";
   // Note: we'll derive primary identifier locally to avoid fallback text
 
   // Declare bindable prop inside $props() as required by Svelte runes

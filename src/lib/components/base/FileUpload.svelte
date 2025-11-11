@@ -1,5 +1,5 @@
 <script>
-  import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { addImageProtocolPrefix, MEDIA_EXTENSIONS, MEDIA_MIME_TYPES } from "$lib/utils/media.js";
 
   let {
     value = $bindable(null),
@@ -11,13 +11,7 @@
     errors = [],
     disabled = false,
     maxSize = 5 * 1024 * 1024, // 5MB default
-    allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/svg+xml",
-      "image/gif",
-    ],
+    allowedTypes = MEDIA_MIME_TYPES.image,
     // Optional callback for integration with form libraries
     onChange = null,
   } = $props();
@@ -51,7 +45,7 @@
         filters: [
           {
             name: "Images",
-            extensions: ["jpg", "jpeg", "png", "gif", "webp", "svg"],
+            extensions: MEDIA_EXTENSIONS.image,
           },
           { name: "All Files", extensions: ["*"] },
         ],

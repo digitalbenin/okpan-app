@@ -9,7 +9,7 @@
   import BaseSelect from "$lib/components/base/BaseSelect.svelte";
   import { invalidate, invalidateAll } from "$app/navigation";
   import { updateObjectStatus } from "$lib/stores/ObjectsUtils.js";
-  import { getObjectImageUrl as getImgUrl } from "$lib/utils/images.js";
+  import { getObjectImageUrl as getImgUrl } from "$lib/utils/media.js";
 
   let {
     object,

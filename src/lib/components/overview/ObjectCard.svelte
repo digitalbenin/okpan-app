@@ -1,5 +1,5 @@
 <script>
-  import { getAssetImageUrl } from "$lib/utils/images.js";
+  import { getAssetImageUrl } from "$lib/utils/media.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   const { object } = $props();

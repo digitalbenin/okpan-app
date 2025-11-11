@@ -1,5 +1,6 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+    import { createMediaFilters } from "$lib/utils/media.js";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import AssetPreview from "$lib/components/research_fields/AssetPreview.svelte";
 
@@ -24,64 +25,7 @@
     // Unified file upload handler
     async function handleMediaUpload() {
         try {
-            // Create filter based on accepted types
-            const mediaFilters = [];
-
-            // Collect all accepted extensions
-            let allExtensions = [];
-
-            const imageExtensions = [
-                "jpg",
-                "jpeg",
-                "png",
-                "gif",
-                "webp",
-                "avif",
-            ];
-            const audioExtensions = ["mp3", "ogg"];
-            const videoExtensions = ["mp4", "webm", "mov"];
-
-            if (acceptedTypes.includes("image")) {
-                allExtensions.push(...imageExtensions);
-            }
-            if (acceptedTypes.includes("audio")) {
-                allExtensions.push(...audioExtensions);
-            }
-            if (acceptedTypes.includes("video")) {
-                allExtensions.push(...videoExtensions);
-            }
-
-            // Add "All Accepted Formats" as the first (default) option
-            if (allExtensions.length > 0) {
-                mediaFilters.push({
-                    name: "All Accepted Formats",
-                    extensions: allExtensions,
-                });
-            }
-
-            // Add individual type filters
-            if (acceptedTypes.includes("image")) {
-                mediaFilters.push({
-                    name: "Images",
-                    extensions: imageExtensions,
-                });
-            }
-
-            if (acceptedTypes.includes("audio")) {
-                mediaFilters.push({
-                    name: "Audio",
-                    extensions: audioExtensions,
-                });
-            }
-
-            if (acceptedTypes.includes("video")) {
-                mediaFilters.push({
-                    name: "Video",
-                    extensions: videoExtensions,
-                });
-            }
-
-            mediaFilters.push({ name: "All Files", extensions: ["*"] });
+            const mediaFilters = createMediaFilters(acceptedTypes);
 
             const result = await window.api.openFileDialog({
                 title: "Select Media Files",

@@ -12,7 +12,7 @@
     import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
     import { unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
     import { back } from "$lib/utils/navigation.js";
-    import { getAssetImageUrl, getObjectImageUrl } from "$lib/utils/images.js";
+    import { getAssetImageUrl, getObjectImageUrl } from "$lib/utils/media.js";
     import { z } from "zod";
 
     const { data } = $props();

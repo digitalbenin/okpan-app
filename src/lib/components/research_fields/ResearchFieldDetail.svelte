@@ -4,7 +4,7 @@
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { Tabs } from "melt/builders";
-    import { getAssetImageUrl } from "$lib/utils/images.js";
+    import { getAssetImageUrl } from "$lib/utils/media.js";
 
     // --- Prop definition ---
     let { researchField, projectLanguages } = $props();

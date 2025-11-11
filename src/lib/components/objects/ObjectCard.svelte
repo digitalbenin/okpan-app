@@ -1,7 +1,7 @@
 <script>
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { getAssetImageUrl } from "$lib/utils/images.js";
+  import { getAssetImageUrl } from "$lib/utils/media.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
   import { formatDate } from "$lib/utils/dates";
   import Swiper from "swiper";

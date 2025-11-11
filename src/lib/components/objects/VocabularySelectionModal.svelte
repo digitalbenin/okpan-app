@@ -4,7 +4,7 @@
     import BaseModal from "$lib/components/base/BaseModal.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { addVocabulary as addVocabularyAPI } from "$lib/stores/ResearchFieldsUtils.js";
-    import { getAssetImageUrl } from "$lib/utils/images.js";
+    import { getAssetImageUrl } from "$lib/utils/media.js";
 
     // Props
     let {

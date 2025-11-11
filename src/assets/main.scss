@@ -1,28 +1,207 @@
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/InterVariable.woff2');
+  font-weight: 1 999;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/InterVariable-Italic.woff2');
+  font-weight: 1 999;
+  font-style: italic;
+}
+
+
 // Import Bootstrap's source Sass files
 @import "~bootstrap/scss/functions";
 
-$headings-font-family: Georgia, "Times New Roman", Times, serif;
-/*$secondary: #052930;
-$primary: #006666;
-$danger: #93304c;
-$warning: #e49707;*/
-/* Add Georgia as heading font */
-// $black: #000000;
+// primitive variables
 
+$blue-highlight: #005AD9; // primitive
+$blue: #1470CC; // primitive
+$indigo-highlight: #2626FF; // primitive
+$indigo: #2D2DB2; // primitive
+$purple: #7836BF; // primitive
+$red-highlight: #BF001B; // primitive
+$red: #A41F32; // primitive
+$yellow: #D3A621; // primitive
+$green-highlight: #36BE78; // primitive
+$green: #008060; // primitive
+$font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; // primitive
+$font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; // primitive
+$headings-font-family: "Georgia", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; // primitive
+$display-font-family: "Georgia", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; // primitive
+$display-font-weight: 400; // primitive
+$input-btn-padding-y: 0.5rem; // primitive
+$input-btn-padding-x: 1rem; // primitive
+$input-btn-padding-x-sm: 0.75rem; // primitive
+$input-btn-padding-y-lg: 1rem; // primitive
+$input-btn-padding-x-lg: 1.5rem; // primitive
+$icon-btn-padding-y-lg: 18; // primitive
+$icon-btn-padding-x-lg: 18; // primitive
+$icon-btn-padding-y: 12; // primitive
+$icon-btn-padding-x: 12; // primitive
+$navbar-padding-y: 1rem; // primitive
+$navbar-padding-x: 1rem; // primitive
+$navbar-toggler-padding-x: 0.5rem; // primitive
+$navbar-light-toggler-border-color: transparent; // primitive
+$accordion-padding-y: 1.5rem; // primitive
+$accordion-padding-x: 0.5rem; // primitive
+$badge-padding-y: 0.25em; // primitive
+$badge-padding-x: 0.375em; // primitive
+$modal-inner-padding: 1.5rem; // primitive
+$carousel-indicator-width: 16px; // primitive
+$carousel-indicator-height: 6px; // primitive
+
+$enable-dark-mode: false;
 // Required Bootstrap imports
 @import "~bootstrap/scss/variables";
 @import "~bootstrap/scss/variables-dark";
 
-$custom-sizes: (
-  7: 0.875rem,
+// Add additional custom code 
+
+$blue-highlight-100: tint-color($blue-highlight, 80%) !default;
+$blue-highlight-200: tint-color($blue-highlight, 60%) !default;
+$blue-highlight-300: tint-color($blue-highlight, 40%) !default;
+$blue-highlight-400: tint-color($blue-highlight, 20%) !default;
+$blue-highlight-500: $blue-highlight !default;
+$blue-highlight-600: shade-color($blue-highlight, 20%) !default;
+$blue-highlight-700: shade-color($blue-highlight, 40%) !default;
+$blue-highlight-800: shade-color($blue-highlight, 60%) !default;
+$blue-highlight-900: shade-color($blue-highlight, 80%) !default;
+$blue-highlights: (
+    "blue-highlight-100": $blue-highlight-100,
+    "blue-highlight-200": $blue-highlight-200,
+    "blue-highlight-300": $blue-highlight-300,
+    "blue-highlight-400": $blue-highlight-400,
+    "blue-highlight-500": $blue-highlight-500,
+    "blue-highlight-600": $blue-highlight-600,
+    "blue-highlight-700": $blue-highlight-700,
+    "blue-highlight-800": $blue-highlight-800,
+    "blue-highlight-900": $blue-highlight-900
+);
+$indigo-highlight-100: tint-color($indigo-highlight, 80%) !default;
+$indigo-highlight-200: tint-color($indigo-highlight, 60%) !default;
+$indigo-highlight-300: tint-color($indigo-highlight, 40%) !default;
+$indigo-highlight-400: tint-color($indigo-highlight, 20%) !default;
+$indigo-highlight-500: $indigo-highlight !default;
+$indigo-highlight-600: shade-color($indigo-highlight, 20%) !default;
+$indigo-highlight-700: shade-color($indigo-highlight, 40%) !default;
+$indigo-highlight-800: shade-color($indigo-highlight, 60%) !default;
+$indigo-highlight-900: shade-color($indigo-highlight, 80%) !default;
+$indigo-highlights: (
+    "indigo-highlight-100": $indigo-highlight-100,
+    "indigo-highlight-200": $indigo-highlight-200,
+    "indigo-highlight-300": $indigo-highlight-300,
+    "indigo-highlight-400": $indigo-highlight-400,
+    "indigo-highlight-500": $indigo-highlight-500,
+    "indigo-highlight-600": $indigo-highlight-600,
+    "indigo-highlight-700": $indigo-highlight-700,
+    "indigo-highlight-800": $indigo-highlight-800,
+    "indigo-highlight-900": $indigo-highlight-900
+);
+$red-highlight-100: tint-color($red-highlight, 80%) !default;
+$red-highlight-200: tint-color($red-highlight, 60%) !default;
+$red-highlight-300: tint-color($red-highlight, 40%) !default;
+$red-highlight-400: tint-color($red-highlight, 20%) !default;
+$red-highlight-500: $red-highlight !default;
+$red-highlight-600: shade-color($red-highlight, 20%) !default;
+$red-highlight-700: shade-color($red-highlight, 40%) !default;
+$red-highlight-800: shade-color($red-highlight, 60%) !default;
+$red-highlight-900: shade-color($red-highlight, 80%) !default;
+$red-highlights: (
+    "red-highlight-100": $red-highlight-100,
+    "red-highlight-200": $red-highlight-200,
+    "red-highlight-300": $red-highlight-300,
+    "red-highlight-400": $red-highlight-400,
+    "red-highlight-500": $red-highlight-500,
+    "red-highlight-600": $red-highlight-600,
+    "red-highlight-700": $red-highlight-700,
+    "red-highlight-800": $red-highlight-800,
+    "red-highlight-900": $red-highlight-900
+);
+$green-highlight-100: tint-color($green-highlight, 80%) !default;
+$green-highlight-200: tint-color($green-highlight, 60%) !default;
+$green-highlight-300: tint-color($green-highlight, 40%) !default;
+$green-highlight-400: tint-color($green-highlight, 20%) !default;
+$green-highlight-500: $green-highlight !default;
+$green-highlight-600: shade-color($green-highlight, 20%) !default;
+$green-highlight-700: shade-color($green-highlight, 40%) !default;
+$green-highlight-800: shade-color($green-highlight, 60%) !default;
+$green-highlight-900: shade-color($green-highlight, 80%) !default;
+$green-highlights: (
+    "green-highlight-100": $green-highlight-100,
+    "green-highlight-200": $green-highlight-200,
+    "green-highlight-300": $green-highlight-300,
+    "green-highlight-400": $green-highlight-400,
+    "green-highlight-500": $green-highlight-500,
+    "green-highlight-600": $green-highlight-600,
+    "green-highlight-700": $green-highlight-700,
+    "green-highlight-800": $green-highlight-800,
+    "green-highlight-900": $green-highlight-900
+);
+$primary: $green;
+$secondary: $gray-600;
+$success: $green;
+$info: $blue;
+$warning: $yellow;
+$danger: $red;
+$light: $gray-100;
+$dark: $gray-900;
+$link-color: $primary-text-emphasis;
+$link-hover-color: $green-700;
+$input-btn-font-size-lg: $font-size-base;
+$nav-link-font-size: $font-size-lg;
+$nav-pills-border-radius: $border-radius-pill;
+$badge-border-radius: $border-radius-sm;
+$modal-header-border-color: $white;
+$carousel-control-color: $primary;
+$carousel-indicator-active-bg: $primary;
+
+
+// Generate primary color shades for default theme
+$primary-100: tint-color($primary, 80%) !default;
+$primary-200: tint-color($primary, 60%) !default;
+$primary-300: tint-color($primary, 40%) !default;
+$primary-400: tint-color($primary, 20%) !default;
+$primary-500: $primary !default;
+$primary-600: shade-color($primary, 20%) !default;
+$primary-700: shade-color($primary, 40%) !default;
+$primary-800: shade-color($primary, 60%) !default;
+$primary-900: shade-color($primary, 80%) !default;
+
+// Add primary shades to theme colors
+$primary-shades: (
+  "primary-100": $primary-100,
+  "primary-200": $primary-200,
+  "primary-300": $primary-300,
+  "primary-400": $primary-400,
+  "primary-500": $primary-500,
+  "primary-600": $primary-600,
+  "primary-700": $primary-700,
+  "primary-800": $primary-800,
+  "primary-900": $primary-900,
 );
 
-$font-sizes: map-merge($font-sizes, $custom-sizes);
 
-// Add color modes
+// Mapped Objects
+$custom-colors: (blue-highlight: $blue-highlight, blue: $blue, indigo-highlight: $indigo-highlight, indigo: $indigo, purple: $purple, red-highlight: $red-highlight, red: $red, yellow: $yellow, green-highlight: $green-highlight, green: $green);
+$custom-theme-colors: (primary: $primary, secondary: $secondary, success: $success, info: $info, warning: $warning, danger: $danger, light: $light, dark: $dark);
+$custom-font-sizes: (7: 0.875rem, 8: 0.75rem);
+$colors: map-merge($colors, $custom-colors);
+$theme-colors: map-merge($theme-colors, $custom-theme-colors);
+$font-sizes: map-merge($font-sizes, $custom-font-sizes);
+
+$theme-colors: map-merge($theme-colors, $primary-shades);
+// Add color modes 
 @import "~bootstrap/scss/maps";
 @import "~bootstrap/scss/mixins";
 @import "~bootstrap/scss/root";
+
+
+$all-colors: map-merge-multiple($blue-highlights, $blues, $indigo-highlights, $indigos, $purples, $red-highlights, $reds, $yellows, $green-highlights, $greens, $pinks, $oranges, $teals, $cyans, $grays);
+
 
 // Optional Bootstrap components
 @import "~bootstrap/scss/utilities";
@@ -60,6 +239,58 @@ $font-sizes: map-merge($font-sizes, $custom-sizes);
 @import "~bootstrap/scss/offcanvas";
 @import "~bootstrap/scss/placeholders";
 @import "~bootstrap/scss/helpers";
+
+
+$utilities: map-merge(
+  $utilities,
+  (
+    "background-color": map-merge(
+      map-get($utilities, "background-color"),
+      (
+        values: map-merge(
+          map-get(map-get($utilities, "background-color"), "values"),
+          (
+            $all-colors
+          ),
+        ),
+      ),
+    ),
+  )
+);
+
+$utilities: map-merge(
+  $utilities,
+  (
+    "color": map-merge(
+      map-get($utilities, "color"),
+      (
+        values: map-merge(
+          map-get(map-get($utilities, "color"), "values"),
+          (
+            $all-colors
+          ),
+        ),
+      ),
+    ),
+  )
+);
+
+$utilities: map-merge(
+  $utilities,
+  (
+    "border-color": map-merge(
+      map-get($utilities, "border-color"),
+      (
+        values: map-merge(
+          map-get(map-get($utilities, "border-color"), "values"),
+          (
+            $all-colors
+          ),
+        ),
+      ),
+    ),
+  )
+);
 
 // Optionally include utilities API last to generate classes based on the Sass map in `_utilities.scss`
 @import "~bootstrap/scss/utilities/api";

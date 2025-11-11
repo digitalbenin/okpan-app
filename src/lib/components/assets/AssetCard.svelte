@@ -1,6 +1,6 @@
 <script>
   import BaseLinkedStatus from "$lib/components/base/BaseLinkedStatus.svelte";
-  import { getAssetImageUrl } from "$lib/utils/images.js";
+  import { getAssetImageUrl } from "$lib/utils/media.js";
 
   const { asset } = $props();
 
