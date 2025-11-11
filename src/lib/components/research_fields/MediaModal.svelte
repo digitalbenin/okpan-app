@@ -46,23 +46,27 @@
     <div
         class="modal-backdrop position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
         style="z-index: 1050; background-color: rgba(0, 0, 0, 0.8);"
-        on:click={handleBackdropClick}
-        role="dialog"
-        aria-modal="true"
+        onclick={handleBackdropClick}
+        onkeydown={(e) => e.key === 'Enter' && handleBackdropClick(e)}
+        role="presentation"
     >
         <div
             class="modal-content bg-white rounded shadow-lg position-relative m-3"
             style="max-width: 90vw; max-height: 90vh; width:fit-content;"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="media-modal-title"
+            tabindex="-1"
         >
             <!-- Close Button -->
             <button
                 type="button"
-                class="btn btn-sm btn-light position-absolute rounded-circle"
+                class="btn btn-sm btn-light position-absolute rounded-circle d-flex align-items-center justify-content-center"
                 style="top: 10px; right: 10px; z-index: 1051; width: 32px; height: 32px;"
-                on:click={handleClose}
-                title="Close"
+                onclick={handleClose}
+                aria-label="Close media preview"
             >
-                <i class="bi bi-x" style="font-size: 16px;"></i>
+                <i class="bi bi-x" style="font-size: 16px;" aria-hidden="true"></i>
             </button>
 
             <!-- Content -->
@@ -70,7 +74,7 @@
                 {#if asset.type === "image" || asset.path?.match(/\.(jpg|jpeg|png|gif|webp|avif)$/i)}
                     <img
                         src="media://{asset.path}"
-                        alt={asset.filename || asset.name}
+                        alt={asset.filename || asset.name || "Media preview"}
                         class="img-fluid rounded"
                         style="max-width: 90vw; max-height: 80vh; object-fit: contain;"
                     />
@@ -82,7 +86,9 @@
                         class="rounded"
                         style="max-width: 90vw; max-height: 80vh;"
                         preload="metadata"
+                        aria-label={asset.filename || asset.name || "Video preview"}
                     >
+                        <track kind="captions" />
                         Your browser does not support the video tag.
                     </video>
                 {:else}
@@ -90,6 +96,7 @@
                         <i
                             class="bi bi-file-earmark text-muted"
                             style="font-size: 48px;"
+                            aria-hidden="true"
                         ></i>
                         <p class="mt-2 text-muted">
                             Preview not available for this file type
@@ -103,7 +110,7 @@
                 <div
                     class="d-flex align-items-center justify-content-center w-100"
                 >
-                    <span class="text-dark fw-medium"
+                    <span id="media-modal-title" class="text-dark fw-medium"
                         >{asset.filename || asset.name || "Unknown file"}</span
                     >
                 </div>

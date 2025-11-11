@@ -1,5 +1,6 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+    import { getMediaType } from "$lib/utils/media.js";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
@@ -26,11 +27,6 @@
 
     // Constants
     const flipDurationMs = 200;
-    const assetTypePatterns = {
-        audio: /\.(mp3|wav|ogg|m4a|aac|flac)$/,
-        video: /\.(mp4|webm|mov|avi|mkv)$/,
-        image: /\.(jpg|jpeg|png|gif|webp|avif)$/,
-    };
 
     // Derived
     const effectiveInstitutionId = $derived(object?.institution_id ?? institutionId ?? null);
@@ -51,15 +47,6 @@
     });
 
     // Helpers
-    const getAssetType = (asset) => {
-        const type = asset.type?.toLowerCase();
-        const filename = asset.filename?.toLowerCase() || "";
-        for (const [assetType, pattern] of Object.entries(assetTypePatterns)) {
-            if (type === assetType || filename.match(pattern)) return assetType;
-        }
-        return "unknown";
-    };
-
     const notifyParent = () => {
         if (onChangesUpdate) {
             onChangesUpdate({
@@ -112,7 +99,7 @@
     };
 
     const handleViewMedia = (asset) => {
-        const assetType = getAssetType(asset);
+        const assetType = getMediaType(asset);
         if (assetType === "audio") {
             handleAudioToggle(asset);
         } else {
@@ -278,12 +265,12 @@
                                     style="object-fit: contain;"
                                 />
                             </div>
-                            {#if getAssetType(asset) === "video"}
+                            {#if getMediaType(asset) === "video"}
                                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
                                     <i class="bi bi-play-circle-fill text-white" style="font-size: 3rem; opacity: 0.8;"></i>
                                 </div>
                             {/if}
-                            {#if getAssetType(asset) === "audio"}
+                            {#if getMediaType(asset) === "audio"}
                                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
                                     <i class="bi bi-music-note-beamed text-white" style="font-size: 3rem; opacity: 0.8;"></i>
                                 </div>
@@ -342,7 +329,7 @@
 <!-- Hidden audio elements for playback -->
 {#each displayAssets as objectAsset (objectAsset.id)}
     {@const asset = objectAsset.asset}
-    {#if getAssetType(asset) === "audio"}
+    {#if getMediaType(asset) === "audio"}
         <audio
             use:registerAudioElement={asset.id}
             src="media://{asset.path}"
