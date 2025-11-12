@@ -73,6 +73,7 @@
     "graphql": "^16.10.0",
     "graphql-tools": "^9.0.13",
     "melt": "^0.30.1",
+    "openseadragon": "^5.0.1",
     "runed": "^0.30.0",
     "sharp": "^0.33.5",
     "svelte-dnd-action": "^0.9.65",

@@ -3,8 +3,6 @@
   const { pathname, element, disabled = false } = $props();
   let isCollapsed = $state(true);
 
-  $inspect(element.url, pathname)
-
   const hasChildren = $derived(element.children && element.children.length > 0);
 
   const isActive = $derived(
