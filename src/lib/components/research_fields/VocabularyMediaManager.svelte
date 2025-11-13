@@ -16,9 +16,14 @@
         maxImages = 10,
         maxOtherMedia = 10,
         onChange = null,
+        instanceId = Math.random().toString(36).substring(7), // Unique ID for this instance
     } = $props();
 
     const flipDurationMs = 200;
+    
+    // Unique zone types for this instance
+    const imageZoneType = `images-${instanceId}`;
+    const mediaZoneType = `media-${instanceId}`;
 
     // Separate media into images and other media with IDs for drag and drop
     let imageItems = $state([]);
@@ -219,6 +224,8 @@
                     dropTargetStyle: { outline: "none" },
                     items: imageItems,
                     flipDurationMs,
+                    type: imageZoneType,
+                    dropFromOthersDisabled: true,
                 }}
                 onconsider={(e) => handleDnd(e, (items) => imageItems = items)}
                 onfinalize={handleImageDndFinalize}
@@ -310,6 +317,8 @@
                     dropTargetStyle: { outline: "none" },
                     items: otherMediaItems,
                     flipDurationMs,
+                    type: mediaZoneType,
+                    dropFromOthersDisabled: true,
                 }}
                 onconsider={(e) => handleDnd(e, (items) => otherMediaItems = items)}
                 onfinalize={handleOtherMediaDndFinalize}
