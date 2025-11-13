@@ -52,17 +52,17 @@
   </div>
 {:else}
   <div
-    class="emptyProjectChip w-100 d-flex align-items-center justify-content-center border rounded mb-4 mt-3 p-3 gap-2"
+    class="w-100 d-flex align-items-center justify-content-center rounded mb-4 mt-3 p-3 gap-2"
   >
     {t("project.start", { fallback: "Start creating" })}
-    <button class="btn btn-primary" onclick={onNewProject}
-      >{t("project.new", { fallback: "New project" })}</button
+    <BaseDropdownMenu
+      items={dropdownItems}
+      triggerClass="btn btn-primary"
     >
+      {#snippet trigger()}
+        {t("common.new-project", { fallback: "New project" })}
+        <i class="bi bi-chevron-down ms-1"></i>
+      {/snippet}
+    </BaseDropdownMenu>
   </div>
 {/if}
-
-<style>
-  .emptyProjectChip {
-    border-style: dashed !important;
-  }
-</style>

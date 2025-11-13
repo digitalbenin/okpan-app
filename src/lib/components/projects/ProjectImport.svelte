@@ -146,7 +146,7 @@
       <p class="text-muted mb-0">
         {t("project.drag-file", { fallback: "Drag a file here or" })}
         <button 
-          class="btn btn-primary mx-2" 
+          class="btn btn-sm btn-primary mx-2" 
           onclick={handleBrowse}
           disabled={isImporting}
         >
