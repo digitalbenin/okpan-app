@@ -1,16 +1,13 @@
 <script>
     import { watch } from "runed";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
-    import MediaManager from "$lib/components/research_fields/MediaManager.svelte";
+    import VocabularyMediaManager from "$lib/components/research_fields/VocabularyMediaManager.svelte";
     import { addVocabulary as addVocabularyAPI, updateVocabulary as updateVocabularyAPI, deleteVocabulary as deleteVocabularyAPI } from "$lib/stores/ResearchFieldsUtils.js";
     import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 
     const translationStore = getTranslationStore();
-    const contentLanguageStore = getContentLanguageStore();
     const t = $derived(translationStore.t);
-    const { addTranslation } = contentLanguageStore;
 
     let {
         value = $bindable(),
@@ -23,7 +20,6 @@
         onChange = null,
         mode = "create",
         initialData = null,
-        projectId = null,
         onVocabulariesProcessed = null,
     } = $props();
 
@@ -86,21 +82,33 @@
         }
     };
 
-    const createTranslations = async (translations, textId) => {
-        if (!translations?.length || !textId) return;
-        
-        for (const translation of translations) {
-            const language = secondaryLanguages.find((lang) => lang.id === translation.language_id);
-            if (!language) {
-                console.error(`Language not found for ID: ${translation.language_id}`);
-                continue;
-            }
+    const handleAssetUpload = async (assetFile, projectId) => {
+        if (!assetFile) return null;
+        if (assetFile.id) return assetFile.id;
+        if (assetFile.path) {
             try {
-                await addTranslation(textId, language.code, translation.content);
+                const result = await window.api.importAssets({ path: [assetFile.path], projectId, isGenericAsset: true });
+                return result?.createdAssets?.[0]?.id || null;
             } catch (error) {
-                console.error("Error creating translation:", error);
+                console.error("Error uploading asset:", error);
+                return null;
             }
         }
+        return null;
+    };
+
+    const uploadAssets = async (vocab, projectId) => {
+        const mainAssetId = await handleAssetUpload(vocab.mainAssetFile, projectId);
+        const otherAssetIds = [];
+        
+        if (vocab.otherAssetsFiles?.length) {
+            for (const file of vocab.otherAssetsFiles) {
+                const assetId = await handleAssetUpload(file, projectId);
+                if (assetId) otherAssetIds.push(assetId);
+            }
+        }
+        
+        return { mainAssetId, otherAssetIds };
     };
 
     const hasVocabularyChanged = (currentVocab, existingVocabs) => {
@@ -111,13 +119,12 @@
         if ((originalVocab.option?.content || "") !== (currentVocab.option || "")) return true;
         if ((originalVocab.description?.content || "") !== (currentVocab.description || "")) return true;
 
-        // Check main asset
+        // Check assets
         const originalMainAssetId = originalVocab.mainAsset?.id || null;
         const currentMainAssetId = currentVocab.mainAssetFile?.id || null;
         const hasNewMainAsset = currentVocab.mainAssetFile?.path && !currentVocab.mainAssetFile?.id;
         if (hasNewMainAsset || originalMainAssetId !== currentMainAssetId) return true;
 
-        // Check other assets
         const originalOtherAssetIds = (originalVocab.vocabulariesGenericAssets || []).map((va) => va.genericAsset.id).sort().join(',');
         const currentOtherAssets = currentVocab.otherAssetsFiles || [];
         const currentOtherAssetIds = currentOtherAssets.map((file) => file.id).filter(Boolean).sort().join(',');
@@ -134,151 +141,99 @@
         });
     };
 
-    const handleAssetUpload = async (assetFile, projectId) => {
-        if (!assetFile) return null;
-        if (assetFile.id) return assetFile.id;
-        if (assetFile.path) {
-            try {
-                const result = await window.api.importAssets({ path: [assetFile.path], projectId, isGenericAsset: true });
-                return result?.createdAssets?.[0]?.id || null;
-            } catch (error) {
-                console.error("Error uploading asset:", error);
-                return null;
-            }
-        }
-        return null;
+    const prepareTranslation = (vocab, lang, field, originalVocab) => {
+        const content = vocab[`${field}_${lang.id}`];
+        if (!content?.trim()) return null;
+        
+        const translation = { language_code: lang.code, content };
+        const existingTranslation = originalVocab?.[field]?.translations?.find((t) => t.language_id === lang.id);
+        if (existingTranslation) translation.id = existingTranslation.id;
+        
+        return translation;
     };
 
     const prepareVocabTranslations = (vocab) => {
-        const optionTranslations = [];
-        const descriptionTranslations = [];
-        let originalVocab = null;
-        
-        if (mode === "edit" && vocab.id && initialData?.vocabularies) {
-            originalVocab = initialData.vocabularies.find((v) => v.id === vocab.id);
-        }
+        const originalVocab = (mode === "edit" && vocab.id && initialData?.vocabularies)
+            ? initialData.vocabularies.find((v) => v.id === vocab.id)
+            : null;
 
+        const translations = { optionTranslations: [], descriptionTranslations: [] };
+        
         secondaryLanguages.forEach((lang) => {
-            const optionContent = vocab[`option_${lang.id}`];
-            const descriptionContent = vocab[`description_${lang.id}`];
-
-            if (optionContent?.trim()) {
-                const translation = { language_code: lang.code, content: optionContent };
-                const existingTranslation = originalVocab?.option?.translations?.find((t) => t.language_id === lang.id);
-                if (existingTranslation) translation.id = existingTranslation.id;
-                optionTranslations.push(translation);
-            }
-
-            if (descriptionContent?.trim()) {
-                const translation = { language_code: lang.code, content: descriptionContent };
-                const existingTranslation = originalVocab?.description?.translations?.find((t) => t.language_id === lang.id);
-                if (existingTranslation) translation.id = existingTranslation.id;
-                descriptionTranslations.push(translation);
-            }
+            const optionTranslation = prepareTranslation(vocab, lang, "option", originalVocab);
+            const descriptionTranslation = prepareTranslation(vocab, lang, "description", originalVocab);
+            
+            if (optionTranslation) translations.optionTranslations.push(optionTranslation);
+            if (descriptionTranslation) translations.descriptionTranslations.push(descriptionTranslation);
         });
 
-        return { optionTranslations, descriptionTranslations };
+        return translations;
     };
 
-    const createNewVocabulary = async (vocab, researchFieldId, projectId, languageId) => {
-        const mainAssetId = await handleAssetUpload(vocab.mainAssetFile, projectId);
-        const otherAssetIds = [];
-        if (vocab.otherAssetsFiles?.length) {
-            for (const file of vocab.otherAssetsFiles) {
-                const assetId = await handleAssetUpload(file, projectId);
-                if (assetId) otherAssetIds.push(assetId);
-            }
-        }
-
+    const saveVocabulary = async (vocab, researchFieldId, projectId, languageId, isUpdate = false) => {
+        const { mainAssetId, otherAssetIds } = await uploadAssets(vocab, projectId);
         const { optionTranslations, descriptionTranslations } = prepareVocabTranslations(vocab);
-        const result = await addVocabularyAPI(researchFieldId, {
-            languageId,
-            option: vocab.option,
-            description: vocab.description || "",
-            mainAsset: mainAssetId,
-            otherAssets: otherAssetIds,
-            optionTranslations: optionTranslations.length > 0 ? optionTranslations : undefined,
-            descriptionTranslations: descriptionTranslations.length > 0 ? descriptionTranslations : undefined,
-        });
-
-        if (result?.result) {
-            const createdVocabulary = result.result.insertIntoVocabularies?.[0];
-            if (createdVocabulary) {
-                await createTranslations(optionTranslations, createdVocabulary.option_id);
-                await createTranslations(descriptionTranslations, createdVocabulary.description_id);
-                if (otherAssetIds.length > 0) await linkVocabularyAssets(createdVocabulary.id, otherAssetIds);
-            }
-        }
-        return result;
-    };
-
-    const updateExistingVocabulary = async (vocab, languageId) => {
-        const { optionTranslations, descriptionTranslations } = prepareVocabTranslations(vocab);
-        const mainAssetId = await handleAssetUpload(vocab.mainAssetFile, projectId);
-        const otherAssetIds = [];
         
-        if (vocab.otherAssetsFiles?.length) {
-            for (const file of vocab.otherAssetsFiles) {
-                const assetId = await handleAssetUpload(file, projectId);
-                if (assetId) otherAssetIds.push(assetId);
-            }
-        }
-
-        const result = await updateVocabularyAPI(vocab.id, {
+        const vocabData = {
             option: vocab.option,
             description: vocab.description || "",
             mainAsset: mainAssetId,
             optionTranslations: optionTranslations.length > 0 ? optionTranslations : undefined,
             descriptionTranslations: descriptionTranslations.length > 0 ? descriptionTranslations : undefined,
-        });
+        };
+
+        const result = isUpdate 
+            ? await updateVocabularyAPI(vocab.id, vocabData)
+            : await addVocabularyAPI(researchFieldId, { ...vocabData, languageId, otherAssets: otherAssetIds });
 
         if (result?.result && !result?.error) {
-            try {
-                await executeQuery("vocabulary_assets", "delete", { vocabularyId: vocab.id });
-            } catch (error) {
-                console.error("Error deleting old vocabulary assets:", error);
-            }
-            if (otherAssetIds.length > 0) {
+            if (isUpdate) {
                 try {
-                    await linkVocabularyAssets(vocab.id, otherAssetIds);
+                    await executeQuery("vocabulary_assets", "delete", { vocabularyId: vocab.id });
+                    if (otherAssetIds.length > 0) await linkVocabularyAssets(vocab.id, otherAssetIds);
                 } catch (error) {
-                    console.error("Error linking vocabulary assets:", error);
+                    console.error("Error managing vocabulary assets:", error);
+                }
+            } else {
+                const createdVocab = result.result.insertIntoVocabularies?.[0];
+                if (createdVocab && otherAssetIds.length > 0) {
+                    await linkVocabularyAssets(createdVocab.id, otherAssetIds);
                 }
             }
         }
+        
         return result;
     };
 
     const processVocabularies = async (vocabularies, researchFieldId, projectId, languageId, mode) => {
+        const validVocabs = vocabularies.filter((vocab) => vocab.option?.trim());
+        
         if (mode === "edit") {
             const existingVocabs = initialData.vocabularies || [];
-            const currentVocabs = vocabularies.filter((vocab) => vocab.option?.trim());
-            const vocabsToDelete = existingVocabs.filter((existing) => !currentVocabs.find((current) => current.id === existing.id));
+            const vocabsToDelete = existingVocabs.filter((existing) => 
+                !validVocabs.find((current) => current.id === existing.id)
+            );
 
-            await Promise.all(vocabsToDelete.map(async (vocab) => {
-                try {
-                    await deleteVocabularyAPI(vocab.id);
-                } catch (error) {
-                    console.error(`Error deleting vocabulary ${vocab.id}:`, error);
-                }
-            }));
-
-            await Promise.all(currentVocabs.map(async (vocab) => {
-                try {
-                    if (vocab.id) {
-                        if (hasVocabularyChanged(vocab, existingVocabs)) {
-                            await updateExistingVocabulary(vocab, languageId);
-                        }
-                    } else {
-                        await createNewVocabulary(vocab, researchFieldId, projectId, languageId);
-                    }
-                } catch (error) {
-                    console.error("Error processing vocabulary:", error);
-                }
-            }));
+            await Promise.all([
+                ...vocabsToDelete.map((vocab) => 
+                    deleteVocabularyAPI(vocab.id).catch((error) => 
+                        console.error(`Error deleting vocabulary ${vocab.id}:`, error)
+                    )
+                ),
+                ...validVocabs.map((vocab) => {
+                    const isUpdate = vocab.id && hasVocabularyChanged(vocab, existingVocabs);
+                    const shouldSave = !vocab.id || isUpdate;
+                    
+                    return shouldSave 
+                        ? saveVocabulary(vocab, researchFieldId, projectId, languageId, !!vocab.id)
+                            .catch((error) => console.error("Error processing vocabulary:", error))
+                        : Promise.resolve();
+                })
+            ]);
         } else {
-            const validVocabs = vocabularies.filter((vocab) => vocab.option?.trim());
-            await Promise.all(validVocabs.map((vocab) => createNewVocabulary(vocab, researchFieldId, projectId, languageId)));
+            await Promise.all(validVocabs.map((vocab) => 
+                saveVocabulary(vocab, researchFieldId, projectId, languageId, false)
+            ));
         }
     };
 
@@ -488,7 +443,7 @@
                                 class="form-control {fieldErrors.length > 0
                                     ? 'is-invalid'
                                     : ''}"
-                                rows="5"
+                                rows="8"
                                 placeholder={t(
                                     "common.vocabulary-description-placeholder",
                                     {
@@ -549,11 +504,11 @@
 
                     <!-- Media Column -->
                     <div class="col-4 p-3">
-                        <MediaManager
+                        <VocabularyMediaManager
                             bind:mainAsset={vocab.mainAssetFile}
                             bind:otherAssets={vocab.otherAssetsFiles}
-                            acceptedTypes={["image", "audio", "video"]}
-                            maxAssets={10}
+                            maxImages={10}
+                            maxOtherMedia={10}
                             onChange={(mediaData) =>
                                 handleMediaChange(index, mediaData)}
                         />
@@ -561,13 +516,6 @@
                 </div>
             {/each}
         {/if}
-
-        <!-- Overall errors 
-        {#if errors.length > 0}
-            <div class="alert alert-danger">
-                {errors.join(", ")}
-            </div>
-        {/if} -->
     </div>
 {/if}
 
