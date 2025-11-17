@@ -7,6 +7,12 @@
   const wizard = createImportAssetsWizardContext({
     projectId: data.project.id,
   });
+
+  if (data.initialInstitutionId) {
+    wizard.institutionId = data.initialInstitutionId;
+    wizard.currentStep = 2;
+    wizard.nextEnabled = false;
+  }
 </script>
 
 <div class="h-100 d-flex flex-column">

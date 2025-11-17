@@ -288,7 +288,7 @@
       <a class="btn btn-primary btn-sm" href="/projects/{institution.project_id}/objects/add?institution_id={institution.id}">
         <i class="bi bi-plus-lg"></i> {t("common.add-object", { fallback: "Add Object" })}
       </a>
-      <a class="btn btn-primary btn-sm" href="/projects/{institution.project_id}/import?institution_id={institution.id}">
+      <a class="btn btn-primary btn-sm" href="/projects/{institution.project_id}/import-data?institution_id={institution.id}">
         <i class="bi bi-plus-lg"></i> {t("common.import-data", { fallback: "Import Data" })}
       </a>
     </div>

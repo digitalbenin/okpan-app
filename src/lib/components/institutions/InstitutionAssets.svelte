@@ -236,7 +236,7 @@
       </div>
       <a
         class="btn btn-primary btn-sm"
-        href="/projects/{institution.project_id}/assets/add?institution_id={institution.id}"
+        href="/projects/{institution.project_id}/import-assets/steps?institution_id={institution.id}"
         ><i class="bi bi-plus-lg"></i>
         {t("common.add-asset", { fallback: "Add asset" })}</a
       >
