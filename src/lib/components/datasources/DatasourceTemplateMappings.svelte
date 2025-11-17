@@ -4,7 +4,25 @@
 $inspect(template, "template");
 
   const mappings = $derived(
-    Array.isArray(template?.mapping) ? template.mapping.map(e => JSON.parse(e)) : [],
+    Array.isArray(template?.mapping)
+      ? template.mapping
+          .map((entry) => {
+            if (!entry) return null;
+            if (typeof entry === "string") {
+              try {
+                return JSON.parse(entry);
+              } catch (err) {
+                console.warn("Failed to parse template mapping entry", err, entry);
+                return null;
+              }
+            }
+            if (typeof entry === "object") {
+              return entry;
+            }
+            return null;
+          })
+          .filter(Boolean)
+      : [],
   );
 
   function getFieldName(fieldId) {

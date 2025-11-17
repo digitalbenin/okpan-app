@@ -247,7 +247,8 @@
       <div class="row">
         {#each filteredItems as asset (asset.id)}
           <div class="col-3">
-            <AssetCard {asset} />
+            <AssetCard {asset} view={params.view}
+            />
           </div>
         {/each}
       </div>
@@ -278,7 +279,8 @@
             sortable: true,
             accessor: (value) => {
               const text = value.filename;
-              const url = `/projects/${value.project_id}/institutions/${value.institution_id}/assets/${value.id}`;
+              const viewQuery = params.view ? `?view=${encodeURIComponent(params.view)}` : "";
+              const url = `/projects/${value.project_id}/institutions/${value.institution_id}/assets/${value.id}${viewQuery}`;
               return {
                 url,
                 text,

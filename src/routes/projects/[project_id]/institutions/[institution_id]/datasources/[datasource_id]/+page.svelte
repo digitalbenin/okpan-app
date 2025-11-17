@@ -11,6 +11,7 @@
   import { updateDatasource, deleteDatasource, getObjectsByDatasource } from "$lib/stores/DatasourcesUtils.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
   import { goto } from "$app/navigation";
+  import { back } from "$lib/utils/navigation.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
   import DatasourceTemplateMappings from "$lib/components/datasources/DatasourceTemplateMappings.svelte";
 
@@ -185,7 +186,15 @@
 
 <div class="container-fluid">
   <div class="row my-3">
-    <div class="col-12">
+    <div class="col-12 d-flex align-items-center gap-3">
+      <button
+        type="button"
+        aria-label={t("common.back", { fallback: "Back" })}
+        class="btn btn-link p-0 text-muted"
+        onclick={back}
+      >
+        <i class="bi bi-arrow-left fs-5"></i>
+      </button>
       <h1 class="h3 mb-0">
         {datasource?.name?.content ||
           t("common.unnamed", { fallback: "Unnamed" })}

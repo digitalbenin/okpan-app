@@ -134,7 +134,7 @@
     });
 
     // Handlers
-    const handleCancel = () => goto(`/projects/${project_id}/institutions/${institution_id}`);
+    const handleCancel = () => back();
     const handleSave = () => form.handleSubmit();
     const openDeleteModal = () => showDeleteModal = true;
     const cancelDelete = () => showDeleteModal = false;
