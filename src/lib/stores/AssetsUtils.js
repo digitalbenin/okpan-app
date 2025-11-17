@@ -82,7 +82,8 @@ export const deleteAssetsBulk = async (assetIds) => {
 // links format: [{ asset_id: String, object_ids: [String, ...] }, ...]
 export const bulkLinkAssetsToObjects = async (links) => {
     if (!Array.isArray(links) || links.length === 0) {
-        return { error: "No links provided" };
+        // Nothing to link, but treat as a successful no-op so the import flow can finish gracefully
+        return { successes: [], skippedDuplicates: [], errors: [] };
     }
 
     const result = await executeQuery('assets', 'linkObjectsBulk', { links });
