@@ -39,7 +39,6 @@
   const finalData = $derived(
     parseData(wizard.data, wizard.mapping, wizard.file.format)
   );
-  $inspect(finalData);
   function closeAndHome() {
     open = false;
     goto("/projects/" + wizard.projectId);

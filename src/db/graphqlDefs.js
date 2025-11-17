@@ -21,6 +21,7 @@ import {
     createResearchFieldObjectsCountQuery,
     createProjectCreateMutation,
     createAssetsObjectsBulkLinkMutation,
+    createAssetsBulkDeleteMutation,
     createObjectsOntologyFieldsUnlinkMutation
 } from './queries';
 
@@ -107,6 +108,8 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Mutation._fields.createProjectWithDefaults = createProjectCreateMutation(db, drizzleResult);
     // Bulk link assets to objects
     drizzleResult.schema._typeMap.Mutation._fields.linkAssetsToObjectsBulk = createAssetsObjectsBulkLinkMutation(db, drizzleResult);
+    // Bulk delete assets and clean filesystem
+    drizzleResult.schema._typeMap.Mutation._fields.deleteAssetsBulk = createAssetsBulkDeleteMutation(db, drizzleResult);
     // Unlink datasource from object
     drizzleResult.schema._typeMap.Mutation._fields.unlinkDatasourceFromObject = createObjectsOntologyFieldsUnlinkMutation(db, drizzleResult);
 

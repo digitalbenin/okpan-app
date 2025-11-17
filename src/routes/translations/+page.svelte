@@ -34,8 +34,6 @@
     let editingTranslation = $state(null);
     let editedValues = $state({});
 
-    $inspect(interfaceTranslations);
-    $inspect(translationStore.translationState.translations);
 
     // Get API queries
     const languagesQuery =

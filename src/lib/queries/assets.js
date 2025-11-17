@@ -189,6 +189,25 @@ export const assetsOperations = {
   }
 }`
   },
+  deleteBulk: {
+    type: "mutation",
+    name: "Delete Assets (Bulk)",
+    description: "Deletes multiple assets and removes their files from disk.",
+    variables: {
+      ids: "Array of asset IDs to delete"
+    },
+    query: `mutation DeleteAssetsBulk($ids: [String!]!) {
+  result: deleteAssetsBulk(ids: $ids) {
+    deletedIds
+    missingIds
+    fileErrors {
+      asset_id
+      path
+      error
+    }
+  }
+}`
+  },
 
   // BULK LINK: associate multiple assets with multiple objects
   linkObjectsBulk: {

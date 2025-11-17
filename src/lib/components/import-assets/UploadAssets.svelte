@@ -123,7 +123,6 @@
       project_id: "3e4cc3fb-11ee-4d0a-a999-df28a465fc28",
     },
   ];
-  $inspect(wizard);
 </script>
 
 <div class="container-fluid mt-3">

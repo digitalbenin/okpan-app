@@ -44,7 +44,7 @@
   //   const finalData = $derived(
   //     parseData(wizard.data, wizard.mapping, wizard.file.format)
   //   );
-  $inspect(wizard);
+
   const assetsLinked = $derived.by(() => {
     return wizard.mapping.filter((m) => m.object_ids && m.object_ids.length > 0)
       .length;

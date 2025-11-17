@@ -20,4 +20,5 @@ export { createObjectImportMutation, createObjectImportUsingTemplateMutation } f
 export { createResearchFieldObjectsCountQuery } from './researchFieldObjectsCount';
 export { createProjectCreateMutation } from './projectCreate';
 export { createAssetsObjectsBulkLinkMutation } from './assetsObjectsBulkLink';
+export { createAssetsBulkDeleteMutation } from './assetsBulkDelete';
 export { createObjectsOntologyFieldsUnlinkMutation } from './objectsOntologyFieldsUnlink';

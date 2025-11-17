@@ -5,7 +5,6 @@
 	import Topbar from '$lib/components/Topbar.svelte';
 
 	let { children, data } = $props();
-	$inspect('settings', data);
 </script>
 
 <svelte:head></svelte:head>
