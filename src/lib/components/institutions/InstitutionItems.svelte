@@ -31,7 +31,7 @@
             {#each tabsList as tab}
               <Tabs.Trigger forceMount value={tab.value}>
                 {#snippet child({ props })}
-                  <li {...props} class="nav-item">
+                  <li {...props} class="nav-item me-3">
                     <div class="nav-link" class:active={view === tab.value}>
                       {tab.label}
                     </div>
@@ -108,3 +108,9 @@
     </div>
   </div>
 </div> -->
+<style>
+  .nav-link.active {
+    border-color: var(--bs-primary);
+    font-weight: 400;
+  }
+</style>
