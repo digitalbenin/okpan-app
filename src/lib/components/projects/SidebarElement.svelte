@@ -26,10 +26,13 @@
 >
   {#if hasChildren}
     <div
+      role="button"
+      tabindex="0"
       class="d-flex align-items-center justify-content-between"
       class:link-secondary={!isActive}
       class:link-dark={isActive}
       onclick={toggleCollapse}
+      onkeydown={toggleCollapse}
       style="cursor: pointer;"
     >
       <div>

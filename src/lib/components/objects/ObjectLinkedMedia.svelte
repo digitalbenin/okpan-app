@@ -1,258 +1,174 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+    import { getMediaType } from "$lib/utils/media.js";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
     import MediaModal from "$lib/components/research_fields/MediaModal.svelte";
     import LinkMediaModal from "$lib/components/objects/LinkMediaModal.svelte";
-    import {
-        unlinkAssetFromObject,
-        reorderAssets,
-        linkAssetToObject,
-    } from "$lib/stores/ObjectsUtils.js";
+    import { unlinkAssetFromObject, reorderAssets, linkAssetToObject } from "$lib/stores/ObjectsUtils.js";
     import { invalidate } from "$app/navigation";
     import { dragHandleZone, dragHandle } from "svelte-dnd-action";
     import { flip } from "svelte/animate";
 
-    // Props
-    const {
-        object,
-        // When creating a new object, parent can pass route project/institution
-        projectId = null,
-        institutionId = null,
-        onChangesUpdate = null, // Callback to notify parent of changes
-    } = $props();
-
+    const { object, projectId = null, institutionId = null, onChangesUpdate = null } = $props();
     const { t } = getTranslationStore();
 
-    // Get object's linked assets
+    // State
     const linkedAssets = $derived(object?.objectsAssets || []);
-
-    // Track pending changes for removal
     let pendingRemovals = $state(new Set());
-
-    // Track pending additions (assets selected in modal but not yet saved)
-    let pendingAdditions = $state([]); // array of asset objects
-
-    // Track reordered assets locally for immediate visual feedback
+    let pendingAdditions = $state([]);
     let reorderedAssets = $state([]);
     let hasReorderChanges = $state(false);
-
-    // Animation duration for flip animations
-    const flipDurationMs = 200;
-
-    // Modal state for media preview
     let isModalOpen = $state(false);
     let modalAsset = $state(null);
-
-    // Modal state for linking media
     let isLinkModalOpen = $state(false);
-
-    // Audio elements map for controlling playback
     let audioElements = new Map();
 
-    // Helper function to notify parent
-    function notifyParent() {
+    // Constants
+    const flipDurationMs = 200;
+
+    // Derived
+    const effectiveInstitutionId = $derived(object?.institution_id ?? institutionId ?? null);
+    const isLinkDisabled = $derived(!effectiveInstitutionId);
+    const hasChanges = $derived(pendingRemovals.size > 0 || hasReorderChanges || pendingAdditions.length > 0);
+
+    const displayAssets = $derived.by(() => {
+        const filtered = linkedAssets.filter((oa) => !pendingRemovals.has(oa.asset.id));
+        const pendingAsObjectAssets = pendingAdditions.map((asset, idx) => ({
+            id: `new-${asset.id}`,
+            order: filtered.length + idx + 1,
+            asset,
+            pending: true,
+        }));
+        const baseList = [...filtered, ...pendingAsObjectAssets];
+        const assets = hasReorderChanges ? reorderedAssets : baseList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        return assets.map((oa) => ({ ...oa, id: oa.id }));
+    });
+
+    // Helpers
+    const notifyParent = () => {
         if (onChangesUpdate) {
             onChangesUpdate({
                 component: "linked_media",
-                hasChanges:
-                    pendingRemovals.size > 0 ||
-                    hasReorderChanges ||
-                    (pendingAdditions && pendingAdditions.length > 0),
+                hasChanges,
                 changes: {
                     removals: Array.from(pendingRemovals),
                     reorders: hasReorderChanges ? reorderedAssets : null,
-                    additions: pendingAdditions?.map((a) => a.id) || [],
+                    additions: pendingAdditions.map((a) => a.id),
                 },
                 saveFunction: saveChanges,
             });
         }
-    }
+    };
 
-    // Handle asset removal (mark for removal, don't remove immediately)
-    function handleAssetRemove(assetId) {
+    const closeModal = () => {
+        isModalOpen = false;
+        modalAsset = null;
+    };
+
+    const registerAudioElement = (element, assetId) => {
+        audioElements.set(assetId, element);
+        return { destroy: () => audioElements.delete(assetId) };
+    };
+
+    // Handlers
+    const handleAssetRemove = (assetId) => {
         pendingRemovals.add(assetId);
         pendingRemovals = new Set(pendingRemovals);
-
-        // Also remove from reorderedAssets if we have reorder changes
         if (hasReorderChanges) {
-            reorderedAssets = reorderedAssets.filter(
-                (asset) => asset.asset.id !== assetId,
-            );
+            reorderedAssets = reorderedAssets.filter((asset) => asset.asset.id !== assetId);
         }
-
         notifyParent();
-    }
+    };
 
-    // Get filtered and reordered assets (excluding those marked for removal)
-    const displayAssets = $derived.by(() => {
-        const filtered = linkedAssets.filter(
-            (objectAsset) => !pendingRemovals.has(objectAsset.asset.id),
-        );
+    const handleAddMedia = () => (isLinkModalOpen = true);
 
-        // Represent pending additions as objectAssets for UI/reorder
-        const pendingAsObjectAssets = (pendingAdditions || []).map(
-            (asset, idx) => ({
-                id: `new-${asset.id}`,
-                order: (filtered.length || 0) + idx + 1,
-                asset,
-                pending: true,
-            }),
-        );
+    const handleAudioToggle = (asset) => {
+        const audioElement = audioElements.get(asset.id);
+        if (!audioElement) return;
 
-        const baseList = [...filtered, ...pendingAsObjectAssets];
+        if (audioElement.paused) {
+            audioElements.forEach((audio, id) => {
+                if (id !== asset.id && !audio.paused) audio.pause();
+            });
+            audioElement.play().catch((error) => console.error("Error playing audio:", error));
+        } else {
+            audioElement.pause();
+        }
+    };
 
-        // Use reordered assets if available, otherwise sort by order
-        const assets = hasReorderChanges
-            ? reorderedAssets
-            : baseList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-        return assets.map((objectAsset) => ({
-            ...objectAsset,
-            id: objectAsset.id,
-        }));
-    });
-
-    // Handle adding media: open selection modal
-    function handleAddMedia() {
-        isLinkModalOpen = true;
-    }
-
-    // Disable linking if no institution is selected or available
-    const effectiveInstitutionId = $derived(
-        object?.institution_id ?? institutionId ?? null,
-    );
-    const isLinkDisabled = $derived(!effectiveInstitutionId);
-
-    // Handle viewing media
-    function handleViewMedia(asset) {
-        const assetType = getAssetType(asset);
-
+    const handleViewMedia = (asset) => {
+        const assetType = getMediaType(asset);
         if (assetType === "audio") {
             handleAudioToggle(asset);
         } else {
-            // Open modal for images and videos
             modalAsset = asset;
             isModalOpen = true;
         }
-    }
+    };
 
-    // Handle audio play/pause
-    function handleAudioToggle(asset) {
-        const audioElement = audioElements.get(asset.id);
+    const handleDndEvent = (event) => {
+        reorderedAssets = [...event.detail.items];
+        hasReorderChanges = true;
+        notifyParent();
+    };
 
-        if (audioElement) {
-            if (audioElement.paused) {
-                // Pause all other audio first
-                audioElements.forEach((audio, id) => {
-                    if (id !== asset.id && !audio.paused) {
-                        audio.pause();
-                    }
-                });
-                audioElement.play().catch((error) => {
-                    console.error("Error playing audio:", error);
-                });
-            } else {
-                audioElement.pause();
-            }
-        }
-    }
+    const handleLinkModalSave = (selectedAssets) => {
+        const existingIds = new Set(linkedAssets.map((oa) => oa.asset.id));
+        pendingAdditions = selectedAssets.filter((a) => !existingIds.has(a.id));
 
-    // Get asset type based on file extension or type property
-    function getAssetType(asset) {
-        const type = asset.type?.toLowerCase();
-        const filename = asset.filename?.toLowerCase() || "";
-
-        if (
-            type === "audio" ||
-            filename.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/)
-        ) {
-            return "audio";
-        } else if (
-            type === "video" ||
-            filename.match(/\.(mp4|webm|mov|avi|mkv)$/)
-        ) {
-            return "video";
-        } else if (
-            type === "image" ||
-            filename.match(/\.(jpg|jpeg|png|gif|webp|avif)$/)
-        ) {
-            return "image";
-        }
-        return "unknown";
-    }
-
-    // Close modal
-    function closeModal() {
-        isModalOpen = false;
-        modalAsset = null;
-    }
-
-    // Action to register audio elements
-    function registerAudioElement(element, assetId) {
-        audioElements.set(assetId, element);
-
-        return {
-            destroy() {
-                audioElements.delete(assetId);
-            },
-        };
-    }
-
-    // Save all pending changes
-    async function saveChanges(objectIdToSave) {
-    if (
-        pendingRemovals.size === 0 &&
-        !hasReorderChanges &&
-        (!pendingAdditions || pendingAdditions.length === 0)
-    )
-        return;
-
-    const objectId = objectIdToSave || object?.id;
-    if (!objectId) {
-        console.error("No object ID provided to save asset changes.");
-        return;
-    }
-
-    try {
-        const promises = [];
-
-        // 1) Execute link operations first (new additions)
-        if (pendingAdditions && pendingAdditions.length > 0) {
-            const currentCount = linkedAssets.filter(
-                (oa) => !pendingRemovals.has(oa.asset.id),
-            ).length;
-            const addPromises = pendingAdditions.map((asset, index) => {
-                // Determine desired order. If we have reorder changes, find index in reorderedAssets
-                let desiredOrder = currentCount + index + 1;
-                if (hasReorderChanges) {
-                    const pos = reorderedAssets.findIndex(
-                        (item) => item.asset.id === asset.id,
-                    );
-                    desiredOrder = pos >= 0 ? pos + 1 : desiredOrder;
-                }
-                return linkAssetToObject(objectId, asset.id, desiredOrder);
-            });
-            promises.push(...addPromises);
-        }
-
-        // 2) Execute removal operations
-        if (pendingRemovals.size > 0) {
-            const removePromises = Array.from(pendingRemovals).map((assetId) =>
-                unlinkAssetFromObject(objectId, assetId),
-            );
-            promises.push(...removePromises);
-        }
-
-        // 3) Execute reorder operations (for existing + newly linked)
         if (hasReorderChanges) {
-            const assetOrders = reorderedAssets.map((asset, index) => ({
-                assetId: asset.asset.id,
-                order: index + 1,
+            const newItems = pendingAdditions.map((asset) => ({
+                id: `new-${asset.id}`,
+                order: displayAssets.length + 1,
+                asset,
+                pending: true,
             }));
-            promises.push(reorderAssets(objectId, assetOrders));
+            reorderedAssets = [...displayAssets, ...newItems];
         }
+        notifyParent();
+    };
+
+    async function saveChanges(objectIdToSave) {
+        if (!hasChanges) return;
+
+        const objectId = objectIdToSave || object?.id;
+        if (!objectId) {
+            console.error("No object ID provided to save asset changes.");
+            return;
+        }
+
+        try {
+            const promises = [];
+
+            // Link new additions
+            if (pendingAdditions.length > 0) {
+                const currentCount = linkedAssets.filter((oa) => !pendingRemovals.has(oa.asset.id)).length;
+                const addPromises = pendingAdditions.map((asset, index) => {
+                    let desiredOrder = currentCount + index + 1;
+                    if (hasReorderChanges) {
+                        const pos = reorderedAssets.findIndex((item) => item.asset.id === asset.id);
+                        desiredOrder = pos >= 0 ? pos + 1 : desiredOrder;
+                    }
+                    return linkAssetToObject(objectId, asset.id, desiredOrder);
+                });
+                promises.push(...addPromises);
+            }
+
+            // Remove assets
+            if (pendingRemovals.size > 0) {
+                promises.push(...Array.from(pendingRemovals).map((assetId) => unlinkAssetFromObject(objectId, assetId)));
+            }
+
+            // Reorder assets
+            if (hasReorderChanges) {
+                const assetOrders = reorderedAssets.map((asset, index) => ({
+                    assetId: asset.asset.id,
+                    order: index + 1,
+                }));
+                promises.push(reorderAssets(objectId, assetOrders));
+            }
 
             const results = await Promise.all(promises);
             const errors = results.filter((result) => result.error);
@@ -260,13 +176,10 @@
             if (errors.length > 0) {
                 console.error("Error saving asset changes:", errors);
             } else {
-                // Clear pending changes
                 pendingRemovals.clear();
-                pendingRemovals = new Set(pendingRemovals);
+                pendingRemovals = new Set();
                 pendingAdditions = [];
                 notifyParent();
-
-                // Refresh data then clear reorder state to prevent flickering
                 await invalidate("custom:object");
                 reorderedAssets = [];
                 hasReorderChanges = false;
@@ -274,13 +187,6 @@
         } catch (error) {
             console.error("Error saving asset changes:", error);
         }
-    }
-
-    // Handle drag and drop events
-    function handleDndEvent(event) {
-        reorderedAssets = [...event.detail.items];
-        hasReorderChanges = true;
-        notifyParent();
     }
 </script>
 
@@ -336,75 +242,75 @@
             {#each displayAssets as objectAsset, index (objectAsset.id)}
                 {@const asset = objectAsset.asset}
                 <div
-                    class="d-flex align-items-center gap-3 mb-3 p-3 bg-white border border-secondary border-opacity-25 rounded"
+                    class="d-flex align-items-stretch gap-2 mb-3"
                     animate:flip={{ duration: flipDurationMs }}
                 >
-                    <!-- Asset thumbnail -->
-                    <div
-                        class="flex-shrink-0"
-                        style="cursor: pointer;"
-                        role="button"
-                        tabindex="0"
-                        onclick={() => handleViewMedia(asset)}
-                        onkeydown={(e) =>
-                            e.key === "Enter" && handleViewMedia(asset)}
-                    >
-                        <BaseImage
-                            src={asset?.path ? `media://${asset.path}` : null}
-                            alt={asset?.filename || "Asset"}
-                            width={64}
-                            height={64}
-                            class="rounded"
-                            ratio="1/1"
-                        />
-                    </div>
-
-                    <!-- Asset info -->
-                    <div class="flex-grow-1 min-w-0 me-3 overflow-hidden">
+                    <!-- Main media card -->
+                    <div class="flex-grow-1 bg-white border border-secondary border-opacity-25 rounded overflow-hidden">
+                        <!-- Asset thumbnail (square) -->
                         <div
-                            class="fw-medium text-truncate"
-                            style="cursor: pointer;"
+                            class="w-100"
+                            style="cursor: pointer; position: relative; padding-bottom: 100%;"
                             role="button"
                             tabindex="0"
                             onclick={() => handleViewMedia(asset)}
                             onkeydown={(e) =>
                                 e.key === "Enter" && handleViewMedia(asset)}
                         >
-                            {asset?.filename || "Unnamed file"}
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                                <BaseImage
+                                    src={asset?.path ? `media://${asset.path}` : null}
+                                    alt={asset?.filename || "Asset"}
+                                    class="w-100 h-100"
+                                    style="object-fit: contain;"
+                                />
+                            </div>
+                            {#if getMediaType(asset) === "video"}
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
+                                    <i class="bi bi-play-circle-fill text-white" style="font-size: 3rem; opacity: 0.8;"></i>
+                                </div>
+                            {/if}
+                            {#if getMediaType(asset) === "audio"}
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
+                                    <i class="bi bi-music-note-beamed text-white" style="font-size: 3rem; opacity: 0.8;"></i>
+                                </div>
+                            {/if}
                         </div>
-                        {#if asset?.type}
-                            <small class="text-muted">
-                                {asset.type.toUpperCase()}
-                            </small>
-                        {/if}
+
+                        <!-- Asset info -->
+                        <div class="p-2">
+                            <div class="text-truncate small mb-2" title={asset?.filename || "Unnamed file"}>
+                                {asset?.filename || "Unnamed file"}
+                            </div>
+
+                            <!-- Unlink button -->
+                            <button
+                                class="btn btn-sm btn-link text-danger p-0 text-decoration-none d-flex align-items-center gap-1"
+                                type="button"
+                                onclick={(e) => {
+                                    e.stopPropagation();
+                                    handleAssetRemove(objectAsset.asset.id);
+                                }}
+                            >
+                                <i class="bi bi-dash-circle"></i>
+                                <span class="small">
+                                    {t("objects.linked_media.unlink", {
+                                        fallback: "Unlink media",
+                                    })}
+                                </span>
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Actions -->
-                    <div class="flex-shrink-0 d-flex align-items-center gap-1">
-                        <!-- Drag handle -->
+                    <!-- Drag handle on the right -->
+                    <div class="flex-shrink-0 d-flex align-items-center">
                         <button
                             class="btn btn-link text-muted p-1 drag-handle"
                             style="cursor: grab;"
                             aria-label="drag item"
                             use:dragHandle
-                            ><i class="bi bi-grip-vertical"></i>
-                        </button>
-                        <!-- Unlink button -->
-                        <button
-                            class="btn btn-link text-danger p-1"
-                            type="button"
-                            aria-label={t("objects.linked_media.unlink", {
-                                fallback: "Unlink media",
-                            })}
-                            title={t("objects.linked_media.unlink", {
-                                fallback: "Unlink media",
-                            })}
-                            onclick={(e) => {
-                                e.stopPropagation();
-                                handleAssetRemove(objectAsset.asset.id);
-                            }}
                         >
-                            <i class="bi bi-dash-circle"></i>
+                            <i class="bi bi-grip-vertical"></i>
                         </button>
                     </div>
                 </div>
@@ -423,7 +329,7 @@
 <!-- Hidden audio elements for playback -->
 {#each displayAssets as objectAsset (objectAsset.id)}
     {@const asset = objectAsset.asset}
-    {#if getAssetType(asset) === "audio"}
+    {#if getMediaType(asset) === "audio"}
         <audio
             use:registerAudioElement={asset.id}
             src="media://{asset.path}"
@@ -441,27 +347,7 @@
     isOpen={isLinkModalOpen}
     projectId={object?.project_id ?? projectId}
     institutionId={object?.institution_id ?? institutionId}
-    initiallySelectedIds={[
-        ...linkedAssets.map((oa) => oa.asset.id),
-        ...(pendingAdditions || []).map((a) => a.id),
-    ]}
+    initiallySelectedIds={[...linkedAssets.map((oa) => oa.asset.id), ...pendingAdditions.map((a) => a.id)]}
     onClose={() => (isLinkModalOpen = false)}
-    onSave={(selectedAssets) => {
-        // Only keep assets that are not already linked
-        const existingIds = new Set(linkedAssets.map((oa) => oa.asset.id));
-        pendingAdditions = selectedAssets.filter((a) => !existingIds.has(a.id));
-
-        // If we already had a manual reorder, incorporate new items into list
-        if (hasReorderChanges) {
-            const base = displayAssets;
-            const newItems = pendingAdditions.map((asset) => ({
-                id: `new-${asset.id}`,
-                order: (base.length || 0) + 1,
-                asset,
-                pending: true,
-            }));
-            reorderedAssets = [...base, ...newItems];
-        }
-        notifyParent();
-    }}
+    onSave={handleLinkModalSave}
 />

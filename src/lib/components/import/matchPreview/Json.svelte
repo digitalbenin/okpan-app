@@ -52,7 +52,7 @@
     }
   );
 
-  $inspect(tree); // For debugging purposes, can be removed later
+
 </script>
 
 <SuggestTemplate {templateSuggestions}></SuggestTemplate>

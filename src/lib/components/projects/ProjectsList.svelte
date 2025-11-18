@@ -1,16 +1,17 @@
 <script>
   import BaseInput from "$lib/components/base/BaseInput.svelte";
-  import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
-  import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
+  import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import ProjectChip from "$lib/components/projects//ProjectChip.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { goto } from "$app/navigation";
 
-  const { projects = [] } = $props();
-  const { t, translationState } = getTranslationStore();
+  const { 
+    projects = [], 
+    onNewProject = () => {},
+    dropdownItems = []
+  } = $props();
+  const { t } = getTranslationStore();
 
   let search = $state("");
-  let newProjectOpen = $state(false);
 
   const filteredProjects = $derived(
     projects.filter(
@@ -21,25 +22,6 @@
           .includes(search.toLowerCase()),
     ),
   );
-
-  function openNewProjectModal() {
-    newProjectOpen = true;
-  }
-
-  async function handleCreated({ projectId }) {
-    // Close modal
-    newProjectOpen = false;
-    if (!projectId) {
-      console.warn('[ProjectsList] Missing projectId in handleCreated');
-      return;
-    }
-    const path = `/projects/${projectId}`;
-    try {
-      await goto(path);
-    } catch (err) {
-      console.error('[ProjectsList] Navigation failed', err);
-    }
-  }
 </script>
 
 {#if projects.length}
@@ -47,16 +29,20 @@
     <h4>
       {t("common.open-project", { fallback: "Open an existing project" })}
     </h4>
-    <div class="d-flex gap-2 ms-auto">
+    <div class="d-flex gap-2 ms-auto align-items-center">
       <BaseInput
         bind:value={search}
         placeholder={t("common.search", { fallback: "Search" })}
       />
-      <button
-        class="btn btn-primary flex-shrink-0"
-        onclick={openNewProjectModal}
-        >{t("common.new-project", { fallback: "Create a new project" })}</button
+      <BaseDropdownMenu
+        items={dropdownItems}
+        triggerClass="btn btn-primary flex-shrink-0"
       >
+        {#snippet trigger()}
+          {t("common.new-project", { fallback: "Create new project" })}
+          <i class="bi bi-chevron-down ms-1"></i>
+        {/snippet}
+      </BaseDropdownMenu>
     </div>
   </div>
   <div class="d-flex flex-column">
@@ -66,25 +52,17 @@
   </div>
 {:else}
   <div
-    class="emptyProjectChip w-100 d-flex align-items-center justify-content-center border rounded mb-4 mt-3 p-3 gap-2"
+    class="w-100 d-flex align-items-center justify-content-center rounded mb-4 mt-3 p-3 gap-2"
   >
     {t("project.start", { fallback: "Start creating" })}
-    <button class="btn btn-primary" onclick={openNewProjectModal}
-      >{t("project.new", { fallback: "New project" })}</button
+    <BaseDropdownMenu
+      items={dropdownItems}
+      triggerClass="btn btn-primary"
     >
+      {#snippet trigger()}
+        {t("common.new-project", { fallback: "New project" })}
+        <i class="bi bi-chevron-down ms-1"></i>
+      {/snippet}
+    </BaseDropdownMenu>
   </div>
 {/if}
-<BaseAlertDialog bind:open={newProjectOpen} size="lg">
-  {#snippet title()}
-    {t("project.create-project", { fallback: "Create a new project" })}
-  {/snippet}
-  {#snippet description()}
-    <ProjectCreate onCreated={handleCreated}></ProjectCreate>
-  {/snippet}
-</BaseAlertDialog>
-
-<style>
-  .emptyProjectChip {
-    border-style: dashed !important;
-  }
-</style>

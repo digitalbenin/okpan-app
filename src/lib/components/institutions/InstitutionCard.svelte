@@ -1,7 +1,7 @@
 <script>
   import BaseBadgeStaus from "$lib/components/base/BaseBadgeStatus.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { addImageProtocolPrefix } from "$lib/utils/images.js";
+  import { addImageProtocolPrefix } from "$lib/utils/media.js";
 
   const { t } = getTranslationStore();
   const { institution } = $props();

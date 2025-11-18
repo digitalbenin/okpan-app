@@ -6,6 +6,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
+  import { getObjectImageUrl } from "$lib/utils/media.js";
 
   let {
     items,
@@ -25,17 +26,10 @@
         value: "image",
         label: null,
         sortable: false,
-        accessor: (value) => {
-          const src =
-            value.objectsAssets && value.objectsAssets.length > 0
-              ? value.objectsAssets[0].asset.formats.sm
-              : null;
-          const id = value.id;
-          return {
-            src,
-            id,
-          };
-        },
+        accessor: (value) => ({
+          src: getObjectImageUrl(value, 'sm', false),
+          id: value.id,
+        }),
         render: (value) => ({
           component: TableImagePreview,
           props: value,

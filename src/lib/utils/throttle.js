@@ -30,3 +30,32 @@ export function throttle(fn, wait = 300) {
     }
   };
 }
+
+export function debounce(fn, wait = 300) {
+  let timeoutId = null;
+  let lastArgs = null;
+  let lastThis = null;
+
+  function invoke() {
+    fn.apply(lastThis, lastArgs);
+    lastArgs = null;
+    lastThis = null;
+    timeoutId = null;
+  }
+
+  function debounced(...args) {
+    lastArgs = args;
+    lastThis = this;
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(invoke, wait);
+  }
+
+  debounced.cancel = () => {
+    clearTimeout(timeoutId);
+    timeoutId = null;
+    lastArgs = null;
+    lastThis = null;
+  };
+
+  return debounced;
+}

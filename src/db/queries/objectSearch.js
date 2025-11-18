@@ -162,17 +162,26 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content )) FROM objects_research_fields orf JOIN research_fields rf ON orf.field_id = rf.id JOIN texts rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN vocabularies v ON orf.vocabulary_id = v.id LEFT JOIN texts v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = objects.id)`;
 
             // Helper builders to keep condition construction DRY and precise
+            // Helper to convert raw string into FTS5 AND wildcard query
+            const toFtsAndQuery = (s) => s
+                ?.trim()
+                .toLowerCase()
+                .split(/\s+/)
+                .filter(Boolean)
+                .map(t => `${t}*`)
+                .join(' AND ');
+
             const buildOntologyConditions = (queries) => {
                 if (!queries || queries.length === 0) return [];
                 const perFieldConds = queries
                     .filter(ofq => ofq && ofq.fieldId && ofq.query && ofq.query.trim())
                     .map(ofq => {
-                        const qLike = `%${ofq.query.trim().toLowerCase()}%`;
+                        const fts = toFtsAndQuery(ofq.query);
                         return sql`EXISTS (
-                            SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
-                            WHERE oof.object_id = objects.id
-                            AND oof.field_id = ${ofq.fieldId}
-                            AND LOWER(oof.value) LIKE ${qLike}
+                            SELECT 1 FROM objects_ontology_fields_search oofs
+                            WHERE oofs.object_id = objects.id
+                            AND oofs.field_id = ${ofq.fieldId}
+                            AND oofs.content MATCH ${fts}
                         )`;
                     });
                 return perFieldConds.length > 0 ? [and(...perFieldConds)] : [];
@@ -180,19 +189,22 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
 
             const buildGenericConditions = (rawQuery) => {
                 if (!rawQuery || !rawQuery.trim()) return [];
-                const qLike = `%${rawQuery.trim().toLowerCase()}%`;
-                // OR across object name, any ontology field value, and any research field value
+                const fts = toFtsAndQuery(rawQuery);
                 const cond = or(
-                    sql`LOWER(${dbSchema.objects.name}) LIKE ${qLike}`,
                     sql`EXISTS (
-                        SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof
-                        WHERE oof.object_id = objects.id
-                        AND LOWER(oof.value) LIKE ${qLike}
+                        SELECT 1 FROM objects_search os
+                        WHERE os.object_id = objects.id
+                        AND os.content MATCH ${fts}
                     )`,
                     sql`EXISTS (
-                        SELECT 1 FROM ${dbSchema.objects_research_fields} orf
-                        WHERE orf.object_id = objects.id
-                        AND LOWER(orf.value) LIKE ${qLike}
+                        SELECT 1 FROM objects_ontology_fields_search oofs
+                        WHERE oofs.object_id = objects.id
+                        AND oofs.content MATCH ${fts}
+                    )`,
+                    sql`EXISTS (
+                        SELECT 1 FROM objects_research_fields_search orfs
+                        WHERE orfs.object_id = objects.id
+                        AND orfs.content MATCH ${fts}
                     )`
                 );
                 return [cond];
@@ -203,18 +215,20 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 const researchFieldConditions = [];
                 for (const filter of filters) {
                     const fieldConditions = [];
+                    // Text query: use FTS table
                     if (filter?.query && filter.query.trim()) {
-                        const researchQuery = `%${filter.query.trim().toLowerCase()}%`;
+                        const fts = toFtsAndQuery(filter.query);
                         fieldConditions.push(sql`EXISTS (
-                            SELECT 1 FROM ${dbSchema.objects_research_fields} orf
-                            WHERE orf.object_id = objects.id
-                            AND orf.field_id = ${filter.fieldId}
-                            AND LOWER(orf.value) LIKE ${researchQuery}
+                            SELECT 1 FROM objects_research_fields_search orfs
+                            WHERE orfs.object_id = objects.id
+                            AND orfs.field_id = ${filter.fieldId}
+                            AND orfs.content MATCH ${fts}
                         )`);
                     }
-                    if (filter?.vocabularyIds && filter.vocabularyIds.length > 0) {
+                    // Vocabulary selections: use base table for equality
+                    if (Array.isArray(filter?.vocabularyIds) && filter.vocabularyIds.length > 0) {
                         const vocabConditions = filter.vocabularyIds.map(vocabId => sql`EXISTS (
-                            SELECT 1 FROM ${dbSchema.objects_research_fields} orf
+                            SELECT 1 FROM objects_research_fields orf
                             WHERE orf.object_id = objects.id
                             AND orf.field_id = ${filter.fieldId}
                             AND orf.vocabulary_id = ${vocabId}

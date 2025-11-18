@@ -95,7 +95,6 @@
 		);
 	});
 
-	$inspect(grouped);
 </script>
 
 {#if grouped.length > 0}

@@ -11,7 +11,6 @@
   const { data } = $props();
   const { t } = getTranslationStore();
   const wizard = getImportAssetsWizardContext();
-  $inspect(data);
 </script>
 
 {#if wizard.currentStep === 1}

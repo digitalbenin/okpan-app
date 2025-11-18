@@ -16,7 +16,6 @@
         },
     } = $props();
 
-    $inspect("mappings", mappings);
 
     let expandedPreviews = $state({});
 

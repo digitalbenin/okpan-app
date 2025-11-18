@@ -9,6 +9,7 @@
   let files = $state([]);
   let filesSelected = $state([]);
   let importErrors = $state([]);
+  let isImporting = $state(false);
 
   async function choose(isDirectory) {
     const result = await window.api.openFileDialog({
@@ -24,6 +25,8 @@
   }
 
   async function importNow() {
+    if (isImporting) return;
+    isImporting = true;
     const payload = {
       path: $state.snapshot(filesSelected),
       isDirectory: false,
@@ -33,15 +36,20 @@
 
     console.log("Importing with payload", payload);
 
-    const { errors, createdAssets } = await window.api.importAssets(payload);
-    if (errors?.length) {
-      importErrors = errors;
-    }
+    try {
+      const { errors, createdAssets } = await window.api.importAssets(payload);
+      importErrors = errors?.length ? errors : [];
 
-    wizard.assets = createdAssets ? createdAssets : [];
-    // wizard.assets = fakeAssets;
-    if (wizard.assets.length) {
-      wizard.nextEnabled = true;
+      wizard.assets = createdAssets ? createdAssets : [];
+      // wizard.assets = fakeAssets;
+      if (wizard.assets.length) {
+        wizard.nextEnabled = true;
+      }
+    } catch (error) {
+      console.error("Import assets failed", error);
+      importErrors = [error?.message || "Unknown error"];
+    } finally {
+      isImporting = false;
     }
   }
 
@@ -115,7 +123,6 @@
       project_id: "3e4cc3fb-11ee-4d0a-a999-df28a465fc28",
     },
   ];
-  $inspect(wizard);
 </script>
 
 <div class="container-fluid mt-3">
@@ -159,11 +166,20 @@
               ? t("import.file-selected", { fallback: "file selected" })
               : t("import.files", { fallback: "files selected" })}
             <button
-              class="ms-2 btn btn-success"
-              disabled={filesSelected.length === 0}
+              class="ms-2 btn btn-success d-flex align-items-center gap-2"
+              disabled={filesSelected.length === 0 || isImporting}
               onclick={importNow}
             >
-              {t("import.import", { fallback: "Import" })}
+              {#if isImporting}
+                <span
+                  class="spinner-border spinner-border-sm"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                <span>{t("import.importing", { fallback: "Importing..." })}</span>
+              {:else}
+                <span>{t("import.import", { fallback: "Import" })}</span>
+              {/if}
             </button>
           </div>
         {/if}

@@ -41,10 +41,15 @@ export const createObjectImportMutation = (db, drizzleResult) => {
                 name: 'assetMapRule',
                 type: drizzleResult.schema._typeMap.String,
                 description: 'Optional asset mapping rule for the template'
+            },
+            {
+                name: 'sourceFileName',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Optional source file name to store in datasource'
             }
         ],
         resolve: async (source, args, context) => {
-            const { datasourceId, mapping, data, assetMapRule } = args;
+            const { datasourceId, mapping, data, assetMapRule, sourceFileName } = args;
 
             try {
                 // Parse mapping if it's a string
@@ -89,14 +94,20 @@ export const createObjectImportMutation = (db, drizzleResult) => {
                     createdTemplate = templateResult;
 
                     // 3. Associate datasource with the template
+                    const datasourceUpdate = { template_id: createdTemplate.id };
+                    if (sourceFileName) {
+                        datasourceUpdate.source = sourceFileName;
+                    }
+                    
                     await tx.update(dbSchema.datasources)
-                        .set({ template_id: createdTemplate.id })
+                        .set(datasourceUpdate)
                         .where(eq(dbSchema.datasources.id, datasourceId));
 
                     // Get the updated datasource data
                     updatedDatasource = {
                         id: datasourceId,
                         template_id: createdTemplate.id,
+                        source: sourceFileName || null,
                         updated_at: new Date().toISOString()
                     };
 
@@ -224,10 +235,15 @@ export const createObjectImportUsingTemplateMutation = (db, drizzleResult) => {
                 name: 'data',
                 type: new GraphQLNonNull(new GraphQLList(drizzleResult.schema._typeMap.JSON)),
                 description: 'Array of data objects to import, where each object has header names as keys'
+            },
+            {
+                name: 'sourceFileName',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Optional source file name to store in datasource'
             }
         ],
         resolve: async (source, args, context) => {
-            const { datasourceId, templateId, data } = args;
+            const { datasourceId, templateId, data, sourceFileName } = args;
 
             try {
                 return await db.transaction(async (tx) => {
@@ -275,13 +291,19 @@ export const createObjectImportUsingTemplateMutation = (db, drizzleResult) => {
                     }
 
                     // 3. Associate datasource with the template (idempotent)
+                    const datasourceUpdate = { template_id: template.id };
+                    if (sourceFileName) {
+                        datasourceUpdate.source = sourceFileName;
+                    }
+                    
                     await tx.update(dbSchema.datasources)
-                        .set({ template_id: template.id })
+                        .set(datasourceUpdate)
                         .where(eq(dbSchema.datasources.id, datasourceId));
 
                     const updatedDatasource = {
                         id: datasourceId,
                         template_id: template.id,
+                        source: sourceFileName || null,
                         updated_at: new Date().toISOString()
                     };
 

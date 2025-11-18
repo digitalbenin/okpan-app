@@ -1,4 +1,5 @@
 <script>
+    import { getMediaType } from "$lib/utils/media.js";
     import ImagePreview from "./ImagePreview.svelte";
     import VideoPreview from "./VideoPreview.svelte";
     import AudioPreview from "./AudioPreview.svelte";
@@ -15,48 +16,6 @@
     let modalOpen = $state(false);
     let modalAsset = $state(null);
 
-    // Function to determine asset type
-    function getAssetType(assetData) {
-        if (!assetData) return "unknown";
-
-        // Check if asset has a specific media type property first
-        if (
-            assetData.type &&
-            ["image", "video", "audio"].includes(assetData.type)
-        ) {
-            return assetData.type;
-        }
-
-        // Fallback to file extension
-        const fileName = assetData.filename || assetData.name || "";
-        const ext = fileName.split(".").pop()?.toLowerCase() || "";
-
-        const imageExts = ["png", "jpg", "jpeg", "webp", "gif", "avif"];
-        const videoExts = [
-            "mp4",
-            "webm",
-            "mov",
-            "avi",
-            "mkv",
-            "wmv",
-            "flv",
-            "m4v",
-        ];
-        const audioExts = ["mp3", "ogg", "wav", "m4a", "aac"];
-
-        if (imageExts.includes(ext)) {
-            return "image";
-        }
-        if (videoExts.includes(ext)) {
-            return "video";
-        }
-        if (audioExts.includes(ext)) {
-            return "audio";
-        }
-
-        return "unknown";
-    }
-
     function handleMediaClick(clickedAsset) {
         modalAsset = clickedAsset;
         modalOpen = true;
@@ -67,7 +26,7 @@
         modalAsset = null;
     }
 
-    const assetType = $derived(getAssetType(asset));
+    const assetType = $derived(getMediaType(asset));
 </script>
 
 {#if asset}

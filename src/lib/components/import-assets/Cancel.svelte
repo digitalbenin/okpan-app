@@ -1,25 +1,35 @@
 <script>
-  // import { goto } from "$app/navigation";
+  import { goto } from "$app/navigation";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
-  // import { deleteDatasource } from "$lib/stores/DatasourcesUtils.js";
-  // import { createFetcher } from "$lib/stores/useFetcher.svelte.js";
+  import { deleteAssetsBulk } from "$lib/stores/AssetsUtils.js";
 
   const { t } = getTranslationStore();
   const wizard = getImportAssetsWizardContext();
   let open = $state(false);
-  // const fetcherDatasource = createFetcher(deleteDatasource);
-  //   const fetcherMapping = createFetcher(deleteMapping);
-  async function cancelImport() {
-    // if (wizard.datasourceId) {
-    //   await fetcherDatasource.fetch({ datasourceId: wizard.datasourceId });
-    // }
-    // if (wizard.mappingId) {
-    //   //   await fetcherMapping.fetch({ mappingId: wizard.mappingId });
-    // }
+  let isDeleting = $state(false);
 
-    // // open = false;
+  async function cancelImport() {
+    if (isDeleting) return;
+
+    const importedAssetIds = wizard.assets?.map((a) => a.id).filter(Boolean) || [];
+
+    if (importedAssetIds.length > 0) {
+      isDeleting = true;
+      try {
+        const result = await deleteAssetsBulk(importedAssetIds);
+        if (result.errors?.length) {
+          console.warn("Some assets could not be deleted:", result.errors);
+        }
+      } catch (error) {
+        console.error("Failed to delete imported assets:", error);
+      } finally {
+        isDeleting = false;
+      }
+    }
+
+    open = false;
     goto(`/projects/${wizard.projectId}/import-assets`);
   }
 </script>
@@ -37,12 +47,12 @@
     })}
   {/snippet}
   {#snippet footer()}
-    <!-- {#if fetcherDatasource.isLoading}
-      <div class="spinner-border text-success" role="status">
-        <span class="visually-hidden">Loading...</span>
+    {#if isDeleting}
+      <div class="spinner-border text-danger" role="status">
+        <span class="visually-hidden">{t("common.deleting", { fallback: "Deleting..." })}</span>
       </div>
-    {/if} -->
-    <button class="btn btn-success" onclick={cancelImport}>
+    {/if}
+    <button class="btn btn-success" onclick={cancelImport} disabled={isDeleting}>
       {t("common.confirm", { fallback: "Confirm" })}
     </button>
   {/snippet}

@@ -41,7 +41,6 @@
     },
     { initialValue: [] },
   );
-  $inspect(wizard);
 </script>
 
 <div class="container-fluid mt-3">

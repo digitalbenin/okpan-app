@@ -194,6 +194,7 @@ export const objectsOperations = {
         filename
         path
         type
+        formats
       }
     }
   }

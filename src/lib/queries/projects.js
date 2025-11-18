@@ -334,12 +334,19 @@ export const projectsOperations = {
   removeLanguage: {
     type: "mutation",
     name: "Remove Language from Project",
-    description: "Removes a language from a project",
+    description: "Removes a language from a project and all its related translations",
     variables: {
       languageId: "ID of the language to remove"
     },
     query: `mutation RemoveProjectLanguage($languageId: String!) {
-  deleteFromLanguages(
+  # First, delete all translations that reference this language
+  deleteTranslations: deleteFromTranslations(
+    where: { language_id: { eq: $languageId } }
+  ) {
+    id
+  }
+  # Then, delete the language itself
+  deleteLanguage: deleteFromLanguages(
     where: { id: { eq: $languageId } }
   ) {
     id
