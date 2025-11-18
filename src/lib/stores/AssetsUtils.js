@@ -45,37 +45,26 @@ export const deleteAssetsBulk = async (assetIds) => {
         return { error: "No assets selected for deletion" };
     }
 
-    const promises = assetIds.map((assetId) =>
-        executeQuery('assets', 'delete', { assetId })
-    );
-
-    const settled = await Promise.allSettled(promises);
-    const successes = [];
+    const response = await executeQuery('assets', 'deleteBulk', { ids: assetIds });
+    const payload = response?.result || {};
+    const successes = payload.deletedIds || [];
+    const missingIds = payload.missingIds || [];
+    const fileErrors = payload.fileErrors || [];
     const errors = [];
 
-    settled.forEach((res, idx) => {
-        const id = assetIds[idx];
-        if (res.status === 'fulfilled' && !res.value?.error) {
-            successes.push(id);
-        } else {
-            const errMsg = res.status === 'rejected'
-                ? (res.reason?.message || 'Unknown error')
-                : (res.value?.error || 'Unknown error');
-            errors.push({ assetId: id, error: errMsg });
-        }
-    });
+    if (missingIds.length) {
+        errors.push(...missingIds.map((id) => ({ assetId: id, error: 'Asset not found' })));
+    }
+
+    if (fileErrors.length) {
+        errors.push(...fileErrors.map((entry) => ({ assetId: entry.asset_id, error: entry.error || 'File removal failed', path: entry.path })));
+    }
 
     // Invalidate caches to reflect deletions
     invalidate("app:assets");
-    try {
-        if (typeof invalidateAll === 'function') {
-            await invalidateAll();
-        }
-    } catch (_) {
-        // ignore
-    }
+    //invalidateAll();
 
-    return { successes, errors };
+    return { successes, errors, missingIds, fileErrors };
 };
 
 // Bulk link assets to multiple objects following the same paradigm
