@@ -19,6 +19,7 @@
     updateObjectName,
   } from "$lib/stores/ObjectsUtils.js";
   import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
+  import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -127,6 +128,33 @@
     Array.from(componentChanges.values()).some((comp) => comp.hasChanges),
   );
 
+  let pristineVersion = $state(0);
+
+  const dirtyValues = $derived.by(() => ({
+    name: objectName?.trim() || "",
+    institution: selectedInstitutionId || null,
+    changedComponents: Array.from(componentChanges.values())
+      .filter((comp) => comp?.component)
+      .map((comp) => ({ component: comp.component, hasChanges: comp.hasChanges })),
+  }));
+
+  const dirtyMessage = $derived(
+    t("form.unsaved-changes", {
+      fallback:
+        "You have unsaved changes. Are you sure you want to leave without saving?",
+    })
+  );
+
+  const markPageClean = () => {
+    componentChanges.clear();
+    componentChanges = new Map(componentChanges);
+    nameHasChanges = false;
+    institutionHasChanges = false;
+    objectName = data.object.name || "";
+    selectedInstitutionId = data.object.institution_id || null;
+    pristineVersion += 1;
+  };
+
   // Handle changes from child components
   function handleComponentChanges(changeData) {
     componentChanges.set(changeData.component, changeData);
@@ -159,16 +187,15 @@
       // Execute all saves in parallel
       await Promise.all(savePromises);
 
-      // Redirect if institution changed (URL contains institution_id)
       if (redirectNeeded) {
+        markPageClean();
         const newUrl = `/projects/${projectId}/institutions/${nextInstitutionId}/objects/${data.object.id}`;
         goto(newUrl);
         return;
       }
 
-      // Clear component changes
-      componentChanges.clear();
-      componentChanges = new Map(componentChanges);
+      // Clear dirty state before staying on current object
+      markPageClean();
     } catch (error) {
       console.error("Error saving changes:", error);
     } finally {
@@ -200,6 +227,7 @@
       if (res?.error) {
         console.error("Failed to delete object:", res.error);
       } else {
+        markPageClean();
         // Navigate back to the previous page
         back();
       }
@@ -399,3 +427,10 @@
     />
   {/if}
 </div>
+
+<ManualDirtyGuard
+  values={dirtyValues}
+  pristineKey={pristineVersion}
+  enabled={hasAnyChanges}
+  message={dirtyMessage}
+/>

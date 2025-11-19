@@ -10,6 +10,8 @@
     import BaseSelectNew from "$lib/components/base/BaseSelectNew.svelte";
     import { createObject } from "$lib/stores/ObjectsUtils.js";
     import { queryParameters, ssp } from "sveltekit-search-params";
+    import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
+    import { watch } from "runed";
 
     const { data } = $props();
     const { t } = getTranslationStore();
@@ -33,12 +35,14 @@
     });
 
     // Prefill selection if institution_id is present
-    $effect(() => {
-        const qId = params.institution_id;
-        if (qId && !selectedInstitutionId) {
-            selectedInstitutionId = qId;
+    watch(
+        () => params.institution_id,
+        (qId) => {
+            if (qId && !selectedInstitutionId) {
+                selectedInstitutionId = qId;
+            }
         }
-    });
+    );
 
     function onInstitutionValueChange(val) {
         selectedInstitutionId = val;
@@ -53,11 +57,33 @@
 
     // Derived state for overall changes
     const hasAnyChanges = $derived(
-        !!objectName ||
-            Array.from(componentChanges.values()).some(
-                (comp) => comp.hasChanges,
-            ),
+        !!objectName?.trim() ||
+            Array.from(componentChanges.values()).some((comp) => comp.hasChanges)
     );
+
+    let pristineVersion = $state(0);
+
+    const dirtyValues = $derived.by(() => ({
+        name: objectName?.trim() || "",
+        institution: selectedInstitutionId || null,
+        changedComponents: Array.from(componentChanges.values())
+            .filter((comp) => comp?.component)
+            .map((comp) => ({ component: comp.component, hasChanges: comp.hasChanges })),
+    }));
+
+    const dirtyMessage = $derived(
+        t("form.unsaved-changes", {
+            fallback:
+                "You have unsaved changes. Are you sure you want to leave without saving?",
+        })
+    );
+
+    const resetDirtyState = () => {
+        objectName = "";
+        componentChanges.clear();
+        componentChanges = new Map(componentChanges);
+        pristineVersion += 1;
+    };
 
     // Handle changes from child components
     function handleComponentChanges(changeData) {
@@ -102,7 +128,10 @@
             // 3. Execute all saves in parallel
             await Promise.all(savePromises);
 
-            // 4. Navigate to the new object's page
+            // 4. Clear local changes before navigating away
+            resetDirtyState();
+
+            // 5. Navigate to the new object's page
             await goto(
                 `/projects/${projectId}/institutions/${selectedInstitutionId}/objects/${newObjectId}`,
             );
@@ -221,3 +250,10 @@
         </div>
     </div>
 </div>
+
+<ManualDirtyGuard
+    values={dirtyValues}
+    pristineKey={pristineVersion}
+    enabled={hasAnyChanges}
+    message={dirtyMessage}
+/> 

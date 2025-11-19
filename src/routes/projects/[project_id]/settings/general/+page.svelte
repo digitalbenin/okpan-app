@@ -4,6 +4,8 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { Tabs } from "melt/builders";
   import AddProjectLanguagesModal from "$lib/components/projects/AddProjectLanguagesModal.svelte";
+  import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
+  import { watch } from "runed";
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -16,6 +18,9 @@
   let isSaving = $state(false);
   let editTitle = $state({});
   let editDescription = $state({});
+  let initialTitleSnapshot = $state({});
+  let initialDescriptionSnapshot = $state({});
+  let pristineVersion = $state(0);
 
   // Tabs
   const initialLanguageCode = $derived(defaultLanguage?.code || languages?.[0]?.code || "");
@@ -24,10 +29,16 @@
     value: () => activeLanguageCode || initialLanguageCode,
     onValueChange: (v) => { if (v) activeLanguageCode = v; }
   });
-  $effect(() => { 
-    if (!activeLanguageCode && initialLanguageCode) activeLanguageCode = initialLanguageCode;
-    tabs.value = activeLanguageCode || initialLanguageCode;
-  });
+
+  watch(
+    () => ({ active: activeLanguageCode, initial: initialLanguageCode }),
+    ({ active, initial }) => {
+      if (!active && initial) {
+        activeLanguageCode = initial;
+      }
+      tabs.value = active || initial || "";
+    }
+  );
 
   // Helpers
   const i18n = $derived({
@@ -58,6 +69,24 @@
     return tr?.id || null;
   }
 
+  const snapshot = (obj) => {
+    try {
+      return JSON.parse(JSON.stringify(obj || {}));
+    } catch {
+      const clone = {};
+      Object.entries(obj || {}).forEach(([key, value]) => {
+        clone[key] = value;
+      });
+      return clone;
+    }
+  };
+
+  const syncSnapshots = () => {
+    initialTitleSnapshot = snapshot(editTitle);
+    initialDescriptionSnapshot = snapshot(editDescription);
+    pristineVersion += 1;
+  };
+
   function initValues() {
     if (!project || !languages?.length) return;
     const titleTranslations = getTranslations(project.title);
@@ -74,6 +103,8 @@
         editDescription[lang.code] = tDesc?.content || "";
       }
     }
+
+    syncSnapshots();
   }
   initValues();
 
@@ -112,12 +143,44 @@
         descriptionTranslations: descriptionTranslations.filter((t) => t.content !== undefined)
       });
       if (error) throw error;
+
+      syncSnapshots();
     } catch (err) {
       console.error("Failed to update project:", err);
     } finally {
       isSaving = false;
     }
   }
+
+  const valuesDiffer = (current, baseline) => {
+    const keys = new Set([
+      ...Object.keys(baseline || {}),
+      ...Object.keys(current || {}),
+    ]);
+    for (const key of keys) {
+      const nextVal = (current?.[key] ?? "").trim?.() ?? current?.[key] ?? "";
+      const baseVal = (baseline?.[key] ?? "").trim?.() ?? baseline?.[key] ?? "";
+      if (nextVal !== baseVal) return true;
+    }
+    return false;
+  };
+
+  const hasUnsavedChanges = $derived(
+    valuesDiffer(editTitle, initialTitleSnapshot) ||
+      valuesDiffer(editDescription, initialDescriptionSnapshot),
+  );
+
+  const dirtyMessage = $derived(
+    t("form.unsaved-changes", {
+      fallback:
+        "You have unsaved changes. Are you sure you want to leave without saving?",
+    })
+  );
+
+  const dirtyValues = $derived.by(() => ({
+    title: snapshot(editTitle),
+    description: snapshot(editDescription),
+  }));
 </script>
 
 <div class="d-flex flex-column min-vh-100">
@@ -229,3 +292,10 @@
   [data-melt-tabs-trigger]:hover:not([data-state="active"]) { border-color: var(--bs-border-color-translucent, #dee2e6); color: var(--bs-nav-link-hover-color, #0a58ca); }
   [data-melt-tabs-content] { padding: 1rem 0; }
 </style>
+
+<ManualDirtyGuard
+  values={dirtyValues}
+  pristineKey={pristineVersion}
+  enabled={hasUnsavedChanges}
+  message={dirtyMessage}
+/>
