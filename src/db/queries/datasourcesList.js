@@ -17,6 +17,11 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 description: 'Filter datasources by institution ID'
             },
             {
+                name: 'object_id',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Filter datasources by object ID (via objects_ontology_fields)'
+            },
+            {
                 name: 'page',
                 type: drizzleResult.schema._typeMap.Int,
                 description: 'Page number for pagination (0-based)',
@@ -77,6 +82,7 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 updated_at: dbSchema.datasources.updated_at,
                 institution_id: dbSchema.datasources.institution_id,
                 template_id: dbSchema.datasources.template_id,
+                source: dbSchema.datasources.source,
                 language: dbSchema.datasources.language,
                 copyright: dbSchema.datasources.copyright,
                 contact: dbSchema.datasources.contact,
@@ -101,9 +107,27 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 .leftJoin(notesTranslations, eq(notesTexts.id, notesTranslations.text_id))
                 .leftJoin(notesLanguages, eq(notesTranslations.language_id, notesLanguages.id));
 
+            // Build WHERE conditions array
+            const conditions = [];
+            
             // Apply institution_id filter if provided
             if (args.institution_id) {
-                query = query.where(eq(dbSchema.datasources.institution_id, args.institution_id));
+                conditions.push(eq(dbSchema.datasources.institution_id, args.institution_id));
+            }
+
+            // Apply object_id filter if provided
+            if (args.object_id) {
+                // Filter datasources that have ontology fields linked to the specified object
+                conditions.push(sql`EXISTS (
+                    SELECT 1 FROM ${dbSchema.objects_ontology_fields} 
+                    WHERE ${dbSchema.objects_ontology_fields.datasources_id} = ${dbSchema.datasources.id}
+                    AND ${dbSchema.objects_ontology_fields.object_id} = ${args.object_id}
+                )`);
+            }
+
+            // Apply all conditions with AND
+            if (conditions.length > 0) {
+                query = query.where(sql.join(conditions, sql` AND `));
             }
 
             // Apply ordering
@@ -138,6 +162,7 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                     dbSchema.datasources.updated_at,
                     dbSchema.datasources.institution_id,
                     dbSchema.datasources.template_id,
+                    dbSchema.datasources.source,
                     dbSchema.datasources.language,
                     dbSchema.datasources.copyright,
                     dbSchema.datasources.contact,

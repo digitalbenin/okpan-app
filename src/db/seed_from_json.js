@@ -322,7 +322,8 @@ const seed = async () => {
                 institution_id: newInstitutionId,
                 language: dsData.languages?.[0] || englishLang.code, // Take first language or default
                 method_id: methodId,
-                date: dsData.date ? new Date(dsData.date) : new Date()
+                date: dsData.date ? new Date(dsData.date) : new Date(),
+                source: `seed_data_${dsData.institution}_${dsData.id}.csv` // Add fake filename as source
             }).returning();
 
             // Build a mapping array compatible with the object import template

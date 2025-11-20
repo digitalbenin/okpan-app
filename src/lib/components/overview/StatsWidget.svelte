@@ -1,6 +1,5 @@
 <script>
   const { stats } = $props();
-  $inspect(stats);
 </script>
 
 <div class="bg-white rounded border p-3 h-100 d-flex flex-column">

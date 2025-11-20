@@ -15,203 +15,209 @@
     enableInstitutionFilter = true,
   } = $props();
 
+  // State
   let activeView = $state("main");
   let selectedField = $state(null);
   let searchTerm = $state("");
-  let openInfoId = $state(null);
-
-  let textSelectedFieldId = $state(""); // encoded kind:id (e.g., "o:12" or "r:34")
+  let textSelectedFieldId = $state("");
   let textQuery = $state("");
 
-  // Build facet lookup maps (optional; safe defaults)
-  let institutionFacetMap = $derived.by(() => {
+  // Derived - Facet lookup maps
+  const institutionFacetMap = $derived.by(() => {
     const map = new Map();
-    const list = facets?.institutions || [];
-    for (const row of list) {
-      const id = row.id;
-      map.set(String(id), row.count || 0);
-    }
+    (facets?.institutions || []).forEach((row) => map.set(String(row.id), row.count || 0));
     return map;
   });
 
-  let researchFacetMap = $derived.by(() => {
+  const researchFacetMap = $derived.by(() => {
     const map = new Map();
-    const fields = facets?.researchFields || [];
-    for (const field of fields) {
-      const fid = field.fieldId;
-      for (const opt of field.options || []) {
-        map.set(`${fid}:${opt.id}`, opt.count || 0);
-      }
-    }
-    return map;
-  });
-
-  function showDetail(field) {
-    selectedField = field;
-    activeView = "detail";
-    openInfoId = null;
-  }
-
-  function showAddTextSearch(prefillKey = "", prefillQuery = "") {
-    activeView = "addText";
-    textSelectedFieldId = prefillKey;
-    textQuery = prefillQuery;
-  }
-
-  function toggleFilter(itemId) {
-    if (!selectedField) return;
-    const fieldKey =
-      selectedField.type === "institutions" ? "institutions" : selectedField.id;
-    // Ensure advancedFilters is an object
-    if (!advancedFilters || typeof advancedFilters !== "object") {
-      advancedFilters = {};
-    }
-    // Initialize array for this field if absent or invalid
-    if (!Array.isArray(advancedFilters[fieldKey])) {
-      advancedFilters[fieldKey] = [];
-    }
-    const list = advancedFilters[fieldKey];
-    const idx = list.findIndex((id) => String(id) === String(itemId));
-    if (idx > -1) {
-      list.splice(idx, 1);
-    } else {
-      list.push(itemId);
-    }
-    onFiltersChange(advancedFilters);
-  }
-
-  function resetFilter() {
-    if (!selectedField) return;
-    const fieldKey =
-      selectedField.type === "institutions" ? "institutions" : selectedField.id;
-    advancedFilters[fieldKey] = [];
-    onFiltersChange(advancedFilters);
-  }
-
-  function isSelected(itemId) {
-    const fieldKey =
-      selectedField.type === "institutions" ? "institutions" : selectedField.id;
-    const arr = Array.isArray(advancedFilters?.[fieldKey]) ? advancedFilters[fieldKey] : [];
-    return arr.some((id) => String(id) === String(itemId));
-  }
-
-  function showMain() {
-    activeView = "main";
-    searchTerm = "";
-    openInfoId = null;
-  }
-
-  function getFacetCountForItem(item) {
-    if (!selectedField) return 0;
-    if (selectedField.type === "institutions") {
-      return institutionFacetMap.get(item.id) ?? 0;
-    }
-    if (selectedField.type === "vocabulary") {
-      return researchFacetMap.get(`${selectedField.id}:${item.id}`) ?? 0;
-    }
-    return 0;
-  }
-
-  function toggleInfo(item) {
-    openInfoId = openInfoId === item.id ? null : item.id;
-  }
-
-  // Compute filtered items reactively
-  let filteredItems = $derived.by(() => {
-    if (activeView !== "detail" || !selectedField) return [];
-    let items = [];
-    if (selectedField.type === "institutions") {
-      items = (institutions || []).map((inst) => ({
-        ...inst,
-        name: inst?.name?.content || inst?.name || "",
-      }));
-    } else if (selectedField.type === "vocabulary") {
-      items = (vocabularies || []).filter(
-        (v) => v.field_id === selectedField.id,
-      );
-    }
-    const term = (searchTerm || "").toLowerCase().trim();
-    let result = items;
-    if (term) {
-      result = items.filter((item) =>
-        (item.name || "").toLowerCase().includes(term),
-      );
-    }
-    // Sort by facet count desc; tiebreak by name asc
-    result = [...result].sort((a, b) => {
-      const countB = getFacetCountForItem(b);
-      const countA = getFacetCountForItem(a);
-      if (countB !== countA) return countB - countA;
-      const nameA = (a.name || "").toLowerCase();
-      const nameB = (b.name || "").toLowerCase();
-      return nameA.localeCompare(nameB);
+    (facets?.researchFields || []).forEach((field) => {
+      (field.options || []).forEach((opt) => map.set(`${field.fieldId}:${opt.id}`, opt.count || 0));
     });
-    return result;
+    return map;
   });
 
-  // Selectable text fields for freetext queries
-  let selectableTextFields = $derived.by(() => {
-    const list = [];
-    // Ontology fields
-    (ontologyFields || []).forEach((f) =>
-      list.push({
-        key: `o:${f.id}`,
-        label: f.name?.content || f.name,
-        kind: "ontology",
-        id: f.id,
-      }),
-    );
-    // Research fields that are NOT vocabulary-based
-    (researchFields || [])
-      .filter((f) => (f.type || "").toLowerCase() !== "vocabulary")
-      .forEach((f) =>
-        list.push({
-          key: `r:${f.id}`,
-          label: f.name?.content || f.name,
-          kind: "research",
-          id: f.id,
-        }),
-      );
-    return list.sort((a, b) => (a.label || "").localeCompare(b.label || ""));
+  const currentTextFilters = $derived(advancedFilters?.__textFilters ?? []);
+
+  const filteredItems = $derived.by(() => {
+    if (activeView !== "detail" || !selectedField) return [];
+    
+    let items = selectedField.type === "institutions"
+      ? institutions.map((inst) => ({ ...inst, name: inst?.name?.content || inst?.name || "" }))
+      : vocabularies.filter((v) => v.field_id === selectedField.id);
+
+    const term = searchTerm.toLowerCase().trim();
+    if (term) items = items.filter((item) => (item.name || "").toLowerCase().includes(term));
+
+    return items.sort((a, b) => {
+      const countDiff = getFacetCountForItem(b) - getFacetCountForItem(a);
+      return countDiff || (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase());
+    });
   });
 
-  function ensureTextFiltersArray() {
-    if (!advancedFilters.__textFilters) advancedFilters.__textFilters = [];
+  const selectableTextFields = $derived.by(() => {
+    const fields = [
+      ...ontologyFields.map((f) => ({ key: `o:${f.id}`, label: f.name?.content || f.name, kind: "ontology", id: f.id })),
+      ...researchFields.filter((f) => (f.type || "").toLowerCase() !== "vocabulary")
+        .map((f) => ({ key: `r:${f.id}`, label: f.name?.content || f.name, kind: "research", id: f.id })),
+    ];
+    return fields.sort((a, b) => (a.label || "").localeCompare(b.label || ""));
+  });
+
+  // Helpers
+  const getFieldKey = () => selectedField?.type === "institutions" ? "institutions" : selectedField?.id;
+  
+  const ensureFiltersObject = () => {
+    if (!advancedFilters || typeof advancedFilters !== "object") advancedFilters = {};
+    return advancedFilters;
+  };
+
+  const ensureTextFiltersArray = () => {
+    ensureFiltersObject();
+    if (!Array.isArray(advancedFilters.__textFilters)) advancedFilters.__textFilters = [];
     return advancedFilters.__textFilters;
-  }
+  };
 
-  function parseKind(val) {
+  const parseKind = (val) => {
     const [k, id] = (val || "").split(":");
     if (k === "o") return { kind: "ontology", id };
     if (k === "r") return { kind: "research", id };
     return { kind: null, id: null };
-  }
+  };
 
-  function upsertOrRemoveTextFilter() {
-    const val = (textSelectedFieldId || "").trim();
-    const q = (textQuery || "").trim();
-    const { kind, id } = parseKind(val);
+  const triggerChange = () => {
+    advancedFilters = { ...advancedFilters };
+    onFiltersChange(advancedFilters);
+  };
+
+  const getFacetCountForItem = (item) => {
+    if (!selectedField) return 0;
+    if (selectedField.type === "institutions") return institutionFacetMap.get(item.id) ?? 0;
+    if (selectedField.type === "vocabulary") return researchFacetMap.get(`${selectedField.id}:${item.id}`) ?? 0;
+    return 0;
+  };
+
+  const getFieldLabel = (kind, fieldId, fieldsList) => {
+    const field = fieldsList.find((f) => String(f.id) === String(fieldId));
+    return field?.name?.content || field?.name || "Unknown field";
+  };
+
+  const getTextFieldLabel = (tf) => {
+    return tf?.kind === "ontology"
+      ? getFieldLabel("ontology", tf.fieldId, ontologyFields)
+      : getFieldLabel("research", tf.fieldId, researchFields);
+  };
+
+  const getCurrentTextQuery = (kind, fieldId) => {
+    const tf = currentTextFilters.find((x) => x.kind === kind && String(x.fieldId) === String(fieldId));
+    return tf?.query?.trim() || "";
+  };
+
+  const getSelectionLabel = (selectedIds, items, fieldId = null) => {
+    if (!selectedIds || !selectedIds.length) return "All";
+    const filtered = items.filter((item) => {
+      const matchesField = !fieldId || String(item.field_id) === String(fieldId);
+      return matchesField && selectedIds.some((id) => String(id) === String(item.id));
+    });
+    const names = filtered.map((item) => item?.name?.content || item?.name || item?.option?.content || "").filter(Boolean);
+    return names.length ? names.join(", ") : "All";
+  };
+
+  const getResearchFieldSelectionLabel = (field) => {
+    const isVocab = (field.type || "").toLowerCase() === "vocabulary";
+    return isVocab
+      ? getSelectionLabel(advancedFilters?.[field.id], vocabularies, field.id)
+      : getCurrentTextQuery("research", field.id) || "All";
+  };
+
+  // Navigation
+  const showDetail = (field) => {
+    selectedField = field;
+    activeView = "detail";
+  };
+
+  const showAddTextSearch = (prefillKey = "", prefillQuery = "") => {
+    activeView = "addText";
+    textSelectedFieldId = prefillKey;
+    textQuery = prefillQuery;
+  };
+
+  const showMain = () => {
+    activeView = "main";
+    searchTerm = "";
+  };
+
+  // Filter actions
+  const toggleFilter = (itemId) => {
+    if (!selectedField) return;
+    ensureFiltersObject();
+    const fieldKey = getFieldKey();
+    
+    // Get current array or create new one
+    const currentArray = Array.isArray(advancedFilters[fieldKey]) 
+      ? [...advancedFilters[fieldKey]] 
+      : [];
+    
+    const idx = currentArray.findIndex((id) => String(id) === String(itemId));
+    
+    if (idx > -1) {
+      currentArray.splice(idx, 1);
+    } else {
+      currentArray.push(itemId);
+    }
+    
+    // Update with spread to trigger reactivity
+    advancedFilters = {
+      ...advancedFilters,
+      [fieldKey]: currentArray
+    };
+    
+    onFiltersChange(advancedFilters);
+  };
+
+  const resetFilter = () => {
+    if (!selectedField) return;
+    advancedFilters = { ...advancedFilters, [getFieldKey()]: [] };
+    onFiltersChange(advancedFilters);
+  };
+
+  const isSelected = (itemId) => {
+    const arr = Array.isArray(advancedFilters?.[getFieldKey()]) ? advancedFilters[getFieldKey()] : [];
+    return arr.some((id) => String(id) === String(itemId));
+  };
+
+  // Text filter actions
+  const upsertOrRemoveTextFilter = () => {
+    const { kind, id } = parseKind(textSelectedFieldId.trim());
+    const q = textQuery.trim();
     if (!kind || !id) return;
 
     const arr = ensureTextFiltersArray();
-    const idx = arr.findIndex(
-      (tf) => tf.kind === kind && String(tf.fieldId) === String(id),
-    );
+    const idx = arr.findIndex((tf) => tf.kind === kind && String(tf.fieldId) === String(id));
 
-    if (!q) {
-      if (idx > -1) arr.splice(idx, 1);
-    } else {
-      const next = { kind, fieldId: id, query: q };
-      if (idx > -1) arr[idx] = next;
-      else arr.push(next);
+    if (!q && idx > -1) arr.splice(idx, 1);
+    else if (q) {
+      const filter = { kind, fieldId: id, query: q };
+      if (idx > -1) arr[idx] = filter;
+      else arr.push(filter);
     }
-    onFiltersChange(advancedFilters);
-  }
+    
+    triggerChange();
+  };
 
-  function onTextFieldChange() {
-    upsertOrRemoveTextFilter();
-  }
-  // Debounce text query updates to avoid triggering searches on every key
+  const editTextFilter = (tf) => {
+    showAddTextSearch(`${tf.kind === "ontology" ? "o" : "r"}:${tf.fieldId}`, tf.query || "");
+  };
+
+  const removeTextFilter = (tf) => {
+    const arr = ensureTextFiltersArray();
+    const idx = arr.findIndex((x) => x.kind === tf.kind && String(x.fieldId) === String(tf.fieldId));
+    if (idx > -1) {
+      arr.splice(idx, 1);
+      triggerChange();
+    }
+  };
+
   const debouncedUpdateTextFilter = debounce(() => {
     try {
       upsertOrRemoveTextFilter();
@@ -219,98 +225,9 @@
       console.warn("debouncedUpdateTextFilter error:", e);
     }
   }, 1000);
-  function onTextQueryInput() {
-    debouncedUpdateTextFilter();
-  }
-  onDestroy(() => {
-    debouncedUpdateTextFilter?.cancel?.();
-  });
 
-  let currentTextFilters = $derived.by(
-    () => advancedFilters?.__textFilters ?? [],
-  );
-  function textFilterKey(tf) {
-    return `${tf.kind}:${tf.fieldId}`;
-  }
-  function getTextFieldLabel(tf) {
-    if (tf?.kind === "ontology") {
-      const f = (ontologyFields || []).find(
-        (o) => String(o.id) === String(tf.fieldId),
-      );
-      return f?.name?.content || f?.name || "Unknown field";
-    }
-    if (tf?.kind === "research") {
-      const f = (researchFields || []).find(
-        (r) => String(r.id) === String(tf.fieldId),
-      );
-      return f?.name?.content || f?.name || "Unknown field";
-    }
-    return "Unknown field";
-  }
-  function editTextFilter(tf) {
-    const key = `${tf.kind === "ontology" ? "o" : "r"}:${tf.fieldId}`;
-    showAddTextSearch(key, tf.query || "");
-  }
-  function removeTextFilter(tf) {
-    const arr = ensureTextFiltersArray();
-    const idx = arr.findIndex(
-      (x) => x.kind === tf.kind && String(x.fieldId) === String(tf.fieldId),
-    );
-    if (idx > -1) {
-      arr.splice(idx, 1);
-      onFiltersChange(advancedFilters);
-    }
-  }
+  onDestroy(() => debouncedUpdateTextFilter?.cancel?.());
 
-  // Display helpers for main view rows
-  function getInstitutionSelectionLabel() {
-    const selected = advancedFilters?.institutions || [];
-    if (!selected.length) return "All";
-    const names = (institutions || [])
-      .filter((inst) => selected.some((id) => String(id) === String(inst.id)))
-      .map((inst) => inst?.name?.content || inst?.name || "")
-      .filter(Boolean);
-    return names.length ? names.join(", ") : "All";
-  }
-
-  function getVocabularySelectionLabel(fieldId) {
-    const selected = advancedFilters?.[fieldId] || [];
-    if (!selected.length) return "All";
-    const names = (vocabularies || [])
-      .filter(
-        (v) =>
-          String(v.field_id) === String(fieldId) &&
-          selected.some((id) => String(id) === String(v.id)),
-      )
-      .map((v) => v?.name?.content || v?.name || v?.option?.content || "")
-      .filter(Boolean);
-    return names.length ? names.join(", ") : "All";
-  }
-
-  // Label helpers for textual research and ontology fields
-  function getCurrentTextQuery(kind, fieldId) {
-    const tf = (currentTextFilters || []).find(
-      (x) => x.kind === kind && String(x.fieldId) === String(fieldId),
-    );
-    return (tf?.query || "").trim();
-  }
-
-  function getTextResearchSelectionLabel(fieldId) {
-    const q = getCurrentTextQuery("research", fieldId);
-    return q ? q : "All";
-  }
-
-  function getOntologyTextSelectionLabel(fieldId) {
-    const q = getCurrentTextQuery("ontology", fieldId);
-    return q ? q : "All";
-  }
-
-  function getResearchFieldSelectionLabel(field) {
-    const isVocab = (field.type || "").toLowerCase() === "vocabulary";
-    return isVocab
-      ? getVocabularySelectionLabel(field.id)
-      : getTextResearchSelectionLabel(field.id);
-  }
 </script>
 
 <!-- Backdrop -->
@@ -350,48 +267,39 @@
   {#if activeView === "main"}
     <div class="p-3 overflow-auto">
       <div class="list-group list-group-flush">
-        {#if enableInstitutionFilter}
-          <button
-            type="button"
-            class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
-            onclick={() =>
-              showDetail({ type: "institutions", id: "institutions" })}
-            aria-label="Filter by institution"
-          >
-            <div class="fw-semibold">Institution</div>
-            <div class="d-flex align-items-center gap-2">
-              <span class="text-muted ps-3"
-                >{getInstitutionSelectionLabel()}</span
+            {#if enableInstitutionFilter}
+              <button
+                type="button"
+                class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
+                onclick={() => showDetail({ type: "institutions", id: "institutions" })}
+                aria-label="Filter by institution"
               >
-              <i class="bi bi-chevron-right"></i>
-            </div>
-          </button>
-        {/if}
+                <div class="fw-semibold">Institution</div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="text-muted ps-3">{getSelectionLabel(advancedFilters?.institutions, institutions)}</span>
+                  <i class="bi bi-chevron-right"></i>
+                </div>
+              </button>
+            {/if}
 
         <div class="px-3 py-3 text-muted">Research fields</div>
 
-        {#each researchFields || [] as field (field.id)}
-          <button
-            type="button"
-            class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
-            onclick={() =>
-              (field.type || "").toLowerCase() === "vocabulary"
-                ? showDetail({ type: "vocabulary", id: field.id })
-                : showAddTextSearch(
-                    `r:${field.id}`,
-                    getCurrentTextQuery("research", field.id),
-                  )}
-            aria-label={`Filter by ${field.name?.content || field.name}`}
-          >
-            <div class="fw-semibold">{field.name?.content || field.name}</div>
-            <div class="d-flex align-items-center gap-2">
-              <span class="text-muted ps-3"
-                >{getResearchFieldSelectionLabel(field)}</span
+            {#each researchFields || [] as field (field.id)}
+              <button
+                type="button"
+                class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
+                onclick={() => (field.type || "").toLowerCase() === "vocabulary"
+                  ? showDetail({ type: "vocabulary", id: field.id })
+                  : showAddTextSearch(`r:${field.id}`, getCurrentTextQuery("research", field.id))}
+                aria-label={`Filter by ${field.name?.content || field.name}`}
               >
-              <i class="bi bi-chevron-right"></i>
-            </div>
-          </button>
-        {/each}
+                <div class="fw-semibold">{field.name?.content || field.name}</div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="text-muted ps-3">{getResearchFieldSelectionLabel(field)}</span>
+                  <i class="bi bi-chevron-right"></i>
+                </div>
+              </button>
+            {/each}
 
         <!-- Ontology fields list removed; use Active text filters overview -->
 
@@ -410,30 +318,30 @@
             </button>
           </div>
 
-          {#each currentTextFilters as tf (textFilterKey(tf))}
-            <div
-              class="d-flex align-items-center justify-content-between border rounded p-2 mb-2 mt-2"
-            >
-              <div>
-                <div class="fw-semibold">{getTextFieldLabel(tf)}</div>
-                <div class="text-muted fs-7">"{tf.query}"</div>
+            {#each currentTextFilters as tf (`${tf.kind}:${tf.fieldId}`)}
+              <div class="d-flex align-items-center justify-content-between border rounded p-2 mb-2 mt-2">
+                <div>
+                  <div class="fw-semibold">{getTextFieldLabel(tf)}</div>
+                  <div class="text-muted fs-7">"{tf.query}"</div>
+                </div>
+                <div class="d-flex gap-2">
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    onclick={() => editTextFilter(tf)}
+                    aria-label="Edit filter"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button
+                    class="btn btn-outline-danger btn-sm"
+                    onclick={() => removeTextFilter(tf)}
+                    aria-label="Remove filter"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
               </div>
-              <div class="d-flex gap-2">
-                <button
-                  class="btn btn-outline-secondary btn-sm"
-                  onclick={() => editTextFilter(tf)}
-                >
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button
-                  class="btn btn-outline-danger btn-sm"
-                  onclick={() => removeTextFilter(tf)}
-                >
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            </div>
-          {/each}
+            {/each}
         </div>
       </div>
     </div>
@@ -503,7 +411,7 @@
       <select
         class="form-select"
         bind:value={textSelectedFieldId}
-        onchange={onTextFieldChange}
+        onchange={upsertOrRemoveTextFilter}
       >
         <option value="">Choose...</option>
         {#each selectableTextFields as f (f.key)}
@@ -517,7 +425,7 @@
         class="form-control"
         placeholder="Type to search"
         bind:value={textQuery}
-        oninput={onTextQueryInput}
+        oninput={() => debouncedUpdateTextFilter()}
       />
     </div>
   {/if}

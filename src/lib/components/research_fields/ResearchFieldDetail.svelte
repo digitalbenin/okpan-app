@@ -4,6 +4,7 @@
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { Tabs } from "melt/builders";
+    import { getAssetImageUrl } from "$lib/utils/media.js";
 
     // --- Prop definition ---
     let { researchField, projectLanguages } = $props();
@@ -178,25 +179,7 @@
     }
 
     // Helper function to get the URL for a vocabulary's main asset
-    function getVocabularyAssetUrl(asset) {
-        if (!asset) return null;
-        let imageUrl = null;
-
-        if (asset.formats && typeof asset.formats === "object") {
-            // Prefer smaller formats first for thumbnails
-            imageUrl =
-                asset.formats.sm ||
-                asset.formats.md ||
-                asset.formats.lg ||
-                asset.formats.original;
-        }
-        // Fallback to path if formats didn't yield a URL
-        if (!imageUrl) {
-            imageUrl = asset.path;
-        }
-
-        return imageUrl ? `media://${imageUrl}` : null;
-    }
+    const getVocabularyAssetUrl = (asset) => getAssetImageUrl(asset, 'sm');
 
     // Helper function to toggle vocabulary description expansion
     function toggleVocabularyExpansion(vocabId) {

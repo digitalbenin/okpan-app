@@ -17,7 +17,6 @@
 		}, {})
 	);
 
-	$inspect(institution);
 
 	function getDatasourceName(id) {
 		const ds = datasources.find((d) => d.id == id);

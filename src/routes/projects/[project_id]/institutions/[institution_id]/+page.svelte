@@ -2,6 +2,7 @@
   import { queryParameters, ssp } from "sveltekit-search-params";
   import InstitutionOverview from "$lib/components/institutions/InstitutionOverview.svelte";
   import InstitutionItems from "$lib/components/institutions/InstitutionItems.svelte";
+  import { watch } from "runed";
 
   const { data } = $props();
   const paramsOptions = {
@@ -68,13 +69,37 @@
     sSearch: ssp.string(undefined),
   };
   const params = queryParameters(paramsOptions);
+  let viewParam = $state(params.view || "objects");
+  let syncingFromParams = $state(false);
 
   const paramsBinding = $derived({ current: params }); //workaround for SvelteKit's reactivity issue with query parameters
+
+  watch(
+    () => params.view,
+    (nextView) => {
+      if (!nextView || nextView === viewParam) return;
+      syncingFromParams = true;
+      viewParam = nextView;
+      queueMicrotask(() => {
+        syncingFromParams = false;
+      });
+    }
+  );
+
+  watch(
+    () => viewParam,
+    (nextView, prevView) => {
+      if (!nextView || syncingFromParams || nextView === prevView) return;
+      if (params.view !== nextView) {
+        params.view = nextView;
+      }
+    }
+  );
 </script>
 
 <InstitutionOverview institution={data.institution} />
 <InstitutionItems
-  bind:view={params.view}
+  bind:view={viewParam}
   bind:params={paramsBinding.current}
   {...data}
 />

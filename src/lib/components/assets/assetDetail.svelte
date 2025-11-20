@@ -3,6 +3,7 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
     import { epochToYYYYMMDD } from "$lib/utils/dates.js";
+    import { getAssetImageUrl } from "$lib/utils/media.js";
 
     let {
         asset,
@@ -14,28 +15,6 @@
     let createdAtFormatted = $derived(
         asset?.created_at ? epochToYYYYMMDD(asset.created_at) : "",
     );
-
-    // Function to get the best image format
-    function getImageSrc(currentAsset) {
-        if (!currentAsset || !currentAsset.formats)
-            return currentAsset?.path || null;
-        try {
-            const formats =
-                typeof currentAsset.formats === "string"
-                    ? JSON.parse(currentAsset.formats)
-                    : currentAsset.formats;
-            return (
-                formats?.lg ||
-                formats?.md ||
-                formats?.original ||
-                currentAsset.path ||
-                null
-            );
-        } catch (e) {
-            console.error("Error parsing formats:", e);
-            return currentAsset?.path || null; // Added null check
-        }
-    }
 
     // Function to determine if an asset is linked
     function isAssetLinked(currentAsset) {
@@ -63,12 +42,10 @@
 </script>
 
 {#if asset}
-    <div class="asset-detail-container">
+    <div class="d-flex flex-column h-100">
         <div class="mb-3 text-center">
             <BaseImage
-                src={getImageSrc(asset)
-                    ? `media://${getImageSrc(asset)}`
-                    : null}
+                src={getAssetImageUrl(asset, 'lg')}
                 alt={asset.filename || "Asset Preview"}
                 class="img-fluid rounded"
                 width={asset.width || 300}
@@ -80,11 +57,11 @@
             />
         </div>
 
-        <!-- Asset Details using divs -->
-        <div class="asset-details-grid px-2">
-            <div class="asset-detail-row">
-                <div class="asset-detail-label">Link Status</div>
-                <div class="asset-detail-value d-flex align-items-center gap-2">
+        <!-- Asset Details -->
+        <div class="px-2 mb-3 small">
+            <div class="mb-3">
+                <div class="fw-bold mb-1">Link Status</div>
+                <div class="d-flex align-items-center gap-2">
                     {#if isAssetLinked(asset)}
                         {@const linkedObjectId =
                             asset.objectsAssets[0]?.object_id}
@@ -110,47 +87,45 @@
                 </div>
             </div>
 
-            <div class="asset-detail-row">
-                <div class="asset-detail-label">ID</div>
-                <div class="asset-detail-value">{asset.id || "N/A"}</div>
-                <!-- Null check handled by || -->
+            <div class="mb-3">
+                <div class="fw-bold mb-1">ID</div>
+                <div>{asset.id || "N/A"}</div>
             </div>
 
-            <div class="asset-detail-row">
-                <div class="asset-detail-label">Type</div>
-                <div class="asset-detail-value">{asset.type || "N/A"}</div>
-                <!-- Null check handled by || -->
+            <div class="mb-3">
+                <div class="fw-bold mb-1">Type</div>
+                <div>{asset.type || "N/A"}</div>
             </div>
 
-            <div class="asset-detail-row">
-                <div class="asset-detail-label">Size</div>
-                <div class="asset-detail-value">
-                    {asset.size != null // Explicit null/undefined check for size
+            <div class="mb-3">
+                <div class="fw-bold mb-1">Size</div>
+                <div>
+                    {asset.size != null
                         ? (asset.size / 1024).toFixed(2) + " KB"
                         : "N/A"}
                 </div>
             </div>
 
-            <div class="asset-detail-row">
-                <div class="asset-detail-label">Dimensions</div>
-                <div class="asset-detail-value">
-                    {asset.width != null && asset.height != null // Explicit null/undefined checks
+            <div class="mb-3">
+                <div class="fw-bold mb-1">Dimensions</div>
+                <div>
+                    {asset.width != null && asset.height != null
                         ? `${asset.width} x ${asset.height}`
                         : "N/A"}
                 </div>
             </div>
 
-            <div class="asset-detail-row">
-                <div class="asset-detail-label">Uploaded</div>
-                <div class="asset-detail-value">
+            <div class="mb-3">
+                <div class="fw-bold mb-1">Uploaded</div>
+                <div>
                     {createdAtFormatted || "N/A"}
                 </div>
             </div>
 
             {#if asset.path}
-                <div class="asset-detail-row">
-                    <div class="asset-detail-label">Path</div>
-                    <div class="asset-detail-value text-break">
+                <div class="mb-3">
+                    <div class="fw-bold mb-1">Path</div>
+                    <div class="text-break">
                         {asset.path}
                     </div>
                 </div>
@@ -158,7 +133,7 @@
         </div>
 
         <!-- Actions -->
-        <div class="mt-4 d-flex justify-content-end gap-2">
+        <div class="mt-auto d-flex justify-content-end gap-2">
             <BaseButton
                 text="Delete"
                 icon="trash"
@@ -170,45 +145,3 @@
 {:else}
     <p>No asset selected or asset data is missing.</p>
 {/if}
-
-<style>
-    .asset-detail-container {
-        display: flex;
-        flex-direction: column;
-        height: 100%; /* Ensure container fills offcanvas body */
-    }
-    dl {
-        font-size: 0.9rem;
-    }
-    dt {
-        font-weight: bold;
-    }
-    dd {
-        margin-bottom: 0.5rem;
-    }
-
-    /* Styles for div-based layout */
-    .asset-details-grid {
-        /* Removed grid properties */
-        font-size: 0.9rem;
-        margin-bottom: 1rem;
-    }
-
-    /* Style for each label-value pair row */
-    .asset-detail-row {
-        /* Removed display: contents; */
-        margin-bottom: 0.75rem; /* Add space between rows */
-    }
-
-    .asset-detail-label {
-        font-weight: bold;
-        /* Removed grid-column: 1; */
-        display: block; /* Ensure label takes its own line */
-        margin-bottom: 0.1rem; /* Small space between label and value */
-    }
-
-    .asset-detail-value {
-        /* Removed grid-column: 2; */
-        word-break: break-word;
-    }
-</style>

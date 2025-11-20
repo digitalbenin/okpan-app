@@ -18,6 +18,16 @@
     ...restProps
   } = $props();
 
+  // Workaround for bits-ui pointer-events bug
+  $effect(() => {
+    if (!open) {
+      // When dropdown closes, remove pointer-events: none from body
+      setTimeout(() => {
+        document.body.style.pointerEvents = '';
+      }, 100);
+    }
+  });
+
   function handleItemClick(item) {
     if (onItemClick) {
       onItemClick(item);

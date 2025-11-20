@@ -44,11 +44,12 @@
   //   const finalData = $derived(
   //     parseData(wizard.data, wizard.mapping, wizard.file.format)
   //   );
-  $inspect(wizard);
+
   const assetsLinked = $derived.by(() => {
     return wizard.mapping.filter((m) => m.object_ids && m.object_ids.length > 0)
       .length;
   });
+  const assetsImported = $derived.by(() => wizard.assets?.length || 0);
 
   function closeAndHome() {
     open = false;
@@ -122,7 +123,7 @@
 
 <BaseAlertDialog bind:open>
   {#snippet title()}
-    {t("import.media-linked", { fallback: "Media linked correctly" })}
+    {t("import.media-import-completed", { fallback: "Media import completed" })}
   {/snippet}
   <!-- {#snippet trigger()}
     <i class="bi bi-pencil"></i>
@@ -131,10 +132,20 @@
     })}
   {/snippet} -->
   {#snippet description()}
-    <span class="fw-bold">{assetsLinked}</span>
-    {t("import.match-description", {
-      fallback: "media linked correctly",
-    })}
+    <div class="d-flex flex-column gap-1">
+      <div>
+        {t("import.assets-imported", { fallback: "Imported media:" })}
+        <span class="fw-bold ms-1">{assetsImported}</span>
+      </div>
+      <div>
+        {#if assetsLinked}
+          {t("import.assets-linked", { fallback: "Linked media:" })}
+          <span class="fw-bold ms-1">{assetsLinked}</span>
+        {:else}
+          {t("import.no-media-linked", { fallback: "No media were linked." })}
+        {/if}
+      </div>
+    </div>
   {/snippet}
   {#snippet footer()}
     <button class="btn btn-success" onclick={closeAndHome}>

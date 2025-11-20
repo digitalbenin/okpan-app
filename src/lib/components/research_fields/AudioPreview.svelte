@@ -93,7 +93,7 @@
 </script>
 
 <div
-    class="border border-secondary border-opacity-50 bg-light rounded position-relative"
+    class="position-relative"
     style="width: {size}px; height: {size}px;"
 >
     <!-- Remove Button -->
@@ -101,82 +101,79 @@
         <button
             type="button"
             class="btn btn-sm btn-danger rounded-circle position-absolute d-flex align-items-center justify-content-center shadow-sm"
-            style="width: 20px; height: 20px; padding: 0; top: -8px; right: -8px; z-index: 10;"
-            on:click={handleRemove}
+            style="width: 20px; height: 20px; padding: 0; top: -8px; left: -8px; z-index: 10;"
+            onclick={handleRemove}
             title="Remove audio"
+            aria-label="Remove audio"
         >
             <i class="bi bi-x" style="font-size: 10px;"></i>
         </button>
     {/if}
 
-    <!-- Audio Header with filename -->
+    <!-- Audio Preview (Square) -->
     <div
-        class="audio-header px-2 py-1 d-flex align-items-center gap-2 bg-secondary-subtle"
+        class="bg-light rounded overflow-hidden d-flex flex-column align-items-center justify-content-center p-2 w-100 h-100"
     >
-        <i class="bi bi-volume-up text-muted" style="font-size: 14px;"></i>
-        <span
-            class="text-dark fw-medium flex-grow-1 text-truncate lh-sm"
-            style="font-size: 12px;"
-            title={asset?.filename || asset?.name || "audio file"}
-        >
-            {asset?.filename || asset?.name || "audio file"}
-        </span>
-    </div>
+        <i class="bi bi-music-note-beamed text-muted mb-2" style="font-size: 1.5rem;"></i>
+        
+        <!-- Audio Controls -->
+        <div class="w-100">
+            <!-- Play button and duration row -->
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <!-- Play/Pause Button -->
+                <button
+                    class="btn btn-sm btn-link p-0 d-flex align-items-center justify-content-center border-0"
+                    onclick={togglePlay}
+                    disabled={!isLoaded}
+                    style="width: 20px; height: 20px;"
+                    aria-label={isPlaying ? "Pause" : "Play"}
+                >
+                    {#if isPlaying}
+                        <i
+                            class="bi bi-pause-circle text-dark"
+                            style="font-size: 20px;"
+                        ></i>
+                    {:else}
+                        <i
+                            class="bi bi-play-circle text-dark"
+                            style="font-size: 20px;"
+                        ></i>
+                    {/if}
+                </button>
 
-    <!-- Audio Controls -->
-    <div class="audio-controls p-2 mt-2">
-        <!-- Play button and duration row -->
-        <div class="d-flex align-items-center justify-content-between mb-2">
-            <!-- Play/Pause Button -->
-            <button
-                class="btn btn-sm btn-link p-0 d-flex align-items-center justify-content-center border-0"
-                on:click={togglePlay}
-                disabled={!isLoaded}
-                style="width: 20px; height: 20px;"
-            >
-                {#if isPlaying}
-                    <i
-                        class="bi bi-pause-circle text-dark"
-                        style="font-size: 20px;"
-                    ></i>
-                {:else}
-                    <i
-                        class="bi bi-play-circle text-dark"
-                        style="font-size: 20px;"
-                    ></i>
-                {/if}
-            </button>
+                <!-- Duration -->
+                <span
+                    class="text-muted text-end"
+                    style="font-size: 11px; min-width: 35px;"
+                >
+                    {formatTime(duration)}
+                </span>
+            </div>
 
-            <!-- Duration -->
-            <span
-                class="text-muted text-end"
-                style="font-size: 11px; min-width: 35px;"
-            >
-                {formatTime(duration)}
-            </span>
-        </div>
-
-        <!-- Progress Bar row -->
-        <div
-            class="bg-secondary bg-opacity-25 rounded-pill position-relative mt-3 user-select-none"
-            style="height: 4px; cursor: pointer;"
-            on:click={handleSeek}
-            role="button"
-            tabindex="0"
-        >
+            <!-- Progress Bar row -->
             <div
-                class="bg-secondary rounded-pill h-100 transition-all"
-                style="width: {duration
-                    ? (currentTime / duration) * 100
-                    : 0}%; transition: width 0.1s ease;"
-            ></div>
-            <!-- Progress handle -->
-            <div
-                class="bg-secondary rounded-circle position-absolute opacity-0 transition-opacity"
-                style="width: 12px; height: 12px; top: -4px; left: {duration
-                    ? (currentTime / duration) * 100
-                    : 0}%; transform: translateX(-50%);"
-            ></div>
+                class="bg-secondary bg-opacity-25 rounded-pill position-relative user-select-none"
+                style="height: 4px; cursor: pointer;"
+                onclick={handleSeek}
+                onkeydown={(e) => e.key === "Enter" && handleSeek(e)}
+                role="button"
+                tabindex="0"
+                aria-label="Seek audio position"
+            >
+                <div
+                    class="bg-secondary rounded-pill h-100 transition-all"
+                    style="width: {duration
+                        ? (currentTime / duration) * 100
+                        : 0}%; transition: width 0.1s ease;"
+                ></div>
+                <!-- Progress handle -->
+                <div
+                    class="bg-secondary rounded-circle position-absolute opacity-0 transition-opacity"
+                    style="width: 12px; height: 12px; top: -4px; left: {duration
+                        ? (currentTime / duration) * 100
+                        : 0}%; transform: translateX(-50%);"
+                ></div>
+            </div>
         </div>
     </div>
 
@@ -184,11 +181,11 @@
     <audio
         bind:this={audioElement}
         src={asset?.path ? `media://${asset.path}` : ""}
-        on:timeupdate={handleTimeUpdate}
-        on:loadedmetadata={handleLoadedMetadata}
-        on:play={handlePlay}
-        on:pause={handlePause}
-        on:error={handleError}
+        ontimeupdate={handleTimeUpdate}
+        onloadedmetadata={handleLoadedMetadata}
+        onplay={handlePlay}
+        onpause={handlePause}
+        onerror={handleError}
         preload="metadata"
     ></audio>
 </div>

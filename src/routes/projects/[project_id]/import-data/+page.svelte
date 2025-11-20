@@ -24,7 +24,7 @@
     <div class="text-center">
       <a
         class="btn btn-primary btn-lg"
-        href={"/projects/" + data.project.id + "/import/steps" + (params.institution_id ? ("?institution_id=" + encodeURIComponent(params.institution_id)) : "")}
+        href={"/projects/" + data.project.id + "/import-data/steps" + (params.institution_id ? ("?institution_id=" + encodeURIComponent(params.institution_id)) : "")}
       >
         {t("import.start", { fallback: "Start" })}
       </a>

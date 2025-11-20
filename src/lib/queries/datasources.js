@@ -3,9 +3,10 @@ export const datasourcesOperations = {
   list: {
     type: "query",
     name: "List Datasources",
-    description: "Retrieves a paginated list of datasources with optional filtering by institution and sorting",
+    description: "Retrieves a paginated list of datasources with optional filtering by institution, object, and sorting",
     variables: {
       institutionId: "Optional ID of institution to filter by",
+      objectId: "Optional ID of object to filter datasources by",
       page: "Page number for pagination (0-based, default: 0)",
       pageSize: "Number of items per page (default: 10)",
       orderBy: "Field to order by (created_at, updated_at, name, default: created_at)",
@@ -13,6 +14,7 @@ export const datasourcesOperations = {
     },
     query: `query ListDatasources(
     $institutionId: String
+    $objectId: String
     $page: Int
     $pageSize: Int
     $orderBy: String
@@ -20,6 +22,7 @@ export const datasourcesOperations = {
   ) {
     result: datasourcesList(
       institution_id: $institutionId
+      object_id: $objectId
       page: $page
       pageSize: $pageSize
       orderBy: $orderBy
@@ -30,6 +33,7 @@ export const datasourcesOperations = {
       updated_at
       institution_id
       language
+      source
       copyright
       contact
       date
@@ -199,6 +203,23 @@ export const datasourcesOperations = {
     }
     totalCount
   }
+}`
+  },
+
+  // UNLINK OBJECT FROM DATASOURCE
+  unlinkObjectFromDatasource: {
+    type: "mutation",
+    name: "Unlink Object From Datasource",
+    description: "Removes all ontology field associations between the specified object and datasource",
+    variables: {
+      objectId: "ID of the object to unlink",
+      datasourceId: "ID of the datasource being unlinked"
+    },
+    query: `mutation UnlinkDatasourceFromObject($objectId: String!, $datasourceId: String!) {
+  deletedCount: unlinkDatasourceFromObject(
+    object_id: $objectId
+    datasource_id: $datasourceId
+  )
 }`
   },
 

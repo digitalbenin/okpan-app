@@ -340,13 +340,13 @@ export const datasources = sqliteTable('datasources', {
     name_id: text('name_id').references(() => texts.id),
     institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
     template_id: text('template_id').references(() => templates.id),
+    source: text('source'),
     language: text('language'),
     copyright: text('copyright'),
     method_id: text('method_id').references(() => texts.id),
     contact: text('contact'),
     notes_id: text('notes_id').references(() => texts.id),
-    date: integer('date', { mode: 'timestamp_ms' }),
-    template_id: text('template_id').references(() => templates.id)
+    date: integer('date', { mode: 'timestamp_ms' })
 });
 
 // Datasources relations

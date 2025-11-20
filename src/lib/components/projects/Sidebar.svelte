@@ -39,13 +39,18 @@
     },
     {
       label: t("menu.import-data", { fallback: "Import Data" }),
-      url: `/projects/${page.data.project.id}/import`,
+      url: `/projects/${page.data.project.id}/import-data`,
       icon: "box-arrow-in-right",
     },
     {
       label: t("menu.import-assets", { fallback: "Import Media" }),
       url: `/projects/${page.data.project.id}/import-assets`,
       icon: "box-arrow-in-right",
+    },
+    {
+      label: t("menu.export-data", { fallback: "Export Data" }),
+      url: `/projects/${page.data.project.id}/export`,
+      icon: "box-arrow-up-right",
     },
   ]);
 
@@ -82,15 +87,20 @@
       ],
     },
     {
-      label: t("menu.export", { fallback: "Export" }),
-      url: `/projects/${page.data.project.id}/export`,
-      icon: "box-arrow-left",
-      exact: true,
-    },
-    {
-      label: t("menu.settings", { fallback: "Settings" }),
-      url: `/projects/${page.data.project.id}/settings`,
+      label: t("menu.settings", { fallback: "Project Settings" }),
       icon: "gear-fill",
+      children: [
+        {
+          label: t("menu.general", { fallback: "General" }),
+          url: `/projects/${page.data.project.id}/settings/general`,
+          icon: "",
+        },
+        {
+          label: t("menu.sharing", { fallback: "Sharing" }),
+          url: `/projects/${page.data.project.id}/settings/sharing`,
+          icon: "",
+        },
+      ],
     },
   ]);
 </script>

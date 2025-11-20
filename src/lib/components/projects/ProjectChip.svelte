@@ -9,7 +9,7 @@
 <div class="d-flex border rounded mb-4 p-3 gap-2">
   <div class="d-flex w-50 gap-2">
     <div
-      class="bg-primary-subtle rounded px-3 d-flex align-items-center justify-content-center"
+      class="bg-success-subtle rounded px-3 d-flex align-items-center justify-content-center"
     >
       <i class="bi bi-file-text"></i>
     </div>

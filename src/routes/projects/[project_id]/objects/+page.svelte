@@ -12,432 +12,288 @@
   import { fly } from "svelte/transition";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { queryParameters, ssp } from "sveltekit-search-params";
-  import {
-    updateObjectsStatusBulk,
-    updateObjectsInstitutionBulk,
-    // searchObjects,
-  } from "$lib/stores/ObjectsUtils.js";
+  import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/stores/ObjectsUtils.js";
   import { page } from "$app/stores";
-  import { afterNavigate } from "$app/navigation";
-  import { debounce } from "$lib/utils/throttle.js";
+  import { watch } from "runed";
 
   const { t } = getTranslationStore();
-
   const { data } = $props();
-  const paramsOptions = {
+
+  // Query parameters
+  const params = queryParameters({
     view: ssp.string("objects"),
-    pageSize: {
-      encode: (value) => value.toString(),
-      decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 25,
-    },
-    page: {
-      encode: (value) => value.toString(),
-      decode: (value) => (value ? parseInt(value) : null),
-      defaultValue: 1,
-    },
+    pageSize: { encode: (v) => v.toString(), decode: (v) => (v ? parseInt(v) : null), defaultValue: 25 },
+    page: { encode: (v) => v.toString(), decode: (v) => (v ? parseInt(v) : null), defaultValue: 1 },
     orderBy: ssp.string("updated_at"),
     direction: ssp.string("asc"),
     search: ssp.string(undefined),
-    searchField: {
-      encode: (value) => (value === "all" ? undefined : value),
-      decode: (value) => (value ? value : "all"),
-      defaultValue: "all",
-    },
-    status: {
-      encode: (value) => (value === "all" ? undefined : value),
-      decode: (value) => (value ? value : "all"),
-      defaultValue: undefined,
-    },
-    // Persist advanced filters in querystring as a compact JSON string
+    searchField: { encode: (v) => (v === "all" ? undefined : v), decode: (v) => v || "all", defaultValue: "all" },
+    status: { encode: (v) => (v === "all" ? undefined : v), decode: (v) => v || "all", defaultValue: undefined },
     filters: {
-      encode: (value) => {
+      encode: (v) => {
         try {
-          if (!value || Object.keys(value).length === 0) return undefined;
-          return encodeURIComponent(JSON.stringify(value));
+          if (!v || Object.keys(v).length === 0) return undefined;
+          return encodeURIComponent(JSON.stringify(v));
         } catch (e) {
-          console.warn("Failed to encode advanced filters", e);
+          console.warn("Failed to encode filters", e);
           return undefined;
         }
       },
-      decode: (value) => {
+      decode: (v) => {
         try {
-          return value ? JSON.parse(decodeURIComponent(value)) : {};
+          return v ? JSON.parse(decodeURIComponent(v)) : {};
         } catch (e) {
-          console.warn("Failed to decode advanced filters", e);
+          console.warn("Failed to decode filters", e);
           return {};
         }
       },
       defaultValue: undefined,
     },
-  };
-  const params = queryParameters(paramsOptions);
-  let paramsBinding = $derived({ current: params });
-
-  // Debounced local search text to prevent UI from being overwritten
-  let searchText = $state(params.search || "");
-  let isUserEditing = $state(false);
-  const debouncedSetSearch = debounce((val) => {
-    params.search = val;
-    params.page = 1;
-    isUserEditing = false;
-  }, 1000);
-  $effect(() => {
-    if (!isUserEditing) searchText = params.search || "";
   });
 
+  // State
+  let searchText = $state(params.search || "");
   let viewAs = $state("grid");
   let selectedObjects = $state([]);
   let bulkStatusValue = $state("");
   let showAdvancedFilters = $state(false);
-  // Initialize advanced filters from querystring if present
   let advancedFilters = $state(params.filters || {});
-
-  // Client-side search results (items + facets)
-  // let searchData = $state({
-  //   items: [],
-  //   totalCount: 0,
-  //   facets: { institutions: [], statuses: [], researchFields: [] },
-  // });
-  const searchData = $derived(
-    data.objects || {
-      items: [],
-      totalCount: 0,
-      facets: { institutions: [], statuses: [], researchFields: [] },
-    },
-  );
-
-  // Modal state
   let showBulkDeleteModal = $state(false);
   let showBulkInstitutionModal = $state(false);
 
-  // Project id from route params
+  // Derived
   const projectId = $derived($page.params.project_id);
-
-  // Use store utilities for mutations and cache invalidation
+  const paramsBinding = $derived({ current: params });
+  const searchData = $derived(data.objects || { items: [], totalCount: 0, facets: {} });
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
     { value: "table", label: t("common.table-view", { fallback: "Table" }) },
   ]);
 
-  const ontologyFieldsList = $derived.by(() => {
-    return [
-      {
-        value: "name",
-        label: t("common.name", { fallback: "Name" }),
-      },
-      {
-        value: "all",
-        label: t("common.all", { fallback: "All" }),
-      },
-      ...data.ontologyFields.result.map((field) => ({
-        value: field.id,
-        label: field.name.content,
-      })),
-    ];
-  });
-  // removed unused orderBy options
-
-  const statuses = $derived([
-    {
-      value: "all",
-      label: t("common.all", { fallback: "All" }),
-    },
-    {
-      value: "in progress",
-      label: t("common.in-progress", { fallback: "In progress" }),
-    },
-    {
-      value: "completed",
-      label: t("common.completed", { fallback: "Completed" }),
-    },
+  const ontologyFieldsList = $derived.by(() => [
+    { value: "name", label: t("common.name", { fallback: "Name" }) },
+    { value: "all", label: t("common.all", { fallback: "All" }) },
+    ...data.ontologyFields.result.map((f) => ({ value: f.id, label: f.name.content })),
   ]);
 
-  // Flatten vocabularies for AdvancedFilters component
+  const statuses = $derived([
+    { value: "all", label: t("common.all", { fallback: "All" }) },
+    { value: "in progress", label: t("common.in-progress", { fallback: "In progress" }) },
+    { value: "completed", label: t("common.completed", { fallback: "Completed" }) },
+  ]);
+
   const vocabularies = $derived.by(() => {
     const arr = [];
     (data.researchFields?.result || data.researchFields || []).forEach((f) => {
       if ((f.type || "").toLowerCase() === "vocabulary") {
         (f.vocabularies || []).forEach((v) => {
-          arr.push({
-            id: v.id,
-            field_id: f.id,
-            name: v.option?.content || v.option,
-          });
+          arr.push({ id: v.id, field_id: f.id, name: v.option?.content || v.option });
         });
       }
     });
     return arr;
   });
 
-  function clearSelection() {
-    selectedObjects = [];
-  }
+  // Lookup maps
+  const createLookupMap = (items, getId, getName) => {
+    const map = new Map();
+    items.forEach((item) => map.set(String(getId(item)), getName(item)));
+    return map;
+  };
 
-  function confirmBulkDelete() {
-    showBulkDeleteModal = true;
-  }
+  const institutionsById = $derived(
+    createLookupMap(
+      data.institutions?.result || data.institutions || [],
+      (i) => i.id,
+      (i) => i.name?.content || i.name || String(i.id)
+    )
+  );
 
-  function openBulkInstitutionModal() {
-    showBulkInstitutionModal = true;
-  }
+  const researchFieldsById = $derived(
+    createLookupMap(
+      data.researchFields?.result || data.researchFields || [],
+      (f) => f.id,
+      (f) => f.name?.content || f.name || String(f.id)
+    )
+  );
 
-  function openBulkEdit() {
-    if (!selectedObjects?.length) return;
-    const ids = selectedObjects.map(String).join(",");
-    const returnTo = `/projects/${projectId}/objects`;
-    const url = `/projects/${projectId}/objects/bulk-edit?ids=${encodeURIComponent(ids)}&returnTo=${encodeURIComponent(returnTo)}`;
-    window.location.href = url;
-  }
+  const ontologyFieldsById = $derived(
+    createLookupMap(
+      data.ontologyFields?.result || data.ontologyFields || [],
+      (f) => f.id,
+      (f) => f.name?.content || f.name || String(f.id)
+    )
+  );
 
-  // Clear selection after modal emits deleted event
-  function handleDeleted() {
-    selectedObjects = [];
-  }
-
-  function handleFiltersClick() {
-    showAdvancedFilters = true;
-  }
-  function closeAdvancedFilters() {
-    showAdvancedFilters = false;
-  }
-  function onFiltersChange() {
-    advancedFilters = { ...advancedFilters };
-    // Persist advanced filters to querystring
-    params.filters = advancedFilters;
-    params.page = 1;
-    // void loadObjects();
-  }
-  async function applyBulkStatus() {
-    if (!bulkStatusValue || selectedObjects.length === 0) return;
-    const { errors } = await updateObjectsStatusBulk(
-      selectedObjects,
-      bulkStatusValue,
-    );
-    if (errors && errors.length) {
-      console.error("Bulk status update had errors:", errors);
-    }
-    selectedObjects = [];
-    bulkStatusValue = "";
-  }
-
-  async function handleConfirmInstitution({ institutionId }) {
-    if (!institutionId || selectedObjects.length === 0) {
-      showBulkInstitutionModal = false;
-      return;
-    }
-    const { errors } = await updateObjectsInstitutionBulk(
-      selectedObjects,
-      institutionId,
-    );
-    if (errors && errors.length) {
-      console.error("Bulk institution update had errors:", errors);
-    }
-    selectedObjects = [];
-    showBulkInstitutionModal = false;
-  }
-
-  // Keep advanced filters in sync with back/forward navigation without $effect
-  afterNavigate(() => {
-    advancedFilters = params.filters || {};
-  });
-
-  // Lookup maps for labels
-  const institutionsById = $derived.by(() => {
-    const list = data.institutions?.result || data.institutions || [];
-    const m = new Map();
-    for (const inst of list) {
-      m.set(
-        String(inst.id),
-        inst.name?.content || inst.name || String(inst.id),
-      );
-    }
-    return m;
-  });
-  const researchFieldsById = $derived.by(() => {
-    const list = data.researchFields?.result || data.researchFields || [];
-    const m = new Map();
-    for (const f of list) {
-      m.set(String(f.id), f.name?.content || f.name || String(f.id));
-    }
-    return m;
-  });
   const vocabularyFieldIds = $derived.by(() => {
-    const list = data.researchFields?.result || data.researchFields || [];
     const set = new Set();
-    for (const f of list) {
-      const fType = String(f.type || "").toLowerCase();
-      if (fType === "vocabulary") set.add(String(f.id));
-    }
+    (data.researchFields?.result || data.researchFields || []).forEach((f) => {
+      if (String(f.type || "").toLowerCase() === "vocabulary") set.add(String(f.id));
+    });
     return set;
   });
-  const ontologyFieldsById = $derived.by(() => {
-    const list = data.ontologyFields?.result || data.ontologyFields || [];
-    const m = new Map();
-    for (const f of list) {
-      m.set(String(f.id), f.name?.content || f.name || String(f.id));
-    }
-    return m;
-  });
-  const vocabById = $derived.by(() => {
-    const m = new Map();
-    for (const v of vocabularies) {
-      m.set(String(v.id), v.name);
-    }
-    return m;
-  });
 
-  // Detect if any filters are currently applied
+  const vocabById = $derived(
+    createLookupMap(vocabularies, (v) => v.id, (v) => v.name)
+  );
+
   const hasAppliedFilters = $derived.by(() => {
     const hasStatus = params.status && params.status !== "all";
     const hasSearch = params.search && params.search.trim().length > 0;
     const hasInstitutions = (advancedFilters?.institutions || []).length > 0;
     const hasVocabSelections = Object.entries(advancedFilters || {}).some(
-      ([key, val]) =>
-        key !== "__textFilters" && Array.isArray(val) && val.length > 0,
+      ([key, val]) => key !== "__textFilters" && Array.isArray(val) && val.length > 0
     );
     const hasTextFilters = (advancedFilters?.__textFilters || []).length > 0;
-    return (
-      hasStatus ||
-      hasSearch ||
-      hasInstitutions ||
-      hasVocabSelections ||
-      hasTextFilters
-    );
+    return hasStatus || hasSearch || hasInstitutions || hasVocabSelections || hasTextFilters;
   });
 
-  // Build badges for each applied filter with individual clear handlers
+  // Translation strings
+  const i18n = $derived({
+    objects: t("common.objects", { fallback: "Objects" }),
+    clearSelection: t("common.clear-selection", { fallback: "Clear selection" }),
+    changeInstitution: t("objects.change-institution", { fallback: "Change institution" }),
+    status: t("common.status", { fallback: "Status" }),
+    editSelected: t("objects.edit-selected", { fallback: "Edit selected" }),
+    deleteSelected: t("common.delete-selected", { fallback: "Delete selected" }),
+    search: t("common.search", { fallback: "Search" }),
+    searchObjects: t("objects.search-objects", { fallback: "Search objects" }),
+    selectFields: t("objects.select-fields", { fallback: "Select fields" }),
+    viewAs: t("objects.view-as", { fallback: "View as" }),
+    filter: t("common.filter", { fallback: "Filter" }),
+    addNew: t("objects.add-new", { fallback: "Add new" }),
+    clearFilters: t("common.clear-filters", { fallback: "Clear filters" }),
+    noObjectsFound: t("objects.no-objects-found", { fallback: "No objects found" }),
+  });
+
   const filterBadges = $derived.by(() => {
     const badges = [];
+    const addBadge = (text, onClear) => badges.push({ text, onClear });
+    const clearParam = (param, value) => () => { params[param] = value; params.page = 1; };
+    const clearFilterArray = (key, filterFn) => () => {
+      advancedFilters = { ...advancedFilters, [key]: advancedFilters[key]?.filter(filterFn) || [] };
+      params.filters = advancedFilters;
+      params.page = 1;
+    };
 
-    // Status badge
+    // Status
     if (params.status && params.status !== "all") {
-      const label =
-        statuses.find((s) => s.value === params.status)?.label || params.status;
-      badges.push({
-        text: `${t("common.status", { fallback: "Status" })}: ${label}`,
-        onClear: () => {
-          params.status = "all";
-          params.page = 1;
-          // void loadObjects();
-        },
-      });
+      const label = statuses.find((s) => s.value === params.status)?.label || params.status;
+      addBadge(`${t("common.status", { fallback: "Status" })}: ${label}`, clearParam("status", "all"));
     }
 
-    // Search badge
-    if (params.search && params.search.trim()) {
-      const fieldLabel =
-        ontologyFieldsList.find((o) => o.value === params.searchField)?.label ||
-        t("common.search", { fallback: "Search" });
-      badges.push({
-        text: `${fieldLabel}: ${params.search}`,
-        onClear: () => {
-          params.search = "";
-          params.page = 1;
-          // void loadObjects();
-        },
-      });
+    // Search
+    if (params.search?.trim()) {
+      const fieldLabel = ontologyFieldsList.find((o) => o.value === params.searchField)?.label || t("common.search", { fallback: "Search" });
+      addBadge(`${fieldLabel}: ${params.search}`, clearParam("search", ""));
     }
 
-    // Institution badges
-    for (const instId of advancedFilters?.institutions || []) {
+    // Institutions
+    (advancedFilters?.institutions || []).forEach((instId) => {
       const name = institutionsById.get(String(instId)) || String(instId);
-      badges.push({
-        text: `${t("common.institution", { fallback: "Institution" })}: ${name}`,
-        onClear: () => {
-          const next = (advancedFilters?.institutions || []).filter(
-            (id) => String(id) !== String(instId),
-          );
-          advancedFilters = { ...advancedFilters, institutions: next };
-          params.filters = advancedFilters;
-          params.page = 1;
-          // void loadObjects();
-        },
-      });
-    }
+      addBadge(
+        `${t("common.institution", { fallback: "Institution" })}: ${name}`,
+        clearFilterArray("institutions", (id) => String(id) !== String(instId))
+      );
+    });
 
-    // Vocabulary selections per research field
-    const rfSelections = Object.entries(advancedFilters || {}).filter(
-      ([key, val]) => {
-        // Only include research field vocabulary selections; skip institutions and text filters
-        if (key === "__textFilters" || key === "institutions") return false;
-        return (
-          Array.isArray(val) &&
-          val.length > 0 &&
-          vocabularyFieldIds.has(String(key))
-        );
-      },
-    );
-    for (const [fieldId, ids] of rfSelections) {
-      const fieldName =
-        researchFieldsById.get(String(fieldId)) || String(fieldId);
-      for (const vocabId of ids) {
-        const optionName = vocabById.get(String(vocabId)) || String(vocabId);
-        badges.push({
-          text: `${fieldName}: ${optionName}`,
-          onClear: () => {
-            const nextIds = (advancedFilters?.[fieldId] || []).filter(
-              (id) => String(id) !== String(vocabId),
-            );
-            const next = { ...advancedFilters };
-            next[fieldId] = nextIds;
-            advancedFilters = next;
-            params.filters = advancedFilters;
-            params.page = 1;
-            // void loadObjects();
-          },
+    // Vocabularies
+    Object.entries(advancedFilters || {})
+      .filter(([key, val]) => key !== "__textFilters" && key !== "institutions" && Array.isArray(val) && val.length > 0 && vocabularyFieldIds.has(String(key)))
+      .forEach(([fieldId, ids]) => {
+        const fieldName = researchFieldsById.get(String(fieldId)) || String(fieldId);
+        ids.forEach((vocabId) => {
+          const optionName = vocabById.get(String(vocabId)) || String(vocabId);
+          addBadge(
+            `${fieldName}: ${optionName}`,
+            clearFilterArray(fieldId, (id) => String(id) !== String(vocabId))
+          );
         });
-      }
-    }
+      });
 
-    // Text filters (research + ontology) from advanced filters
-    for (const tf of advancedFilters?.__textFilters || []) {
-      const isResearch = tf.kind === "research";
-      const fieldName = isResearch
-        ? researchFieldsById.get(String(tf.fieldId)) || String(tf.fieldId)
-        : ontologyFieldsById.get(String(tf.fieldId)) || String(tf.fieldId);
-      badges.push({
-        text: `${fieldName}: ${tf.query}`,
-        onClear: () => {
-          const nextText = (advancedFilters?.__textFilters || []).filter(
-            (x) =>
-              !(
-                String(x.kind) === String(tf.kind) &&
-                String(x.fieldId) === String(tf.fieldId)
-              ),
-          );
-          const next = { ...advancedFilters, __textFilters: nextText };
-          advancedFilters = next;
+    // Text filters
+    (advancedFilters?.__textFilters || []).forEach((tf) => {
+      const fieldName = tf.kind === "research"
+        ? researchFieldsById.get(String(tf.fieldId))
+        : ontologyFieldsById.get(String(tf.fieldId));
+      addBadge(
+        `${fieldName || String(tf.fieldId)}: ${tf.query}`,
+        () => {
+          advancedFilters = {
+            ...advancedFilters,
+            __textFilters: advancedFilters.__textFilters?.filter((x) => !(x.kind === tf.kind && String(x.fieldId) === String(tf.fieldId))) || []
+          };
           params.filters = advancedFilters;
           params.page = 1;
-          // void loadObjects();
-        },
-      });
-    }
+        }
+      );
+    });
 
     return badges;
   });
 
-  // generic search can combine with advanced filters
+  // Watch for param changes and sync search text
+  watch(
+    () => params.search,
+    (newSearch) => {
+      searchText = newSearch || "";
+    }
+  );
 
-  // Build and execute faceted search using current params and advanced filters
-  // async function loadObjects() { /* moved to +page.js */ }
+  // Watch for navigation changes to sync filters
+  watch(
+    () => params.filters,
+    (newFilters) => {
+      advancedFilters = newFilters || {};
+    }
+  );
 
-  // Reactive search: run whenever params or filters change
-  // $effect(() => {
-  //   // track dependencies explicitly for reactivity
-  //   params.search;
-  //   params.searchField;
-  //   params.status;
-  //   paramsBinding.current.orderBy;
-  //   paramsBinding.current.direction;
-  //   params.page;
-  //   params.pageSize;
-  //   advancedFilters;
-  //   projectId;
-  //   // void loadObjects();
-  // });
+  // Handlers
+  const clearSelection = () => (selectedObjects = []);
+  const confirmBulkDelete = () => (showBulkDeleteModal = true);
+  const openBulkInstitutionModal = () => (showBulkInstitutionModal = true);
+  const handleDeleted = () => (selectedObjects = []);
+  const handleFiltersClick = () => (showAdvancedFilters = true);
+  const closeAdvancedFilters = () => (showAdvancedFilters = false);
+
+  const onFiltersChange = () => {
+    advancedFilters = { ...advancedFilters };
+    params.filters = advancedFilters;
+    params.page = 1;
+  };
+
+  const handleSearchInput = (e) => {
+    searchText = e.target.value;
+    params.search = searchText;
+    params.page = 1;
+  };
+
+  const openBulkEdit = () => {
+    if (!selectedObjects?.length) return;
+    const ids = selectedObjects.map(String).join(",");
+    const returnTo = `/projects/${projectId}/objects`;
+    window.location.href = `/projects/${projectId}/objects/bulk-edit?ids=${encodeURIComponent(ids)}&returnTo=${encodeURIComponent(returnTo)}`;
+  };
+
+  const applyBulkStatus = async () => {
+    if (!bulkStatusValue || selectedObjects.length === 0) return;
+    const { errors } = await updateObjectsStatusBulk(selectedObjects, bulkStatusValue);
+    if (errors?.length) console.error("Bulk status update had errors:", errors);
+    selectedObjects = [];
+    bulkStatusValue = "";
+  };
+
+  const handleConfirmInstitution = async ({ institutionId }) => {
+    if (!institutionId || selectedObjects.length === 0) {
+      showBulkInstitutionModal = false;
+      return;
+    }
+    const { errors } = await updateObjectsInstitutionBulk(selectedObjects, institutionId);
+    if (errors?.length) console.error("Bulk institution update had errors:", errors);
+    selectedObjects = [];
+    showBulkInstitutionModal = false;
+  };
 </script>
 
 <div class="container-fluid">
@@ -445,13 +301,11 @@
     <div class="col-12">
       <h1>
         <i class="bi bi-box"></i>
-        {t("common.objects", { fallback: "Objects" })}
+        {i18n.objects}
       </h1>
     </div>
   </div>
-  <div
-    class="row align-items-center mb-3 position-relative overflow-hidden py-2"
-  >
+  <div class="row align-items-center mb-3 position-relative overflow-hidden py-2">
     {#if selectedObjects.length > 0}
       <div
         transition:fly={{ opacity: 1, y: -35 }}
@@ -459,30 +313,14 @@
       >
         <div class="fw-bold">
           {selectedObjects.length}
-          {t("common.selected-objects", {
-            fallback: "selected objects",
-          })}
+          {t("common.selected-objects", { fallback: "selected objects" })}
         </div>
-        <button
-          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
-          onclick={clearSelection}
-        >
-          <span>
-            {t("common.clear-selection", {
-              fallback: "Clear selection",
-            })}
-          </span>
+        <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
+          <span>{i18n.clearSelection}</span>
           <i class="bi bi-x-circle"></i>
         </button>
-        <button
-          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
-          onclick={openBulkInstitutionModal}
-        >
-          <span>
-            {t("common.change-institution", {
-              fallback: "Change institution",
-            })}
-          </span>
+        <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={openBulkInstitutionModal}>
+          <span>{i18n.changeInstitution}</span>
           <i class="bi bi-bank"></i>
         </button>
         <BulkActionsStatusSelect
@@ -490,27 +328,13 @@
           bind:value={bulkStatusValue}
           onValueChange={applyBulkStatus}
         />
-        <button
-          class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
-          onclick={openBulkEdit}
-        >
-          <span>
-            {t("common.edit-information", {
-              fallback: "Edit information",
-            })}
-          </span>
+        <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={openBulkEdit}>
+          <span>{i18n.editSelected}</span>
           <i class="bi bi-pencil"></i>
         </button>
         <div class="ms-auto">
-          <button
-            class="btn btn-danger btn-sm d-flex align-items-center gap-2"
-            onclick={confirmBulkDelete}
-          >
-            <span>
-              {t("common.delete", {
-                fallback: "Delete",
-              })}
-            </span>
+          <button class="btn btn-danger btn-sm d-flex align-items-center gap-2" onclick={confirmBulkDelete}>
+            <span>{i18n.deleteSelected}</span>
             <i class="bi bi-trash"></i>
           </button>
         </div>
@@ -519,93 +343,50 @@
     <div class="col-4">
       <BaseInput
         icon="search"
-        placeholder={t("common.search", { fallback: "Search" })}
+        placeholder={i18n.search}
         size="sm"
         bind:value={searchText}
-        onInput={(e) => {
-          isUserEditing = true;
-          searchText = e.target.value;
-          debouncedSetSearch(e.target.value);
-        }}
+        onInput={handleSearchInput}
         optionsList={ontologyFieldsList}
         bind:optionsValue={params.searchField}
       />
     </div>
     <div class="col-8 d-flex justify-content-end gap-3 align-items-center">
-      <!-- <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.order-by", { fallback: "Order by" })}
-        </div>
-        <BaseSelect items={orderBy} bind:value={params.orderBy} size="sm"
-        ></BaseSelect>
-      </div> -->
       <div class="d-flex align-items-center text-truncate gap-2">
-        <div class="col-auto fs-7">
-          {t("common.select-fields", { fallback: "Select Fields" })}
-        </div>
-        <InstitutionObjectsFields
-          displayFields={data.displayFields}
-          researchFields={data.researchFields}
-          projectId={data.project.id}
-        />
+        <div class="col-auto fs-7">{i18n.selectFields}</div>
+        <InstitutionObjectsFields displayFields={data.displayFields} researchFields={data.researchFields} projectId={data.project.id} />
       </div>
 
       <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.status", { fallback: "Status" })}
-        </div>
-        <BaseSelect items={statuses} bind:value={params.status} size="sm"
-        ></BaseSelect>
+        <div class="col-auto fs-7">{i18n.status}</div>
+        <BaseSelect items={statuses} bind:value={params.status} size="sm" />
       </div>
       <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.view-as", { fallback: "View as" })}
-        </div>
-        <BaseSelect items={viewAsOptions} bind:value={viewAs} size="sm"
-        ></BaseSelect>
+        <div class="col-auto fs-7">{i18n.viewAs}</div>
+        <BaseSelect items={viewAsOptions} bind:value={viewAs} size="sm" />
       </div>
-      <button
-        type="button"
-        class="btn btn-outline-primary btn-sm"
-        onclick={handleFiltersClick}
-      >
+      <button type="button" class="btn btn-outline-primary btn-sm" onclick={handleFiltersClick}>
         <i class="bi bi-filter"></i>
-        {t("common.filter", { fallback: "Filter" })}
+        {i18n.filter}
       </button>
-      <a
-        class="btn btn-primary btn-sm"
-        href="/projects/{data.project.id}/objects/add"
-        ><i class="bi bi-plus-lg"></i>
-        {t("common.add-object", { fallback: "Add Object" })}</a
-      >
+      <a class="btn btn-primary btn-sm" href="/projects/{data.project.id}/objects/add">
+        <i class="bi bi-plus-lg"></i>
+        {i18n.addNew}
+      </a>
     </div>
   </div>
   {#if searchData.totalCount}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
         {searchData.totalCount}
-        {#if searchData.totalCount > 1}
-          {t("common.objects", { fallback: "objects" })}
-        {:else}
-          {t("common.object", { fallback: "object" })}
-        {/if}
+        {searchData.totalCount > 1 ? t("common.objects", { fallback: "objects" }) : t("common.object", { fallback: "object" })}
       </div>
       {#if hasAppliedFilters}
-        <div
-          class="d-flex align-items-center justify-content-end gap-2 flex-wrap"
-        >
+        <div class="d-flex align-items-center justify-content-end gap-2 flex-wrap">
           {#each filterBadges as b}
-            <span
-              class="badge rounded-pill text-bg-secondary d-flex align-items-center gap-1"
-            >
-              <span class="text-truncate" style="max-width: 240px;"
-                >{b.text}</span
-              >
-              <button
-                class="btn btn-sm btn-link text-white p-0 m-0"
-                aria-label={t("common.remove", { fallback: "Remove" })}
-                onclick={b.onClear}
-              >
+            <span class="badge rounded-pill text-bg-secondary d-flex align-items-center gap-1">
+              <span class="text-truncate" style="max-width: 240px;">{b.text}</span>
+              <button class="btn btn-sm btn-link text-white p-0 m-0" aria-label={t("common.remove", { fallback: "Remove" })} onclick={b.onClear}>
                 <i class="bi bi-x-lg"></i>
               </button>
             </span>
@@ -617,11 +398,7 @@
       <div class="row">
         {#each searchData.items as object (object.id)}
           <div class="col-4">
-            <ObjectCard
-              {object}
-              displayFields={data.displayFields}
-              displayInstitution={true}
-            />
+            <ObjectCard {object} displayFields={data.displayFields} displayInstitution={true} />
           </div>
         {/each}
       </div>
@@ -633,13 +410,11 @@
         bind:selectedObjects
         displayFields={data.displayFields}
         displayInstitution={true}
-      ></ObjectsTable>
+      />
     {/if}
   {:else}
     <div class="text-center fst-italic text-muted mt-5">
-      {t("common.no-objects-found", {
-        fallback: "No objects found.",
-      })}
+      {i18n.noObjectsFound}
     </div>
   {/if}
   {#if searchData.totalCount > params.pageSize}

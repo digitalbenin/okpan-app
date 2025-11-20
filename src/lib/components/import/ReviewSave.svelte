@@ -21,6 +21,7 @@
         data: $state.snapshot(finalData),
         mapping: $state.snapshot(wizard.mapping),
         datasourceId: $state.snapshot(wizard.datasourceId),
+        sourceFileName: wizard.file?.fileName || null,
       };
       console.log("Save parameters:", saveParams);
 
@@ -38,7 +39,6 @@
   const finalData = $derived(
     parseData(wizard.data, wizard.mapping, wizard.file.format)
   );
-  $inspect(finalData);
   function closeAndHome() {
     open = false;
     goto("/projects/" + wizard.projectId);
