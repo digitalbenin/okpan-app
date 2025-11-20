@@ -9,16 +9,16 @@
     footerClass = "",
     footerContainerClass = "container-fluid",
     sticky = true,
+    children,
   } = $props();
 
   const resolvedLeftButtons = $derived(Array.isArray(leftButtons) ? leftButtons : []);
   const resolvedRightButtons = $derived(Array.isArray(rightButtons) ? rightButtons : []);
   const footerPositionClass = $derived(sticky ? "position-sticky bottom-0" : "");
 </script>
-
 <div class={`min-vh-100 d-flex flex-column ${containerClass}`.trim()}>
   <div class={`flex-grow-1 w-100 ${contentClass}`.trim()}>
-    <slot />
+    {@render children?.()}
   </div>
 
   <footer
