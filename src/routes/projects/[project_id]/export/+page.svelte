@@ -7,6 +7,7 @@
     import StatusFilter from "$lib/components/export/StatusFilter.svelte";
     import InstitutionFilter from "$lib/components/export/InstitutionFilter.svelte";
     import ResearchFieldFilters from "$lib/components/export/ResearchFieldFilters.svelte";
+    import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
 
     let { data } = $props();
 
@@ -226,9 +227,30 @@
         facets?.statuses?.find((s) => (s.id ?? s.name) === "in progress")
             ?.count || 0,
     );
-</script>
 
-<div class="export-page container-fluid py-4">
+    const exportDisabledReason = $derived(() => {
+        if (totalCount === 0) {
+            return "No objects match current filters";
+        }
+        if (totalCount - deselectedObjectIds.size <= 0) {
+            return "No objects selected";
+        }
+        return "";
+    });
+
+    const rightActionButtons = $derived.by(() => [{
+        id: "export-data",
+        text: "Export",
+        class: "btn btn-success",
+        disabled: !!exportDisabledReason,
+        onClick: handleExport,
+        title: exportDisabledReason,
+    }]);
+</script>
+<PageActionFooter
+    contentClass="export-page container-fluid py-4"
+    rightButtons={rightActionButtons}
+>
     <div class="col-lg-8">
         <!-- Header -->
         <div class="header mb-4">
@@ -338,30 +360,4 @@
             />
         </div>
     </div>
-</div>
-
-<!-- Sticky bottom action bar -->
-<div
-    class="sticky-bottom-bar position-sticky bottom-0 bg-white border-top border-light-subtle mt-auto z-1 flex-shrink-0"
->
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12 d-flex justify-content-end gap-2 p-2">
-                <button
-                    type="button"
-                    class="btn btn-sm btn-success"
-                    onclick={handleExport}
-                    disabled={totalCount === 0 ||
-                        totalCount - deselectedObjectIds.size === 0}
-                    title={totalCount === 0
-                        ? "No objects match current filters"
-                        : totalCount - deselectedObjectIds.size === 0
-                          ? "No objects selected"
-                          : ""}
-                >
-                    Export
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+</PageActionFooter>

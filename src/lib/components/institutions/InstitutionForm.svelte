@@ -1,5 +1,6 @@
 <script>
   import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
   import { createForm } from "@tanstack/svelte-form";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
@@ -158,6 +159,25 @@
   const hiddenStaticValues = $derived(mode === "create" ? { status: "in progress" } : {});
   const fieldOrder = $derived(mode === "create" ? ["website", "links"] : ["links"]);
 
+  const leftActionButtons = $derived(isEditMode
+    ? [{
+        id: "delete-institution",
+        text: t("common.delete", { fallback: "Delete institution" }),
+        class: "btn btn-outline-danger",
+        icon: "trash",
+        onClick: openDeleteModal,
+      }]
+    : []);
+
+  const rightActionButtons = $derived([
+    {
+      id: "confirm-institution",
+      text: t("common.confirm", { fallback: "Save changes" }),
+      class: "btn btn-success",
+      type: "submit",
+    },
+  ]);
+
   // Delete handlers
   const openDeleteModal = () => isEditMode && (showDeleteModal = true);
   const cancelDelete = () => showDeleteModal = false;
@@ -185,73 +205,49 @@
     form.handleSubmit();
   }}
 >
-  <div class="min-vh-100 d-flex flex-column">
-    <div class="container-fluid flex-grow-1">
-      <div class="row">
-        <div class="col-12">
-          <h2 class="mt-3">
-            {isEditMode
-              ? t("common.edit-institution", { fallback: "Edit Institution" })
-              : t("common.add-new-institution", {
-                  fallback: "Add New Institution",
-                })}
-          </h2>
-          {#if !isEditMode}
-            <p>
-              {t("common.add-new-institution-desc", {
-                fallback:
-                  "Please fill out the details below to add a new institution to your project.",
+  <PageActionFooter
+    contentClass="container-fluid"
+    leftButtons={leftActionButtons}
+    rightButtons={rightActionButtons}
+  >
+    <div class="row">
+      <div class="col-12">
+        <h2 class="mt-3">
+          {isEditMode
+            ? t("common.edit-institution", { fallback: "Edit Institution" })
+            : t("common.add-new-institution", {
+                fallback: "Add New Institution",
               })}
-            </p>
-          {/if}
+        </h2>
+        {#if !isEditMode}
+          <p>
+            {t("common.add-new-institution-desc", {
+              fallback:
+                "Please fill out the details below to add a new institution to your project.",
+            })}
+          </p>
+        {/if}
 
-          <AutoForm
-            {form}
-            {validator}
-            {createFieldValidator}
-            entity={"institutions"}
-            operation={operationName}
-            {languages}
-            translatableFields={TRANSLATABLE_FIELDS}
-            setStructuredErrors={(errors) => allValidationErrors = errors}
-            defaultColSize={7}
-            translationsValidator={getValidator("translations", "create")}
-            {fieldOrder}
-            {uiSchema}
-            {hiddenStaticValues}
-            {hiddenValueProviders}
-            structuredErrors={allValidationErrors}
-          />
-        </div>
+        <AutoForm
+          {form}
+          {validator}
+          {createFieldValidator}
+          entity={"institutions"}
+          operation={operationName}
+          {languages}
+          translatableFields={TRANSLATABLE_FIELDS}
+          setStructuredErrors={(errors) => allValidationErrors = errors}
+          defaultColSize={7}
+          translationsValidator={getValidator("translations", "create")}
+          {fieldOrder}
+          {uiSchema}
+          {hiddenStaticValues}
+          {hiddenValueProviders}
+          structuredErrors={allValidationErrors}
+        />
       </div>
     </div>
-
-    <!-- Sticky bottom action bar -->
-    <div
-      class="sticky-bottom-bar position-sticky bottom-0 bg-white border-top border-light-subtle mt-auto z-1 flex-shrink-0"
-    >
-      <div class="container-fluid">
-        <div class="row">
-          <div class="col-12 d-flex justify-content-end gap-2 p-2">
-            {#if isEditMode}
-              <BaseButton
-                type="button"
-                class="btn btn-outline-danger"
-                text={t("common.delete", { fallback: "Delete institution" })}
-                icon="trash"
-                onClick={openDeleteModal}
-              />
-            {/if}
-            <BaseButton
-              type="submit"
-              class="btn btn-success"
-              text={t("common.confirm", { fallback: "Save changes" })}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  </PageActionFooter>
 
   <!-- Delete Confirmation Modal -->
   {#if showDeleteModal}
@@ -301,20 +297,4 @@
   {/if}
 </form>
 
-<style>
-  /* Ensure the form takes full viewport height and allows content to scroll */
-  .min-vh-100 {
-    min-height: 100vh;
-  }
 
-  /* Sticky bottom bar consistent with Project Settings */
-  .sticky-bottom-bar {
-    position: sticky;
-    bottom: 0;
-    background-color: white;
-    border-top: 1px solid #dee2e6;
-    margin-top: auto;
-    z-index: 10;
-    flex-shrink: 0;
-  }
-</style>

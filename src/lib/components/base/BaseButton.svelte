@@ -9,6 +9,7 @@
     class: customClass = "", // Add class prop with default empty string
     style: customStyle = "", // Add style prop with default empty string
     type = "button", // Add type prop with default button
+    title = "",
   } = $props();
 </script>
 
@@ -17,6 +18,7 @@
   class={`d-flex gap-2 align-items-center ${customClass}`}
   style={customStyle}
   {disabled}
+  title={title || undefined}
   onclick={onClick}
 >
   {#if loading}
