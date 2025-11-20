@@ -29,7 +29,7 @@
     )}
     ><i class="bi bi-eye"></i>
     {t("project.data-explorer", {
-      fallback: "Data explorer",
+      fallback: "Website preview",
     })}</a
   >
 </div>
