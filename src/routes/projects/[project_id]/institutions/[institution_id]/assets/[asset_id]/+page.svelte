@@ -22,6 +22,8 @@
     const TRANSLATABLE_FIELDS = ["description", "copyright", "author"];
 
     // State
+    const PENDING_UNLINKS_FIELD = "__pending_unlinks";
+
     const asset = $state(data.asset);
     let linkedObjects = $state(data.linkedObjects || []);
     const languages = $state(data.languages);
@@ -55,6 +57,7 @@
         description: z.string().optional(),
         copyright: z.string().optional(),
         author: z.string().optional(),
+        [PENDING_UNLINKS_FIELD]: z.array(z.string()).optional(),
     });
 
     const validator = { schema: metadataSchema, requiredFields: new Set([]), validate: (data) => metadataSchema.safeParse(data) };
@@ -74,6 +77,8 @@
                 values[`translations_${lang.id}_${field}`] = metadata?.[field]?.[lang.code] || "";
             });
         });
+
+        values[PENDING_UNLINKS_FIELD] = [];
 
         return values;
     });
@@ -114,6 +119,7 @@
                 // They store everything in the properties JSON field, which we already updated
                 
                 pendingUnlinks = [];
+                syncPendingUnlinksField();
                 goto(`/projects/${project_id}/institutions/${institution_id}`);
             } else {
                 console.error("Failed to update asset:", result?.error);
@@ -125,6 +131,16 @@
 
     // Create form
     const form = $derived(createForm(() => getFormConfig("assets", "update", { defaultValues, onSubmit: onSubmitForm })));
+
+    const syncPendingUnlinksField = () => {
+        const setter = form?.setFieldValue || form?.setValue;
+        if (!setter) return;
+        try {
+            setter(PENDING_UNLINKS_FIELD, pendingUnlinks.slice().sort());
+        } catch (error) {
+            console.error("Failed to sync pending unlink state", error);
+        }
+    };
 
     // UI Schema
     const uiSchema = $derived({
@@ -154,7 +170,9 @@
     };
 
     const handleUnlinkObject = (objectId) => {
-        if (!pendingUnlinks.includes(objectId)) pendingUnlinks = [...pendingUnlinks, objectId];
+        if (pendingUnlinks.includes(objectId)) return;
+        pendingUnlinks = [...pendingUnlinks, objectId];
+        syncPendingUnlinksField();
     };
 
     const openLinkObjectsModal = () => showLinkObjectsModal = true;
@@ -162,8 +180,18 @@
     const handleObjectsLinked = (objects) => {
         try {
             const existing = new Set((linkedObjects || []).map((oa) => String(oa.object_id)));
-            const additions = (objects || []).filter((o) => !existing.has(String(o.id))).map((o) => ({ object_id: o.id, object: o }));
-            if (additions.length) linkedObjects = [...linkedObjects, ...additions];
+            const additions = (objects || [])
+                .filter((o) => !existing.has(String(o.id)))
+                .map((o) => ({ object_id: o.id, object: o }));
+            if (additions.length) {
+                linkedObjects = [...linkedObjects, ...additions];
+                const addedIds = new Set(additions.map((item) => String(item.object_id)));
+                const nextPending = pendingUnlinks.filter((id) => !addedIds.has(String(id)));
+                if (nextPending.length !== pendingUnlinks.length) {
+                    pendingUnlinks = nextPending;
+                }
+                syncPendingUnlinksField();
+            }
         } catch (e) {
             console.error("Error updating linked objects list:", e);
         }
@@ -231,6 +259,8 @@
                         translatableFields={TRANSLATABLE_FIELDS}
                         {uiSchema}
                         fieldOrder={TRANSLATABLE_FIELDS}
+                        hiddenFields={[PENDING_UNLINKS_FIELD]}
+                        hiddenValueProviders={{ [PENDING_UNLINKS_FIELD]: () => pendingUnlinks.slice().sort() }}
                     />
                 </form>
             </div>
