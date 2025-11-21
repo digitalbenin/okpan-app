@@ -30,8 +30,8 @@
   let resultsContainer;
 
   const searchResource = resource(
-    [() => isOpen, () => searchQuery, () => currentPage, () => projectId],
-    async ([open, query, page, pid]) => {
+    [() => isOpen, () => searchQuery, () => currentPage, () => projectId, () => assetId],
+    async ([open, query, page, pid, aid]) => {
       if (!open || !pid) return EMPTY_RESULTS;
 
       const params = {
@@ -39,6 +39,10 @@
         page: Math.max(page - 1, 0),
         pageSize: PAGE_SIZE,
       };
+
+      if (aid) {
+        params.assetId = String(aid);
+      }
 
       const trimmed = query.trim?.() ?? "";
       if (trimmed) params.genericQuery = trimmed;

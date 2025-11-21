@@ -59,6 +59,11 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 description: 'Project ID to search within'
             },
             {
+                name: 'assetId',
+                type: drizzleResult.schema._typeMap.String,
+                description: 'Optional asset ID to prioritize linked objects'
+            },
+            {
                 name: 'ontologyFieldQueries',
                 type: drizzleResult.schema._typeMap.JSON,
                 description: 'JSON mapping or array of {fieldId, query}'
@@ -314,8 +319,21 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 case 'created_at': default: orderByField = dbSchema.objects.created_at; break;
             }
 
+            const linkedOrderExpr = args.assetId
+                ? sql`CASE WHEN EXISTS (
+                        SELECT 1 FROM objects_assets oa
+                        WHERE oa.object_id = objects.id AND oa.asset_id = ${args.assetId}
+                    ) THEN 0 ELSE 1 END`
+                : null;
+
+            const orderClauses = [];
+            if (linkedOrderExpr) {
+                orderClauses.push(linkedOrderExpr);
+            }
+            orderClauses.push(sql`${orderByField}${direction}`);
+
             const paginatedQuery = mainQuery
-                .orderBy(sql`${orderByField}${direction}`)
+                .orderBy(...orderClauses)
                 .limit(args.pageSize)
                 .offset(args.page * args.pageSize);
 

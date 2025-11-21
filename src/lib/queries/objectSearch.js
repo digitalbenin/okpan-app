@@ -8,6 +8,7 @@ export const objectSearchOperations = {
       projectId: "Project ID to search within",
       ontologyFieldQueries: "Optional array of ontology text filters: {fieldId, query}",
       genericQuery: "Optional generic text query across name and fields",
+      assetId: "Optional asset ID to prioritize linked objects",
       institutionIds: "Optional list of institution IDs to filter by (if empty, includes all)",
       researchFieldFilters: "Optional array of research field filters: {fieldId, query?, vocabularyIds?}",
       status: "Optional filter objects by status",
@@ -20,6 +21,7 @@ export const objectSearchOperations = {
   $projectId: String!
   $ontologyFieldQueries: JSON
   $genericQuery: String
+  $assetId: String
   $institutionIds: [String!]
   $researchFieldFilters: [JSON!]
   $status: String
@@ -30,6 +32,7 @@ export const objectSearchOperations = {
   ) {
   result:objectSearch(
     project_id: $projectId
+    assetId: $assetId
     ontologyFieldQueries: $ontologyFieldQueries
     genericQuery: $genericQuery
     institutionIds: $institutionIds
