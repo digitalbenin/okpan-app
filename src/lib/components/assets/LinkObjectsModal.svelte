@@ -13,12 +13,15 @@
 
   // Declare bindable prop inside $props() as required by Svelte runes
   // preselectExisting controls whether already-linked objects are preselected
+  // pendingUnlinks: array of object IDs that are pending unlink (not yet saved)
   let {
     isOpen = $bindable(),
     projectId,
     assetId,
     onLinked,
+    onUnlinked,
     preselectExisting = true,
+    pendingUnlinks = [],
   } = $props();
 
   const PAGE_SIZE = 25;
@@ -27,6 +30,7 @@
   let searchQuery = $state("");
   let currentPage = $state(1);
   let selectedObjectIds = $state(new Set());
+  let initiallySelectedIds = $state(new Set());
   let resultsContainer;
 
   const searchResource = resource(
@@ -68,32 +72,27 @@
   const prevPage = $derived(currentPage > 1 ? currentPage - 1 : null);
   const nextPage = $derived(currentPage < totalPages ? currentPage + 1 : null);
 
-  // Preselect objects already linked to this asset
   async function preselectAlreadyLinked() {
     if (!assetId) return;
     try {
       const res = await getAssetById(String(assetId));
       const asset = Array.isArray(res?.result) ? res.result[0] : res?.result;
-      const linkedIds = asset?.objectsAssets?.map((oa) => oa.object_id).filter(Boolean) ?? [];
-      if (!linkedIds.length) return;
-      selectedObjectIds = new Set([...selectedObjectIds, ...linkedIds]);
+      const linkedIds = asset?.objectsAssets?.map(oa => oa.object_id).filter(Boolean) ?? [];
+      const pendingSet = new Set((pendingUnlinks || []).map(String));
+      const validIds = linkedIds.filter(id => !pendingSet.has(String(id)));
+      
+      if (validIds.length) {
+        selectedObjectIds = new Set(validIds);
+        initiallySelectedIds = new Set(validIds);
+      }
     } catch (error) {
       console.error("Failed to preselect linked objects:", error);
     }
   }
 
-  // Prefer the actual primary ontology field value; do not show fallback text
-  function getPrimaryIdentifier(obj) {
-    const field = obj?.objectsOntologyFields?.find((f) => f.primary);
-    return field?.value ?? null;
-  }
-
-  // Display label: prefer object's name, then primary identifier, then numeric id
-  function getObjectDisplayName(obj) {
-    const name =
-      (obj?.name?.content && String(obj.name.content).trim()) ||
-      (typeof obj?.name === "string" && String(obj.name).trim());
-    return name || getPrimaryIdentifier(obj) || obj?.id;
+  const getObjectDisplayName = (obj) => {
+    const name = obj?.name?.content?.trim() || (typeof obj?.name === "string" && obj.name.trim());
+    return name || obj?.objectsOntologyFields?.find(f => f.primary)?.value || obj?.id;
   }
 
   // Resolve thumbnail src from the first media asset
@@ -107,50 +106,45 @@
   }
 
   async function confirmLinkSelectedObjects() {
-    if (!assetId || selectedObjectIds.size === 0) {
+    const deselected = [...initiallySelectedIds].filter(id => !selectedObjectIds.has(id));
+    const newlySelected = [...selectedObjectIds].filter(id => !initiallySelectedIds.has(id));
+    
+    if (!assetId || (selectedObjectIds.size === 0 && deselected.length === 0)) {
+      selectedObjectIds = new Set();
+      initiallySelectedIds = new Set();
       isOpen = false;
       return;
     }
 
-    const linkedObjects = (
-      await Promise.all(
-        [...selectedObjectIds].map(async (objectId) => {
-          const id = String(objectId);
-          try {
-            const res = await linkAssetToObject(id, String(assetId));
-            if (res?.error) {
-              console.error("Failed to link asset to object:", res.error);
-              return null;
-            }
-            const full = await getObjectById(id);
-            return !full.error && full.result ? full.result : null;
-          } catch (error) {
-            console.error("Error linking object:", error);
-            return null;
+    const pendingSet = new Set((pendingUnlinks || []).map(String));
+    
+    const linkedObjects = await Promise.all(
+      newlySelected.map(async (id) => {
+        try {
+          if (!pendingSet.has(String(id))) {
+            const res = await linkAssetToObject(String(id), String(assetId));
+            if (res?.error && !res?.skipped) return null;
           }
-        }),
-      )
-    ).filter(Boolean);
+          const full = await getObjectById(String(id));
+          return full?.result || null;
+        } catch (error) {
+          console.error("Error linking object:", error);
+          return null;
+        }
+      })
+    ).then(results => results.filter(Boolean));
 
-    try {
-      onLinked?.(linkedObjects);
-    } catch (error) {
-      console.error("onLinked callback error:", error);
-    }
+    if (linkedObjects.length) onLinked?.(linkedObjects);
+    if (deselected.length) onUnlinked?.(deselected);
 
     selectedObjectIds = new Set();
+    initiallySelectedIds = new Set();
     isOpen = false;
   }
 
-  // Load results when modal opens
   $effect(() => {
     if (isOpen) {
-      if (preselectExisting) {
-        preselectAlreadyLinked();
-      } else {
-        // Ensure no preselection carried over
-        selectedObjectIds = new Set();
-      }
+      preselectExisting ? preselectAlreadyLinked() : (selectedObjectIds = new Set(), initiallySelectedIds = new Set());
       currentPage = 1;
     }
   });
@@ -164,16 +158,12 @@
   });
 
   $effect(() => {
-    if (currentPage > totalPages) {
-      currentPage = totalPages;
-    }
+    if (currentPage > totalPages) currentPage = totalPages;
   });
 
   $effect(() => {
-    currentPage; // track dependency
-    if (resultsContainer) {
-      resultsContainer.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    currentPage;
+    resultsContainer?.scrollTo({ top: 0, behavior: "smooth" });
   });
 
   function goToPage(page) {

@@ -42,14 +42,11 @@
             return typeof asset?.properties === "string" ? JSON.parse(asset.properties) : asset?.properties || {};
         } catch { return {}; }
     });
-
     const imageSrc = $derived(getAssetImageUrl(asset, 'md', false));
     const visibleLinkedObjects = $derived(linkedObjects?.filter((oa) => !pendingUnlinks.includes(oa.object_id)) || []);
-
     const getObjectDisplayName = (obj) => {
         const name = obj?.name?.content?.trim() || (typeof obj?.name === "string" && obj.name.trim());
-        const primaryField = obj?.objectsOntologyFields?.find((f) => f.primary);
-        return name || primaryField?.value || obj?.id;
+        return name || obj?.objectsOntologyFields?.find((f) => f.primary)?.value || obj?.id;
     };
 
     // Validator
@@ -62,65 +59,49 @@
 
     const validator = { schema: metadataSchema, requiredFields: new Set([]), validate: (data) => metadataSchema.safeParse(data) };
 
-    // Build default values using ContentLanguageStore
-    const defaultValues = $derived.by(() => {
-        const defaultCode = defaultLanguage?.code;
-        const values = {
-            description: metadata?.description?.[defaultCode] || "",
-            copyright: metadata?.copyright?.[defaultCode] || "",
-            author: metadata?.author?.[defaultCode] || "",
-        };
-
-        // Add secondary language translations from properties JSON
-        secondaryLanguages.forEach((lang) => {
-            TRANSLATABLE_FIELDS.forEach((field) => {
+    const buildTranslationValues = (metadata, defaultCode, secondaryLangs) => {
+        const values = Object.fromEntries(
+            TRANSLATABLE_FIELDS.map(field => [field, metadata?.[field]?.[defaultCode] || ""])
+        );
+        secondaryLangs.forEach(lang => {
+            TRANSLATABLE_FIELDS.forEach(field => {
                 values[`translations_${lang.id}_${field}`] = metadata?.[field]?.[lang.code] || "";
             });
         });
-
         values[PENDING_UNLINKS_FIELD] = [];
-
         return values;
-    });
+    };
 
-    // Submit handler
+    const defaultValues = $derived.by(() => buildTranslationValues(metadata, defaultLanguage?.code, secondaryLanguages));
+
+    const collectTranslations = (value, defaultCode, secondaryLangs) => {
+        const translations = Object.fromEntries(TRANSLATABLE_FIELDS.map(f => [f, {}]));
+        if (defaultCode) {
+            TRANSLATABLE_FIELDS.forEach(field => {
+                if (value[field]) translations[field][defaultCode] = value[field];
+            });
+        }
+        secondaryLangs.forEach(lang => {
+            TRANSLATABLE_FIELDS.forEach(field => {
+                const val = value[`translations_${lang.id}_${field}`]?.trim();
+                if (val) translations[field][lang.code] = val;
+            });
+        });
+        return translations;
+    };
+
     async function onSubmitForm({ value }) {
         try {
-            // Process pending unlinks
-            await Promise.all(pendingUnlinks.map(async (objectId) => {
-                const unlinkResult = await unlinkAssetFromObject(objectId, asset.id);
-                if (unlinkResult.error) console.error("Error unlinking object:", unlinkResult.error);
-            }));
+            await Promise.all(pendingUnlinks.map(id => 
+                unlinkAssetFromObject(id, asset.id).catch(e => console.error("Error unlinking:", e))
+            ));
 
-            // Collect translations
-            const translations = { description: {}, copyright: {}, author: {} };
-            const defaultCode = defaultLanguage?.code;
+            const translations = collectTranslations(value, defaultLanguage?.code, secondaryLanguages);
+            const result = await updateAsset(asset.id, { properties: JSON.stringify(translations) });
 
-            if (defaultCode) {
-                if (value.description) translations.description[defaultCode] = value.description;
-                if (value.copyright) translations.copyright[defaultCode] = value.copyright;
-                if (value.author) translations.author[defaultCode] = value.author;
-            }
-
-            secondaryLanguages.forEach((lang) => {
-                TRANSLATABLE_FIELDS.forEach((field) => {
-                    const key = `translations_${lang.id}_${field}`;
-                    if (value[key]?.trim()) translations[field][lang.code] = value[key];
-                });
-            });
-
-            const properties = JSON.stringify(translations);
-            const result = await updateAsset(asset.id, { properties });
-
-            // Check for success - updateAsset returns the GraphQL result which might have different structures
             if (!result?.error) {
-                // Process secondary language translations using ContentLanguageStore
-                // Note: Assets don't have separate text fields for translations like other entities
-                // They store everything in the properties JSON field, which we already updated
-                
                 pendingUnlinks = [];
                 syncPendingUnlinksField();
-                goto(`/projects/${project_id}/institutions/${institution_id}`);
             } else {
                 console.error("Failed to update asset:", result?.error);
             }
@@ -149,11 +130,8 @@
         author: { label: "Author", type: "textarea", colSize: 12, required: false },
     });
 
-    // Handlers
-    const handleCancel = () => back();
-    const handleSave = () => form.handleSubmit();
-    const openDeleteModal = () => showDeleteModal = true;
-    const cancelDelete = () => showDeleteModal = false;
+    const openLinkObjectsModal = () => (showLinkObjectsModal = true);
+    const openDeleteModal = () => (showDeleteModal = true);
 
     const confirmDeleteAsset = async () => {
         if (!asset?.id) return showDeleteModal = false;
@@ -170,30 +148,33 @@
     };
 
     const handleUnlinkObject = (objectId) => {
-        if (pendingUnlinks.includes(objectId)) return;
-        pendingUnlinks = [...pendingUnlinks, objectId];
-        syncPendingUnlinksField();
+        if (!pendingUnlinks.includes(objectId)) {
+            pendingUnlinks = [...pendingUnlinks, objectId];
+            syncPendingUnlinksField();
+        }
     };
 
-    const openLinkObjectsModal = () => showLinkObjectsModal = true;
-
     const handleObjectsLinked = (objects) => {
-        try {
-            const existing = new Set((linkedObjects || []).map((oa) => String(oa.object_id)));
-            const additions = (objects || [])
-                .filter((o) => !existing.has(String(o.id)))
-                .map((o) => ({ object_id: o.id, object: o }));
-            if (additions.length) {
-                linkedObjects = [...linkedObjects, ...additions];
-                const addedIds = new Set(additions.map((item) => String(item.object_id)));
-                const nextPending = pendingUnlinks.filter((id) => !addedIds.has(String(id)));
-                if (nextPending.length !== pendingUnlinks.length) {
-                    pendingUnlinks = nextPending;
-                }
-                syncPendingUnlinksField();
-            }
-        } catch (e) {
-            console.error("Error updating linked objects list:", e);
+        if (!objects?.length) return;
+        const existing = new Set(linkedObjects.map(oa => String(oa.object_id)));
+        const additions = objects.filter(o => !existing.has(String(o.id))).map(o => ({ object_id: o.id, object: o }));
+        
+        if (additions.length) linkedObjects = [...linkedObjects, ...additions];
+        
+        const linkedIds = new Set(objects.map(o => String(o.id)));
+        const nextPending = pendingUnlinks.filter(id => !linkedIds.has(String(id)));
+        if (nextPending.length !== pendingUnlinks.length) {
+            pendingUnlinks = nextPending;
+            syncPendingUnlinksField();
+        }
+    };
+
+    const handleObjectsUnlinked = (objectIds) => {
+        if (!objectIds?.length) return;
+        const toUnlink = objectIds.filter(id => !pendingUnlinks.includes(String(id)));
+        if (toUnlink.length) {
+            pendingUnlinks = [...pendingUnlinks, ...toUnlink.map(String)];
+            syncPendingUnlinksField();
         }
     };
 </script>
@@ -331,7 +312,9 @@
     projectId={project_id}
     assetId={asset?.id}
     preselectExisting={true}
+    pendingUnlinks={pendingUnlinks}
     onLinked={handleObjectsLinked}
+    onUnlinked={handleObjectsUnlinked}
 />
 
 <style>
