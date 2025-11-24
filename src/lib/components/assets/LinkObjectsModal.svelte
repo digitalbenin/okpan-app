@@ -109,26 +109,21 @@
     const deselected = [...initiallySelectedIds].filter(id => !selectedObjectIds.has(id));
     const newlySelected = [...selectedObjectIds].filter(id => !initiallySelectedIds.has(id));
     
-    if (!assetId || (selectedObjectIds.size === 0 && deselected.length === 0)) {
+    if (selectedObjectIds.size === 0 && deselected.length === 0) {
       selectedObjectIds = new Set();
       initiallySelectedIds = new Set();
       isOpen = false;
       return;
     }
 
-    const pendingSet = new Set((pendingUnlinks || []).map(String));
-    
+    // Fetch full object data for newly selected objects (don't save yet)
     const linkedObjects = await Promise.all(
       newlySelected.map(async (id) => {
         try {
-          if (!pendingSet.has(String(id))) {
-            const res = await linkAssetToObject(String(id), String(assetId));
-            if (res?.error && !res?.skipped) return null;
-          }
           const full = await getObjectById(String(id));
           return full?.result || null;
         } catch (error) {
-          console.error("Error linking object:", error);
+          console.error("Error fetching object:", error);
           return null;
         }
       })

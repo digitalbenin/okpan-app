@@ -1,5 +1,4 @@
 <script>
-    import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { createForm } from "@tanstack/svelte-form";
     import AutoForm from "$lib/components/form/AutoForm.svelte";
@@ -10,9 +9,10 @@
     import { createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
     import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
-    import { unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
+    import { linkAssetToObject, unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
     import { back } from "$lib/utils/navigation.js";
     import { getAssetImageUrl, getObjectImageUrl } from "$lib/utils/media.js";
+    import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
     import { z } from "zod";
 
     const { data } = $props();
@@ -21,15 +21,15 @@
     // Constants
     const TRANSLATABLE_FIELDS = ["description", "copyright", "author"];
 
-    // State
-    const PENDING_UNLINKS_FIELD = "__pending_unlinks";
-
+    // State from DB
     const asset = $state(data.asset);
+    let initialLinkedObjectIds = $state((data.linkedObjects || []).map(oa => String(oa.object_id)).sort());
+    
+    // Component state
     let linkedObjects = $state(data.linkedObjects || []);
     const languages = $state(data.languages);
     const project_id = $state(data.project_id);
     const institution_id = $state(data.institution_id);
-    let pendingUnlinks = $state([]);
     let showDeleteModal = $state(false);
     let isDeleting = $state(false);
     let showLinkObjectsModal = $state(false);
@@ -43,7 +43,16 @@
         } catch { return {}; }
     });
     const imageSrc = $derived(getAssetImageUrl(asset, 'md', false));
-    const visibleLinkedObjects = $derived(linkedObjects?.filter((oa) => !pendingUnlinks.includes(oa.object_id)) || []);
+    
+    // Current linked object IDs (reactive)
+    const currentLinkedObjectIds = $derived.by(() => linkedObjects.map(oa => String(oa.object_id)).sort());
+    
+    // Check if linked objects changed from initial state
+    const linkedObjectsChanged = $derived.by(() => {
+        if (initialLinkedObjectIds.length !== currentLinkedObjectIds.length) return true;
+        return !initialLinkedObjectIds.every((id, index) => id === currentLinkedObjectIds[index]);
+    });
+    
     const getObjectDisplayName = (obj) => {
         const name = obj?.name?.content?.trim() || (typeof obj?.name === "string" && obj.name.trim());
         return name || obj?.objectsOntologyFields?.find((f) => f.primary)?.value || obj?.id;
@@ -54,7 +63,6 @@
         description: z.string().optional(),
         copyright: z.string().optional(),
         author: z.string().optional(),
-        [PENDING_UNLINKS_FIELD]: z.array(z.string()).optional(),
     });
 
     const validator = { schema: metadataSchema, requiredFields: new Set([]), validate: (data) => metadataSchema.safeParse(data) };
@@ -68,7 +76,6 @@
                 values[`translations_${lang.id}_${field}`] = metadata?.[field]?.[lang.code] || "";
             });
         });
-        values[PENDING_UNLINKS_FIELD] = [];
         return values;
     };
 
@@ -92,7 +99,19 @@
 
     async function onSubmitForm({ value }) {
         try {
-            await Promise.all(pendingUnlinks.map(id => 
+            // Calculate which objects to link (in current, not in initial)
+            const initialIds = new Set(initialLinkedObjectIds);
+            const currentIds = new Set(currentLinkedObjectIds);
+            const toLink = currentLinkedObjectIds.filter(id => !initialIds.has(id));
+            const toUnlink = initialLinkedObjectIds.filter(id => !currentIds.has(id));
+            
+            // Link new objects
+            await Promise.all(toLink.map(id => 
+                linkAssetToObject(String(id), String(asset.id)).catch(e => console.error("Error linking:", e))
+            ));
+            
+            // Unlink removed objects
+            await Promise.all(toUnlink.map(id => 
                 unlinkAssetFromObject(id, asset.id).catch(e => console.error("Error unlinking:", e))
             ));
 
@@ -100,8 +119,13 @@
             const result = await updateAsset(asset.id, { properties: JSON.stringify(translations) });
 
             if (!result?.error) {
-                pendingUnlinks = [];
-                syncPendingUnlinksField();
+                // Update asset properties and reset initial state
+                asset.properties = JSON.stringify(translations);
+                data.linkedObjects = linkedObjects.map(oa => ({...oa})); // Update initial reference
+                initialLinkedObjectIds = currentLinkedObjectIds.slice(); // Reset baseline
+                const resetValues = buildTranslationValues(translations, defaultLanguage?.code, secondaryLanguages);
+                form?.reset(resetValues);
+                guardPristineKey += 1;
             } else {
                 console.error("Failed to update asset:", result?.error);
             }
@@ -113,15 +137,13 @@
     // Create form
     const form = $derived(createForm(() => getFormConfig("assets", "update", { defaultValues, onSubmit: onSubmitForm })));
 
-    const syncPendingUnlinksField = () => {
-        const setter = form?.setFieldValue || form?.setValue;
-        if (!setter) return;
-        try {
-            setter(PENDING_UNLINKS_FIELD, pendingUnlinks.slice().sort());
-        } catch (error) {
-            console.error("Failed to sync pending unlink state", error);
-        }
-    };
+    // Form store for dirty guard values
+    const formStore = form?.useStore ? form.useStore((state) => state) : null;
+    const guardValues = $derived.by(() => ({
+        metadata: formStore?.current?.values,
+        linkedIds: currentLinkedObjectIds,
+    }));
+    let guardPristineKey = $state(0);
 
     // UI Schema
     const uiSchema = $derived({
@@ -148,35 +170,24 @@
     };
 
     const handleUnlinkObject = (objectId) => {
-        if (!pendingUnlinks.includes(objectId)) {
-            pendingUnlinks = [...pendingUnlinks, objectId];
-            syncPendingUnlinksField();
-        }
+        linkedObjects = linkedObjects.filter(oa => String(oa.object_id) !== String(objectId));
     };
 
     const handleObjectsLinked = (objects) => {
         if (!objects?.length) return;
         const existing = new Set(linkedObjects.map(oa => String(oa.object_id)));
         const additions = objects.filter(o => !existing.has(String(o.id))).map(o => ({ object_id: o.id, object: o }));
-        
         if (additions.length) linkedObjects = [...linkedObjects, ...additions];
-        
-        const linkedIds = new Set(objects.map(o => String(o.id)));
-        const nextPending = pendingUnlinks.filter(id => !linkedIds.has(String(id)));
-        if (nextPending.length !== pendingUnlinks.length) {
-            pendingUnlinks = nextPending;
-            syncPendingUnlinksField();
-        }
     };
 
     const handleObjectsUnlinked = (objectIds) => {
         if (!objectIds?.length) return;
-        const toUnlink = objectIds.filter(id => !pendingUnlinks.includes(String(id)));
-        if (toUnlink.length) {
-            pendingUnlinks = [...pendingUnlinks, ...toUnlink.map(String)];
-            syncPendingUnlinksField();
-        }
+        linkedObjects = linkedObjects.filter(oa => !objectIds.includes(String(oa.object_id)));
     };
+
+    const handleCancel = () => back();
+    const handleSave = () => form?.handleSubmit();
+    const cancelDelete = () => (showDeleteModal = false);
 </script>
 
 <div class="d-flex flex-column min-vh-100">
@@ -240,8 +251,7 @@
                         translatableFields={TRANSLATABLE_FIELDS}
                         {uiSchema}
                         fieldOrder={TRANSLATABLE_FIELDS}
-                        hiddenFields={[PENDING_UNLINKS_FIELD]}
-                        hiddenValueProviders={{ [PENDING_UNLINKS_FIELD]: () => pendingUnlinks.slice().sort() }}
+                        enableDirtyTracking={false}
                     />
                 </form>
             </div>
@@ -250,8 +260,8 @@
             <div class="col-lg-4">
                 <h5 class="mb-3">Linked objects</h5>
 
-                {#if visibleLinkedObjects?.length > 0}
-                    {#each visibleLinkedObjects as objectAsset}
+                {#if linkedObjects?.length > 0}
+                    {#each linkedObjects as objectAsset}
                         <div class="d-flex flex-column align-items-start gap-2 mb-3 p-2 border rounded">
                             <div class="d-flex flex-row gap-2">
                                 <BaseImage
@@ -312,10 +322,11 @@
     projectId={project_id}
     assetId={asset?.id}
     preselectExisting={true}
-    pendingUnlinks={pendingUnlinks}
     onLinked={handleObjectsLinked}
     onUnlinked={handleObjectsUnlinked}
 />
+
+<ManualDirtyGuard values={guardValues} pristineKey={guardPristineKey} />
 
 <style>
     .sticky-bottom-bar {
