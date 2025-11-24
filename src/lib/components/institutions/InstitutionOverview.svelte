@@ -2,12 +2,17 @@
   import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { browser } from "$app/environment";
   import { goto } from "$app/navigation";
   import { back } from "$lib/utils/navigation.js";
   import { updateInstitutionStatus } from "$lib/stores/InstitutionsUtils.js";
 
   const { institution } = $props();
   const { t } = getTranslationStore();
+
+  const handleBack = () => {
+    goto(`/projects/${institution.project_id}`);
+  };
 
   const handleEdit = () => {
     goto(
@@ -46,7 +51,7 @@
           <button
             class="btn btn-lg btn-light rounded-circle aspect-ratio-1x1"
             aria-label="back"
-            onclick={back}><i class="bi bi-arrow-left"></i></button
+            onclick={handleBack}><i class="bi bi-arrow-left"></i></button
           >
         </div>
         <h1>
@@ -118,9 +123,4 @@
   </div>
 </div>
 
-<style>
-  .badgeWrapper {
-    font-family: var(--bs-body-font-family) !important;
-    vertical-align: text-top;
-  }
-</style>
+

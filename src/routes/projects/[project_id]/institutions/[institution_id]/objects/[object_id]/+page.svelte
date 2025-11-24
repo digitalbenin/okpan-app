@@ -19,6 +19,8 @@
     updateObjectName,
   } from "$lib/stores/ObjectsUtils.js";
   import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
+  import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
+  import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -127,6 +129,33 @@
     Array.from(componentChanges.values()).some((comp) => comp.hasChanges),
   );
 
+  let pristineVersion = $state(0);
+
+  const dirtyValues = $derived.by(() => ({
+    name: objectName?.trim() || "",
+    institution: selectedInstitutionId || null,
+    changedComponents: Array.from(componentChanges.values())
+      .filter((comp) => comp?.component)
+      .map((comp) => ({ component: comp.component, hasChanges: comp.hasChanges })),
+  }));
+
+  const dirtyMessage = $derived(
+    t("form.unsaved-changes", {
+      fallback:
+        "You have unsaved changes. Are you sure you want to leave without saving?",
+    })
+  );
+
+  const markPageClean = () => {
+    componentChanges.clear();
+    componentChanges = new Map(componentChanges);
+    nameHasChanges = false;
+    institutionHasChanges = false;
+    objectName = data.object.name || "";
+    selectedInstitutionId = data.object.institution_id || null;
+    pristineVersion += 1;
+  };
+
   // Handle changes from child components
   function handleComponentChanges(changeData) {
     componentChanges.set(changeData.component, changeData);
@@ -159,16 +188,15 @@
       // Execute all saves in parallel
       await Promise.all(savePromises);
 
-      // Redirect if institution changed (URL contains institution_id)
       if (redirectNeeded) {
+        markPageClean();
         const newUrl = `/projects/${projectId}/institutions/${nextInstitutionId}/objects/${data.object.id}`;
         goto(newUrl);
         return;
       }
 
-      // Clear component changes
-      componentChanges.clear();
-      componentChanges = new Map(componentChanges);
+      // Clear dirty state before staying on current object
+      markPageClean();
     } catch (error) {
       console.error("Error saving changes:", error);
     } finally {
@@ -200,6 +228,7 @@
       if (res?.error) {
         console.error("Failed to delete object:", res.error);
       } else {
+        markPageClean();
         // Navigate back to the previous page
         back();
       }
@@ -230,7 +259,6 @@
       console.error("Error updating status:", err);
     } finally {
       statusUpdating = false;
-      showStatusMenu = false;
     }
   }
 
@@ -239,120 +267,114 @@
     const n = data.object.name?.trim();
     return n && n.length ? n : objectId;
   });
+
+  const leftActionButtons = $derived([
+    {
+      id: "delete-object",
+      text: t("common.delete", { fallback: "Delete object" }),
+      class: "btn btn-outline-danger",
+      icon: "trash",
+      disabled: isSaving,
+      onClick: openDeleteModal,
+    },
+  ]);
+
+  const rightActionButtons = $derived([
+    {
+      id: "save-object",
+      text: t("common.confirm", { fallback: "Confirm" }),
+      class: "btn btn-success",
+      disabled: !hasAnyChanges || isSaving,
+      onClick: saveAllChanges,
+    },
+  ]);
 </script>
-
-<div class="d-flex flex-column min-vh-100">
-  <div class="flex-grow-1">
-    <div class="container-fluid pb-4">
-      <div class="row mb-2">
-        <div class="col-12">
-          <div class="d-flex align-items-start gap-3 mt-3">
-            <div>
-              <button
-                class="btn btn-lg btn-light rounded-circle aspect-ratio-1x1"
-                aria-label="back"
-                onclick={back}><i class="bi bi-arrow-left"></i></button
-              >
-            </div>
-            <div>
-              <div class="text-black-50">{data.institution.name.content}</div>
-              <h1>
-                {displayTitle}
-                <StatusBadgeDropdown
-                  status={data.object.status}
-                  disabled={statusUpdating}
-                  on:change={(e) => setStatus(e.detail)}
-                />
-              </h1>
-            </div>
-
-            <div class="ms-auto">
-              <i class="bi bi-three-dots-vertical"></i>
-            </div>
+<PageActionFooter
+  leftButtons={leftActionButtons}
+  rightButtons={rightActionButtons}
+>
+  <div class="container-fluid pb-4">
+    <div class="row mb-2">
+      <div class="col-12">
+        <div class="d-flex align-items-start gap-3 mt-3">
+          <div>
+            <button
+              class="btn btn-lg btn-light rounded-circle aspect-ratio-1x1"
+              aria-label="back"
+              onclick={back}><i class="bi bi-arrow-left"></i></button
+            >
           </div>
-        </div>
-      </div>
-    </div>
+          <div>
+            <div class="text-black-50">{data.institution.name.content}</div>
+            <h1>
+              {displayTitle}
+              <StatusBadgeDropdown
+                status={data.object.status}
+                disabled={statusUpdating}
+                on:change={(e) => setStatus(e.detail)}
+              />
+            </h1>
+          </div>
 
-    <!-- Research Fields and Linked Media Section -->
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-8">
-          <!-- Name: first field before institution -->
-          <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
-            <h3 class="">
-              {t("common.name", { fallback: "Name" })}
-            </h3>
-            <BaseInput
-              placeholder={t("common.name", { fallback: "Name" })}
-              size="sm"
-              bind:value={objectName}
-              onInput={handleNameInput}
-            />
+          <div class="ms-auto">
+            <i class="bi bi-three-dots-vertical"></i>
           </div>
-          <!-- Institution selector: after primary id, before research data -->
-          <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
-            <h3 class="">
-              {t("institutions.institution", { fallback: "Institution" })}
-            </h3>
-            <BaseSelectNew
-              placeholder={t("institutions.select_institution", {
-                fallback: "Select institution",
-              })}
-              items={institutionItems}
-              value={selectedInstitutionId}
-              onValueChange={onInstitutionValueChange}
-              type="single"
-              size="sm"
-              inputClass="w-100"
-              contentProps={{ width: "anchor" }}
-            />
-          </div>
-          <ObjectResearchFields
-            object={data.object}
-            researchFields={data.researchFields}
-            {defaultLanguageId}
-            onChangesUpdate={handleComponentChanges}
-          />
-          <ObjectOntologyFields object={data.object} datasources={data.datasources} />
-        </div>
-        <div class="col-4">
-          <ObjectLinkedMedia
-            object={data.object}
-            onChangesUpdate={handleComponentChanges}
-          />
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Sticky bottom bar for saving all changes -->
-  <div
-    class="position-sticky bottom-0 bg-white border-top p-3 mt-auto"
-    style="z-index: 10;"
-  >
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-12 d-flex justify-content-end gap-2">
-          <BaseButton
-            type="button"
-            class="btn btn-sm btn-outline-danger"
-            text={t("common.delete", { fallback: "Delete object" })}
-            disabled={isSaving}
-            icon="trash"
-            onClick={openDeleteModal}
-          />
-          <BaseButton
-            type="button"
-            class="btn btn-sm btn-success"
-            text={t("common.confirm", { fallback: "Confirm" })}
-            disabled={!hasAnyChanges || isSaving}
-            onClick={saveAllChanges}
+  <!-- Research Fields and Linked Media Section -->
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-8">
+        <!-- Name: first field before institution -->
+        <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
+          <h3 class="">
+            {t("common.name", { fallback: "Name" })}
+          </h3>
+          <BaseInput
+            placeholder={t("common.name", { fallback: "Name" })}
+            size="sm"
+            bind:value={objectName}
+            onInput={handleNameInput}
           />
         </div>
+        <!-- Institution selector: after primary id, before research data -->
+        <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
+          <h3 class="">
+            {t("institutions.institution", { fallback: "Institution" })}
+          </h3>
+          <BaseSelectNew
+            placeholder={t("institutions.select_institution", {
+              fallback: "Select institution",
+            })}
+            items={institutionItems}
+            value={selectedInstitutionId}
+            onValueChange={onInstitutionValueChange}
+            type="single"
+            size="sm"
+            inputClass="w-100"
+            contentProps={{ width: "anchor" }}
+          />
+        </div>
+        <ObjectResearchFields
+          object={data.object}
+          researchFields={data.researchFields}
+          {defaultLanguageId}
+          onChangesUpdate={handleComponentChanges}
+        />
+        <ObjectOntologyFields object={data.object} datasources={data.datasources} />
+      </div>
+      <div class="col-4">
+        <ObjectLinkedMedia
+          object={data.object}
+          onChangesUpdate={handleComponentChanges}
+        />
       </div>
     </div>
   </div>
+</PageActionFooter>
 
   <!-- Delete Confirmation Modal -->
   {#snippet header()}
@@ -398,4 +420,10 @@
       {actions}
     />
   {/if}
-</div>
+
+<ManualDirtyGuard
+  values={dirtyValues}
+  pristineKey={pristineVersion}
+  enabled={hasAnyChanges}
+  message={dirtyMessage}
+/>

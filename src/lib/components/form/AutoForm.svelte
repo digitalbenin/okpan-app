@@ -1,7 +1,11 @@
 <script>
     import { Tabs } from "melt/builders";
+    import { tick } from "svelte";
+    import { watch } from "runed";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { API_SECTIONS } from "$lib/queries/index.js";
+    import { createDirtyTracker } from "$lib/stores/DirtyTracker.svelte.js";
+    import DirtyNavigationGuard from "$lib/components/navigation/DirtyNavigationGuard.svelte";
     import FormField from "./FormField.svelte";
 
     const {
@@ -21,9 +25,83 @@
         setStructuredErrors = null,
         hiddenStaticValues = {},
         hiddenValueProviders = {},
+        enableDirtyTracking = true,
+        dirtyTrackingMessage = null,
     } = $props();
 
     const { t } = getTranslationStore();
+
+    // Dirty tracking setup
+    const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
+    
+    let dirtyTracker = $state(null);
+    let trackerInitialized = $state(false);
+    let hydrationPristineScheduled = $state(false);
+
+    const scheduleHydrationPristineSync = () => {
+        if (hydrationPristineScheduled) return;
+        hydrationPristineScheduled = true;
+        Promise.resolve().then(async () => {
+            await tick();
+            hydrationPristineScheduled = false;
+            if (!trackerInitialized || !dirtyTracker) return;
+            const stabilizedValues = formStore?.current?.values;
+            if (stabilizedValues) {
+                dirtyTracker.setPristine(stabilizedValues);
+            }
+        });
+    };
+
+    let lastFormRef = $state(null);
+
+    $effect(() => {
+        if (form === lastFormRef) return;
+        lastFormRef = form;
+        dirtyTracker = null;
+        trackerInitialized = false;
+        hydrationPristineScheduled = false;
+    });
+
+    // Initialize tracker once form values are available
+    watch(
+        () => formStore?.current?.values,
+        (newValues) => {
+            const formState = formStore?.current;
+            if (!trackerInitialized && newValues && enableDirtyTracking) {
+                dirtyTracker = createDirtyTracker({ initialData: newValues });
+                trackerInitialized = true;
+                scheduleHydrationPristineSync();
+            } else if (dirtyTracker && newValues) {
+                dirtyTracker.update(newValues);
+                if (formState?.isDirty === false) {
+                    dirtyTracker.setPristine(newValues);
+                }
+            }
+        }
+    );
+
+    // Mark pristine after successful submission
+    watch(
+        () => formStore?.current?.isSubmitSuccessful,
+        (isSuccessful) => {
+            if (isSuccessful && dirtyTracker) {
+                dirtyTracker.markPristine();
+            }
+        }
+    );
+
+    // Keep tracker baseline in sync when form reports pristine
+    watch(
+        () => formStore?.current?.isDirty,
+        (isFormDirty) => {
+            if (isFormDirty === false && trackerInitialized && dirtyTracker) {
+                const latestValues = formStore?.current?.values;
+                if (latestValues) {
+                    dirtyTracker.setPristine(latestValues);
+                }
+            }
+        }
+    );
 
     // Languages
     const defaultLanguage = $derived(languages?.find((l) => l.is_default) || languages?.[0] || null);
@@ -73,14 +151,7 @@
     const isRequired = (fieldName) => Boolean(validator?.requiredFields?.has(fieldName));
 
     // Form submission tracking
-    let formSubmitted = $state(false);
-    $effect(() => {
-        if (!form?.subscribe) return;
-        const unsubscribe = form.subscribe((state) => {
-            formSubmitted = Boolean(state?.isSubmitted || state?.submitCount > 0);
-        });
-        return () => unsubscribe?.();
-    });
+    const formSubmitted = $derived(Boolean(formStore?.current?.isSubmitted || formStore?.current?.submitCount > 0));
 
     const shouldShowError = (meta) => 
         meta && Array.isArray(meta.errors) && meta.errors.length > 0 && (meta.touched || meta.isTouched || formSubmitted);
@@ -148,44 +219,64 @@
         }
     };
 
+    const getCurrentFormValue = (fieldName) => formStore?.current?.values?.[fieldName];
+
     let lastHiddenStatic = $state({});
     let lastHiddenProvided = $state({});
 
     $effect(() => {
         const setter = form?.setFieldValue || form?.setValue;
         if (!setter) return;
+        let mutated = false;
         Object.entries(hiddenStaticValues || {}).forEach(([name, value]) => {
-            if (!valuesEqual(value, lastHiddenStatic[name])) {
+            const currentValue = getCurrentFormValue(name);
+            const hasValueChanged = !valuesEqual(value, lastHiddenStatic[name]);
+            const differsFromForm = !valuesEqual(value, currentValue);
+            if (differsFromForm) {
                 try {
                     setter(name, value);
-                    lastHiddenStatic[name] = value;
+                    mutated = true;
                 } catch {}
             }
+            if (hasValueChanged || differsFromForm) {
+                lastHiddenStatic[name] = value;
+            }
         });
+        if (mutated) scheduleHydrationPristineSync();
     });
 
     $effect(() => {
         const setter = form?.setFieldValue || form?.setValue;
         if (!setter) return;
+        let mutated = false;
         Object.entries(hiddenValueProviders || {}).forEach(([name, provide]) => {
             try {
                 const next = typeof provide === "function" ? provide() : undefined;
-                if (next !== undefined && !valuesEqual(next, lastHiddenProvided[name])) {
+                if (next === undefined) return;
+                const currentValue = getCurrentFormValue(name);
+                const hasValueChanged = !valuesEqual(next, lastHiddenProvided[name]);
+                const differsFromForm = !valuesEqual(next, currentValue);
+                if (differsFromForm) {
                     setter(name, next);
+                    mutated = true;
+                }
+                if (hasValueChanged || differsFromForm) {
                     lastHiddenProvided[name] = next;
                 }
             } catch {}
         });
+        if (mutated) scheduleHydrationPristineSync();
     });
 
     // Log form errors
-    $effect(() => {
-        if (!form?.subscribe) return;
-        const unsubscribe = form.subscribe((state) => {
-            if (state?.errors?.length > 0) console.error("Form validation errors:", state.errors);
-        });
-        return () => unsubscribe?.();
-    });
+    watch(
+        () => formStore?.current?.errors,
+        (errors) => {
+            if (errors?.length > 0) {
+                console.error("Form validation errors:", errors);
+            }
+        }
+    );
 </script>
 
 {#if derivedTranslatable.length > 0 && defaultLanguage}
@@ -311,3 +402,11 @@
         {/if}
     {/each}
 </div>
+
+<DirtyNavigationGuard 
+    dirtyTracker={dirtyTracker} 
+    enabled={enableDirtyTracking && !!dirtyTracker}
+    message={dirtyTrackingMessage || t("form.unsaved-changes", { 
+        fallback: "You have unsaved changes. Are you sure you want to leave without saving?" 
+    })}
+/>

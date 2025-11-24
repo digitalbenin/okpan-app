@@ -1,5 +1,4 @@
 <script>
-    import BaseButton from "$lib/components/base/BaseButton.svelte";
     import { createForm } from "@tanstack/svelte-form";
     import { getValidator, createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -9,6 +8,7 @@
     import AutoForm from "$lib/components/form/AutoForm.svelte";
     import VocabularyManager from "$lib/components/research_fields/VocabularyManager.svelte";
     import TypeSelector from "$lib/components/research_fields/TypeSelector.svelte";
+    import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
 
     const translationStore = getTranslationStore();
     const contentLanguageStore = getContentLanguageStore();
@@ -242,45 +242,47 @@
     const title = $derived(customTitle || (mode === "create" ? t("common.add-new-research-field", { fallback: "Add New Research Field" }) : t("common.edit-research-field", { fallback: "Edit Research Field" })));
     const description = $derived(customDescription || (mode === "create" ? t("common.add-new-research-field-desc", { fallback: "Please fill out the details below to add a new research field to your project." }) : t("common.edit-research-field-desc", { fallback: "Please update the details below to modify this research field." })));
 
+    const leftActionButtons = $derived(onCancel ? [{
+        id: "cancel-research-field",
+        text: t("common.cancel", { fallback: "Cancel" }),
+        class: "btn btn-outline-secondary",
+        type: "button",
+        icon: "chevron-left",
+        onClick: onCancel,
+    }] : []);
+
+    const rightActionButtons = $derived([
+        {
+            id: "save-research-field",
+            text: t("common.confirm", { fallback: "Confirm" }),
+            class: "btn btn-success",
+            type: "submit",
+        },
+    ]);
+
 </script>
 
-<div class="d-flex flex-column min-vh-100">
-    <form method="post" class="flex-grow-1">
-        <div class="container-fluid">
-            {#if showTitle}
-                <div class="row"><div class="col-12">
-                    <h2 class="mt-3">{title}</h2>
-                    {#if showDescription}<p>{description}</p>{/if}
-                </div></div>
-            {/if}
-
+<form
+    method="post"
+    onsubmit={(event) => {
+        event.preventDefault();
+        form.handleSubmit();
+    }}
+>
+    <PageActionFooter
+        contentClass="container-fluid"
+        leftButtons={leftActionButtons}
+        rightButtons={rightActionButtons}
+    >
+        {#if showTitle}
             <div class="row"><div class="col-12">
-                <AutoForm {form} {validator} {createFieldValidator} entity="research_fields" operation={validatorOperationName} {languages} translatableFields={TRANSLATABLE_FIELDS} setStructuredErrors={(errors) => allValidationErrors = errors} defaultColSize={6} translationsValidator={getValidator("translations", validatorOperationName)} fieldOrder={["type", "vocabularies"]} {uiSchema} hiddenValueProviders={{ projectId: () => projectId, languageId: () => defaultLanguage?.id || "" }} structuredErrors={allValidationErrors} />
+                <h2 class="mt-3">{title}</h2>
+                {#if showDescription}<p>{description}</p>{/if}
             </div></div>
-        </div>
-    </form>
+        {/if}
 
-    <div class="sticky-bottom-bar">
-        <div class="container-fluid"><div class="row"><div class="col-12 d-flex justify-content-end gap-2 p-2">
-            {#if onCancel}<BaseButton type="button" class="btn btn-sm btn-secondary" text={t("common.cancel", { fallback: "Cancel" })} onClick={onCancel} />{/if}
-            <BaseButton type="button" class="btn btn-sm btn-success" text={t("common.confirm", { fallback: "Confirm" })} onClick={() => form.handleSubmit()} />
-        </div></div></div>
-    </div>
-</div>
-
-<style>
-    .sticky-bottom-bar {
-        position: sticky;
-        bottom: 0;
-        background-color: white;
-        border-top: 1px solid #dee2e6;
-        margin-top: auto;
-        z-index: 10;
-        flex-shrink: 0;
-    }
-
-    /* Ensure the form takes full height when content is short */
-    .min-vh-100 {
-        min-height: 100vh;
-    }
-</style>
+        <div class="row"><div class="col-12">
+            <AutoForm {form} {validator} {createFieldValidator} entity="research_fields" operation={validatorOperationName} {languages} translatableFields={TRANSLATABLE_FIELDS} setStructuredErrors={(errors) => allValidationErrors = errors} defaultColSize={6} translationsValidator={getValidator("translations", validatorOperationName)} fieldOrder={["type", "vocabularies"]} {uiSchema} hiddenValueProviders={{ projectId: () => projectId, languageId: () => defaultLanguage?.id || "" }} structuredErrors={allValidationErrors} />
+        </div></div>
+    </PageActionFooter>
+</form>

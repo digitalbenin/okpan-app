@@ -3,6 +3,7 @@
   import Header from "$lib/components/projects/Header.svelte";
   import Sidebar from "$lib/components/projects/Sidebar.svelte";
   import { page } from "$app/state";
+  import { afterNavigate } from "$app/navigation";
 
   const { children } = $props();
 
@@ -21,6 +22,11 @@
   const hideSidebar = $derived(
     page.url.pathname.startsWith(`/projects/${page.params.project_id}/explorer`)
   );
+
+  let contentContainer;
+  afterNavigate(() => {
+    contentContainer?.scrollTo({ top: 0, behavior: "auto" });
+  });
 </script>
 
 <div class="d-flex flex-column vh-100">
@@ -34,7 +40,10 @@
         <Sidebar />
       {/if}
     </div>
-    <div class="flex-grow-1 flex-shrink-1 overflow-y-auto position-relative">
+    <div
+      class="flex-grow-1 flex-shrink-1 overflow-y-auto position-relative"
+      bind:this={contentContainer}
+    >
       {@render children()}
     </div>
   </div>

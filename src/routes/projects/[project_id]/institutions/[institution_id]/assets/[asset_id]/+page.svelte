@@ -1,5 +1,4 @@
 <script>
-    import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { createForm } from "@tanstack/svelte-form";
     import AutoForm from "$lib/components/form/AutoForm.svelte";
@@ -8,26 +7,27 @@
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
     import { createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
-    import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
-    import { unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
+    import { linkAssetToObject, unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
     import { back } from "$lib/utils/navigation.js";
     import { getAssetImageUrl, getObjectImageUrl } from "$lib/utils/media.js";
     import { z } from "zod";
 
     const { data } = $props();
-    const contentLanguageStore = getContentLanguageStore();
 
     // Constants
     const TRANSLATABLE_FIELDS = ["description", "copyright", "author"];
+    const LINKED_IDS_FIELD = "linkedIdsSignature";
 
-    // State
+    // State from DB
     const asset = $state(data.asset);
+    let initialLinkedObjectIds = $state((data.linkedObjects || []).map(oa => String(oa.object_id)).sort());
+    
+    // Component state
     let linkedObjects = $state(data.linkedObjects || []);
     const languages = $state(data.languages);
     const project_id = $state(data.project_id);
     const institution_id = $state(data.institution_id);
-    let pendingUnlinks = $state([]);
     let showDeleteModal = $state(false);
     let isDeleting = $state(false);
     let showLinkObjectsModal = $state(false);
@@ -40,14 +40,15 @@
             return typeof asset?.properties === "string" ? JSON.parse(asset.properties) : asset?.properties || {};
         } catch { return {}; }
     });
-
     const imageSrc = $derived(getAssetImageUrl(asset, 'md', false));
-    const visibleLinkedObjects = $derived(linkedObjects?.filter((oa) => !pendingUnlinks.includes(oa.object_id)) || []);
-
+    
+    // Current linked object IDs (reactive)
+    const currentLinkedObjectIds = $derived.by(() => linkedObjects.map(oa => String(oa.object_id)).sort());
+    const computeLinkedIdsSignature = (ids) => (ids && ids.length ? ids.join("::") : "");
+    
     const getObjectDisplayName = (obj) => {
         const name = obj?.name?.content?.trim() || (typeof obj?.name === "string" && obj.name.trim());
-        const primaryField = obj?.objectsOntologyFields?.find((f) => f.primary);
-        return name || primaryField?.value || obj?.id;
+        return name || obj?.objectsOntologyFields?.find((f) => f.primary)?.value || obj?.id;
     };
 
     // Validator
@@ -55,66 +56,74 @@
         description: z.string().optional(),
         copyright: z.string().optional(),
         author: z.string().optional(),
+        [LINKED_IDS_FIELD]: z.string().optional(),
     });
 
     const validator = { schema: metadataSchema, requiredFields: new Set([]), validate: (data) => metadataSchema.safeParse(data) };
 
-    // Build default values using ContentLanguageStore
-    const defaultValues = $derived.by(() => {
-        const defaultCode = defaultLanguage?.code;
-        const values = {
-            description: metadata?.description?.[defaultCode] || "",
-            copyright: metadata?.copyright?.[defaultCode] || "",
-            author: metadata?.author?.[defaultCode] || "",
-        };
-
-        // Add secondary language translations from properties JSON
-        secondaryLanguages.forEach((lang) => {
-            TRANSLATABLE_FIELDS.forEach((field) => {
+    const buildTranslationValues = (metadata, defaultCode, secondaryLangs) => {
+        const values = Object.fromEntries(
+            TRANSLATABLE_FIELDS.map(field => [field, metadata?.[field]?.[defaultCode] || ""])
+        );
+        secondaryLangs.forEach(lang => {
+            TRANSLATABLE_FIELDS.forEach(field => {
                 values[`translations_${lang.id}_${field}`] = metadata?.[field]?.[lang.code] || "";
             });
         });
+        return values;
+    };
 
+    const defaultValues = $derived.by(() => {
+        const values = buildTranslationValues(metadata, defaultLanguage?.code, secondaryLanguages);
+        values[LINKED_IDS_FIELD] = computeLinkedIdsSignature(initialLinkedObjectIds);
         return values;
     });
 
-    // Submit handler
+    const collectTranslations = (value, defaultCode, secondaryLangs) => {
+        const translations = Object.fromEntries(TRANSLATABLE_FIELDS.map(f => [f, {}]));
+        if (defaultCode) {
+            TRANSLATABLE_FIELDS.forEach(field => {
+                if (value[field]) translations[field][defaultCode] = value[field];
+            });
+        }
+        secondaryLangs.forEach(lang => {
+            TRANSLATABLE_FIELDS.forEach(field => {
+                const val = value[`translations_${lang.id}_${field}`]?.trim();
+                if (val) translations[field][lang.code] = val;
+            });
+        });
+        return translations;
+    };
+
     async function onSubmitForm({ value }) {
         try {
-            // Process pending unlinks
-            await Promise.all(pendingUnlinks.map(async (objectId) => {
-                const unlinkResult = await unlinkAssetFromObject(objectId, asset.id);
-                if (unlinkResult.error) console.error("Error unlinking object:", unlinkResult.error);
-            }));
+            // Calculate which objects to link (in current, not in initial)
+            const initialIds = new Set(initialLinkedObjectIds);
+            const currentIds = new Set(currentLinkedObjectIds);
+            const toLink = currentLinkedObjectIds.filter(id => !initialIds.has(id));
+            const toUnlink = initialLinkedObjectIds.filter(id => !currentIds.has(id));
+            
+            // Link new objects
+            await Promise.all(toLink.map(id => 
+                linkAssetToObject(String(id), String(asset.id)).catch(e => console.error("Error linking:", e))
+            ));
+            
+            // Unlink removed objects
+            await Promise.all(toUnlink.map(id => 
+                unlinkAssetFromObject(id, asset.id).catch(e => console.error("Error unlinking:", e))
+            ));
 
-            // Collect translations
-            const translations = { description: {}, copyright: {}, author: {} };
-            const defaultCode = defaultLanguage?.code;
+            const translations = collectTranslations(value, defaultLanguage?.code, secondaryLanguages);
+            const result = await updateAsset(asset.id, { properties: JSON.stringify(translations) });
 
-            if (defaultCode) {
-                if (value.description) translations.description[defaultCode] = value.description;
-                if (value.copyright) translations.copyright[defaultCode] = value.copyright;
-                if (value.author) translations.author[defaultCode] = value.author;
-            }
-
-            secondaryLanguages.forEach((lang) => {
-                TRANSLATABLE_FIELDS.forEach((field) => {
-                    const key = `translations_${lang.id}_${field}`;
-                    if (value[key]?.trim()) translations[field][lang.code] = value[key];
-                });
-            });
-
-            const properties = JSON.stringify(translations);
-            const result = await updateAsset(asset.id, { properties });
-
-            // Check for success - updateAsset returns the GraphQL result which might have different structures
             if (!result?.error) {
-                // Process secondary language translations using ContentLanguageStore
-                // Note: Assets don't have separate text fields for translations like other entities
-                // They store everything in the properties JSON field, which we already updated
-                
-                pendingUnlinks = [];
-                goto(`/projects/${project_id}/institutions/${institution_id}`);
+                // Update asset properties and reset initial state
+                asset.properties = JSON.stringify(translations);
+                data.linkedObjects = linkedObjects.map(oa => ({...oa})); // Update initial reference
+                initialLinkedObjectIds = currentLinkedObjectIds.slice(); // Reset baseline
+                const resetValues = buildTranslationValues(translations, defaultLanguage?.code, secondaryLanguages);
+                resetValues[LINKED_IDS_FIELD] = computeLinkedIdsSignature(initialLinkedObjectIds);
+                form?.reset(resetValues);
             } else {
                 console.error("Failed to update asset:", result?.error);
             }
@@ -123,21 +132,52 @@
         }
     }
 
-    // Create form
-    const form = $derived(createForm(() => getFormConfig("assets", "update", { defaultValues, onSubmit: onSubmitForm })));
+    // Create form once and sync when defaults change
+    let form = $state(null);
+    let lastDefaultsSignature = $state("");
+
+    $effect(() => {
+        const values = defaultValues;
+        const signature = JSON.stringify(values);
+        if (!form) {
+            form = createForm(() => getFormConfig("assets", "update", { defaultValues: values, onSubmit: onSubmitForm }));
+            lastDefaultsSignature = signature;
+            return;
+        }
+        if (signature !== lastDefaultsSignature) {
+            form.reset(values);
+            lastDefaultsSignature = signature;
+        }
+    });
+
+    const formReady = $derived(Boolean(form));
+    const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
+    const linkedIdsSignature = $derived(computeLinkedIdsSignature(currentLinkedObjectIds));
+
+    $effect(() => {
+        if (!formReady) return;
+        const setter = form?.setFieldValue || form?.setValue;
+        if (!setter) return;
+        const currentValue = formStore?.current?.values?.[LINKED_IDS_FIELD];
+        if (currentValue === linkedIdsSignature) return;
+        try {
+            setter(LINKED_IDS_FIELD, linkedIdsSignature);
+        } catch (err) {
+            console.error("Failed to sync linked ids signature", err);
+        }
+    });
 
     // UI Schema
+    const hiddenFields = [LINKED_IDS_FIELD];
+
     const uiSchema = $derived({
         description: { label: "Description", type: "textarea", colSize: 12, required: false },
         copyright: { label: "Copyright", type: "textarea", colSize: 12, required: false },
         author: { label: "Author", type: "textarea", colSize: 12, required: false },
     });
 
-    // Handlers
-    const handleCancel = () => back();
-    const handleSave = () => form.handleSubmit();
-    const openDeleteModal = () => showDeleteModal = true;
-    const cancelDelete = () => showDeleteModal = false;
+    const openLinkObjectsModal = () => (showLinkObjectsModal = true);
+    const openDeleteModal = () => (showDeleteModal = true);
 
     const confirmDeleteAsset = async () => {
         if (!asset?.id) return showDeleteModal = false;
@@ -154,20 +194,24 @@
     };
 
     const handleUnlinkObject = (objectId) => {
-        if (!pendingUnlinks.includes(objectId)) pendingUnlinks = [...pendingUnlinks, objectId];
+        linkedObjects = linkedObjects.filter(oa => String(oa.object_id) !== String(objectId));
     };
-
-    const openLinkObjectsModal = () => showLinkObjectsModal = true;
 
     const handleObjectsLinked = (objects) => {
-        try {
-            const existing = new Set((linkedObjects || []).map((oa) => String(oa.object_id)));
-            const additions = (objects || []).filter((o) => !existing.has(String(o.id))).map((o) => ({ object_id: o.id, object: o }));
-            if (additions.length) linkedObjects = [...linkedObjects, ...additions];
-        } catch (e) {
-            console.error("Error updating linked objects list:", e);
-        }
+        if (!objects?.length) return;
+        const existing = new Set(linkedObjects.map(oa => String(oa.object_id)));
+        const additions = objects.filter(o => !existing.has(String(o.id))).map(o => ({ object_id: o.id, object: o }));
+        if (additions.length) linkedObjects = [...linkedObjects, ...additions];
     };
+
+    const handleObjectsUnlinked = (objectIds) => {
+        if (!objectIds?.length) return;
+        linkedObjects = linkedObjects.filter(oa => !objectIds.includes(String(oa.object_id)));
+    };
+
+    const handleCancel = () => back();
+    const handleSave = () => form?.handleSubmit();
+    const cancelDelete = () => (showDeleteModal = false);
 </script>
 
 <div class="d-flex flex-column min-vh-100">
@@ -222,25 +266,28 @@
 
                 <!-- Media Metadata Form -->
                 <h5 class="mb-3">Media metadata</h5>
-                <form onsubmit={(e) => { e.preventDefault(); e.stopPropagation(); form.handleSubmit(); }}>
-                    <AutoForm
-                        {form}
-                        {validator}
-                        {createFieldValidator}
-                        {languages}
-                        translatableFields={TRANSLATABLE_FIELDS}
-                        {uiSchema}
-                        fieldOrder={TRANSLATABLE_FIELDS}
-                    />
-                </form>
+                {#if formReady}
+                    <form onsubmit={(e) => { e.preventDefault(); e.stopPropagation(); form?.handleSubmit(); }}>
+                        <AutoForm
+                            {form}
+                            {validator}
+                            {createFieldValidator}
+                            {languages}
+                            translatableFields={TRANSLATABLE_FIELDS}
+                            {uiSchema}
+                            fieldOrder={TRANSLATABLE_FIELDS}
+                            {hiddenFields}
+                        />
+                    </form>
+                {/if}
             </div>
 
             <!-- Right Sidebar - Linked Objects -->
             <div class="col-lg-4">
                 <h5 class="mb-3">Linked objects</h5>
 
-                {#if visibleLinkedObjects?.length > 0}
-                    {#each visibleLinkedObjects as objectAsset}
+                {#if linkedObjects?.length > 0}
+                    {#each linkedObjects as objectAsset}
                         <div class="d-flex flex-column align-items-start gap-2 mb-3 p-2 border rounded">
                             <div class="d-flex flex-row gap-2">
                                 <BaseImage
@@ -301,7 +348,9 @@
     projectId={project_id}
     assetId={asset?.id}
     preselectExisting={true}
+    linkedObjectIds={currentLinkedObjectIds}
     onLinked={handleObjectsLinked}
+    onUnlinked={handleObjectsUnlinked}
 />
 
 <style>
