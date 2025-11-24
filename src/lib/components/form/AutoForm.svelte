@@ -32,7 +32,7 @@
     const { t } = getTranslationStore();
 
     // Dirty tracking setup
-    const formStore = form?.useStore ? form.useStore((state) => state) : null;
+    const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
     
     let dirtyTracker = $state(null);
     let trackerInitialized = $state(false);
@@ -51,6 +51,16 @@
             }
         });
     };
+
+    let lastFormRef = $state(null);
+
+    $effect(() => {
+        if (form === lastFormRef) return;
+        lastFormRef = form;
+        dirtyTracker = null;
+        trackerInitialized = false;
+        hydrationPristineScheduled = false;
+    });
 
     // Initialize tracker once form values are available
     watch(

@@ -7,19 +7,17 @@
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
     import { createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
-    import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
     import { linkAssetToObject, unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
     import { back } from "$lib/utils/navigation.js";
     import { getAssetImageUrl, getObjectImageUrl } from "$lib/utils/media.js";
-    import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
     import { z } from "zod";
 
     const { data } = $props();
-    const contentLanguageStore = getContentLanguageStore();
 
     // Constants
     const TRANSLATABLE_FIELDS = ["description", "copyright", "author"];
+    const LINKED_IDS_FIELD = "linkedIdsSignature";
 
     // State from DB
     const asset = $state(data.asset);
@@ -46,12 +44,7 @@
     
     // Current linked object IDs (reactive)
     const currentLinkedObjectIds = $derived.by(() => linkedObjects.map(oa => String(oa.object_id)).sort());
-    
-    // Check if linked objects changed from initial state
-    const linkedObjectsChanged = $derived.by(() => {
-        if (initialLinkedObjectIds.length !== currentLinkedObjectIds.length) return true;
-        return !initialLinkedObjectIds.every((id, index) => id === currentLinkedObjectIds[index]);
-    });
+    const computeLinkedIdsSignature = (ids) => (ids && ids.length ? ids.join("::") : "");
     
     const getObjectDisplayName = (obj) => {
         const name = obj?.name?.content?.trim() || (typeof obj?.name === "string" && obj.name.trim());
@@ -63,6 +56,7 @@
         description: z.string().optional(),
         copyright: z.string().optional(),
         author: z.string().optional(),
+        [LINKED_IDS_FIELD]: z.string().optional(),
     });
 
     const validator = { schema: metadataSchema, requiredFields: new Set([]), validate: (data) => metadataSchema.safeParse(data) };
@@ -79,7 +73,11 @@
         return values;
     };
 
-    const defaultValues = $derived.by(() => buildTranslationValues(metadata, defaultLanguage?.code, secondaryLanguages));
+    const defaultValues = $derived.by(() => {
+        const values = buildTranslationValues(metadata, defaultLanguage?.code, secondaryLanguages);
+        values[LINKED_IDS_FIELD] = computeLinkedIdsSignature(initialLinkedObjectIds);
+        return values;
+    });
 
     const collectTranslations = (value, defaultCode, secondaryLangs) => {
         const translations = Object.fromEntries(TRANSLATABLE_FIELDS.map(f => [f, {}]));
@@ -124,8 +122,8 @@
                 data.linkedObjects = linkedObjects.map(oa => ({...oa})); // Update initial reference
                 initialLinkedObjectIds = currentLinkedObjectIds.slice(); // Reset baseline
                 const resetValues = buildTranslationValues(translations, defaultLanguage?.code, secondaryLanguages);
+                resetValues[LINKED_IDS_FIELD] = computeLinkedIdsSignature(initialLinkedObjectIds);
                 form?.reset(resetValues);
-                guardPristineKey += 1;
             } else {
                 console.error("Failed to update asset:", result?.error);
             }
@@ -134,18 +132,44 @@
         }
     }
 
-    // Create form
-    const form = $derived(createForm(() => getFormConfig("assets", "update", { defaultValues, onSubmit: onSubmitForm })));
+    // Create form once and sync when defaults change
+    let form = $state(null);
+    let lastDefaultsSignature = $state("");
 
-    // Form store for dirty guard values
-    const formStore = form?.useStore ? form.useStore((state) => state) : null;
-    const guardValues = $derived.by(() => ({
-        metadata: formStore?.current?.values,
-        linkedIds: currentLinkedObjectIds,
-    }));
-    let guardPristineKey = $state(0);
+    $effect(() => {
+        const values = defaultValues;
+        const signature = JSON.stringify(values);
+        if (!form) {
+            form = createForm(() => getFormConfig("assets", "update", { defaultValues: values, onSubmit: onSubmitForm }));
+            lastDefaultsSignature = signature;
+            return;
+        }
+        if (signature !== lastDefaultsSignature) {
+            form.reset(values);
+            lastDefaultsSignature = signature;
+        }
+    });
+
+    const formReady = $derived(Boolean(form));
+    const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
+    const linkedIdsSignature = $derived(computeLinkedIdsSignature(currentLinkedObjectIds));
+
+    $effect(() => {
+        if (!formReady) return;
+        const setter = form?.setFieldValue || form?.setValue;
+        if (!setter) return;
+        const currentValue = formStore?.current?.values?.[LINKED_IDS_FIELD];
+        if (currentValue === linkedIdsSignature) return;
+        try {
+            setter(LINKED_IDS_FIELD, linkedIdsSignature);
+        } catch (err) {
+            console.error("Failed to sync linked ids signature", err);
+        }
+    });
 
     // UI Schema
+    const hiddenFields = [LINKED_IDS_FIELD];
+
     const uiSchema = $derived({
         description: { label: "Description", type: "textarea", colSize: 12, required: false },
         copyright: { label: "Copyright", type: "textarea", colSize: 12, required: false },
@@ -242,18 +266,20 @@
 
                 <!-- Media Metadata Form -->
                 <h5 class="mb-3">Media metadata</h5>
-                <form onsubmit={(e) => { e.preventDefault(); e.stopPropagation(); form.handleSubmit(); }}>
-                    <AutoForm
-                        {form}
-                        {validator}
-                        {createFieldValidator}
-                        {languages}
-                        translatableFields={TRANSLATABLE_FIELDS}
-                        {uiSchema}
-                        fieldOrder={TRANSLATABLE_FIELDS}
-                        enableDirtyTracking={false}
-                    />
-                </form>
+                {#if formReady}
+                    <form onsubmit={(e) => { e.preventDefault(); e.stopPropagation(); form?.handleSubmit(); }}>
+                        <AutoForm
+                            {form}
+                            {validator}
+                            {createFieldValidator}
+                            {languages}
+                            translatableFields={TRANSLATABLE_FIELDS}
+                            {uiSchema}
+                            fieldOrder={TRANSLATABLE_FIELDS}
+                            {hiddenFields}
+                        />
+                    </form>
+                {/if}
             </div>
 
             <!-- Right Sidebar - Linked Objects -->
@@ -322,11 +348,10 @@
     projectId={project_id}
     assetId={asset?.id}
     preselectExisting={true}
+    linkedObjectIds={currentLinkedObjectIds}
     onLinked={handleObjectsLinked}
     onUnlinked={handleObjectsUnlinked}
 />
-
-<ManualDirtyGuard values={guardValues} pristineKey={guardPristineKey} />
 
 <style>
     .sticky-bottom-bar {

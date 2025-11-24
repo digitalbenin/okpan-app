@@ -22,6 +22,7 @@
     onUnlinked,
     preselectExisting = true,
     pendingUnlinks = [],
+    linkedObjectIds = null,
   } = $props();
 
   const PAGE_SIZE = 25;
@@ -29,6 +30,8 @@
 
   let searchQuery = $state("");
   let currentPage = $state(1);
+  const normalizeId = (id) => (id == null ? "" : String(id));
+
   let selectedObjectIds = $state(new Set());
   let initiallySelectedIds = $state(new Set());
   let resultsContainer;
@@ -63,7 +66,18 @@
     { initialValue: EMPTY_RESULTS, debounce: 250 },
   );
 
-  const searchItems = $derived(searchResource.current?.items ?? []);
+  const searchItems = $derived.by(() => {
+    const items = searchResource.current?.items ?? [];
+    const linkedSet = linkedObjectIds ? new Set(linkedObjectIds.map(normalizeId)) : null;
+    if (!linkedSet || linkedSet.size === 0) return items;
+    const linked = [];
+    const others = [];
+    for (const obj of items) {
+      if (linkedSet.has(normalizeId(obj.id))) linked.push(obj);
+      else others.push(obj);
+    }
+    return [...linked, ...others];
+  });
   const totalCount = $derived(searchResource.current?.totalCount ?? 0);
   const totalPages = $derived(Math.max(1, Math.ceil(totalCount / PAGE_SIZE) || 1));
   const showPagination = $derived(totalCount > PAGE_SIZE);
@@ -75,15 +89,26 @@
   async function preselectAlreadyLinked() {
     if (!assetId) return;
     try {
+      const override = Array.isArray(linkedObjectIds) ? linkedObjectIds.map(normalizeId) : null;
+      if (override?.length) {
+        const normalized = override;
+        selectedObjectIds = new Set(normalized);
+        initiallySelectedIds = new Set(normalized);
+        return;
+      }
+
       const res = await getAssetById(String(assetId));
       const asset = Array.isArray(res?.result) ? res.result[0] : res?.result;
-      const linkedIds = asset?.objectsAssets?.map(oa => oa.object_id).filter(Boolean) ?? [];
-      const pendingSet = new Set((pendingUnlinks || []).map(String));
-      const validIds = linkedIds.filter(id => !pendingSet.has(String(id)));
+      const linkedIds = asset?.objectsAssets?.map(oa => normalizeId(oa.object_id)).filter(Boolean) ?? [];
+      const pendingSet = new Set((pendingUnlinks || []).map(normalizeId));
+      const validIds = linkedIds.filter(id => !pendingSet.has(id));
       
       if (validIds.length) {
         selectedObjectIds = new Set(validIds);
         initiallySelectedIds = new Set(validIds);
+      } else {
+        selectedObjectIds = new Set();
+        initiallySelectedIds = new Set();
       }
     } catch (error) {
       console.error("Failed to preselect linked objects:", error);
@@ -99,9 +124,10 @@
   const getMediaThumbSrc = (obj) => getObjectImageUrl(obj, "sm");
 
   function toggleSelectObject(id) {
+    const normalized = normalizeId(id);
     const next = new Set(selectedObjectIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    if (next.has(normalized)) next.delete(normalized);
+    else next.add(normalized);
     selectedObjectIds = next;
   }
 
