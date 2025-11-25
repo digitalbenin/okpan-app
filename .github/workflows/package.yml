@@ -3,8 +3,6 @@ name: Build macOS Electron App
 on:
   workflow_dispatch:
   push:
-    branches:
-      - 'feature-*package'
     tags:
       - '*'
 
