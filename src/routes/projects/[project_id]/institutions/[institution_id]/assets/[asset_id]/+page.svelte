@@ -216,6 +216,7 @@
 </script>
 
 <PageActionFooter
+  formStore={formStore}
   rightButtons={[
     {
       text: "Delete Asset",
@@ -227,6 +228,7 @@
       text: "Save Changes",
       class: "btn btn-success",
       onClick: handleSave,
+      disableOnError: true,
     },
   ]}
 >
@@ -355,10 +357,3 @@
   onLinked={handleObjectsLinked}
   onUnlinked={handleObjectsUnlinked}
 />
-
-<style>
-    /* Ensure the form takes full height when content is short */
-    .min-vh-100 {
-        min-height: 100vh;
-    }
-</style>

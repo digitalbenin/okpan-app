@@ -21,8 +21,6 @@
         uiSchema = {},
         hiddenFields = [],
         defaultColSize = 12,
-        structuredErrors = [],
-        setStructuredErrors = null,
         hiddenStaticValues = {},
         hiddenValueProviders = {},
         enableDirtyTracking = true,
@@ -288,7 +286,7 @@
                     <div class={`col-md-${Math.min(Math.max(getFieldConfig(fieldName).colSize, 1), 12)}`}>
                         <form.Field
                             name={fieldName}
-                            validators={createFieldValidator?.(fieldName, validator, form, setStructuredErrors, { validateOnChange: true })}
+                            validators={createFieldValidator?.(fieldName, validator, form, { validateOnChange: true })}
                         >
                             {#snippet children(field)}
                                 <FormField
@@ -298,7 +296,6 @@
                                     languageCode={defaultLanguage?.code || "default"}
                                     {shouldShowError}
                                     {formatErrors}
-                                    {structuredErrors}
                                     {activeLanguageCode}
                                     {t}
                                 />
@@ -317,7 +314,7 @@
                         <div class={`col-md-${Math.min(Math.max(getFieldConfig(baseField).colSize, 1), 12)}`}>
                             <form.Field
                                 name={`translations_${lang.id}_${baseField}`}
-                                validators={translationsValidator && createFieldValidator?.(`translations_${lang.id}_${baseField}`, translationsValidator, form, setStructuredErrors, { validateOnChange: true })}
+                                validators={translationsValidator && createFieldValidator?.(`translations_${lang.id}_${baseField}`, translationsValidator, form, { validateOnChange: true })}
                             >
                                 {#snippet children(field)}
                                     <FormField
@@ -326,7 +323,6 @@
                                         languageCode={lang.code}
                                         {shouldShowError}
                                         {formatErrors}
-                                        {structuredErrors}
                                         {activeLanguageCode}
                                         {t}
                                     />
@@ -348,7 +344,7 @@
                 <div class={`col-md-${Math.min(Math.max(getFieldConfig(fieldName).colSize, 1), 12)}`}>
                     <form.Field
                         name={fieldName}
-                        validators={createFieldValidator?.(fieldName, validator, form, setStructuredErrors, { validateOnChange: true })}
+                        validators={createFieldValidator?.(fieldName, validator, form, { validateOnChange: true })}
                     >
                         {#snippet children(field)}
                             <FormField
@@ -357,7 +353,6 @@
                                 isRequired={isRequired(fieldName)}
                                 {shouldShowError}
                                 {formatErrors}
-                                {structuredErrors}
                                 {activeLanguageCode}
                                 {t}
                             />

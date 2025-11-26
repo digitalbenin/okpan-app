@@ -134,6 +134,8 @@
     }),
   ));
 
+  const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
+
   // UI configuration
   const uiSchema = $derived({
     id: { hidden: true },
@@ -186,6 +188,7 @@
 </script>
 
 <PageActionFooter
+  formStore={formStore}
   leftButtons={[
     {
       text: t("common.back", { fallback: "Back" }),
@@ -205,6 +208,7 @@
       text: t("common.save", { fallback: "Save" }),
       class: "btn btn-primary",
       onClick: () => form.handleSubmit(),
+      disableOnError: true,
     },
   ]}
 >
