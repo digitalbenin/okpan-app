@@ -6,6 +6,7 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
+    import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
     import { createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
     import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
     import { linkAssetToObject, unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
@@ -214,156 +215,148 @@
     const cancelDelete = () => (showDeleteModal = false);
 </script>
 
-<div class="d-flex flex-column min-vh-100">
-    <div class="container-fluid px-4 py-3 flex-grow-1">
-        <!-- Header -->
-        <div class="d-flex align-items-center mb-4">
-            <button type="button" aria-label="Back to institution" class="btn btn-link p-0 me-3 text-muted" onclick={handleCancel}>
-                <i class="bi bi-arrow-left fs-5"></i>
-            </button>
+<PageActionFooter
+  rightButtons={[
+    {
+      text: "Delete Asset",
+      icon: "trash",
+      class: "btn btn-outline-danger",
+      onClick: openDeleteModal,
+    },
+    {
+      text: "Save Changes",
+      class: "btn btn-success",
+      onClick: handleSave,
+    },
+  ]}
+>
+  <div class="container-fluid px-4 py-3">
+    <!-- Header -->
+    <div class="d-flex align-items-center mb-4">
+      <button type="button" aria-label="Back to institution" class="btn btn-link p-0 me-3 text-muted" onclick={handleCancel}>
+        <i class="bi bi-arrow-left fs-5"></i>
+      </button>
+      <div>
+        <div class="text-muted small">{$page.data?.institution?.name?.content || institution_id}</div>
+        <h1 class="h4 mb-0">{asset.filename}</h1>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Main Content - Media -->
+      <div class="col-lg-8">
+        <h5 class="mb-3">Media</h5>
+
+        <!-- Media Display -->
+        <div class="mb-4">
+          {#if asset.type === "image"}
+            <BaseImage
+              src={imageSrc ? `media://${imageSrc}` : null}
+              alt={asset.filename}
+              class="w-100 rounded"
+              style="max-height: 500px; object-fit: contain; background-color: #f8f9fa;"
+            />
+          {:else}
+            <div class="w-100 d-flex flex-column align-items-center justify-content-center rounded bg-light text-muted border" style="height: 400px;">
+              <i class="bi bi-file-earmark" style="font-size: 4rem;"></i>
+              <span class="mt-2 fw-medium">{asset.type?.toUpperCase() || "FILE"}</span>
+              <span class="mt-1 small">{asset.filename}</span>
+            </div>
+          {/if}
+        </div>
+
+        <!-- File Info -->
+        <div class="row mb-4">
+          <div class="col-6">
+            <div class="text-muted small">SIZE</div>
+            <div>1.0 MB</div>
+          </div>
+          <div class="col-6">
+            <div class="text-muted small">IMPORT DATE</div>
             <div>
-                <div class="text-muted small">{$page.data?.institution?.name?.content || institution_id}</div>
-                <h1 class="h4 mb-0">{asset.filename}</h1>
+              {new Date(asset.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
             </div>
+          </div>
         </div>
 
-        <div class="row">
-            <!-- Main Content - Media -->
-            <div class="col-lg-8">
-                <h5 class="mb-3">Media</h5>
+        <!-- Media Metadata Form -->
+        <h5 class="mb-3">Media metadata</h5>
+        {#if formReady}
+          <form onsubmit={(e) => { e.preventDefault(); e.stopPropagation(); form?.handleSubmit(); }}>
+            <AutoForm
+              {form}
+              {validator}
+              {createFieldValidator}
+              {languages}
+              translatableFields={TRANSLATABLE_FIELDS}
+              {uiSchema}
+              fieldOrder={TRANSLATABLE_FIELDS}
+              {hiddenFields}
+            />
+          </form>
+        {/if}
+      </div>
 
-                <!-- Media Display -->
-                <div class="mb-4">
-                    {#if asset.type === "image"}
-                        <BaseImage
-                            src={imageSrc ? `media://${imageSrc}` : null}
-                            alt={asset.filename}
-                            class="w-100 rounded"
-                            style="max-height: 500px; object-fit: contain; background-color: #f8f9fa;"
-                        />
-                    {:else}
-                        <div class="w-100 d-flex flex-column align-items-center justify-content-center rounded bg-light text-muted border" style="height: 400px;">
-                            <i class="bi bi-file-earmark" style="font-size: 4rem;"></i>
-                            <span class="mt-2 fw-medium">{asset.type?.toUpperCase() || "FILE"}</span>
-                            <span class="mt-1 small">{asset.filename}</span>
-                        </div>
-                    {/if}
+      <!-- Right Sidebar - Linked Objects -->
+      <div class="col-lg-4">
+        <h5 class="mb-3">Linked objects</h5>
+
+        {#if linkedObjects?.length > 0}
+          {#each linkedObjects as objectAsset}
+            <div class="d-flex flex-column align-items-start gap-2 mb-3 p-2 border rounded">
+              <div class="d-flex flex-row gap-2">
+                <BaseImage
+                  src={getObjectImageUrl(objectAsset.object, 'sm')}
+                  alt={getObjectDisplayName(objectAsset.object)}
+                  class="rounded"
+                  style="width: 68px; height: 68px; object-fit: cover;"
+                  format="sm"
+                />
+
+                <div class="d-flex flex-column">
+                  <span class="fw-medium mb-2">{getObjectDisplayName(objectAsset.object)}</span>
+                  <button class="btn btn-sm px-0 btn-link text-danger text-decoration-none" onclick={() => handleUnlinkObject(objectAsset.object_id)}>
+                    <i class="bi bi-dash-circle"></i> Unlink media
+                  </button>
                 </div>
-
-                <!-- File Info -->
-                <div class="row mb-4">
-                    <div class="col-6">
-                        <div class="text-muted small">SIZE</div>
-                        <div>1.0 MB</div>
-                    </div>
-                    <div class="col-6">
-                        <div class="text-muted small">IMPORT DATE</div>
-                        <div>
-                            {new Date(asset.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Media Metadata Form -->
-                <h5 class="mb-3">Media metadata</h5>
-                {#if formReady}
-                    <form onsubmit={(e) => { e.preventDefault(); e.stopPropagation(); form?.handleSubmit(); }}>
-                        <AutoForm
-                            {form}
-                            {validator}
-                            {createFieldValidator}
-                            {languages}
-                            translatableFields={TRANSLATABLE_FIELDS}
-                            {uiSchema}
-                            fieldOrder={TRANSLATABLE_FIELDS}
-                            {hiddenFields}
-                        />
-                    </form>
-                {/if}
+              </div>
             </div>
+          {/each}
+        {/if}
 
-            <!-- Right Sidebar - Linked Objects -->
-            <div class="col-lg-4">
-                <h5 class="mb-3">Linked objects</h5>
-
-                {#if linkedObjects?.length > 0}
-                    {#each linkedObjects as objectAsset}
-                        <div class="d-flex flex-column align-items-start gap-2 mb-3 p-2 border rounded">
-                            <div class="d-flex flex-row gap-2">
-                                <BaseImage
-                                    src={getObjectImageUrl(objectAsset.object, 'sm')}
-                                    alt={getObjectDisplayName(objectAsset.object)}
-                                    class="rounded"
-                                    style="width: 68px; height: 68px; object-fit: cover;"
-                                    format="sm"
-                                />
-
-                                <div class="d-flex flex-column">
-                                    <span class="fw-medium mb-2">{getObjectDisplayName(objectAsset.object)}</span>
-                                    <button class="btn btn-sm px-0 btn-link text-danger text-decoration-none" onclick={() => handleUnlinkObject(objectAsset.object_id)}>
-                                        <i class="bi bi-dash-circle"></i> Unlink media
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    {/each}
-                {/if}
-
-                <!-- Link Object Button -->
-                <button class="btn btn-outline-primary w-100" onclick={openLinkObjectsModal}>
-                    <i class="bi bi-plus-circle me-2"></i> Link object
-                </button>
-            </div>
-        </div>
+        <!-- Link Object Button -->
+        <button class="btn btn-outline-primary w-100" onclick={openLinkObjectsModal}>
+          <i class="bi bi-plus-circle me-2"></i> Link object
+        </button>
+      </div>
     </div>
-
-    <!-- Sticky bottom action bar -->
-    <div class="sticky-bottom-bar">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12 d-flex justify-content-end gap-2 p-2">
-                    <BaseButton type="button" class="btn btn-sm btn-outline-danger" text="Delete Asset" icon="trash" onClick={openDeleteModal} />
-                    <button type="button" class="btn btn-sm btn-success" onclick={handleSave}>Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+  </div>
+</PageActionFooter>
 
 <!-- Delete Confirmation Modal -->
 <BaseModal bind:isOpen={showDeleteModal}>
-    {#snippet header()}Confirm Deletion{/snippet}
-    {#snippet body()}
-        <p>Are you sure you want to delete this asset? This action cannot be undone.</p>
-    {/snippet}
-    {#snippet actions()}
-        <BaseButton type="button" class="btn btn-secondary" text="Cancel" onClick={cancelDelete} disabled={isDeleting} />
-        <BaseButton type="button" class="btn btn-danger" text={isDeleting ? "Deleting..." : "Confirm and delete"} onClick={confirmDeleteAsset} disabled={isDeleting} />
-    {/snippet}
+  {#snippet header()}Confirm Deletion{/snippet}
+  {#snippet body()}
+    <p>Are you sure you want to delete this asset? This action cannot be undone.</p>
+  {/snippet}
+  {#snippet actions()}
+    <BaseButton type="button" class="btn btn-secondary" text="Cancel" onClick={cancelDelete} disabled={isDeleting} />
+    <BaseButton type="button" class="btn btn-danger" text={isDeleting ? "Deleting..." : "Confirm and delete"} onClick={confirmDeleteAsset} disabled={isDeleting} />
+  {/snippet}
 </BaseModal>
 
 <!-- Link Objects Modal -->
 <LinkObjectsModal
-    bind:isOpen={showLinkObjectsModal}
-    projectId={project_id}
-    assetId={asset?.id}
-    preselectExisting={true}
-    linkedObjectIds={currentLinkedObjectIds}
-    onLinked={handleObjectsLinked}
-    onUnlinked={handleObjectsUnlinked}
+  bind:isOpen={showLinkObjectsModal}
+  projectId={project_id}
+  assetId={asset?.id}
+  preselectExisting={true}
+  linkedObjectIds={currentLinkedObjectIds}
+  onLinked={handleObjectsLinked}
+  onUnlinked={handleObjectsUnlinked}
 />
 
 <style>
-    .sticky-bottom-bar {
-        position: sticky;
-        bottom: 0;
-        background-color: white;
-        border-top: 1px solid #dee2e6;
-        margin-top: auto;
-        z-index: 10;
-        flex-shrink: 0;
-    }
-
     /* Ensure the form takes full height when content is short */
     .min-vh-100 {
         min-height: 100vh;
