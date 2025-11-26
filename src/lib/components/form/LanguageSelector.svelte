@@ -1,4 +1,5 @@
 <script>
+  import { Portal } from "bits-ui";
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
 
   let {
@@ -42,22 +43,24 @@
 </script>
 
 {#if allLanguages.length > 0}
-  <div class="language-selector {className}">
-    <BaseDropdownMenu
-      bind:open
-      items={dropdownItems}
-      triggerClass="btn btn-sm btn-secondary d-flex align-items-center gap-2"
-      contentProps={{ style: "right: 0; left: auto;" }}
-      side="bottom"
-      align="end"
-      sideOffset={4}
-      alignOffset={0}
-    >
-      {#snippet trigger()}
-        <i class="bi bi-translate"></i>
-        <span>{currentLanguage?.name || "Language"}</span>
-        <i class="bi bi-chevron-down small"></i>
-      {/snippet}
-    </BaseDropdownMenu>
-  </div>
+  <Portal>
+    <div class="language-selector {className}" style="position: fixed; top: 80px; right: 20px; z-index: 9999;">
+      <BaseDropdownMenu
+        bind:open
+        items={dropdownItems}
+        triggerClass="btn btn-sm btn-secondary d-flex align-items-center gap-2"
+        contentProps={{ style: "right: 0; left: auto;" }}
+        side="bottom"
+        align="end"
+        sideOffset={4}
+        alignOffset={0}
+      >
+        {#snippet trigger()}
+          <i class="bi bi-translate"></i>
+          <span>{currentLanguage?.name || "Language"}</span>
+          <i class="bi bi-chevron-down small"></i>
+        {/snippet}
+      </BaseDropdownMenu>
+    </div>
+  </Portal>
 {/if}
