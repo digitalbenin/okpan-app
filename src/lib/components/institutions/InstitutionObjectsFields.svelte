@@ -23,40 +23,52 @@
       : (researchFields?.result || researchFields?.research_fields || [])
   );
 
-  let objectFieldsGroup = $state([
+  const objectInformationLabel = t("common.object-information", { fallback: "Object Information" });
+  const researchFieldsLabel = t("common.research-fields", { fallback: "Research Fields" });
+
+  const baseObjectFields = [
     {
       value: "created_at",
       label: t("common.created-at", { fallback: "Created At" }),
-      group: t("common.object-information", { fallback: "Object Information" }),
+      group: objectInformationLabel,
       groupType: "propertyName",
-      id: getSelectedFieldsId(dfArray, "created_at"),
     },
     {
       value: "updated_at",
       label: t("common.updated-at", { fallback: "Updated At" }),
-      group: t("common.object-information", { fallback: "Object Information" }),
+      group: objectInformationLabel,
       groupType: "propertyName",
-      id: getSelectedFieldsId(dfArray, "updated_at"),
     },
-  ]);
+  ];
 
-  let researchFieldsGroup = $state(
-    rfArray.map((researchField) => {
-      return {
-        value: researchField.id,
-        label: researchField.name.content,
-        group: t("common.research-fields", { fallback: "Research Fields" }),
-        groupType: "researchFieldId",
-        id: getSelectedFieldsId(dfArray, researchField.id),
-      };
-    })
-  );
+  const buildObjectFieldsGroup = (fields = []) =>
+    baseObjectFields.map((item) => ({
+      ...item,
+      id: getSelectedFieldsId(fields, item.value),
+    }));
 
-  let fieldsSelected = $state(dfArray.map((field) => field.value) || []);
+  const buildResearchFieldsGroup = (researchFields = [], fields = []) =>
+    researchFields.map((researchField) => ({
+      value: researchField.id,
+      label: researchField.name.content,
+      group: researchFieldsLabel,
+      groupType: "researchFieldId",
+      id: getSelectedFieldsId(fields, researchField.id),
+    }));
+
+  const getFieldValues = (fields) =>
+    Array.isArray(fields) ? fields.map((field) => field.value) : [];
+
+  let objectFieldsGroup = $state(buildObjectFieldsGroup(dfArray));
+
+  let researchFieldsGroup = $state(buildResearchFieldsGroup(rfArray, dfArray));
+
+  let fieldsSelected = $state(getFieldValues(dfArray));
 
   let fieldsItems = $state([...objectFieldsGroup, ...researchFieldsGroup]);
 
   let loading = $state(false);
+  let skipSelectionWatcher = false;
 
   function getSelectedFieldsId(fields, value) {
     const elm = fields.find((field) => field.value === value);
@@ -64,19 +76,36 @@
   }
 
   watch(
+    () => ({ fields: dfArray, research: rfArray }),
+    ({ fields, research }) => {
+      skipSelectionWatcher = true;
+      objectFieldsGroup = buildObjectFieldsGroup(fields);
+      researchFieldsGroup = buildResearchFieldsGroup(research, fields);
+      fieldsItems = [...objectFieldsGroup, ...researchFieldsGroup];
+      fieldsSelected = getFieldValues(fields);
+      queueMicrotask(() => {
+        skipSelectionWatcher = false;
+      });
+    },
+    { lazy: true }
+  );
+
+  watch(
     () => fieldsSelected,
     async (curr, prev) => {
-      //   console.log("Fields selected changed:", curr, prev);
-      if (!prev) return; // Skip initial run
+      if (!prev || skipSelectionWatcher) return; // Skip initial run and store syncs
       loading = true;
 
       const added = curr.filter((item) => !prev.includes(item));
       const removed = prev.filter((item) => !curr.includes(item));
 
       if (added.length > 0) {
-        const fieldType = fieldsItems.find(
-          (item) => item.value === added[0]
-        ).groupType;
+        const addedItem = fieldsItems.find((item) => item.value === added[0]);
+        if (!addedItem) {
+          loading = false;
+          return;
+        }
+        const fieldType = addedItem.groupType;
 
         await createDisplayField({ projectId, [fieldType]: added[0] });
         await invalidate("app:project-shared");
@@ -84,7 +113,10 @@
 
       if (removed.length > 0) {
         const id = fieldsItems.find((field) => field.value === removed[0])?.id;
-        if (!id) return;
+        if (!id) {
+          loading = false;
+          return;
+        }
 
         await deleteDisplayField(id);
         await invalidate("app:project-shared");

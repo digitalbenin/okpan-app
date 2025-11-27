@@ -3,7 +3,7 @@
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
-    import { Tabs } from "melt/builders";
+    import LanguageSelector from "$lib/components/form/LanguageSelector.svelte";
     import { getAssetImageUrl } from "$lib/utils/media.js";
 
     // --- Prop definition ---
@@ -19,16 +19,8 @@
     let expandedVocabularies = $state({}); // Added for Read more/less
 
     // --- Keep Tab State ---
-    let activeLanguageCode = $state("");
+    let activeLanguageCode = $state("default");
     let defaultLanguageCode = $state("");
-
-    // --- Keep Tabs builder ---
-    const tabs = new Tabs({
-        value: () => activeLanguageCode,
-        onValueChange: (v) => {
-            if (v) activeLanguageCode = v;
-        },
-    });
 
     // --- Effect to sync prop to internal state (with GUARD) ---
     $effect(() => {
@@ -49,13 +41,9 @@
                 : projectLanguages[0].code;
             defaultLanguageCode = newDefaultLangCode; // Update state
 
-            if (
-                !activeLanguageCode ||
-                !projectLanguages.some((l) => l.code === activeLanguageCode)
-            ) {
-                activeLanguageCode = newDefaultLangCode;
+            if (!activeLanguageCode || activeLanguageCode === "default") {
+                activeLanguageCode = "default";
             }
-            tabs.value = activeLanguageCode; // Sync tab builder value
 
             // Sync non-translatable field 'type'
             typeContent = researchField.type ?? "";
@@ -90,8 +78,7 @@
             descriptionContent = {};
             typeContent = "";
             defaultLanguageCode = "";
-            activeLanguageCode = "";
-            tabs.value = undefined; // Reset tab builder value
+            activeLanguageCode = "default";
         }
         previousResearchFieldId = currentId; // Update the processed ID
     });
@@ -187,75 +174,39 @@
     }
 
     const DESCRIPTION_TRUNCATE_LENGTH = 140;
+
+    const currentLangCode = $derived.by(() => {
+        if (activeLanguageCode === "default") return defaultLanguageCode;
+        const lang = projectLanguages?.find(l => l.id === activeLanguageCode);
+        return lang?.code || defaultLanguageCode;
+    });
 </script>
 
 <div class="p-2 research-field-detail-form">
     <h5 id="research-field-detail-title" class="mb-4">Edit research field</h5>
 
-    <!-- Language Tabs -->
+    <!-- Language Selector -->
     {#if projectLanguages && projectLanguages.length > 1}
-        <div {...tabs.triggerList} class="nav nav-tabs mb-3" role="tablist">
-            {#each projectLanguages as lang}
-                {@const langCode = lang.code}
-                <button
-                    {...tabs.getTrigger(langCode)}
-                    type="button"
-                    class="nav-link {lang.is_default ? 'fw-bold' : ''}"
-                    role="tab"
-                    aria-selected={activeLanguageCode === langCode}
-                    data-active={activeLanguageCode === langCode
-                        ? ""
-                        : undefined}
-                >
-                    {lang.name || lang.code}
-                    {#if lang.is_default}<span
-                            class="badge bg-secondary ms-1 small">Default</span
-                        >{/if}
-                </button>
-            {/each}
-        </div>
-
-        <!-- Tab Content -->
-        {#each projectLanguages as lang}
-            {@const langCode = lang.code}
-            {@const langName = lang.name || lang.code}
-            <div {...tabs.getContent(langCode)} class="pt-2">
-                <div class="d-flex flex-column gap-3">
-                    <!-- Binding to internal state per language -->
-                    <BaseInput
-                        label="Name *"
-                        bind:value={nameContent[langCode]}
-                        placeholder={`Enter name in ${langName}...`}
-                    />
-                    <BaseTextArea
-                        label="Description"
-                        bind:value={descriptionContent[langCode]}
-                        placeholder={`Enter description in ${langName}...`}
-                        rows={4}
-                        maxLength={500}
-                    />
-                </div>
-            </div>
-        {/each}
-    {:else if projectLanguages && projectLanguages.length === 1}
-        {@const langCode = projectLanguages[0].code}
-        {@const langName = projectLanguages[0].language?.name || langCode}
-        <div class="d-flex flex-column gap-3">
-            <!-- Binding to internal state for single language -->
-            <BaseInput
-                label="Name *"
-                bind:value={nameContent[langCode]}
-                placeholder={`Enter name in ${langName}...`}
-            />
-            <BaseTextArea
-                label="Description"
-                bind:value={descriptionContent[langCode]}
-                placeholder={`Enter description in ${langName}...`}
-                rows={4}
-                maxLength={500}
-            />
+        <div class="d-flex justify-content-end mb-3">
+            <LanguageSelector languages={projectLanguages} bind:activeLanguageCode />
         </div>
     {/if}
+
+    <!-- Content Fields -->
+    <div class="d-flex flex-column gap-3">
+        <BaseInput
+            label="Name *"
+            bind:value={nameContent[currentLangCode]}
+            placeholder="Enter name..."
+        />
+        <BaseTextArea
+            label="Description"
+            bind:value={descriptionContent[currentLangCode]}
+            placeholder="Enter description..."
+            rows={4}
+            maxLength={500}
+        />
+    </div>
 
     <!-- Non-Translatable Fields - Binding to internal state -->
     <div class="d-flex flex-column gap-3">
@@ -345,32 +296,6 @@
 </div>
 
 <style>
-    /* Style Melt UI tabs using data attributes - Copied from DatasourceDetail */
-    [data-melt-tabs-trigger] {
-        background: none;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 0.25rem 0.25rem 0 0;
-        cursor: pointer;
-        border-bottom: 1px solid transparent;
-        margin-bottom: -1px;
-    }
-    [data-melt-tabs-trigger][data-state="active"] {
-        border: 1px solid #dee2e6;
-        border-bottom-color: white;
-        background-color: white;
-        color: var(--bs-nav-tabs-link-active-color, #495057);
-    }
-    [data-melt-tabs-trigger]:not([data-state="active"]) {
-        color: var(--bs-nav-link-color, #0d6efd);
-    }
-    [data-melt-tabs-trigger]:hover:not([data-state="active"]) {
-        border-color: var(--bs-border-color-translucent, #dee2e6);
-        color: var(--bs-nav-link-hover-color, #0a58ca);
-    }
-    .nav-tabs {
-        border-bottom: 1px solid #dee2e6;
-    }
     .research-field-detail-form :global(label.form-label) {
         font-weight: bold;
     }

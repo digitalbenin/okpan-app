@@ -8,7 +8,6 @@
         languageCode = null,
         shouldShowError,
         formatErrors,
-        structuredErrors = [],
         activeLanguageCode = null,
         t: tProp = null,
     } = $props();
@@ -36,7 +35,7 @@
                 bind:value={field.state.value}
                 {...config.rendererProps}
                 errors={field.state.meta.errors}
-                {structuredErrors}
+                {field}
                 {activeLanguageCode}
                 onChange={(v) => field.handleChange(v)}
                 on:change={(e) => field.handleChange(e.detail ?? e)}

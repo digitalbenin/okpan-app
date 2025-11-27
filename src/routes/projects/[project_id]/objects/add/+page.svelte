@@ -1,7 +1,6 @@
 <script>
     import ObjectResearchFields from "$lib/components/objects/ObjectResearchFields.svelte";
     import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
-    import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { back } from "$lib/utils/navigation.js";
@@ -12,6 +11,7 @@
     import { queryParameters, ssp } from "sveltekit-search-params";
     import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
     import { watch } from "runed";
+    import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
 
     const { data } = $props();
     const { t } = getTranslationStore();
@@ -78,6 +78,14 @@
         })
     );
 
+    const rightActionButtons = $derived.by(() => [{
+        id: "create-object",
+        text: t("common.confirm", { fallback: "Confirm" }),
+        class: "btn btn-success",
+        disabled: !hasAnyChanges || isSaving || !selectedInstitutionId,
+        onClick: saveAllChanges,
+    }]);
+
     const resetDirtyState = () => {
         objectName = "";
         componentChanges.clear();
@@ -143,113 +151,89 @@
     }
 </script>
 
-<div class="d-flex flex-column min-vh-100">
-    <div class="flex-grow-1">
-        <div class="container-fluid pb-4">
-            <div class="row mb-2">
-                <div class="col-12">
-                    <div class="d-flex align-items-start gap-3 mt-3">
-                        <div>
-                            <button
-                                class="btn btn-lg btn-light rounded-circle aspect-ratio-1x1"
-                                aria-label="back"
-                                onclick={back}
-                                ><i class="bi bi-arrow-left"></i></button
-                            >
-                        </div>
-                        <div>
-                            <h1>
-                                {t("objects.add_object", {
-                                    fallback: "Add Object",
-                                })}
-                            </h1>
-                        </div>
+<PageActionFooter rightButtons={rightActionButtons}>
+    <div class="container-fluid pb-4">
+        <div class="row mb-2">
+            <div class="col-12">
+                <div class="d-flex align-items-start gap-3 mt-3">
+                    <div>
+                        <button
+                            class="btn btn-lg btn-light rounded-circle aspect-ratio-1x1"
+                            aria-label="back"
+                            onclick={back}
+                            ><i class="bi bi-arrow-left"></i></button
+                        >
+                    </div>
+                    <div>
+                        <h1>
+                            {t("objects.add_object", {
+                                fallback: "Add Object",
+                            })}
+                        </h1>
+                    </div>
 
-                        <div class="ms-auto">
-                            <i class="bi bi-three-dots-vertical"></i>
-                        </div>
+                    <div class="ms-auto">
+                        <i class="bi bi-three-dots-vertical"></i>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Research Fields and Linked Media Section -->
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-8">
-                    <!-- Name: first field before institution -->
-                    <div class="mt-2 mb-2 px-2" style="max-width: 420px;">
-                        <p class="fw-semibold mb-2">
-                            {t("common.name", {
-                                fallback: "Name",
-                            })}
-                        </p>
-                        <BaseInput
-                            placeholder={t("common.name", { fallback: "Name" })}
-                            size="sm"
-                            bind:value={objectName}
-                        />
-                    </div>
-                    <!-- Institution selector: after primary id, before research data -->
-                    <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
-                        <h3 class="">
-                            {t("institutions.institution", {
-                                fallback: "Institution",
-                            })}
-                        </h3>
-                        <BaseSelectNew
-                            placeholder={t("institutions.select_institution", {
-                                fallback: "Select institution",
-                            })}
-                            items={institutionItems}
-                            value={selectedInstitutionId}
-                            onValueChange={onInstitutionValueChange}
-                            type="single"
-                            size="sm"
-                            inputClass="w-100"
-                            contentProps={{ width: "anchor" }}
-                        />
-                    </div>
-                    <ObjectResearchFields
-                        researchFields={data.researchFields}
-                        {defaultLanguageId}
-                        onChangesUpdate={handleComponentChanges}
-                    />
-                    <!--<ObjectOntologyFields />-->
-                </div>
-                <div class="col-4">
-                    <ObjectLinkedMedia
-                        {projectId}
-                        institutionId={selectedInstitutionId}
-                        onChangesUpdate={handleComponentChanges}
-                    />
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Sticky bottom bar for saving all changes -->
-    <div
-        class="position-sticky bottom-0 bg-white border-top p-3 mt-auto"
-        style="z-index: 10;"
-    >
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12 d-flex justify-content-end gap-2">
-                    <BaseButton
-                        type="button"
-                        class="btn btn-sm btn-success"
-                        text={t("common.confirm", { fallback: "Confirm" })}
-                        disabled={!hasAnyChanges ||
-                            isSaving ||
-                            !selectedInstitutionId}
-                        onClick={saveAllChanges}
+    <!-- Research Fields and Linked Media Section -->
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-8">
+                <!-- Name: first field before institution -->
+                <div class="mt-2 mb-2 px-2" style="max-width: 420px;">
+                    <p class="fw-semibold mb-2">
+                        {t("common.name", {
+                            fallback: "Name",
+                        })}
+                    </p>
+                    <BaseInput
+                        placeholder={t("common.name", { fallback: "Name" })}
+                        size="sm"
+                        bind:value={objectName}
                     />
                 </div>
+                <!-- Institution selector: after primary id, before research data -->
+                <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
+                    <h3 class="">
+                        {t("institutions.institution", {
+                            fallback: "Institution",
+                        })}
+                    </h3>
+                    <BaseSelectNew
+                        placeholder={t("institutions.select_institution", {
+                            fallback: "Select institution",
+                        })}
+                        items={institutionItems}
+                        value={selectedInstitutionId}
+                        onValueChange={onInstitutionValueChange}
+                        type="single"
+                        size="sm"
+                        inputClass="w-100"
+                        contentProps={{ width: "anchor" }}
+                    />
+                </div>
+                <ObjectResearchFields
+                    researchFields={data.researchFields}
+                    {defaultLanguageId}
+                    onChangesUpdate={handleComponentChanges}
+                />
+                <!--<ObjectOntologyFields />-->
+            </div>
+            <div class="col-4">
+                <ObjectLinkedMedia
+                    {projectId}
+                    institutionId={selectedInstitutionId}
+                    onChangesUpdate={handleComponentChanges}
+                />
             </div>
         </div>
     </div>
-</div>
+</PageActionFooter>
 
 <ManualDirtyGuard
     values={dirtyValues}

@@ -1,7 +1,7 @@
 <script>
-    import { Tabs } from "melt/builders";
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
+    import LanguageSelector from "$lib/components/form/LanguageSelector.svelte";
     import { page as pageData } from "$app/state";
 
     // Get data from context if available
@@ -17,7 +17,7 @@
     let titleContent = $state({});
     let descriptionContent = $state({});
     let defaultLangCode = $state("");
-    let activeTabsValue = $state("");
+    let activeLanguageCode = $state("default");
     let initialized = $state(false);
 
     // Ensure titleContent and descriptionContent are initialized for all languages
@@ -98,8 +98,8 @@
                 }
             }
 
-            // Set active tab
-            tabs.value = defaultLangCode;
+            // Set active language to default
+            activeLanguageCode = "default";
 
             initialized = true;
         }
@@ -178,9 +178,20 @@
         }
     }
 
-    // Initialize tabs
-    const tabs = new Tabs({
-        value: activeTabsValue,
+    // Prepare languages for selector
+    const selectorLanguages = $derived(
+        languages?.map((lang) => ({
+            id: lang.language_code || lang.code,
+            code: lang.language_code || lang.code,
+            name: lang.language?.name || lang.name || lang.code,
+            is_default: (lang.language_code || lang.code) === defaultLangCode,
+        })) || []
+    );
+
+    // Map activeLanguageCode to actual language code
+    const currentLangCode = $derived.by(() => {
+        if (activeLanguageCode === "default") return defaultLangCode;
+        return activeLanguageCode;
     });
 </script>
 
@@ -188,79 +199,53 @@
     <div class="card-body p-0 m-0">
         {#if languages && languages.length > 0}
             <div class="mb-4">
-                <!-- Language Tabs -->
-                <div {...tabs.triggerList} class="nav nav-tabs gap-4 border-0">
-                    {#each languages as lang}
-                        <!-- Handle both direct languages and context format -->
-                        {@const langCode = lang.language_code || lang.code}
-                        {@const langName =
-                            lang.language?.name || lang.name || langCode}
-
-                        <div class="d-flex align-items-center">
-                            <div class="d-flex flex-row align-items-center">
-                                <div class="form-check">
-                                    <input
-                                        type="checkbox"
-                                        class="form-check-input"
-                                        checked={langCode === defaultLangCode}
-                                        onchange={() =>
-                                            updateDefaultLanguage(langCode)}
-                                    />
-                                </div>
-                                <div
-                                    class="d-flex flex-column justify-content-baseline align-items-start nav-link m-0 p-0"
-                                    style={langCode === defaultLangCode
-                                        ? "margin-top:14px !important"
-                                        : ""}
-                                >
-                                    <button
-                                        {...tabs.getTrigger(langCode)}
-                                        class="btn btn-link text-decoration-none p-0 m-0 {tabs.value ===
-                                        langCode
-                                            ? 'text-primary'
-                                            : 'text-dark'}"
-                                    >
-                                        {langName}
-                                    </button>
+                <!-- Language Selector -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex gap-3 align-items-center">
+                        {#each languages as lang}
+                            {@const langCode = lang.language_code || lang.code}
+                            {@const langName = lang.language?.name || lang.name || langCode}
+                            
+                            <div class="form-check">
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    id="default-{langCode}"
+                                    checked={langCode === defaultLangCode}
+                                    onchange={() => updateDefaultLanguage(langCode)}
+                                />
+                                <label class="form-check-label" for="default-{langCode}">
+                                    {langName}
                                     {#if langCode === defaultLangCode}
-                                        <div
-                                            style="font-size: 10px"
-                                            class="text-muted"
-                                        >
-                                            default
-                                        </div>
+                                        <span class="badge bg-secondary ms-1 small">Default</span>
                                     {/if}
-                                </div>
+                                </label>
                             </div>
-                        </div>
-                    {/each}
+                        {/each}
+                    </div>
+                    
+                    <LanguageSelector 
+                        languages={selectorLanguages} 
+                        bind:activeLanguageCode 
+                    />
                 </div>
 
-                <!-- Tab Content -->
-                {#each languages as lang}
-                    <!-- Handle both direct languages and context format -->
-                    {@const langCode = lang.language_code || lang.code}
-                    {@const langName =
-                        lang.language?.name || lang.name || langCode}
+                <!-- Content Fields -->
+                <div class="d-flex flex-column gap-4">
+                    <BaseInput
+                        label="Title"
+                        placeholder={`Enter title...`}
+                        bind:value={titleContent[currentLangCode]}
+                    />
 
-                    <div {...tabs.getContent(langCode)} class="pt-4">
-                        <div class="d-flex flex-column gap-4">
-                            <BaseInput
-                                label="Title"
-                                placeholder={`Enter title in ${langName}...`}
-                                bind:value={titleContent[langCode]}
-                            />
-
-                            <BaseTextArea
-                                label="Description"
-                                placeholder={`Enter description in ${langName}...`}
-                                bind:value={descriptionContent[langCode]}
-                                rows={5}
-                                maxLength={500}
-                            />
-                        </div>
-                    </div>
-                {/each}
+                    <BaseTextArea
+                        label="Description"
+                        placeholder={`Enter description...`}
+                        bind:value={descriptionContent[currentLangCode]}
+                        rows={5}
+                        maxLength={500}
+                    />
+                </div>
             </div>
         {:else}
             <div class="alert alert-warning">
@@ -269,17 +254,3 @@
         {/if}
     </div>
 </div>
-
-<style>
-    /* Style active tab */
-    :global(.nav-link[data-active]) {
-        color: var(--bs-primary) !important;
-        border-color: var(--bs-border-color) var(--bs-border-color) #fff !important;
-        background-color: #fff !important;
-    }
-
-    /* Style tabs hover */
-    :global(.nav-link:hover) {
-        border-color: var(--bs-border-color-translucent);
-    }
-</style>

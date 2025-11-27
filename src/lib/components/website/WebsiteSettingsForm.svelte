@@ -1,5 +1,4 @@
 <script>
-  import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { createForm } from "@tanstack/svelte-form";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import FileUpload from "$lib/components/base/FileUpload.svelte";
@@ -118,7 +117,16 @@
 
   // Form instance
   const form = $derived(createForm(() => getFormConfig("websiteSettings", operationName, { defaultValues, onSubmit: onSubmitForm })));
+  const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
 
+  // Export functions for parent component
+  export function submitForm() {
+    form.handleSubmit();
+  }
+
+  export function getFormStore() {
+    return formStore;
+  }
   // UI schema
   const uiSchema = $derived({
     ...(isEditMode && { id: { hidden: true } }),
@@ -150,42 +158,29 @@
 </script>
 
 <form
-  class="d-flex flex-column min-vh-100"
   onsubmit={(e) => {
     e.preventDefault();
     e.stopPropagation();
     form.handleSubmit();
   }}
 >
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-12">
-        <!-- Remove inner title to avoid duplication with page heading -->
-        <AutoForm
-          {form}
-          {validator}
-          {createFieldValidator}
-          entity={"websiteSettings"}
-          operation={operationName}
-          {languages}
-          translatableFields={["title", "about"]}
-          translationsValidator={getValidator("translations", "create")}
-          defaultColSize={12}
-          {fieldOrder}
-          {uiSchema}
-          {hiddenValueProviders}
-        />
-      </div>
+  <div class="row">
+    <div class="col-12">
+      <!-- Remove inner title to avoid duplication with page heading -->
+      <AutoForm
+        {form}
+        {validator}
+        {createFieldValidator}
+        entity={"websiteSettings"}
+        operation={operationName}
+        {languages}
+        translatableFields={["title", "about"]}
+        translationsValidator={getValidator("translations", "create")}
+        defaultColSize={12}
+        {fieldOrder}
+        {uiSchema}
+        {hiddenValueProviders}
+      />
     </div>
-  </div>
-  
-  <div
-    class="position-sticky bottom-0 start-0 w-100 bg-white p-3 d-flex justify-content-end border-top mt-auto"
-  >
-    <BaseButton
-      type="submit"
-      class="btn btn-success"
-      text={t("common.confirm", { fallback: "Confirm" })}
-    />
   </div>
 </form>

@@ -135,7 +135,6 @@
           {languages}
           translatableFields={TRANSLATABLE_FIELDS}
           {translationsValidator}
-          setStructuredErrors={(errors) => allValidationErrors = errors}
           defaultColSize={6}
           {fieldOrder}
           hiddenStaticValues={{ templateId: null }}

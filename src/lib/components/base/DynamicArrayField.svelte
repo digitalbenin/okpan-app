@@ -9,11 +9,14 @@
         class: customClass = "",
         onChange = null,
         errors = [],
-        structuredErrors = [], // Raw validation errors with path arrays
+        field = null, // TanStack Form field for accessing meta
         fieldValidators = null, // Optional field-level validators for individual items
         arrayFieldName = "", // The name of the array field for error matching
         deleteColSize = 1, // column size for delete button to keep row in a single line
     } = $props();
+
+    // Access structured errors from field meta
+    const structuredErrors = $derived(field?.state?.meta?.structuredErrors || []);
 
     // Ensure we have an array value
     const arrayValue = $derived(Array.isArray(value) ? value : []);
