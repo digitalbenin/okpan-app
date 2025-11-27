@@ -177,8 +177,8 @@
         style="display: block;"
     >
         <div class="modal-dialog modal-dialog-centered fixed-width">
-            <div class="modal-content">
-                <div class="modal-header">
+            <div class="modal-content d-flex flex-column" style="height: 75vh;">
+                <div class="modal-header flex-shrink-0">
                     <h5 class="modal-title">
                         {t("objects.linked_media.select_media", {
                             fallback: "Select media to link",
@@ -192,7 +192,7 @@
                     />
                 </div>
 
-                <div class="modal-body">
+                <div class="modal-body flex-grow-1 overflow-auto" style="min-height: 0;">
                     <!-- Search -->
                     <div class="input-group mb-3">
                         <span class="input-group-text"
@@ -309,7 +309,7 @@
                     {/if}
                 </div>
 
-                <div class="modal-footer px-3 py-1">
+                <div class="modal-footer flex-shrink-0 d-flex justify-content-end gap-2">
                     <BaseButton
                         class="btn btn-secondary"
                         text={t("common.cancel", { fallback: "Cancel" })}
@@ -331,17 +331,6 @@
         border: 1px solid rgba(108, 117, 125, 0.25);
         border-radius: 0.5rem;
         margin-bottom: 0.5rem;
-    }
-
-    /* Modal sizing: fixed height and scroll body content */
-    .link-media-modal .modal-content {
-        height: 75vh; /* fixed height */
-        min-height: 75vh;
-    }
-    .link-media-modal .modal-body {
-        height: calc(75vh - 120px); /* approx header+footer */
-        min-height: calc(75vh - 120px);
-        overflow-y: auto;
     }
 
     /* Fixed width for the modal dialog */
