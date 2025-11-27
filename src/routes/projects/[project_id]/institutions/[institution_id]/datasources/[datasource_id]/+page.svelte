@@ -195,15 +195,16 @@
       class: "btn btn-outline-secondary",
       onClick: back,
     },
-  ]}
-  rightButtons={[
-    {
+      {
       text: t("common.delete", { fallback: "Delete datasource" }),
       class: "btn btn-outline-danger",
       icon: "trash",
       disabled: deleting,
       onClick: openDeleteModal,
-    },
+    }
+  ]}
+  rightButtons={[
+  
     {
       text: t("common.save", { fallback: "Save" }),
       class: "btn btn-primary",

@@ -44,7 +44,7 @@
 
 {#if allLanguages.length > 0}
   <Portal>
-    <div class="language-selector {className}" style="position: fixed; top: 80px; right: 20px; z-index: 9999;">
+    <div class="language-selector {className}" style="position: absolute; top: 80px; right: 20px;">
       <BaseDropdownMenu
         bind:open
         items={dropdownItems}

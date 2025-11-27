@@ -217,13 +217,16 @@
 
 <PageActionFooter
   formStore={formStore}
-  rightButtons={[
-    {
-      text: "Delete Asset",
+  leftButtons={[
+  {
+      text: "Delete Media",
       icon: "trash",
       class: "btn btn-outline-danger",
       onClick: openDeleteModal,
-    },
+    }
+  ]}
+  rightButtons={[
+    
     {
       text: "Save Changes",
       class: "btn btn-success",
