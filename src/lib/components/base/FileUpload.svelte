@@ -127,11 +127,11 @@
 
 <div class={`${customClass}`}>
   <div
-    class={`d-block p-3 rounded ${hasPreview
-      ? "bg-transparent"
+    class={`d-block p-4 rounded-3 upload-pane ${hasPreview
+      ? "bg-transparent has-preview"
       : (isDragOver
-        ? "bg-primary-subtle border border-2 border-primary"
-        : "bg-light border border-2 border-secondary")}
+        ? ""
+        : "border-secondary-subtle")}
       ${!hasPreview && errors.length > 0 ? "border-danger" : ""}`}
     role="button"
     tabindex="0"
@@ -178,12 +178,17 @@
         </div>
         <div class="mt-2 text-muted small">{displayName}</div>
       {:else}
-        <div class="text-center">
-          <i class="bi bi-cloud-upload text-muted mb-2"></i>
-          <div>
-            <strong>Click to upload</strong> or drag and drop
+        <div class="text-center py-5">
+          <div class="fs-5 mb-0">
+            Drag a file here or <button
+              type="button"
+              class="btn btn-success mx-1"
+              onclick={(e) => {
+                e.stopPropagation();
+                openDialog();
+              }}
+            >browse</button> a file from your computer
           </div>
-          <small class="text-muted">{placeholder}</small>
         </div>
       {/if}
     </div>
@@ -195,3 +200,21 @@
     </div>
   {/if}
 </div>
+<style>
+  .upload-pane {
+    border-style: dashed;
+    
+  }
+  .upload-pane img {
+    max-height: 300px;
+    object-fit: contain;
+
+  }
+  .upload-pane.has-preview {
+    border: none;
+    padding: 0 !important;
+    margin: 0;
+    width:fit-content;
+  }
+ 
+</style>
