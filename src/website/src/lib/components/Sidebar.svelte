@@ -2,6 +2,7 @@
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
     let { project, settings } = $props();
     const titleText = $derived.by(() => settings?.title || project?.name || 'Untitled Project');
+    const descriptionText = $derived.by(() => settings?.description || project?.description || '');
     const logoUrl = $derived.by(() => (settings?.logo_asset_path ? getAssetUrl({ asset_path: settings.logo_asset_path }) : ''));
 </script>
 
@@ -15,6 +16,6 @@
     </div>
     {#if project}
         <h1 class="mb-4">{titleText}</h1>
-        <p>{project.description}</p>
+        <p>{descriptionText}</p>
     {/if}
 </div>

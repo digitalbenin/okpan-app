@@ -49,6 +49,7 @@ async function searchObjectsStatic({
   pageSize = 10,
   institution_ids = [],
   researchFieldFilters = [],
+  textFieldFilters = [],
   orderBy = 'created_at',
   direction = 'desc'
 }) {
@@ -58,14 +59,28 @@ async function searchObjectsStatic({
   const vocabularies = data.vocabularies || [];
   const researchFields = data.research_fields || [];
 
-  // Filter by search query
+  // Filter by search query - mirrors preview mode logic
+  // Searches: object name, ontology field values, research field values, institution name
   let filtered = objects;
   if (q && q.trim()) {
     const searchLower = q.toLowerCase().trim();
     filtered = objects.filter(obj => {
-      if (obj.inventory_number?.toLowerCase().includes(searchLower)) return true;
-      if (obj.title?.toLowerCase().includes(searchLower)) return true;
-      if (obj.description?.toLowerCase().includes(searchLower)) return true;
+      // Object name search
+      if (obj.name?.toLowerCase().includes(searchLower)) return true;
+      
+      // Ontology fields value search
+      if (obj.objectOntologyFields?.some(oof => 
+        oof.value?.toLowerCase().includes(searchLower)
+      )) return true;
+      
+      // Research fields value search
+      if (obj.objectResearchFields?.some(orf => 
+        orf.value?.toLowerCase().includes(searchLower)
+      )) return true;
+      
+      // Institution name search
+      if (obj.institution?.name?.toLowerCase().includes(searchLower)) return true;
+      
       return false;
     });
   }
@@ -75,14 +90,42 @@ async function searchObjectsStatic({
     filtered = filtered.filter(obj => institution_ids.includes(obj.institution_id));
   }
 
-  // Filter by research fields (vocabulary filters)
-  // Format from component: [{ fieldId, vocabularyIds: [...] }, ...]
+  // Filter by ontology field text queries (textFieldFilters)
+  // Format: [{ kind: 'ontology', fieldId: '...', query: '...' }, ...]
+  if (textFieldFilters && textFieldFilters.length > 0) {
+    filtered = filtered.filter(obj => {
+      if (!obj.objectOntologyFields || obj.objectOntologyFields.length === 0) return false;
+      
+      // Object must match ALL text field filters (AND)
+      return textFieldFilters.every(tf => {
+        if (!tf || tf.kind !== 'ontology' || !tf.fieldId || !tf.query) return true;
+        const queryLower = tf.query.toLowerCase().trim();
+        return obj.objectOntologyFields.some(oof => 
+          oof.field_id === tf.fieldId && 
+          oof.value?.toLowerCase().includes(queryLower)
+        );
+      });
+    });
+  }
+
+  // Filter by research fields (vocabulary filters and text queries)
+  // Format from component: [{ fieldId, vocabularyIds: [...], query: '...' }, ...]
   if (researchFieldFilters && researchFieldFilters.length > 0) {
     filtered = filtered.filter(obj => {
       if (!obj.objectResearchFields || obj.objectResearchFields.length === 0) return false;
       
       // Object must match ALL filter groups (AND between fields)
       return researchFieldFilters.every(filter => {
+        // If filter has a text query for research field
+        if (filter.query && filter.query.trim()) {
+          const queryLower = filter.query.toLowerCase().trim();
+          const hasMatch = obj.objectResearchFields.some(rf => 
+            rf.field_id === filter.fieldId && 
+            rf.value?.toLowerCase().includes(queryLower)
+          );
+          if (hasMatch) return true;
+        }
+        
         // If filter has vocabularyIds array, check if object has any of them
         if (filter.vocabularyIds && filter.vocabularyIds.length > 0) {
           return obj.objectResearchFields.some(rf => 
@@ -95,7 +138,7 @@ async function searchObjectsStatic({
             rf.vocabulary_id === filter.vocabulary_id
           );
         }
-        return true; // No vocabulary constraint
+        return true; // No constraint
       });
     });
   }
