@@ -34,14 +34,32 @@ export function getDb() {
 
 /**
  * Executes a prepared statement and returns all results, ensuring the statement is freed.
+ * Converts BigInt values to Numbers for compatibility with JavaScript operators.
  * @param {import('sql.js').Statement} stmt
  * @returns {Object[]}
  */
 export function getResults(stmt) {
   try {
     const results = [];
+    let rowIndex = 0;
     while (stmt.step()) {
-      results.push(stmt.getAsObject());
+      const row = stmt.getAsObject();
+      // Log first row to debug types
+      if (rowIndex === 0) {
+        console.log('[getResults] First row raw:', JSON.stringify(row, (k, v) => typeof v === 'bigint' ? `BigInt(${v})` : v));
+        for (const key in row) {
+          console.log(`[getResults] Field "${key}": value=${row[key]}, typeof=${typeof row[key]}`);
+        }
+      }
+      // Convert BigInt values to Numbers (sql.js returns BigInt for COUNT, etc.)
+      for (const key in row) {
+        if (typeof row[key] === 'bigint') {
+          console.log(`[getResults] Converting BigInt field "${key}": ${row[key]} -> ${Number(row[key])}`);
+          row[key] = Number(row[key]);
+        }
+      }
+      results.push(row);
+      rowIndex++;
     }
     return results;
   } finally {

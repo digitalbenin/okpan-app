@@ -26,9 +26,12 @@
 	let institutionFacetMap = $derived.by(() => {
 		const map = new Map();
 		const list = facets?.institution_ids || [];
+		console.log('[AdvancedFilters] Raw facets.institution_ids:', JSON.stringify(list, (k, v) => typeof v === 'bigint' ? `BigInt(${v})` : v));
 		for (const row of list) {
 			const id = row.institution_id ?? row.id;
-			map.set(id, row.count || 0);
+			const count = row.count;
+			console.log(`[AdvancedFilters] Institution ${id}: count=${count}, typeof=${typeof count}`);
+			map.set(id, Number(count) || 0);
 		}
 		return map;
 	});
@@ -36,8 +39,11 @@
 	let researchFacetMap = $derived.by(() => {
 		const map = new Map();
 		const list = facets?.research_fields || [];
+		console.log('[AdvancedFilters] Raw facets.research_fields:', JSON.stringify(list, (k, v) => typeof v === 'bigint' ? `BigInt(${v})` : v));
 		for (const row of list) {
-			map.set(`${row.field_id}:${row.vocabulary_id}`, row.count || 0);
+			const count = row.count;
+			console.log(`[AdvancedFilters] Research ${row.field_id}:${row.vocabulary_id}: count=${count}, typeof=${typeof count}`);
+			map.set(`${row.field_id}:${row.vocabulary_id}`, Number(count) || 0);
 		}
 		return map;
 	});

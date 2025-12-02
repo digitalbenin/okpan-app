@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
-import { searchObjects } from '$lib/utils/searchUtils.js';
+
+const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
 /** @type {import('./$types').PageLoad} */
 export async function load({ url }) {
@@ -13,19 +14,22 @@ export async function load({ url }) {
 		direction: url.searchParams.get('direction') || 'desc'
 	};
 
+	// During SSR/prerender, return empty - actual search happens client-side
 	if (!browser) {
 		return {
 			searchResult: {
 				items: [],
 				totalCount: 0,
-				page: 0,
-				pageSize: 25,
-				facets: { institution_ids: [], ontology_fields: [] }
+				page: 1,
+				pageSize: queryParams.pageSize,
+				facets: { institution_ids: [], ontology_fields: [], research_fields: [] }
 			},
 			queryParams
 		};
 	}
 
+	// Client-side: use unified search (handles both static and preview mode)
+	const { searchObjects } = await import('$lib/utils/search.js');
 	const searchResult = await searchObjects({
 		project_id: queryParams.projectId,
 		q: queryParams.q,

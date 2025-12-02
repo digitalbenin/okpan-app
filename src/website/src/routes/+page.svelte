@@ -4,10 +4,14 @@
 	import FilterBar from '$lib/components/Filterbar.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import AdvancedFilters from '$lib/components/AdvancedFilters.svelte';
-	import { searchObjects } from '$lib/utils/searchUtils.js';
+	import { searchObjects } from '$lib/utils/search.js';
 	import { page } from '$app/stores';
 
 	let { data } = $props();
+
+	console.log('[+page.svelte] data.searchResult:', data.searchResult);
+	console.log('[+page.svelte] data.searchResult.facets:', data.searchResult?.facets);
+	console.log('[+page.svelte] institution_ids facets:', JSON.stringify(data.searchResult?.facets?.institution_ids));
 
 	let searchTerm = $state(data.queryParams.q);
 	let advancedFilters = $state({});

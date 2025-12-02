@@ -1,15 +1,47 @@
 import { browser } from '$app/environment';
+
+const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
+
 export const ssr = false;
-import { getDb, fetchInstitutions, fetchOntologyFields, fetchResearchFields, fetchVocabularies, fetchProject, fetchWebsiteSettings } from '$lib/utils/dbUtils.js';
+export const prerender = isStaticExport;
 
 /** @type {import('./$types').LayoutLoad} */
-export async function load({ url }) {
+export async function load({ url, fetch }) {
+  // Static export mode: load from data.json
+  if (isStaticExport) {
+    const response = await fetch('/data.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load data.json: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return {
+      objects: data.objects || [],
+      institutions: data.institutions || [],
+      ontology_fields: data.ontology_fields || [],
+      research_fields: data.research_fields || [],
+      vocabularies: data.vocabularies || [],
+      project: data.project || {},
+      settings: data.settings || {}
+    };
+  }
+
+  // Preview mode: use database
   if (!browser) {
     // Client-only DB: during SSR return nothing and let client hydrate.
     return;
   }
 
-  const db = await getDb();
+  const { getDb, initClientDb, fetchInstitutions, fetchOntologyFields, fetchResearchFields, fetchVocabularies, fetchProject, fetchWebsiteSettings } = await import('$lib/utils/dbUtils.js');
+  
+  // Ensure DB is initialized (may have been done in hooks.client.js, but be safe)
+  let db = getDb();
+  if (!db) {
+    await initClientDb();
+    db = getDb();
+  }
+  // getDb returns a promise, so await it
+  db = await db;
+  
   const projectId = url.searchParams.get('project_id');
 
   const institutions = fetchInstitutions(db, projectId);
