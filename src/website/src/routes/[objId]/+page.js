@@ -34,11 +34,23 @@ export async function load({ params, url, fetch }) {
     
     // In static export mode, load from data.json
     if (isStaticExport) {
-        const { getObjectById } = await import('$lib/utils/dataLoader.js');
-        const objData = await getObjectById(objId, fetch);
+        const { loadAllData } = await import('$lib/utils/dataLoader.js');
+        const allData = await loadAllData(fetch);
+        const objData = allData.objects.find(obj => obj.id === objId);
         
         if (!objData) {
-            return { object: null, assets: [], objectOntologyFields: [], objectResearchFields: [], datasources: [], queryParams: { projectId: projectIdFromUrl } };
+            return { 
+                object: null, 
+                assets: [], 
+                objectOntologyFields: [], 
+                objectResearchFields: [], 
+                datasources: [], 
+                institutions: allData.institutions || [],
+                research_fields: allData.research_fields || [],
+                ontology_fields: allData.ontology_fields || [],
+                vocabularies: allData.vocabularies || [],
+                queryParams: { projectId: projectIdFromUrl } 
+            };
         }
         
         return {
@@ -47,7 +59,12 @@ export async function load({ params, url, fetch }) {
             assets: objData.assets || [],
             objectOntologyFields: objData.objectOntologyFields || [],
             objectResearchFields: objData.objectResearchFields || [],
-            datasources: objData.datasources || []
+            datasources: objData.datasources || [],
+            // Include global reference data for detail page
+            institutions: allData.institutions || [],
+            research_fields: allData.research_fields || [],
+            ontology_fields: allData.ontology_fields || [],
+            vocabularies: allData.vocabularies || []
         };
     }
     

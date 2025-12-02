@@ -2,7 +2,7 @@
   import { page } from "$app/state";
 
   const projectId = $derived(page.data?.project?.id);
-  const srcUrl = $derived(`website://200.html${projectId ? `?project_id=${projectId}` : ''}`);
+  const srcUrl = $derived(`website://app/${projectId ? `?project_id=${projectId}` : ''}`);
 </script>
 
 <div class="explorer-container">

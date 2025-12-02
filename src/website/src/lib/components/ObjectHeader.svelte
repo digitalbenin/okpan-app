@@ -1,6 +1,8 @@
 <script>
+	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	const { institution, title, projectId } = $props();
-	const backHref = projectId ? `/?project_id=${projectId}` : '/';
+	// In static export mode, don't add project_id query param
+	const backHref = (!isStaticExport && projectId) ? `/?project_id=${projectId}` : '/';
 </script>
 
 <div class="object-header">

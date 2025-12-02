@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "exportedAt": "2025-12-02T16:15:14.937Z",
+    "exportedAt": "2025-12-02T17:09:47.630Z",
     "projectId": "d1e08ee6-5207-4166-bfb2-67426d9cc16b",
     "totalObjects": 52,
     "version": "1.0"
@@ -200,6 +200,14 @@
           "vocabulary_id": "ee702f81-f11c-4b0d-aa92-d28a9fe3a5c0",
           "value": null
         }
+      ],
+      "datasources": [
+        {
+          "id": "396d59cb-b887-4a73-9d22-54acbdb53a24",
+          "name": "Data source for Royal Museums Greenwich",
+          "method": "The data was transferred directly by the institution.",
+          "institution": null
+        }
       ]
     },
     {
@@ -242,7 +250,8 @@
           "vocabulary_id": "7ea1729a-6e13-4f15-85e6-90d706153da5",
           "value": null
         }
-      ]
+      ],
+      "datasources": []
     },
     {
       "id": "d28b3649-c249-4daf-91b1-35317a83d421",
@@ -416,6 +425,14 @@
           "field_id": "ba95b990-be3c-4c9d-aa3c-f07e6d02f9e6",
           "vocabulary_id": "bd419bf6-16ef-4df2-b3b0-896d57bfc2b5",
           "value": null
+        }
+      ],
+      "datasources": [
+        {
+          "id": "396d59cb-b887-4a73-9d22-54acbdb53a24",
+          "name": "Data source for Royal Museums Greenwich",
+          "method": "The data was transferred directly by the institution.",
+          "institution": null
         }
       ]
     },
@@ -893,6 +910,15 @@
           "vocabulary_id": "82cbb599-1efa-463f-82cc-4915e86082aa",
           "value": null
         }
+      ],
+      "datasources": [
+        {
+          "id": "6c82d5eb-c898-460f-ae1b-67ae4d8af48e",
+          "name": "aasascxvcxvcxmvxcklvm  ldfkgmdkl dmfklvgmfdv",
+          "method": "The data was transferred directly by the institution.",
+          "notes": "sss",
+          "institution": null
+        }
       ]
     },
     {
@@ -1056,6 +1082,14 @@
           "vocabulary_id": "7a703f88-938f-4062-aeab-67de68145aed",
           "value": null
         }
+      ],
+      "datasources": [
+        {
+          "id": "9e1164f9-7be2-4d04-8570-655f4a6fe094",
+          "name": "Data source for Museum Rietberg Zürich",
+          "method": "The data was transferred directly through the Swiss Benin Initiative.",
+          "institution": null
+        }
       ]
     },
     {
@@ -1206,6 +1240,14 @@
           "field_id": "ba95b990-be3c-4c9d-aa3c-f07e6d02f9e6",
           "vocabulary_id": "7a703f88-938f-4062-aeab-67de68145aed",
           "value": null
+        }
+      ],
+      "datasources": [
+        {
+          "id": "9e1164f9-7be2-4d04-8570-655f4a6fe094",
+          "name": "Data source for Museum Rietberg Zürich",
+          "method": "The data was transferred directly through the Swiss Benin Initiative.",
+          "institution": null
         }
       ]
     },
@@ -1394,6 +1436,14 @@
           "vocabulary_id": "f7295bca-d768-4c07-8148-f0137b91ea60",
           "value": null
         }
+      ],
+      "datasources": [
+        {
+          "id": "9e1164f9-7be2-4d04-8570-655f4a6fe094",
+          "name": "Data source for Museum Rietberg Zürich",
+          "method": "The data was transferred directly through the Swiss Benin Initiative.",
+          "institution": null
+        }
       ]
     },
     {
@@ -1578,6 +1628,14 @@
           "vocabulary_id": null,
           "value": "Curator note: potential duplicate entry, verify provenance."
         }
+      ],
+      "datasources": [
+        {
+          "id": "9e1164f9-7be2-4d04-8570-655f4a6fe094",
+          "name": "Data source for Museum Rietberg Zürich",
+          "method": "The data was transferred directly through the Swiss Benin Initiative.",
+          "institution": null
+        }
       ]
     },
     {
@@ -1731,7 +1789,15 @@
           "default_description": 0
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "9e1164f9-7be2-4d04-8570-655f4a6fe094",
+          "name": "Data source for Museum Rietberg Zürich",
+          "method": "The data was transferred directly through the Swiss Benin Initiative.",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "56d6476d-0660-49ad-a363-b42c5989bacd",
@@ -1821,6 +1887,14 @@
           "field_id": "ba95b990-be3c-4c9d-aa3c-f07e6d02f9e6",
           "vocabulary_id": "ee702f81-f11c-4b0d-aa92-d28a9fe3a5c0",
           "value": null
+        }
+      ],
+      "datasources": [
+        {
+          "id": "46e92301-bd4d-4376-9651-719562038bc1",
+          "name": "Data source for Völkerkundesammlung",
+          "method": "The data was transferred directly by the institution.",
+          "institution": null
         }
       ]
     },
@@ -1925,6 +1999,14 @@
           "vocabulary_id": "ad4852a1-78b7-4c10-b2ee-630efbda7096",
           "value": null
         }
+      ],
+      "datasources": [
+        {
+          "id": "46e92301-bd4d-4376-9651-719562038bc1",
+          "name": "Data source for Völkerkundesammlung",
+          "method": "The data was transferred directly by the institution.",
+          "institution": null
+        }
       ]
     },
     {
@@ -2027,6 +2109,14 @@
           "field_id": "ba95b990-be3c-4c9d-aa3c-f07e6d02f9e6",
           "vocabulary_id": "ad4852a1-78b7-4c10-b2ee-630efbda7096",
           "value": null
+        }
+      ],
+      "datasources": [
+        {
+          "id": "46e92301-bd4d-4376-9651-719562038bc1",
+          "name": "Data source for Völkerkundesammlung",
+          "method": "The data was transferred directly by the institution.",
+          "institution": null
         }
       ]
     },
@@ -2152,6 +2242,14 @@
           "vocabulary_id": null,
           "value": "Curator note: requires condition assessment."
         }
+      ],
+      "datasources": [
+        {
+          "id": "46e92301-bd4d-4376-9651-719562038bc1",
+          "name": "Data source for Völkerkundesammlung",
+          "method": "The data was transferred directly by the institution.",
+          "institution": null
+        }
       ]
     },
     {
@@ -2254,6 +2352,14 @@
           "field_id": "ba95b990-be3c-4c9d-aa3c-f07e6d02f9e6",
           "vocabulary_id": "7a703f88-938f-4062-aeab-67de68145aed",
           "value": null
+        }
+      ],
+      "datasources": [
+        {
+          "id": "46e92301-bd4d-4376-9651-719562038bc1",
+          "name": "Data source for Völkerkundesammlung",
+          "method": "The data was transferred directly by the institution.",
+          "institution": null
         }
       ]
     },
@@ -2526,6 +2632,14 @@
           "vocabulary_id": "ad4852a1-78b7-4c10-b2ee-630efbda7096",
           "value": null
         }
+      ],
+      "datasources": [
+        {
+          "id": "8ee6d92a-feb0-4967-818a-a3a29402c119",
+          "name": "Data source for Phoebe A. Hearst Museum of Anthropology, University of California at Berkeley",
+          "method": "The data was transferred directly by the institution.",
+          "institution": null
+        }
       ]
     },
     {
@@ -2775,7 +2889,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "ff692f47-fdba-4dcc-bf95-403ebf3bd740",
@@ -3012,7 +3133,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "2412d98b-b68f-47c5-9b4e-bfe24071868e",
@@ -3224,7 +3352,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "0a9f993d-80fc-428e-a832-2711bf3633a1",
@@ -3436,7 +3571,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "50377869-6a8c-4bb9-90d2-d3973bb43b5a",
@@ -3661,7 +3803,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "799e51be-e130-4ad6-b9e3-d19f1b21de1f",
@@ -3897,7 +4046,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "491abe7c-0f86-4038-a2a4-ca35047955c9",
@@ -4109,7 +4265,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "aeabd13c-413c-404e-aa4d-6a34fc3f77a9",
@@ -4321,7 +4484,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "a72ed8a1-b689-4da0-b26f-3d5143376e3f",
@@ -4533,7 +4703,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "c927b6d3-65ab-4438-a36d-dcdf56d018cd",
@@ -4745,7 +4922,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "4c63b16a-9e1e-4923-bf8c-beba6e298129",
@@ -4957,7 +5141,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "31a504f0-5e05-456e-950b-63923a6636c8",
@@ -5157,7 +5348,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "01077160-a861-4fd5-9e61-858b34932504",
@@ -5369,7 +5567,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "e75783e9-21ff-45f4-a425-da32ef2cb29d",
@@ -5593,7 +5798,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "89b015fe-a735-4148-ac2e-ba90a29c35bf",
@@ -5805,7 +6017,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "95e6a7f9-1e46-4138-b7b8-7271822bfdea",
@@ -6017,7 +6236,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "20f338ca-aba7-467d-a8fe-583f8c650927",
@@ -6229,7 +6455,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "f820cd28-9447-405b-95f3-c54eb8c3ec51",
@@ -6441,7 +6674,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "cc6bdd90-61da-4168-b750-67a13164bd66",
@@ -6653,7 +6893,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "5a0187b1-1f43-4e6b-98b4-861c425f3986",
@@ -6865,7 +7112,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "33c73b23-48ea-429b-80b6-4ba48fcf9db0",
@@ -7077,7 +7331,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "14b52138-285d-40ff-8f20-b5c1ccae36d7",
@@ -7289,7 +7550,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "0c197ada-c3af-4fa0-81b2-6d70aa2ee05f",
@@ -7525,7 +7793,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "5587673a-a6e5-4069-a549-339f041723f8",
@@ -7749,7 +8024,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "65016cb1-602e-4099-bf5a-317ccc3507e0",
@@ -7925,7 +8207,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "fe00c71c-25c5-45d8-9e64-f878663986ea",
@@ -8137,7 +8426,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "5e93d968-92e1-40fa-b467-639e5642012f",
@@ -8361,7 +8657,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "63738f55-1d1b-48bd-b746-67fdda4aed69",
@@ -8585,7 +8888,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "fc64a927-b6e3-4b4b-8d89-598b63fbc0e3",
@@ -8809,7 +9119,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "badd4526-12ed-4305-9a09-848cbecb593d",
@@ -9021,7 +9338,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "ed112976-21cd-4428-8277-c29abd19360c",
@@ -9245,7 +9569,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "3def35ca-048d-49c8-adad-21e6ee47dc24",
@@ -9469,7 +9800,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "c43a8af8-2396-4f5a-bc98-8201dc39071b",
@@ -9693,7 +10031,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "0e6eba5e-e613-4d09-aad0-5f4456c225e9",
@@ -9917,7 +10262,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "e0ea7cee-0578-40fd-858c-d7e38ba2980e",
@@ -10141,7 +10493,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "27b6a179-544d-4147-b065-b5ff869c284d",
@@ -10341,7 +10700,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     },
     {
       "id": "13da80f4-2a7a-4500-b1ec-4cf7810b5063",
@@ -10553,7 +10919,14 @@
           "default_description": null
         }
       ],
-      "objectResearchFields": []
+      "objectResearchFields": [],
+      "datasources": [
+        {
+          "id": "979a4463-8c41-4c35-87d0-c009adea6dde",
+          "name": "new data",
+          "institution": null
+        }
+      ]
     }
   ],
   "institutions": [

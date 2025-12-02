@@ -4,6 +4,9 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
 export const ssr = false;
 export const prerender = isStaticExport;
+// Use trailing slash in static export to generate /id/index.html instead of id.html
+// This works better with most static file servers
+export const trailingSlash = isStaticExport ? 'always' : 'ignore';
 
 /** @type {import('./$types').LayoutLoad} */
 export async function load({ url, fetch }) {

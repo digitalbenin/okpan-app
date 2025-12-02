@@ -2,6 +2,8 @@
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	import { fly } from 'svelte/transition';
 
+	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
+
 	let { object, ontologyFieldMap = {}, institutionMap = {} } = $props();
 
 	function getAssets() {
@@ -138,14 +140,12 @@
 		{/if}
 	</div>
 	<div class="card-body">
-		<h5 class="card-title mb-3">
+        <h5 class="card-title mb-3">
             <a
                 class="text-dark text-decoration-none"
-                href={`/${object.id}?project_id=${object.project_id}`}>{getObjectDisplayName()}</a
+                href={isStaticExport ? `/${object.id}/` : `/${object.id}?project_id=${object.project_id}`}>{getObjectDisplayName()}</a
             >
-		</h5>
-
-		<p class="card-text mb-2">
+		</h5>		<p class="card-text mb-2">
 			<small class="text-muted">Designation</small><br />
 			{getObjectType()}
 		</p>
