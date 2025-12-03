@@ -7,8 +7,6 @@
 	let { children, data } = $props();
 </script>
 
-<svelte:head></svelte:head>
-
 <div class="container-fluid">
 	<!-- Topbar visible on small screens -->
 	<div class="d-md-none">

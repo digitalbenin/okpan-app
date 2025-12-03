@@ -11,9 +11,9 @@ if (isStaticExport) {
     try {
         const dataPath = path.join(process.cwd(), 'static', 'data.json');
         const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
-        // Generate entries: root page + all object pages
+        // Generate entries: only object detail pages (homepage is CSR-only)
+        // Note: (object) is a layout group, doesn't appear in URL
         entriesList = [
-            '/',
             ...data.objects.map(obj => `/${obj.id}`)
         ];
         console.log(`[Config] Loaded ${data.objects.length} object routes from data.json`);
@@ -26,15 +26,22 @@ if (isStaticExport) {
 const config = {
     kit: {
         adapter: adapter({
-            // SPA fallback for preview mode, no fallback for static export
-            fallback: isStaticExport ? undefined : '200.html',
+            // Use different output folders for export vs preview
+            pages: isStaticExport ? 'build-export' : 'build',
+            assets: isStaticExport ? 'build-export' : 'build',
+            // Static export needs fallback for CSR homepage; preview mode uses 200.html
+            fallback: isStaticExport ? 'index.html' : '200.html',
             precompress: false,
-            strict: isStaticExport
+            strict: false // Don't fail on non-prerendered pages
         }),
         prerender: {
             // Only enable prerendering for static export mode
             entries: isStaticExport ? entriesList : [],
-            handleHttpError: isStaticExport ? 'warn' : 'ignore'
+            handleHttpError: 'warn',
+            handleMissingId: 'ignore',
+            handleEntryGeneratorMismatch: 'ignore',
+            // Ignore routes with prerender that weren't found during crawl
+            handleUnseenRoutes: 'ignore'
         },
         alias: {
             '~bootstrap': 'node_modules/bootstrap',

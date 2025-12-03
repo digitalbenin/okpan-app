@@ -2,30 +2,20 @@ import { browser } from '$app/environment';
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
-export const ssr = false;
-export const prerender = isStaticExport;
+// SSR enabled for static export so object detail pages can be prerendered
+// Each page can override this (homepage sets ssr=false)
+export const ssr = isStaticExport;
+// Prerender is controlled at page level - layout doesn't force it
 // Use trailing slash in static export to generate /id/index.html instead of id.html
-// This works better with most static file servers
 export const trailingSlash = isStaticExport ? 'always' : 'ignore';
 
 /** @type {import('./$types').LayoutLoad} */
 export async function load({ url, fetch }) {
-  // Static export mode: load from data.json
+  // Static export mode: return nothing from layout
+  // Homepage will load data.json client-side for search/filtering
+  // Object detail pages will load data.json during prerendering only
   if (isStaticExport) {
-    const response = await fetch('/data.json');
-    if (!response.ok) {
-      throw new Error(`Failed to load data.json: ${response.statusText}`);
-    }
-    const data = await response.json();
-    return {
-      objects: data.objects || [],
-      institutions: data.institutions || [],
-      ontology_fields: data.ontology_fields || [],
-      research_fields: data.research_fields || [],
-      vocabularies: data.vocabularies || [],
-      project: data.project || {},
-      settings: data.settings || {}
-    };
+    return {};
   }
 
   // Preview mode: use database

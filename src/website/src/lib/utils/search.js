@@ -9,12 +9,13 @@ let staticDataCache = null;
 
 /**
  * Load static data from data.json (only in static export mode)
+ * @param {Function} customFetch - Optional fetch function (for SSR)
  */
-async function getStaticData() {
+async function getStaticData(customFetch = fetch) {
   if (staticDataCache) return staticDataCache;
   
   try {
-    const response = await fetch('/data.json');
+    const response = await customFetch('/data.json');
     if (!response.ok) throw new Error(`Failed to load data.json: ${response.statusText}`);
     staticDataCache = await response.json();
     return staticDataCache;
@@ -27,12 +28,13 @@ async function getStaticData() {
 /**
  * Search objects - automatically uses the right implementation based on build mode
  * @param {Object} options - Search options
+ * @param {Function} customFetch - Optional fetch function (for SSR)
  */
-export async function searchObjects(options) {
+export async function searchObjects(options, customFetch = fetch) {
   console.log('[search] searchObjects called, isStaticExport:', isStaticExport);
   
   if (isStaticExport) {
-    return searchObjectsStatic(options);
+    return searchObjectsStatic(options, customFetch);
   } else {
     // Dynamic import to avoid bundling DB code in static export
     const { searchObjects: dbSearch } = await import('./searchUtils.js');
@@ -42,6 +44,7 @@ export async function searchObjects(options) {
 
 /**
  * Static search implementation using data.json
+ * @param {Function} customFetch - Optional fetch function (for SSR)
  */
 async function searchObjectsStatic({
   q = '',
@@ -52,8 +55,8 @@ async function searchObjectsStatic({
   textFieldFilters = [],
   orderBy = 'created_at',
   direction = 'desc'
-}) {
-  const data = await getStaticData();
+}, customFetch = fetch) {
+  const data = await getStaticData(customFetch);
   const objects = data.objects || [];
   const institutions = data.institutions || [];
   const vocabularies = data.vocabularies || [];

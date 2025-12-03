@@ -2,18 +2,23 @@
 	import ObjectHeader from '$lib/components/ObjectHeader.svelte';
 	import ObjectResearchData from '$lib/components/ObjectResearchData.svelte';
 	import ObjectInstitutionData from '$lib/components/ObjectInstitutionData.svelte';
+	// Use static version for export (vanilla JS + CDN), dynamic for preview
 	import ObjectImages from '$lib/components/ObjectImages.svelte';
+	import ObjectImagesStatic from '$lib/components/ObjectImagesStatic.svelte';
+
+	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
 	const { data } = $props();
+	// In static export, institution is passed directly; in preview mode, find it from institutions array
 	const institution = $derived(
-		data?.institutions?.find((e) => e.id == data?.object?.institution_id)
+		data?.institution || data?.institutions?.find((e) => e.id == data?.object?.institution_id)
 	);
-	const researchFields = $derived(data.research_fields);
-	const ontologyFields = $derived(data.ontology_fields);
-	const objectResearchFields = $derived(data.objectResearchFields);
-	const objectOntologyFields = $derived(data.objectOntologyFields);
-	const vocabularies = $derived(data.vocabularies);
-	const datasources = $derived(data.datasources);
+	const researchFields = $derived(data.research_fields || []);
+	const ontologyFields = $derived(data.ontology_fields || []);
+	const objectResearchFields = $derived(data.objectResearchFields || []);
+	const objectOntologyFields = $derived(data.objectOntologyFields || []);
+	const vocabularies = $derived(data.vocabularies || []);
+	const datasources = $derived(data.datasources || []);
 	const objId = $derived(data?.objectOntologyFields?.find((e) => e.primary)?.value);
 	const title = $derived.by(() => {
 		const name = (data?.object?.name && String(data.object.name).trim()) || '';
@@ -21,8 +26,47 @@
 		const primary = data?.objectOntologyFields?.find((e) => e.primary)?.value;
 		return primary || 'Untitled';
 	});
-	const assets = $derived(data?.assets);
+	const assets = $derived(data?.assets || []);
+
+	// SEO: Get first asset image for social media preview
+	const firstAsset = $derived(assets?.[0]);
+	const ogImage = $derived(firstAsset ? `/assets/${data?.object?.project_id}/${firstAsset.asset_path}` : null);
+	
+	// SEO: Build description from object data
+	const pageDescription = $derived.by(() => {
+		const parts = [];
+		if (institution?.name) parts.push(institution.name);
+		// Get object type from ontology fields
+		const typeField = objectOntologyFields?.find(f => ontologyFields?.find(of => of.id === f.field_id)?.name?.toLowerCase().includes('type'));
+		if (typeField?.value) parts.push(typeField.value);
+		return parts.length > 0 ? parts.join(' - ') : 'Object details';
+	});
 </script>
+
+<svelte:head>
+	{#if isStaticExport}
+	<!-- Primary Meta Tags -->
+	<title>{title}</title>
+	<meta name="title" content={title} />
+	<meta name="description" content={pageDescription} />
+	
+	<!-- Open Graph / Facebook -->
+	<meta property="og:type" content="article" />
+	<meta property="og:title" content={title} />
+	<meta property="og:description" content={pageDescription} />
+	{#if ogImage}
+	<meta property="og:image" content={ogImage} />
+	{/if}
+	
+	<!-- Twitter -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={title} />
+	<meta name="twitter:description" content={pageDescription} />
+	{#if ogImage}
+	<meta name="twitter:image" content={ogImage} />
+	{/if}
+	{/if}
+</svelte:head>
 
 <div class="row p-3">
 	<div class="col-12">
@@ -31,7 +75,11 @@
 </div>
 <div class="row mb-2">
 	<div class="col-md-6">
-		<ObjectImages {assets} />
+		{#if isStaticExport}
+			<ObjectImagesStatic {assets} />
+		{:else}
+			<ObjectImages {assets} />
+		{/if}
 	</div>
 	<div class="col-md-6">
 		<ObjectResearchData {objectResearchFields} {researchFields} {vocabularies} />

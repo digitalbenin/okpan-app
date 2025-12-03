@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 
-const isStaticMode = typeof window !== 'undefined' && window.location.protocol === 'file:';
+const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
 let cachedData = null;
 
@@ -10,7 +10,7 @@ let cachedData = null;
  */
 export async function loadAllData(customFetch = fetch) {
   // Static export mode: load from data.json
-  if (isStaticMode || import.meta.env.VITE_USE_JSON === 'true') {
+  if (isStaticExport) {
     if (!cachedData) {
       const response = await customFetch('/data.json');
       if (!response.ok) {
