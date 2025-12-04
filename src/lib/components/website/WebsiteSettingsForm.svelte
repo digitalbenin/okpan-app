@@ -117,7 +117,16 @@
 
   // Form instance
   const form = $derived(createForm(() => getFormConfig("websiteSettings", operationName, { defaultValues, onSubmit: onSubmitForm })));
+  const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
 
+  // Export functions for parent component
+  export function submitForm() {
+    form.handleSubmit();
+  }
+
+  export function getFormStore() {
+    return formStore;
+  }
   // UI schema
   const uiSchema = $derived({
     ...(isEditMode && { id: { hidden: true } }),
@@ -146,10 +155,6 @@
     projectId: () => projectId || $page.params.project_id,
     languageId: () => defaultLanguage?.id || "",
   });
-
-  export function submitForm() {
-    form.handleSubmit();
-  }
 </script>
 
 <form

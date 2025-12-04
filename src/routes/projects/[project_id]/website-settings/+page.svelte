@@ -15,17 +15,20 @@
     const { t } = getTranslationStore();
     let websiteSettingsFormRef = $state(null);
 
+    const formStore = $derived(websiteSettingsFormRef?.getFormStore?.() || null);
+
     const rightActionButtons = $derived([
         {
             id: 'save-website-settings',
             text: t('common.confirm', { fallback: 'Confirm' }),
             class: 'btn btn-success',
             onClick: () => websiteSettingsFormRef?.submitForm?.(),
+            disableOnError: true,
         },
     ]);
 </script>
 
-<PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons}>
+<PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons} formStore={formStore}>
     <div class="row">
         <div class="col-12">
             <h1 class="h3 mb-3">Website Settings</h1>

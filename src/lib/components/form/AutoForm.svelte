@@ -1,11 +1,11 @@
 <script>
-    import { Tabs } from "melt/builders";
     import { tick } from "svelte";
     import { watch } from "runed";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { API_SECTIONS } from "$lib/queries/index.js";
     import { createDirtyTracker } from "$lib/stores/DirtyTracker.svelte.js";
     import DirtyNavigationGuard from "$lib/components/navigation/DirtyNavigationGuard.svelte";
+    import LanguageSelector from "./LanguageSelector.svelte";
     import FormField from "./FormField.svelte";
 
     const {
@@ -21,8 +21,6 @@
         uiSchema = {},
         hiddenFields = [],
         defaultColSize = 12,
-        structuredErrors = [],
-        setStructuredErrors = null,
         hiddenStaticValues = {},
         hiddenValueProviders = {},
         enableDirtyTracking = true,
@@ -107,12 +105,8 @@
     const defaultLanguage = $derived(languages?.find((l) => l.is_default) || languages?.[0] || null);
     const secondaryLanguages = $derived(languages?.filter((l) => !l.is_default) || []);
 
-    // Tabs state
+    // Active language state
     let activeLanguageCode = $state("default");
-    const tabs = new Tabs({
-        value: "default",
-        onValueChange: (value) => (activeLanguageCode = value),
-    });
 
     // Helpers
     const getFieldConfig = (fieldName) => {
@@ -281,37 +275,18 @@
 
 {#if derivedTranslatable.length > 0 && defaultLanguage}
     <div class="m-4">
-        <div {...tabs.triggerList} class="nav nav-tabs mb-3" role="tablist">
-            <button
-                {...tabs.getTrigger("default")}
-                type="button"
-                class={"btn btn-link rounded-0 text-decoration-none " + (activeLanguageCode === "default" ? "text-primary border-0 border-bottom border-primary" : "text-dark")}
-                role="tab"
-                aria-selected={activeLanguageCode === "default"}
-            >
-                {defaultLanguage?.name || "Default"}
-            </button>
-            {#each secondaryLanguages as lang}
-                <button
-                    {...tabs.getTrigger(lang.id)}
-                    type="button"
-                    class={"btn btn-link rounded-0 text-decoration-none " + (activeLanguageCode === lang.id ? "text-primary border-0 border-bottom border-primary" : "text-dark")}
-                    role="tab"
-                    aria-selected={activeLanguageCode === lang.id}
-                >
-                    {lang.name}
-                </button>
-            {/each}
+        <div class="d-flex justify-content-end mb-3">
+            <LanguageSelector {languages} bind:activeLanguageCode />
         </div>
 
         <!-- Default language -->
-        <div {...tabs.getContent("default")}>
+        {#if activeLanguageCode === "default"}
             <div class="pt-2 row">
                 {#each derivedTranslatable as fieldName}
                     <div class={`col-md-${Math.min(Math.max(getFieldConfig(fieldName).colSize, 1), 12)}`}>
                         <form.Field
                             name={fieldName}
-                            validators={createFieldValidator?.(fieldName, validator, form, setStructuredErrors, { validateOnChange: true })}
+                            validators={createFieldValidator?.(fieldName, validator, form, { validateOnChange: true })}
                         >
                             {#snippet children(field)}
                                 <FormField
@@ -321,7 +296,6 @@
                                     languageCode={defaultLanguage?.code || "default"}
                                     {shouldShowError}
                                     {formatErrors}
-                                    {structuredErrors}
                                     {activeLanguageCode}
                                     {t}
                                 />
@@ -330,17 +304,17 @@
                     </div>
                 {/each}
             </div>
-        </div>
+        {/if}
 
         <!-- Secondary languages -->
         {#each secondaryLanguages as lang}
-            <div {...tabs.getContent(lang.id)}>
+            {#if activeLanguageCode === lang.id}
                 <div class="pt-2 row">
                     {#each derivedTranslatable as baseField}
                         <div class={`col-md-${Math.min(Math.max(getFieldConfig(baseField).colSize, 1), 12)}`}>
                             <form.Field
                                 name={`translations_${lang.id}_${baseField}`}
-                                validators={translationsValidator && createFieldValidator?.(`translations_${lang.id}_${baseField}`, translationsValidator, form, setStructuredErrors, { validateOnChange: true })}
+                                validators={translationsValidator && createFieldValidator?.(`translations_${lang.id}_${baseField}`, translationsValidator, form, { validateOnChange: true })}
                             >
                                 {#snippet children(field)}
                                     <FormField
@@ -349,7 +323,6 @@
                                         languageCode={lang.code}
                                         {shouldShowError}
                                         {formatErrors}
-                                        {structuredErrors}
                                         {activeLanguageCode}
                                         {t}
                                     />
@@ -358,7 +331,7 @@
                         </div>
                     {/each}
                 </div>
-            </div>
+            {/if}
         {/each}
     </div>
 {/if}
@@ -371,7 +344,7 @@
                 <div class={`col-md-${Math.min(Math.max(getFieldConfig(fieldName).colSize, 1), 12)}`}>
                     <form.Field
                         name={fieldName}
-                        validators={createFieldValidator?.(fieldName, validator, form, setStructuredErrors, { validateOnChange: true })}
+                        validators={createFieldValidator?.(fieldName, validator, form, { validateOnChange: true })}
                     >
                         {#snippet children(field)}
                             <FormField
@@ -380,7 +353,6 @@
                                 isRequired={isRequired(fieldName)}
                                 {shouldShowError}
                                 {formatErrors}
-                                {structuredErrors}
                                 {activeLanguageCode}
                                 {t}
                             />

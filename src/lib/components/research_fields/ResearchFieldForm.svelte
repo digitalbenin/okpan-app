@@ -38,7 +38,6 @@
     const secondaryLanguages = $derived(languages?.filter((lang) => !lang.is_default) || []);
 
     // State
-    let allValidationErrors = $state([]);
     let vocabularyProcessingFunction = null;
     let selectedType = $state((mode === "edit" && initialData?.type) ? initialData.type : "free text");
 
@@ -119,7 +118,6 @@
             colSize: 12,
             rendererProps: {
                 languages,
-                structuredErrors: allValidationErrors,
                 maxVocabularies: 50,
                 selectedType,
                 mode,
@@ -166,12 +164,10 @@
             },
         });
 
-        if (config.fieldValidators?.vocabularies) {
-            config.fieldValidators.vocabularies = createFieldValidator("vocabularies", validator, null, (errors) => allValidationErrors = errors, { validateOnChange: true });
-        }
-
         return config;
     });
+
+    const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
 
     // Handle create mode
     const handleCreate = async (value, { nameTranslations, descriptionTranslations }) => {
@@ -257,6 +253,7 @@
             text: t("common.confirm", { fallback: "Confirm" }),
             class: "btn btn-success",
             type: "submit",
+            disableOnError: true,
         },
     ]);
 
@@ -273,6 +270,7 @@
         contentClass="container-fluid"
         leftButtons={leftActionButtons}
         rightButtons={rightActionButtons}
+        formStore={formStore}
     >
         {#if showTitle}
             <div class="row"><div class="col-12">
@@ -282,7 +280,7 @@
         {/if}
 
         <div class="row"><div class="col-12">
-            <AutoForm {form} {validator} {createFieldValidator} entity="research_fields" operation={validatorOperationName} {languages} translatableFields={TRANSLATABLE_FIELDS} setStructuredErrors={(errors) => allValidationErrors = errors} defaultColSize={6} translationsValidator={getValidator("translations", validatorOperationName)} fieldOrder={["type", "vocabularies"]} {uiSchema} hiddenValueProviders={{ projectId: () => projectId, languageId: () => defaultLanguage?.id || "" }} structuredErrors={allValidationErrors} />
+            <AutoForm {form} {validator} {createFieldValidator} entity="research_fields" operation={validatorOperationName} {languages} translatableFields={TRANSLATABLE_FIELDS} defaultColSize={6} translationsValidator={getValidator("translations", validatorOperationName)} fieldOrder={["type", "vocabularies"]} {uiSchema} hiddenValueProviders={{ projectId: () => projectId, languageId: () => defaultLanguage?.id || "" }} />
         </div></div>
     </PageActionFooter>
 </form>

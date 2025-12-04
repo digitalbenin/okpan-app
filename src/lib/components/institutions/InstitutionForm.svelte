@@ -1,7 +1,6 @@
 <script>
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
-  import { addToast } from "$lib/components/base/BaseToast.svelte";
   import { createForm } from "@tanstack/svelte-form";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import DynamicArrayField from "$lib/components/base/DynamicArrayField.svelte";
@@ -38,7 +37,6 @@
   const currentProjectId = $derived(projectId || $page.params.project_id);
 
   // State
-  let allValidationErrors = $state([]);
   let showDeleteModal = $state(false);
   let isDeleting = $state(false);
 
@@ -119,6 +117,7 @@
 
   // Create form instance
   const form = $derived(createForm(() => getFormConfig("institutions", operationName, { defaultValues, onSubmit: onSubmitForm })));
+  const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
 
   // UI Schema
   const uiSchema = $derived({
@@ -138,7 +137,6 @@
         addButtonText: "Add Link",
         minItems: 0,
         maxItems: 10,
-        structuredErrors: allValidationErrors,
         deleteColSize: 2,
       },
     },
@@ -175,6 +173,7 @@
       text: t("common.confirm", { fallback: "Save changes" }),
       class: "btn btn-success",
       type: "submit",
+      disableOnError: true,
     },
   ]);
 
@@ -209,6 +208,7 @@
     contentClass="container-fluid"
     leftButtons={leftActionButtons}
     rightButtons={rightActionButtons}
+    formStore={formStore}
   >
     <div class="row">
       <div class="col-12">
@@ -236,14 +236,12 @@
           operation={operationName}
           {languages}
           translatableFields={TRANSLATABLE_FIELDS}
-          setStructuredErrors={(errors) => allValidationErrors = errors}
           defaultColSize={7}
           translationsValidator={getValidator("translations", "create")}
           {fieldOrder}
           {uiSchema}
           {hiddenStaticValues}
           {hiddenValueProviders}
-          structuredErrors={allValidationErrors}
         />
       </div>
     </div>

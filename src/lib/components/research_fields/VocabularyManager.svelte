@@ -12,7 +12,7 @@
     let {
         value = $bindable(),
         languages = [],
-        structuredErrors = [],
+        field = null, // TanStack Form field for accessing meta
         maxVocabularies = 50,
         activeLanguageCode = "default",
         selectedType = "free text",
@@ -22,6 +22,9 @@
         initialData = null,
         onVocabulariesProcessed = null,
     } = $props();
+
+    // Access structured errors from field meta
+    const structuredErrors = $derived(field?.state?.meta?.structuredErrors || []);
 
     // State
     let localVocabularies = $state([]);

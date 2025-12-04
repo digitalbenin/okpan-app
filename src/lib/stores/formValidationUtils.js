@@ -484,14 +484,13 @@ export const getFieldValidators = (entityName, operationName) => {
  * @param {string} fieldName - The name of the field to validate
  * @param {Object} validator - The validator object with schema
  * @param {Object} form - The form instance
- * @param {Function} setStructuredErrors - Function to update structured errors (optional)
  * @param {Object} options - Configuration options
  * @returns {Object} Validator configuration for TanStack Form
  */
-export const createFieldValidator = (fieldName, validator, form, setStructuredErrors = null, options = {}) => {
+export const createFieldValidator = (fieldName, validator, form, options = {}) => {
     const { validateOnChange = false } = options;
 
-    const validateField = ({ value }) => {
+    const validateField = ({ value, fieldApi }) => {
         // Get the field schema from the main validator
         const fieldSchema = validator.schema.shape[fieldName];
 
@@ -504,14 +503,18 @@ export const createFieldValidator = (fieldName, validator, form, setStructuredEr
         const result = fieldSchema.safeParse(value);
 
         if (!result.success) {
-            // Update structured errors for components that need them (like DynamicArrayField and VocabularyManager)
-            if (setStructuredErrors && (fieldName === "links" || fieldName === "vocabularies")) {
+            // Store structured errors in field meta for components that need them (like DynamicArrayField and VocabularyManager)
+            if (fieldName === "links" || fieldName === "vocabularies") {
                 // For individual field validation, we need to create error objects with proper paths
                 const fieldErrors = result.error.errors.map(error => ({
                     ...error,
                     path: [fieldName, ...error.path] // Prepend the field name to the path
                 }));
-                setStructuredErrors(fieldErrors);
+                
+                // Store in field meta so renderers can access it
+                if (fieldApi) {
+                    fieldApi.setMeta((prev) => ({ ...prev, structuredErrors: fieldErrors }));
+                }
             }
 
             // Return field-specific errors
@@ -519,8 +522,10 @@ export const createFieldValidator = (fieldName, validator, form, setStructuredEr
             return fieldErrors.length > 0 ? fieldErrors.join(", ") : undefined;
         } else {
             // Clear structured errors on success
-            if (setStructuredErrors && (fieldName === "links" || fieldName === "vocabularies")) {
-                setStructuredErrors([]);
+            if (fieldName === "links" || fieldName === "vocabularies") {
+                if (fieldApi) {
+                    fieldApi.setMeta((prev) => ({ ...prev, structuredErrors: [] }));
+                }
             }
         }
 

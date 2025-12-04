@@ -1,9 +1,9 @@
 <script>
   import { updateProject, removeLanguageFromProject } from "$lib/stores/ProjectsUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { Tabs } from "melt/builders";
   import AddProjectLanguagesModal from "$lib/components/projects/AddProjectLanguagesModal.svelte";
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
+  import LanguageSelector from "$lib/components/form/LanguageSelector.svelte";
   import { watch } from "runed";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
 
@@ -22,23 +22,14 @@
   let initialDescriptionSnapshot = $state({});
   let pristineVersion = $state(0);
 
-  // Tabs
-  const initialLanguageCode = $derived(defaultLanguage?.code || languages?.[0]?.code || "");
-  let activeLanguageCode = $state("");
-  const tabs = new Tabs({ 
-    value: () => activeLanguageCode || initialLanguageCode,
-    onValueChange: (v) => { if (v) activeLanguageCode = v; }
+  // Language selector
+  let activeLanguageCode = $state("default");
+  
+  const currentLangCode = $derived.by(() => {
+    if (activeLanguageCode === "default") return defaultLanguage?.code || "";
+    const lang = languages.find(l => l.id === activeLanguageCode);
+    return lang?.code || defaultLanguage?.code || "";
   });
-
-  watch(
-    () => ({ active: activeLanguageCode, initial: initialLanguageCode }),
-    ({ active, initial }) => {
-      if (!active && initial) {
-        activeLanguageCode = initial;
-      }
-      tabs.value = active || initial || "";
-    }
-  );
 
   // Helpers
   const i18n = $derived({
@@ -203,39 +194,26 @@
 
     <div class="row">
       <div class="col-md-6 col-sm-12">
-        <!-- Language Tabs -->
-        <div class="mb-4">
-          <div {...tabs.triggerList} class="d-flex border-bottom gap-2 mb-3" role="tablist">
-            {#each languages as lang}
-              {@const isActive = (activeLanguageCode || initialLanguageCode) === lang.code}
-              <button {...tabs.getTrigger(lang.code)} type="button" 
-                class="nav-link {isActive ? 'border-bottom border-primary text-primary' : 'text-dark'}"
-                role="tab" aria-selected={isActive} data-active={isActive ? "" : undefined}>
-                {lang.name || lang.code}
-              </button>
-            {/each}
-          </div>
+        <!-- Language Selector -->
+        <div class="mb-4 d-flex justify-content-end">
+          <LanguageSelector {languages} bind:activeLanguageCode />
         </div>
 
-        <!-- Tab Panels -->
-        {#each languages as lang}
-          <div {...tabs.getContent(lang.code)}>
-            <div class="pt-3">
-              <div class="mb-3">
-                <p class="form-label">{i18n.title}</p>
-                <input class="form-control" type="text" value={editTitle[lang.code] ?? ""} 
-                  oninput={(e) => (editTitle[lang.code] = e.currentTarget.value)}
-                  placeholder={i18n.titlePlaceholder} required={!!lang.is_default} />
-              </div>
-              <div class="mb-3">
-                <p class="form-label">{i18n.description}</p>
-                <textarea class="form-control" rows="4" 
-                  oninput={(e) => (editDescription[lang.code] = e.currentTarget.value)}
-                  >{editDescription[lang.code] ?? ""}</textarea>
-              </div>
-            </div>
+        <!-- Content Fields -->
+        <div class="pt-3">
+          <div class="mb-3">
+            <p class="form-label">{i18n.title}</p>
+            <input class="form-control" type="text" value={editTitle[currentLangCode] ?? ""} 
+              oninput={(e) => (editTitle[currentLangCode] = e.currentTarget.value)}
+              placeholder={i18n.titlePlaceholder} required={currentLangCode === defaultLanguage?.code} />
           </div>
-        {/each}
+          <div class="mb-3">
+            <p class="form-label">{i18n.description}</p>
+            <textarea class="form-control" rows="4" 
+              oninput={(e) => (editDescription[currentLangCode] = e.currentTarget.value)}
+              >{editDescription[currentLangCode] ?? ""}</textarea>
+          </div>
+        </div>
 
         <!-- Content languages management -->
         <div class="mb-3">
@@ -267,25 +245,12 @@
 
         <AddProjectLanguagesModal bind:isOpen={showAddLanguages} projectId={project?.id} 
           existingLanguages={languages} onAdded={() => {
-            const currentActive = activeLanguageCode || initialLanguageCode;
-            if (!languages.find((l) => l.code === currentActive)) {
-              const def = languages.find((l) => l.is_default) || languages[0];
-              if (def) activeLanguageCode = def.code;
-            }
+            activeLanguageCode = "default";
           }} />
       </div>
     </div>
   </PageActionFooter>
 </form>
-
-<style>
-  /* Melt UI tabs styling - required for proper tab functionality */
-  [data-melt-tabs-trigger] { background: none; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem 0.25rem 0 0; cursor: pointer; border-bottom: 1px solid transparent; margin-bottom: -1px; }
-  [data-melt-tabs-trigger][data-state="active"] { border: 1px solid #dee2e6; border-bottom-color: white; background-color: white; color: var(--bs-nav-tabs-link-active-color, #495057); }
-  [data-melt-tabs-trigger]:not([data-state="active"]) { color: var(--bs-nav-link-color, #0d6efd); }
-  [data-melt-tabs-trigger]:hover:not([data-state="active"]) { border-color: var(--bs-border-color-translucent, #dee2e6); color: var(--bs-nav-link-hover-color, #0a58ca); }
-  [data-melt-tabs-content] { padding: 1rem 0; }
-</style>
 
 <ManualDirtyGuard
   values={dirtyValues}
