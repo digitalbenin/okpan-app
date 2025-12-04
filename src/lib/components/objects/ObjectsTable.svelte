@@ -88,7 +88,8 @@
   });
 
   const optionalColumns = $derived.by(() => {
-    return displayFields.result.map((field) => {
+    const fields = displayFields?.result || [];
+    return fields.map((field) => {
       if (field.type === "object_property") {
         return {
           value: field.value,

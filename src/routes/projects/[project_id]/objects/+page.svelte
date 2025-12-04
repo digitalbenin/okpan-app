@@ -397,24 +397,26 @@
         </div>
       {/if}
     </div>
-    {#if viewAs === "grid"}
-      <div class="row">
-        {#each searchData.items as object (object.id)}
-          <div class="col-4">
-            <ObjectCard {object} {displayFields} displayInstitution={true} />
-          </div>
-        {/each}
-      </div>
-    {:else if viewAs === "table"}
-      <ObjectsTable
-        items={searchData.items}
-        bind:orderBy={paramsBinding.current.orderBy}
-        bind:direction={paramsBinding.current.direction}
-        bind:selectedObjects
-        {displayFields}
-        displayInstitution={true}
-      />
-    {/if}
+    {#key displayFields}
+      {#if viewAs === "grid"}
+        <div class="row">
+          {#each searchData.items as object (object.id)}
+            <div class="col-4">
+              <ObjectCard {object} {displayFields} displayInstitution={true} />
+            </div>
+          {/each}
+        </div>
+      {:else if viewAs === "table"}
+        <ObjectsTable
+          items={searchData.items}
+          bind:orderBy={paramsBinding.current.orderBy}
+          bind:direction={paramsBinding.current.direction}
+          bind:selectedObjects
+          {displayFields}
+          displayInstitution={true}
+        />
+      {/if}
+    {/key}
   {:else}
     <div class="text-center fst-italic text-muted mt-5">
       {i18n.noObjectsFound}

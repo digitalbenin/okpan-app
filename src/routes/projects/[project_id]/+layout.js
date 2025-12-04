@@ -6,12 +6,15 @@ import { getResearchFields } from '$lib/stores/ResearchFieldsUtils.js';
 import { getOntologyFields } from '$lib/stores/OntologyFieldsUtils.js';
 import { getContentLanguageStore } from '$lib/stores/ContentLanguageStore.svelte.js';
 
-const { getAvaliableLocalesForProject, setProjectLanguages } = getContentLanguageStore();
+// Disable prerendering for this layout as it loads dynamic data
+export const prerender = false;
 
 export const load = async ({ params, depends }) => {
     if (!browser) return;
     depends('app:project-shared');
     depends('app:projects');
+
+    const { getAvaliableLocalesForProject, setProjectLanguages } = getContentLanguageStore();
 
     // Cache the current project ID in backend for optimized GraphQL queries
     try {

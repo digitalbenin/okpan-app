@@ -40,7 +40,8 @@
   });
 
   const parsedFields = $derived.by(() => {
-    return displayFields.result.map((field) => {
+    const fields = displayFields?.result || [];
+    return fields.map((field) => {
       if (field.type === "object_property") {
         return {
           label: t(`common.${field.value}`, { fallback: field.value }),

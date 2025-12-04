@@ -313,15 +313,17 @@
       {/if}
     </div>
 
-    {#if viewAs === "grid"}
-      <div class="row">
-        {#each objectsData.items as object (object.id)}
-          <div class="col-4"><ObjectCard {object} {displayFields} /></div>
-        {/each}
-      </div>
-    {:else}
-      <ObjectsTable items={objectsData.items} bind:orderBy={params.oOrderBy} bind:direction={params.oDirection} bind:selectedObjects {displayFields} />
-    {/if}
+    {#key displayFields}
+      {#if viewAs === "grid"}
+        <div class="row">
+          {#each objectsData.items as object (object.id)}
+            <div class="col-4"><ObjectCard {object} {displayFields} /></div>
+          {/each}
+        </div>
+      {:else}
+        <ObjectsTable items={objectsData.items} bind:orderBy={params.oOrderBy} bind:direction={params.oDirection} bind:selectedObjects {displayFields} />
+      {/if}
+    {/key}
 
     {#if objectsData.totalCount > params.pageSize}
       <div class="row">
