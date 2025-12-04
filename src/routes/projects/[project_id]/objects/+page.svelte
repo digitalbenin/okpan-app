@@ -66,6 +66,8 @@
   const projectId = $derived($page.params.project_id);
   const paramsBinding = $derived({ current: params });
   const searchData = $derived(data.objects || { items: [], totalCount: 0, facets: {} });
+  const displayFields = $derived(data.displayFields);
+  const researchFields = $derived(data.researchFields);
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -86,7 +88,7 @@
 
   const vocabularies = $derived.by(() => {
     const arr = [];
-    (data.researchFields?.result || data.researchFields || []).forEach((f) => {
+    (researchFields?.result || researchFields || []).forEach((f) => {
       if ((f.type || "").toLowerCase() === "vocabulary") {
         (f.vocabularies || []).forEach((v) => {
           arr.push({ id: v.id, field_id: f.id, name: v.option?.content || v.option });
@@ -113,7 +115,7 @@
 
   const researchFieldsById = $derived(
     createLookupMap(
-      data.researchFields?.result || data.researchFields || [],
+      researchFields?.result || researchFields || [],
       (f) => f.id,
       (f) => f.name?.content || f.name || String(f.id)
     )
@@ -129,7 +131,7 @@
 
   const vocabularyFieldIds = $derived.by(() => {
     const set = new Set();
-    (data.researchFields?.result || data.researchFields || []).forEach((f) => {
+    (researchFields?.result || researchFields || []).forEach((f) => {
       if (String(f.type || "").toLowerCase() === "vocabulary") set.add(String(f.id));
     });
     return set;
@@ -355,7 +357,7 @@
     <div class="col-8 d-flex justify-content-end gap-3 align-items-center">
       <div class="d-flex align-items-center text-truncate gap-2">
         <div class="col-auto fs-7">{i18n.selectFields}</div>
-        <InstitutionObjectsFields displayFields={data.displayFields} researchFields={data.researchFields} projectId={data.project.id} />
+        <InstitutionObjectsFields {displayFields} {researchFields} projectId={data.project.id} />
       </div>
 
       <div class="d-flex align-items-center gap-2">
@@ -399,7 +401,7 @@
       <div class="row">
         {#each searchData.items as object (object.id)}
           <div class="col-4">
-            <ObjectCard {object} displayFields={data.displayFields} displayInstitution={true} />
+            <ObjectCard {object} {displayFields} displayInstitution={true} />
           </div>
         {/each}
       </div>
@@ -409,7 +411,7 @@
         bind:orderBy={paramsBinding.current.orderBy}
         bind:direction={paramsBinding.current.direction}
         bind:selectedObjects
-        displayFields={data.displayFields}
+        {displayFields}
         displayInstitution={true}
       />
     {/if}
@@ -447,7 +449,7 @@
 
   {#if showAdvancedFilters}
     <ObjectAdvancedFilters
-      researchFields={data.researchFields?.result || data.researchFields || []}
+      researchFields={researchFields?.result || researchFields || []}
       ontologyFields={data.ontologyFields?.result || data.ontologyFields || []}
       institutions={data.institutions?.result || data.institutions || []}
       {vocabularies}
