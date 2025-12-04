@@ -143,7 +143,8 @@
         <h5 class="card-title mb-3">
             <a
                 class="text-dark text-decoration-none"
-                href={isStaticExport ? `/${object.id}/` : `/${object.id}?project_id=${object.project_id}`}>{getObjectDisplayName()}</a
+                href={isStaticExport ? `/${object.id}/` : `/${object.id}?project_id=${object.project_id}`}
+                data-sveltekit-reload={isStaticExport ? '' : undefined}>{getObjectDisplayName()}</a
             >
 		</h5>		<p class="card-text mb-2">
 			<small class="text-muted">Designation</small><br />

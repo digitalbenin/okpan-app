@@ -1,6 +1,7 @@
 <script>
 	import ObjectHeader from '$lib/components/ObjectHeader.svelte';
 	import ObjectResearchData from '$lib/components/ObjectResearchData.svelte';
+	import ObjectResearchDataStatic from '$lib/components/ObjectResearchDataStatic.svelte';
 	import ObjectInstitutionData from '$lib/components/ObjectInstitutionData.svelte';
 	// Use static version for export (vanilla JS + CDN), dynamic for preview
 	import ObjectImages from '$lib/components/ObjectImages.svelte';
@@ -82,7 +83,11 @@
 		{/if}
 	</div>
 	<div class="col-md-6">
-		<ObjectResearchData {objectResearchFields} {researchFields} {vocabularies} />
+		{#if isStaticExport}
+			<ObjectResearchDataStatic {objectResearchFields} {researchFields} {vocabularies} />
+		{:else}
+			<ObjectResearchData {objectResearchFields} {researchFields} {vocabularies} />
+		{/if}
 	</div>
 </div>
 <div class="row mt-4">

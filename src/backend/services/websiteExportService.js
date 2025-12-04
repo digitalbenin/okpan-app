@@ -16,12 +16,16 @@ export async function exportStaticWebsite(projectId, outputPath, { db }) {
   const rootDir = process.cwd();
   const websiteDir = path.join(rootDir, 'src', 'website');
   const staticDir = path.join(websiteDir, 'static');
-  const buildDir = path.join(websiteDir, 'build');
+  // Use build-export folder for static exports (separate from preview build folder)
+  const buildDir = path.join(websiteDir, 'build-export');
+  // data.json is written to static temporarily for the build, then cleaned up
   const dataJsonPath = path.join(staticDir, 'data.json');
+  // site.json contains only project/settings for sidebar (small file, loaded client-side)
+  const siteJsonPath = path.join(staticDir, 'site.json');
 
   try {
-    // Step 1: Export data to JSON in website/static folder
-    console.log('[Website Export] Step 1/3: Exporting data...');
+    // Step 1: Export data to JSON in website/static folder (temporary, for build)
+    console.log('[Website Export] Step 1/4: Exporting data...');
     const data = await exportWebsiteData(projectId, db);
     
     if (!data || !data.objects) {
@@ -31,9 +35,17 @@ export async function exportStaticWebsite(projectId, outputPath, { db }) {
     await fs.mkdir(staticDir, { recursive: true });
     await fs.writeFile(dataJsonPath, JSON.stringify(data, null, 2), 'utf-8');
     console.log(`[Website Export] Exported ${data.objects.length} objects to data.json`);
+    
+    // Also write site.json with just project and settings (for sidebar)
+    const siteData = {
+      project: data.project || {},
+      settings: data.settings || {}
+    };
+    await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');
+    console.log('[Website Export] Exported site.json for sidebar');
 
     // Step 2: Build static site
-    console.log('[Website Export] Step 2/3: Building static site...');
+    console.log('[Website Export] Step 2/4: Building static site...');
     console.log('[Website Export] This may take a few minutes...');
     
     const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
@@ -80,6 +92,22 @@ export async function exportStaticWebsite(projectId, outputPath, { db }) {
         reject(new Error(`Failed to start build process: ${error.message}`));
       });
     });
+
+    // Clean up temporary data.json from static folder (it's now in build-export)
+    try {
+      await fs.unlink(dataJsonPath);
+      console.log('[Website Export] Cleaned up temporary data.json from static folder');
+    } catch (err) {
+      // Ignore if file doesn't exist
+    }
+    
+    // Clean up temporary site.json from static folder (it's now in build-export)
+    try {
+      await fs.unlink(siteJsonPath);
+      console.log('[Website Export] Cleaned up temporary site.json from static folder');
+    } catch (err) {
+      // Ignore if file doesn't exist
+    }
 
     // Step 3: Copy build output to destination
     console.log('[Website Export] Step 3/4: Copying to output location...');

@@ -2,8 +2,12 @@
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	const { assets = [] } = $props();
 
-	// Filter valid assets
-	const items = $derived.by(() => (assets || []).filter((a) => a && a.asset_path));
+	// Filter valid assets and sort by order
+	const items = $derived.by(() => 
+		(assets || [])
+			.filter((a) => a && a.asset_path)
+			.sort((a, b) => (a.order || 0) - (b.order || 0))
+	);
 
 	function safeParseFormats(formats) {
 		if (!formats) return {};

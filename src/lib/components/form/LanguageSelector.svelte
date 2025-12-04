@@ -32,7 +32,7 @@
   const dropdownItems = $derived(
     allLanguages.map((lang) => ({
       label: lang.name || lang.code,
-      icon: lang.is_default ? "star-fill" : undefined,
+      //icon: lang.is_default ? "star-fill" : undefined,
       onClick: () => {
         activeLanguageCode = lang.code === "default" ? "default" : lang.id;
       },

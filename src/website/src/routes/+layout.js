@@ -11,11 +11,29 @@ export const trailingSlash = isStaticExport ? 'always' : 'ignore';
 
 /** @type {import('./$types').LayoutLoad} */
 export async function load({ url, fetch }) {
-  // Static export mode: return nothing from layout
-  // Homepage will load data.json client-side for search/filtering
-  // Object detail pages will load data.json during prerendering only
+  // Static export mode: read site.json for project/settings (sidebar data)
+  // Use fs.readFileSync to avoid SvelteKit embedding the full data.json
   if (isStaticExport) {
-    return {};
+    // During prerendering (server-side), read from filesystem
+    if (!browser) {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const siteJsonPath = path.join(process.cwd(), 'static', 'site.json');
+        const content = fs.readFileSync(siteJsonPath, 'utf-8');
+        const siteData = JSON.parse(content);
+        return { 
+          project: siteData.project || {},
+          settings: siteData.settings || {},
+          needsClientLoad: false // Already have the data
+        };
+      } catch (e) {
+        console.warn('[layout] Could not read site.json during prerender:', e.message);
+        return { needsClientLoad: true };
+      }
+    }
+    // Client-side in static export: fetch site.json
+    return { needsClientLoad: true };
   }
 
   // Preview mode: use database
