@@ -14,6 +14,7 @@
   import { queryParameters, ssp } from "sveltekit-search-params";
   import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/stores/ObjectsUtils.js";
   import { page } from "$app/stores";
+  import { goto } from "$app/navigation";
   import { watch } from "runed";
 
   const { t } = getTranslationStore();
@@ -273,7 +274,7 @@
     if (!selectedObjects?.length) return;
     const ids = selectedObjects.map(String).join(",");
     const returnTo = `/projects/${projectId}/objects`;
-    window.location.href = `/projects/${projectId}/objects/bulk-edit?ids=${encodeURIComponent(ids)}&returnTo=${encodeURIComponent(returnTo)}`;
+    goto(`/projects/${projectId}/objects/bulk-edit?ids=${encodeURIComponent(ids)}&returnTo=${encodeURIComponent(returnTo)}`);
   };
 
   const applyBulkStatus = async () => {

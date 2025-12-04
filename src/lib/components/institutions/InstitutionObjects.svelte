@@ -11,7 +11,7 @@
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import ObjectAdvancedFilters from "$lib/components/objects/ObjectAdvancedFilters.svelte";
-  import { afterNavigate } from "$app/navigation";
+  import { afterNavigate, goto } from "$app/navigation";
   import { resource } from "runed";
   import { updateObjectsStatusBulk, updateObjectsInstitutionBulk, searchObjects } from "$lib/stores/ObjectsUtils.js";
 
@@ -229,7 +229,7 @@
 
   const openBulkEdit = () => {
     if (!selectedObjects?.length) return;
-    window.location.href = `/projects/${institution.project_id}/objects/bulk-edit?ids=${encodeURIComponent(selectedObjects.map(String).join(","))}&returnTo=${encodeURIComponent(`/projects/${institution.project_id}/institutions/${institution.id}`)}`;
+    goto(`/projects/${institution.project_id}/objects/bulk-edit?ids=${encodeURIComponent(selectedObjects.map(String).join(","))}&returnTo=${encodeURIComponent(`/projects/${institution.project_id}/institutions/${institution.id}`)}`);
   };
 </script>
 
