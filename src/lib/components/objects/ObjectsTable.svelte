@@ -104,11 +104,11 @@
           label: field.name.content,
           //   sortable: true,
           accessor: (value) => {
-            const research_field = value.objectsResearchFields.find(
-              (rf) => rf.researchField.id === field.value
+            const research_field = (value.objectsResearchFields || []).find(
+              (rf) => rf?.researchField?.id === field.value
             );
             return research_field
-              ? research_field.vocabulary.option.content
+              ? (research_field?.vocabulary?.option?.content ?? research_field?.value ?? null)
               : null;
           },
         };
