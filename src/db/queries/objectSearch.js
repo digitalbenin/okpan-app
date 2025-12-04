@@ -111,9 +111,17 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 type: drizzleResult.schema._typeMap.String,
                 description: 'Sort direction (asc or desc)',
                 defaultValue: 'desc'
-            }
+            },
         ],
         resolve: async (source, args, context, info) => {
+            const queryStart = performance.now();
+            const timings = {};
+            const logTiming = (label, start) => {
+                const elapsed = ((performance.now() - start) / 1000).toFixed(3);
+                timings[label] = elapsed;
+                console.log(`[objectSearch] ${label}: ${elapsed}s`);
+            };
+
             // Parse research field filters and clean up double-quoted strings
             const researchFieldFilters = args.researchFieldFilters ?
                 args.researchFieldFilters.map(filter => {
@@ -182,10 +190,10 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                     .filter(ofq => ofq && ofq.fieldId && ofq.query && ofq.query.trim())
                     .map(ofq => {
                         const fts = toFtsAndQuery(ofq.query);
-                        return sql`EXISTS (
-                            SELECT 1 FROM objects_ontology_fields_search oofs
-                            WHERE oofs.object_id = objects.id
-                            AND oofs.field_id = ${ofq.fieldId}
+                        // Use IN with subquery instead of EXISTS for better performance
+                        return sql`objects.id IN (
+                            SELECT oofs.object_id FROM objects_ontology_fields_search oofs
+                            WHERE oofs.field_id = ${ofq.fieldId}
                             AND oofs.content MATCH ${fts}
                         )`;
                     });
@@ -195,23 +203,14 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             const buildGenericConditions = (rawQuery) => {
                 if (!rawQuery || !rawQuery.trim()) return [];
                 const fts = toFtsAndQuery(rawQuery);
-                const cond = or(
-                    sql`EXISTS (
-                        SELECT 1 FROM objects_search os
-                        WHERE os.object_id = objects.id
-                        AND os.content MATCH ${fts}
-                    )`,
-                    sql`EXISTS (
-                        SELECT 1 FROM objects_ontology_fields_search oofs
-                        WHERE oofs.object_id = objects.id
-                        AND oofs.content MATCH ${fts}
-                    )`,
-                    sql`EXISTS (
-                        SELECT 1 FROM objects_research_fields_search orfs
-                        WHERE orfs.object_id = objects.id
-                        AND orfs.content MATCH ${fts}
-                    )`
-                );
+                // Use IN with UNION for better performance than OR with EXISTS
+                const cond = sql`objects.id IN (
+                    SELECT os.object_id FROM objects_search os WHERE os.content MATCH ${fts}
+                    UNION
+                    SELECT oofs.object_id FROM objects_ontology_fields_search oofs WHERE oofs.content MATCH ${fts}
+                    UNION
+                    SELECT orfs.object_id FROM objects_research_fields_search orfs WHERE orfs.content MATCH ${fts}
+                )`;
                 return [cond];
             };
 
@@ -220,25 +219,22 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 const researchFieldConditions = [];
                 for (const filter of filters) {
                     const fieldConditions = [];
-                    // Text query: use FTS table
+                    // Text query: use FTS table with IN instead of EXISTS
                     if (filter?.query && filter.query.trim()) {
                         const fts = toFtsAndQuery(filter.query);
-                        fieldConditions.push(sql`EXISTS (
-                            SELECT 1 FROM objects_research_fields_search orfs
-                            WHERE orfs.object_id = objects.id
-                            AND orfs.field_id = ${filter.fieldId}
+                        fieldConditions.push(sql`objects.id IN (
+                            SELECT orfs.object_id FROM objects_research_fields_search orfs
+                            WHERE orfs.field_id = ${filter.fieldId}
                             AND orfs.content MATCH ${fts}
                         )`);
                     }
-                    // Vocabulary selections: use base table for equality
+                    // Vocabulary selections: use IN instead of EXISTS
                     if (Array.isArray(filter?.vocabularyIds) && filter.vocabularyIds.length > 0) {
-                        const vocabConditions = filter.vocabularyIds.map(vocabId => sql`EXISTS (
-                            SELECT 1 FROM objects_research_fields orf
-                            WHERE orf.object_id = objects.id
-                            AND orf.field_id = ${filter.fieldId}
-                            AND orf.vocabulary_id = ${vocabId}
+                        fieldConditions.push(sql`objects.id IN (
+                            SELECT orf.object_id FROM objects_research_fields orf
+                            WHERE orf.field_id = ${filter.fieldId}
+                            AND orf.vocabulary_id IN (${sql.join(filter.vocabularyIds.map(id => sql`${id}`), sql`, `)})
                         )`);
-                        fieldConditions.push(or(...vocabConditions));
                     }
                     if (fieldConditions.length > 0) {
                         researchFieldConditions.push(or(...fieldConditions));
@@ -258,25 +254,6 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 return conds;
             };
 
-            // Build base query - use explicit column references to avoid ambiguity
-            const baseSelect = {
-                id: dbSchema.objects.id,
-                name: dbSchema.objects.name,
-                created_at: dbSchema.objects.created_at,
-                updated_at: dbSchema.objects.updated_at,
-                status: dbSchema.objects.status,
-                institution_id: dbSchema.objects.institution_id,
-                project_id: dbSchema.objects.project_id,
-                // Include institution details for UI components (ObjectCard expects object.institution.name.content)
-                institution_json: sql`(SELECT json_object(
-                    'id', inst.id,
-                    'name', json_object('content', inst_name_texts.content)
-                ) FROM institutions inst LEFT JOIN texts inst_name_texts ON inst.name_id = inst_name_texts.id WHERE inst.id = objects.institution_id)`.as('institution_json'),
-                objects_assets_json: sql`(SELECT json_group_array(json_object('order', oa."order", 'asset_id', oa.asset_id, 'asset_filename', a.filename, 'asset_formats', a.formats, 'asset_path', a.path, 'asset_type', a.type, 'asset_real_id', a.id)) FROM objects_assets oa JOIN assets a ON oa.asset_id = a.id WHERE oa.object_id = objects.id)`.as('objects_assets_json'),
-                objects_ontology_fields_json: ontologyFieldsQuery.as('objects_ontology_fields_json'),
-                objects_research_fields_json: researchFieldsQuery.as('objects_research_fields_json'),
-            };
-
             // Build search conditions using helpers
             const institutionFilterApplied = Boolean(args.institutionIds && args.institutionIds.length > 0);
             const statusFilterApplied = Boolean(args.status);
@@ -288,17 +265,10 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 ...buildResearchFieldConditions(researchFieldFilters)
             ];
 
-            // Build main query
-
-            let mainQuery = db
-                .select(baseSelect)
-                .from(dbSchema.objects);
-
-            if (searchConditions.length > 0) {
-                mainQuery = mainQuery.where(sql.join(searchConditions, sql` AND `));
-            }
-
-            // Get total count
+            // === PHASE 1: Get count and paginated IDs (fast, no JSON subqueries) ===
+            const countStart = performance.now();
+            
+            // Count query - simple, no JSON
             let countQuery = db
                 .select({ totalCount: countDistinct(dbSchema.objects.id) })
                 .from(dbSchema.objects);
@@ -309,8 +279,10 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
 
             const countResult = await countQuery.execute();
             const totalCount = countResult[0]?.totalCount || 0;
+            logTiming('1. COUNT query', countStart);
 
-            // Apply ordering and pagination
+            // Get paginated IDs only (no JSON subqueries)
+            const idsStart = performance.now();
             let orderByField;
             const direction = args.direction === 'asc' ? sql` ASC` : sql` DESC`;
             switch (args.orderBy) {
@@ -320,10 +292,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             }
 
             const linkedOrderExpr = args.assetId
-                ? sql`CASE WHEN EXISTS (
-                        SELECT 1 FROM objects_assets oa
-                        WHERE oa.object_id = objects.id AND oa.asset_id = ${args.assetId}
-                    ) THEN 0 ELSE 1 END`
+                ? sql`CASE WHEN objects.id IN (SELECT oa.object_id FROM objects_assets oa WHERE oa.asset_id = ${args.assetId}) THEN 0 ELSE 1 END`
                 : null;
 
             const orderClauses = [];
@@ -332,20 +301,68 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             }
             orderClauses.push(sql`${orderByField}${direction}`);
 
-            const paginatedQuery = mainQuery
+            // Get just the IDs for the current page (fast)
+            let idsQuery = db
+                .select({ id: dbSchema.objects.id })
+                .from(dbSchema.objects);
+
+            if (searchConditions.length > 0) {
+                idsQuery = idsQuery.where(sql.join(searchConditions, sql` AND `));
+            }
+
+            idsQuery = idsQuery
                 .orderBy(...orderClauses)
                 .limit(args.pageSize)
                 .offset(args.page * args.pageSize);
 
-            const rawResults = await paginatedQuery.execute();
+            const idsResult = await idsQuery.execute();
+            const pageIds = idsResult.map(r => r.id);
+            logTiming('2. GET PAGE IDs query', idsStart);
 
-            // Build facets
+            // === PHASE 2: Fetch full data only for the paginated IDs ===
+            const mainResultsStart = performance.now();
+            let rawResults = [];
+            
+            if (pageIds.length > 0) {
+                // Build base query with JSON subqueries - but only for the specific IDs
+                const baseSelect = {
+                    id: dbSchema.objects.id,
+                    name: dbSchema.objects.name,
+                    created_at: dbSchema.objects.created_at,
+                    updated_at: dbSchema.objects.updated_at,
+                    status: dbSchema.objects.status,
+                    institution_id: dbSchema.objects.institution_id,
+                    project_id: dbSchema.objects.project_id,
+                    institution_json: sql`(SELECT json_object(
+                        'id', inst.id,
+                        'name', json_object('content', inst_name_texts.content)
+                    ) FROM institutions inst LEFT JOIN texts inst_name_texts ON inst.name_id = inst_name_texts.id WHERE inst.id = objects.institution_id)`.as('institution_json'),
+                    objects_assets_json: sql`(SELECT json_group_array(json_object('order', oa."order", 'asset_id', oa.asset_id, 'asset_filename', a.filename, 'asset_formats', a.formats, 'asset_path', a.path, 'asset_type', a.type, 'asset_real_id', a.id)) FROM objects_assets oa JOIN assets a ON oa.asset_id = a.id WHERE oa.object_id = objects.id)`.as('objects_assets_json'),
+                    objects_ontology_fields_json: ontologyFieldsQuery.as('objects_ontology_fields_json'),
+                    objects_research_fields_json: researchFieldsQuery.as('objects_research_fields_json'),
+                };
+
+                // Fetch full data only for these IDs (small set, JSON subqueries are acceptable)
+                const fullDataQuery = db
+                    .select(baseSelect)
+                    .from(dbSchema.objects)
+                    .where(inArray(dbSchema.objects.id, pageIds));
+
+                const fullResults = await fullDataQuery.execute();
+                
+                // Restore original order (IN clause doesn't preserve order)
+                const resultsMap = new Map(fullResults.map(r => [r.id, r]));
+                rawResults = pageIds.map(id => resultsMap.get(id)).filter(Boolean);
+            }
+            logTiming('3. FETCH FULL DATA for page', mainResultsStart);
+
+            // Build facets - run ALL facet queries in PARALLEL for performance
+            const facetsStart = performance.now();
             const facets = { institutions: [], researchFields: [], statuses: [] };
 
-            // Institution facets - show distribution across institutions with ALL other filters applied but NO institution filter
+            // Prepare conditions for each facet type
             let nonInstitutionConditions;
             if (institutionFilterApplied) {
-                // Rebuild without institution filter but with all other filters, including generic text search
                 nonInstitutionConditions = [
                     ...buildBaseConditions(args, { includeInstitution: false }),
                     ...buildGenericConditions(args.genericQuery),
@@ -356,61 +373,104 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 nonInstitutionConditions = searchConditions;
             }
 
-            // Build the WHERE clause without institution filters
+            let nonStatusConditions;
+            if (statusFilterApplied) {
+                nonStatusConditions = [
+                    ...buildBaseConditions(args, { includeStatus: false }),
+                    ...buildGenericConditions(args.genericQuery),
+                    ...buildOntologyConditions(ontologyFieldQueries),
+                    ...buildResearchFieldConditions(researchFieldFilters)
+                ];
+            } else {
+                nonStatusConditions = searchConditions;
+            }
 
-            // Get ALL institutions for this project first
-            const allInstitutions = await db
-                .select({
+            const nonResearchFieldConditions = [
+                ...buildBaseConditions(args),
+                ...buildGenericConditions(args.genericQuery),
+                ...buildOntologyConditions(ontologyFieldQueries)
+            ];
+
+            // === Run all base facet queries in parallel ===
+            const baseFacetsStart = performance.now();
+            const [allInstitutions, institutionCounts, vocabularyFields, statusCounts] = await Promise.all([
+                // 1. Get ALL institutions for this project
+                db.select({
                     id: dbSchema.institutions.id,
                     name: institutionNameTexts.content
                 })
                 .from(dbSchema.institutions)
                 .leftJoin(institutionNameTexts, eq(dbSchema.institutions.name_id, institutionNameTexts.id))
                 .where(eq(dbSchema.institutions.project_id, args.project_id))
-                .execute();
+                .execute(),
 
-            // Get counts per institution with non-institution filters applied
-            let institutionCountQuery = db
-                .select({
-                    institution_id: dbSchema.objects.institution_id,
-                    count: countDistinct(dbSchema.objects.id)
-                })
-                .from(dbSchema.objects)
-                .groupBy(dbSchema.objects.institution_id);
+                // 2. Get counts per institution with non-institution filters applied
+                (async () => {
+                    let q = db.select({
+                        institution_id: dbSchema.objects.institution_id,
+                        count: countDistinct(dbSchema.objects.id)
+                    })
+                    .from(dbSchema.objects)
+                    .groupBy(dbSchema.objects.institution_id);
+                    if (nonInstitutionConditions.length > 0) {
+                        q = q.where(sql.join(nonInstitutionConditions, sql` AND `));
+                    }
+                    return q.execute();
+                })(),
 
-            if (nonInstitutionConditions.length > 0) {
-                institutionCountQuery = institutionCountQuery.where(sql.join(nonInstitutionConditions, sql` AND `));
-            }
+                // 3. Get vocabulary fields for research field facets
+                (async () => {
+                    const rfNameTexts = aliasedTable(dbSchema.texts, 'rf_name_texts_facet');
+                    return db.select({
+                        id: dbSchema.research_fields.id,
+                        name: rfNameTexts.content
+                    })
+                    .from(dbSchema.research_fields)
+                    .leftJoin(rfNameTexts, eq(dbSchema.research_fields.name_id, rfNameTexts.id))
+                    .where(and(
+                        eq(dbSchema.research_fields.project_id, args.project_id),
+                        eq(dbSchema.research_fields.type, 'vocabulary')
+                    ))
+                    .execute();
+                })(),
 
-            const institutionCounts = await institutionCountQuery.execute();
+                // 4. Get counts per status with non-status filters applied
+                (async () => {
+                    let q = db.select({
+                        status: dbSchema.objects.status,
+                        count: countDistinct(dbSchema.objects.id)
+                    })
+                    .from(dbSchema.objects)
+                    .groupBy(dbSchema.objects.status);
+                    if (nonStatusConditions.length > 0) {
+                        q = q.where(sql.join(nonStatusConditions, sql` AND `));
+                    }
+                    return q.execute();
+                })()
+            ]);
+            logTiming('3. BASE FACETS (institutions, status, vocabFields) parallel', baseFacetsStart);
 
-            // Create a map for quick lookup
+            // Build institution facets
             const institutionCountMap = new Map(institutionCounts.map(ic => [ic.institution_id, ic.count]));
-
-            // Combine all institutions with their counts (0 if not found)
             facets.institutions = allInstitutions.map(inst => ({
                 id: inst.id,
                 name: inst.name,
                 count: institutionCountMap.get(inst.id) || 0
             }));
 
-            // Research field facets (vocabulary only)
-            const rfNameTexts = aliasedTable(dbSchema.texts, 'rf_name_texts_facet');
-            const vocabularyFields = await db
-                .select({
-                    id: dbSchema.research_fields.id,
-                    name: rfNameTexts.content
-                })
-                .from(dbSchema.research_fields)
-                .leftJoin(rfNameTexts, eq(dbSchema.research_fields.name_id, rfNameTexts.id))
-                .where(and(
-                    eq(dbSchema.research_fields.project_id, args.project_id),
-                    eq(dbSchema.research_fields.type, 'vocabulary')
-                ))
-                .execute();
+            // Build status facets
+            facets.statuses = statusCounts.map(sc => ({
+                id: sc.status,
+                name: sc.status,
+                count: sc.count
+            }));
 
-            for (const field of vocabularyFields) {
-                // Get ALL vocabulary options for this research field first
+            // Process all vocabulary fields in PARALLEL using Promise.all
+            const vocabFacetsStart = performance.now();
+            console.log(`[objectSearch] Processing ${vocabularyFields.length} vocabulary fields for facets...`);
+            const vocabularyFacetPromises = vocabularyFields.map(async (field) => {
+                const fieldStart = performance.now();
+                // Get ALL vocabulary options for this research field
                 const vOptionTextsAll = aliasedTable(dbSchema.texts, `v_option_texts_all_${field.id.replace(/-/g, '_')}`);
                 const allVocabularyOptions = await db
                     .select({
@@ -421,13 +481,6 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                     .leftJoin(vOptionTextsAll, eq(dbSchema.vocabularies.option_id, vOptionTextsAll.id))
                     .where(eq(dbSchema.vocabularies.field_id, field.id))
                     .execute();
-
-                // Conditions WITHOUT any research-field filters for vocabulary counts
-                const nonResearchFieldConditions = [
-                    ...buildBaseConditions(args),
-                    ...buildGenericConditions(args.genericQuery),
-                    ...buildOntologyConditions(ontologyFieldQueries)
-                ];
 
                 // Build the WHERE clause without any research field filters
                 const baseConditions = [
@@ -450,6 +503,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 }
 
                 const vocabularyCounts = await vocabularyCountQuery.execute();
+                console.log(`[objectSearch]   - Vocab field ${field.name}: ${((performance.now() - fieldStart) / 1000).toFixed(3)}s`);
 
                 // Create a map for quick lookup
                 const vocabCountMap = new Map(vocabularyCounts.map(vc => [vc.vocabulary_id, vc.count]));
@@ -461,50 +515,19 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                     count: vocabCountMap.get(vocab.id) || 0
                 }));
 
-                facets.researchFields.push({
+                return {
                     fieldId: field.id,
                     fieldName: field.name,
                     options: vocabularyFacetResults
-                });
-            }
+                };
+            });
 
-            // Status facets - show distribution across statuses with ALL other filters applied but NO status filter
-            let nonStatusConditions;
-            if (statusFilterApplied) {
-                // Rebuild without status filter but with all other filters, including generic text search
-                nonStatusConditions = [
-                    ...buildBaseConditions(args, { includeStatus: false }),
-                    ...buildGenericConditions(args.genericQuery),
-                    ...buildOntologyConditions(ontologyFieldQueries),
-                    ...buildResearchFieldConditions(researchFieldFilters)
-                ];
-            } else {
-                nonStatusConditions = searchConditions;
-            }
-
-            // Get counts per status with non-status filters applied
-            let statusCountQuery = db
-                .select({
-                    status: dbSchema.objects.status,
-                    count: countDistinct(dbSchema.objects.id)
-                })
-                .from(dbSchema.objects)
-                .groupBy(dbSchema.objects.status);
-
-            if (nonStatusConditions.length > 0) {
-                statusCountQuery = statusCountQuery.where(sql.join(nonStatusConditions, sql` AND `));
-            }
-
-            const statusCounts = await statusCountQuery.execute();
-
-            // Build status facets
-            facets.statuses = statusCounts.map(sc => ({
-                id: sc.status,
-                name: sc.status,
-                count: sc.count
-            }));
+            facets.researchFields = await Promise.all(vocabularyFacetPromises);
+            logTiming('4. VOCABULARY FACETS (all fields parallel)', vocabFacetsStart);
+            logTiming('TOTAL FACETS TIME', facetsStart);
 
             // Process results
+            const processStart = performance.now();
             const processedItems = rawResults.map(item => {
                 // Institution parsing
                 let institution = null;
@@ -595,6 +618,9 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                     objectsResearchFields: objectsResearchFields,
                 };
             });
+            logTiming('5. JSON processing', processStart);
+            logTiming('=== TOTAL QUERY TIME ===', queryStart);
+            console.log('[objectSearch] Timings summary:', timings);
 
             return {
                 items: processedItems,

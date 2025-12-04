@@ -49,6 +49,20 @@
   );
 </script>
 
+{#if templateSuggestions.loading || matchingSuggestions.loading}
+  <div class="d-flex flex-column align-items-center justify-content-center py-5">
+    <div class="spinner-border text-primary mb-3" role="status">
+      <span class="visually-hidden">{t("common.loading", { fallback: "Loading..." })}</span>
+    </div>
+    <p class="text-muted">
+      {#if templateSuggestions.loading}
+        {t("import.analyzing-fields", { fallback: "Analyzing your fields and looking for matching templates..." })}
+      {:else}
+        {t("import.suggesting-matches", { fallback: "Suggesting field matches using AI. This may take a moment..." })}
+      {/if}
+    </p>
+  </div>
+{/if}
 <SuggestTemplate {templateSuggestions}></SuggestTemplate>
 {#if wizard.useMatchingTemplate || wizard.useMatchingSuggestions || wizard.mapping.length > 0}
   <div class="w-100">

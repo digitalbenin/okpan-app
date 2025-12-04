@@ -228,7 +228,8 @@ async function parseStructuredFile(filePath, separator) {
                 columns: true,
                 skip_empty_lines: true,
                 trim: true,
-                delimiter: separator || ','
+                delimiter: separator || ',',
+                relax_column_count: true
             });
             return {
                 success: true,
@@ -242,7 +243,8 @@ async function parseStructuredFile(filePath, separator) {
                 columns: true,
                 skip_empty_lines: true,
                 trim: true,
-                delimiter: separator || '\t'
+                delimiter: separator || '\t',
+                relax_column_count: true
             });
             return {
                 success: true,
