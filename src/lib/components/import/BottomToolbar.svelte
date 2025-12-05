@@ -28,8 +28,13 @@
     </button>
   {/if}
   {#if wizard.currentStep === wizard.steps.length}
-    <button class="btn btn-success" onclick={() => wizard.save()}>
-      {t("common.save", { fallback: "Save" })}
+    <button class="btn btn-success" onclick={() => wizard.save()} disabled={wizard.saving}>
+      {#if wizard.saving}
+        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        {t("common.saving", { fallback: "Saving..." })}
+      {:else}
+        {t("common.save", { fallback: "Save" })}
+      {/if}
     </button>
   {/if}
 </div>

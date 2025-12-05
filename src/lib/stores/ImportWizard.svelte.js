@@ -12,6 +12,7 @@ export function createImportWizardContext(params) {
     ]);
     let currentStep = $state(1);
     let nextEnabled = $state(false);
+    let saving = $state(false);
     let projectId = $state(params?.projectId);
     let datasourceId = $state();
     let mappingId = $state();
@@ -35,6 +36,9 @@ export function createImportWizardContext(params) {
 
         get nextEnabled() { return nextEnabled; },
         set nextEnabled(value) { nextEnabled = value; },
+
+        get saving() { return saving; },
+        set saving(value) { saving = value; },
 
         get projectId() { return projectId; },
         set projectId(value) { projectId = value; },

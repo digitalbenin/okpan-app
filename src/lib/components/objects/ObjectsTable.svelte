@@ -88,7 +88,8 @@
   });
 
   const optionalColumns = $derived.by(() => {
-    return displayFields.result.map((field) => {
+    const fields = displayFields?.result || [];
+    return fields.map((field) => {
       if (field.type === "object_property") {
         return {
           value: field.value,
@@ -103,11 +104,11 @@
           label: field.name.content,
           //   sortable: true,
           accessor: (value) => {
-            const research_field = value.objectsResearchFields.find(
-              (rf) => rf.researchField.id === field.value
+            const research_field = (value.objectsResearchFields || []).find(
+              (rf) => rf?.researchField?.id === field.value
             );
             return research_field
-              ? research_field.vocabulary.option.content
+              ? (research_field?.vocabulary?.option?.content ?? research_field?.value ?? null)
               : null;
           },
         };

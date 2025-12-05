@@ -237,7 +237,6 @@
   <div class="row align-items-center mb-3 position-relative overflow-hidden py-2">
     {#if selectedObjects.length}
       <div transition:fly={{ opacity: 1, y: -35 }} class="d-flex align-items-center px-3 gap-2 position-absolute top-0 start-0 end-0 bottom-0 z-1 bg-white border-bottom">
-        <div class="fw-bold">{selectedObjects.length} {t("common.selected-objects", { fallback: "selected objects" })}</div>
         <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={() => (selectedObjects = [])}>
           <span>{t("common.clear-selection", { fallback: "Clear selection" })}</span>
           <i class="bi bi-x-circle"></i>
@@ -313,15 +312,17 @@
       {/if}
     </div>
 
-    {#if viewAs === "grid"}
-      <div class="row">
-        {#each objectsData.items as object (object.id)}
-          <div class="col-4"><ObjectCard {object} {displayFields} /></div>
-        {/each}
-      </div>
-    {:else}
-      <ObjectsTable items={objectsData.items} bind:orderBy={params.oOrderBy} bind:direction={params.oDirection} bind:selectedObjects {displayFields} />
-    {/if}
+    {#key displayFields}
+      {#if viewAs === "grid"}
+        <div class="row">
+          {#each objectsData.items as object (object.id)}
+            <div class="col-4"><ObjectCard {object} {displayFields} bind:selected={selectedObjects} /></div>
+          {/each}
+        </div>
+      {:else}
+        <ObjectsTable items={objectsData.items} bind:orderBy={params.oOrderBy} bind:direction={params.oDirection} bind:selectedObjects {displayFields} />
+      {/if}
+    {/key}
 
     {#if objectsData.totalCount > params.pageSize}
       <div class="row">
