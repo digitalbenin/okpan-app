@@ -181,7 +181,9 @@ export const institutions = sqliteTable('institutions', {
     project_id: text('project_id').references(() => project.id),
     status: text('status'),
     logo: text('logo')
-});
+}, (table) => ({
+    projectIdx: index('idx_institutions_project_id').on(table.project_id)
+}));
 
 // Institutions relations
 export const institutionsRelations = relations(institutions, ({ one, many }) => ({
@@ -221,7 +223,10 @@ export const research_fields = sqliteTable('research_fields', {
     project_id: text('project_id').references(() => project.id),
     private: integer('private').notNull().default(0), // false by default
     onwebsite: integer('onwebsite').notNull().default(1) // true by default
-});
+}, (table) => ({
+    projectIdx: index('idx_research_fields_project_id').on(table.project_id),
+    typeIdx: index('idx_research_fields_type').on(table.type)
+}));
 
 // Research Fields relations
 export const researchFieldsRelations = relations(research_fields, ({ one, many }) => ({
@@ -317,7 +322,12 @@ export const objects = sqliteTable('objects', {
     name: text('name'),
     institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
     project_id: text('project_id').references(() => project.id)
-});
+}, (table) => ({
+    projectIdx: index('idx_objects_project_id').on(table.project_id),
+    institutionIdx: index('idx_objects_institution_id').on(table.institution_id),
+    statusIdx: index('idx_objects_status').on(table.status),
+    projectInstitutionIdx: index('idx_objects_project_institution').on(table.project_id, table.institution_id)
+}));
 
 // Objects relations
 export const objectsRelations = relations(objects, ({ one, many }) => ({
@@ -401,7 +411,9 @@ export const vocabularies = sqliteTable('vocabularies', {
     description_id: text('description_id').references(() => texts.id),
     main_asset_id: text('main_asset_id').references(() => genericAssets.id),
     field_id: text('field_id').references(() => research_fields.id, { onDelete: 'cascade' })
-});
+}, (table) => ({
+    fieldIdx: index('idx_vocabularies_field_id').on(table.field_id)
+}));
 
 // Vocabularies Generic Assets junction table
 export const vocabularies_generic_assets = sqliteTable('vocabularies_generic_assets', {
@@ -451,7 +463,12 @@ export const objects_research_fields = sqliteTable('objects_research_fields', {
     field_id: text('field_id').references(() => research_fields.id, { onDelete: 'cascade' }),
     vocabulary_id: text('vocabulary_id').references(() => vocabularies.id, { onDelete: 'cascade' }),
     value: text('value')
-});
+}, (table) => ({
+    objectIdx: index('idx_objects_research_fields_object_id').on(table.object_id),
+    fieldIdx: index('idx_objects_research_fields_field_id').on(table.field_id),
+    vocabularyIdx: index('idx_objects_research_fields_vocabulary_id').on(table.vocabulary_id),
+    objectFieldIdx: index('idx_objects_research_fields_object_field').on(table.object_id, table.field_id)
+}));
 
 // Objects Research Fields relations
 export const objectsResearchFieldsRelations = relations(objects_research_fields, ({ one }) => ({
@@ -512,7 +529,11 @@ export const objects_ontology_fields = sqliteTable('objects_ontology_fields', {
     datasources_id: text('datasources_id').references(() => datasources.id),
     primary: integer('primary'),
     default_description: integer('default_description')
-});
+}, (table) => ({
+    objectIdx: index('idx_objects_ontology_fields_object_id').on(table.object_id),
+    fieldIdx: index('idx_objects_ontology_fields_field_id').on(table.field_id),
+    objectFieldIdx: index('idx_objects_ontology_fields_object_field').on(table.object_id, table.field_id)
+}));
 
 // Objects Ontology Fields relations
 export const objectsOntologyFieldsRelations = relations(objects_ontology_fields, ({ one }) => ({
@@ -571,7 +592,9 @@ export const objects_assets = sqliteTable('objects_assets', {
     object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
     order: integer('order')
 }, (table) => ({
-    objectAssetUnique: uniqueIndex('objects_assets_object_asset_unique').on(table.object_id, table.asset_id)
+    objectAssetUnique: uniqueIndex('objects_assets_object_asset_unique').on(table.object_id, table.asset_id),
+    objectIdx: index('idx_objects_assets_object_id').on(table.object_id),
+    assetIdx: index('idx_objects_assets_asset_id').on(table.asset_id)
 }));
 
 // Objects Assets relations

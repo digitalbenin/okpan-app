@@ -122,10 +122,9 @@ async function getObjectsWithOntologyFields(institutionId, searchFields) {
         query = query.where(eq(dbSchema.objects.institution_id, institutionId));
     }
 
-    // Filter by specific fields if specified, otherwise use primary fields
+    // Filter by specific field IDs if specified, otherwise use primary fields
     if (searchFields.length > 0) {
-        const lowerSearchFields = searchFields.map(f => `'${f.toLowerCase()}'`).join(', ');
-        query = query.where(sql`LOWER(${dbSchema.texts.content}) IN (${sql.raw(lowerSearchFields)})`);
+        query = query.where(inArray(dbSchema.objects_ontology_fields.field_id, searchFields));
     } else {
         query = query.where(eq(dbSchema.objects_ontology_fields.primary, 1));
     }

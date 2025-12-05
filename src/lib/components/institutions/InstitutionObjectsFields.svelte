@@ -1,5 +1,5 @@
 <script>
-  import { invalidate } from "$app/navigation";
+  import { invalidateAll } from "$app/navigation";
   import { watch } from "runed";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -108,7 +108,7 @@
         const fieldType = addedItem.groupType;
 
         await createDisplayField({ projectId, [fieldType]: added[0] });
-        await invalidate("app:project-shared");
+        await invalidateAll();
       }
 
       if (removed.length > 0) {
@@ -119,7 +119,7 @@
         }
 
         await deleteDisplayField(id);
-        await invalidate("app:project-shared");
+        await invalidateAll();
       }
       loading = false;
     },

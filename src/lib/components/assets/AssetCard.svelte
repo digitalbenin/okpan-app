@@ -2,14 +2,38 @@
   import BaseLinkedStatus from "$lib/components/base/BaseLinkedStatus.svelte";
   import { getAssetImageUrl } from "$lib/utils/media.js";
 
-  const { asset } = $props();
+  let { asset, selected = $bindable([]) } = $props();
 
   const linked = $derived(
     asset.objectsAssets && asset.objectsAssets.length > 0,
   );
+  
+  // Selection logic
+  let isSelected = $derived(selected.includes(asset.id));
+  
+  function handleCheckboxChange(event) {
+    event.stopPropagation();
+    if (isSelected) {
+      selected = selected.filter((id) => id !== asset.id);
+    } else {
+      selected = [...selected, asset.id];
+    }
+  }
 </script>
 
-<div class="w-100 d-flex flex-column rounded bg-white border mb-3">
+<div 
+  class="w-100 d-flex flex-column rounded bg-white border mb-3 position-relative"
+  class:border-primary={isSelected}
+  class:border-2={isSelected}
+>
+  <input
+    type="checkbox"
+    class="form-check-input position-absolute top-0 end-0 m-2 z-1"
+    checked={isSelected}
+    onchange={handleCheckboxChange}
+    onclick={(e) => e.stopPropagation()}
+    aria-label="Select asset"
+  />
   <div class="bg-light rounded ratio ratio-1x1 mb-3">
     <div>
       <img
@@ -26,10 +50,7 @@
       class="link-dark">{asset.filename}</a
     >
   </div>
-  <div class="mt-auto p-2 d-flex justify-content-between align-items-center">
+  <div class="mt-auto p-2">
     <BaseLinkedStatus {linked} />
-    <div>
-      <i class="bi bi-three-dots-vertical"></i>
-    </div>
   </div>
 </div>

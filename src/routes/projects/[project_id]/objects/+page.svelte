@@ -14,6 +14,7 @@
   import { queryParameters, ssp } from "sveltekit-search-params";
   import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/stores/ObjectsUtils.js";
   import { page } from "$app/stores";
+  import { goto } from "$app/navigation";
   import { watch } from "runed";
 
   const { t } = getTranslationStore();
@@ -65,6 +66,8 @@
   const projectId = $derived($page.params.project_id);
   const paramsBinding = $derived({ current: params });
   const searchData = $derived(data.objects || { items: [], totalCount: 0, facets: {} });
+  const displayFields = $derived(data.displayFields);
+  const researchFields = $derived(data.researchFields);
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -85,7 +88,7 @@
 
   const vocabularies = $derived.by(() => {
     const arr = [];
-    (data.researchFields?.result || data.researchFields || []).forEach((f) => {
+    (researchFields?.result || researchFields || []).forEach((f) => {
       if ((f.type || "").toLowerCase() === "vocabulary") {
         (f.vocabularies || []).forEach((v) => {
           arr.push({ id: v.id, field_id: f.id, name: v.option?.content || v.option });
@@ -112,7 +115,7 @@
 
   const researchFieldsById = $derived(
     createLookupMap(
-      data.researchFields?.result || data.researchFields || [],
+      researchFields?.result || researchFields || [],
       (f) => f.id,
       (f) => f.name?.content || f.name || String(f.id)
     )
@@ -128,7 +131,7 @@
 
   const vocabularyFieldIds = $derived.by(() => {
     const set = new Set();
-    (data.researchFields?.result || data.researchFields || []).forEach((f) => {
+    (researchFields?.result || researchFields || []).forEach((f) => {
       if (String(f.type || "").toLowerCase() === "vocabulary") set.add(String(f.id));
     });
     return set;
@@ -156,7 +159,7 @@
     changeInstitution: t("objects.change-institution", { fallback: "Change institution" }),
     status: t("common.status", { fallback: "Status" }),
     editSelected: t("objects.edit-selected", { fallback: "Edit selected" }),
-    deleteSelected: t("common.delete-selected", { fallback: "Delete selected" }),
+    deleteSelected: t("common.delete-selected", { fallback: "Delete" }),
     search: t("common.search", { fallback: "Search" }),
     searchObjects: t("objects.search-objects", { fallback: "Search objects" }),
     selectFields: t("objects.select-fields", { fallback: "Select fields" }),
@@ -273,7 +276,7 @@
     if (!selectedObjects?.length) return;
     const ids = selectedObjects.map(String).join(",");
     const returnTo = `/projects/${projectId}/objects`;
-    window.location.href = `/projects/${projectId}/objects/bulk-edit?ids=${encodeURIComponent(ids)}&returnTo=${encodeURIComponent(returnTo)}`;
+    goto(`/projects/${projectId}/objects/bulk-edit?ids=${encodeURIComponent(ids)}&returnTo=${encodeURIComponent(returnTo)}`);
   };
 
   const applyBulkStatus = async () => {
@@ -311,10 +314,6 @@
         transition:fly={{ opacity: 1, y: -35 }}
         class="d-flex align-items-center px-3 gap-2 position-absolute top-0 start-0 end-0 bottom-0 z-1 bg-white border-bottom"
       >
-        <div class="fw-bold">
-          {selectedObjects.length}
-          {t("common.selected-objects", { fallback: "selected objects" })}
-        </div>
         <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
           <span>{i18n.clearSelection}</span>
           <i class="bi bi-x-circle"></i>
@@ -354,7 +353,7 @@
     <div class="col-8 d-flex justify-content-end gap-3 align-items-center">
       <div class="d-flex align-items-center text-truncate gap-2">
         <div class="col-auto fs-7">{i18n.selectFields}</div>
-        <InstitutionObjectsFields displayFields={data.displayFields} researchFields={data.researchFields} projectId={data.project.id} />
+        <InstitutionObjectsFields {displayFields} {researchFields} projectId={data.project.id} />
       </div>
 
       <div class="d-flex align-items-center gap-2">
@@ -394,24 +393,26 @@
         </div>
       {/if}
     </div>
-    {#if viewAs === "grid"}
-      <div class="row">
-        {#each searchData.items as object (object.id)}
-          <div class="col-4">
-            <ObjectCard {object} displayFields={data.displayFields} displayInstitution={true} />
-          </div>
-        {/each}
-      </div>
-    {:else if viewAs === "table"}
-      <ObjectsTable
-        items={searchData.items}
-        bind:orderBy={paramsBinding.current.orderBy}
-        bind:direction={paramsBinding.current.direction}
-        bind:selectedObjects
-        displayFields={data.displayFields}
-        displayInstitution={true}
-      />
-    {/if}
+    {#key displayFields}
+      {#if viewAs === "grid"}
+        <div class="row">
+          {#each searchData.items as object (object.id)}
+            <div class="col-4">
+              <ObjectCard {object} {displayFields} displayInstitution={true} bind:selected={selectedObjects} />
+            </div>
+          {/each}
+        </div>
+      {:else if viewAs === "table"}
+        <ObjectsTable
+          items={searchData.items}
+          bind:orderBy={paramsBinding.current.orderBy}
+          bind:direction={paramsBinding.current.direction}
+          bind:selectedObjects
+          {displayFields}
+          displayInstitution={true}
+        />
+      {/if}
+    {/key}
   {:else}
     <div class="text-center fst-italic text-muted mt-5">
       {i18n.noObjectsFound}
@@ -446,7 +447,7 @@
 
   {#if showAdvancedFilters}
     <ObjectAdvancedFilters
-      researchFields={data.researchFields?.result || data.researchFields || []}
+      researchFields={researchFields?.result || researchFields || []}
       ontologyFields={data.ontologyFields?.result || data.ontologyFields || []}
       institutions={data.institutions?.result || data.institutions || []}
       {vocabularies}

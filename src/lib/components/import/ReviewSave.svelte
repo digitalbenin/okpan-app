@@ -16,6 +16,7 @@
   const saveFetcher = createFetcher(importObjectsAndTemplate);
 
   const handleSave = async function () {
+    wizard.saving = true;
     try {
       const saveParams = {
         data: $state.snapshot(finalData),
@@ -31,6 +32,8 @@
     } catch (error) {
       console.error("Error saving datasource:", error);
       // Handle error appropriately, e.g., show a notification
+    } finally {
+      wizard.saving = false;
     }
   };
 
@@ -95,9 +98,6 @@
           fallback: "Save Data",
         })}
       </button> -->
-      {#if saveFetcher.isLoading}
-        <div>loading</div>
-      {/if}
     </div>
   </div>
   <div class="row">

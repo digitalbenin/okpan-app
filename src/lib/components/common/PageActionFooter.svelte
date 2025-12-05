@@ -47,7 +47,7 @@
 
   const hasAnyErrors = $derived(hasFormStoreErrors || hasStructuredErrors);
 </script>
-<div class={`min-vh-100 d-flex flex-column ${containerClass}`.trim()}>
+<div class={`d-flex flex-column ${containerClass}`.trim()} style="min-height: calc(100vh - 60px);">
   <div class={`flex-grow-1 w-100 ${contentClass}`.trim()}>
     {@render children?.()}
   </div>
