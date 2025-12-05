@@ -7,7 +7,19 @@
   import Swiper from "swiper";
   import { Navigation } from "swiper/modules";
 
-  const { object, displayFields, displayInstitution = false } = $props();
+  let { object, displayFields, displayInstitution = false, selected = $bindable([]) } = $props();
+  
+  // Selection logic
+  let isSelected = $derived(selected.includes(object.id));
+  
+  function handleCheckboxChange(event) {
+    event.stopPropagation();
+    if (isSelected) {
+      selected = selected.filter((id) => id !== object.id);
+    } else {
+      selected = [...selected, object.id];
+    }
+  }
   const { t, translationState } = getTranslationStore();
 
   const title = $derived.by(
@@ -76,10 +88,19 @@
 <div
   id="object-card-{object.id}"
   class="w-100 d-flex flex-column p-2 rounded bg-white border mb-3"
+  class:border-primary={isSelected}
+  class:border-2={isSelected}
 >
   <div class="d-flex justify-content-between align-items-center mb-2">
     <BaseBadgeStatus status={object.status}></BaseBadgeStatus>
-    <div><i class="bi bi-three-dots-vertical"></i></div>
+    <input
+      type="checkbox"
+      class="form-check-input"
+      checked={isSelected}
+      onchange={handleCheckboxChange}
+      onclick={(e) => e.stopPropagation()}
+      aria-label="Select object"
+    />
   </div>
   <div class="bg-light rounded ratio ratio-1x1 mb-3">
     {#if sortedAssets.length > 0}

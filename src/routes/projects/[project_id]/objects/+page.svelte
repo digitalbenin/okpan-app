@@ -159,7 +159,7 @@
     changeInstitution: t("objects.change-institution", { fallback: "Change institution" }),
     status: t("common.status", { fallback: "Status" }),
     editSelected: t("objects.edit-selected", { fallback: "Edit selected" }),
-    deleteSelected: t("common.delete-selected", { fallback: "Delete selected" }),
+    deleteSelected: t("common.delete-selected", { fallback: "Delete" }),
     search: t("common.search", { fallback: "Search" }),
     searchObjects: t("objects.search-objects", { fallback: "Search objects" }),
     selectFields: t("objects.select-fields", { fallback: "Select fields" }),
@@ -314,10 +314,6 @@
         transition:fly={{ opacity: 1, y: -35 }}
         class="d-flex align-items-center px-3 gap-2 position-absolute top-0 start-0 end-0 bottom-0 z-1 bg-white border-bottom"
       >
-        <div class="fw-bold">
-          {selectedObjects.length}
-          {t("common.selected-objects", { fallback: "selected objects" })}
-        </div>
         <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
           <span>{i18n.clearSelection}</span>
           <i class="bi bi-x-circle"></i>
@@ -402,7 +398,7 @@
         <div class="row">
           {#each searchData.items as object (object.id)}
             <div class="col-4">
-              <ObjectCard {object} {displayFields} displayInstitution={true} />
+              <ObjectCard {object} {displayFields} displayInstitution={true} bind:selected={selectedObjects} />
             </div>
           {/each}
         </div>
