@@ -22,7 +22,7 @@
 {/if}
 
 {#if wizard.currentStep === 3}
-  <MatchAssets />
+  <MatchAssets ontologyFields={data.ontologyFields?.result || data.ontologyFields || []} />
 {/if}
 
 {#if wizard.currentStep === 4}

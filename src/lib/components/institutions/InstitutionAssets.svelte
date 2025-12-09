@@ -143,12 +143,6 @@
         transition:fly={{ opacity: 1, y: -35 }}
         class="d-flex align-items-center px-3 gap-2 position-absolute top-0 start-0 end-0 bottom-0 z-1 bg-white border-bottom"
       >
-        <div class="fw-bold">
-          {selectedAssets.length}
-          {t("common.selected-assets", {
-            fallback: "selected assets",
-          })}
-        </div>
         <div>
           <button
             class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
@@ -247,7 +241,7 @@
       <div class="row">
         {#each filteredItems as asset (asset.id)}
           <div class="col-3">
-            <AssetCard {asset} view={params.view}
+            <AssetCard {asset} view={params.view} bind:selected={selectedAssets}
             />
           </div>
         {/each}
