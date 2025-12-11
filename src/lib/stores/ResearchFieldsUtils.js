@@ -174,6 +174,8 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
         // Asset fields
         mainAsset: updatedData.mainAsset,
         otherAssets: updatedData.otherAssets,
+        // External link
+        externalLink: updatedData.externalLink,
         // Translation arrays
         optionTranslations: updatedData.optionTranslations,
         descriptionTranslations: updatedData.descriptionTranslations
@@ -215,6 +217,8 @@ export const addVocabulary = async (fieldId, data) => {
         // Optional translation arrays on creation
         optionTranslations: data.optionTranslations,
         descriptionTranslations: data.descriptionTranslations,
+        // External link
+        externalLink: data.externalLink,
         // Optional assets if ever used in the future
         mainAsset: data.mainAsset,
         otherAssets: data.otherAssets

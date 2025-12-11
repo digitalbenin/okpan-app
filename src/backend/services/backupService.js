@@ -317,7 +317,7 @@ const generateSchemaDDL = () => {
     updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     filename TEXT,
     data TEXT,
-    template_id TEXT REFERENCES templates(id)
+    datasource_id TEXT NOT NULL UNIQUE REFERENCES datasources(id) ON DELETE CASCADE
   )`);
 
   return ddls.join('\n') + '\n';
@@ -483,13 +483,6 @@ export async function createProjectBackup(options, { db }) {
     .execute();
   const templateIds = templates.map(t => t.id);
 
-  // Imports
-  const imports = templateIds.length > 0
-    ? await db.select().from(dbSchema.imports)
-        .where(inArray(dbSchema.imports.template_id, templateIds))
-        .execute()
-    : [];
-
   // Datasources
   const datasources = institutionIds.length > 0
     ? await db.select().from(dbSchema.datasources)
@@ -503,6 +496,13 @@ export async function createProjectBackup(options, { db }) {
     if (ds.notes_id) textIds.add(ds.notes_id);
   });
   const datasourceIds = datasources.map(ds => ds.id);
+
+  // Imports (1:1 with datasources)
+  const imports = datasourceIds.length > 0
+    ? await db.select().from(dbSchema.imports)
+        .where(inArray(dbSchema.imports.datasource_id, datasourceIds))
+        .execute()
+    : [];
 
   // Objects
   const objects = await db.select().from(dbSchema.objects)
@@ -614,7 +614,7 @@ export async function createProjectBackup(options, { db }) {
     // Fourteenth: datasources (depends on institutions, templates, and texts)
     generateInsertStatements('datasources', datasources),
     
-    // Fifteenth: imports (depends on templates)
+    // Fifteenth: imports (depends on datasources, 1:1 relationship)
     generateInsertStatements('imports', imports),
     
     // Sixteenth: assets (depends on project and institutions)

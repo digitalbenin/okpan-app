@@ -59,6 +59,7 @@
             id: vocab.id,
             option: vocab.option?.content || "",
             description: vocab.description?.content || "",
+            externalLink: vocab.external_link || "",
             mainAssetFile: processAsset(vocab.mainAsset),
             otherAssetsFiles: vocab.vocabulariesGenericAssets?.map((va) => processAsset(va.genericAsset)) || [],
         };

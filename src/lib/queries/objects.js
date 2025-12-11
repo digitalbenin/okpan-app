@@ -598,19 +598,22 @@ export const objectsOperations = {
       datasourceId: "ID of the datasource to associate with the template",
       mapping: "Array of mapping objects. Format: [{\"headerField\": \"header name\", \"mappedField\": \"ontologyFieldId\", \"primary\": boolean}]",
       data: "Array of data objects to import, where each object has header names as keys",
-      assetMapRule: "Optional asset mapping rule for the template"
+      assetMapRule: "Optional asset mapping rule for the template",
+      sourceFileName: "Optional source file name to store in datasource"
     },
     query: `mutation ImportObjects(
   $datasourceId: String!
   $mapping: JSON!
   $data: [JSON!]!
   $assetMapRule: String
+  $sourceFileName: String
 ) {
   result: objectImport(
     datasourceId: $datasourceId
     mapping: $mapping
     data: $data
     assetMapRule: $assetMapRule
+    sourceFileName: $sourceFileName
   ) {
     template {
       id
@@ -621,6 +624,7 @@ export const objectsOperations = {
     datasource {
       id
       template_id
+      source
       updated_at
     }
     objects {
@@ -643,17 +647,20 @@ export const objectsOperations = {
     variables: {
       datasourceId: "ID of the datasource to associate with the template",
       templateId: "ID of the existing template to reuse",
-      data: "Array of data objects to import, where each object has header names as keys"
+      data: "Array of data objects to import, where each object has header names as keys",
+      sourceFileName: "Optional source file name to store in datasource"
     },
     query: `mutation ImportObjectsUsingTemplate(
   $datasourceId: String!
   $templateId: String!
   $data: [JSON!]!
+  $sourceFileName: String
 ) {
   result: objectImportUsingTemplate(
     datasourceId: $datasourceId
     templateId: $templateId
     data: $data
+    sourceFileName: $sourceFileName
   ) {
     template {
       id
@@ -662,6 +669,7 @@ export const objectsOperations = {
     datasource {
       id
       template_id
+      source
       updated_at
     }
     objects {

@@ -182,13 +182,23 @@ export const createObjectImportMutation = (db, drizzleResult) => {
                         }
                     }
 
+                    // 6. Create import history record (1:1 with datasource)
+                    const [importRecord] = await tx.insert(dbSchema.imports)
+                        .values({
+                            filename: sourceFileName || null,
+                            data: data,
+                            datasource_id: datasourceId
+                        })
+                        .returning();
+
                     return {
                         template: createdTemplate,
                         datasource: updatedDatasource,
                         objects: createdObjects,
                         createdObjectsCount: createdObjects.length,
                         // Store the ontology fields data for action processing but don't return in response
-                        _ontologyFields: createdOntologyFields
+                        _ontologyFields: createdOntologyFields,
+                        _import: importRecord
                     };
                 });
 
@@ -369,12 +379,22 @@ export const createObjectImportUsingTemplateMutation = (db, drizzleResult) => {
                         }
                     }
 
+                    // Create import history record (1:1 with datasource)
+                    const [importRecord] = await tx.insert(dbSchema.imports)
+                        .values({
+                            filename: sourceFileName || null,
+                            data: data,
+                            datasource_id: datasourceId
+                        })
+                        .returning();
+
                     return {
                         template: template, // returning existing template (action logging will ignore CREATE)
                         datasource: updatedDatasource,
                         objects: createdObjects,
                         createdObjectsCount: createdObjects.length,
-                        _ontologyFields: createdOntologyFields
+                        _ontologyFields: createdOntologyFields,
+                        _import: importRecord
                     };
                 });
 

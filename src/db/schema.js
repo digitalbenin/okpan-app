@@ -369,6 +369,7 @@ export const datasourcesRelations = relations(datasources, ({ one, many }) => ({
         references: [templates.id]
     }),
     objectsOntologyFields: many(objects_ontology_fields),
+    import: one(imports),
     name: one(texts, {
         fields: [datasources.name_id],
         references: [texts.id]
@@ -409,6 +410,7 @@ export const vocabularies = sqliteTable('vocabularies', {
     option_id: text('option_id').references(() => texts.id),
     description_id: text('description_id').references(() => texts.id),
     main_asset_id: text('main_asset_id').references(() => genericAssets.id),
+    external_link: text('external_link'),
     field_id: text('field_id').references(() => research_fields.id, { onDelete: 'cascade' })
 }, (table) => ({
     fieldIdx: index('idx_vocabularies_field_id').on(table.field_id)
@@ -564,23 +566,25 @@ export const templatesRelations = relations(templates, ({ one, many }) => ({
         fields: [templates.project_id],
         references: [project.id]
     }),
-    datasources: many(datasources),
-    imports: many(imports)
+    datasources: many(datasources)
 }));
 
-// Imports table
+// Imports table (1:1 with datasources)
 export const imports = sqliteTable('imports', {
     ...commonFields,
     filename: text('filename'),
     data: text('data', { mode: 'json' }),
-    template_id: text('template_id').references(() => templates.id)
+    datasource_id: text('datasource_id')
+        .notNull()
+        .unique()
+        .references(() => datasources.id, { onDelete: 'cascade' })
 });
 
 // Import relations
 export const importsRelations = relations(imports, ({ one }) => ({
-    template: one(templates, {
-        fields: [imports.template_id],
-        references: [templates.id]
+    datasource: one(datasources, {
+        fields: [imports.datasource_id],
+        references: [datasources.id]
     })
 }));
 
