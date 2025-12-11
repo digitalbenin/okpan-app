@@ -2,7 +2,7 @@ import { db } from './init.js';
 import {
     languages, project, institutions, texts, objects, assets,
     objects_assets, research_fields, vocabularies, objects_research_fields,
-    ontology_fields, datasources, objects_ontology_fields, templates
+    ontology_fields, datasources, objects_ontology_fields, templates, objects_datasources
 } from './schema.js';
 import { v4 as uuidv4 } from 'uuid';
 import { sql, eq } from 'drizzle-orm';
@@ -339,22 +339,20 @@ const seed = async () => {
                 };
             }) : [];
 
-            // Persist mapping on a Template and bind it to the datasource
+            // Create a template for this datasource (linked via objects_datasources later)
+            let createdTemplateId = null;
             try {
                 const [createdTemplate] = await db.insert(templates).values({
                     id: uuidv4(),
                     mapping: JSON.stringify(mappingArray),
                     project_id: mainProjectId,
+                    institution_id: newInstitutionId,
                     asset_map_rule: null
                 }).returning();
 
-                if (createdTemplate?.id) {
-                    await db.update(datasources)
-                        .set({ template_id: createdTemplate.id })
-                        .where(eq(datasources.id, dbDataSource.id));
-                }
+                createdTemplateId = createdTemplate?.id || null;
             } catch (templateErr) {
-                console.warn(`Failed to create/bind template for datasource ${dsData.id}:`, templateErr?.message || templateErr);
+                console.warn(`Failed to create template for datasource ${dsData.id}:`, templateErr?.message || templateErr);
             }
 
             const fieldMappings = new Map();
@@ -365,7 +363,7 @@ const seed = async () => {
                     fieldMappings.set(f.field.toLowerCase(), f.field.toLowerCase()); // Fallback if no link
                 }
             });
-            dataSourceMap.set(dsData.id, { newID: dbDataSource.id, fieldMappings });
+            dataSourceMap.set(dsData.id, { newID: dbDataSource.id, fieldMappings, templateId: createdTemplateId });
         }
         console.log(`${dataSourceMap.size} data sources seeded.`);
 
@@ -525,7 +523,21 @@ const seed = async () => {
                         console.warn(`Data source ID ${metadataEntry.data_source} for object ${objData.id} metadata not found. Skipping metadata block.`);
                         continue;
                     }
-                    const { newID: newDataSourceId, fieldMappings } = dsInfo;
+                    const { newID: newDataSourceId, fieldMappings, templateId } = dsInfo;
+
+                    // Insert into objects_datasources junction table
+                    try {
+                        await db.insert(objects_datasources).values({
+                            object_id: dbObject.id,
+                            datasource_id: newDataSourceId,
+                            template_id: templateId || null
+                        });
+                    } catch (odErr) {
+                        // Ignore duplicate key errors if object already linked to this datasource
+                        if (!odErr?.message?.includes('UNIQUE constraint failed')) {
+                            console.warn(`Failed to link object ${dbObject.id} to datasource ${newDataSourceId}:`, odErr?.message || odErr);
+                        }
+                    }
 
                     for (const fieldValuePair of metadataEntry.metadata) {
                         const sourceFieldName = fieldValuePair.field;

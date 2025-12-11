@@ -61,6 +61,29 @@ export const getDatasource = async (datasourceId) => {
     return { result: response.result, error: null };
 };
 
+// Get template(s) used by a datasource via objects_datasources junction
+export const getTemplateByDatasource = async (datasourceId) => {
+    if (!datasourceId) {
+        return { result: null, error: "Missing Datasource ID" };
+    }
+    const response = await executeQuery('templates', 'getByDatasource', { datasourceId });
+    
+    if (!response || response.error) {
+        return { result: null, error: response?.error || "Failed to fetch template" };
+    }
+    
+    // Extract unique templates from junction records
+    if (response.result?.length > 0) {
+        const uniqueTemplates = response.result
+            .filter(od => od.template_id && od.template)
+            .map(od => od.template);
+        // Return the first template found (could be enhanced to return all if needed)
+        return { result: uniqueTemplates[0] || null, error: null };
+    }
+    
+    return { result: null, error: null };
+};
+
 // Get distinct objects linked to a datasource
 export const getObjectsByDatasource = async (options) => {
     const {
@@ -130,7 +153,6 @@ export const updateDatasource = async (datasourceId, updatedData) => {
     // Prepare all parameters for the multi-step mutation
     const updateParams = {
         datasourceId: datasourceId,
-        templateId: updatedData.template_id,
         // Direct fields
         language: updatedData.language,
         contact: updatedData.contact,

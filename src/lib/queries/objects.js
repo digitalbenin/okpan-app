@@ -197,6 +197,22 @@ export const objectsOperations = {
         formats
       }
     }
+    objectsDatasources {
+      id
+      datasource_id
+      template_id
+      datasource {
+        id
+        name {
+          content
+        }
+      }
+      template {
+        id
+        mapping
+        asset_map_rule
+      }
+    }
   }
 }`
   },
@@ -619,11 +635,12 @@ export const objectsOperations = {
       id
       mapping
       project_id
+      institution_id
       asset_map_rule
     }
     datasource {
       id
-      template_id
+      import_id
       source
       updated_at
     }
@@ -665,10 +682,11 @@ export const objectsOperations = {
     template {
       id
       project_id
+      institution_id
     }
     datasource {
       id
-      template_id
+      import_id
       source
       updated_at
     }

@@ -3,27 +3,17 @@ export const templatesOperations = {
   list: {
     type: "query",
     name: "Get All Templates",
-    description: "Retrieves all templates with datasource details",
+    description: "Retrieves all templates",
     variables: {},
     query: `query GetAllTemplates {
       result:templates {
         id
         mapping
         project_id
+        institution_id
         asset_map_rule
         created_at
         updated_at
-        datasources {
-          id
-          language
-          date
-          name {
-            content
-          }
-          method {
-            content
-          }
-        }
       }
     }`
   },
@@ -41,43 +31,31 @@ export const templatesOperations = {
         id
         mapping
         project_id
+        institution_id
         asset_map_rule
         created_at
         updated_at
-        datasources {
-          id
-          language
-          date
-          name {
-            content
-          }
-          method {
-            content
-          }
-        }
       }
     }`
   },
 
-  // Get template by datasource (since datasource now maps to single template)
-  getByDatasource: {
+  // Get templates by institution
+  getByInstitution: {
     type: "query",
-    name: "Get Template by Datasource",
-    description: "Retrieves the template for a specific datasource",
+    name: "Get Templates by Institution",
+    description: "Retrieves all templates for a specific institution",
     variables: {
-      datasourceId: "ID of the datasource"
+      institutionId: "ID of the institution"
     },
-    query: `query GetTemplateByDatasource($datasourceId: String!) {
-      result:datasources(where: { id: { eq: $datasourceId } }) {
+    query: `query GetTemplatesByInstitution($institutionId: String!) {
+      result:templates(where: { institution_id: { eq: $institutionId } }) {
         id
-        template {
-          id
-          mapping
-          project_id
-          asset_map_rule
-          created_at
-          updated_at
-        }
+        mapping
+        project_id
+        institution_id
+        asset_map_rule
+        created_at
+        updated_at
       }
     }`
   },
@@ -95,20 +73,10 @@ export const templatesOperations = {
         id
         mapping
         project_id
+        institution_id
         asset_map_rule
         created_at
         updated_at
-        datasources {
-          id
-          language
-          date
-          name {
-            content
-          }
-          method {
-            content
-          }
-        }
       }
     }`
   },
@@ -121,21 +89,25 @@ export const templatesOperations = {
     variables: {
       mapping: "Template mapping configuration as JSON",
       projectId: "Project ID",
+      institutionId: "Institution ID (optional)",
       assetMapRule: "Asset mapping rule (optional)"
     },
     query: `mutation CreateTemplate(
       $mapping: String!
       $projectId: String!
+      $institutionId: String
       $assetMapRule: String
     ) {
       result:insertIntoTemplates(values: [{
         mapping: $mapping
         project_id: $projectId
+        institution_id: $institutionId
         asset_map_rule: $assetMapRule
       }]) {
         id
         mapping
         project_id
+        institution_id
         asset_map_rule
         created_at
       }
@@ -150,24 +122,52 @@ export const templatesOperations = {
     variables: {
       templateId: "ID of the template to update",
       mapping: "New template mapping configuration as JSON (optional)",
+      institutionId: "New institution ID (optional)",
       assetMapRule: "New asset mapping rule (optional)"
     },
     query: `mutation UpdateTemplate(
       $templateId: String!
       $mapping: String
+      $institutionId: String
       $assetMapRule: String
     ) {
       result:updateTemplates(
         set: {
           mapping: $mapping
+          institution_id: $institutionId
           asset_map_rule: $assetMapRule
         }
         where: { id: { eq: $templateId } }
       ) {
         id
         mapping
+        institution_id
         asset_map_rule
         updated_at
+      }
+    }`
+  },
+
+  // Get templates used by a specific datasource (via objects_datasources junction)
+  getByDatasource: {
+    type: "query",
+    name: "Get Templates by Datasource",
+    description: "Retrieves templates that have been used with a specific datasource via the objects_datasources junction table",
+    variables: {
+      datasourceId: "ID of the datasource"
+    },
+    query: `query GetTemplatesByDatasource($datasourceId: String!) {
+      result:objects_datasources(where: { datasource_id: { eq: $datasourceId } }) {
+        template_id
+        template {
+          id
+          mapping
+          project_id
+          institution_id
+          asset_map_rule
+          created_at
+          updated_at
+        }
       }
     }`
   },

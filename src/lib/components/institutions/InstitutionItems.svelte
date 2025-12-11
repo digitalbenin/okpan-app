@@ -3,6 +3,7 @@
   import InstitutionAssets from "./InstitutionAssets.svelte";
   import InstitutionObjects from "./InstitutionObjects.svelte";
   import InstitutionDatasources from "./InstitutionDatasources.svelte";
+  import InstitutionMappings from "./InstitutionMappings.svelte";
 
   let { view = $bindable(), params = $bindable(), ...restProps } = $props();
 
@@ -18,6 +19,10 @@
     {
       value: "datasources",
       label: `Data sources [${restProps.datasources.totalCount}/${restProps.institution.datasourcesCount}]`,
+    },
+    {
+      value: "mappings",
+      label: "Mappings",
     },
   ]);
 </script>
@@ -66,6 +71,10 @@
                   institution={restProps.institution}
                   datasources={restProps.datasources}
                   bind:params
+                />
+              {:else if view === "mappings"}
+                <InstitutionMappings
+                  institution={restProps.institution}
                 />
               {/if}
             </Tabs.Content>

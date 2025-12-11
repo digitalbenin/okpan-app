@@ -14,7 +14,6 @@
   import { goto } from "$app/navigation";
   import { back } from "$lib/utils/navigation.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
-  import DatasourceTemplateMappings from "$lib/components/datasources/DatasourceTemplateMappings.svelte";
 
   const translationStore = getTranslationStore();
   const contentLanguageStore = getContentLanguageStore();
@@ -27,7 +26,6 @@
   const projectId = $derived(data.projectId);
   const institutionId = $derived(data.institutionId);
   const datasourceId = $derived(data.datasourceId);
-  const ontologyFields = $derived(data.ontologyFields?.result || []);
   const datasource = $derived(Array.isArray(data.datasource) ? data.datasource[0] || {} : data.datasource || {});
   const languages = $derived(data.languages || []);
   const defaultLanguage = $derived(languages?.find((l) => l.is_default) || languages?.[0] || null);
@@ -96,7 +94,6 @@
       language: datasource?.language || "",
       contact: datasource?.contact || "",
       copyright: datasource?.copyright || "",
-      template_id: datasource?.template_id || null,
     };
 
     // Add translatable fields
@@ -124,7 +121,6 @@
           language: value.language,
           contact: value.contact,
           copyright: value.copyright,
-          template_id: value.template_id,
           languageId: defaultLanguage?.id,
           ...translations,
         };
@@ -142,6 +138,7 @@
     datasourceId: { hidden: true },
     institutionId: { hidden: true },
     languageId: { hidden: true },
+    importId: { hidden: true },
     templateId: { hidden: true },
     name: { label: t("common.name", { fallback: "Name" }), type: "text", placeholder: t("common.name", { fallback: "Name" }) },
     method: { label: t("import.method", { fallback: "Method" }), type: "textarea", placeholder: t("import.method", { fallback: "Describe method" }) },
@@ -153,7 +150,6 @@
     institutionId: String(institutionId || ""),
     languageId: defaultLanguage?.id || "",
     datasourceId: String(datasourceId || ""),
-    templateId: null,
   });
 
   // Delete state and handlers
@@ -252,18 +248,6 @@
           </div>
         </div>
 
-        {#if datasource?.template}
-          <div class="card border-0 mt-1">
-            <div class="card-body">
-              <h2 class="h5 mb-3">Template mappings</h2>
-              <DatasourceTemplateMappings
-                template={datasource.template}
-                {ontologyFields}
-                {objects}
-              />
-            </div>
-          </div>
-        {/if}
       </div>
 
       <!-- Right column: imported objects list -->

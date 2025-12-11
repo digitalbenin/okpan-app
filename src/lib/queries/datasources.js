@@ -83,12 +83,11 @@ export const datasourcesOperations = {
       created_at
       updated_at
       institution_id
-      template_id
-      template {
+      import_id
+      import {
         id
-        mapping
-        project_id
-        asset_map_rule
+        filename
+        data
         created_at
         updated_at
       }
@@ -230,7 +229,7 @@ export const datasourcesOperations = {
     description: "Creates a new datasource linked to an institution",
     variables: {
       institutionId: "ID of the institution",
-      templateId: "ID of the template (optional)",
+      importId: "ID of the import (optional)",
       languageId: "Language ID for the initial text",
       name: "Name of the datasource",
       method: "Method description (optional)",
@@ -301,7 +300,7 @@ export const datasourcesOperations = {
   $methodId: String
   $notesId: String
   $institutionId: String!
-  $templateId: String
+  $importId: String
   $language: String
   $copyright: String
   $contact: String
@@ -314,7 +313,7 @@ export const datasourcesOperations = {
         method_id: $methodId
         notes_id: $notesId
         institution_id: $institutionId
-        template_id: $templateId
+        import_id: $importId
         language: $language
         copyright: $copyright
         contact: $contact
@@ -327,15 +326,14 @@ export const datasourcesOperations = {
     method_id
     notes_id
     institution_id
-    template_id
+    import_id
     language
     copyright
     contact
     date
-    template_id
   }
 }`,
-        useVariables: ["institutionId", "languageId", "copyright", "contact", "date", "templateId"],
+        useVariables: ["institutionId", "languageId", "copyright", "contact", "date", "importId"],
         mapVariables: {
           nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
           methodId: { from: "createMethodText", path: "insertIntoTexts.0.id" },
@@ -376,7 +374,7 @@ export const datasourcesOperations = {
     variables: {
       datasourceId: "ID of the datasource to update",
       // Direct fields
-      templateId: "New template ID (optional)",
+      importId: "New import ID (optional)",
       language: "New language code (optional)",
       contact: "New contact info (optional)",
       date: "New date as ISO string (optional)",
@@ -400,7 +398,7 @@ export const datasourcesOperations = {
     name_id
     method_id
     notes_id
-    template_id
+    import_id
   }
 }`,
         useVariables: ["datasourceId"]
@@ -495,29 +493,29 @@ export const datasourcesOperations = {
         name: "updateDatasourceFields",
         query: `mutation UpdateDatasourceDirectFields(
   $datasourceId: String!
-  $templateId: String
+  $importId: String
   $language: String
   $contact: String
   $date: String
   $copyright: String
 ) {
   updateDatasources(
-    set: { language: $language, contact: $contact, date: $date, copyright: $copyright, template_id: $templateId }
+    set: { language: $language, contact: $contact, date: $date, copyright: $copyright, import_id: $importId }
     where: { id: { eq: $datasourceId } }
   ) {
     id
-    template_id
+    import_id
     language
     contact
     date
     copyright
   }
 }`,
-        useVariables: ["datasourceId", "language", "contact", "date", "copyright", "templateId"],
+        useVariables: ["datasourceId", "language", "contact", "date", "copyright", "importId"],
         skipIf: {
           condition: "AND",
           variables: [
-            { variableName: "templateId", isUndefined: true },
+            { variableName: "importId", isUndefined: true },
             { variableName: "language", isUndefined: true },
             { variableName: "contact", isUndefined: true },
             { variableName: "date", isUndefined: true },
@@ -591,20 +589,20 @@ export const datasourcesOperations = {
     name_id
     method_id
     notes_id
-    template_id
+    import_id
   }
 }`,
         useVariables: ["datasourceId"]
       },
       {
-        name: "clearTemplateReference",
-        query: `mutation ClearTemplateReference($datasourceId: String!) {
+        name: "clearImportReference",
+        query: `mutation ClearImportReference($datasourceId: String!) {
   updateDatasources(
-    set: { template_id: null }
+    set: { import_id: null }
     where: { id: { eq: $datasourceId } }
   ) {
     id
-    template_id
+    import_id
   }
 }`,
         useVariables: ["datasourceId"]
