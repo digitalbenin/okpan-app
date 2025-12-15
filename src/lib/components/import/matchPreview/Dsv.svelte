@@ -71,7 +71,7 @@
       {@const matchingSuggestion = matchingSuggestions.current.find(
         (s) => s.csvField === field
       )}
-      {@const mappedField = wizard.reusedTemplate?.mapping.find(
+      {@const mappedField = wizard.reusedTemplate?.mapping?.filter(
         (m) => m.headerField === field
       )}
       <Card

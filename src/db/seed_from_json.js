@@ -306,12 +306,18 @@ const seed = async () => {
 
         // --- 5. Seed Data Sources ---
         const dataSourceMap = new Map(); // Map old ID to { newID, fieldMappings }
+        const templateCountByInstitution = new Map();
         for (const dsData of dataSourcesData) {
             const newInstitutionId = institutionMap.get(dsData.institution);
             if (!newInstitutionId) {
                 console.warn(`Institution ID ${dsData.institution} for data source ${dsData.id} not found in map. Skipping.`);
                 continue;
             }
+
+            const nextTemplateN = (templateCountByInstitution.get(newInstitutionId) || 0) + 1;
+            templateCountByInstitution.set(newInstitutionId, nextTemplateN);
+            const templateName = `template_${nextTemplateN}`;
+
             const dsName = `Data source for ${institutionsData.find(i => i.id === dsData.institution)?.name || dsData.institution}`;
             const nameId = await createTextEntry(dsName, 'datasources.name', englishLang.id);
             const methodId = await createTextEntry(dsData.method, 'datasources.method', englishLang.id);
@@ -335,7 +341,7 @@ const seed = async () => {
                 return {
                     headerField: f.field,
                     mappedField: mappedFieldId,
-                    primary: !!f.primary
+                    primary: f.primary ? 1 : 0
                 };
             }) : [];
 
@@ -344,6 +350,7 @@ const seed = async () => {
             try {
                 const [createdTemplate] = await db.insert(templates).values({
                     id: uuidv4(),
+                    name: templateName,
                     mapping: JSON.stringify(mappingArray),
                     project_id: mainProjectId,
                     institution_id: newInstitutionId,

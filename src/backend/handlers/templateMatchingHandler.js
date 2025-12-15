@@ -42,9 +42,11 @@ export async function findMatchingTemplates(inputHeaders, projectId, institution
                 }
 
                 // Extract template headers and normalize them
-                const templateHeaders = mapping
-                    .filter(m => m.headerField) // Only consider mappings with headerField
-                    .map(m => m.headerField.toLowerCase().trim());
+                const templateHeaders = Array.from(new Set(
+                    mapping
+                        .filter(m => m && m.headerField) // Only consider mappings with headerField
+                        .map(m => String(m.headerField).toLowerCase().trim())
+                ));
 
                 if (templateHeaders.length === 0) {
                     continue;

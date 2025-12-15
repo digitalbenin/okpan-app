@@ -156,6 +156,7 @@ const generateSchemaDDL = () => {
     id TEXT PRIMARY KEY NOT NULL,
     created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    name TEXT,
     mapping TEXT,
     project_id TEXT REFERENCES project(id) ON DELETE CASCADE,
     institution_id TEXT REFERENCES institutions(id) ON DELETE SET NULL,

@@ -8,6 +8,7 @@ export const templatesOperations = {
     query: `query GetAllTemplates {
       result:templates {
         id
+        name
         mapping
         project_id
         institution_id
@@ -29,6 +30,7 @@ export const templatesOperations = {
     query: `query GetTemplatesByProject($projectId: String!) {
       result:templates(where: { project_id: { eq: $projectId } }) {
         id
+        name
         mapping
         project_id
         institution_id
@@ -50,6 +52,7 @@ export const templatesOperations = {
     query: `query GetTemplatesByInstitution($institutionId: String!) {
       result:templates(where: { institution_id: { eq: $institutionId } }) {
         id
+        name
         mapping
         project_id
         institution_id
@@ -71,6 +74,7 @@ export const templatesOperations = {
     query: `query GetTemplateById($templateId: String!) {
       result:templates(where: { id: { eq: $templateId } }) {
         id
+        name
         mapping
         project_id
         institution_id
@@ -87,24 +91,28 @@ export const templatesOperations = {
     name: "Create Template",
     description: "Creates a new template",
     variables: {
+      name: "Template name (simple text)",
       mapping: "Template mapping configuration as JSON",
       projectId: "Project ID",
       institutionId: "Institution ID (optional)",
       assetMapRule: "Asset mapping rule (optional)"
     },
     query: `mutation CreateTemplate(
-      $mapping: String!
+      $name: String
+      $mapping: JSON!
       $projectId: String!
       $institutionId: String
       $assetMapRule: String
     ) {
       result:insertIntoTemplates(values: [{
+        name: $name
         mapping: $mapping
         project_id: $projectId
         institution_id: $institutionId
         asset_map_rule: $assetMapRule
       }]) {
         id
+        name
         mapping
         project_id
         institution_id
@@ -121,18 +129,21 @@ export const templatesOperations = {
     description: "Updates an existing template",
     variables: {
       templateId: "ID of the template to update",
+      name: "Template name (simple text) (optional)",
       mapping: "New template mapping configuration as JSON (optional)",
       institutionId: "New institution ID (optional)",
       assetMapRule: "New asset mapping rule (optional)"
     },
     query: `mutation UpdateTemplate(
       $templateId: String!
-      $mapping: String
+      $name: String
+      $mapping: JSON
       $institutionId: String
       $assetMapRule: String
     ) {
       result:updateTemplates(
         set: {
+          name: $name
           mapping: $mapping
           institution_id: $institutionId
           asset_map_rule: $assetMapRule
@@ -140,6 +151,7 @@ export const templatesOperations = {
         where: { id: { eq: $templateId } }
       ) {
         id
+        name
         mapping
         institution_id
         asset_map_rule
@@ -161,6 +173,7 @@ export const templatesOperations = {
         template_id
         template {
           id
+          name
           mapping
           project_id
           institution_id

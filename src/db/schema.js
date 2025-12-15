@@ -556,6 +556,7 @@ export const objectsOntologyFieldsRelations = relations(objects_ontology_fields,
 // Templates table
 export const templates = sqliteTable('templates', {
     ...commonFields,
+    name: text('name'),
     mapping: text('mapping', { mode: 'json' }),
     project_id: text('project_id').references(() => project.id, { onDelete: 'cascade' }),
     institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'set null' }),

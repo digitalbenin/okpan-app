@@ -612,7 +612,7 @@ export const objectsOperations = {
     description: "Creates a template, associates it with a datasource, and creates multiple objects with ontology field mappings from imported data",
     variables: {
       datasourceId: "ID of the datasource to associate with the template",
-      mapping: "Array of mapping objects. Format: [{\"headerField\": \"header name\", \"mappedField\": \"ontologyFieldId\", \"primary\": boolean}]",
+      mapping: "Array of mapping objects. Format: [{\"headerField\": \"header name\", \"mappedField\": \"ontologyFieldId\"|null, \"primary\": 0|1}]",
       data: "Array of data objects to import, where each object has header names as keys",
       assetMapRule: "Optional asset mapping rule for the template",
       sourceFileName: "Optional source file name to store in datasource"

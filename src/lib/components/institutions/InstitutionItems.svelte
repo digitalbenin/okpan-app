@@ -75,6 +75,8 @@
               {:else if view === "mappings"}
                 <InstitutionMappings
                   institution={restProps.institution}
+                  mappingTemplates={restProps.mappingTemplates}
+                  ontologyFields={restProps.ontologyFields}
                 />
               {/if}
             </Tabs.Content>

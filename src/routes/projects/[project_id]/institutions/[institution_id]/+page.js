@@ -2,11 +2,13 @@ import { browser } from '$app/environment';
 import { getAssets } from "$lib/stores/AssetsUtils.js";
 import { getObjects } from "$lib/stores/ObjectsUtils.js";
 import { getDatasources } from '$lib/stores/DatasourcesUtils.js';
+import { getTemplatesByInstitution } from "$lib/stores/TemplatesUtils.js";
 // import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
 export const load = async ({ params, depends, url }) => {
     if (!browser) return;
     depends('app:institution');
+    depends('app:templates');
 
     const projectId = params.project_id;
     const institutionId = params.institution_id;
@@ -74,11 +76,13 @@ export const load = async ({ params, depends, url }) => {
         assetsData,
         objectsData,
         datasourcesData,
+        templatesData,
         // projectLanguages,
     ] = await Promise.all([
         getAssets(aOptions),
         getObjects(oOptions),
         getDatasources(sOptions),
+        getTemplatesByInstitution(institutionId),
         // getAvaliableLocalesForProject(projectId),
     ]);
 
@@ -90,8 +94,10 @@ export const load = async ({ params, depends, url }) => {
         // projectId,
         // institutionId,
         datasources: datasourcesData,
+        mappingTemplates: templatesData?.result || [],
         //projectLanguages: projectLanguages?.result || projectLanguages || [] // Adjust as per getAvaliableLocalesForProject's return
     };
     return res;
 };
+
 
