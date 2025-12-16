@@ -7,11 +7,13 @@
     contentProps = { width: "content" },
     portalProps,
     placeholder,
+    triggerLabel,
     type = "single",
     size,
     as = "select",
     searchable = false,
     searchPlaceholder = "Search...",
+    children,
     ...restProps
   } = $props();
 
@@ -72,10 +74,10 @@
       .join(" ")}
   >
     <span class="text-truncate">
-      {selectedLabel ? selectedLabel : placeholder}
+      {triggerLabel ?? (selectedLabel ? selectedLabel : placeholder)}
     </span>
-    {#if $$slots.default}
-      <slot />
+    {#if children}
+      {@render children()}
     {/if}
   </Select.Trigger>
   <Select.Portal {...portalProps}>

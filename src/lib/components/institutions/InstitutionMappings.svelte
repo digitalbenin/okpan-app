@@ -347,6 +347,7 @@
         onclick={onAddTemplate}
         disabled={creating || !projectId || !institutionId}
       >
+      <i class="bi bi-plus"></i>
         {t("common.add-template", { fallback: "Add template" })}
       </button>
     </div>
@@ -368,8 +369,8 @@
           {#each templates as tpl, idx (tpl.id)}
             <button
               type="button"
-              class="list-group-item list-group-item-light list-group-item-action"
-              class:active={tpl.id === selectedTemplateId}
+              class="list-group-item list-group-item-action border-0 text-truncate"
+              class:bg-light={tpl.id === selectedTemplateId}
               onclick={() => (selectedTemplateId = tpl.id)}
             >
               {titleForTemplate(tpl, idx)}

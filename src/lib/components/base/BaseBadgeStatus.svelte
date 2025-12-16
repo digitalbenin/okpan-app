@@ -1,9 +1,9 @@
 <script>
-  const { status, showChevron = false } = $props();
+  const { status, showChevron = false, className = "" } = $props();
 </script>
 
 <span
-  class="badge fw-normal text-capitalize"
+  class={`badge fw-normal text-capitalize ${className}`}
   class:text-bg-success={status === "completed"}
   class:text-bg-warning={status === "in progress"}
 >

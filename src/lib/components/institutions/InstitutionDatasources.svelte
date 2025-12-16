@@ -12,7 +12,7 @@
 
   const { t, translationState } = getTranslationStore();
 
-  let viewAs = $state("grid");
+  let viewAs = $state("table");
 
   const viewAsOptions = $derived([
     { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
@@ -35,10 +35,8 @@
 </script>
 
 <div class="w-100">
-  <div
-    class="row align-items-center mb-3 position-relative overflow-hidden py-2"
-  >
-    <div class="col-4">
+  <div class="row align-items-center mb-3 g-2 py-2">
+    <div class="col-12 col-md-6">
       <BaseInput
         icon="search"
         placeholder={t("common.search", { fallback: "Search" })}
@@ -46,23 +44,14 @@
         bind:value={params.sSearch}
       />
     </div>
-    <div class="col-8 d-flex justify-content-end gap-3 align-items-center">
-      <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.order-by", { fallback: "Order by" })}
-        </div>
-        <BaseSelect items={orderBy} bind:value={params.sOrderBy} size="sm"
-        ></BaseSelect>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.view-as", { fallback: "View as" })}
-        </div>
-        <BaseSelect items={viewAsOptions} bind:value={viewAs} size="sm"
-        ></BaseSelect>
-      </div>
+    <div class="col-12 col-md-6 d-flex justify-content-md-end">
+      <a class="btn btn-secondary btn-sm" href="/projects/{projectId}/import-data">
+        <i class="bi bi-plus-lg"></i>
+        {t("common.import-object", { fallback: "Import object" })}
+      </a>
     </div>
   </div>
+  
   {#if datasources.items.length > 0}
     {#if viewAs === "grid"}
       <div class="row">
