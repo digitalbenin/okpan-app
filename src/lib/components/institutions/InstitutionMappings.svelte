@@ -16,33 +16,39 @@
     ontologyFields?.result || ontologyFields || page.data.ontologyFields?.result || []
   );
 
-  function safeParseMapping(raw) {
-    if (!raw) return [];
-    if (Array.isArray(raw)) {
-      return raw
-        .map((entry) => {
-          if (!entry) return null;
-          if (typeof entry === "string") {
-            try {
-              return JSON.parse(entry);
-            } catch {
-              return null;
-            }
-          }
-          if (typeof entry === "object") return entry;
-          return null;
-        })
-        .filter(Boolean);
-    }
-    if (typeof raw === "string") {
-      try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
+  const ontologyLabelById = $derived.by(() => {
+    const map = new Map();
+    for (const f of allOntologyFields || []) {
+      if (!f?.id) continue;
+      const label = f?.name?.content;
+      if (typeof label === "string" && label.trim()) {
+        map.set(f.id, label);
       }
     }
-    return [];
+    return map;
+  });
+
+  function safeParseMapping(raw) {
+    if (!raw) return [];
+    const norm = (e) => {
+      if (!e) return null;
+      if (typeof e === "string") {
+        try {
+          return JSON.parse(e);
+        } catch {
+          return null;
+        }
+      }
+      return typeof e === "object" ? e : null;
+    };
+    if (Array.isArray(raw)) return raw.map(norm).filter(Boolean);
+    if (typeof raw !== "string") return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.map(norm).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
   }
 
   function titleForTemplate(tpl, idx) {
@@ -53,16 +59,14 @@
 
   function ontologyName(fieldId) {
     if (!fieldId) return "";
-    const f = (allOntologyFields || []).find((o) => o?.id === fieldId);
-    return f?.name?.content || "";
+    return ontologyLabelById.get(fieldId) || "";
   }
 
   function coercePrimaryBool(val) {
     return val === true || val === 1 || val === "1" || val === "true";
   }
 
- 
-  // [{ headerField, mappedField, primary: 0|1 }, ...]
+  // Option B storage: [{ headerField, mappedField, primary: 0|1 }, ...]
   // UI groups by headerField to support multi-mapping in a single row.
   function groupTemplateMappingToRows(entries) {
     const groups = new Map();
@@ -70,8 +74,8 @@
 
     for (const entry of entries || []) {
       if (!entry) continue;
-      const headerField = typeof entry.headerField === "string" ? entry.headerField : "";
-      if (!headerField.trim()) continue;
+      const headerField = typeof entry.headerField === "string" ? entry.headerField.trim() : "";
+      if (!headerField) continue;
 
       let group = groups.get(headerField);
       if (!group) {
@@ -89,7 +93,7 @@
 
       const ids = Array.isArray(entry?.mappedFields)
         ? entry.mappedFields.filter(Boolean)
-        : entry?.mappedField
+        : entry?.mappedField != null
           ? [entry.mappedField]
           : [];
 
@@ -104,46 +108,53 @@
   let templates = $state(mappingTemplates || []);
   let selectedTemplateId = $state(null);
 
-  const selectedTemplate = $derived.by(() =>
-    (templates || []).find((t) => t.id === selectedTemplateId)
-  );
+  const EMPTY_FIELD_LABEL = "(Field)";
 
   let templateTitle = $state("");
   let rows = $state([]);
 
-  watch(
-    () => (templates?.[0]?.id ? templates[0].id : null),
-    (firstId) => {
-      if (!selectedTemplateId && firstId) {
-        selectedTemplateId = firstId;
-      }
+  function initEditorState() {
+    const tpl = templates.find((t) => t.id === selectedTemplateId);
+    const idx = tpl ? templates.findIndex((t) => t.id === tpl.id) : 0;
+    templateTitle = tpl ? titleForTemplate(tpl, Math.max(0, idx)) : "";
+
+    let nextRows = groupTemplateMappingToRows(safeParseMapping(tpl?.mapping));
+    if (!nextRows.length) {
+      nextRows = [
+        {
+          rowId: crypto.randomUUID(),
+          institutionField: "",
+          mappedFields: [],
+          primary: true,
+        },
+      ];
     }
-  );
+
+    const firstPrimary = nextRows.findIndex((r) => r.primary);
+    if (firstPrimary !== -1) {
+      nextRows = nextRows.map((r, i) => ({ ...r, primary: i === firstPrimary }));
+    }
+    rows = nextRows;
+  }
 
   watch(
-    () => selectedTemplateId,
-    () => {
-      const tpl = selectedTemplate;
-      const idx = tpl ? (templates || []).findIndex((t) => t.id === tpl.id) : -1;
-      templateTitle = tpl ? titleForTemplate(tpl, Math.max(0, idx)) : "";
-      const mapping = safeParseMapping(tpl?.mapping);
-      rows = groupTemplateMappingToRows(mapping);
-
-      if (!rows.length) {
-        rows = [
-          {
-            rowId: crypto.randomUUID(),
-            institutionField: "",
-            mappedFields: [],
-            primary: true,
-          },
-        ];
+    [() => mappingTemplates, () => selectedTemplateId],
+    ([nextTemplates, _nextSelectedId], [prevTemplates, prevSelectedId]) => {
+      if (nextTemplates !== prevTemplates) {
+        templates = Array.isArray(nextTemplates) ? nextTemplates : [];
       }
 
-      // Ensure at most one primary
-      const firstPrimary = rows.findIndex((r) => r.primary);
-      if (firstPrimary !== -1) {
-        rows = rows.map((r, idx) => ({ ...r, primary: idx === firstPrimary }));
+      // Keep selection valid when templates change
+      if (!templates.length) {
+        selectedTemplateId = null;
+      } else if (!selectedTemplateId || !templates.some((t) => t.id === selectedTemplateId)) {
+        selectedTemplateId = templates[0].id;
+      }
+
+      // Initialize editor state when selection OR templates change
+      const shouldInit = selectedTemplateId !== prevSelectedId || nextTemplates !== prevTemplates;
+      if (shouldInit) {
+        initEditorState();
       }
     }
   );
@@ -193,7 +204,7 @@
   }
 
   const mappingPayload = $derived.by(() => {
-    let cleanedRows = rows
+    const cleaned = rows
       .map((r) => {
         const headerField = (r.institutionField || "").trim();
         if (!headerField) return null;
@@ -206,31 +217,22 @@
       })
       .filter(Boolean);
 
-    if (!cleanedRows.length) return [];
+    if (!cleaned.length) return [];
 
     // Ensure exactly one primary header field row
-    let primaryRowIndex = cleanedRows.findIndex((r) => r.primary);
-    if (primaryRowIndex === -1) primaryRowIndex = 0;
-    cleanedRows = cleanedRows.map((r, idx) => ({ ...r, primary: idx === primaryRowIndex }));
+    const primaryRowIndex = Math.max(0, cleaned.findIndex((r) => r.primary));
 
     // Option B: expand into one entry per mapped ontology field
     const expanded = [];
-    for (const r of cleanedRows) {
-      const primary01 = r.primary ? 1 : 0;
+    for (let i = 0; i < cleaned.length; i++) {
+      const r = cleaned[i];
+      const primary01 = i === primaryRowIndex ? 1 : 0;
       if (!r.mappedFields.length) {
-        expanded.push({
-          headerField: r.headerField,
-          mappedField: null,
-          primary: primary01,
-        });
-        continue;
-      }
-      for (const id of r.mappedFields) {
-        expanded.push({
-          headerField: r.headerField,
-          mappedField: id,
-          primary: primary01,
-        });
+        expanded.push({ headerField: r.headerField, mappedField: null, primary: primary01 });
+      } else {
+        for (const id of r.mappedFields) {
+          expanded.push({ headerField: r.headerField, mappedField: id, primary: primary01 });
+        }
       }
     }
 
@@ -244,7 +246,7 @@
     if (!projectId || !institutionId || creating) return;
     creating = true;
     try {
-      const nextTitle = `Template ${(templates?.length || 0) + 1}`;
+      const nextTitle = `Template ${templates.length + 1}`;
       const res = await createTemplate({
         mapping: [],
         projectId,
@@ -298,9 +300,9 @@
   let pickerSuggestions = $state([]);
   let pickerMatched = $state(null);
 
-  async function openPicker(row) {
+  function openPicker(row) {
     pickerRowId = row.rowId;
-    pickerFieldName = (row.institutionField || "").trim() || "(Field)";
+    pickerFieldName = (row.institutionField || "").trim() || EMPTY_FIELD_LABEL;
     pickerSuggestions = [];
     pickerMatched = null;
     pickerOpen = true;
@@ -311,7 +313,7 @@
     async (nextOpen) => {
       if (!nextOpen) return;
       const raw = (pickerFieldName || "").trim();
-      if (!raw || raw === "(Field)") {
+      if (!raw || raw === EMPTY_FIELD_LABEL) {
         pickerSuggestions = [];
         return;
       }
@@ -358,7 +360,7 @@
       </div>
 
       <div class="list-group">
-        {#if (templates || []).length === 0}
+        {#if templates.length === 0}
           <div class="list-group-item text-muted fst-italic">
             {t("common.no-templates", { fallback: "No templates" })}
           </div>

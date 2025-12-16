@@ -97,9 +97,11 @@
   );
 </script>
 
-<InstitutionOverview institution={data.institution} />
-<InstitutionItems
-  bind:view={viewParam}
-  bind:params={paramsBinding.current}
-  {...data}
-/>
+<div class="bg-light">
+  <InstitutionOverview institution={data.institution} />
+  <InstitutionItems
+    bind:view={viewParam}
+    bind:params={paramsBinding.current}
+    {...data}
+  />
+</div>
