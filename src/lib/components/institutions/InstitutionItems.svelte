@@ -50,7 +50,7 @@
                   {#snippet child({ props })}
                     <li {...props} class="nav-item me-1">
                       <div
-                        class="nav-link d-flex align-items-center gap-1 rounded-2 fs-6"
+                        class="nav-link d-flex align-items-center gap-2 rounded-2 fs-6"
                         class:active={view === tab.value}
                       >
                         {#if tab.icon}

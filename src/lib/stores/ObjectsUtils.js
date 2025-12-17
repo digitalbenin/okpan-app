@@ -587,3 +587,38 @@ export const updateObjectName = async (objectId, name) => {
         error: null
     };
 };
+
+// Default pastel color palette for connection field types
+const CONNECTION_COLORS = [
+    "#E0F2F1", // Light teal
+    "#FFF4E6", // Light orange
+    "#F3E5F5", // Light purple
+    "#E8F5E9", // Light green
+    "#FCE4EC", // Light pink
+    "#FFF3E0", // Light amber
+    "#E1F5FE", // Light blue
+    "#F9FBE7", // Light lime
+    "#FFEBEE", // Light rose
+    "#E8EAF6", // Light indigo
+];
+
+/**
+ * Get a consistent color for a connection field type
+ * Uses a hash function to ensure the same field type always gets the same color
+ */
+export const getConnectionFieldColor = (fieldName) => {
+    if (!fieldName) return CONNECTION_COLORS[0];
+    
+    // Simple hash function for consistent color assignment
+    let hash = 0;
+    const str = String(fieldName);
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    
+    // Use absolute value and modulo to get a color index
+    const index = Math.abs(hash) % CONNECTION_COLORS.length;
+    return CONNECTION_COLORS[index];
+};

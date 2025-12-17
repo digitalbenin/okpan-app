@@ -10,7 +10,8 @@
     let {
         isOpen = $bindable(false),
         field = null,
-        currentVocabularyIds = $bindable([]),
+        vocabularyFields = [],
+        currentSelections = $bindable([]), // Array of { fieldId, vocabularyId }
         onSave = null,
         onCancel = null,
         defaultLanguageId = null,
@@ -20,19 +21,18 @@
 
     // Local state
     let searchQuery = $state("");
+    let selectedFieldId = $state(null);
     let isCreating = $state(false);
     let creationError = $state(null);
     // Track vocabularies created during this modal session so parent can merge/display them
     let createdVocabularies = $state([]);
-
-    // Derived selectedIds that reactively follows currentVocabularyIds
-    let selectedIds = $derived([...(currentVocabularyIds || [])]);
 
     // Reset search when modal opens
     let previousIsOpen = $state(false);
     const resetSearchOnOpen = $derived.by(() => {
         if (isOpen && !previousIsOpen) {
             searchQuery = "";
+            selectedFieldId = field?.id || vocabularyFields[0]?.id || null;
             creationError = null;
             isCreating = false;
             createdVocabularies = [];
@@ -41,11 +41,25 @@
         return null; // derived.by must return something
     });
 
+    // Get the currently selected field from vocabularyFields
+    const currentField = $derived.by(() => {
+        if (!selectedFieldId) return field;
+        return vocabularyFields.find(f => f.id === selectedFieldId) || field;
+    });
+
+    // Get vocabulary IDs selected for the current field only
+    const selectedIdsForCurrentField = $derived.by(() => {
+        if (!currentField) return [];
+        return currentSelections
+            .filter(sel => sel.fieldId === currentField.id)
+            .map(sel => sel.vocabularyId);
+    });
+
     // Filter vocabularies based on search
     const filteredVocabularies = $derived.by(() => {
-        if (!field?.vocabularies) return [];
+        if (!currentField?.vocabularies) return [];
 
-        const vocabularies = field.vocabularies;
+        const vocabularies = currentField.vocabularies;
         if (!searchQuery.trim()) return vocabularies;
 
         return vocabularies.filter((vocab) =>
@@ -55,32 +69,32 @@
         );
     });
 
-    // Check if vocabulary is selected
+    // Check if vocabulary is selected in the current field
     function isSelected(vocabularyId) {
-        return selectedIds.includes(vocabularyId);
+        return selectedIdsForCurrentField.includes(vocabularyId);
     }
 
     function toggleVocabulary(vocabularyId) {
+        if (!currentField) return;
+        
         if (isSelected(vocabularyId)) {
-            currentVocabularyIds = currentVocabularyIds.filter(
-                (id) => id !== vocabularyId,
+            currentSelections = currentSelections.filter(
+                (sel) => !(sel.fieldId === currentField.id && sel.vocabularyId === vocabularyId)
             );
         } else {
-            currentVocabularyIds = [...currentVocabularyIds, vocabularyId];
+            currentSelections = [...currentSelections, { 
+                fieldId: currentField.id, 
+                vocabularyId 
+            }];
         }
     }
 
     function handleSave() {
-        // Pass back both the selected IDs and any vocabularies created during this session
-        if (createdVocabularies.length > 0) {
-            onSave?.({
-                ids: currentVocabularyIds,
-                created: createdVocabularies,
-            });
-        } else {
-            // Backward-compatibility: allow existing handlers that expect an array
-            onSave?.(currentVocabularyIds);
-        }
+        // Pass back selections with field IDs and any vocabularies created during this session
+        onSave?.({
+            selections: currentSelections,
+            created: createdVocabularies,
+        });
     }
 
     function handleCancel() {
@@ -106,7 +120,7 @@
             );
             return;
         }
-        if (!field?.id) {
+        if (!currentField?.id) {
             creationError = t("objects.research_fields.field_missing", {
                 fallback: "Research field is missing.",
             });
@@ -115,7 +129,7 @@
 
         isCreating = true;
         try {
-            const { result, error } = await addVocabularyAPI(field.id, {
+            const { result, error } = await addVocabularyAPI(currentField.id, {
                 languageId: defaultLanguageId,
                 option: optionText,
                 description: "",
@@ -144,16 +158,28 @@
             };
 
             // Update local field reference so list shows the new item on top
-            const existing = Array.isArray(field?.vocabularies)
-                ? field.vocabularies
+            const existing = Array.isArray(currentField?.vocabularies)
+                ? currentField.vocabularies
                 : [];
-            field = { ...field, vocabularies: [newVocab, ...existing] };
+            
+            // Update in vocabularyFields array if this is not the main field
+            if (vocabularyFields.length > 0 && selectedFieldId) {
+                const fieldIndex = vocabularyFields.findIndex(f => f.id === selectedFieldId);
+                if (fieldIndex !== -1) {
+                    vocabularyFields[fieldIndex] = { ...vocabularyFields[fieldIndex], vocabularies: [newVocab, ...existing] };
+                }
+            } else if (field) {
+                field = { ...field, vocabularies: [newVocab, ...existing] };
+            }
 
             // Remember the created vocabulary to send back to parent for merging
             createdVocabularies = [...createdVocabularies, newVocab];
 
-            // Select the newly created vocabulary
-            currentVocabularyIds = [...(currentVocabularyIds || []), newId];
+            // Select the newly created vocabulary with its field ID
+            currentSelections = [...currentSelections, { 
+                fieldId: currentField.id, 
+                vocabularyId: newId 
+            }];
         } catch (e) {
             creationError =
                 e?.message || "Unexpected error while creating vocabulary";
@@ -165,11 +191,30 @@
 
 {#snippet header()}
     {t("objects.research_fields.select_value", {
-        fallback: `Select ${field?.name?.content || "value"}`,
+        fallback: `Select ${currentField?.name?.content || field?.name?.content || "value"}`,
     })}
 {/snippet}
 
 {#snippet body()}
+    <!-- Vocabulary Field Filter (only show if multiple fields available) -->
+    {#if vocabularyFields.length > 1}
+        <div class="mb-3">
+            <label class="form-label small text-muted">
+                {t("objects.connections.select_vocabulary_type", { fallback: "Select vocabulary type" })}
+            </label>
+            <select 
+                class="form-select"
+                bind:value={selectedFieldId}
+            >
+                {#each vocabularyFields as vocabField}
+                    <option value={vocabField.id}>
+                        {vocabField.name?.content || "Unnamed field"}
+                    </option>
+                {/each}
+            </select>
+        </div>
+    {/if}
+
     <!-- Search Bar -->
     <div class="mb-4">
         <div class="position-relative">
@@ -288,7 +333,7 @@
             class="btn btn-success"
             text={t("common.save", { fallback: "Save" })}
             onClick={handleSave}
-            disabled={selectedIds.length === 0}
+            disabled={currentSelections.length === 0}
         />
     </div>
 {/snippet}

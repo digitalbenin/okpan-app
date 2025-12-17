@@ -354,7 +354,7 @@
       {#if viewAs === "grid"}
         <div class="row">
           {#each objectsData.items as object (object.id)}
-            <div class="col-4"><ObjectCard {object} {displayFields} bind:selected={selectedObjects} /></div>
+            <div class="col-3"><ObjectCard {object} {displayFields} bind:selected={selectedObjects} /></div>
           {/each}
         </div>
       {:else}
