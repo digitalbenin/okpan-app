@@ -10,7 +10,7 @@
     let {
         isOpen = $bindable(false),
         field = null,
-        vocabularyFields = [],
+        vocabularyFields = $bindable([]),
         currentSelections = $bindable([]), // Array of { fieldId, vocabularyId }
         onSave = null,
         onCancel = null,
@@ -21,7 +21,7 @@
 
     // Local state
     let searchQuery = $state("");
-    let selectedFieldId = $state(null);
+    let selectedFieldId = $state("all");
     let isCreating = $state(false);
     let creationError = $state(null);
     // Track vocabularies created during this modal session so parent can merge/display them
@@ -32,7 +32,7 @@
     const resetSearchOnOpen = $derived.by(() => {
         if (isOpen && !previousIsOpen) {
             searchQuery = "";
-            selectedFieldId = field?.id || vocabularyFields[0]?.id || null;
+            selectedFieldId = "all"; // Default to 'all'
             creationError = null;
             isCreating = false;
             createdVocabularies = [];
@@ -43,47 +43,72 @@
 
     // Get the currently selected field from vocabularyFields
     const currentField = $derived.by(() => {
+        if (selectedFieldId === "all") return null; // null means all fields
         if (!selectedFieldId) return field;
         return vocabularyFields.find(f => f.id === selectedFieldId) || field;
     });
 
-    // Get vocabulary IDs selected for the current field only
+    // Get vocabulary IDs selected for the current field (or all if 'all' selected)
     const selectedIdsForCurrentField = $derived.by(() => {
+        if (selectedFieldId === "all") {
+            // Return all selected vocabulary IDs across all fields
+            return currentSelections.map(sel => sel.vocabularyId);
+        }
         if (!currentField) return [];
         return currentSelections
             .filter(sel => sel.fieldId === currentField.id)
             .map(sel => sel.vocabularyId);
     });
 
-    // Filter vocabularies based on search
+    // Filter vocabularies based on search and selected field
     const filteredVocabularies = $derived.by(() => {
-        if (!currentField?.vocabularies) return [];
+        let allVocabs = [];
+        
+        if (selectedFieldId === "all") {
+            // Get vocabularies from all fields with field name attached
+            vocabularyFields.forEach(field => {
+                if (field.vocabularies) {
+                    field.vocabularies.forEach(vocab => {
+                        allVocabs.push({
+                            ...vocab,
+                            _fieldId: field.id,
+                            _fieldName: field.name?.content || "Unknown"
+                        });
+                    });
+                }
+            });
+        } else if (currentField?.vocabularies) {
+            allVocabs = currentField.vocabularies.map(vocab => ({
+                ...vocab,
+                _fieldId: currentField.id,
+                _fieldName: currentField.name?.content || "Unknown"
+            }));
+        }
 
-        const vocabularies = currentField.vocabularies;
-        if (!searchQuery.trim()) return vocabularies;
+        if (!searchQuery.trim()) return allVocabs;
 
-        return vocabularies.filter((vocab) =>
+        return allVocabs.filter((vocab) =>
             vocab.option?.content
                 ?.toLowerCase()
                 .includes(searchQuery.toLowerCase()),
         );
     });
 
-    // Check if vocabulary is selected in the current field
-    function isSelected(vocabularyId) {
-        return selectedIdsForCurrentField.includes(vocabularyId);
+    // Check if vocabulary is selected (field-aware)
+    function isSelected(vocabularyId, fieldId) {
+        return currentSelections.some(
+            sel => sel.vocabularyId === vocabularyId && sel.fieldId === fieldId
+        );
     }
 
-    function toggleVocabulary(vocabularyId) {
-        if (!currentField) return;
-        
-        if (isSelected(vocabularyId)) {
+    function toggleVocabulary(vocabularyId, fieldId) {
+        if (isSelected(vocabularyId, fieldId)) {
             currentSelections = currentSelections.filter(
-                (sel) => !(sel.fieldId === currentField.id && sel.vocabularyId === vocabularyId)
+                (sel) => !(sel.fieldId === fieldId && sel.vocabularyId === vocabularyId)
             );
         } else {
             currentSelections = [...currentSelections, { 
-                fieldId: currentField.id, 
+                fieldId, 
                 vocabularyId 
             }];
         }
@@ -120,9 +145,9 @@
             );
             return;
         }
-        if (!currentField?.id) {
-            creationError = t("objects.research_fields.field_missing", {
-                fallback: "Research field is missing.",
+        if (selectedFieldId === "all" || !currentField?.id) {
+            creationError = t("objects.connections.select_specific_type", {
+                fallback: "Please select a specific connection type to create a new item.",
             });
             return;
         }
@@ -157,19 +182,18 @@
                 description: { content: "" },
             };
 
-            // Update local field reference so list shows the new item on top
-            const existing = Array.isArray(currentField?.vocabularies)
-                ? currentField.vocabularies
-                : [];
-            
-            // Update in vocabularyFields array if this is not the main field
-            if (vocabularyFields.length > 0 && selectedFieldId) {
-                const fieldIndex = vocabularyFields.findIndex(f => f.id === selectedFieldId);
-                if (fieldIndex !== -1) {
-                    vocabularyFields[fieldIndex] = { ...vocabularyFields[fieldIndex], vocabularies: [newVocab, ...existing] };
-                }
-            } else if (field) {
-                field = { ...field, vocabularies: [newVocab, ...existing] };
+            // Update vocabularyFields to show the new item immediately
+            const fieldIndex = vocabularyFields.findIndex(f => f.id === currentField.id);
+            if (fieldIndex !== -1) {
+                const existing = Array.isArray(vocabularyFields[fieldIndex].vocabularies)
+                    ? vocabularyFields[fieldIndex].vocabularies
+                    : [];
+                vocabularyFields[fieldIndex] = { 
+                    ...vocabularyFields[fieldIndex], 
+                    vocabularies: [newVocab, ...existing] 
+                };
+                // Trigger reactivity
+                vocabularyFields = [...vocabularyFields];
             }
 
             // Remember the created vocabulary to send back to parent for merging
@@ -190,22 +214,40 @@
 </script>
 
 {#snippet header()}
-    {t("objects.research_fields.select_value", {
-        fallback: `Select ${currentField?.name?.content || field?.name?.content || "value"}`,
+    {t("objects.connections.select_connection", {
+        fallback: "Select Connection",
     })}
 {/snippet}
 
 {#snippet body()}
-    <!-- Vocabulary Field Filter (only show if multiple fields available) -->
-    {#if vocabularyFields.length > 1}
-        <div class="mb-3">
-            <label class="form-label small text-muted">
-                {t("objects.connections.select_vocabulary_type", { fallback: "Select vocabulary type" })}
-            </label>
+    <!-- Search Bar and Connection Type Filter in a row -->
+    <div class="d-flex gap-3 mb-4">
+        <!-- Search Bar -->
+        <div class="flex-grow-1">
+            <div class="position-relative">
+                <input
+                    type="text"
+                    class="form-control pe-5"
+                    placeholder={t("common.search", {
+                        fallback: "Search connections...",
+                    })}
+                    bind:value={searchQuery}
+                />
+                <div class="position-absolute top-50 end-0 translate-middle-y pe-3">
+                    <i class="bi bi-search text-muted"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Type Filter -->
+        <div style="min-width: 200px;">
             <select 
                 class="form-select"
                 bind:value={selectedFieldId}
             >
+                <option value="all">
+                    {t("objects.connections.all_types", { fallback: "All connection types" })}
+                </option>
                 {#each vocabularyFields as vocabField}
                     <option value={vocabField.id}>
                         {vocabField.name?.content || "Unnamed field"}
@@ -213,28 +255,11 @@
                 {/each}
             </select>
         </div>
-    {/if}
-
-    <!-- Search Bar -->
-    <div class="mb-4">
-        <div class="position-relative">
-            <input
-                type="text"
-                class="form-control pe-5"
-                placeholder={t("common.search", {
-                    fallback: "Content",
-                })}
-                bind:value={searchQuery}
-            />
-            <div class="position-absolute top-50 end-0 translate-middle-y pe-3">
-                <i class="bi bi-search text-muted"></i>
-            </div>
-        </div>
     </div>
 
     <!-- Vocabulary List -->
     <div class="vocabulary-list" style="max-height: 400px; overflow-y: auto;">
-        {#each filteredVocabularies as vocab (vocab.id)}
+        {#each filteredVocabularies as vocab (`${vocab._fieldId}_${vocab.id}`)}
             <div class="d-flex align-items-center p-3 border-bottom">
                 <!-- Main Asset Image -->
                 <div class="me-3">
@@ -253,7 +278,11 @@
                     <div class="fw-medium">
                         {vocab.option?.content || "Unnamed option"}
                     </div>
-                    {#if vocab.description?.content}
+                    {#if selectedFieldId === "all"}
+                        <small class="text-muted">
+                            {vocab._fieldName}
+                        </small>
+                    {:else if vocab.description?.content}
                         <small class="text-muted">
                             {vocab.description.content}
                         </small>
@@ -262,19 +291,19 @@
 
                 <!-- Add/Added button -->
                 <div class="ms-3">
-                    {#if isSelected(vocab.id)}
+                    {#if isSelected(vocab.id, vocab._fieldId)}
                         <BaseButton
                             class="btn btn-sm btn-success"
                             icon="check"
                             text={t("common.added", { fallback: "Added" })}
-                            onClick={() => toggleVocabulary(vocab.id)}
+                            onClick={() => toggleVocabulary(vocab.id, vocab._fieldId)}
                         />
                     {:else}
                         <BaseButton
                             class="btn btn-sm btn-outline-secondary"
                             icon="plus"
                             text={t("common.add", { fallback: "Add" })}
-                            onClick={() => toggleVocabulary(vocab.id)}
+                            onClick={() => toggleVocabulary(vocab.id, vocab._fieldId)}
                         />
                     {/if}
                 </div>
@@ -294,8 +323,19 @@
                         icon="plus-circle"
                         text={`Create "${searchQuery.trim()}"`}
                         onClick={createNewVocabulary}
-                        disabled={!defaultLanguageId || isCreating}
+                        disabled={!defaultLanguageId || isCreating || selectedFieldId === "all"}
                     />
+                    {#if selectedFieldId === "all"}
+                        <div class="small mt-2">
+                            {t(
+                                "objects.connections.select_specific_type",
+                                {
+                                    fallback:
+                                        "Please select a specific connection type to create a new item.",
+                                },
+                            )}
+                        </div>
+                    {/if}
                     {#if !defaultLanguageId}
                         <div class="small mt-2">
                             {t(
