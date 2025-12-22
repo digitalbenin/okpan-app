@@ -2,7 +2,7 @@
   import ObjectResearchFields from "$lib/components/objects/ObjectResearchFields.svelte";
   import ObjectConnections from "$lib/components/objects/ObjectConnections.svelte";
   import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
-  import ObjectOntologyFields from "$lib/components/objects/ObjectOntologyFields.svelte";
+  import ObjectInstitutionalData from "$lib/components/objects/ObjectInstitutionalData.svelte";
   import ObjectBasicInfo from "$lib/components/objects/ObjectBasicInfo.svelte";
   import ObjectHeader from "$lib/components/objects/ObjectHeader.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
@@ -337,7 +337,18 @@
             onChangesUpdate={handleComponentChanges}
           />
         </div>
-        <ObjectOntologyFields object={data.object} datasources={data.datasources} />
+        <div class="mt-2 mb-3 px-2">
+          <ObjectInstitutionalData
+            object={data.object}
+            datasources={data.datasources}
+            templates={data.templates}
+            ontologyFields={data.ontologyFields}
+            {projectId}
+            institutionId={currentInstitutionIdParam}
+            {defaultLanguageId}
+            onChangesUpdate={handleComponentChanges}
+          />
+        </div>
       </div>
     </div>
   </div>

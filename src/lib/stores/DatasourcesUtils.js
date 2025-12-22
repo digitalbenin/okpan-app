@@ -232,3 +232,63 @@ export const deleteDatasource = async (datasourceId) => {
     const result = await executeQuery('datasources', 'delete', { datasourceId });
     return result;
 };
+
+// Create a datasource for an object with auto-generated name
+export const createDatasourceForObject = async ({ institutionId, projectId, languageId }) => {
+    if (!institutionId || !projectId || !languageId) {
+        return { result: null, error: "Missing required parameters: institutionId, projectId, languageId" };
+    }
+
+    const timestamp = Date.now();
+    
+    // Import epochToDate dynamically to avoid circular dependencies
+    const { epochToDate } = await import("$lib/utils/dates.js");
+    const defaultName = `Data source ${epochToDate(timestamp, true)}`;
+
+    const params = {
+        name: defaultName,
+        institutionId,
+        languageId,
+        date: timestamp,
+    };
+
+    return await createDatasource(params);
+};
+
+// Delete datasource from object: removes ontology fields and junction relation
+export const deleteDatasourceFromObject = async (objectId, datasourceId) => {
+    if (!objectId || !datasourceId) {
+        return { error: "Missing object or datasource ID" };
+    }
+
+    try {
+        const result = await executeQuery('datasources', 'deleteFromObject', {
+            objectId,
+            datasourceId,
+        });
+
+        return { success: true, error: null };
+    } catch (error) {
+        return { success: false, error };
+    }
+};
+
+// Save or update ontology fields for a datasource
+export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, templateId, fields) => {
+    if (!objectId || !datasourceId) {
+        return { error: "Missing object or datasource ID" };
+    }
+
+    try {
+        const result = await executeQuery('datasources', 'saveOntologyFields', {
+            objectId,
+            datasourceId,
+            templateId,
+            fields,
+        });
+
+        return { result, error: null };
+    } catch (error) {
+        return { result: null, error };
+    }
+};

@@ -23,7 +23,7 @@
 <div class="card bg-white border-0">
   <div class="card-body">
     <div class="mb-3">
-      <p class="fd-5 mb-0">
+      <p class="mb-0">
         <i class="bi bi-info-circle me-2"></i>
         {t("objects.basic_object_information", {
       fallback: "Basic object Information",

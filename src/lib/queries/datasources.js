@@ -666,5 +666,127 @@ export const datasourcesOperations = {
       }
     ],
     query: null
+  },
+
+  // DELETE DATASOURCE FROM OBJECT
+  deleteFromObject: {
+    type: "mutation",
+    name: "Delete Datasource From Object",
+    description: "Removes datasource relation from object by deleting ontology fields and junction record",
+    variables: {
+      objectId: "ID of the object",
+      datasourceId: "ID of the datasource to remove"
+    },
+    mutations: [
+      {
+        name: "deleteOntologyFields",
+        query: `mutation DeleteDatasourceOntologyFields($objectId: String!, $datasourceId: String!) {
+  deleteFromObjects_ontology_fields(
+    where: { 
+      object_id: { eq: $objectId }
+      datasources_id: { eq: $datasourceId }
+    }
+  ) {
+    id
+  }
+}`,
+        useVariables: ["objectId", "datasourceId"]
+      },
+      {
+        name: "deleteJunctionRecord",
+        query: `mutation DeleteObjectDatasourceJunction($objectId: String!, $datasourceId: String!) {
+  deleteFromObjects_datasources(
+    where: {
+      object_id: { eq: $objectId }
+      datasource_id: { eq: $datasourceId }
+    }
+  ) {
+    id
+  }
+}`,
+        useVariables: ["objectId", "datasourceId"]
+      }
+    ],
+    query: null
+  },
+
+  // SAVE ONTOLOGY FIELDS FOR DATASOURCE
+  saveOntologyFields: {
+    type: "mutation",
+    name: "Save Ontology Fields For Datasource",
+    description: "Saves or updates ontology fields for a datasource on an object",
+    variables: {
+      objectId: "ID of the object",
+      datasourceId: "ID of the datasource",
+      templateId: "ID of the template used (optional)",
+      fields: "Array of field objects with label, value, field_id, datasources_id, primary"
+    },
+    mutations: [
+      {
+        name: "deleteExistingFields",
+        query: `mutation DeleteExistingOntologyFields($objectId: String!, $datasourceId: String!) {
+  deleteFromObjects_ontology_fields(
+    where: {
+      object_id: { eq: $objectId }
+      datasources_id: { eq: $datasourceId }
+    }
+  ) {
+    id
+  }
+}`,
+        useVariables: ["objectId", "datasourceId"]
+      },
+      {
+        name: "insertFields",
+        query: `mutation InsertOntologyFields($fields: [Objects_ontology_fieldsInsertInput!]!) {
+  insertIntoObjects_ontology_fields(values: $fields) {
+    id
+    label
+    value
+    field_id
+    datasources_id
+    object_id
+    primary
+  }
+}`,
+        mapVariables: {
+          fields: {
+            from: "input",
+            path: "fields",
+            transform: (fields, allVars) => {
+              return fields.map(field => ({
+                id: crypto.randomUUID(),
+                object_id: allVars.objectId,
+                label: field.label,
+                value: field.value || "",
+                field_id: field.field_id,
+                datasources_id: field.datasources_id,
+                primary: field.primary || 0,
+                default_description: 0,
+              }));
+            }
+          }
+        }
+      },
+      {
+        name: "upsertJunction",
+        query: `mutation UpsertObjectDatasourceJunction($objectId: String!, $datasourceId: String!, $templateId: String) {
+  insertIntoObjects_datasources(
+    values: [{
+      object_id: $objectId
+      datasource_id: $datasourceId
+      template_id: $templateId
+    }]
+  ) {
+    id
+    object_id
+    datasource_id
+    template_id
+  }
+}`,
+        useVariables: ["objectId", "datasourceId", "templateId"]
+      }
+    ],
+    query: null
   }
 };

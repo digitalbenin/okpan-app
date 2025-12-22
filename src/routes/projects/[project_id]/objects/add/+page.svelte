@@ -2,6 +2,7 @@
     import ObjectResearchFields from "$lib/components/objects/ObjectResearchFields.svelte";
     import ObjectConnections from "$lib/components/objects/ObjectConnections.svelte";
     import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
+    import ObjectInstitutionalData from "$lib/components/objects/ObjectInstitutionalData.svelte";
     import ObjectBasicInfo from "$lib/components/objects/ObjectBasicInfo.svelte";
     import ObjectHeader from "$lib/components/objects/ObjectHeader.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -9,6 +10,7 @@
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
     import { createObject } from "$lib/stores/ObjectsUtils.js";
+    import { getTemplatesByInstitution } from "$lib/stores/TemplatesUtils.js";
     import { queryParameters, ssp } from "sveltekit-search-params";
     import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
     import { watch } from "runed";
@@ -29,6 +31,7 @@
     // Institution selection
     let selectedInstitutionId = $state(null);
     const institutionItems = data.institutions || [];
+    let templates = $state([]);
 
     // Read institution_id from query params using sveltekit-search-params
     const params = queryParameters({
@@ -41,6 +44,19 @@
         (qId) => {
             if (qId && !selectedInstitutionId) {
                 selectedInstitutionId = qId;
+            }
+        }
+    );
+
+    // Load templates when institution changes
+    watch(
+        () => selectedInstitutionId,
+        async (institutionId) => {
+            if (institutionId) {
+                const response = await getTemplatesByInstitution(institutionId);
+                templates = response?.result || [];
+            } else {
+                templates = [];
             }
         }
     );
@@ -209,7 +225,19 @@
                         onChangesUpdate={handleComponentChanges}
                     />
                 </div>
-                <!--<ObjectOntologyFields />-->
+                {#if selectedInstitutionId}
+                    <div class="mt-2 mb-3 px-2">
+                        <ObjectInstitutionalData
+                            datasources={[]}
+                            {templates}
+                            ontologyFields={data.ontologyFields}
+                            {projectId}
+                            institutionId={selectedInstitutionId}
+                            {defaultLanguageId}
+                            onChangesUpdate={handleComponentChanges}
+                        />
+                    </div>
+                {/if}
             </div>
         </div>
     </div>
