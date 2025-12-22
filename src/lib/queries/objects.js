@@ -209,6 +209,7 @@ export const objectsOperations = {
       }
       template {
         id
+        name
         mapping
         asset_map_rule
       }

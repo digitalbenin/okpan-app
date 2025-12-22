@@ -279,16 +279,42 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
         return { error: "Missing object or datasource ID" };
     }
 
+    console.log('saveOntologyFieldsForDatasource called:', {
+        objectId,
+        datasourceId,
+        templateId,
+        fieldsCount: fields?.length,
+        fields
+    });
+
+    // Transform fields to include required fields
+    let processedFields = undefined;
+    if (fields && fields.length > 0) {
+        processedFields = fields.map(field => ({
+            object_id: objectId,
+            label: field.label,
+            value: field.value || "",
+            field_id: field.field_id,
+            datasources_id: datasourceId,
+            primary: field.primary || 0,
+            default_description: 0,
+        }));
+    }
+
+    console.log('Processed fields:', processedFields);
+
     try {
         const result = await executeQuery('datasources', 'saveOntologyFields', {
             objectId,
             datasourceId,
             templateId,
-            fields,
+            fields: processedFields,
         });
 
+        console.log('saveOntologyFieldsForDatasource result:', result);
         return { result, error: null };
     } catch (error) {
+        console.error('saveOntologyFieldsForDatasource error:', error);
         return { result: null, error };
     }
 };

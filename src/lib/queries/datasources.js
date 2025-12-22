@@ -723,6 +723,21 @@ export const datasourcesOperations = {
     },
     mutations: [
       {
+        name: "ensureJunction",
+        query: `mutation EnsureObjectDatasourceJunction($objectId: String!, $datasourceId: String!, $templateId: String) {
+  insertIntoObjects_datasources(
+    values: [{
+      object_id: $objectId
+      datasource_id: $datasourceId
+      template_id: $templateId
+    }]
+  ) {
+    id
+  }
+}`,
+        useVariables: ["objectId", "datasourceId", "templateId"]
+      },
+      {
         name: "deleteExistingFields",
         query: `mutation DeleteExistingOntologyFields($objectId: String!, $datasourceId: String!) {
   deleteFromObjects_ontology_fields(
@@ -749,42 +764,11 @@ export const datasourcesOperations = {
     primary
   }
 }`,
-        mapVariables: {
-          fields: {
-            from: "input",
-            path: "fields",
-            transform: (fields, allVars) => {
-              return fields.map(field => ({
-                id: crypto.randomUUID(),
-                object_id: allVars.objectId,
-                label: field.label,
-                value: field.value || "",
-                field_id: field.field_id,
-                datasources_id: field.datasources_id,
-                primary: field.primary || 0,
-                default_description: 0,
-              }));
-            }
-          }
-        }
-      },
-      {
-        name: "upsertJunction",
-        query: `mutation UpsertObjectDatasourceJunction($objectId: String!, $datasourceId: String!, $templateId: String) {
-  insertIntoObjects_datasources(
-    values: [{
-      object_id: $objectId
-      datasource_id: $datasourceId
-      template_id: $templateId
-    }]
-  ) {
-    id
-    object_id
-    datasource_id
-    template_id
-  }
-}`,
-        useVariables: ["objectId", "datasourceId", "templateId"]
+        skipIf: {
+          variableName: "fields",
+          isUndefined: true
+        },
+        useVariables: ["fields"]
       }
     ],
     query: null

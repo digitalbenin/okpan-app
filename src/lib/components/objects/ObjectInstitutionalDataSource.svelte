@@ -103,9 +103,10 @@
     const newValues = new Map();
     
     mappedFields.forEach(field => {
+      // Match by label (institution field name) only, not field_id
+      // This allows values to persist when template mappings change
       const existingField = existingFields.find(
-        ef => ef.label === field.institutionField &&
-              ef.field_id === field.ontologyFieldId
+        ef => ef.label === field.institutionField
       );
       const value = existingField?.value || "";
       newValues.set(field.institutionField, value);
@@ -143,10 +144,8 @@
         onChangesUpdate({
           component: `datasource-${datasource.id}`,
           hasChanges: changed,
-          getData: () => ({
-            datasourceId: datasource.id,
-            templateId: selectedTemplate?.id,
-            fields: Array.from(fieldValues.entries()).map(([institutionField, value]) => {
+          getData: () => {
+            const fieldsData = Array.from(fieldValues.entries()).map(([institutionField, value]) => {
               const field = mappedFields.find(f => f.institutionField === institutionField);
               return {
                 label: institutionField,
@@ -155,16 +154,27 @@
                 datasources_id: datasource.id,
                 primary: field?.primary ? 1 : 0,
               };
-            }),
-          }),
+            });
+            console.log('getData called - current fieldValues:', {
+              datasourceId: datasource.id,
+              templateId: selectedTemplate?.id,
+              fieldsCount: fieldsData.length,
+              fields: fieldsData,
+              fieldValuesMap: Array.from(fieldValues.entries())
+            });
+            return {
+              datasourceId: datasource.id,
+              templateId: selectedTemplate?.id,
+              fields: fieldsData,
+            };
+          },
         });
       }
     }
   );
 
   const handleCreateTemplate = () => {
-    const returnTo = `/projects/${projectId}/institutions/${institutionId}/objects/${objectId}`;
-    goto(`/projects/${projectId}/institutions/${institutionId}?tab=mappings&returnTo=${encodeURIComponent(returnTo)}`);
+    goto(`/projects/${projectId}/institutions/${institutionId}?view=mappings`);
   };
 
   const handleFieldChange = (institutionField, newValue) => {

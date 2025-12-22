@@ -27,6 +27,13 @@
   let creating = $state(false);
   let componentChanges = $state(new Map());
 
+  console.log('ObjectInstitutionalData loaded:', {
+    datasourcesCount: datasources.length,
+    datasources,
+    objectDatasources: object?.objectsDatasources,
+    objectOntologyFields: object?.objectsOntologyFields
+  });
+
   // Build map of datasource -> template from object's objectsDatasources
   const datasourceTemplateMap = $derived.by(() => {
     const map = new Map();
@@ -181,7 +188,7 @@
       />
     {/each}
     {:else}
-      <div class="text-center text-muted py-4">
+      <div class="text-muted small pb-2">
         <div class="mt-2">
           {t("objects.no-institution-data-found", {
             fallback: "No institution data found for this object",
