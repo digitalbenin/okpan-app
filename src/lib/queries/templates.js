@@ -198,5 +198,45 @@ export const templatesOperations = {
         id
       }
     }`
+  },
+
+  // Update template and propagate changes to all affected objects
+  updateAndPropagate: {
+    type: "mutation",
+    name: "Update Template and Propagate Changes",
+    description: "Updates a template and propagates the mapping changes to all objects using this template. This updates the field_id in objects_ontology_fields based on label matching.",
+    variables: {
+      templateId: "ID of the template to update",
+      name: "Template name (simple text) (optional)",
+      mapping: "New template mapping configuration as JSON",
+      institutionId: "New institution ID (optional)",
+      assetMapRule: "New asset mapping rule (optional)"
+    },
+    query: `mutation UpdateTemplateAndPropagate(
+      $templateId: String!
+      $name: String
+      $mapping: JSON!
+      $institutionId: String
+      $assetMapRule: String
+    ) {
+      result:updateTemplateAndPropagate(
+        templateId: $templateId
+        name: $name
+        mapping: $mapping
+        institutionId: $institutionId
+        assetMapRule: $assetMapRule
+      ) {
+        updatedTemplate {
+          id
+          name
+          mapping
+          institution_id
+          asset_map_rule
+          updated_at
+        }
+        affectedObjects
+        updatedFields
+      }
+    }`
   }
 }; 

@@ -85,19 +85,12 @@ const seed = async () => {
         console.log('Starting seeding process from JSON data...');
 
         // --- 1. Basic Setup (Project and Languages) ---
-        // Create project first
-        const projectRecord = await db.insert(project).values({
+        const [projectRecord] = await db.insert(project).values({
             id: uuidv4(),
             title_id: null,
             description_id: null
         }).returning();
-
-        // Ensure projectRecord is valid and contains the ID
-        if (!projectRecord || projectRecord.length === 0 || !projectRecord[0].id) {
-            console.error("Failed to create project or retrieve its ID.");
-            throw new Error("Project creation failed during seeding.");
-        }
-        const mainProjectId = projectRecord[0].id;
+        const mainProjectId = projectRecord.id;
 
         // Create project-specific languages
         const [englishLangRes, italianLangRes] = await Promise.all([
@@ -272,15 +265,7 @@ const seed = async () => {
             const nameId = await createTextEntry(instData.name, 'institutions.name', englishLang.id);
             const locationString = instData.location || "";
             const locationId = await createTextEntry(locationString, 'institutions.location', englishLang.id);
-
-            let countryName = "Unknown";
-            if (locationString) {
-                const parts = locationString.split(',');
-                if (parts.length > 0) {
-                    countryName = parts[parts.length - 1].trim();
-                }
-            }
-            const countryId = await createTextEntry(countryName, 'institutions.country', englishLang.id);
+            const countryId = await createTextEntry(locationString, 'institutions.country', englishLang.id);
 
             let processedLinks = [];
             if (instData.links && Array.isArray(instData.links)) {
@@ -332,18 +317,52 @@ const seed = async () => {
                 source: `seed_data_${dsData.institution}_${dsData.id}.csv` // Add fake filename as source
             }).returning();
 
-            // Build a mapping array compatible with the object import template
-            const mappingArray = Array.isArray(dsData.fields) ? dsData.fields.map(f => {
-                const mappedKey = (f.fieldLinks && f.fieldLinks.length > 0)
-                    ? String(f.fieldLinks[0]).toLowerCase()
-                    : String(f.field).toLowerCase();
-                const mappedFieldId = ontologyFieldsByName.get(mappedKey) || null;
-                return {
-                    headerField: f.field,
-                    mappedField: mappedFieldId,
-                    primary: f.primary ? 1 : 0
-                };
-            }) : [];
+            // Build a mapping array - one entry per ontology field mapping
+            const mappingArray = [];
+            if (Array.isArray(dsData.fields)) {
+                for (const f of dsData.fields) {
+                    if (f.fieldLinks && f.fieldLinks.length > 0) {
+                        // Create one entry for each target ontology field
+                        for (const fieldLink of f.fieldLinks) {
+                            const mappedFieldId = ontologyFieldsByName.get(String(fieldLink).toLowerCase()) || null;
+                            mappingArray.push({
+                                headerField: f.field,
+                                mappedField: mappedFieldId,
+                                primary: f.primary ? 1 : 0
+                            });
+                        }
+                    } else {
+                        // No fieldLinks, use field name as fallback
+                        const mappedFieldId = ontologyFieldsByName.get(String(f.field).toLowerCase()) || null;
+                        mappingArray.push({
+                            headerField: f.field,
+                            mappedField: mappedFieldId,
+                            primary: f.primary ? 1 : 0
+                        });
+                    }
+                }
+            }
+
+            // Ensure at least one field is marked as primary in the template
+            if (mappingArray.length > 0 && !mappingArray.some(m => m.primary === 1)) {
+                // Try to find an "object id" related field first
+                const objectIdIndex = mappingArray.findIndex(m => 
+                    m.headerField && (
+                        m.headerField.toLowerCase().includes('object id') ||
+                        m.headerField.toLowerCase().includes('museum number') ||
+                        m.headerField.toLowerCase().includes('accession number')
+                    )
+                );
+                
+                if (objectIdIndex !== -1) {
+                    mappingArray[objectIdIndex].primary = 1;
+                    console.log(`Auto-marked '${mappingArray[objectIdIndex].headerField}' as primary in template for datasource ${dsData.id}`);
+                } else {
+                    // If no ID field found, mark the first field as primary
+                    mappingArray[0].primary = 1;
+                    console.log(`Auto-marked first field '${mappingArray[0].headerField}' as primary in template for datasource ${dsData.id}`);
+                }
+            }
 
             // Create a template for this datasource (linked via objects_datasources later)
             let createdTemplateId = null;
@@ -362,12 +381,14 @@ const seed = async () => {
                 console.warn(`Failed to create template for datasource ${dsData.id}:`, templateErr?.message || templateErr);
             }
 
+            // Store field mappings as arrays to support one-to-many mappings
             const fieldMappings = new Map();
             dsData.fields.forEach(f => {
+                const fieldKey = f.field.toLowerCase();
                 if (f.fieldLinks && f.fieldLinks.length > 0) {
-                    fieldMappings.set(f.field.toLowerCase(), f.fieldLinks[0].toLowerCase());
+                    fieldMappings.set(fieldKey, f.fieldLinks.map(link => String(link).toLowerCase()));
                 } else {
-                    fieldMappings.set(f.field.toLowerCase(), f.field.toLowerCase()); // Fallback if no link
+                    fieldMappings.set(fieldKey, [String(f.field).toLowerCase()]);
                 }
             });
             dataSourceMap.set(dsData.id, { newID: dbDataSource.id, fieldMappings, templateId: createdTemplateId });
@@ -396,30 +417,23 @@ const seed = async () => {
                 const localAssetPath = await findAssetPath(edoData.asset, ['edo_images']);
 
                 if (localAssetPath) {
-                    // Asset found in 'edo_images'. It will be imported as project-level (no institution)
-                    // and its ID will be linked to the vocabulary's main_asset.
-                    const assetInstitutionIdForVocab = null; // Ensures project-level asset
-                    console.log(`INFO: Vocabulary asset '${edoData.asset}' found in 'edo_images'. Importing as project-level.`);
-
                     const assetData = {
                         path: [localAssetPath],
                         isDirectory: false,
                         projectId: mainProjectId,
-                        institutionId: assetInstitutionIdForVocab,
-                        isGenericAsset: true // Mark as generic asset
+                        institutionId: null,
+                        isGenericAsset: true
                     };
                     try {
                         const importResult = await handleImportAssets(null, assetData);
-                        if (importResult && importResult.createdAssets && importResult.createdAssets.length > 0) {
+                        if (importResult?.createdAssets?.length > 0) {
                             newAssetId = importResult.createdAssets[0].id;
-                            console.log(`INFO: Asset '${edoData.asset}' imported with ID '${newAssetId}' and will be linked to vocabulary '${edoData.name}'.`);
                         }
                     } catch (e) {
-                        console.warn(`Failed to import vocabulary asset ${edoData.asset} from 'edo_images' for Edo Designation ${edoData.name}: ${e.message}`);
+                        console.warn(`Failed to import vocabulary asset ${edoData.asset}: ${e.message}`);
                     }
                 } else {
-                    // Asset specified in edo_designations.json was not found in the 'edo_images' folder.
-                    console.warn(`WARNING: Vocabulary asset '${edoData.asset}' for Edo Designation '${edoData.name}' not found in '${path.join(seedDataPath, 'edo_images')}'. It will not be linked.`);
+                    console.warn(`Vocabulary asset '${edoData.asset}' not found in edo_images folder`);
                 }
             }
 
@@ -490,8 +504,7 @@ const seed = async () => {
                 }
             }
 
-            // Handle Images
-            if (objData.images && objData.images.length > 0) {
+            if (objData.images?.length > 0) {
                 for (const [index, imgData] of objData.images.entries()) {
                     if (imgData.asset) {
                         const localImgPath = await findAssetPath(imgData.asset);
@@ -501,21 +514,20 @@ const seed = async () => {
                                 isDirectory: false,
                                 projectId: mainProjectId,
                                 institutionId: newInstitutionId,
-                                isGenericAsset: false // Mark as non-generic (institution) asset
+                                isGenericAsset: false
                             };
                             try {
                                 const importResult = await handleImportAssets(null, assetData);
-                                if (importResult && importResult.createdAssets && importResult.createdAssets.length > 0) {
-                                    const createdAsset = importResult.createdAssets[0];
+                                if (importResult?.createdAssets?.length > 0) {
                                     await db.insert(objects_assets).values({
                                         id: uuidv4(),
-                                        asset_id: createdAsset.id,
+                                        asset_id: importResult.createdAssets[0].id,
                                         object_id: dbObject.id,
                                         order: index + 1
                                     });
                                 }
                             } catch (e) {
-                                console.warn(`Failed to import image asset ${imgData.asset} for object ${objData.id}: ${e.message}`);
+                                console.warn(`Failed to import image ${imgData.asset}: ${e.message}`);
                             }
                         }
                     }
@@ -546,47 +558,52 @@ const seed = async () => {
                         }
                     }
 
+                    // Check if any field is marked as primary in the source data
+                    const hasPrimaryField = metadataEntry.metadata.some(f => f.primary);
+                    let primaryFieldAssigned = false;
+
                     for (const fieldValuePair of metadataEntry.metadata) {
                         const sourceFieldName = fieldValuePair.field;
-                        const ontologyFieldName = fieldMappings.get(sourceFieldName.toLowerCase());
+                        const ontologyFieldNames = fieldMappings.get(sourceFieldName.toLowerCase());
 
-                        if (!ontologyFieldName) {
+                        if (!ontologyFieldNames || ontologyFieldNames.length === 0) {
                             console.warn(`No ontology field mapping for source field '${sourceFieldName}' in object ${objData.id}. Using source field name directly.`);
                         }
-                        const targetOntologyFieldName = ontologyFieldName || sourceFieldName.toLowerCase();
-                        const ontologyFieldDbId = ontologyFieldsByName.get(targetOntologyFieldName);
+                        
+                        const targetOntologyFieldNames = ontologyFieldNames || [sourceFieldName.toLowerCase()];
+                        const isPrimary = fieldValuePair.primary ? 1 : 0;
 
-                        // Capture the "primary id" value for the object title if present
-                        if (
-                            fieldValuePair.primary &&
-                            targetOntologyFieldName === 'object id' &&
-                            fieldValuePair.value !== null &&
-                            typeof fieldValuePair.value !== 'undefined' &&
-                            String(fieldValuePair.value).trim() !== ''
-                        ) {
-                            objectPrimaryIdValue = String(fieldValuePair.value);
-                        }
+                        // Create one entry for each target ontology field
+                        for (const targetOntologyFieldName of targetOntologyFieldNames) {
+                            const ontologyFieldDbId = ontologyFieldsByName.get(targetOntologyFieldName);
 
-                        if (ontologyFieldDbId && fieldValuePair.value !== null && typeof fieldValuePair.value !== "undefined" && String(fieldValuePair.value).trim() !== "") {
-
-                            // Determine if this should be the default description
-                            let isDefaultDescription = 0;
-                            if (descriptionOntologyFieldNames.has(targetOntologyFieldName)) {
-                                isDefaultDescription = 1;
+                            // Capture the "primary id" value for the object title if present
+                            if (
+                                isPrimary === 1 &&
+                                targetOntologyFieldName === 'object id' &&
+                                fieldValuePair.value !== null &&
+                                typeof fieldValuePair.value !== 'undefined' &&
+                                String(fieldValuePair.value).trim() !== ''
+                            ) {
+                                objectPrimaryIdValue = String(fieldValuePair.value);
                             }
 
-                            await db.insert(objects_ontology_fields).values({
-                                id: uuidv4(),
-                                object_id: dbObject.id,
-                                field_id: ontologyFieldDbId,
-                                datasources_id: newDataSourceId,
-                                label: sourceFieldName, // Store original field name as label
-                                value: String(fieldValuePair.value),
-                                primary: fieldValuePair.primary ? 1 : 0,
-                                default_description: isDefaultDescription // Populate the new field
-                            });
-                        } else {
-                            if (!ontologyFieldDbId) console.warn(`Ontology field ID for '${targetOntologyFieldName}' not found for object ${objData.id}, field '${sourceFieldName}'.`);
+                            if (ontologyFieldDbId && fieldValuePair.value !== null && typeof fieldValuePair.value !== "undefined" && String(fieldValuePair.value).trim() !== "") {
+                                await db.insert(objects_ontology_fields).values({
+                                    id: uuidv4(),
+                                    object_id: dbObject.id,
+                                    field_id: ontologyFieldDbId,
+                                    datasources_id: newDataSourceId,
+                                    label: sourceFieldName,
+                                    value: String(fieldValuePair.value),
+                                    primary: isPrimary,
+                                    default_description: descriptionOntologyFieldNames.has(targetOntologyFieldName) ? 1 : 0
+                                });
+                                
+                                if (isPrimary === 1) {
+                                    primaryFieldAssigned = true;
+                                }
+                            }
                         }
                     }
                 }

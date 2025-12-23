@@ -714,7 +714,7 @@ export const datasourcesOperations = {
   saveOntologyFields: {
     type: "mutation",
     name: "Save Ontology Fields For Datasource",
-    description: "Saves or updates ontology fields for a datasource on an object",
+    description: "Saves or updates ontology fields for a datasource on an object. Updates existing rows by matching on label (institution field name), only inserts/deletes when necessary.",
     variables: {
       objectId: "ID of the object",
       datasourceId: "ID of the datasource",
@@ -738,37 +738,22 @@ export const datasourcesOperations = {
         useVariables: ["objectId", "datasourceId", "templateId"]
       },
       {
-        name: "deleteExistingFields",
-        query: `mutation DeleteExistingOntologyFields($objectId: String!, $datasourceId: String!) {
-  deleteFromObjects_ontology_fields(
+        name: "getExistingFields",
+        query: `query GetExistingOntologyFields($objectId: String!, $datasourceId: String!) {
+  result: objects_ontology_fields(
     where: {
       object_id: { eq: $objectId }
       datasources_id: { eq: $datasourceId }
     }
   ) {
     id
-  }
-}`,
-        useVariables: ["objectId", "datasourceId"]
-      },
-      {
-        name: "insertFields",
-        query: `mutation InsertOntologyFields($fields: [Objects_ontology_fieldsInsertInput!]!) {
-  insertIntoObjects_ontology_fields(values: $fields) {
-    id
     label
     value
     field_id
-    datasources_id
-    object_id
     primary
   }
 }`,
-        skipIf: {
-          variableName: "fields",
-          isUndefined: true
-        },
-        useVariables: ["fields"]
+        useVariables: ["objectId", "datasourceId"]
       }
     ],
     query: null

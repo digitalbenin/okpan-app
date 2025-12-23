@@ -274,6 +274,7 @@ export const deleteDatasourceFromObject = async (objectId, datasourceId) => {
 };
 
 // Save or update ontology fields for a datasource
+// This intelligently updates existing rows instead of deleting and recreating
 export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, templateId, fields) => {
     if (!objectId || !datasourceId) {
         return { error: "Missing object or datasource ID" };
@@ -287,34 +288,115 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
         fields
     });
 
-    // Transform fields to include required fields
-    let processedFields = undefined;
-    if (fields && fields.length > 0) {
-        processedFields = fields.map(field => ({
-            object_id: objectId,
-            label: field.label,
-            value: field.value || "",
-            field_id: field.field_id,
-            datasources_id: datasourceId,
-            primary: field.primary || 0,
-            default_description: 0,
-        }));
-    }
-
-    console.log('Processed fields:', processedFields);
-
     try {
+        // First, get the existing fields to determine what needs updating vs inserting
         const result = await executeQuery('datasources', 'saveOntologyFields', {
             objectId,
             datasourceId,
             templateId,
-            fields: processedFields,
         });
 
-        console.log('saveOntologyFieldsForDatasource result:', result);
-        return { result, error: null };
+        // For composite mutations, the result has properties for each step
+        // getExistingFields returns the query result
+        const existingFields = result?.getExistingFields?.result || [];
+        console.log('Existing fields:', existingFields);
+
+        // Build maps for quick lookup
+        const existingByLabel = new Map();
+        existingFields.forEach(ef => {
+            existingByLabel.set(ef.label, ef);
+        });
+
+        const newFieldLabels = new Set((fields || []).map(f => f.label));
+
+        // Determine operations
+        const toUpdate = [];
+        const toInsert = [];
+        const toDelete = [];
+
+        // Process new/updated fields
+        for (const field of fields || []) {
+            const existing = existingByLabel.get(field.label);
+            if (existing) {
+                // Field exists - check if it needs updating
+                const needsUpdate = 
+                    existing.value !== (field.value || "") ||
+                    existing.field_id !== field.field_id ||
+                    existing.primary !== (field.primary || 0);
+
+                if (needsUpdate) {
+                    toUpdate.push({
+                        id: existing.id,
+                        value: field.value || "",
+                        field_id: field.field_id,
+                        primary: field.primary || 0,
+                    });
+                }
+            } else {
+                // New field - insert it
+                toInsert.push({
+                    object_id: objectId,
+                    datasources_id: datasourceId,
+                    label: field.label,
+                    value: field.value || "",
+                    field_id: field.field_id,
+                    primary: field.primary || 0,
+                    default_description: 0,
+                });
+            }
+        }
+
+        // Find fields that were removed
+        for (const existing of existingFields) {
+            if (!newFieldLabels.has(existing.label)) {
+                toDelete.push(existing.id);
+            }
+        }
+
+        console.log('Operations:', { toUpdate, toInsert, toDelete });
+
+        // Execute operations in parallel for efficiency
+        const operations = [];
+
+        if (toUpdate.length > 0) {
+            for (const update of toUpdate) {
+                operations.push(
+                    executeQuery('objects', 'updateOntologyFieldById', {
+                        id: update.id,
+                        value: update.value,
+                        fieldId: update.field_id,
+                        primary: update.primary,
+                    })
+                );
+            }
+        }
+
+        if (toInsert.length > 0) {
+            operations.push(
+                executeQuery('objects', 'insertOntologyFields', {
+                    fields: toInsert,
+                })
+            );
+        }
+
+        if (toDelete.length > 0) {
+            operations.push(
+                executeQuery('objects', 'deleteOntologyFields', {
+                    fieldIds: toDelete,
+                })
+            );
+        }
+
+        if (operations.length > 0) {
+            await Promise.all(operations);
+        }
+
+        console.log('saveOntologyFieldsForDatasource completed successfully');
+        invalidate('app:objects');
+        return { success: true, error: null };
     } catch (error) {
         console.error('saveOntologyFieldsForDatasource error:', error);
         return { result: null, error };
     }
 };
+

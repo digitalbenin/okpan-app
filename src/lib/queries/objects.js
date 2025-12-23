@@ -606,6 +606,77 @@ export const objectsOperations = {
 }`
   },
 
+  // UPDATE ONTOLOGY FIELD BY ID (with more fields)
+  updateOntologyFieldById: {
+    type: "mutation",
+    name: "Update Object Ontology Field By ID",
+    description: "Updates a specific ontology field including value, field_id, and primary flag",
+    variables: {
+      id: "ID of the object ontology field row to update",
+      value: "New value for the ontology field",
+      fieldId: "New ontology field ID (mapped field)",
+      primary: "Primary flag (0 or 1)"
+    },
+    query: `mutation UpdateObjectOntologyFieldById(
+  $id: String!
+  $value: String
+  $fieldId: String
+  $primary: Int
+) {
+  result: updateObjects_ontology_fields(
+    set: { 
+      value: $value
+      field_id: $fieldId
+      primary: $primary
+    }
+    where: { id: { eq: $id } }
+  ) {
+    id
+    value
+    field_id
+    primary
+  }
+}`
+  },
+
+  // INSERT ONTOLOGY FIELDS
+  insertOntologyFields: {
+    type: "mutation",
+    name: "Insert Object Ontology Fields",
+    description: "Inserts multiple ontology field records for an object",
+    variables: {
+      fields: "Array of field objects with object_id, label, value, field_id, datasources_id, primary"
+    },
+    query: `mutation InsertOntologyFields($fields: [Objects_ontology_fieldsInsertInput!]!) {
+  result: insertIntoObjects_ontology_fields(values: $fields) {
+    id
+    label
+    value
+    field_id
+    datasources_id
+    object_id
+    primary
+  }
+}`
+  },
+
+  // DELETE ONTOLOGY FIELDS
+  deleteOntologyFields: {
+    type: "mutation",
+    name: "Delete Object Ontology Fields",
+    description: "Deletes multiple ontology field records by their IDs",
+    variables: {
+      fieldIds: "Array of field IDs to delete"
+    },
+    query: `mutation DeleteOntologyFields($fieldIds: [String!]!) {
+  result: deleteFromObjects_ontology_fields(
+    where: { id: { in: $fieldIds } }
+  ) {
+    id
+  }
+}`
+  },
+
   // IMPORT OBJECTS
   import: {
     type: "mutation",

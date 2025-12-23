@@ -250,10 +250,10 @@
         <table class="table table-borderless">
           <thead>
             <tr class="border-bottom">
-              <th scope="col" class="fw-normal text-muted">
+              <th scope="col" class="fw-bold text-muted">
                 {t("objects.institution-field", { fallback: "Institution field" })}
               </th>
-              <th scope="col" class="fw-normal text-muted">
+              <th scope="col" class="fw-bold text-muted">
                 {t("objects.value", { fallback: "Value" })}
               </th>
             </tr>

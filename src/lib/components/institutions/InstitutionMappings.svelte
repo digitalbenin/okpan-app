@@ -1,7 +1,7 @@
 <script>
   import { watch } from "runed";
   import SetMatch from "$lib/components/import/matchPreview/SetMatch.svelte";
-  import { createTemplate, updateTemplate } from "$lib/stores/TemplatesUtils.js";
+  import { createTemplate, updateTemplate, updateTemplateAndPropagate } from "$lib/stores/TemplatesUtils.js";
   import { page } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
@@ -222,7 +222,6 @@
     // Ensure exactly one primary header field row
     const primaryRowIndex = Math.max(0, cleaned.findIndex((r) => r.primary));
 
-    // Option B: expand into one entry per mapped ontology field
     const expanded = [];
     for (let i = 0; i < cleaned.length; i++) {
       const r = cleaned[i];
@@ -269,17 +268,28 @@
     if (!selectedTemplateId || saving) return;
     saving = true;
     try {
-      const res = await updateTemplate(selectedTemplateId, {
+      // Use the new mutation that propagates changes to all affected objects
+      const res = await updateTemplateAndPropagate(selectedTemplateId, {
         mapping: mappingPayload,
         institutionId,
         title: (templateTitle || "").trim() || null,
       });
-      const updated =
-        res?.result?.updateTemplates?.[0] || res?.result?.[0] || null;
+      
+      const updated = res?.result?.updatedTemplate || null;
+      const affectedObjects = res?.result?.affectedObjects || 0;
+      const updatedFields = res?.result?.updatedFields || 0;
+      
       if (updated?.id) {
         templates = templates.map((t) => (t.id === updated.id ? { ...t, ...updated } : t));
+        
+        // Show feedback to user
+        if (affectedObjects > 0 || updatedFields > 0) {
+          console.log(`Template saved and propagated to ${affectedObjects} objects (${updatedFields} fields updated)`);
+        } else {
+          console.log('Template saved (no objects affected)');
+        }
       } else {
-        // optimistic update
+        // optimistic update fallback
         templates = templates.map((t) =>
           t.id === selectedTemplateId
             ? { ...t, mapping: mappingPayload, name: (templateTitle || "").trim() }
@@ -422,17 +432,14 @@
               <tbody>
                 {#each rows as row (row.rowId)}
                   <tr>
-                    <td>
-                      <div class="form-check">
-                        <input
-                          class="form-check-input"
-                          type="radio"
-                          name="primary-field"
-                          checked={row.primary}
-                          onclick={() => setPrimary(row.rowId)}
-                          disabled={!canEdit}
-                        />
-                      </div>
+                    <td class="text-center">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        checked={row.primary}
+                        onchange={() => setPrimary(row.rowId)}
+                        disabled={!canEdit}
+                      />
                     </td>
                     <td>
                       <input
