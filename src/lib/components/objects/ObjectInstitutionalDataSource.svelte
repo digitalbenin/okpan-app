@@ -4,7 +4,6 @@
   import BaseSelectNew from "$lib/components/base/BaseSelectNew.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
-  import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   const {
@@ -17,7 +16,6 @@
     projectId,
     institutionId,
     onChangesUpdate = null,
-    onDelete = null,
   } = $props();
 
   const { t } = getTranslationStore();
@@ -25,8 +23,6 @@
   let selectedTemplateId = $state(existingTemplate?.id || null);
   let fieldValues = $state(new Map());
   let initialValues = $state(new Map());
-  let deleteDialogOpen = $state(false);
-  let deleting = $state(false);
 
   const selectedTemplate = $derived.by(() => {
     if (selectedTemplateId) {
@@ -191,14 +187,6 @@
     fieldValues = new Map(fieldValues);
   };
 
-  const handleDelete = async () => {
-    if (deleting || !onDelete) return;
-    deleting = true;
-    await onDelete(datasource.id);
-    deleting = false;
-    deleteDialogOpen = false;
-  };
-
   // Build template items for dropdown
   const templateItems = $derived(
     templates.map(t => ({
@@ -208,25 +196,7 @@
   );
 </script>
 
-<div class="border-top pt-3 mt-3">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-      <div class="fw-medium">{datasource?.name?.content || "Data source"}</div>
-      {#if selectedTemplate}
-        <div class="text-muted small mt-1">
-          {t("objects.template", { fallback: "Template" })}: {selectedTemplate.name || "Untitled"}
-        </div>
-      {/if}
-    </div>
-    {#if onDelete}
-      <BaseButton
-        class="btn btn-sm btn-outline-danger"
-        icon="trash"
-        onClick={() => { deleteDialogOpen = true; }}
-      />
-    {/if}
-  </div>
-
+<div class="mt-3">
     {#if !isTemplateSelected}
       <!-- Empty State: Template Selection -->
       <div class="mb-3">
@@ -293,36 +263,3 @@
       </div>
     {/if}
   </div>
-
-<BaseAlertDialog bind:open={deleteDialogOpen}>
-  {#snippet title()}
-    {t("objects.delete-datasource.title", { fallback: "Delete data source" })}
-  {/snippet}
-  {#snippet description()}
-    <p>{t("objects.delete-datasource.confirm", { fallback: "Are you sure you want to delete this data source?" })}</p>
-    <p class="fw-medium mb-2">{datasource?.name?.content || "Data source"}</p>
-    <p class="text-muted small mb-0">
-      {t("objects.delete-datasource.impact", { 
-        fallback: "This will permanently delete all institutional field values for this data source." 
-      })}
-    </p>
-  {/snippet}
-  {#snippet footer()}
-    <button
-      class="btn btn-outline-secondary"
-      onclick={() => { if (!deleting) deleteDialogOpen = false; }}
-      disabled={deleting}
-    >
-      {t("common.cancel", { fallback: "Cancel" })}
-    </button>
-    <button
-      class="btn btn-danger"
-      onclick={handleDelete}
-      disabled={deleting}
-    >
-      {deleting 
-        ? t("common.processing", { fallback: "Processing..." }) 
-        : t("common.delete", { fallback: "Delete" })}
-    </button>
-  {/snippet}
-</BaseAlertDialog>
