@@ -32,6 +32,7 @@
   ]);
 
   const projectId = $derived(pageData.params.project_id);
+  const institutionId = $derived(pageData.params.institution_id);
 </script>
 
 <div class="w-100">
@@ -72,6 +73,9 @@
             sortable: true,
             accessor: (value) => {
               return value.name.content;
+            },
+            render: (value, item) => {
+              return `<a href="/projects/${projectId}/institutions/${institutionId}/datasources/${item.id}" class="text-decoration-none">${value}</a>`;
             },
           },
           {

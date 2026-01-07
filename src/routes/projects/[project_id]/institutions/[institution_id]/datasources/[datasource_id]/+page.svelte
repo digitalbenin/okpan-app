@@ -210,20 +210,25 @@
   ]}
 >
   <div class="container-fluid">
-    <div class="row my-3">
-      <div class="col-12 d-flex align-items-center gap-3">
-        <button
-          type="button"
-          aria-label={t("common.back", { fallback: "Back" })}
-          class="btn btn-link p-0 text-muted"
-          onclick={back}
-        >
-          <i class="bi bi-arrow-left fs-5"></i>
-        </button>
-        <h1 class="h3 mb-0">
-          {datasource?.name?.content ||
-            t("common.unnamed", { fallback: "Unnamed" })}
-        </h1>
+    <div class="row mb-2">
+      <div class="col-12">
+        <div class="d-flex align-items-center justify-content-between mt-4" style="overflow: visible;">
+          <button
+            class="btn btn-link text-decoration-none px-0"
+            aria-label={t("common.back", { fallback: "Back" })}
+            onclick={back}
+          >
+            <i class="bi bi-arrow-left"></i>
+            {data.institution?.name?.content}
+          </button>
+        </div>
+
+        <div class="mt-2">
+          <h1 class="mb-1">
+            {datasource?.name?.content ||
+              t("common.unnamed", { fallback: "Unnamed" })}
+          </h1>
+        </div>
       </div>
     </div>
 
