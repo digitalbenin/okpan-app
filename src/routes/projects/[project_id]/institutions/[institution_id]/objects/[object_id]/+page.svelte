@@ -309,7 +309,7 @@
         <div class="mt-2 mb-3 px-2">
           <ObjectBasicInfo
             bind:objectName
-            bind:selectedInstitutionId
+            {selectedInstitutionId}
             institutionItems={institutionItems}
             onNameInput={handleNameInput}
             onInstitutionValueChange={onInstitutionValueChange}

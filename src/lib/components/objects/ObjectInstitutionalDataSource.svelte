@@ -28,11 +28,19 @@
   let deleteDialogOpen = $state(false);
   let deleting = $state(false);
 
-  const selectedTemplate = $derived(
-    selectedTemplateId 
-      ? templates.find(t => t.id === selectedTemplateId)
-      : existingTemplate
-  );
+  const selectedTemplate = $derived.by(() => {
+    if (selectedTemplateId) {
+      // First try to find in available templates list
+      const fromList = templates.find(t => t.id === selectedTemplateId);
+      if (fromList) return fromList;
+      
+      // If not in list but matches existing template (e.g. from different institution), use existing
+      if (existingTemplate && existingTemplate.id === selectedTemplateId) {
+        return existingTemplate;
+      }
+    }
+    return existingTemplate;
+  });
 
   const isTemplateSelected = $derived(!!selectedTemplate);
   const templateLocked = $derived(!!existingTemplate);
