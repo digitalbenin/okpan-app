@@ -155,4 +155,5 @@
     {hiddenStaticValues}
     fieldOrder={["date"]}
     {uiSchema}
+    usePortal={false}
 />

@@ -25,6 +25,7 @@
         hiddenValueProviders = {},
         enableDirtyTracking = true,
         dirtyTrackingMessage = null,
+        usePortal = true,
     } = $props();
 
     const { t } = getTranslationStore();
@@ -276,7 +277,7 @@
 {#if derivedTranslatable.length > 0 && defaultLanguage}
     <div class="mx-4 mb-4">
         <div class="d-flex justify-content-end mb-3">
-            <LanguageSelector {languages} bind:activeLanguageCode />
+            <LanguageSelector {languages} bind:activeLanguageCode {usePortal} />
         </div>
 
         <!-- Default language -->
