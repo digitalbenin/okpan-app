@@ -27,6 +27,7 @@
         showDescription = true,
         customTitle = null,
         customDescription = null,
+        fixedType = null,
     } = $props();
 
     // Constants & Derived
@@ -38,8 +39,10 @@
     const secondaryLanguages = $derived(languages?.filter((lang) => !lang.is_default) || []);
 
     // State
+    const effectiveFixedType = $derived(isEditMode && initialData?.type ? initialData.type : fixedType);
     let vocabularyProcessingFunction = null;
-    let selectedType = $state((mode === "edit" && initialData?.type) ? initialData.type : "free text");
+    let mutableType = $state((mode === "edit" && initialData?.type) ? initialData.type : "free text");
+    const selectedType = $derived(effectiveFixedType || mutableType);
 
     // Helpers
     const processAsset = (asset) => asset ? {
@@ -75,11 +78,11 @@
     // Prepare default values based on mode
     const getDefaultValues = () => {
         if (!isEditMode || !initialData) {
-            return { type: "free text", name: "", description: "", vocabularies: [] };
+            return { type: selectedType, name: "", description: "", vocabularies: [] };
         }
 
         const values = {
-            type: initialData.type || "free text",
+            type: selectedType,
             name: initialData.name?.content || initialData.name || "",
             description: initialData.description?.content || initialData.description || "",
             vocabularies: processVocabulariesForEdit(),
@@ -105,13 +108,19 @@
         languageId: { hidden: true },
         private: { hidden: true },
         onwebsite: { hidden: true },
-        name: { label: t("common.research-field-name", { fallback: "Research Field Name" }), colSize: 7 },
+        name: { 
+            label: isConnection 
+                ? t("common.connection-name", { fallback: "Connection Name" }) 
+                : t("common.research-field-name", { fallback: "Research Field Name" }), 
+            colSize: 7 
+        },
         description: { type: "textarea", label: t("common.description", { fallback: "Description" }), colSize: 7 },
         type: {
             label: t("common.field-type", { fallback: "Field Type" }),
             renderer: TypeSelector,
             colSize: 7,
-            rendererProps: { onTypeChange: (newType) => selectedType = newType },
+            rendererProps: { onTypeChange: (newType) => mutableType = newType },
+            hidden: !!effectiveFixedType
         },
         vocabularies: {
             label: "",
@@ -235,9 +244,29 @@
         }
     };
 
-    // Determine title and description
-    const title = $derived(customTitle || (mode === "create" ? t("common.add-new-research-field", { fallback: "Add New Research Field" }) : t("common.edit-research-field", { fallback: "Edit Research Field" })));
-    const description = $derived(customDescription || (mode === "create" ? t("common.add-new-research-field-desc", { fallback: "Please fill out the details below to add a new research field to your project." }) : t("common.edit-research-field-desc", { fallback: "Please update the details below to modify this research field." })));
+    // Determine title and description - Dynamic based on type
+    const isConnection = $derived(selectedType === "vocabulary");
+    
+    // Labels
+    const title = $derived(customTitle || (
+        mode === "create" 
+            ? (isConnection 
+                ? t("common.add-new-connection", { fallback: "Add New Connection" })
+                : t("common.add-new-research-field", { fallback: "Add New Research Field" }))
+            : (isConnection
+                ? t("common.edit-connection", { fallback: "Edit Connection" })
+                : t("common.edit-research-field", { fallback: "Edit Research Field" }))
+    ));
+    
+    const description = $derived(customDescription || (
+        mode === "create"
+            ? (isConnection
+                ? t("common.add-new-connection-desc", { fallback: "Please fill out the details below to add a new connection to your project." })
+                : t("common.add-new-research-field-desc", { fallback: "Please fill out the details below to add a new research field to your project." }))
+            : (isConnection
+                ? t("common.edit-connection-desc", { fallback: "Please update the details below to modify this connection." })
+                : t("common.edit-research-field-desc", { fallback: "Please update the details below to modify this research field." }))
+    ));
 
     const leftActionButtons = $derived(onCancel ? [{
         id: "cancel-research-field",
@@ -281,7 +310,7 @@
         {/if}
 
         <div class="row"><div class="col-12">
-            <AutoForm {form} {validator} {createFieldValidator} entity="research_fields" operation={validatorOperationName} {languages} translatableFields={TRANSLATABLE_FIELDS} defaultColSize={6} translationsValidator={getValidator("translations", validatorOperationName)} fieldOrder={["type", "vocabularies"]} {uiSchema} hiddenValueProviders={{ projectId: () => projectId, languageId: () => defaultLanguage?.id || "" }} />
+            <AutoForm {form} {validator} {createFieldValidator} entity="research_fields" operation={validatorOperationName} {languages} translatableFields={TRANSLATABLE_FIELDS} defaultColSize={6} translationsValidator={getValidator("translations", validatorOperationName)} fieldOrder={["type", "vocabularies"]} {uiSchema} hiddenValueProviders={{ projectId: () => projectId, languageId: () => defaultLanguage?.id || "", type: () => selectedType }} />
         </div></div>
     </PageActionFooter>
 </form>
