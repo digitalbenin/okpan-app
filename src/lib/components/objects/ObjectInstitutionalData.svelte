@@ -5,6 +5,8 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
+  import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import DatasourceEditForm from "$lib/components/datasources/DatasourceEditForm.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { epochToDate } from "$lib/utils/dates.js";
   import {
@@ -21,6 +23,7 @@
     projectId,
     institutionId,
     defaultLanguageId,
+    languages = [],
     onChangesUpdate = null,
   } = $props();
 
@@ -34,6 +37,23 @@
   let deleteDialogOpen = $state(false);
   let datasourceToDeleteId = $state(null);
   let deleting = $state(false);
+
+  // Edit modal state
+  let editModalOpen = $state(false);
+  let datasourceToEdit = $state(null);
+  let editForm = $state(null);
+
+  const handleEditSuccess = (updatedDatasource) => {
+      // Update local array
+      if (updatedDatasource) {
+        datasourcesArray = datasourcesArray.map(ds => 
+            ds.id === updatedDatasource.id ? updatedDatasource : ds
+        );
+      }
+      editModalOpen = false;
+      datasourceToEdit = null;
+      invalidate("custom:object");
+  };
 
   // Initialize active datasource
   $effect(() => {
@@ -214,7 +234,11 @@
   };
 
   const handleEditDataSource = (datasourceId) => {
-    goto(`/projects/${projectId}/institutions/${institutionId}/datasources/${datasourceId}`);
+    const ds = datasourcesArray.find(d => d.id === datasourceId);
+    if(ds) {
+        datasourceToEdit = ds;
+        editModalOpen = true;
+    }
   };
 
   const allDatasourcesMenu = $derived(
@@ -290,10 +314,10 @@
 
           {#if datasourcesArray.length > 1}
             <div class="d-flex border-start bg-white">
-                <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => scrollToTab('left')}>
+                <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => scrollToTab('left')} aria-label="Scroll tabs left">
                     <i class="bi bi-caret-left-fill"></i>
                 </button>
-                <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => scrollToTab('right')}>
+                <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => scrollToTab('right')} aria-label="Scroll tabs right">
                     <i class="bi bi-caret-right-fill"></i>
                 </button>
                 <div class="d-flex align-items-center">
@@ -375,4 +399,41 @@
     </button>
   {/snippet}
 </BaseAlertDialog>
+
+{#if editModalOpen}
+    {#snippet editHeader()}
+        {t("objects.edit-datasource", { fallback: "Edit Data Source" })}
+    {/snippet}
+
+    {#snippet editBody()}
+        <div class="container-fluid mt-0 p-0">
+             {#if datasourceToEdit}
+                <DatasourceEditForm 
+                    datasource={datasourceToEdit}
+                    {languages}
+                    {institutionId}
+                    bind:form={editForm}
+                    onSuccess={handleEditSuccess}
+                />
+            {/if}
+        </div>
+    {/snippet}
+
+    {#snippet editActions()}
+        <div class="d-flex justify-content-end gap-2">
+            <BaseButton 
+                class="btn btn-secondary" 
+                text={t("common.cancel", { fallback: "Cancel" })} 
+                onClick={() => { editModalOpen = false; }} 
+            />
+            <BaseButton 
+                class="btn btn-primary" 
+                text={t("common.save", { fallback: "Save" })} 
+                onClick={() => editForm?.handleSubmit()} 
+            />
+        </div>
+    {/snippet}
+
+    <BaseModal bind:isOpen={editModalOpen} size="lg" header={editHeader} body={editBody} actions={editActions} />
+{/if}
 

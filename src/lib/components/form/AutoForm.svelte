@@ -274,7 +274,7 @@
 </script>
 
 {#if derivedTranslatable.length > 0 && defaultLanguage}
-    <div class="m-4">
+    <div class="mx-4 mb-4">
         <div class="d-flex justify-content-end mb-3">
             <LanguageSelector {languages} bind:activeLanguageCode />
         </div>

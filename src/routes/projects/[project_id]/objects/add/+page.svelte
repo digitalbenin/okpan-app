@@ -234,6 +234,7 @@
                             {projectId}
                             institutionId={selectedInstitutionId}
                             {defaultLanguageId}
+                            {languages}
                             onChangesUpdate={handleComponentChanges}
                         />
                     </div>

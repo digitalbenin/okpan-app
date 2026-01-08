@@ -346,6 +346,7 @@
             {projectId}
             institutionId={currentInstitutionIdParam}
             {defaultLanguageId}
+            {languages}
             onChangesUpdate={handleComponentChanges}
           />
         </div>
