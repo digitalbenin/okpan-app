@@ -240,7 +240,12 @@
             {#each mappedFields as field (field.uniqueKey)}
               <tr class="border-bottom">
                 <td class="align-middle" style="width: 40%;">
-                  <div class="mb-1">{field.institutionField}</div>
+                  <div class="mb-1 d-flex align-items-center">
+                    <span>{field.institutionField}</span>
+                    {#if field.primary}
+                        <i class="bi bi-star-fill text-black ms-2" style="font-size: 0.75rem;" title={t("objects.primary-id", { fallback: "Primary ID" })}></i>
+                    {/if}
+                  </div>
                   <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-arrow-right text-muted small"></i>
                     <span class="text-muted small">{field.ontologyFieldName}</span>
