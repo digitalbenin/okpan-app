@@ -249,7 +249,6 @@ export async function searchObjects(options = {}) {
   const institutionStmt = db.prepare(institutionFacetSql);
   institutionStmt.bind(institutionParams);
   facets.institution_ids = getResults(institutionStmt);
-  console.log('[searchObjects] Institution facets from DB:', JSON.stringify(facets.institution_ids, (k, v) => typeof v === 'bigint' ? `BigInt(${v})` : v));
 
   // status facet removed
 
@@ -302,7 +301,6 @@ export async function searchObjects(options = {}) {
   const researchStmt = db.prepare(researchFacetSql);
   researchStmt.bind(researchParams);
   facets.research_fields = getResults(researchStmt);
-  console.log('[searchObjects] Research facets from DB:', JSON.stringify(facets.research_fields, (k, v) => typeof v === 'bigint' ? `BigInt(${v})` : v));
 
   // 7. Return final structured response
   return { items, totalCount, page, pageSize, facets };

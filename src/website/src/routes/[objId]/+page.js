@@ -56,7 +56,7 @@ export async function load({ params, url }) {
                 queryParams: { projectId: obj.project_id },
                 object: { id: obj.id, name: obj.name, project_id: obj.project_id, institution_id: obj.institution_id },
                 assets: (obj.assets || []).map(a => ({ asset_path: a.asset_path, asset_formats: a.asset_formats, asset_type: a.asset_type, order: a.order })),
-                objectOntologyFields: (obj.objectOntologyFields || []).map(f => ({ field_id: f.field_id, value: f.value, primary: f.primary, datasources_id: f.datasources_id })),
+                objectOntologyFields: (obj.objectOntologyFields || []).map(f => ({ id: f.id, field_id: f.field_id, value: f.value, primary: f.primary, datasources_id: f.datasources_id, label: f.label })),
                 objectResearchFields: (obj.objectResearchFields || []).map(f => ({ field_id: f.field_id, vocabulary_id: f.vocabulary_id, value: f.value })),
                 datasources: (obj.datasources || []).filter(ds => usedIds.datasource.has(ds.id)).map(ds => ({ id: ds.id, name: ds.name, method: ds.method, institution: ds.institution?.name ? { name: ds.institution.name } : null })),
                 institution: obj.institution ? { id: obj.institution.id, name: obj.institution.name, description: obj.institution.description, website: obj.institution.website } : null,

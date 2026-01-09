@@ -226,7 +226,6 @@
 
 	async function runSearch() {
 		const options = buildSearchOptions();
-		console.log('[runSearch options]', options);
 		searchResult = await searchObjects(options);
 	}
 

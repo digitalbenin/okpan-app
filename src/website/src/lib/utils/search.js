@@ -31,7 +31,6 @@ async function getStaticData(customFetch = fetch) {
  * @param {Function} customFetch - Optional fetch function (for SSR)
  */
 export async function searchObjects(options, customFetch = fetch) {
-  console.log('[search] searchObjects called, isStaticExport:', isStaticExport);
   
   if (isStaticExport) {
     return searchObjectsStatic(options, customFetch);
