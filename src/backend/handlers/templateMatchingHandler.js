@@ -1,15 +1,16 @@
 import { db } from '../../db/init.js';
-import { templates, datasources, institutions, texts, translations, languages } from '../../db/schema.js';
-import { eq, aliasedTable } from 'drizzle-orm';
+import { templates, objects_datasources, datasources, institutions, texts, translations, languages } from '../../db/schema.js';
+import { eq, aliasedTable, and } from 'drizzle-orm';
 import { createTextFieldWithTranslations, processTranslations } from '../../db/queries/common.js';
 
 /**
  * Finds templates that have a 100% match with a subset of the input headers
  * @param {string[]} inputHeaders - Array of header names from the user's dataset
  * @param {string} projectId - Project ID to limit search scope
- * @returns {Promise<Array>} Array of matching templates with their details, datasources, and institutions
+ * @param {string} [institutionId] - Optional institution ID to prioritize templates from same institution
+ * @returns {Promise<Array>} Array of matching templates with their details and usage info
  */
-export async function findMatchingTemplates(inputHeaders, projectId) {
+export async function findMatchingTemplates(inputHeaders, projectId, institutionId = null) {
     try {
         // Get all templates for the project
         const projectTemplates = await db
@@ -17,6 +18,7 @@ export async function findMatchingTemplates(inputHeaders, projectId) {
                 id: templates.id,
                 mapping: templates.mapping,
                 project_id: templates.project_id,
+                institution_id: templates.institution_id,
                 asset_map_rule: templates.asset_map_rule,
                 created_at: templates.created_at,
                 updated_at: templates.updated_at
@@ -40,9 +42,11 @@ export async function findMatchingTemplates(inputHeaders, projectId) {
                 }
 
                 // Extract template headers and normalize them
-                const templateHeaders = mapping
-                    .filter(m => m.headerField) // Only consider mappings with headerField
-                    .map(m => m.headerField.toLowerCase().trim());
+                const templateHeaders = Array.from(new Set(
+                    mapping
+                        .filter(m => m && m.headerField) // Only consider mappings with headerField
+                        .map(m => String(m.headerField).toLowerCase().trim())
+                ));
 
                 if (templateHeaders.length === 0) {
                     continue;
@@ -54,17 +58,20 @@ export async function findMatchingTemplates(inputHeaders, projectId) {
                 );
 
                 if (allTemplateHeadersFound) {
-                    // Get datasources for this template with their institutions
-                    const templateDatasources = await getDatasourcesWithInstitutions(template.id);
+                    // Get usage info for this template (how many objects/datasources used it)
+                    const usageInfo = await getTemplateUsageInfo(template.id);
 
                     matchingTemplates.push({
                         id: template.id,
                         mapping: mapping, // Use the parsed mapping instead of the raw string
                         project_id: template.project_id,
+                        institution_id: template.institution_id,
                         asset_map_rule: template.asset_map_rule,
                         created_at: template.created_at,
                         updated_at: template.updated_at,
-                        datasources: templateDatasources
+                        usageInfo: usageInfo,
+                        // Flag templates from the same institution for prioritization
+                        sameInstitution: institutionId && template.institution_id === institutionId
                     });
                 }
             } catch (parseError) {
@@ -73,8 +80,12 @@ export async function findMatchingTemplates(inputHeaders, projectId) {
             }
         }
 
-        // Sort by creation date (newest first)
+        // Sort: same institution first, then by creation date (newest first)
         matchingTemplates.sort((a, b) => {
+            // Prioritize templates from the same institution
+            if (a.sameInstitution && !b.sameInstitution) return -1;
+            if (!a.sameInstitution && b.sameInstitution) return 1;
+            // Then sort by creation date (newest first)
             return new Date(b.created_at) - new Date(a.created_at);
         });
 
@@ -87,86 +98,34 @@ export async function findMatchingTemplates(inputHeaders, projectId) {
 }
 
 /**
- * Gets datasources for a template with their associated institutions (only id and name with translations)
- * @param {string} templateId - Template ID to get datasources for
- * @returns {Promise<Array>} Array of datasources with their institutions (minimal info)
+ * Gets usage information for a template (how many objects/datasources used it)
+ * @param {string} templateId - Template ID to get usage info for
+ * @returns {Promise<Object>} Object with usage counts
  */
-async function getDatasourcesWithInstitutions(templateId) {
+async function getTemplateUsageInfo(templateId) {
     try {
-        // Create aliases for datasource text fields
-        const datasourceNameTexts = aliasedTable(texts, 'datasource_name_texts');
-        const datasourceNameTranslations = aliasedTable(translations, 'datasource_name_translations');
-        const datasourceNameLanguages = aliasedTable(languages, 'datasource_name_languages');
-
-        // Create aliases for institution text fields
-        const institutionNameTexts = aliasedTable(texts, 'institution_name_texts');
-        const institutionNameTranslations = aliasedTable(translations, 'institution_name_translations');
-        const institutionNameLanguages = aliasedTable(languages, 'institution_name_languages');
-
-        const results = await db
+        // Count how many objects_datasources records use this template
+        const usageRecords = await db
             .select({
-                // Datasource fields (only id and name)
-                datasource_id: datasources.id,
-                datasource_name: createTextFieldWithTranslations(datasourceNameTexts, datasourceNameTranslations, datasourceNameLanguages),
-                datasource_language: datasources.language,
-                datasource_date: datasources.date,
-
-                // Institution fields (only id and name)
-                institution_id: institutions.id,
-                institution_name: createTextFieldWithTranslations(institutionNameTexts, institutionNameTranslations, institutionNameLanguages)
+                datasource_id: objects_datasources.datasource_id,
+                object_id: objects_datasources.object_id
             })
-            .from(datasources)
-            .leftJoin(institutions, eq(datasources.institution_id, institutions.id))
-
-            // Join datasource name text and translations
-            .leftJoin(datasourceNameTexts, eq(datasources.name_id, datasourceNameTexts.id))
-            .leftJoin(datasourceNameTranslations, eq(datasourceNameTexts.id, datasourceNameTranslations.text_id))
-            .leftJoin(datasourceNameLanguages, eq(datasourceNameTranslations.language_id, datasourceNameLanguages.id))
-
-            // Join institution name text and translations
-            .leftJoin(institutionNameTexts, eq(institutions.name_id, institutionNameTexts.id))
-            .leftJoin(institutionNameTranslations, eq(institutionNameTexts.id, institutionNameTranslations.text_id))
-            .leftJoin(institutionNameLanguages, eq(institutionNameTranslations.language_id, institutionNameLanguages.id))
-
-            .where(eq(datasources.template_id, templateId))
+            .from(objects_datasources)
+            .where(eq(objects_datasources.template_id, templateId))
             .execute();
 
-        // Group results by datasource to handle multiple translations
-        const datasourceMap = new Map();
+        // Get unique datasource IDs and object IDs
+        const uniqueDatasources = new Set(usageRecords.map(r => r.datasource_id));
+        const uniqueObjects = new Set(usageRecords.map(r => r.object_id));
 
-        for (const row of results) {
-            if (!datasourceMap.has(row.datasource_id)) {
-                datasourceMap.set(row.datasource_id, {
-                    id: row.datasource_id,
-                    name: row.datasource_name,
-                    language: row.datasource_language,
-                    date: row.datasource_date,
-                    institution: row.institution_id ? {
-                        id: row.institution_id,
-                        name: row.institution_name
-                    } : null
-                });
-            }
-        }
-
-        const datasourcesList = Array.from(datasourceMap.values());
-
-        // Process translations for text fields
-        const processedDatasources = processTranslations(datasourcesList, ['name']);
-
-        // Process translations for institution text fields
-        for (const datasource of processedDatasources) {
-            if (datasource.institution) {
-                const processedInstitution = processTranslations([datasource.institution], ['name']);
-                datasource.institution = processedInstitution[0];
-            }
-        }
-
-        return processedDatasources;
+        return {
+            datasourcesCount: uniqueDatasources.size,
+            objectsCount: uniqueObjects.size
+        };
 
     } catch (error) {
-        console.error('Error getting datasources with institutions:', error);
-        throw new Error(`Failed to get datasources with institutions: ${error.message}`);
+        console.error('Error getting template usage info:', error);
+        return { datasourcesCount: 0, objectsCount: 0 };
     }
 }
 
@@ -175,9 +134,10 @@ async function getDatasourcesWithInstitutions(templateId) {
  * @param {Object} event - IPC event object
  * @param {string[]} inputHeaders - Array of header names from the user's dataset
  * @param {string} projectId - Project ID to limit search scope
+ * @param {string} [institutionId] - Optional institution ID to prioritize templates from same institution
  * @returns {Promise<Array>} Array of matching templates
  */
-export async function handleSuggestTemplateReuse(event, inputHeaders, projectId) {
+export async function handleSuggestTemplateReuse(event, inputHeaders, projectId, institutionId = null) {
     try {
         // Validate input
         if (!Array.isArray(inputHeaders) || inputHeaders.length === 0) {
@@ -189,13 +149,14 @@ export async function handleSuggestTemplateReuse(event, inputHeaders, projectId)
         }
 
         // Find matching templates
-        const matchingTemplates = await findMatchingTemplates(inputHeaders, projectId);
+        const matchingTemplates = await findMatchingTemplates(inputHeaders, projectId, institutionId);
 
         return {
             success: true,
             matchingTemplates,
             inputHeaders,
             projectId,
+            institutionId,
             totalMatches: matchingTemplates.length
         };
 
@@ -207,6 +168,7 @@ export async function handleSuggestTemplateReuse(event, inputHeaders, projectId)
             matchingTemplates: [],
             inputHeaders,
             projectId,
+            institutionId,
             totalMatches: 0
         };
     }

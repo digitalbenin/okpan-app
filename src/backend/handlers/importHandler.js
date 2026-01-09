@@ -25,9 +25,14 @@ export const suggestFieldMappings = async (csvFieldNames, options = {
     projectId: null // Optional: will auto-read from cache if not provided
 }) => {
 
-    const { maxSuggestions, threshold, excludeFieldIds } = options;
+    const {
+        maxSuggestions = 3,
+        threshold = 0.2,
+        excludeFieldIds = [],
+        projectId = null
+    } = options || {};
     // Auto-resolve projectId from cache if not explicitly provided
-    const effectiveProjectId = options.projectId ?? getCurrentProjectId();
+    const effectiveProjectId = projectId ?? getCurrentProjectId();
     try {
 
         // Get all ontology fields with embeddings

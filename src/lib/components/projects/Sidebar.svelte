@@ -22,6 +22,12 @@
       icon: "box",
       exact: true,
     },
+     {
+      label: t("menu.connections", { fallback: "Connections" }),
+      url: `/projects/${page.data.project.id}/connections`,
+      icon: "share-fill",
+      exact: true,
+    },
   ]);
 
   const actionsLinks = $derived([

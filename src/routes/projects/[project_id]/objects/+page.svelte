@@ -397,7 +397,7 @@
       {#if viewAs === "grid"}
         <div class="row">
           {#each searchData.items as object (object.id)}
-            <div class="col-4">
+            <div class="col-3">
               <ObjectCard {object} {displayFields} displayInstitution={true} bind:selected={selectedObjects} />
             </div>
           {/each}

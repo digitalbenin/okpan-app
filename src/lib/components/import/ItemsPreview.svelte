@@ -37,11 +37,14 @@
 
   const item = $derived.by(() => {
     return Object.entries(data[page - 1]).map(([key, value]) => {
-      const mappedField = mapping.find(
-        (m) => m.headerField === key,
-      ).mappedField;
+      const mappedFields = (mapping || [])
+        .filter((m) => m?.headerField === key)
+        .map((m) => m?.mappedField)
+        .filter(Boolean);
 
-      const ontologyLabel = mappedField ? getOntologyLabel(mappedField) : null;
+      const ontologyLabel = mappedFields.length
+        ? mappedFields.map((id) => getOntologyLabel(id)).filter(Boolean).join(", ")
+        : null;
       let outputValue;
       if (value) {
         const splittedValue = String(value).split("|");

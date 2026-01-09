@@ -22,20 +22,39 @@
 
   const { t } = getTranslationStore();
 
-  let fieldMatched = $derived.by(() => {
-    if (!matchingSuggestion && !mappedField) {
-      return null;
-    } else if (mappedField && mappedField.mappedField) {
-      const ontologyField = page.data.ontologyFields.result.find(
-        (f) => f.id === mappedField.mappedField
-      );
-      return {
+  const editEnabled = $derived(wizard.useMatchingTemplate ? false : true);
+
+  const mappedFieldIds = $derived.by(() => {
+    if (!mappedField) return [];
+    const arr = Array.isArray(mappedField) ? mappedField : [mappedField];
+    return arr.map((m) => m?.mappedField).filter(Boolean);
+  });
+
+  const mappedFieldMatches = $derived.by(() => {
+    if (!mappedFieldIds.length) return [];
+    return mappedFieldIds
+      .map((id) => page.data.ontologyFields.result.find((f) => f.id === id))
+      .filter(Boolean)
+      .map((ontologyField) => ({
         name: ontologyField.name.content,
         id: ontologyField.id,
         description: ontologyField.description.content,
         suggestion: false,
-      };
-    } else if (matchingSuggestion) {
+      }));
+  });
+
+  let fieldMatched = $derived.by(() => {
+    if (!matchingSuggestion && !mappedField) {
+      return null;
+    }
+
+    if (mappedFieldMatches.length) {
+      // In template reuse mode a single headerField can map to multiple ontology fields.
+      // This component still edits a single mapping in non-template mode, so we take the first.
+      return mappedFieldMatches[0];
+    }
+
+    if (matchingSuggestion) {
       if (!matchingSuggestion?.suggestions?.length) {
         return null;
       }
@@ -56,8 +75,6 @@
         : false
   );
 
-  const editEnabled = $derived(wizard.useMatchingTemplate ? false : true);
-
   const slicedValues = $derived(
     values.length > 10 ? values.slice(0, 10).sort() : values.sort()
   );
@@ -68,6 +85,11 @@
       [field, fieldMatched, checked],
       [prevField, prevFieldMatched, prevChecked]
     ) => {
+      // When reusing an existing template, wizard.mapping may contain duplicate headerField entries (Option B).
+      // This UI is read-only in that mode, so we must not mutate mapping.
+      if (!editEnabled) {
+        return;
+      }
       if (
         field === prevField &&
         fieldMatched === prevFieldMatched &&
@@ -153,7 +175,13 @@
         </button>
       {:else}
         <div class="d-flex align-items-center gap-2">
-          <MatchBadge bind:field={fieldMatched} disabled={!editEnabled} />
+          {#if !editEnabled && mappedFieldMatches.length > 1}
+            {#each mappedFieldMatches as mf (mf.id)}
+              <MatchBadge field={mf} disabled={true} />
+            {/each}
+          {:else}
+            <MatchBadge bind:field={fieldMatched} disabled={!editEnabled} />
+          {/if}
           <SetMatch
             {field}
             suggestions={matchingSuggestion?.suggestions}

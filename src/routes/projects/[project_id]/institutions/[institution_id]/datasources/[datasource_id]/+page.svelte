@@ -1,23 +1,18 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
-  import AutoForm from "$lib/components/form/AutoForm.svelte";
+  import DatasourceEditForm from "$lib/components/datasources/DatasourceEditForm.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
-  import { createForm } from "@tanstack/svelte-form";
-  import { getValidator, createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
-  import { updateDatasource, deleteDatasource, getObjectsByDatasource } from "$lib/stores/DatasourcesUtils.js";
+  import { deleteDatasource, getObjectsByDatasource } from "$lib/stores/DatasourcesUtils.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
   import { goto } from "$app/navigation";
   import { back } from "$lib/utils/navigation.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
-  import DatasourceTemplateMappings from "$lib/components/datasources/DatasourceTemplateMappings.svelte";
 
   const translationStore = getTranslationStore();
-  const contentLanguageStore = getContentLanguageStore();
   const t = $derived(translationStore.t);
 
   // Props
@@ -27,16 +22,8 @@
   const projectId = $derived(data.projectId);
   const institutionId = $derived(data.institutionId);
   const datasourceId = $derived(data.datasourceId);
-  const ontologyFields = $derived(data.ontologyFields?.result || []);
   const datasource = $derived(Array.isArray(data.datasource) ? data.datasource[0] || {} : data.datasource || {});
   const languages = $derived(data.languages || []);
-  const defaultLanguage = $derived(languages?.find((l) => l.is_default) || languages?.[0] || null);
-  const secondaryLanguages = $derived(languages?.filter((l) => !l.is_default) || []);
-
-  // Constants
-  const TRANSLATABLE_FIELDS = ["name", "method", "notes"];
-  const validator = $derived(getValidator("datasources", "update"));
-  const translationsValidator = $derived(getValidator("translations", "create"));
 
   // Pagination state
   let page = $state(1);
@@ -63,98 +50,9 @@
     }
   };
 
-  // Helper - build translations payload (using ContentLanguageStore helper)
-  const buildTranslationsPayload = (formValues) => {
-    const translations = { name: [], method: [], notes: [] };
-    
-    secondaryLanguages.forEach(lang => {
-      TRANSLATABLE_FIELDS.forEach(field => {
-        const content = formValues[`translations_${lang.id}_${field}`];
-        const existingId = contentLanguageStore.getExistingTranslationId(datasource?.[field], lang.code);
-        
-        if (content?.trim()) {
-          translations[field].push({ 
-            ...(existingId && { id: existingId }), 
-            language_code: lang.code, 
-            content: content.trim() 
-          });
-        }
-      });
-    });
-
-    return {
-      nameTranslations: translations.name.length ? translations.name : undefined,
-      methodTranslations: translations.method.length ? translations.method : undefined,
-      notesTranslations: translations.notes.length ? translations.notes : undefined,
-    };
-  };
-
-  // Default values (using ContentLanguageStore helper)
-  const defaultValues = $derived.by(() => {
-    const baseValues = {
-      date: datasource?.date || new Date().toISOString(),
-      language: datasource?.language || "",
-      contact: datasource?.contact || "",
-      copyright: datasource?.copyright || "",
-      template_id: datasource?.template_id || null,
-    };
-
-    // Add translatable fields
-    TRANSLATABLE_FIELDS.forEach(field => {
-      baseValues[field] = datasource?.[field]?.content || "";
-    });
-
-    // Add translation fields using store helper
-    Object.assign(baseValues, contentLanguageStore.buildTranslationFormValues(datasource, secondaryLanguages, TRANSLATABLE_FIELDS));
-
-    return baseValues;
-  });
-
-  // Form instance
-  const form = $derived(createForm(() =>
-    getFormConfig("datasources", "update", {
-      defaultValues,
-      onSubmit: async ({ value }) => {
-        const translations = buildTranslationsPayload(value);
-        const payload = {
-          name: value.name,
-          method: value.method,
-          notes: value.notes,
-          date: value.date,
-          language: value.language,
-          contact: value.contact,
-          copyright: value.copyright,
-          template_id: value.template_id,
-          languageId: defaultLanguage?.id,
-          ...translations,
-        };
-        const { error } = await updateDatasource(datasourceId, payload);
-        if (!error) form.reset();
-      },
-    }),
-  ));
-
+  // Form instance binding
+  let form = $state(null);
   const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
-
-  // UI configuration
-  const uiSchema = $derived({
-    id: { hidden: true },
-    datasourceId: { hidden: true },
-    institutionId: { hidden: true },
-    languageId: { hidden: true },
-    templateId: { hidden: true },
-    name: { label: t("common.name", { fallback: "Name" }), type: "text", placeholder: t("common.name", { fallback: "Name" }) },
-    method: { label: t("import.method", { fallback: "Method" }), type: "textarea", placeholder: t("import.method", { fallback: "Describe method" }) },
-    notes: { label: t("common.notes", { fallback: "Notes" }), type: "textarea", placeholder: t("common.notes", { fallback: "Notes" }) },
-    date: { label: t("common.date", { fallback: "Date" }), type: "date" },
-  });
-
-  const hiddenStaticValues = $derived({
-    institutionId: String(institutionId || ""),
-    languageId: defaultLanguage?.id || "",
-    datasourceId: String(datasourceId || ""),
-    templateId: null,
-  });
 
   // Delete state and handlers
   let deleting = $state(false);
@@ -214,20 +112,25 @@
   ]}
 >
   <div class="container-fluid">
-    <div class="row my-3">
-      <div class="col-12 d-flex align-items-center gap-3">
-        <button
-          type="button"
-          aria-label={t("common.back", { fallback: "Back" })}
-          class="btn btn-link p-0 text-muted"
-          onclick={back}
-        >
-          <i class="bi bi-arrow-left fs-5"></i>
-        </button>
-        <h1 class="h3 mb-0">
-          {datasource?.name?.content ||
-            t("common.unnamed", { fallback: "Unnamed" })}
-        </h1>
+    <div class="row mb-2">
+      <div class="col-12">
+        <div class="d-flex align-items-center justify-content-between mt-4" style="overflow: visible;">
+          <button
+            class="btn btn-link text-decoration-none px-0"
+            aria-label={t("common.back", { fallback: "Back" })}
+            onclick={back}
+          >
+            <i class="bi bi-arrow-left"></i>
+            {data.institution?.name?.content}
+          </button>
+        </div>
+
+        <div class="mt-2">
+          <h1 class="mb-1">
+            {datasource?.name?.content ||
+              t("common.unnamed", { fallback: "Unnamed" })}
+          </h1>
+        </div>
       </div>
     </div>
 
@@ -236,34 +139,15 @@
       <div class="col-12 col-lg-8">
         <div class="card border-0 mb-1">
           <div class="card-body">
-            <AutoForm
-              {form}
-              {validator}
-              {createFieldValidator}
+            <DatasourceEditForm 
+              {datasource}
               {languages}
-              entity="datasources"
-              operation="update"
-              translatableFields={TRANSLATABLE_FIELDS}
-              {translationsValidator}
-              {hiddenStaticValues}
-              fieldOrder={["date"]}
-              {uiSchema}
+              {institutionId}
+              bind:form
             />
           </div>
         </div>
 
-        {#if datasource?.template}
-          <div class="card border-0 mt-1">
-            <div class="card-body">
-              <h2 class="h5 mb-3">Template mappings</h2>
-              <DatasourceTemplateMappings
-                template={datasource.template}
-                {ontologyFields}
-                {objects}
-              />
-            </div>
-          </div>
-        {/if}
       </div>
 
       <!-- Right column: imported objects list -->

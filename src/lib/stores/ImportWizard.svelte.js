@@ -93,15 +93,18 @@ export function createImportWizardContext(params) {
         removeMappingEntry(entry) {
             mapping = mapping.filter(e => e.headerField !== entry.headerField);
         },
-        setMappingIdentifier(id) {
+        setPrimaryHeaderField(headerField) {
+            const primaryHeaderField = headerField || null;
             mapping = mapping.map((entry) => {
-                if (entry.mappedField !== id) {
-                    entry.primary = false;
-                } else {
-                    entry.primary = true;
-                }
-                return entry;
+                const nextPrimary = primaryHeaderField && entry?.headerField === primaryHeaderField ? 1 : 0;
+                return { ...entry, primary: nextPrimary };
             });
+        },
+        setMappingIdentifier(id) {
+            // Option B: primary is a property of the headerField.
+            // We resolve the selected ontology field id to its headerField and apply primary to ALL entries for that headerField.
+            const selectedEntry = id ? mapping.find((e) => e?.mappedField === id) : null;
+            this.setPrimaryHeaderField(selectedEntry?.headerField || null);
         },
         nextStep() {
             currentStep++;
