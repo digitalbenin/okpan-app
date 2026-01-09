@@ -228,7 +228,7 @@
             ?.count || 0,
     );
 
-    const exportDisabledReason = $derived(() => {
+    const exportDisabledReason = $derived.by(() => {
         if (totalCount === 0) {
             return "No objects match current filters";
         }
