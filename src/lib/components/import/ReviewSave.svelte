@@ -90,7 +90,7 @@
           fallback: "Object identifier field is set to",
         })}
         <span class="fw-bold"
-          >{wizard.mapping.find((m) => m.primary).headerField}</span
+          >{wizard.mapping.find((m) => m.primary)?.headerField || ""}</span
         >
       </div>
       <!-- <button class="btn btn-success btn-lg mt-3" onclick={handleSave}>

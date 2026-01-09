@@ -3,10 +3,7 @@
 
   let {
     value = $bindable(null),
-    accept = "image/*",
     placeholder = "Choose image...",
-    multiple = false, // kept for API parity; only single image used
-    required = false,
     class: customClass = "",
     errors = [],
     disabled = false,

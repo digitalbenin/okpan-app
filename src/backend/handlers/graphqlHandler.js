@@ -38,6 +38,7 @@ const processObjectImportActions = async (importResult, variables, context, db) 
                 changes: JSON.stringify({
                     mapping: importResult.template.mapping,
                     project_id: importResult.template.project_id,
+                    institution_id: importResult.template.institution_id,
                     asset_map_rule: importResult.template.asset_map_rule
                 }),
                 client_id: clientId,
@@ -48,22 +49,22 @@ const processObjectImportActions = async (importResult, variables, context, db) 
             actionRows.push(templateAction);
         }
 
-        // 2. Create action for datasource update
+        // 2. Create action for datasource creation
         if (importResult.datasource) {
             const datasourceAction = {
                 id: crypto.randomUUID(),
                 user_id: context?.userId || null,
                 project_id: importResult.datasource.institution?.project_id || null,
-                action_type: 'UPDATE',
+                action_type: 'CREATE',
                 entity_type: 'datasources',
                 entity_id: importResult.datasource.id,
                 changes: JSON.stringify({
-                    template_id: importResult.datasource.template_id
+                    import_id: importResult.datasource.import_id
                 }),
                 client_id: clientId,
                 yjs_update: null,
                 parent_action_id: null,
-                metadata: await generateActionMetadata('UPDATE', 'datasources', importResult.datasource.id, db)
+                metadata: await generateActionMetadata('CREATE', 'datasources', importResult.datasource.id, db)
             };
             actionRows.push(datasourceAction);
         }
@@ -136,20 +137,20 @@ const processObjectImportUsingTemplateActions = async (importResult, variables, 
     const clientId = context?.clientId || await getClientId();
 
     try {
-        // Datasource update (template assignment)
+        // Datasource creation (with import_id link)
         if (importResult.datasource) {
             const datasourceAction = {
                 id: crypto.randomUUID(),
                 user_id: context?.userId || null,
                 project_id: importResult.datasource.institution?.project_id || null,
-                action_type: 'UPDATE',
+                action_type: 'CREATE',
                 entity_type: 'datasources',
                 entity_id: importResult.datasource.id,
-                changes: JSON.stringify({ template_id: importResult.datasource.template_id }),
+                changes: JSON.stringify({ import_id: importResult.datasource.import_id }),
                 client_id: clientId,
                 yjs_update: null,
                 parent_action_id: null,
-                metadata: await generateActionMetadata('UPDATE', 'datasources', importResult.datasource.id, db)
+                metadata: await generateActionMetadata('CREATE', 'datasources', importResult.datasource.id, db)
             };
             actionRows.push(datasourceAction);
         }

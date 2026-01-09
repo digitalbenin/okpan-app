@@ -1,5 +1,6 @@
 <script>
   import { DropdownMenu } from "bits-ui";
+  import { onDestroy } from "svelte";
 
   let {
     open = $bindable(false),
@@ -26,6 +27,13 @@
         document.body.style.pointerEvents = '';
       }, 100);
     }
+  });
+
+  // Also clean up on component destroy
+  onDestroy(() => {
+    setTimeout(() => {
+      document.body.style.pointerEvents = '';
+    }, 100);
   });
 
   function handleItemClick(item) {
@@ -58,7 +66,7 @@
     >
       {#snippet child({ wrapperProps, props, open: isOpen })}
         {#if isOpen}
-          <div {...wrapperProps}>
+          <div {...wrapperProps} style="{wrapperProps.style}; z-index: 100000;">
             <div 
               {...props} 
               class="dropdown-menu show shadow-sm border-0 rounded-2 p-1 {contentProps.class || ''}"

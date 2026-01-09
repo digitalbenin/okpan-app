@@ -61,6 +61,29 @@ export const getDatasource = async (datasourceId) => {
     return { result: response.result, error: null };
 };
 
+// Get template(s) used by a datasource via objects_datasources junction
+export const getTemplateByDatasource = async (datasourceId) => {
+    if (!datasourceId) {
+        return { result: null, error: "Missing Datasource ID" };
+    }
+    const response = await executeQuery('templates', 'getByDatasource', { datasourceId });
+    
+    if (!response || response.error) {
+        return { result: null, error: response?.error || "Failed to fetch template" };
+    }
+    
+    // Extract unique templates from junction records
+    if (response.result?.length > 0) {
+        const uniqueTemplates = response.result
+            .filter(od => od.template_id && od.template)
+            .map(od => od.template);
+        // Return the first template found (could be enhanced to return all if needed)
+        return { result: uniqueTemplates[0] || null, error: null };
+    }
+    
+    return { result: null, error: null };
+};
+
 // Get distinct objects linked to a datasource
 export const getObjectsByDatasource = async (options) => {
     const {
@@ -130,7 +153,6 @@ export const updateDatasource = async (datasourceId, updatedData) => {
     // Prepare all parameters for the multi-step mutation
     const updateParams = {
         datasourceId: datasourceId,
-        templateId: updatedData.template_id,
         // Direct fields
         language: updatedData.language,
         contact: updatedData.contact,
@@ -210,3 +232,171 @@ export const deleteDatasource = async (datasourceId) => {
     const result = await executeQuery('datasources', 'delete', { datasourceId });
     return result;
 };
+
+// Create a datasource for an object with auto-generated name
+export const createDatasourceForObject = async ({ institutionId, projectId, languageId }) => {
+    if (!institutionId || !projectId || !languageId) {
+        return { result: null, error: "Missing required parameters: institutionId, projectId, languageId" };
+    }
+
+    const timestamp = Date.now();
+    
+    // Import epochToDate dynamically to avoid circular dependencies
+    const { epochToDate } = await import("$lib/utils/dates.js");
+    const defaultName = `Data source ${epochToDate(timestamp, true)}`;
+
+    const params = {
+        name: defaultName,
+        institutionId,
+        languageId,
+        date: timestamp,
+    };
+
+    return await createDatasource(params);
+};
+
+// Delete datasource from object: removes ontology fields and junction relation
+export const deleteDatasourceFromObject = async (objectId, datasourceId) => {
+    if (!objectId || !datasourceId) {
+        return { error: "Missing object or datasource ID" };
+    }
+
+    try {
+        const result = await executeQuery('datasources', 'deleteFromObject', {
+            objectId,
+            datasourceId,
+        });
+
+        return { success: true, error: null };
+    } catch (error) {
+        return { success: false, error };
+    }
+};
+
+// Save or update ontology fields for a datasource
+// This intelligently updates existing rows instead of deleting and recreating
+export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, templateId, fields) => {
+    if (!objectId || !datasourceId) {
+        return { error: "Missing object or datasource ID" };
+    }
+
+    console.log('saveOntologyFieldsForDatasource called:', {
+        objectId,
+        datasourceId,
+        templateId,
+        fieldsCount: fields?.length,
+        fields
+    });
+
+    try {
+        // First, get the existing fields to determine what needs updating vs inserting
+        const result = await executeQuery('datasources', 'saveOntologyFields', {
+            objectId,
+            datasourceId,
+            templateId,
+        });
+
+        // For composite mutations, the result has properties for each step
+        // getExistingFields returns the query result
+        const existingFields = result?.getExistingFields?.result || [];
+        console.log('Existing fields:', existingFields);
+
+        // Build maps for quick lookup
+        const existingByLabel = new Map();
+        existingFields.forEach(ef => {
+            existingByLabel.set(ef.label, ef);
+        });
+
+        const newFieldLabels = new Set((fields || []).map(f => f.label));
+
+        // Determine operations
+        const toUpdate = [];
+        const toInsert = [];
+        const toDelete = [];
+
+        // Process new/updated fields
+        for (const field of fields || []) {
+            const existing = existingByLabel.get(field.label);
+            if (existing) {
+                // Field exists - check if it needs updating
+                const needsUpdate = 
+                    existing.value !== (field.value || "") ||
+                    existing.field_id !== field.field_id ||
+                    existing.primary !== (field.primary || 0);
+
+                if (needsUpdate) {
+                    toUpdate.push({
+                        id: existing.id,
+                        value: field.value || "",
+                        field_id: field.field_id,
+                        primary: field.primary || 0,
+                    });
+                }
+            } else {
+                // New field - insert it
+                toInsert.push({
+                    object_id: objectId,
+                    datasources_id: datasourceId,
+                    label: field.label,
+                    value: field.value || "",
+                    field_id: field.field_id,
+                    primary: field.primary || 0,
+                    default_description: 0,
+                });
+            }
+        }
+
+        // Find fields that were removed
+        for (const existing of existingFields) {
+            if (!newFieldLabels.has(existing.label)) {
+                toDelete.push(existing.id);
+            }
+        }
+
+        console.log('Operations:', { toUpdate, toInsert, toDelete });
+
+        // Execute operations in parallel for efficiency
+        const operations = [];
+
+        if (toUpdate.length > 0) {
+            for (const update of toUpdate) {
+                operations.push(
+                    executeQuery('objects', 'updateOntologyFieldById', {
+                        id: update.id,
+                        value: update.value,
+                        fieldId: update.field_id,
+                        primary: update.primary,
+                    })
+                );
+            }
+        }
+
+        if (toInsert.length > 0) {
+            operations.push(
+                executeQuery('objects', 'insertOntologyFields', {
+                    fields: toInsert,
+                })
+            );
+        }
+
+        if (toDelete.length > 0) {
+            operations.push(
+                executeQuery('objects', 'deleteOntologyFields', {
+                    fieldIds: toDelete,
+                })
+            );
+        }
+
+        if (operations.length > 0) {
+            await Promise.all(operations);
+        }
+
+        console.log('saveOntologyFieldsForDatasource completed successfully');
+        invalidate('app:objects');
+        return { success: true, error: null };
+    } catch (error) {
+        console.error('saveOntologyFieldsForDatasource error:', error);
+        return { result: null, error };
+    }
+};
+

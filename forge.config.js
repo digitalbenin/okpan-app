@@ -11,6 +11,9 @@ export default {
         // like libvips are loaded from their adjacent directory on Windows
         asar: false,
         prune: false,
+        extraResource: [
+            'src/website'
+        ],
         asarUnpack: [
             '.vite/node_modules/@libsql/**',
             '.vite/node_modules/sharp/**/*',

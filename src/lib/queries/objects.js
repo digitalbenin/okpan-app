@@ -197,6 +197,23 @@ export const objectsOperations = {
         formats
       }
     }
+    objectsDatasources {
+      id
+      datasource_id
+      template_id
+      datasource {
+        id
+        name {
+          content
+        }
+      }
+      template {
+        id
+        name
+        mapping
+        asset_map_rule
+      }
+    }
   }
 }`
   },
@@ -589,6 +606,77 @@ export const objectsOperations = {
 }`
   },
 
+  // UPDATE ONTOLOGY FIELD BY ID (with more fields)
+  updateOntologyFieldById: {
+    type: "mutation",
+    name: "Update Object Ontology Field By ID",
+    description: "Updates a specific ontology field including value, field_id, and primary flag",
+    variables: {
+      id: "ID of the object ontology field row to update",
+      value: "New value for the ontology field",
+      fieldId: "New ontology field ID (mapped field)",
+      primary: "Primary flag (0 or 1)"
+    },
+    query: `mutation UpdateObjectOntologyFieldById(
+  $id: String!
+  $value: String
+  $fieldId: String
+  $primary: Int
+) {
+  result: updateObjects_ontology_fields(
+    set: { 
+      value: $value
+      field_id: $fieldId
+      primary: $primary
+    }
+    where: { id: { eq: $id } }
+  ) {
+    id
+    value
+    field_id
+    primary
+  }
+}`
+  },
+
+  // INSERT ONTOLOGY FIELDS
+  insertOntologyFields: {
+    type: "mutation",
+    name: "Insert Object Ontology Fields",
+    description: "Inserts multiple ontology field records for an object",
+    variables: {
+      fields: "Array of field objects with object_id, label, value, field_id, datasources_id, primary"
+    },
+    query: `mutation InsertOntologyFields($fields: [Objects_ontology_fieldsInsertInput!]!) {
+  result: insertIntoObjects_ontology_fields(values: $fields) {
+    id
+    label
+    value
+    field_id
+    datasources_id
+    object_id
+    primary
+  }
+}`
+  },
+
+  // DELETE ONTOLOGY FIELDS
+  deleteOntologyFields: {
+    type: "mutation",
+    name: "Delete Object Ontology Fields",
+    description: "Deletes multiple ontology field records by their IDs",
+    variables: {
+      fieldIds: "Array of field IDs to delete"
+    },
+    query: `mutation DeleteOntologyFields($fieldIds: [String!]!) {
+  result: deleteFromObjects_ontology_fields(
+    where: { id: { in: $fieldIds } }
+  ) {
+    id
+  }
+}`
+  },
+
   // IMPORT OBJECTS
   import: {
     type: "mutation",
@@ -596,31 +684,36 @@ export const objectsOperations = {
     description: "Creates a template, associates it with a datasource, and creates multiple objects with ontology field mappings from imported data",
     variables: {
       datasourceId: "ID of the datasource to associate with the template",
-      mapping: "Array of mapping objects. Format: [{\"headerField\": \"header name\", \"mappedField\": \"ontologyFieldId\", \"primary\": boolean}]",
+      mapping: "Array of mapping objects. Format: [{\"headerField\": \"header name\", \"mappedField\": \"ontologyFieldId\"|null, \"primary\": 0|1}]",
       data: "Array of data objects to import, where each object has header names as keys",
-      assetMapRule: "Optional asset mapping rule for the template"
+      assetMapRule: "Optional asset mapping rule for the template",
+      sourceFileName: "Optional source file name to store in datasource"
     },
     query: `mutation ImportObjects(
   $datasourceId: String!
   $mapping: JSON!
   $data: [JSON!]!
   $assetMapRule: String
+  $sourceFileName: String
 ) {
   result: objectImport(
     datasourceId: $datasourceId
     mapping: $mapping
     data: $data
     assetMapRule: $assetMapRule
+    sourceFileName: $sourceFileName
   ) {
     template {
       id
       mapping
       project_id
+      institution_id
       asset_map_rule
     }
     datasource {
       id
-      template_id
+      import_id
+      source
       updated_at
     }
     objects {
@@ -643,25 +736,30 @@ export const objectsOperations = {
     variables: {
       datasourceId: "ID of the datasource to associate with the template",
       templateId: "ID of the existing template to reuse",
-      data: "Array of data objects to import, where each object has header names as keys"
+      data: "Array of data objects to import, where each object has header names as keys",
+      sourceFileName: "Optional source file name to store in datasource"
     },
     query: `mutation ImportObjectsUsingTemplate(
   $datasourceId: String!
   $templateId: String!
   $data: [JSON!]!
+  $sourceFileName: String
 ) {
   result: objectImportUsingTemplate(
     datasourceId: $datasourceId
     templateId: $templateId
     data: $data
+    sourceFileName: $sourceFileName
   ) {
     template {
       id
       project_id
+      institution_id
     }
     datasource {
       id
-      template_id
+      import_id
+      source
       updated_at
     }
     objects {

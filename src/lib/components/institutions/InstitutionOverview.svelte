@@ -2,16 +2,14 @@
   import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { browser } from "$app/environment";
   import { goto } from "$app/navigation";
-  import { back } from "$lib/utils/navigation.js";
   import { updateInstitutionStatus } from "$lib/stores/InstitutionsUtils.js";
 
   const { institution } = $props();
   const { t } = getTranslationStore();
 
   const handleBack = () => {
-    goto(`/projects/${institution.project_id}`);
+    goto(`/projects/${institution.project_id}/institutions`);
   };
 
   const handleEdit = () => {
@@ -40,86 +38,74 @@
   }
 </script>
 
-<div class="container-fluid pb-4" style="overflow: visible;">
-  <div class="row mb-2">
+<div class="container-fluid py-3" style="overflow: visible;">
+  <div class="row">
     <div class="col-12">
-      <div
-        class="d-flex align-items-start gap-3 mt-3"
-        style="overflow: visible;"
-      >
-        <div>
-          <button
-            class="btn btn-lg btn-light rounded-circle aspect-ratio-1x1"
-            aria-label="back"
-            onclick={handleBack}><i class="bi bi-arrow-left"></i></button
-          >
-        </div>
-        <h1>
-          {institution.name.content}
+      <div class="d-flex align-items-center justify-content-between" style="overflow: visible;">
+        <button
+          class="btn btn-link text-decoration-none px-0"
+          aria-label={t("common.institutions", { fallback: "Institutions" })}
+          onclick={handleBack}
+        >
+          <i class="bi bi-arrow-left"></i>
+          {t("common.institutions", { fallback: "Institutions" })}
+        </button>
+
+        <div class="d-flex align-items-center gap-2" style="overflow: visible;">
           <StatusBadgeDropdown
             status={institution.status}
             disabled={statusUpdating}
             on:change={(e) => setStatus(e.detail)}
           />
-        </h1>
-        <div class="ms-auto">
           <BaseButton
             class="btn btn-outline-secondary btn border-0"
             onClick={handleEdit}
-            text={t("common.edit-institution", {
-              fallback: "Edit",
+            text={t("common.edit-info", {
+              fallback: "Edit info",
             })}
             icon="pencil"
           ></BaseButton>
         </div>
       </div>
+
+      <div class="mt-2">
+        <h1 class="mb-1">{institution.name.content}</h1>
+
+        {#if institution.country || institution.location || (institution.links && institution.links.length)}
+          <div
+            class="text-muted"
+            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+          >
+            {#if institution.country}
+              <span>{institution.country.content}</span>
+            {/if}
+            {#if institution.country && institution.location}
+              <span class="mx-1">·</span>
+            {/if}
+            {#if institution.location}
+              <span>{institution.location.content}</span>
+            {/if}
+            {#if (institution.country || institution.location) && institution.links && institution.links.length}
+              <span class="mx-1">·</span>
+            {/if}
+            {#if institution.links && institution.links.length}
+              <a
+                class="link-secondary"
+                href={institution.links[0].url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {institution.links[0].label || t("common.website", { fallback: "Website" })}
+              </a>
+            {/if}
+          </div>
+        {/if}
+
+        {#if institution.description}
+          <div class="mt-2">{institution.description.content}</div>
+        {/if}
+      </div>
     </div>
-  </div>
-  <div class="row">
-    {#if institution.description}
-      <div class="col-4">
-        <div class="fw-bold text-muted text-uppercase fs-7">
-          {t("common.description", { fallback: "Description" })}
-        </div>
-        <div>
-          {institution.description.content}
-        </div>
-      </div>
-    {/if}
-    {#if institution.country}
-      <div class="col">
-        <div class="fw-bold text-muted text-uppercase fs-7">
-          {t("common.country", { fallback: "Country" })}
-        </div>
-        <div>
-          {institution.country.content}
-        </div>
-      </div>
-    {/if}
-    {#if institution.location}
-      <div class="col">
-        <div class="fw-bold text-muted text-uppercase fs-7">
-          {t("common.location", { fallback: "Location" })}
-        </div>
-        <div>
-          {institution.location.content}
-        </div>
-      </div>
-    {/if}
-    {#if institution.links}
-      <div class="col">
-        <div class="fw-bold text-muted text-uppercase fs-7">
-          {t("common.links", { fallback: "Links" })}
-        </div>
-        <div>
-          {#each institution.links as link (link.url)}
-            <div class="mb-1">
-              <a href={link.url} target="_blank">{link.label}</a>
-            </div>
-          {/each}
-        </div>
-      </div>
-    {/if}
   </div>
 </div>
 

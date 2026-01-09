@@ -190,141 +190,127 @@
     }
 </script>
 
-<div class="bg-white px-2">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0">
-            {t("objects.linked_media.title", { fallback: "Linked media" })}
-        </h3>
-    </div>
+<div class="card bg-white border-0">
+    <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-image"></i>
+                <span>
+                    {t("objects.linked_media.title", { fallback: "Linked media" })}
+                </span>
+            </div>
+            {#if isLinkDisabled}
+                <BaseTooltip>
+                    {#snippet trigger(props)}
+                        <div class="d-inline-block" {...(({ type, ...rest }) => rest)(props)}>
+                            <BaseButton
+                                class="btn btn-sm btn-light"
+                                icon="plus"
+                                text={t("objects.linked_media.add_media", {
+                                    fallback: "Add media",
+                                })}
+                                disabled={true}
+                            />
+                        </div>
+                    {/snippet}
+                    select an institution first
+                </BaseTooltip>
+            {:else}
+                <BaseButton
+                    class="btn btn-sm btn-light"
+                    icon="plus"
+                    text={t("objects.linked_media.add_media", {
+                        fallback: "Add media",
+                    })}
+                    onClick={handleAddMedia}
+                />
+            {/if}
+        </div>
 
-    <!-- Add media button at the top -->
-    <div class="mb-3">
-        {#if isLinkDisabled}
-            <BaseTooltip>
-                {#snippet trigger(props)}
-                    <div class="d-inline-block" {...(({ type, ...rest }) => rest)(props)}>
-                        <BaseButton
-                            class="btn btn-outline-secondary"
-                            icon="plus"
-                            text={t("objects.linked_media.link_media", {
-                                fallback: "Link media",
-                            })}
-                            disabled={true}
-                        />
-                    </div>
-                {/snippet}
-                select an institution first
-            </BaseTooltip>
-        {:else}
-            <BaseButton
-                class="btn btn-outline-secondary"
-                icon="plus"
-                text={t("objects.linked_media.link_media", {
-                    fallback: "Link media",
-                })}
-                onClick={handleAddMedia}
-            />
-        {/if}
-    </div>
+        {#if displayAssets.length > 0}
+            <div
+                class="d-flex gap-3 overflow-x-auto pb-2"
+                use:dragHandleZone={{
+                    dropTargetStyle: { outline: "none" },
+                    items: displayAssets,
+                    flipDurationMs,
+                }}
+                onconsider={handleDndEvent}
+                onfinalize={handleDndEvent}
+            >
+                {#each displayAssets as objectAsset (objectAsset.id)}
+                    {@const asset = objectAsset.asset}
+                    <div class="flex-shrink-0" style="width: 160px;" animate:flip={{ duration: flipDurationMs }}>
+                        <div class="bg-white border rounded overflow-hidden ">
+                            <!-- Action buttons bar at top -->
+                            <div class="d-flex justify-content-between align-items-center p-0 bg-white border-bottom">
+                                <button
+                                    class="btn btn-link p-1 text-secondary"
+                                    style="cursor: grab;"
+                                    aria-label="drag item"
+                                    use:dragHandle
+                                >
+                                    <i class="bi bi-arrows-move"></i>
+                                </button>
+                                <button
+                                    class="btn btn-link p-1 text-secondary"
+                                    type="button"
+                                    aria-label="Remove media"
+                                    onclick={(e) => {
+                                        e.stopPropagation();
+                                        handleAssetRemove(objectAsset.asset.id);
+                                    }}
+                                >
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
 
-    <!-- Linked assets list -->
-    {#if displayAssets.length > 0}
-        <div
-            class="linked-assets"
-            use:dragHandleZone={{
-                dropTargetStyle: { outline: "none" },
-                items: displayAssets,
-                flipDurationMs,
-            }}
-            onconsider={handleDndEvent}
-            onfinalize={handleDndEvent}
-        >
-            {#each displayAssets as objectAsset, index (objectAsset.id)}
-                {@const asset = objectAsset.asset}
-                <div
-                    class="d-flex align-items-stretch gap-2 mb-3"
-                    animate:flip={{ duration: flipDurationMs }}
-                >
-                    <!-- Main media card -->
-                    <div class="flex-grow-1 bg-white border border-secondary border-opacity-25 rounded overflow-hidden">
-                        <!-- Asset thumbnail (square) -->
-                        <div
-                            class="w-100"
-                            style="cursor: pointer; position: relative; padding-bottom: 100%;"
-                            role="button"
-                            tabindex="0"
-                            onclick={() => handleViewMedia(asset)}
-                            onkeydown={(e) =>
-                                e.key === "Enter" && handleViewMedia(asset)}
-                        >
-                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                            <!-- Asset preview -->
+                            <div
+                                class="position-relative bg-light"
+                                style="width: 160px; height: 160px; cursor: pointer;"
+                                role="button"
+                                tabindex="0"
+                                onclick={() => handleViewMedia(asset)}
+                                onkeydown={(e) => e.key === "Enter" && handleViewMedia(asset)}
+                            >
                                 <BaseImage
                                     src={asset?.path ? `media://${asset.path}` : null}
                                     alt={asset?.filename || "Asset"}
                                     class="w-100 h-100"
                                     style="object-fit: contain;"
                                 />
+                                {#if getMediaType(asset) === "video"}
+                                    <div class="position-absolute top-50 start-50 translate-middle fs-2 text-white" style="opacity: 0.8; pointer-events: none;">
+                                        <i class="bi bi-play-circle-fill"></i>
+                                    </div>
+                                {/if}
+                                {#if getMediaType(asset) === "audio"}
+                                    <div class="position-absolute top-50 start-50 translate-middle fs-2 text-white" style="opacity: 0.8; pointer-events: none;">
+                                        <i class="bi bi-music-note-beamed"></i>
+                                    </div>
+                                {/if}
                             </div>
-                            {#if getMediaType(asset) === "video"}
-                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
-                                    <i class="bi bi-play-circle-fill text-white" style="font-size: 3rem; opacity: 0.8;"></i>
-                                </div>
-                            {/if}
-                            {#if getMediaType(asset) === "audio"}
-                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
-                                    <i class="bi bi-music-note-beamed text-white" style="font-size: 3rem; opacity: 0.8;"></i>
-                                </div>
-                            {/if}
-                        </div>
 
-                        <!-- Asset info -->
-                        <div class="p-2">
-                            <div class="text-truncate small mb-2" title={asset?.filename || "Unnamed file"}>
+                            <!-- Asset filename -->
+                            <div class="p-2 small text-truncate text-muted" title={asset?.filename || "Unnamed file"}>
                                 {asset?.filename || "Unnamed file"}
                             </div>
-
-                            <!-- Unlink button -->
-                            <button
-                                class="btn btn-sm btn-link text-danger p-0 text-decoration-none d-flex align-items-center gap-1"
-                                type="button"
-                                onclick={(e) => {
-                                    e.stopPropagation();
-                                    handleAssetRemove(objectAsset.asset.id);
-                                }}
-                            >
-                                <i class="bi bi-dash-circle"></i>
-                                <span class="small">
-                                    {t("objects.linked_media.unlink", {
-                                        fallback: "Unlink media",
-                                    })}
-                                </span>
-                            </button>
                         </div>
                     </div>
-
-                    <!-- Drag handle on the right -->
-                    <div class="flex-shrink-0 d-flex align-items-center">
-                        <button
-                            class="btn btn-link text-muted p-1 drag-handle"
-                            style="cursor: grab;"
-                            aria-label="drag item"
-                            use:dragHandle
-                        >
-                            <i class="bi bi-grip-vertical"></i>
-                        </button>
-                    </div>
-                </div>
-            {/each}
-        </div>
-    {:else}
-        <div class="text-center py-4 text-muted">
-            <i class="bi bi-image fs-1 mb-2 d-block"></i>
-            {t("objects.linked_media.no_media", {
-                fallback: "No linked media",
-            })}
-        </div>
-    {/if}
+                {/each}
+            </div>
+        {:else}
+            <div class="text-muted small">
+                {t("objects.linked_media.no_media", {
+                    fallback: "No linked media",
+                })}
+            </div>
+        {/if}
+    </div>
 </div>
+
+
 
 <!-- Hidden audio elements for playback -->
 {#each displayAssets as objectAsset (objectAsset.id)}

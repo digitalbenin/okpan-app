@@ -41,6 +41,7 @@ export const researchFieldsOperations = {
     }
     vocabularies {
       id
+      external_link
       option {
         id  
         content
@@ -123,6 +124,7 @@ export const researchFieldsOperations = {
     }
     vocabularies {
       id
+      external_link
       mainAsset {
         id
         filename
@@ -456,6 +458,7 @@ export const researchFieldsOperations = {
   $descriptionId: String!
   $fieldId: String!
   $mainAsset: String
+  $externalLink: String
 ) {
   insertIntoVocabularies(
     values: [
@@ -464,6 +467,7 @@ export const researchFieldsOperations = {
         description_id: $descriptionId
         field_id: $fieldId
         main_asset_id: $mainAsset
+        external_link: $externalLink
       }
     ]
   ) {
@@ -472,9 +476,10 @@ export const researchFieldsOperations = {
     description_id
     field_id
     main_asset_id
+    external_link
   }
 }`,
-        useVariables: ["fieldId", "mainAsset"],
+        useVariables: ["fieldId", "mainAsset", "externalLink"],
         mapVariables: {
           optionId: { from: "createOptionText", path: "insertIntoTexts.0.id" },
           descriptionId: { from: "createDescriptionText", path: "insertIntoTexts.0.id" }
@@ -510,6 +515,7 @@ export const researchFieldsOperations = {
       description: "New description text content (optional)",
       mainAsset: "New main asset identifier (optional)",
       otherAssets: "Array of generic asset IDs to associate with this vocabulary (optional)",
+      externalLink: "External link URL (optional)",
       // Translation arrays
       optionTranslations: "Array of option translations (optional)",
       descriptionTranslations: "Array of description translations (optional)"
@@ -524,6 +530,7 @@ export const researchFieldsOperations = {
     description_id
     field_id
     main_asset_id
+    external_link
     vocabulariesGenericAssets {
       generic_asset_id
       order
@@ -567,17 +574,18 @@ export const researchFieldsOperations = {
         skipIf: { variableName: "description", isUndefined: true }
       },
       {
-        name: "updateVocabularyAssets",
-        query: `mutation UpdateVocabularyAssets($vocabularyId: String!, $mainAsset: String) {
+        name: "updateVocabularyFields",
+        query: `mutation UpdateVocabularyFields($vocabularyId: String!, $mainAsset: String, $externalLink: String) {
   updateVocabularies(
-    set: { main_asset_id: $mainAsset }
+    set: { main_asset_id: $mainAsset, external_link: $externalLink }
     where: { id: { eq: $vocabularyId } }
   ) {
     id
     main_asset_id
+    external_link
   }
 }`,
-        useVariables: ["vocabularyId", "mainAsset"]
+        useVariables: ["vocabularyId", "mainAsset", "externalLink"]
         // Removed skipIf condition to allow null values for asset removal
       },
       // === TRANSLATION PROCESSING STEPS ===
@@ -605,6 +613,7 @@ export const researchFieldsOperations = {
     description_id
     field_id
     main_asset_id
+    external_link
   }
 }`,
         useVariables: ["vocabularyId"]

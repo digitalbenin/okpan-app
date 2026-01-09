@@ -1,15 +1,16 @@
 <script>
   import ObjectResearchFields from "$lib/components/objects/ObjectResearchFields.svelte";
+  import ObjectConnections from "$lib/components/objects/ObjectConnections.svelte";
   import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
-  import ObjectOntologyFields from "$lib/components/objects/ObjectOntologyFields.svelte";
+  import ObjectInstitutionalData from "$lib/components/objects/ObjectInstitutionalData.svelte";
+  import ObjectBasicInfo from "$lib/components/objects/ObjectBasicInfo.svelte";
+  import ObjectHeader from "$lib/components/objects/ObjectHeader.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
-  import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { back } from "$lib/utils/navigation.js";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
-  import BaseSelectNew from "$lib/components/base/BaseSelectNew.svelte";
   import {
     updateObjectInstitution,
     deleteObject,
@@ -18,7 +19,6 @@
     updateObjectStatus,
     updateObjectName,
   } from "$lib/stores/ObjectsUtils.js";
-  import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
 
@@ -293,84 +293,63 @@
   leftButtons={leftActionButtons}
   rightButtons={rightActionButtons}
 >
-  <div class="container-fluid pb-4">
-    <div class="row mb-2">
-      <div class="col-12">
-        <div class="d-flex align-items-start gap-3 mt-3">
-          <div>
-            <button
-              class="btn btn-lg btn-light rounded-circle aspect-ratio-1x1"
-              aria-label="back"
-              onclick={back}><i class="bi bi-arrow-left"></i></button
-            >
-          </div>
-          <div>
-            <div class="text-black-50">{data.institution.name.content}</div>
-            <h1>
-              {displayTitle}
-              <StatusBadgeDropdown
-                status={data.object.status}
-                disabled={statusUpdating}
-                on:change={(e) => setStatus(e.detail)}
-              />
-            </h1>
-          </div>
-
-          <div class="ms-auto">
-            <i class="bi bi-three-dots-vertical"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <ObjectHeader
+    institutionName={data.institution.name.content}
+    title={displayTitle}
+    status={data.object.status}
+    statusDisabled={statusUpdating}
+    onBack={() => goto(`/projects/${projectId}/institutions/${currentInstitutionIdParam}`)}
+    onStatusChange={setStatus}
+  />
 
   <!-- Research Fields and Linked Media Section -->
-  <div class="container-fluid">
+  <div class="container-fluid bg-light">
     <div class="row">
-      <div class="col-8">
-        <!-- Name: first field before institution -->
-        <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
-          <h3 class="">
-            {t("common.name", { fallback: "Name" })}
-          </h3>
-          <BaseInput
-            placeholder={t("common.name", { fallback: "Name" })}
-            size="sm"
-            bind:value={objectName}
-            onInput={handleNameInput}
+      <div class="col-10">
+        <div class="mt-2 mb-3 px-2">
+          <ObjectBasicInfo
+            bind:objectName
+            {selectedInstitutionId}
+            institutionItems={institutionItems}
+            onNameInput={handleNameInput}
+            onInstitutionValueChange={onInstitutionValueChange}
           />
         </div>
-        <!-- Institution selector: after primary id, before research data -->
-        <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
-          <h3 class="">
-            {t("institutions.institution", { fallback: "Institution" })}
-          </h3>
-          <BaseSelectNew
-            placeholder={t("institutions.select_institution", {
-              fallback: "Select institution",
-            })}
-            items={institutionItems}
-            value={selectedInstitutionId}
-            onValueChange={onInstitutionValueChange}
-            type="single"
-            size="sm"
-            inputClass="w-100"
-            contentProps={{ width: "anchor" }}
+        <div class="mt-2 mb-3 px-2">
+          <ObjectLinkedMedia
+            object={data.object}
+            onChangesUpdate={handleComponentChanges}
           />
         </div>
-        <ObjectResearchFields
-          object={data.object}
-          researchFields={data.researchFields}
-          {defaultLanguageId}
-          onChangesUpdate={handleComponentChanges}
-        />
-        <ObjectOntologyFields object={data.object} datasources={data.datasources} />
-      </div>
-      <div class="col-4">
-        <ObjectLinkedMedia
-          object={data.object}
-          onChangesUpdate={handleComponentChanges}
-        />
+        <div class="mt-2 mb-3 px-2">
+          <ObjectResearchFields
+            object={data.object}
+            researchFields={data.researchFields}
+            {defaultLanguageId}
+            onChangesUpdate={handleComponentChanges}
+          />
+        </div>
+        <div class="mt-2 mb-3 px-2">
+          <ObjectConnections
+            object={data.object}
+            researchFields={data.researchFields}
+            {defaultLanguageId}
+            onChangesUpdate={handleComponentChanges}
+          />
+        </div>
+        <div class="mt-2 mb-3 px-2">
+          <ObjectInstitutionalData
+            object={data.object}
+            datasources={data.datasources}
+            templates={data.templates}
+            ontologyFields={data.ontologyFields}
+            {projectId}
+            institutionId={currentInstitutionIdParam}
+            {defaultLanguageId}
+            {languages}
+            onChangesUpdate={handleComponentChanges}
+          />
+        </div>
       </div>
     </div>
   </div>

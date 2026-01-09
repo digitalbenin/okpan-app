@@ -5,6 +5,8 @@ import {
 import { getResearchFields } from "$lib/stores/ResearchFieldsUtils.js";
 import { getProjectInstitutions } from "$lib/stores/InstitutionsUtils.js";
 import { getDatasourcesByObject } from "$lib/stores/DatasourcesUtils.js";
+import { getTemplatesByInstitution } from "$lib/stores/TemplatesUtils.js";
+import { getOntologyFields } from "$lib/stores/OntologyFieldsUtils.js";
 
 export const load = async ({ params, depends }) => {
     // Invalidate when institutions are updated elsewhere
@@ -13,13 +15,16 @@ export const load = async ({ params, depends }) => {
 
     const objectId = params.object_id;
     const projectId = params.project_id;
+    const institutionId = params.institution_id;
 
-    // Load object data, research fields, institutions, and datasources for the object
-    const [objectResponse, researchFieldsResponse, institutionsResponse, datasourcesResponse] = await Promise.all([
+    // Load object data, research fields, institutions, datasources, templates, and ontology fields
+    const [objectResponse, researchFieldsResponse, institutionsResponse, datasourcesResponse, templatesResponse, ontologyFieldsResponse] = await Promise.all([
         getObjectById(objectId),
         getResearchFields(projectId),
         getProjectInstitutions({ projectId, page: 0, pageSize: 50, orderBy: 'created_at', direction: 'desc' }),
-        getDatasourcesByObject(objectId)
+        getDatasourcesByObject(objectId),
+        getTemplatesByInstitution(institutionId),
+        getOntologyFields(projectId)
     ]);
 
     const institutionItems = (institutionsResponse?.result || []).map((inst) => ({
@@ -29,13 +34,16 @@ export const load = async ({ params, depends }) => {
 
     depends("custom:object");
     console.log("Loaded object page data:", {
-        datasources: datasourcesResponse.items
+        datasources: datasourcesResponse.items,
+        templates: templatesResponse?.result
     });
     return {
         object: objectResponse.result,
         researchFields: researchFieldsResponse.result || [],
         institutions: institutionItems,
-        datasources: datasourcesResponse.items || []
+        datasources: datasourcesResponse.items || [],
+        templates: templatesResponse?.result || [],
+        ontologyFields: ontologyFieldsResponse?.result || []
     }
 };
 

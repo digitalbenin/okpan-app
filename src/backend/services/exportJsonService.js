@@ -31,12 +31,13 @@ const FOREIGN_KEY_MAP = {
   objects_assets: ['object_id', 'asset_id'],
   assets_institutions: ['asset_id', 'institution_id'],
   assets: ['institution_id', 'project_id'],
-  datasources: ['institution_id', 'template_id'],
+  datasources: ['institution_id', 'import_id'],
   vocabularies: ['main_asset_id'],
   vocabularies_generic_assets: ['vocabulary_id', 'generic_asset_id'],
   institutions: ['project_id'],
   generic_assets: ['project_id'],
-  languages: ['project_id']
+  languages: ['project_id'],
+  objects_datasources: ['object_id', 'datasource_id', 'template_id']
 };
 
 const TEXT_FIELD_LABEL_MAP = {
@@ -131,7 +132,12 @@ export async function exportProjectJson(options, { db }) {
     ontologyFieldIds.length ? db.select().from(dbSchema.ontology_fields).where(inArray(dbSchema.ontology_fields.id, ontologyFieldIds)).execute() : [],
     datasourceIds.length ? db.select().from(dbSchema.datasources).where(inArray(dbSchema.datasources.id, datasourceIds)).execute() : [],
   ]);
-  const templateIds = Array.from(new Set(datasources.map((d) => d.template_id).filter(Boolean)));
+  
+  // Get objects_datasources to find templates used for each object-datasource pair
+  const objectsDatasources = objectIds.length
+    ? await db.select().from(dbSchema.objects_datasources).where(inArray(dbSchema.objects_datasources.object_id, objectIds)).execute()
+    : [];
+  const templateIds = Array.from(new Set(objectsDatasources.map((od) => od.template_id).filter(Boolean)));
   const templates = templateIds.length ? await db.select().from(dbSchema.templates).where(inArray(dbSchema.templates.id, templateIds)).execute() : [];
 
   const researchFieldIds = Array.from(new Set(orfs.map((r) => r.field_id).filter(Boolean)));
@@ -188,6 +194,8 @@ export async function exportProjectJson(options, { db }) {
   const iFields = idx(ontologyFields);
   const iDatasources = idx(datasources);
   const iTemplates = idx(templates);
+  const iObjectsDatasources = idx(objectsDatasources);
+  const byObjectDs = by(objectsDatasources, 'object_id');
   const iResearchFields = idx(researchFields);
   const iVocabs = idx(vocabularies);
   const byVocabGA = by(vga, 'vocabulary_id');
@@ -277,9 +285,15 @@ export async function exportProjectJson(options, { db }) {
     // expand ontology fields grouped by datasource
     const myOofs = byObjectOofs[obj.id] || [];
     const byDs = myOofs.reduce((m, o) => { const k = o.datasources_id || 'null'; (m[k] ||= []).push(o); return m; }, {});
+    
+    // Get object-datasource records for this object to find templates
+    const myOds = byObjectDs[obj.id] || [];
+    const templateByDs = myOds.reduce((m, od) => { m[od.datasource_id] = od.template_id; return m; }, {});
+    
     oJson.datasources = Object.entries(byDs).map(([dsId, items]) => {
       const ds = dsId !== 'null' ? iDatasources[dsId] : null;
-      const template = ds ? iTemplates[ds.template_id] : null;
+      const templateId = templateByDs[dsId];
+      const template = templateId ? iTemplates[templateId] : null;
       const dsOut = ds
         ? { ...expandEntity('datasources', ds), template: template ? sanitizeRow('templates', template) : null }
         : { template: null };

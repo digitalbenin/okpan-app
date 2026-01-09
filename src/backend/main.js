@@ -59,6 +59,17 @@ ipcMain.handle('import-structured-data', handleStructuredDataImport);
 ipcMain.handle('excel-sheet-selection', handleExcelSheetSelection);
 ipcMain.handle('languages:list', handleListLanguages);
 
+// Static website export
+ipcMain.handle('export-static-website', async (event, options) => {
+  try {
+    const { exportStaticWebsite } = await import('./services/websiteExportService.js');
+    return await exportStaticWebsite(options.projectId, options.outputPath, { db });
+  } catch (error) {
+    console.error('Error exporting static website:', error);
+    throw error;
+  }
+});
+
 // New generic export channel supports { format: 'sql' | 'json', ... }
 ipcMain.handle('export-project', (event, options) =>
   handleExportProject(event, options, { db })
@@ -331,16 +342,18 @@ app.whenReady().then(() => {
   });
 
   // Serve SPA build via custom website:// protocol
+  // URL format: website://app/path - 'app' is the host, path is the file
   protocol.registerFileProtocol('website', (request, callback) => {
     try {
       const url = new URL(request.url);
+      // pathname starts with / so we remove it
       const pathname = decodeURIComponent(url.pathname).replace(/^\//, '');
       // Read website SPA from app resources (handles dev and packaged via app.getAppPath())
       const buildDir = path.join(app.getAppPath(), 'src', 'website', 'build');
 
       let filePath;
       // Default to index.html for SPA fallback
-      if (!pathname || pathname === '' || pathname === 'index.html' || pathname === '200.html') {
+      if (!pathname || pathname === '' || pathname === 'index.html') {
         filePath = path.join(buildDir, 'index.html');
       } else {
         filePath = path.join(buildDir, pathname);

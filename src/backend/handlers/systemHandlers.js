@@ -74,8 +74,8 @@ export const handleFileDialog = async (event, options) => {
             ...(Array.isArray(options.properties) ? options.properties : []),
             options.multiple && !options.isDirectory ? 'multiSelections' : null
         ].filter(p => p !== null && p !== undefined).filter((v, i, a) => a.indexOf(v) === i), // Filter nulls and duplicates
-        // Always use image filters for asset selection
-        filters: imageFilters
+        // Use provided filters or default to image filters for asset selection
+        filters: options.filters || imageFilters
     };
 
     try {
@@ -118,7 +118,7 @@ export const handleFileDialog = async (event, options) => {
 
         return {
             canceled: false,
-            //filePaths: result.filePaths,
+            filePaths: result.filePaths,
             files
         };
     } catch (error) {

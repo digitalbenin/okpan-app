@@ -1,13 +1,16 @@
 <script>
     import ObjectResearchFields from "$lib/components/objects/ObjectResearchFields.svelte";
+    import ObjectConnections from "$lib/components/objects/ObjectConnections.svelte";
     import ObjectLinkedMedia from "$lib/components/objects/ObjectLinkedMedia.svelte";
-    import BaseInput from "$lib/components/base/BaseInput.svelte";
+    import ObjectInstitutionalData from "$lib/components/objects/ObjectInstitutionalData.svelte";
+    import ObjectBasicInfo from "$lib/components/objects/ObjectBasicInfo.svelte";
+    import ObjectHeader from "$lib/components/objects/ObjectHeader.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { back } from "$lib/utils/navigation.js";
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
-    import BaseSelectNew from "$lib/components/base/BaseSelectNew.svelte";
     import { createObject } from "$lib/stores/ObjectsUtils.js";
+    import { getTemplatesByInstitution } from "$lib/stores/TemplatesUtils.js";
     import { queryParameters, ssp } from "sveltekit-search-params";
     import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
     import { watch } from "runed";
@@ -28,6 +31,7 @@
     // Institution selection
     let selectedInstitutionId = $state(null);
     const institutionItems = data.institutions || [];
+    let templates = $state([]);
 
     // Read institution_id from query params using sveltekit-search-params
     const params = queryParameters({
@@ -44,8 +48,36 @@
         }
     );
 
+    // Load templates when institution changes
+    watch(
+        () => selectedInstitutionId,
+        async (institutionId) => {
+            if (institutionId) {
+                const response = await getTemplatesByInstitution(institutionId);
+                templates = response?.result || [];
+            } else {
+                templates = [];
+            }
+        }
+    );
+
     function onInstitutionValueChange(val) {
         selectedInstitutionId = val;
+    }
+
+    const selectedInstitutionName = $derived.by(() => {
+        const match = (institutionItems || []).find(
+            (i) => String(i.value) === String(selectedInstitutionId)
+        );
+        return match?.label || "";
+    });
+
+    function backToInstitution() {
+        if (selectedInstitutionId) {
+            goto(`/projects/${projectId}/institutions/${selectedInstitutionId}`);
+            return;
+        }
+        back();
     }
 
     // Object name input (default language only for now)
@@ -152,84 +184,61 @@
 </script>
 
 <PageActionFooter rightButtons={rightActionButtons}>
-    <div class="container-fluid pb-4">
-        <div class="row mb-2">
-            <div class="col-12">
-                <div class="d-flex align-items-start gap-3 mt-3">
-                    <div>
-                        <button
-                            class="btn btn-lg btn-light rounded-circle aspect-ratio-1x1"
-                            aria-label="back"
-                            onclick={back}
-                            ><i class="bi bi-arrow-left"></i></button
-                        >
-                    </div>
-                    <div>
-                        <h1>
-                            {t("objects.add_object", {
-                                fallback: "Add Object",
-                            })}
-                        </h1>
-                    </div>
-
-                    <div class="ms-auto">
-                        <i class="bi bi-three-dots-vertical"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <ObjectHeader
+        institutionName={selectedInstitutionName}
+        title={t("objects.add_object", { fallback: "Add Object" })}
+        status="in progress"
+        statusDisabled={true}
+        onBack={backToInstitution}
+    />
 
     <!-- Research Fields and Linked Media Section -->
-    <div class="container-fluid">
+    <div class="container-fluid bg-light">
         <div class="row">
-            <div class="col-8">
-                <!-- Name: first field before institution -->
-                <div class="mt-2 mb-2 px-2" style="max-width: 420px;">
-                    <p class="fw-semibold mb-2">
-                        {t("common.name", {
-                            fallback: "Name",
-                        })}
-                    </p>
-                    <BaseInput
-                        placeholder={t("common.name", { fallback: "Name" })}
-                        size="sm"
-                        bind:value={objectName}
+            <div class="col-10">
+                <div class="mt-2 mb-3 px-2">
+                    <ObjectBasicInfo
+                        bind:objectName
+                        bind:selectedInstitutionId
+                        institutionItems={institutionItems}
+                        onInstitutionValueChange={onInstitutionValueChange}
                     />
                 </div>
-                <!-- Institution selector: after primary id, before research data -->
-                <div class="mt-2 mb-4 px-2" style="max-width: 420px;">
-                    <h3 class="">
-                        {t("institutions.institution", {
-                            fallback: "Institution",
-                        })}
-                    </h3>
-                    <BaseSelectNew
-                        placeholder={t("institutions.select_institution", {
-                            fallback: "Select institution",
-                        })}
-                        items={institutionItems}
-                        value={selectedInstitutionId}
-                        onValueChange={onInstitutionValueChange}
-                        type="single"
-                        size="sm"
-                        inputClass="w-100"
-                        contentProps={{ width: "anchor" }}
+                <div class="mt-2 mb-3 px-2">
+                    <ObjectLinkedMedia
+                        {projectId}
+                        institutionId={selectedInstitutionId}
+                        onChangesUpdate={handleComponentChanges}
                     />
                 </div>
-                <ObjectResearchFields
-                    researchFields={data.researchFields}
-                    {defaultLanguageId}
-                    onChangesUpdate={handleComponentChanges}
-                />
-                <!--<ObjectOntologyFields />-->
-            </div>
-            <div class="col-4">
-                <ObjectLinkedMedia
-                    {projectId}
-                    institutionId={selectedInstitutionId}
-                    onChangesUpdate={handleComponentChanges}
-                />
+                <div class="mt-2 mb-3 px-2">
+                    <ObjectResearchFields
+                        researchFields={data.researchFields}
+                        {defaultLanguageId}
+                        onChangesUpdate={handleComponentChanges}
+                    />
+                </div>
+                <div class="mt-2 mb-3 px-2">
+                    <ObjectConnections
+                        researchFields={data.researchFields}
+                        {defaultLanguageId}
+                        onChangesUpdate={handleComponentChanges}
+                    />
+                </div>
+                {#if selectedInstitutionId}
+                    <div class="mt-2 mb-3 px-2">
+                        <ObjectInstitutionalData
+                            datasources={[]}
+                            {templates}
+                            ontologyFields={data.ontologyFields}
+                            {projectId}
+                            institutionId={selectedInstitutionId}
+                            {defaultLanguageId}
+                            {languages}
+                            onChangesUpdate={handleComponentChanges}
+                        />
+                    </div>
+                {/if}
             </div>
         </div>
     </div>

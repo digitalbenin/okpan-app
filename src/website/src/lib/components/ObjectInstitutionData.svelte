@@ -8,15 +8,18 @@
 		}))
 	);
 
-	let fieldsByDatasource = $derived(
+	let groupedFields = $derived(
 		mappedFields?.reduce((acc, item) => {
-			const key = item.datasources_id;
-			if (!acc[key]) acc[key] = [];
-			acc[key].push(item);
+			const dsId = item.datasources_id;
+			const label = item.label || 'Unknown source field';
+
+			if (!acc[dsId]) acc[dsId] = {};
+			if (!acc[dsId][label]) acc[dsId][label] = [];
+
+			acc[dsId][label].push(item);
 			return acc;
 		}, {})
 	);
-
 
 	function getDatasourceName(id) {
 		const ds = datasources.find((d) => d.id == id);
@@ -75,17 +78,17 @@
 
 	<div class="row g-4">
 		<div class="col-lg-12">
-			{#if Object.keys(fieldsByDatasource).length > 0}
+			{#if Object.keys(groupedFields).length > 0}
 				<!-- Tab Navigation -->
 				<ul class="nav nav-underline mb-3 border-bottom">
-					{#each Object.entries(fieldsByDatasource) as [dsId, fields], i}
+					{#each Object.entries(groupedFields) as [dsId, fieldsByLabel], i}
 						<li class="nav-item">
 							<button
 								type="button"
 								class="nav-link"
-								class:active={(activeTabId ?? Object.keys(fieldsByDatasource)[0]) === dsId}
+								class:active={(activeTabId ?? Object.keys(groupedFields)[0]) === dsId}
 								role="tab"
-								aria-selected={(activeTabId ?? Object.keys(fieldsByDatasource)[0]) === dsId}
+								aria-selected={(activeTabId ?? Object.keys(groupedFields)[0]) === dsId}
 								onclick={() => (activeTabId = dsId)}
 							>
 								{getDatasourceName(dsId)}
@@ -97,41 +100,40 @@
 				<div class="row">
 					<div class="col-md-8">
 						<!-- Tab Content (only the active one shown) -->
-						{#each Object.entries(fieldsByDatasource) as [dsId, fields], i}
-							{#if (activeTabId ?? Object.keys(fieldsByDatasource)[0]) === dsId}
-								{#if fields && fields.length > 0}
-									<table class="table table-borderless">
+						{#each Object.entries(groupedFields) as [dsId, fieldsByLabel], i}
+							{#if (activeTabId ?? Object.keys(groupedFields)[0]) === dsId}
+								{#if Object.keys(fieldsByLabel).length > 0}
+									<table class="table table-sm">
 										<thead>
-											<tr class="border-bottom">
-												<th scope="col" class="fw-bold">Institution field</th>
-												<th scope="col" class="fw-bold">Matched field</th>
-												<th scope="col" class="fw-bold">Value</th>
+											<tr>
+												<th style="width: 25%">Institution field</th>
+												<th style="width: 30%">Matched field</th>
+												<th style="width: 45%">Value</th>
 											</tr>
 										</thead>
 										<tbody>
-											{#each fields as field (field.id)}
-												<tr class="border-bottom">
-													<td class="align-middle">
-														{field.label || 'Untitled Field'}
-													</td>
-													<td class="align-middle">
-														<div class="d-flex align-items-center">
-															<i class="bi bi-arrow-right text-muted me-2"></i>
-															<span class="badge bg-secondary-subtle text-dark">
-																{field.name?.content || field.name || 'Unknown'}
-															</span>
+											{#each Object.entries(fieldsByLabel) as [label, fields]}
+												<tr>
+													<td class="text-muted">{label}</td>
+													<td>
+														<div class="d-flex flex-wrap gap-1">
+															{#each fields as field}
+																<span class="badge bg-secondary-subtle text-secondary-emphasis">
+																	{field.name?.content || field.name || 'Unknown'}
+																</span>
+															{/each}
 														</div>
 													</td>
-													<td class="align-middle">
-														{#if field.value}
-															<span>{getDisplayText(field.id, field.value)}</span>
-															{#if shouldTruncate(field.value)}
+													<td>
+														{#if fields[0]?.value}
+															<span>{getDisplayText(fields[0].id, fields[0].value)}</span>
+															{#if shouldTruncate(fields[0].value)}
 																<button
 																	type="button"
 																	class="btn btn-link btn-sm p-0 ms-2 text-decoration-none"
-																	onclick={() => toggleExpanded(field.id)}
+																	onclick={() => toggleExpanded(fields[0].id)}
 																>
-																	{isExpanded(field.id) ? 'read less' : 'read more'}
+																	{isExpanded(fields[0].id) ? 'read less' : 'read more'}
 																</button>
 															{/if}
 														{:else}
