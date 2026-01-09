@@ -102,6 +102,24 @@
     }).filter(Boolean);
   });
 
+  // Group fields by institution field name for display
+  const groupedFields = $derived.by(() => {
+    const groups = new Map();
+    mappedFields.forEach(field => {
+      if (!groups.has(field.institutionField)) {
+        groups.set(field.institutionField, {
+          institutionField: field.institutionField,
+          primary: false,
+          mappings: []
+        });
+      }
+      const group = groups.get(field.institutionField);
+      group.mappings.push(field);
+      if (field.primary) group.primary = true;
+    });
+    return Array.from(groups.values());
+  });
+
   // Initialize field values from existing fields
   const initializeFieldValues = () => {
     const newValues = new Map();
@@ -149,16 +167,18 @@
           component: `datasource-${datasource.id}`,
           hasChanges: changed,
           getData: () => {
-            const fieldsData = Array.from(fieldValues.entries()).map(([institutionField, value]) => {
-              const field = mappedFields.find(f => f.institutionField === institutionField);
+            // Iterate over all mappedFields to ensure institution fields mapped to multiple ontology fields are saved correctly
+            const fieldsData = mappedFields.map(field => {
+              const value = fieldValues.get(field.institutionField) || "";
               return {
-                label: institutionField,
+                label: field.institutionField,
                 value,
-                field_id: field?.ontologyFieldId,
+                field_id: field.ontologyFieldId,
                 datasources_id: datasource.id,
-                primary: field?.primary ? 1 : 0,
+                primary: field.primary ? 1 : 0,
               };
             });
+
             console.log('getData called - current fieldValues:', {
               datasourceId: datasource.id,
               templateId: selectedTemplate?.id,
@@ -237,28 +257,30 @@
             </tr>
           </thead>
           <tbody>
-            {#each mappedFields as field (field.uniqueKey)}
+            {#each groupedFields as group (group.institutionField)}
               <tr class="border-bottom">
                 <td class="align-middle" style="width: 40%;">
                   <div class="mb-1 d-flex align-items-center">
-                    <span>{field.institutionField}</span>
-                    {#if field.primary}
+                    <span>{group.institutionField}</span>
+                    {#if group.primary}
                         <i class="bi bi-star-fill text-black ms-2" style="font-size: 0.75rem;" title={t("objects.primary-id", { fallback: "Primary ID" })}></i>
                     {/if}
                   </div>
-                  <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-arrow-right text-muted small"></i>
-                    <span class="text-muted small">{field.ontologyFieldName}</span>
-                  </div>
+                  {#each group.mappings as mapping}
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-arrow-right text-muted small"></i>
+                        <span class="text-muted small">{mapping.ontologyFieldName}</span>
+                    </div>
+                  {/each}
                 </td>
                 <td class="align-middle">
                   <BaseInput
-                    value={fieldValues.get(field.institutionField) || ""}
+                    value={fieldValues.get(group.institutionField) || ""}
                     placeholder={t("objects.add-value-placeholder", { 
-                      fallback: "Add subfolder path if not served from root" 
+                      fallback: "Add value..." 
                     })}
                     size="sm"
-                    onInput={(e) => handleFieldChange(field.institutionField, e.target.value)}
+                    onInput={(e) => handleFieldChange(group.institutionField, e.target.value)}
                   />
                 </td>
               </tr>
