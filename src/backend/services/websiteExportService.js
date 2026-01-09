@@ -183,6 +183,7 @@ async function exportWebsiteData(projectId, db) {
       objectsOntologyFields,
       objectsResearchFields,
       objectsAssets,
+      objectsDatasources,
       institutions,
       researchFields,
       ontologyFields
@@ -193,6 +194,8 @@ async function exportWebsiteData(projectId, db) {
         .where(inArray(dbSchema.objects_research_fields.object_id, objectIds)).execute(),
       db.select().from(dbSchema.objects_assets)
         .where(inArray(dbSchema.objects_assets.object_id, objectIds)).execute(),
+      db.select().from(dbSchema.objects_datasources)
+        .where(inArray(dbSchema.objects_datasources.object_id, objectIds)).execute(),
       db.select().from(dbSchema.institutions)
         .where(eq(dbSchema.institutions.project_id, projectId)).execute(),
       db.select().from(dbSchema.research_fields)
@@ -207,6 +210,19 @@ async function exportWebsiteData(projectId, db) {
       ? await db.select().from(dbSchema.datasources)
           .where(inArray(dbSchema.datasources.id, datasourceIds)).execute()
       : [];
+
+    // Fetch templates based on objects_datasources references
+    const templateIds = [...new Set(objectsDatasources.map(od => od.template_id).filter(Boolean))];
+    const allTemplates = templateIds.length > 0
+      ? await db.select().from(dbSchema.templates)
+          .where(inArray(dbSchema.templates.id, templateIds)).execute()
+      : [];
+    const templateMap = Object.fromEntries(allTemplates.map(t => [t.id, t]));
+
+    // Build datasource -> template mapping
+    const datasourceTemplateMap = Object.fromEntries(
+      objectsDatasources.map(od => [od.datasource_id, od.template_id]).filter(([_, tid]) => tid)
+    );
 
     // Fetch assets
     const assetIds = [...new Set(objectsAssets.map(oa => oa.asset_id).filter(Boolean))];
@@ -321,7 +337,71 @@ async function exportWebsiteData(projectId, db) {
             asset_formats: typeof asset.formats === 'string' ? JSON.parse(asset.formats) : asset.formats
           } : null;
         }).filter(Boolean),
-        objectOntologyFields: objOntologyFields,
+        // Transform ontology fields using template mappings to get correct field_id for multi-mappings
+        objectOntologyFields: (() => {
+          // Get object's datasources to find templates
+          const objDatasources = objectsDatasources.filter(od => od.object_id === obj.id);
+          
+          // Build expanded fields from template mappings
+          const expandedFields = [];
+          const processedCombos = new Set(); // Track processed label+field_id+datasource combos
+          
+          for (const objDs of objDatasources) {
+            const template = objDs.template_id ? templateMap[objDs.template_id] : null;
+            if (!template?.mapping) continue;
+            
+            // Parse mapping if needed
+            let mapping = template.mapping;
+            if (typeof mapping === 'string') {
+              try { mapping = JSON.parse(mapping); } catch (e) { continue; }
+            }
+            if (!Array.isArray(mapping)) continue;
+            
+            // For each mapping entry, find matching ontology field rows by label
+            for (const mapEntry of mapping) {
+              const entry = typeof mapEntry === 'string' ? JSON.parse(mapEntry) : mapEntry;
+              const label = entry.headerField;
+              const mappedFieldId = entry.mappedField;
+              
+              if (!label || !mappedFieldId) continue;
+              
+              // Find ontology field rows matching this label and datasource
+              const matchingRows = objOntologyFields.filter(
+                oof => oof.label === label && oof.datasources_id === objDs.datasource_id
+              );
+              
+              // Take only the first matching row (avoid duplicates) and override field_id from template
+              const sourceRow = matchingRows[0];
+              if (sourceRow) {
+                const comboKey = `${label}|${mappedFieldId}|${objDs.datasource_id}`;
+                if (!processedCombos.has(comboKey)) {
+                  processedCombos.add(comboKey);
+                  expandedFields.push({
+                    id: `${sourceRow.id}_${mappedFieldId}`, // Unique id for each mapping
+                    label: label,
+                    value: sourceRow.value,
+                    field_id: mappedFieldId, // Use template's mapped field, not stored field_id
+                    datasources_id: sourceRow.datasources_id,
+                    primary: entry.primary || sourceRow.primary
+                  });
+                }
+              }
+            }
+          }
+          
+          // If no templates found, fall back to raw data (deduplicated)
+          if (expandedFields.length === 0) {
+            const seen = new Set();
+            return objOntologyFields.filter(oof => {
+              const key = `${oof.label}|${oof.field_id}|${oof.datasources_id}`;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+          }
+          
+          return expandedFields;
+        })(),
         objectResearchFields: objResearchFields,
         // Add datasources based on ontology field references
         datasources: (() => {
