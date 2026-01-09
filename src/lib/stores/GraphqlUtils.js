@@ -16,7 +16,23 @@ export const performQuery = async (query, params, context) => {
     let result = null;
     try {
         const response = await window.api.executeGraphQL(query.query, params, context);
+
+        // Electron IPC GraphQL handler returns { success: boolean, data?: object, errors?: [], error?: string }
+        // Normalize failures into thrown Errors so callers don't receive undefined.
+        if (!response?.success) {
+            const firstGqlMessage = Array.isArray(response?.errors) ? response.errors[0]?.message : null;
+            const errorMessage = firstGqlMessage || response?.error || 'GraphQL execution failed';
+            const err = new Error(errorMessage);
+            err.graphqlErrors = response?.errors;
+            err.graphqlResponse = response;
+            throw err;
+        }
+
         result = response.data;
+
+        if (result === undefined || result === null) {
+            throw new Error('GraphQL returned no data');
+        }
 
         // Check for GraphQL errors in the response (GraphQL can return data with errors)
         if (result && result.errors) {

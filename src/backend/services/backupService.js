@@ -205,8 +205,10 @@ const generateSchemaDDL = () => {
     id TEXT PRIMARY KEY NOT NULL,
     created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      name TEXT,
     mapping TEXT,
     project_id TEXT REFERENCES project(id) ON DELETE CASCADE,
+    institution_id TEXT REFERENCES institutions(id) ON DELETE SET NULL,
     asset_map_rule TEXT
   )`);
 
@@ -216,7 +218,7 @@ const generateSchemaDDL = () => {
     updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     name_id TEXT REFERENCES texts(id),
     institution_id TEXT REFERENCES institutions(id) ON DELETE CASCADE,
-    template_id TEXT REFERENCES templates(id),
+    import_id TEXT REFERENCES imports(id) ON DELETE SET NULL,
     source TEXT,
     language TEXT,
     copyright TEXT,
@@ -316,8 +318,16 @@ const generateSchemaDDL = () => {
     created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     filename TEXT,
-    data TEXT,
-    template_id TEXT REFERENCES templates(id)
+    data TEXT
+  )`);
+
+  push('objects_datasources', `CREATE TABLE IF NOT EXISTS objects_datasources (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    object_id TEXT REFERENCES objects(id) ON DELETE CASCADE,
+    datasource_id TEXT REFERENCES datasources(id) ON DELETE CASCADE,
+    template_id TEXT REFERENCES templates(id) ON DELETE SET NULL
   )`);
 
   return ddls.join('\n') + '\n';
@@ -483,13 +493,6 @@ export async function createProjectBackup(options, { db }) {
     .execute();
   const templateIds = templates.map(t => t.id);
 
-  // Imports
-  const imports = templateIds.length > 0
-    ? await db.select().from(dbSchema.imports)
-        .where(inArray(dbSchema.imports.template_id, templateIds))
-        .execute()
-    : [];
-
   // Datasources
   const datasources = institutionIds.length > 0
     ? await db.select().from(dbSchema.datasources)
@@ -504,11 +507,22 @@ export async function createProjectBackup(options, { db }) {
   });
   const datasourceIds = datasources.map(ds => ds.id);
 
+  // Imports (standalone - not linked to datasources)
+  const imports = await db.select().from(dbSchema.imports)
+    .execute();
+
   // Objects
   const objects = await db.select().from(dbSchema.objects)
     .where(eq(dbSchema.objects.project_id, project_id))
     .execute();
   const objectIds = objects.map(o => o.id);
+
+  // Objects Datasources junction (tracks object-datasource-template relationships)
+  const objectsDatasources = objectIds.length > 0
+    ? await db.select().from(dbSchema.objects_datasources)
+        .where(inArray(dbSchema.objects_datasources.object_id, objectIds))
+        .execute()
+    : [];
 
   // Objects relationships
   const objectsResearchFields = objectIds.length > 0
@@ -611,11 +625,11 @@ export async function createProjectBackup(options, { db }) {
     // Thirteenth: object_display_fields (depends on project, ontology_fields, research_fields)
     generateInsertStatements('object_display_fields', objectDisplayFields),
     
-    // Fourteenth: datasources (depends on institutions, templates, and texts)
-    generateInsertStatements('datasources', datasources),
-    
-    // Fifteenth: imports (depends on templates)
+    // Fourteenth: imports (standalone now, no datasource dependency)
     generateInsertStatements('imports', imports),
+    
+    // Fifteenth: datasources (depends on institutions and texts, optionally imports)
+    generateInsertStatements('datasources', datasources),
     
     // Sixteenth: assets (depends on project and institutions)
     generateInsertStatements('assets', assets),
@@ -628,6 +642,7 @@ export async function createProjectBackup(options, { db }) {
     generateInsertStatements('objects_ontology_fields', objectsOntologyFields),
     generateInsertStatements('objects_assets', objectsAssets),
     generateInsertStatements('assets_institutions', assetsInstitutions),
+    generateInsertStatements('objects_datasources', objectsDatasources),
   ].join('\n');
 
   const sqlContent = ddl + '\n' + inserts;

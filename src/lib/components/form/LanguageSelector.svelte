@@ -5,6 +5,7 @@
   let {
     languages = [],
     activeLanguageCode = $bindable("default"),
+    usePortal = true,
     class: className = "",
   } = $props();
 
@@ -32,7 +33,7 @@
   const dropdownItems = $derived(
     allLanguages.map((lang) => ({
       label: lang.name || lang.code,
-      icon: lang.is_default ? "star-fill" : undefined,
+      //icon: lang.is_default ? "star-fill" : undefined,
       onClick: () => {
         activeLanguageCode = lang.code === "default" ? "default" : lang.id;
       },
@@ -43,6 +44,7 @@
 </script>
 
 {#if allLanguages.length > 0}
+  {#if usePortal}
   <Portal>
     <div class="language-selector {className}" style="position: absolute; top: 80px; right: 20px;">
       <BaseDropdownMenu
@@ -63,4 +65,24 @@
       </BaseDropdownMenu>
     </div>
   </Portal>
+  {:else}
+    <div class="language-selector {className}">
+      <BaseDropdownMenu
+        bind:open
+        items={dropdownItems}
+        triggerClass="btn btn-sm btn-secondary d-flex align-items-center gap-2"
+        contentProps={{ style: "right: 0; left: auto; min-width: 150px;" }}
+        side="bottom"
+        align="end"
+        sideOffset={4}
+        alignOffset={0}
+      >
+        {#snippet trigger()}
+          <i class="bi bi-translate"></i>
+          <span>{currentLanguage?.name || "Language"}</span>
+          <i class="bi bi-chevron-down small"></i>
+        {/snippet}
+      </BaseDropdownMenu>
+    </div>
+  {/if}
 {/if}

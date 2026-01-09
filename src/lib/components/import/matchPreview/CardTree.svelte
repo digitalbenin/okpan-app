@@ -20,7 +20,7 @@
   });
 
   const mappedField = $derived.by(() => {
-    return wizard.reusedTemplate?.mapping.find(
+    return wizard.reusedTemplate?.mapping?.filter(
       (m) => m.headerField === node.pathString
     );
   });

@@ -60,6 +60,17 @@ ipcMain.handle('import-structured-data', handleStructuredDataImport);
 ipcMain.handle('excel-sheet-selection', handleExcelSheetSelection);
 ipcMain.handle('languages:list', handleListLanguages);
 
+// Static website export
+ipcMain.handle('export-static-website', async (event, options) => {
+  try {
+    const { exportStaticWebsite } = await import('./services/websiteExportService.js');
+    return await exportStaticWebsite(options.projectId, options.outputPath, { db });
+  } catch (error) {
+    console.error('Error exporting static website:', error);
+    throw error;
+  }
+});
+
 // New generic export channel supports { format: 'sql' | 'json', ... }
 ipcMain.handle('export-project', (event, options) =>
   handleExportProject(event, options, { db })
@@ -386,9 +397,11 @@ app.whenReady().then(() => {
   });
 
   // Serve SPA build via custom website:// protocol
+  // URL format: website://app/path - 'app' is the host, path is the file
   protocol.registerFileProtocol('website', (request, callback) => {
     try {
       const url = new URL(request.url);
+      // pathname starts with / so we remove it
       const pathname = decodeURIComponent(url.pathname).replace(/^\//, '');
       const buildDir = path.join(process.cwd(), 'src', 'website', 'build');
 

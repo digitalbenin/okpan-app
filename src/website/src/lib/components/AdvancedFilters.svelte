@@ -28,7 +28,8 @@
 		const list = facets?.institution_ids || [];
 		for (const row of list) {
 			const id = row.institution_id ?? row.id;
-			map.set(id, row.count || 0);
+			const count = row.count;
+			map.set(id, Number(count) || 0);
 		}
 		return map;
 	});
@@ -37,7 +38,8 @@
 		const map = new Map();
 		const list = facets?.research_fields || [];
 		for (const row of list) {
-			map.set(`${row.field_id}:${row.vocabulary_id}`, row.count || 0);
+			const count = row.count;
+			map.set(`${row.field_id}:${row.vocabulary_id}`, Number(count) || 0);
 		}
 		return map;
 	});

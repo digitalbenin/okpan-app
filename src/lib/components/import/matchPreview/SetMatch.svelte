@@ -9,10 +9,31 @@
     suggestions = [],
     fieldMatched = $bindable(),
     disabled = false,
+    open = $bindable(false),
+    triggerVariant = "edit",
+    buttonProps: buttonPropsOverride = undefined,
   } = $props();
   const { t } = getTranslationStore();
 
-  let open = $state(false);
+  const buttonProps = $derived.by(() => {
+    const base = {
+      class:
+        triggerVariant === "add"
+          ? "btn btn-light btn-sm"
+          : "btn btn-outline-secondary btn-sm",
+    };
+
+    const merged = {
+      ...base,
+      ...(buttonPropsOverride || {}),
+      disabled: disabled,
+    };
+
+    // Always enforce disabled from prop
+    if (disabled) merged.disabled = true;
+    return merged;
+  });
+
   let value = $derived(fieldMatched ? fieldMatched.id : null);
   const items = $derived.by(() => {
     return page.data.ontologyFields.result
@@ -43,19 +64,21 @@
 
 <BaseAlertDialog
   bind:open
-  buttonProps={{
-    class: "btn btn-outline-secondary btn-sm",
-    disabled: disabled,
-  }}
+  buttonProps={buttonProps}
 >
   {#snippet title()}
     {t("import.edit-match", { fallback: "Edit matched field" })}
   {/snippet}
   {#snippet trigger()}
-    <i class="bi bi-pencil"></i>
-    {t("import.edit-match", {
-      fallback: "Edit matched field",
-    })}
+    {#if triggerVariant === "add"}
+      <i class="bi bi-plus"></i>
+      <span class="visually-hidden">{t("common.add", { fallback: "Add" })}</span>
+    {:else}
+      <i class="bi bi-pencil"></i>
+      {t("import.edit-match", {
+        fallback: "Edit matched field",
+      })}
+    {/if}
   {/snippet}
   {#snippet description()}
     {t("import.match-description", {
@@ -72,3 +95,4 @@
     </button>
   {/snippet}
 </BaseAlertDialog>
+

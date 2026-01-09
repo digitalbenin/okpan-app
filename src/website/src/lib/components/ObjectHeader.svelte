@@ -1,12 +1,13 @@
 <script>
-	import { page } from '$app/stores';
-	const { objId, institution, title } = $props();
-	const proj_id = $page.url.searchParams.get('project_id');
+	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
+	const { institution, title, projectId } = $props();
+	// In static export mode, don't add project_id query param
+	const backHref = (!isStaticExport && projectId) ? `/?project_id=${projectId}` : '/';
 </script>
 
 <div class="object-header">
 	<a
-		href={`/?project_id=${proj_id}`}
+		href={backHref}
 		class="d-block text-decoration-none text-secondary text-opacity-75 mb-2"
 	>
 		<i class="bi bi-chevron-left"></i>

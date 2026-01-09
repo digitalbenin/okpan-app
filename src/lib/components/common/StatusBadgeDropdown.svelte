@@ -29,6 +29,7 @@
   }
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <span class="badgeWrapper fs-6 position-relative d-inline-block" tabindex="0">
   <button
     type="button"
@@ -37,7 +38,7 @@
     aria-expanded={showMenu}
     on:click={toggleMenu}
   >
-    <BaseBadgeStatus status={status} showChevron={true} />
+    <BaseBadgeStatus status={status} showChevron={true} className="p-2" />
   </button>
 
   {#if showMenu}

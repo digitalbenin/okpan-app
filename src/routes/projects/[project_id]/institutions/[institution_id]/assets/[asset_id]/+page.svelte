@@ -297,6 +297,7 @@
               {uiSchema}
               fieldOrder={TRANSLATABLE_FIELDS}
               {hiddenFields}
+              usePortal={false}
             />
           </form>
         {/if}

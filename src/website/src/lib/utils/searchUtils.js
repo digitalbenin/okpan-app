@@ -238,13 +238,12 @@ export async function searchObjects(options = {}) {
   const institutionFacetSql = `
      SELECT 
        o.institution_id, 
-       txt.content as name,
+       (SELECT content FROM texts WHERE id = i.name_id LIMIT 1) as name,
        COUNT(DISTINCT o.id) as count
      FROM objects o
      JOIN institutions i ON o.institution_id = i.id
-     LEFT JOIN texts txt ON i.name_id = txt.id
      ${institutionWhere}
-     GROUP BY o.institution_id, name
+     GROUP BY o.institution_id
      ORDER BY count DESC
    `;
   const institutionStmt = db.prepare(institutionFacetSql);
@@ -288,15 +287,14 @@ export async function searchObjects(options = {}) {
     SELECT 
       v.field_id as field_id,
       orf.vocabulary_id as vocabulary_id,
-      txt.content as name,
+      (SELECT content FROM texts WHERE id = v.option_id LIMIT 1) as name,
       COUNT(DISTINCT o.id) as count
     FROM objects o
     JOIN objects_research_fields orf ON orf.object_id = o.id
     JOIN vocabularies v ON orf.vocabulary_id = v.id
     JOIN research_fields rf ON v.field_id = rf.id
-    LEFT JOIN texts txt ON v.option_id = txt.id
     ${researchWhere}
-    GROUP BY v.field_id, orf.vocabulary_id, name
+    GROUP BY v.field_id, orf.vocabulary_id
     HAVING count > 0
     ORDER BY count DESC
   `;

@@ -156,9 +156,18 @@ const generateSchemaDDL = () => {
     id TEXT PRIMARY KEY NOT NULL,
     created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    name TEXT,
     mapping TEXT,
     project_id TEXT REFERENCES project(id) ON DELETE CASCADE,
+    institution_id TEXT REFERENCES institutions(id) ON DELETE SET NULL,
     asset_map_rule TEXT
+  )`);
+  push('imports', `CREATE TABLE imports (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    filename TEXT,
+    data TEXT
   )`);
   push('datasources', `CREATE TABLE datasources (
     id TEXT PRIMARY KEY NOT NULL,
@@ -166,13 +175,21 @@ const generateSchemaDDL = () => {
     updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     name_id TEXT REFERENCES texts(id),
     institution_id TEXT REFERENCES institutions(id) ON DELETE CASCADE,
-    template_id TEXT REFERENCES templates(id),
+    import_id TEXT REFERENCES imports(id) ON DELETE SET NULL,
     language TEXT,
     copyright TEXT,
     method_id TEXT REFERENCES texts(id),
     contact TEXT,
     notes_id TEXT REFERENCES texts(id),
     date INTEGER
+  )`);
+  push('objects_datasources', `CREATE TABLE objects_datasources (
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    object_id TEXT REFERENCES objects(id) ON DELETE CASCADE,
+    datasource_id TEXT REFERENCES datasources(id) ON DELETE CASCADE,
+    template_id TEXT REFERENCES templates(id) ON DELETE SET NULL
   )`);
   push('objects', `CREATE TABLE objects (
     id TEXT PRIMARY KEY NOT NULL,
@@ -294,8 +311,16 @@ export async function exportProjectSql(options, { db }) {
   const datasourceIds = Array.from(new Set(objectsOntologyFields.map((r) => r.datasources_id).filter(Boolean)));
   const ontologyFields = ontologyFieldIds.length ? await db.select().from(dbSchema.ontology_fields).where(inArray(dbSchema.ontology_fields.id, ontologyFieldIds)).execute() : [];
   const datasources = datasourceIds.length ? await db.select().from(dbSchema.datasources).where(inArray(dbSchema.datasources.id, datasourceIds)).execute() : [];
-  const templateIds = Array.from(new Set(datasources.map((d) => d.template_id).filter(Boolean)));
+  
+  // Get objects_datasources for template lookups
+  const objectsDatasources = await db.select().from(dbSchema.objects_datasources).where(inArray(dbSchema.objects_datasources.object_id, objectIds)).execute();
+  const templateIds = Array.from(new Set(objectsDatasources.map((od) => od.template_id).filter(Boolean)));
   const templates = templateIds.length ? await db.select().from(dbSchema.templates).where(inArray(dbSchema.templates.id, templateIds)).execute() : [];
+  
+  // Get imports linked to datasources
+  const importIds = Array.from(new Set(datasources.map((d) => d.import_id).filter(Boolean)));
+  const imports = importIds.length ? await db.select().from(dbSchema.imports).where(inArray(dbSchema.imports.id, importIds)).execute() : [];
+  
   const orfs = await db.select().from(dbSchema.objects_research_fields).where(inArray(dbSchema.objects_research_fields.object_id, objectIds)).execute();
   const researchFieldIds = Array.from(new Set(orfs.map((r) => r.field_id).filter(Boolean)));
   const researchFields = researchFieldIds.length ? await db.select().from(dbSchema.research_fields).where(inArray(dbSchema.research_fields.id, researchFieldIds)).execute() : [];
@@ -317,8 +342,10 @@ export async function exportProjectSql(options, { db }) {
     generateInsertStatements('institutions', institutions),
     generateInsertStatements('objects_ontology_fields', objectsOntologyFields),
     generateInsertStatements('ontology_fields', ontologyFields),
+    generateInsertStatements('imports', imports),
     generateInsertStatements('datasources', datasources),
     generateInsertStatements('templates', templates),
+    generateInsertStatements('objects_datasources', objectsDatasources),
     generateInsertStatements('objects_research_fields', orfs),
     generateInsertStatements('research_fields', researchFields),
     generateInsertStatements('vocabularies', vocabularies),

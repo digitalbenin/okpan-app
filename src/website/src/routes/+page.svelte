@@ -1,13 +1,21 @@
 <script>
+	import { onMount } from 'svelte';
 	import Grid from '$lib/components/Grid.svelte';
 
 	import FilterBar from '$lib/components/Filterbar.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import AdvancedFilters from '$lib/components/AdvancedFilters.svelte';
-	import { searchObjects } from '$lib/utils/searchUtils.js';
+	import { searchObjects } from '$lib/utils/search.js';
 	import { page } from '$app/stores';
 
+	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
+
 	let { data } = $props();
+
+	// SEO data
+	const siteTitle = $derived(data?.settings?.title || data?.project?.name || 'Database Collection');
+	const siteDescription = $derived(data?.settings?.description || data?.project?.description || 'Explore our digital collection');
+	const siteLogo = $derived(data?.settings?.logo_asset_path ? `/assets/${data.settings.logo_asset_path}` : null);
 
 	let searchTerm = $state(data.queryParams.q);
 	let advancedFilters = $state({});
@@ -20,10 +28,42 @@
 		return Math.max(1, Math.ceil(total / (pageSize || 1)));
 	});
 	let showAdvancedFilters = $state(false);
-	let researchFields = data.research_fields;
-	let ontologyFields = data.ontology_fields;
-	let institutions = data.institutions;
-	let vocabularies = data.vocabularies;
+	
+	// Reference data - will be loaded client-side in static export mode
+	let researchFields = $state(data.research_fields || []);
+	let ontologyFields = $state(data.ontology_fields || []);
+	let institutions = $state(data.institutions || []);
+	let vocabularies = $state(data.vocabularies || []);
+	
+	// Loading state for static export
+	let isLoading = $state(isStaticExport && data.needsClientLoad);
+
+	// Static export: load data.json client-side on mount
+	onMount(async () => {
+		if (isStaticExport && data.needsClientLoad) {
+			try {
+				const response = await fetch('/data.json');
+				const jsonData = await response.json();
+				
+				// Store reference data
+				researchFields = jsonData.research_fields || [];
+				ontologyFields = jsonData.ontology_fields || [];
+				institutions = jsonData.institutions || [];
+				vocabularies = jsonData.vocabularies || [];
+				
+				// Update SEO data from loaded data
+				if (jsonData.settings) data.settings = jsonData.settings;
+				if (jsonData.project) data.project = jsonData.project;
+				
+				// Run initial search
+				isLoading = false;
+				await runSearch();
+			} catch (error) {
+				console.error('[Homepage] Failed to load data.json:', error);
+				isLoading = false;
+			}
+		}
+	});
 
 	// Fast lookup maps
 	const institutionsById = $derived.by(() => {
@@ -186,7 +226,6 @@
 
 	async function runSearch() {
 		const options = buildSearchOptions();
-		console.log('[runSearch options]', options);
 		searchResult = await searchObjects(options);
 	}
 
@@ -230,33 +269,67 @@
 	$inspect(data);
 </script>
 
+<svelte:head>
+	{#if isStaticExport}
+	<!-- Primary Meta Tags -->
+	<title>{siteTitle}</title>
+	<meta name="title" content={siteTitle} />
+	<meta name="description" content={siteDescription} />
+	
+	<!-- Open Graph / Facebook -->
+	<meta property="og:type" content="website" />
+	<meta property="og:title" content={siteTitle} />
+	<meta property="og:description" content={siteDescription} />
+	{#if siteLogo}
+	<meta property="og:image" content={siteLogo} />
+	{/if}
+	
+	<!-- Twitter -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={siteTitle} />
+	<meta name="twitter:description" content={siteDescription} />
+	{#if siteLogo}
+	<meta name="twitter:image" content={siteLogo} />
+	{/if}
+	{/if}
+</svelte:head>
+
 <div class="row">
 	<div class="col-12 p-3 min-vh-100">
 		<h1>Archive</h1>
-		<FilterBar
-			value={searchTerm}
-			onInput={handleInput}
-			{resCount}
-			onFiltersClick={handleFiltersClick}
-			{institutionChips}
-			{vocabularyChips}
-			{textChips}
-			{hasActiveFilters}
-			onRemoveInstitution={removeInstitution}
-			onRemoveVocabulary={removeVocabulary}
-			onRemoveTextFilter={removeTextFilter}
-			onClearAllAdvancedFilters={clearAllAdvancedFilters}
-		/>
-
-		<Grid
-			items={searchResult?.items || []}
-			ontology_fields={data.ontology_fields}
-			institutions={data.institutions}
-		/>
-		{#if pageCount > 1}
-			<div class="mt-3">
-				<Pagination page={currentPage} {pageCount} {onPageChange} size="sm" />
+		{#if isLoading}
+			<div class="text-center py-5">
+				<div class="spinner-border" role="status">
+					<span class="visually-hidden">Loading...</span>
+				</div>
+				<p class="mt-2">Loading collection...</p>
 			</div>
+		{:else}
+			<FilterBar
+				value={searchTerm}
+				onInput={handleInput}
+				{resCount}
+				onFiltersClick={handleFiltersClick}
+				{institutionChips}
+				{vocabularyChips}
+				{textChips}
+				{hasActiveFilters}
+				onRemoveInstitution={removeInstitution}
+				onRemoveVocabulary={removeVocabulary}
+				onRemoveTextFilter={removeTextFilter}
+				onClearAllAdvancedFilters={clearAllAdvancedFilters}
+			/>
+
+			<Grid
+				items={searchResult?.items || []}
+				ontology_fields={ontologyFields}
+				{institutions}
+			/>
+			{#if pageCount > 1}
+				<div class="mt-3">
+					<Pagination page={currentPage} {pageCount} {onPageChange} size="sm" />
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>

@@ -8,7 +8,14 @@
     createDisplayField,
   } from "$lib/stores/DisplayFieldsUtils.js";
 
-  const { displayFields, researchFields, projectId } = $props();
+  const {
+    displayFields,
+    researchFields,
+    projectId,
+    as = "select",
+    inputClass,
+    placeholder,
+  } = $props();
   const { t } = getTranslationStore();
 
   // Normalize incoming props to consistent array shapes
@@ -59,13 +66,18 @@
   const getFieldValues = (fields) =>
     Array.isArray(fields) ? fields.map((field) => field.value) : [];
 
-  let objectFieldsGroup = $state(buildObjectFieldsGroup(dfArray));
+  const objectFieldsGroup = $derived.by(() => buildObjectFieldsGroup(dfArray));
 
-  let researchFieldsGroup = $state(buildResearchFieldsGroup(rfArray, dfArray));
+  const researchFieldsGroup = $derived.by(() =>
+    buildResearchFieldsGroup(rfArray, dfArray)
+  );
 
-  let fieldsSelected = $state(getFieldValues(dfArray));
+  const fieldsItems = $derived.by(() => [
+    ...objectFieldsGroup,
+    ...researchFieldsGroup,
+  ]);
 
-  let fieldsItems = $state([...objectFieldsGroup, ...researchFieldsGroup]);
+  let fieldsSelected = $state([]);
 
   let loading = $state(false);
   let skipSelectionWatcher = false;
@@ -79,15 +91,12 @@
     () => ({ fields: dfArray, research: rfArray }),
     ({ fields, research }) => {
       skipSelectionWatcher = true;
-      objectFieldsGroup = buildObjectFieldsGroup(fields);
-      researchFieldsGroup = buildResearchFieldsGroup(research, fields);
-      fieldsItems = [...objectFieldsGroup, ...researchFieldsGroup];
       fieldsSelected = getFieldValues(fields);
       queueMicrotask(() => {
         skipSelectionWatcher = false;
       });
     },
-    { lazy: true }
+    { lazy: false }
   );
 
   watch(
@@ -130,10 +139,23 @@
 <BaseSelect
   bind:value={fieldsSelected}
   items={fieldsItems}
-  placeholder={t("common.default", {
-    fallback: "Default",
-  })}
+  placeholder={
+    placeholder ||
+    t("common.card-options", {
+      fallback: "Card options",
+    })
+  }
+  triggerLabel={
+    as === "button"
+      ? t("common.card-options", { fallback: "Card options" })
+      : undefined
+  }
   type="multiple"
-  size="sm"
+  as={as}
+  inputClass={inputClass}
   disabled={loading}
-></BaseSelect>
+>
+  {#if as === "button"}
+    <i class="bi bi-chevron-down"></i>
+  {/if}
+</BaseSelect>

@@ -34,14 +34,25 @@ export function getDb() {
 
 /**
  * Executes a prepared statement and returns all results, ensuring the statement is freed.
+ * Converts BigInt values to Numbers for compatibility with JavaScript operators.
  * @param {import('sql.js').Statement} stmt
  * @returns {Object[]}
  */
 export function getResults(stmt) {
   try {
     const results = [];
+    let rowIndex = 0;
     while (stmt.step()) {
-      results.push(stmt.getAsObject());
+      const row = stmt.getAsObject();
+      
+      // Convert BigInt values to Numbers (sql.js returns BigInt for COUNT, etc.)
+      for (const key in row) {
+        if (typeof row[key] === 'bigint') {
+          row[key] = Number(row[key]);
+        }
+      }
+      results.push(row);
+      rowIndex++;
     }
     return results;
   } finally {
@@ -334,6 +345,17 @@ export function fetchObjectById(db, objectId) {
         FROM objects_ontology_fields oof
         WHERE oof.object_id = o.id AND oof.datasources_id IS NOT NULL
       )
+    )`,
+    // Fetch template mappings via objects_datasources
+    templateMappings: `(
+      SELECT json_group_array(json_object(
+        'datasource_id', od.datasource_id,
+        'template_id', od.template_id,
+        'mapping', t.mapping
+      ))
+      FROM objects_datasources od
+      LEFT JOIN templates t ON od.template_id = t.id
+      WHERE od.object_id = o.id AND od.template_id IS NOT NULL
     )`
   };
 
@@ -343,7 +365,8 @@ export function fetchObjectById(db, objectId) {
       ${subqueries.assets} AS objects_assets_json,
       ${subqueries.ontology} AS objects_ontology_fields_json,
       ${subqueries.research} AS objects_research_fields_json,
-      ${subqueries.datasources} AS datasources_json
+      ${subqueries.datasources} AS datasources_json,
+      ${subqueries.templateMappings} AS template_mappings_json
     FROM objects o
     WHERE o.id = ?
     LIMIT 1
@@ -357,9 +380,79 @@ export function fetchObjectById(db, objectId) {
 
   const toArray = (v) => (Array.isArray(v) ? v : v ? v : []);
   const assets = toArray(row?.objects_assets_json).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  const objectOntologyFields = toArray(row?.objects_ontology_fields_json);
+  const rawOntologyFields = toArray(row?.objects_ontology_fields_json);
   const objectResearchFields = toArray(row?.objects_research_fields_json);
   const datasources = toArray(row?.datasources_json);
+  const templateMappings = toArray(row?.template_mappings_json);
+
+  // Expand ontology fields using template mappings for correct field_id resolution
+  const objectOntologyFields = (() => {
+    if (templateMappings.length === 0) {
+      // No templates, deduplicate raw data
+      const seen = new Set();
+      return rawOntologyFields.filter(oof => {
+        const key = `${oof.label}|${oof.field_id}|${oof.datasources_id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+    
+    const expandedFields = [];
+    const processedCombos = new Set();
+    
+    for (const tm of templateMappings) {
+      if (!tm.mapping) continue;
+      
+      let mapping = tm.mapping;
+      if (typeof mapping === 'string') {
+        try { mapping = JSON.parse(mapping); } catch (e) { continue; }
+      }
+      if (!Array.isArray(mapping)) continue;
+      
+      for (const mapEntry of mapping) {
+        const entry = typeof mapEntry === 'string' ? JSON.parse(mapEntry) : mapEntry;
+        const label = entry.headerField;
+        const mappedFieldId = entry.mappedField;
+        
+        if (!label || !mappedFieldId) continue;
+        
+        // Find matching raw rows by label and datasource
+        const matchingRows = rawOntologyFields.filter(
+          oof => oof.label === label && oof.datasources_id === tm.datasource_id
+        );
+        
+        const sourceRow = matchingRows[0];
+        if (sourceRow) {
+          const comboKey = `${label}|${mappedFieldId}|${tm.datasource_id}`;
+          if (!processedCombos.has(comboKey)) {
+            processedCombos.add(comboKey);
+            expandedFields.push({
+              id: `${sourceRow.id}_${mappedFieldId}`,
+              label: label,
+              value: sourceRow.value,
+              field_id: mappedFieldId,
+              datasources_id: sourceRow.datasources_id,
+              primary: entry.primary || sourceRow.primary
+            });
+          }
+        }
+      }
+    }
+    
+    // If expansion produced no results, fall back to deduplicated raw data
+    if (expandedFields.length === 0) {
+      const seen = new Set();
+      return rawOntologyFields.filter(oof => {
+        const key = `${oof.label}|${oof.field_id}|${oof.datasources_id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+    
+    return expandedFields;
+  })();
 
   const object = row
     ? {

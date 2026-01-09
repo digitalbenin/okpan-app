@@ -1,8 +1,11 @@
-// Remove unused 'dev' import and enforce media:// URLs
+// Asset URL handling for both Electron (media://) and static export (relative paths)
+
+const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
 /**
  * Retrieves the correct URL for an asset object.
- * Always uses the custom 'media://' protocol to serve files from the project source.
+ * In Electron preview mode: uses the custom 'media://' protocol.
+ * In static export mode: uses relative paths to the assets folder.
  * @param {{ asset_path: string } | null | undefined} asset - The asset object from the database.
  * @returns {string} The resolvable URL for the image.
  */
@@ -10,6 +13,21 @@ export function getAssetUrl(asset) {
   if (!asset || !asset.asset_path) {
     return '';
   }
-  // Ensure forward slashes for Electron protocol handling
-  return `media://${asset.asset_path.replace(/\\/g, '/')}`;
+  
+  // Normalize path to forward slashes
+  const normalizedPath = asset.asset_path.replace(/\\/g, '/');
+  
+  // Static export: convert "src/assets/project_assets/{projectId}/file.avif" to "/assets/{projectId}/file.avif"
+  if (isStaticExport) {
+    // Extract the project-relative part: project_assets/{projectId}/...
+    const match = normalizedPath.match(/project_assets\/(.+)$/);
+    if (match) {
+      return `/assets/${match[1]}`;
+    }
+    // Fallback: just use the filename
+    return `/assets/${normalizedPath.split('/').pop()}`;
+  }
+  
+  // Electron preview mode: use media:// protocol
+  return `media://${normalizedPath}`;
 }

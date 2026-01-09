@@ -38,7 +38,7 @@
     const addVocabulary = () => {
         if (localVocabularies.length >= maxVocabularies) return;
 
-        const newVocabulary = { option: "", description: "", mainAssetFile: null, otherAssetsFiles: [] };
+        const newVocabulary = { option: "", description: "", externalLink: "", mainAssetFile: null, otherAssetsFiles: [] };
         secondaryLanguages.forEach((lang) => {
             newVocabulary[`option_${lang.id}`] = "";
             newVocabulary[`description_${lang.id}`] = "";
@@ -121,6 +121,7 @@
         // Check main fields
         if ((originalVocab.option?.content || "") !== (currentVocab.option || "")) return true;
         if ((originalVocab.description?.content || "") !== (currentVocab.description || "")) return true;
+        if ((originalVocab.external_link || "") !== (currentVocab.externalLink || "")) return true;
 
         // Check assets
         const originalMainAssetId = originalVocab.mainAsset?.id || null;
@@ -180,6 +181,7 @@
         const vocabData = {
             option: vocab.option,
             description: vocab.description || "",
+            externalLink: vocab.externalLink || "",
             mainAsset: mainAssetId,
             optionTranslations: optionTranslations.length > 0 ? optionTranslations : undefined,
             descriptionTranslations: descriptionTranslations.length > 0 ? descriptionTranslations : undefined,
@@ -446,7 +448,7 @@
                                 class="form-control {fieldErrors.length > 0
                                     ? 'is-invalid'
                                     : ''}"
-                                rows="8"
+                                rows="5"
                                 placeholder={t(
                                     "common.vocabulary-description-placeholder",
                                     {
@@ -466,6 +468,28 @@
                                     {fieldErrors.join(", ")}
                                 </div>
                             {/if}
+                            <!-- External Link Field -->
+                            <div class="mt-2">
+                                <label for="external-link-{index}" class="form-label small text-muted mb-1">
+                                    {t("common.external-link", { fallback: "External Link" })}
+                                </label>
+                                <input
+                                    id="external-link-{index}"
+                                    type="url"
+                                    class="form-control form-control-sm"
+                                    placeholder={t(
+                                        "common.external-link-placeholder",
+                                        { fallback: "https://..." }
+                                    )}
+                                    value={vocab.externalLink || ""}
+                                    oninput={(e) =>
+                                        updateVocabulary(
+                                            index,
+                                            "externalLink",
+                                            e.target.value,
+                                        )}
+                                />
+                            </div>
                         {:else}
                             {@const currentLang = languages.find(
                                 (l) => l.id === activeLanguageCode,

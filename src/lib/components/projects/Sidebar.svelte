@@ -22,6 +22,12 @@
       icon: "box",
       exact: true,
     },
+     {
+      label: t("menu.connections", { fallback: "Connections" }),
+      url: `/projects/${page.data.project.id}/connections`,
+      icon: "share-fill",
+      exact: true,
+    },
   ]);
 
   const actionsLinks = $derived([
@@ -63,8 +69,8 @@
     },
     {
       label: t("menu.export-website", { fallback: "Export Website" }),
+      url: `/projects/${page.data.project.id}/export-website`,
       icon: "globe",
-      disabled: true,
       exact: true,
     },
   ]);

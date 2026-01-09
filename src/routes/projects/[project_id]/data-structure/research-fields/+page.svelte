@@ -139,7 +139,7 @@
       <div class="d-flex align-items-center gap-2">
         <a
           class="btn btn-primary btn-sm"
-          href="/projects/{data.project.id}/data-structure/research-fields/add"
+          href="/projects/{data.project.id}/data-structure/research-fields/add?type=free%20text"
           ><i class="bi bi-plus-lg"></i>
           {t("common.add-field", {
             fallback: "Add Field",
