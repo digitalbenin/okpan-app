@@ -42,7 +42,7 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div 
           class="card h-100 shadow-sm"
-          onclick={() => goto(`/projects/${data.project.id}/data-structure/research-fields/${field.id}`)}
+          onclick={() => goto(`/projects/${data.project.id}/connections/${field.id}`)}
           style="cursor: pointer; transition: box-shadow 0.2s;"
           onmouseenter={(e) => e.currentTarget.classList.add('shadow')}
           onmouseleave={(e) => e.currentTarget.classList.remove('shadow')}

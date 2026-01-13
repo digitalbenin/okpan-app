@@ -73,7 +73,7 @@
               style={contentProps.style || ''}
             >
               {#if children}
-                {@render children()}
+                {@render children({ close: () => open = false })}
               {:else}
                 {#each items as item}
                   {#if item.type === 'separator'}
