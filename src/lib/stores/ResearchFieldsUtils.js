@@ -203,6 +203,27 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
     return { result: result.result, error: null };
 };
 
+export const updateVocabularyAssets = async (vocabularyId, assetIds) => {
+    // 1. Unlink all existing assets
+    const deleteResult = await executeQuery('vocabulary_assets', 'delete', { vocabularyId });
+    if (deleteResult.error) return { error: deleteResult.error };
+
+    // 2. Link new assets if any
+    if (assetIds && assetIds.length > 0) {
+        const values = assetIds.map((assetId, index) => ({
+            vocabulary_id: vocabularyId,
+            generic_asset_id: assetId,
+            order: index
+        }));
+        
+        const insertResult = await executeQuery('vocabulary_assets', 'create', { values });
+        if (insertResult.error) return { error: insertResult.error };
+        return { result: insertResult.result, error: null };
+    }
+
+    return { result: true, error: null };
+};
+
 // Create a vocabulary for a research field (supports translations on create)
 export const addVocabulary = async (fieldId, data) => {
     if (!fieldId) {

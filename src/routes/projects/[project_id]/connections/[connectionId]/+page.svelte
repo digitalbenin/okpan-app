@@ -61,6 +61,10 @@
         return sortedVocabularies.slice(start, start + itemsPerPage);
     });
 
+    function goToDetail(vocabularyId) {
+        goto(`/projects/${data.project.id}/connections/${data.researchField.id}/${vocabularyId}`);
+    }
+
     function goBack() {
         goto(`/projects/${data.project.id}/connections`);
     }
@@ -219,7 +223,7 @@
     <div class="row g-3">
         {#each paginatedVocabularies as vocabulary (vocabulary.id)}
             <div class="col-md-6 col-lg-4 col-xl-3">
-                <div class="card h-100 shadow-sm">
+                <div class="card h-100 shadow-sm cursor-pointer" onclick={() => goToDetail(vocabulary.id)}>
                     <div class="card-body d-flex align-items-center p-3">
                         <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; flex-shrink: 0;">
                              {#if vocabulary.mainAsset}
@@ -234,28 +238,30 @@
                              </h6>
                         </div>
                          
-                         <BaseDropdownMenu 
-                            align="end" 
-                            side="bottom"
-                            sideOffset={4}
-                            alignOffset={0}
-                            contentProps={{ style: "right: 0; left: auto;" }} 
-                            triggerClass="btn btn-link text-muted p-0"
-                        >
-                            {#snippet trigger()}
-                                <i class="bi bi-three-dots-vertical"></i>
-                            {/snippet}
-                            {#snippet children({ close })}
-                                <button class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2" onclick={() => { handleDuplicate(vocabulary); close(); }}>
-                                    <i class="bi bi-files"></i>
-                                    {t("common.duplicate", {fallback: "Duplicate"})}
-                                </button>
-                                <button class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2 text-danger" onclick={() => { openDeleteModal(vocabulary); close(); }}>
-                                    <i class="bi bi-trash"></i>
-                                    {t("common.delete", {fallback: "Delete"})}
-                                </button>
-                            {/snippet}
-                        </BaseDropdownMenu>
+                         <div onclick={(e) => e.stopPropagation()}>
+                             <BaseDropdownMenu 
+                                align="end" 
+                                side="bottom"
+                                sideOffset={4}
+                                alignOffset={0}
+                                contentProps={{ style: "right: 0; left: auto;" }} 
+                                triggerClass="btn btn-link text-muted p-0"
+                            >
+                                {#snippet trigger()}
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                {/snippet}
+                                {#snippet children({ close })}
+                                    <button class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2" onclick={() => { handleDuplicate(vocabulary); close(); }}>
+                                        <i class="bi bi-files"></i>
+                                        {t("common.duplicate", {fallback: "Duplicate"})}
+                                    </button>
+                                    <button class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2 text-danger" onclick={() => { openDeleteModal(vocabulary); close(); }}>
+                                        <i class="bi bi-trash"></i>
+                                        {t("common.delete", {fallback: "Delete"})}
+                                    </button>
+                                {/snippet}
+                            </BaseDropdownMenu>
+                         </div>
                     </div>
                 </div>
             </div>
@@ -322,4 +328,9 @@
     .btn-link:hover {
         color: var(--bs-primary);
     }
+    .cursor-pointer {
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
 </style>
