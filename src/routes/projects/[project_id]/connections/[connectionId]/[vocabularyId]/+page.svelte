@@ -1,5 +1,4 @@
 <script>
-    import { page } from "$app/stores";
     import { createForm } from "@tanstack/svelte-form";
     import { z } from "zod";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -7,7 +6,6 @@
     import { updateVocabulary, updateVocabularyAssets } from "$lib/stores/ResearchFieldsUtils.js";
     import { goto, invalidate, invalidateAll } from "$app/navigation";
     import AutoForm from "$lib/components/form/AutoForm.svelte";
-    import BaseButton from "$lib/components/base/BaseButton.svelte";
     import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
     import AssetPreview from "$lib/components/research_fields/AssetPreview.svelte";
     import { flip } from "svelte/animate";
@@ -204,12 +202,6 @@
 
     const rightActionButtons = $derived([
         {
-            text: t("common.cancel", {fallback: "Cancel"}),
-            class: "btn btn-outline-secondary",
-            onClick: goBack,
-            type: "button"
-        },
-        {
             text: t("common.save", {fallback: "Save"}),
             class: "btn btn-success",
             onClick: () => form.handleSubmit(),
@@ -217,9 +209,17 @@
         }
     ]);
 
+    const leftActionButtons = $derived([
+         {
+            text: t("common.cancel", {fallback: "Cancel"}),
+            class: "btn btn-outline-secondary",
+            onClick: goBack,
+            type: "button"
+        }
+    ]);
 </script>
 
-<PageActionFooter containerClass="bg-light" contentClass="d-flex flex-column" rightButtons={rightActionButtons}>
+<PageActionFooter containerClass="bg-light" contentClass="d-flex flex-column"  rightButtons={rightActionButtons} leftButtons={leftActionButtons}>
     <!-- Header -->
     <div class="pt-3 pb-3 px-4">
         <div class="d-flex align-items-center gap-2 mb-2 text-muted">
@@ -235,7 +235,7 @@
     <div class="flex-grow-1 overflow-auto p-4">
         <div class="row g-4">
             <!-- Main Content Column -->
-            <div class="col-12 col-xl-10">
+            <div class="col-12 col-xl-8">
                 <div class="card shadow-sm mb-4">
                      <div class="card-header bg-white py-3">
                         <div class="m-0 text-muted fw-bold">{t("common.general-info", {fallback: "General Information"})}</div>
@@ -335,16 +335,16 @@
             </div>
 
             <!-- Right Column (Thumbnail) -->
-            <div class="col-12 col-xl-2">
+            <div class="col-12 col-xl-4">
                  <!-- Main Asset (Thumbnail) -->
-                <div class="card shadow-sm mb-4 sticky-top" style="top: 1rem; z-index: 1;">
+                <div class="card shadow-sm mb-4 sticky-top" style="z-index: 1;">
                      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                         <div class="m-0 text-muted fw-bold">{t("common.thumbnail", {fallback: "Thumbnail"})}</div>
                      </div>
                      <div class="card-body text-center p-4">
                         {#if mainAsset}
-                            <div class="d-inline-flex border rounded p-1 mb-2 shadow-sm bg-white">
-                                <AssetPreview asset={mainAsset} size={200} showRemoveButton={true} onRemove={() => handleRemoveAsset(mainAsset, 'main')} />
+                            <div class="d-inline-flex justify-content-center border rounded p-1 mb-2 shadow-sm bg-white w-100">
+                                <AssetPreview asset={mainAsset} size={200} width="100%" showRemoveButton={true} onRemove={() => handleRemoveAsset(mainAsset, 'main')} />
                             </div>
                             <!-- Show filename below thumbnail if explicitly requested by 'its name under the image' complaint -->
                             <div class="text-muted small text-truncate mw-100 px-2" title={mainAsset?.filename || mainAsset?.name}>

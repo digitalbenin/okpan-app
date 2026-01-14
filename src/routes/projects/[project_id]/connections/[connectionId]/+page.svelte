@@ -175,8 +175,8 @@
                         <i class="bi bi-three-dots-vertical"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                         <li><a class="dropdown-item" href="#">{t("common.import", {fallback: "Import"})}</a></li>
-                         <li><a class="dropdown-item" href="#">{t("common.export", {fallback: "Export"})}</a></li>
+                         <li><button class="dropdown-item">{t("common.import", {fallback: "Import"})}</button></li>
+                         <li><button class="dropdown-item">{t("common.export", {fallback: "Export"})}</button></li>
                     </ul>
                 </div>
             </div>
@@ -223,7 +223,7 @@
     <div class="row g-3">
         {#each paginatedVocabularies as vocabulary (vocabulary.id)}
             <div class="col-md-6 col-lg-4 col-xl-3">
-                <div class="card h-100 shadow-sm cursor-pointer" onclick={() => goToDetail(vocabulary.id)}>
+                <button class="card h-100 shadow-sm cursor-pointer border-0 bg-white text-start w-100 p-0" onclick={() => goToDetail(vocabulary.id)} type="button">
                     <div class="card-body d-flex align-items-center p-3">
                         <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; flex-shrink: 0;">
                              {#if vocabulary.mainAsset}
@@ -233,12 +233,12 @@
                             {/if}
                         </div>
                         <div class="flex-grow-1 overflow-hidden">
-                             <h6 class="card-title mb-0 text-truncate" title={vocabulary.option?.content}>
+                             <p class="card-title mb-0 text-truncate" title={vocabulary.option?.content}>
                                 {vocabulary.option?.content || t("common.untitled", {fallback: "Untitled"})}
-                             </h6>
+                             </p>
                         </div>
                          
-                         <div onclick={(e) => e.stopPropagation()}>
+                         <div role="presentation" onclick={(e) => e.stopPropagation()}>
                              <BaseDropdownMenu 
                                 align="end" 
                                 side="bottom"
@@ -263,7 +263,7 @@
                             </BaseDropdownMenu>
                          </div>
                     </div>
-                </div>
+                </button>
             </div>
         {/each}
         {#if filteredVocabularies.length === 0}

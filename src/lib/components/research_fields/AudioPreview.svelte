@@ -2,6 +2,7 @@
     let {
         asset,
         size = 200,
+        width = undefined,
         showRemoveButton = false,
         onRemove = null,
     } = $props();
@@ -94,7 +95,7 @@
 
 <div
     class="position-relative"
-    style="width: {size}px; height: {size}px;"
+    style="width: {width ?? size + 'px'}; height: {size}px; max-width: 100%;"
 >
     <!-- Remove Button -->
     {#if showRemoveButton}
