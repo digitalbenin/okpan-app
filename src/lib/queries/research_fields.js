@@ -15,6 +15,7 @@ export const researchFieldsOperations = {
     project_id
     private
     onwebsite
+    fields_config
     name {
       id
       content
@@ -86,6 +87,7 @@ export const researchFieldsOperations = {
     project_id
     private
     onwebsite
+    fields_config
     name {
       id
       content
@@ -147,8 +149,14 @@ export const researchFieldsOperations = {
         content
         original_language_id
         translations {
+          id
           language_id
           content
+          language {
+            id
+            code
+            name
+          }
         }
       }
       description {
@@ -156,8 +164,14 @@ export const researchFieldsOperations = {
         content
         original_language_id
         translations {
+          id
           language_id
           content
+          language {
+            id
+            code
+            name
+          }
         }
       }
     }
@@ -176,6 +190,7 @@ export const researchFieldsOperations = {
       type: "Type of the research field",
       private: "Whether the field is private (optional, defaults to false)",
       onwebsite: "Whether to show the field on website (optional, defaults to true)",
+      fieldsConfig: "Configuration for fields visibility (optional, JSON)",
       vocabularies: "Array of vocabulary options (optional)",
       // Translation arrays for research field
       nameTranslations: "Array of name translations (optional)",
@@ -228,6 +243,7 @@ export const researchFieldsOperations = {
   $type: String
   $private: Int
   $onwebsite: Int
+  $fieldsConfig: JSON
 ) {
   result:insertIntoResearch_fields(
     values: [
@@ -238,6 +254,7 @@ export const researchFieldsOperations = {
         type: $type
         private: $private
         onwebsite: $onwebsite
+        fields_config: $fieldsConfig
       }
     ]
   ) {
@@ -248,9 +265,10 @@ export const researchFieldsOperations = {
     description_id
     private
     onwebsite
+    fields_config
   }
 }`,
-        useVariables: ["projectId", "type", "private", "onwebsite"],
+        useVariables: ["projectId", "type", "private", "onwebsite", "fieldsConfig"],
         mapVariables: {
           nameId: { from: "createNameText", path: "insertIntoTexts.0.id" },
           descriptionId: { from: "createDescriptionText", path: "insertIntoTexts.0.id" }
@@ -270,6 +288,7 @@ export const researchFieldsOperations = {
       type: "New field type (optional)",
       private: "Whether the field is private (optional)",
       onwebsite: "Whether to show the field on website (optional)",
+      fieldsConfig: "Configuration for fields visibility (optional, JSON)",
       // Translation arrays
       nameTranslations: "Array of name translations (optional)",
       descriptionTranslations: "Array of description translations (optional)"
@@ -366,6 +385,20 @@ export const researchFieldsOperations = {
 }`,
         useVariables: ["fieldId", "onwebsite"],
         skipIf: { variableName: "onwebsite", isUndefined: true }
+      },
+      {
+        name: "updateFieldsConfig",
+        query: `mutation UpdateResearchFieldConfig($fieldId: String!, $fieldsConfig: JSON!) {
+  updateResearch_fields(
+    set: { fields_config: $fieldsConfig }
+    where: { id: { eq: $fieldId } }
+  ) {
+    id
+    fields_config
+  }
+}`,
+        useVariables: ["fieldId", "fieldsConfig"],
+        skipIf: { variableName: "fieldsConfig", isUndefined: true }
       },
       // === TRANSLATION PROCESSING STEPS ===
       {

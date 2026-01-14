@@ -49,6 +49,7 @@ export const createResearchField = async (fieldData) => {
     // Set default values for new boolean fields if not provided
     const params = {
         ...fieldData,
+        fieldsConfig: fieldData.fieldsConfig || fieldData.fields_config,
         private: fieldData.private !== undefined ? (fieldData.private ? 1 : 0) : 0, // default false
         onwebsite: fieldData.onwebsite !== undefined ? (fieldData.onwebsite ? 1 : 0) : 1 // default true
     };
@@ -77,6 +78,7 @@ export const updateResearchField = async (fieldId, updateData) => {
         // Text content for default language
         name: updateData.name,
         description: updateData.description,
+        fieldsConfig: updateData.fields_config || updateData.fieldsConfig,
         // Translation arrays
         nameTranslations: updateData.nameTranslations,
         descriptionTranslations: updateData.descriptionTranslations
@@ -188,7 +190,7 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
         }
     });
 
-
+    console.log("[DEBUG] STORE UpdateParams:", JSON.stringify(updateParams));
 
     // Execute the multi-step mutation
     const result = await executeQuery('research_fields', 'updateVocabulary', updateParams);

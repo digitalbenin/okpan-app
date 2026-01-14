@@ -1,9 +1,11 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { goto } from "$app/navigation";
+  import { goto, invalidateAll } from "$app/navigation";
+    import AddConnectionTypeModal from "$lib/components/research_fields/AddConnectionTypeModal.svelte";
 
   const { data } = $props();
   const { t } = getTranslationStore();
+  const { languages } = data;
 
   // Helper for status text
   function getStatusText(field) {
@@ -24,13 +26,7 @@
       </h2>
     </div>
     <div class="col-auto">
-      <a
-          class="btn btn-secondary text-white"
-          href="/projects/{data.project.id}/data-structure/research-fields/add?type=vocabulary"
-        >
-        <i class="bi bi-plus-lg me-1"></i>
-        {t("common.add-connection-type", { fallback: "Add connection type" })}
-      </a>
+            <AddConnectionTypeModal projectId={data.project.id} languages={languages} />
     </div>
   </div>
 
