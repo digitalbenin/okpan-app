@@ -70,13 +70,22 @@
   ]);
 </script>
 
-<div class="container-fluid">
-  <div class="row my-3">
-    <div class="col-12">
-      <h1>
-        <i class="bi bi-bank2"></i>
+<div class="container-fluid h-100 bg-light">
+  <div class="row pt-3 pb-3 border-bottom mb-4 align-items-center">
+    <div class="col">
+      <h2 class="m-0 d-flex align-items-center gap-2">
+        <i class="bi bi-bank2 text-muted"></i>
         {t("common.institutions", { fallback: "Institutions" })}
-      </h1>
+      </h2>
+    </div>
+    <div class="col-auto">
+      <a
+        class="btn btn-primary btn-sm"
+        href="/projects/{data.project.id}/institutions/add"
+      >
+        <i class="bi bi-plus-lg"></i>
+        {t("common.add-institution", { fallback: "Add Institution" })}
+      </a>
     </div>
   </div>
   <div class="row align-items-center mb-3">
@@ -105,12 +114,6 @@
         <BaseSelect items={statuses} bind:value={params.status} size="sm"
         ></BaseSelect>
       </div>
-      <a
-        class="btn btn-primary btn-sm"
-        href="/projects/{data.project.id}/institutions/add"
-        ><i class="bi bi-plus-lg"></i>
-        {t("common.add-institution", { fallback: "Add Institution" })}</a
-      >
     </div>
   </div>
   {#if data.institutions?.count}
