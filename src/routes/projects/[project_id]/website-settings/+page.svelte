@@ -29,9 +29,13 @@
 </script>
 
 <PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons} formStore={formStore}>
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">Website Settings</h1>
+        </div>
+    </div>
     <div class="row">
         <div class="col-12">
-            <h1 class="h3 mb-3">Website Settings</h1>
             <WebsiteSettingsForm
                 bind:this={websiteSettingsFormRef}
                 {mode}

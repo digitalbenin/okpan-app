@@ -253,9 +253,9 @@
 >
     <div class="col-lg-8">
         <!-- Header -->
-        <div class="header mb-4">
-            <h2 class="h2 mb-1">Export</h2>
-            <p class="text-muted">Choose the filters to export your dataset.</p>
+        <div class="mb-4">
+            <h1 class="h3 mb-0">Export</h1>
+            <p class="text-muted mt-2 mb-0">Choose the filters to export your dataset.</p>
         </div>
 
         <!-- Export Format Selection -->

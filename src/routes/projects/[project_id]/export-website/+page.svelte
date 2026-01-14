@@ -68,11 +68,15 @@
 </script>
 
 <PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons}>
+	<div class="row mb-4">
+		<div class="col-12">
+			<h1 class="h3 mb-0">
+				{t('export-website.title', { fallback: 'Export Static Website' })}
+			</h1>
+		</div>
+	</div>
 	<div class="row">
 		<div class="col-12">
-			<h2 class="mb-4">
-				{t('export-website.title', { fallback: 'Export Static Website' })}
-			</h2>
 
 			<div class="card shadow-sm">
 				<div class="card-body">

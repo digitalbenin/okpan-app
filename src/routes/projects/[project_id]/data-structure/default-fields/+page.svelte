@@ -72,12 +72,10 @@
     }
 </script>
 
-<div class="container-fluid">
+<div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col-12">
-            <h1>
-                {t("project.default-fields", { fallback: "Default fields" })}
-            </h1>
+            <h1 class="h3 mb-0">{t("project.default-fields", { fallback: "Default fields" })}</h1>
         </div>
     </div>
 

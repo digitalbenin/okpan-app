@@ -111,7 +111,7 @@
                 <input type="checkbox" bind:checked={selected[field.id]} />
                 <div class="fw-bold">{field?.name?.content || field.id}</div>
                 <span class="badge text-bg-light text-secondary">
-                  {(field?.type || "free text").toLowerCase()}
+                  {(field?.type || "freetext").toLowerCase()}
                 </span>
               </div>
 

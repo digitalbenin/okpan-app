@@ -13,7 +13,7 @@
     const translationStore = getTranslationStore();
     const contentLanguageStore = getContentLanguageStore();
     const t = $derived(translationStore.t);
-    const { addTranslation } = contentLanguageStore;
+    const { addTranslation, setProjectLanguages } = contentLanguageStore;
 
     // Props
     let {
@@ -38,11 +38,47 @@
     const defaultLanguage = $derived(languages?.find((lang) => lang.is_default) || languages?.[0]);
     const secondaryLanguages = $derived(languages?.filter((lang) => !lang.is_default) || []);
 
+    // --- minimal debug (plain text) ---
+    const dbg = (msg) => console.log(`[ResearchFieldForm] ${msg}`);
+    let didLogLoad = $state(false);
+
+    // Ensure ContentLanguageStore can resolve language codes -> IDs when saving translations
+    $effect(() => {
+        if (languages?.length) setProjectLanguages(languages);
+    });
+
+    // Log once when edit data is available (helps verify visualization inputs)
+    $effect(() => {
+        if (didLogLoad) return;
+        if (!languages?.length) return;
+        if (mode !== "edit") return;
+        if (!initialData?.id) return;
+
+        const langSummary = languages
+            .map((l) => `${l.code}:${l.id}${l.is_default ? ":default" : ""}`)
+            .join(" |");
+
+        const nameTrans = initialData?.name?.translations || [];
+        const descTrans = initialData?.description?.translations || [];
+        dbg(`LOAD mode=${mode} id=${initialData.id} type=${initialData.type} langs=${langSummary}`);
+        dbg(`LOAD name.translations.count=${nameTrans.length} desc.translations.count=${descTrans.length}`);
+        nameTrans.forEach((tr, i) => dbg(`LOAD name.tr[${i}] lang_id=${tr.language_id} content=${String(tr.content ?? "")}`));
+        descTrans.forEach((tr, i) => dbg(`LOAD desc.tr[${i}] lang_id=${tr.language_id} content=${String(tr.content ?? "")}`));
+        didLogLoad = true;
+    });
+
     // State
     const effectiveFixedType = $derived(isEditMode && initialData?.type ? initialData.type : fixedType);
     let vocabularyProcessingFunction = null;
-    let mutableType = $state((mode === "edit" && initialData?.type) ? initialData.type : "free text");
+    let mutableType = $state((mode === "edit" && initialData?.type) ? initialData.type : "freetext");
     const selectedType = $derived(effectiveFixedType || mutableType);
+
+    // Normalize legacy values
+    $effect(() => {
+        if (mutableType === "free text" || mutableType === "free_text") {
+            mutableType = "freetext";
+        }
+    });
 
     // Helpers
     const processAsset = (asset) => asset ? {
@@ -54,8 +90,10 @@
         formats: asset.formats,
     } : null;
 
-    const getTranslationContent = (textObj, langId) =>
-        textObj?.translations?.find((t) => t.language_id === langId)?.content || "";
+    const getTranslationContent = (textObj, lang) =>
+        textObj?.translations?.find((t) =>
+            t.language_id === lang?.id || t.language?.code === lang?.code
+        )?.content || "";
 
     const processVocabulariesForEdit = () => (initialData.vocabularies || []).map((vocab) => {
         const processedVocab = {
@@ -68,8 +106,8 @@
         };
 
         secondaryLanguages.forEach((lang) => {
-            processedVocab[`option_${lang.id}`] = getTranslationContent(vocab.option, lang.id);
-            processedVocab[`description_${lang.id}`] = getTranslationContent(vocab.description, lang.id);
+            processedVocab[`option_${lang.id}`] = getTranslationContent(vocab.option, lang);
+            processedVocab[`description_${lang.id}`] = getTranslationContent(vocab.description, lang);
         });
 
         return processedVocab;
@@ -91,10 +129,10 @@
         // Add main field translations
         secondaryLanguages.forEach((lang) => {
             values[`translations_${lang.id}_name`] = 
-                getTranslationContent(initialData.name, lang.id) ||
+                getTranslationContent(initialData.name, lang) ||
                 initialData.nameTranslations?.find((t) => t.language_id === lang.id)?.content || "";
             values[`translations_${lang.id}_description`] =
-                getTranslationContent(initialData.description, lang.id) ||
+                getTranslationContent(initialData.description, lang) ||
                 initialData.descriptionTranslations?.find((t) => t.language_id === lang.id)?.content || "";
         });
 
@@ -108,6 +146,7 @@
         languageId: { hidden: true },
         private: { hidden: true },
         onwebsite: { hidden: true },
+        fieldsConfig: { hidden: true },
         name: { 
             label: isConnection 
                 ? t("common.connection-name", { fallback: "Connection Name" }) 
@@ -147,8 +186,27 @@
             const nameContent = value[`translations_${lang.id}_name`];
             const descriptionContent = value[`translations_${lang.id}_description`];
 
-            if (nameContent?.trim()) nameTranslations.push({ language_id: lang.id, content: nameContent });
-            if (descriptionContent?.trim()) descriptionTranslations.push({ language_id: lang.id, content: descriptionContent });
+            if (nameContent !== undefined && nameContent !== null && String(nameContent).trim()) {
+                const existing = initialData?.name?.translations?.find((t) =>
+                    t.language_id === lang.id || t.language?.code === lang.code
+                );
+                nameTranslations.push({
+                    language_code: lang.code,
+                    content: String(nameContent).trim(),
+                    id: existing?.id,
+                });
+            }
+
+            if (descriptionContent !== undefined && descriptionContent !== null && String(descriptionContent).trim()) {
+                const existing = initialData?.description?.translations?.find((t) =>
+                    t.language_id === lang.id || t.language?.code === lang.code
+                );
+                descriptionTranslations.push({
+                    language_code: lang.code,
+                    content: String(descriptionContent).trim(),
+                    id: existing?.id,
+                });
+            }
         });
 
         return { nameTranslations, descriptionTranslations };
@@ -157,10 +215,23 @@
     // Create form instance
     const form = createForm(() => {
         const config = getFormConfig("research_fields", validatorOperationName, {
+            // IMPORTANT: keep translation fields like `translations_<langId>_<field>` in form values.
+            // Zod objects strip unknown keys by default; passthrough keeps them so they render after reload.
+            validators: {
+                onChange: validator?.schema?.passthrough ? validator.schema.passthrough() : validator.schema
+            },
             defaultValues: getDefaultValues(),
             onSubmit: async ({ value }) => {
                 try {
+                    // Minimal save debug: show translation keys present in form + payload summary
+                    const translationKeys = Object.keys(value || {})
+                        .filter((k) => k.startsWith("translations_"))
+                        .sort();
+                    dbg(`SAVE mode=${mode} id=${initialData?.id || "(new)"} type=${value?.type} translationKeys=${translationKeys.join("|")}`);
                     const translations = prepareTranslations(value);
+                    dbg(`SAVE nameTranslations.count=${translations.nameTranslations?.length || 0} descriptionTranslations.count=${translations.descriptionTranslations?.length || 0}`);
+                    (translations.nameTranslations || []).forEach((tr, i) => dbg(`SAVE name.tr[${i}] lang_code=${tr.language_code} id=${tr.id || ""} content=${String(tr.content ?? "")}`));
+                    (translations.descriptionTranslations || []).forEach((tr, i) => dbg(`SAVE desc.tr[${i}] lang_code=${tr.language_code} id=${tr.id || ""} content=${String(tr.content ?? "")}`));
                     const result = mode === "create" ? await handleCreate(value, translations) : await handleUpdate(value, translations);
                     
                     if (onSuccess) {
@@ -231,13 +302,13 @@
         if (!translations?.length || !textId) return;
         
         for (const translation of translations) {
-            const language = secondaryLanguages.find((lang) => lang.id === translation.language_id);
-            if (!language) {
-                console.error(`Language not found for ID: ${translation.language_id}`);
+            const languageCode = translation.language_code || secondaryLanguages.find((l) => l.id === translation.language_id)?.code;
+            if (!languageCode) {
+                console.error("Language code not found for translation:", translation);
                 continue;
             }
             try {
-                await addTranslation(textId, language.code, translation.content);
+                await addTranslation(textId, languageCode, translation.content);
             } catch (error) {
                 console.error("Error creating translation:", error);
             }

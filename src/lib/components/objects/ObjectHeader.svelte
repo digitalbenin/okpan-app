@@ -6,6 +6,7 @@
     title = "",
     status = "",
     statusDisabled = false,
+    showStatus = true,
     onBack = undefined,
     onStatusChange = undefined,
   } = $props();
@@ -15,38 +16,43 @@
   };
 </script>
 
-<div class="container-fluid pb-4 bg-light">
-  <div class="row mb-2">
-    <div class="col-12">
-      <div class="d-flex align-items-center gap-1 mt-3">
-        <div>
-          <button
-            class="btn ps-0"
-            aria-label="back"
-            onclick={onBack}
-          >
-            <i class="bi bi-arrow-left"></i>
-             {#if institutionName}
-            <span>
-                {institutionName}
-            </span>
-            {/if}
-          </button>
-        </div>
-        
+<div class="container-fluid py-4 bg-white">
+  {#if onBack || (institutionName && showStatus) || showStatus}
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="d-flex align-items-center gap-2">
+          {#if onBack}
+            <button
+              class="btn ps-0"
+              aria-label="back"
+              onclick={onBack}
+            >
+              <i class="bi bi-arrow-left"></i>
+              {#if institutionName}
+                <span>{institutionName}</span>
+              {/if}
+            </button>
+          {:else if institutionName && showStatus}
+            <div class="text-muted small">{institutionName}</div>
+          {/if}
 
-        <div class="ms-auto">
-          <StatusBadgeDropdown
-            status={status}
-            disabled={statusDisabled}
-            on:change={handleStatusChange}
-          />
+          {#if showStatus}
+            <div class="ms-auto">
+              <StatusBadgeDropdown
+                status={status}
+                disabled={statusDisabled}
+                on:change={handleStatusChange}
+              />
+            </div>
+          {/if}
         </div>
       </div>
+    </div>
+  {/if}
 
-      <h1 class="mt-2">
-        {title}
-      </h1>
+  <div class="row">
+    <div class="col-12">
+      <h1 class="h3 mb-0">{title}</h1>
     </div>
   </div>
 </div>

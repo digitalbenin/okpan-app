@@ -15,7 +15,7 @@
         field = null, // TanStack Form field for accessing meta
         maxVocabularies = 50,
         activeLanguageCode = "default",
-        selectedType = "free text",
+        selectedType = "freetext",
         class: customClass = "",
         onChange = null,
         mode = "create",
