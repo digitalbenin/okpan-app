@@ -1,6 +1,45 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
+import { searchObjects } from "$lib/stores/ObjectsUtils.js";
+import { isElectronApiAvailable } from "$lib/utils/electronApi.js";
 // Note: Replace 'researchFields', 'list', 'getById', etc., with your actual GraphQL section and operation names.
+
+// Fetch objects linked to a specific connection option (vocabulary) for a research field
+export async function fetchLinkedObjectsByVocabularyOption({
+    projectId,
+    fieldId,
+    vocabularyId,
+    page = 1,
+    pageSize = 24,
+}) {
+    if (!projectId || !fieldId || !vocabularyId) {
+        return { items: [], totalCount: 0 };
+    }
+
+    // Avoid triggering GraphQL/toasts when not running in Electron.
+    if (!isElectronApiAvailable()) {
+        return { items: [], totalCount: 0 };
+    }
+
+    const linkedRes = await searchObjects({
+        projectId,
+        researchFieldFilters: [
+            {
+                fieldId,
+                vocabularyIds: [vocabularyId],
+            },
+        ],
+        page: page - 1, // backend is 0-based
+        pageSize,
+        orderBy: "updated_at",
+        direction: "desc",
+    });
+
+    return {
+        items: linkedRes?.items || [],
+        totalCount: linkedRes?.totalCount || 0,
+    };
+}
 
 // Fetch all research fields for a specific project
 export const getResearchFields = async (projectId, page, pageSize) => {

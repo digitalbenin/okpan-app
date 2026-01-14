@@ -3,20 +3,28 @@
     import { z } from "zod";
     import { createFieldValidator } from "$lib/stores/formValidationUtils.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { getMediaType, createMediaFilters } from "$lib/utils/media.js";
+    import { getMediaType, createMediaFilters, getAssetImageUrl } from "$lib/utils/media.js";
     import { goto } from "$app/navigation";
+    import BasePagination from "$lib/components/base/BasePagination.svelte";
+    import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
+    import BaseImage from "$lib/components/base/BaseImage.svelte";
     import AutoForm from "$lib/components/form/AutoForm.svelte";
     import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
     import AssetPreview from "$lib/components/research_fields/AssetPreview.svelte";
     import { flip } from "svelte/animate";
     import { dndzone } from "svelte-dnd-action";
     import { DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
+    import { getObjectIdentifier } from "$lib/utils/objects.js";
 
     let { 
         data, 
         researchField, 
         project, 
         initialValues = {}, 
+        linkedObjects = [],
+        linkedObjectsTotalCount = 0,
+        linkedObjectsPage = 1,
+        linkedObjectsPageSize = 24,
         onSubmit, 
         onCancel,
         title = "",
@@ -162,6 +170,88 @@
             type: "button"
         }
     ]);
+
+    // Linked objects pagination controls (drive route load via query params)
+    let loPage = $state(linkedObjectsPage);
+    let loPageSize = $state(linkedObjectsPageSize);
+    let lastPropsLoPage = $state(linkedObjectsPage);
+    let lastPropsLoPageSize = $state(linkedObjectsPageSize);
+    let lastNavigatedLoPage = $state(linkedObjectsPage);
+    let lastNavigatedLoPageSize = $state(linkedObjectsPageSize);
+    let navReady = $state(false);
+
+    const pageSizeOptions = [12, 24, 48, 96].map((n) => ({ value: n, label: String(n) }));
+
+    const getObjectDisplayName = (obj) => {
+        return (
+            (obj?.name?.content && String(obj.name.content).trim()) ||
+            (typeof obj?.name === "string" && String(obj.name).trim()) ||
+            getObjectIdentifier(obj)
+        );
+    };
+
+    const getObjectThumb = (obj) => obj?.objectsAssets?.[0]?.asset || null;
+
+    const getObjectsLabel = (count) => {
+        const n = Number(count) || 0;
+        return n === 1
+            ? t("common.object", { fallback: "object" })
+            : t("common.objects", { fallback: "objects" });
+    };
+
+    const navigateLinkedObjects = async (page, pageSize) => {
+        const vocabularyId = initialValues?.id;
+        const fieldId = researchField?.id;
+        const projectId = project?.id;
+        if (!projectId || !fieldId || !vocabularyId) return;
+
+        try {
+            const u = new URL(window.location.href);
+            u.searchParams.set("loPage", String(page));
+            u.searchParams.set("loPageSize", String(pageSize));
+            await goto(`${u.pathname}${u.search}`, { replaceState: true, keepfocus: true, noscroll: true });
+        } catch (e) {
+            console.error("Failed to navigate linked objects pagination", e);
+        }
+    };
+
+    // Keep local pagination in sync when props change (after load)
+    $effect(() => {
+        if (linkedObjectsPage !== lastPropsLoPage) {
+            lastPropsLoPage = linkedObjectsPage;
+            loPage = linkedObjectsPage;
+        }
+        if (linkedObjectsPageSize !== lastPropsLoPageSize) {
+            lastPropsLoPageSize = linkedObjectsPageSize;
+            loPageSize = linkedObjectsPageSize;
+        }
+    });
+
+    $effect(() => {
+        navReady = true;
+    });
+
+    // Trigger navigation when user changes page/pageSize
+    $effect(() => {
+        if (!navReady) return;
+
+        const page = Number.isFinite(Number(loPage)) ? Math.max(1, Math.floor(Number(loPage))) : 1;
+        const pageSize = Number.isFinite(Number(loPageSize)) ? Math.max(1, Math.floor(Number(loPageSize))) : 24;
+
+        // If page size changed, reset to page 1 first
+        if (pageSize !== lastPropsLoPageSize && page !== 1) {
+            loPage = 1;
+            return;
+        }
+
+        // Only navigate when local state differs from props
+        if (page === lastPropsLoPage && pageSize === lastPropsLoPageSize) return;
+        if (page === lastNavigatedLoPage && pageSize === lastNavigatedLoPageSize) return;
+
+        lastNavigatedLoPage = page;
+        lastNavigatedLoPageSize = pageSize;
+        navigateLinkedObjects(page, pageSize);
+    });
 </script>
 
 <form
@@ -190,10 +280,7 @@
             <!-- Main Content Column -->
             <div class="col-12 col-xl-8">
                 <div class="card shadow-sm mb-4">
-                     <div class="card-header bg-white py-3">
-                        <div class="m-0 text-muted fw-bold">{t("common.general-info", {fallback: "General Information"})}</div>
-                     </div>
-                     <div class="card-body">
+                     <div class="card-body p-0">
                          <AutoForm 
                             {form} 
                                      {createFieldValidator}
@@ -213,7 +300,7 @@
                 <!-- Images -->
                 {#if visibleFields.images}
                     <div class="card shadow-sm mb-4">
-                         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                             <div class="m-0 text-muted fw-bold">{t("common.images", {fallback: "Images"})}</div>
                                <button type="button" class="btn btn-sm btn-secondary d-flex align-items-center gap-2" onclick={() => handleAddAsset('image')}>
                                  <i class="bi bi-plus-lg"></i> {t("common.add-images", {fallback: "Add Images"})}
@@ -241,7 +328,7 @@
                  <!-- Video -->
                 {#if visibleFields.videos}
                     <div class="card shadow-sm mb-4">
-                         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                             <div class="m-0 text-muted fw-bold">{t("common.videos", {fallback: "Videos"})}</div>
                                <button type="button" class="btn btn-sm btn-secondary d-flex align-items-center gap-2" onclick={() => handleAddAsset('video')}>
                                  <i class="bi bi-plus-lg"></i> {t("common.add-videos", {fallback: "Add Videos"})}
@@ -269,7 +356,7 @@
                  <!-- Audio -->
                 {#if visibleFields.audios}
                     <div class="card shadow-sm mb-4">
-                         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                             <div class="m-0 text-muted fw-bold">{t("common.audio", {fallback: "Audio"})}</div>
                                <button type="button" class="btn btn-sm btn-secondary d-flex align-items-center gap-2" onclick={() => handleAddAsset('audio')}>
                                  <i class="bi bi-plus-lg"></i> {t("common.add-audio", {fallback: "Add Audio"})}
@@ -293,6 +380,83 @@
                          </div>
                     </div>
                 {/if}
+
+                <!-- Linked Objects (objects using this connection option) -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-0">
+                        <div class="m-0 text-muted fw-bold">
+                            {t("common.linked-objects", { fallback: "Linked objects" })}
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        
+
+                        {#if linkedObjects?.length > 0}
+                        <div class="px-3 pt-3 pb-2 text-muted">
+                            {linkedObjectsTotalCount} {getObjectsLabel(linkedObjectsTotalCount)}
+                        </div>
+                            <div class="list-group list-group-flush">
+                                {#each linkedObjects as obj (obj.id)}
+                                    <div class="list-group-item d-flex align-items-center gap-3">
+                                        <div class="flex-shrink-0" style="width: 64px; height: 64px;">
+                                            <BaseImage
+                                                src={getObjectThumb(obj) ? getAssetImageUrl(getObjectThumb(obj), 'sm') : null}
+                                                alt={getObjectDisplayName(obj)}
+                                                width={64}
+                                                height={64}
+                                                class="rounded"
+                                                ratio="1/1"
+                                                objectFit="cover"
+                                            />
+                                        </div>
+
+                                        <div class="flex-grow-1 min-w-0">
+                                            <div class="fw-medium text-truncate">
+                                                <a
+                                                    href={`/projects/${project.id}/institutions/${obj.institution_id}/objects/${obj.id}`}
+                                                    class="link-primary text-decoration-underline"
+                                                >
+                                                    {getObjectDisplayName(obj)}
+                                                </a>
+                                            </div>
+                                            <div class="text-muted small text-truncate">
+                                                {obj?.institution?.name?.content || ""}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                        {:else}
+                            <div class="text-muted text-center m-3 py-5 m-0 border bg-light rounded-2">
+                                <i class="bi bi-link-45deg fs-1 mb-2 d-block opacity-50"></i>
+                                {t("common.no-linked-objects", { fallback: "No linked objects" })}
+                            </div>
+                        {/if}
+                    </div>
+
+                    {#if linkedObjectsTotalCount > 0}
+                        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                {#if linkedObjectsTotalCount > loPageSize}
+                                    <BasePagination bind:page={loPage} pageSize={loPageSize} count={linkedObjectsTotalCount} size="sm" />
+                                {/if}
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted">{t("common.show", { fallback: "Show" })}</span>
+                                <BaseSelect
+                                    items={pageSizeOptions}
+                                    bind:value={loPageSize}
+                                    as="button"
+                                    inputClass="btn-light btn-sm border"
+                                >
+                                    <i class="bi bi-chevron-down"></i>
+                                </BaseSelect>
+                                <span class="text-muted">{t("common.objects", { fallback: "Objects" })}</span>
+                            </div>
+                        </div>
+                    {/if}
+                </div>
             </div>
 
             <!-- Right Column (Thumbnail) -->
@@ -300,7 +464,7 @@
                  <!-- Main Asset (Thumbnail) -->
                  {#if visibleFields.thumbnail}
                     <div class="card shadow-sm mb-4 sticky-top" style="z-index: 1;">
-                         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                         <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                             <div class="m-0 text-muted fw-bold">{t("common.thumbnail", {fallback: "Thumbnail"})}</div>
                             {#if !mainAsset}
                                 <button type="button" class="btn btn-sm btn-secondary d-flex align-items-center gap-2" onclick={() => handleAddAsset('main')}>

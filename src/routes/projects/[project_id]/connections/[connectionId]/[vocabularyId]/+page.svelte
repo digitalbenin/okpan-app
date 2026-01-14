@@ -139,6 +139,10 @@
         project={project}
         researchField={researchField}
         initialValues={initialValues}
+        linkedObjects={data.linkedObjects}
+        linkedObjectsTotalCount={data.linkedObjectsTotalCount}
+        linkedObjectsPage={data.linkedObjectsPage}
+        linkedObjectsPageSize={data.linkedObjectsPageSize}
         title={t("common.edit_connection", {fallback: "Edit Connection"})}
         submitLabel={t("common.save", {fallback: "Save"})}
         onSubmit={handleSave}
