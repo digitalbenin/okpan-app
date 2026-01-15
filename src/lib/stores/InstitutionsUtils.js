@@ -53,6 +53,7 @@ export const updateInstitution = async (institutionId, updatedData) => {
         id: institutionId,
         // Direct fields
         status: updatedData.status,
+        website: updatedData.website,
         links: updatedData.links,
         // Text content for default language
         name: updatedData.name,
