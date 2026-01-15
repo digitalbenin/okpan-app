@@ -115,11 +115,7 @@
                             <div
                                 class="d-flex flex-column align-items-start gap-2"
                             >
-                                <BaseButton
-                                    class="btn btn-link text-dark p-0 text-decoration-none"
-                                    icon="info-circle"
-                                    text={getMoreInfo(field)}
-                                />
+                               
                                 <BaseCheckBox
                                     labelText={t("common.public-website", {
                                         fallback: "Publish on website",

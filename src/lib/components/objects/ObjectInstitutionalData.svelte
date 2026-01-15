@@ -259,7 +259,7 @@
         </span>
       </div>
       <BaseButton
-        class="btn btn-sm btn-light"
+        class="btn btn-sm btn-secondary"
         icon="plus-lg"
         text={t("objects.add-data-source", { fallback: "Add data source" })}
         onClick={handleAddDataSource}

@@ -305,7 +305,7 @@
   <!-- Research Fields and Linked Media Section -->
   <div class="container-fluid bg-light">
     <div class="row">
-      <div class="col-10">
+      <div class="col-9">
         <div class="mt-2 mb-3 px-2">
           <ObjectBasicInfo
             bind:objectName
