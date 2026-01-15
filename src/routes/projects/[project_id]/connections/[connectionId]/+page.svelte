@@ -6,7 +6,6 @@
     import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import EditConnectionTypeModal from "$lib/components/research_fields/EditConnectionTypeModal.svelte";
-    import { page } from "$app/stores";
     import { getAssetImageUrl } from "$lib/utils/media.js";
     import { addVocabulary, deleteVocabulary, deleteResearchField, updateResearchField } from "$lib/stores/ResearchFieldsUtils.js";
     import { DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
@@ -21,57 +20,32 @@
     let sortOrder = $state("name_asc");
 
     // Modal State
-    let deleteModalOpen = $state(false);
-    let itemToDelete = $state(null);
-
-    // Delete Connection Type (Research Field) Modal State
-    let deleteTypeModalOpen = $state(false);
-    let isDeletingType = $state(false);
-
-    // Edit Modal State
-    let editModalOpen = $state(false);
-    let isSaving = $state(false);
-    let editFieldsConfig = $state({ ...DEFAULT_FIELDS_CONFIG });
-    let editBasicInfo = $state({});
-
-    // Helper for status text
-    function getStatusText(field) {
-        if (field.onwebsite === 1) {
-            return t("common.published", { fallback: "Published" });
-        }
-        return t("common.not-published", { fallback: "Not published" });
-    }
+    let modals = $state({
+        deleteVocab: { open: false, item: null },
+        deleteType: { open: false, loading: false },
+        edit: { open: false, loading: false, config: { ...DEFAULT_FIELDS_CONFIG }, info: {} }
+    });
 
     // Derived values
     let vocabularies = $derived(data.researchField?.vocabularies || []);
 
-    let filteredVocabularies = $derived.by(() => {
-        let items = [...vocabularies];
-        if (searchTerm) {
-            const lowerTerm = searchTerm.toLowerCase();
-            items = items.filter(v =>
-                v.option?.content?.toLowerCase().includes(lowerTerm)
-            );
-        }
-        return items;
-    });
+    let filteredVocabularies = $derived(
+        searchTerm
+            ? vocabularies.filter(v => v.option?.content?.toLowerCase().includes(searchTerm.toLowerCase()))
+            : vocabularies
+    );
 
-    let sortedVocabularies = $derived.by(() => {
-        let items = [...filteredVocabularies];
-        items.sort((a, b) => {
+    let sortedVocabularies = $derived(
+        [...filteredVocabularies].sort((a, b) => {
             const nameA = a.option?.content?.toLowerCase() || "";
             const nameB = b.option?.content?.toLowerCase() || "";
-            if (sortOrder === "name_asc") return nameA.localeCompare(nameB);
-            if (sortOrder === "name_desc") return nameB.localeCompare(nameA);
-            return 0;
-        });
-        return items;
-    });
+            return sortOrder === "name_desc" ? nameB.localeCompare(nameA) : nameA.localeCompare(nameB);
+        })
+    );
 
-    let paginatedVocabularies = $derived.by(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return sortedVocabularies.slice(start, start + itemsPerPage);
-    });
+    let paginatedVocabularies = $derived(
+        sortedVocabularies.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    );
 
     function goBack() {
         goto(`/projects/${data.project.id}/connections`);
@@ -82,138 +56,77 @@
     }
 
     function handleEditField() {
-        // Initialize edit state with current values
-        editBasicInfo = {
+        modals.edit.info = {
             name: data.researchField.name?.content || "",
             description: data.researchField.description?.content || "",
             onwebsite: data.researchField.onwebsite === 1
         };
-        
-        // Handle fields config
-        if (data.researchField.fields_config) {
-            editFieldsConfig = { ...data.researchField.fields_config };
-        } else {
-            editFieldsConfig = { ...DEFAULT_FIELDS_CONFIG };
-        }
-
-        editModalOpen = true; 
+        modals.edit.config = { ...(data.researchField.fields_config || DEFAULT_FIELDS_CONFIG) };
+        modals.edit.open = true;
     }
 
     async function handleSaveEdit() {
-        isSaving = true;
+        modals.edit.loading = true;
         try {
-            // IMPORTANT: Svelte $state objects are proxies and can't be IPC-cloned.
-            // Deep-clone to a plain object before sending to the backend.
-            const safeFieldsConfig = JSON.parse(JSON.stringify(editFieldsConfig));
-
             const params = {
-                type: data.researchField.type, // Keep type
-                name: editBasicInfo.name,
-                description: editBasicInfo.description,
-                onwebsite: editBasicInfo.onwebsite ? 1 : 0,
-                fields_config: safeFieldsConfig
-                // Note: Not handling translations update in this quick edit modal for simplicity
+                type: data.researchField.type,
+                name: modals.edit.info.name,
+                description: modals.edit.info.description,
+                onwebsite: modals.edit.info.onwebsite ? 1 : 0,
+                fields_config: JSON.parse(JSON.stringify(modals.edit.config))
             };
-
             const result = await updateResearchField(data.researchField.id, params);
-            
             if (result && !result.error) {
                 await invalidateAll();
-                editModalOpen = false;
-            } else {
-                console.error("Error updating connection type", result?.error);
+                modals.edit.open = false;
             }
-        } catch (e) {
-            console.error("Error updating connection type", e);
         } finally {
-            isSaving = false;
+            modals.edit.loading = false;
         }
     }
 
     async function handleDuplicate(vocab) {
         if (!vocab) return;
-
-        let languageId = null;
-        if (data.languages) {
-             const defaultLang = data.languages.find(l => l.is_default) || data.languages[0];
-             languageId = defaultLang?.id;
-        } else if (data.project?.languages) {
-             const defaultLang = data.project.languages.find(l => l.is_default) || data.project.languages[0];
-             languageId = defaultLang?.id;
-        }
-
-        if (!languageId) {
-             console.error("Missing language ID for duplication. Available languages:", data.languages);     
-             return;
-        }
-
-        const newOption = `${vocab.option?.content || "Untitled"} - copy`;
-        const description = vocab.description?.content || "";
-        const mainAsset = vocab.mainAsset?.id || vocab.main_asset_id;
+        const languages = data.languages || data.project?.languages;
+        const languageId = (languages?.find(l => l.is_default) || languages?.[0])?.id;
+        if (!languageId) return;
 
         const params = {
-             languageId,
-             option: newOption,
-             description,
-             mainAsset
+            languageId,
+            option: `${vocab.option?.content || "Untitled"} - copy`,
+            description: vocab.description?.content || "",
+            mainAsset: vocab.mainAsset?.id || vocab.main_asset_id
         };
 
-        try {
-            const { error: err } = await addVocabulary(data.researchField.id, params);
-            if (!err) {
-                await invalidateAll();
-            } else {
-                 console.error("Failed to duplicate vocabulary", err);
-            }
-        } catch (e) {
-            console.error("Failed to duplicate vocabulary", e);
-        }
+        const { error } = await addVocabulary(data.researchField.id, params);
+        if (!error) await invalidateAll();
     }
 
     function openDeleteModal(vocab) {
-        itemToDelete = vocab;
-        deleteModalOpen = true;
+        modals.deleteVocab.item = vocab;
+        modals.deleteVocab.open = true;
     }
 
     async function confirmDelete() {
-        if(!itemToDelete) return;
-
-        try {
-            const { error: err } = await deleteVocabulary(itemToDelete.id);
-
-            if (!err) {
-                await invalidateAll();
-            } else {
-                 console.error("Failed to delete vocabulary", err);
-            }
-        } catch (e) {
-            console.error("Failed to delete vocabulary", e);
-        }
-
-        deleteModalOpen = false;
-        itemToDelete = null;
-    }
-
-    function openDeleteTypeModal() {
-        deleteTypeModalOpen = true;
+        if (!modals.deleteVocab.item) return;
+        const { error } = await deleteVocabulary(modals.deleteVocab.item.id);
+        if (!error) await invalidateAll();
+        modals.deleteVocab.open = false;
+        modals.deleteVocab.item = null;
     }
 
     async function confirmDeleteType() {
         if (!data?.researchField?.id) return;
-        isDeletingType = true;
+        modals.deleteType.loading = true;
         try {
-            const res = await deleteResearchField(data.researchField.id);
-            if (res?.error) {
-                console.error("Failed to delete connection type", res.error);
-                return;
+            const { error } = await deleteResearchField(data.researchField.id);
+            if (!error) {
+                await invalidateAll();
+                modals.deleteType.open = false;
+                goBack();
             }
-            await invalidateAll();
-            deleteTypeModalOpen = false;
-            goBack();
-        } catch (e) {
-            console.error("Error deleting connection type", e);
         } finally {
-            isDeletingType = false;
+            modals.deleteType.loading = false;
         }
     }
 
@@ -266,7 +179,7 @@
                             type="button"
                             class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2 text-danger"
                             onclick={() => {
-                                openDeleteTypeModal();
+                                modals.deleteType.open = true;
                                 close();
                             }}
                         >
@@ -388,69 +301,44 @@
     <div class="pb-5"></div>
 </div>
 
-{#snippet deleteTitle()}
-    {t("common.delete-connection", { fallback: "Delete connection" })}
+{#snippet dialogSnippets(titleKey, descKey, onConfirm, loading = false, onCancel)}
+    {#snippet title()}{t(titleKey.title, { fallback: titleKey.fallback })}{/snippet}
+    {#snippet description()}{t(descKey.title, { fallback: descKey.fallback })}{/snippet}
+    {#snippet footer()}
+        <BaseButton class="btn btn-secondary" disabled={loading} onClick={onCancel} text={t("common.cancel", {fallback: "Cancel"})} />
+        <BaseButton class="btn btn-danger ms-2" loading={loading} onClick={onConfirm} text={t("common.delete", {fallback: "Delete"})} />
+    {/snippet}
 {/snippet}
 
-{#snippet deleteDescription()}
-    {t("common.delete-connection-confirmation", { fallback: "Are you sure you want to delete this connection? This action cannot be undone." })}
-{/snippet}
-
-{#snippet deleteFooter()}
-    <BaseButton
-        class="btn btn-secondary"
-        onClick={() => deleteModalOpen = false}
-        text={t("common.cancel", {fallback: "Cancel"})}
-    />
-    <BaseButton
-        class="btn btn-danger ms-2"
-        onClick={confirmDelete}
-        text={t("common.delete", {fallback: "Delete"})}
-    />
+{#snippet deleteVocabFooter()}
+    <BaseButton class="btn btn-secondary" onClick={() => modals.deleteVocab.open = false} text={t("common.cancel", {fallback: "Cancel"})} />
+    <BaseButton class="btn btn-danger ms-2" onClick={confirmDelete} text={t("common.delete", {fallback: "Delete"})} />
 {/snippet}
 
 <BaseAlertDialog
-    bind:open={deleteModalOpen}
-    title={deleteTitle}
-    description={deleteDescription}
-    footer={deleteFooter}
+    bind:open={modals.deleteVocab.open}
+    title={() => t("common.delete-connection", { fallback: "Delete connection" })}
+    description={() => t("common.delete-connection-confirmation", { fallback: "Are you sure you want to delete this connection? This action cannot be undone." })}
+    footer={deleteVocabFooter}
 />
 
-{#snippet deleteTypeTitle()}
-    {t("common.delete-connection-type", { fallback: "Delete connection type" })}
-{/snippet}
-
-{#snippet deleteTypeDescription()}
-    {t("common.delete-connection-type-confirmation", { fallback: "Are you sure you want to delete this connection type? This action cannot be undone." })}
-{/snippet}
-
 {#snippet deleteTypeFooter()}
-    <BaseButton
-        class="btn btn-secondary"
-        disabled={isDeletingType}
-        onClick={() => deleteTypeModalOpen = false}
-        text={t("common.cancel", { fallback: "Cancel" })}
-    />
-    <BaseButton
-        class="btn btn-danger ms-2"
-        loading={isDeletingType}
-        onClick={confirmDeleteType}
-        text={t("common.delete", { fallback: "Delete" })}
-    />
+    <BaseButton class="btn btn-secondary" disabled={modals.deleteType.loading} onClick={() => modals.deleteType.open = false} text={t("common.cancel", {fallback: "Cancel"})} />
+    <BaseButton class="btn btn-danger ms-2" loading={modals.deleteType.loading} onClick={confirmDeleteType} text={t("common.delete", {fallback: "Delete"})} />
 {/snippet}
 
 <BaseAlertDialog
-    bind:open={deleteTypeModalOpen}
-    title={deleteTypeTitle}
-    description={deleteTypeDescription}
+    bind:open={modals.deleteType.open}
+    title={() => t("common.delete-connection-type", { fallback: "Delete connection type" })}
+    description={() => t("common.delete-connection-type-confirmation", { fallback: "Are you sure you want to delete this connection type? This action cannot be undone." })}
     footer={deleteTypeFooter}
 />
 
 <EditConnectionTypeModal
-    bind:open={editModalOpen}
-    bind:basicInfo={editBasicInfo}
-    bind:config={editFieldsConfig}
-    isSaving={isSaving}
+    bind:open={modals.edit.open}
+    bind:basicInfo={modals.edit.info}
+    bind:config={modals.edit.config}
+    isSaving={modals.edit.loading}
     onSave={handleSaveEdit}
     t={t}
 />
