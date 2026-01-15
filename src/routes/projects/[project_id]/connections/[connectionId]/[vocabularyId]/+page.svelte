@@ -38,29 +38,11 @@
         ...vocabulary,
         option: vocabulary?.option?.content || "",
         description: vocabulary?.description?.content || "",
-        externalLink: vocabulary?.externalLink || "",
+        externalLink: vocabulary?.externalLink || vocabulary?.external_link || "",
         ...getInitialTranslations()
     });
 
-    $effect(() => {
-        if (vocabulary) {
-             console.group("Vocabulary Page Debug");
-             console.log("Full Vocabulary Object:", JSON.parse(JSON.stringify(vocabulary)));
-             console.log("Translations (Option):", vocabulary.option?.translations);
-             console.log("Translations (Description):", vocabulary.description?.translations);
-             console.log("Computed Initial Translations:", getInitialTranslations());
-             console.groupEnd();
-        }
-    });
-
     async function handleSave(values, mainAssetId, otherAssetIds) {
-        console.log("handleSave called with:", { values, mainAssetId, otherAssetIds });
-        console.log("Available languages:", data.languages);
-        console.log("Existing vocabulary translations:", {
-            option: vocabulary?.option?.translations,
-            description: vocabulary?.description?.translations
-        });
-
         // Prepare update payload
         const updateData = {
            option: values.option,
@@ -76,8 +58,6 @@
             if (!lang.is_default) {
                 const optKey = `translations_${lang.id}_option`;
                 const descKey = `translations_${lang.id}_description`;
-                
-                console.log(`Checking language ${lang.code} (${lang.id}) keys:`, { optKey, descKey, optVal: values[optKey], descVal: values[descKey] });
 
                 if (values[optKey] !== undefined && values[optKey] !== null) {
                     const content = values[optKey].toString();
@@ -109,26 +89,14 @@
             }
         });
 
-        console.log("Final updateData payload:", updateData);
-
-        // Deep clone to remove Svelte 5 proxies before sending to IPC
         const finalUpdateData = JSON.parse(JSON.stringify(updateData));
-
         const res = await updateVocabulary(vocabulary.id, finalUpdateData);
         
-        if (res.error) {
-             console.error("updateVocabulary failed:", res.error);
-             // TODO: Error toast
-        } else {
-             // Handle assets separately
-             // Assets need to be array of IDs.
-             const assetsRes = await updateVocabularyAssets(vocabulary.id, otherAssetIds);
-
-             if (assetsRes.error) {
-                 console.error("updateVocabularyAssets failed:", assetsRes.error);
-             } else {
-                 goto(`/projects/${project.id}/connections`);
-             }
+        if (!res.error) {
+            const assetsRes = await updateVocabularyAssets(vocabulary.id, otherAssetIds);
+            if (!assetsRes.error) {
+                goto(`/projects/${project.id}/connections`);
+            }
         }
     }
 </script>

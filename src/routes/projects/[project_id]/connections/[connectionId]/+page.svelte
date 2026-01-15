@@ -310,6 +310,14 @@
     {/snippet}
 {/snippet}
 
+{#snippet deleteVocabTitle()}
+    {t("common.delete-connection", { fallback: "Delete connection" })}
+{/snippet}
+
+{#snippet deleteVocabDescription()}
+    {t("common.delete-connection-confirmation", { fallback: "Are you sure you want to delete this connection? This action cannot be undone." })}
+{/snippet}
+
 {#snippet deleteVocabFooter()}
     <BaseButton class="btn btn-secondary" onClick={() => modals.deleteVocab.open = false} text={t("common.cancel", {fallback: "Cancel"})} />
     <BaseButton class="btn btn-danger ms-2" onClick={confirmDelete} text={t("common.delete", {fallback: "Delete"})} />
@@ -317,10 +325,18 @@
 
 <BaseAlertDialog
     bind:open={modals.deleteVocab.open}
-    title={() => t("common.delete-connection", { fallback: "Delete connection" })}
-    description={() => t("common.delete-connection-confirmation", { fallback: "Are you sure you want to delete this connection? This action cannot be undone." })}
+    title={deleteVocabTitle}
+    description={deleteVocabDescription}
     footer={deleteVocabFooter}
 />
+
+{#snippet deleteTypeTitle()}
+    {t("common.delete-connection-type", { fallback: "Delete connection type" })}
+{/snippet}
+
+{#snippet deleteTypeDescription()}
+    {t("common.delete-connection-type-confirmation", { fallback: "Are you sure you want to delete this connection type? This action cannot be undone." })}
+{/snippet}
 
 {#snippet deleteTypeFooter()}
     <BaseButton class="btn btn-secondary" disabled={modals.deleteType.loading} onClick={() => modals.deleteType.open = false} text={t("common.cancel", {fallback: "Cancel"})} />
@@ -329,8 +345,8 @@
 
 <BaseAlertDialog
     bind:open={modals.deleteType.open}
-    title={() => t("common.delete-connection-type", { fallback: "Delete connection type" })}
-    description={() => t("common.delete-connection-type-confirmation", { fallback: "Are you sure you want to delete this connection type? This action cannot be undone." })}
+    title={deleteTypeTitle}
+    description={deleteTypeDescription}
     footer={deleteTypeFooter}
 />
 

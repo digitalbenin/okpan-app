@@ -241,7 +241,7 @@
                             hiddenFields={autoFormHiddenFields}
                             uiSchema={{
                                 description: { type: "textarea", colSize: 12 },
-                                externalLink: { colSize: 12 },
+                                externalLink: { colSize: 12, label: t("common.external-link", { fallback: "External link" }) },
                                 option: { label: t("common.name", { fallback: "Name" }) }
                             }}
                         />
