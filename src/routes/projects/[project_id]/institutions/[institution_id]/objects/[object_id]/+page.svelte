@@ -5,20 +5,12 @@
   import ObjectInstitutionalData from "$lib/components/objects/ObjectInstitutionalData.svelte";
   import ObjectBasicInfo from "$lib/components/objects/ObjectBasicInfo.svelte";
   import ObjectHeader from "$lib/components/objects/ObjectHeader.svelte";
-  import BaseButton from "$lib/components/base/BaseButton.svelte";
-  import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import ObjectDeleteModal from "$lib/components/objects/ObjectDeleteModal.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { back } from "$lib/utils/navigation.js";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
-  import {
-    updateObjectInstitution,
-    deleteObject,
-  } from "$lib/stores/ObjectsUtils.js";
-  import {
-    updateObjectStatus,
-    updateObjectName,
-  } from "$lib/stores/ObjectsUtils.js";
+  import { updateObjectInstitution, deleteObject, updateObjectStatus, updateObjectName } from "$lib/stores/ObjectsUtils.js";
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
 
@@ -42,6 +34,26 @@
     );
   });
 
+  // Centralized change management
+  let componentChanges = $state(new Map());
+  let isSaving = $state(false);
+
+  const syncComponentChanges = () => {
+    componentChanges = new Map(componentChanges);
+  };
+
+  const setComponentChange = (component, hasChanges, saveFunction) => {
+    componentChanges.set(component, { component, hasChanges, saveFunction });
+    syncComponentChanges();
+  };
+
+  const logAndThrowIfError = (res, message) => {
+    if (res?.error) {
+      console.error(message, res.error);
+      throw res.error;
+    }
+  };
+
   // Name field state and change tracking
   let objectName = $state(data.object.name || "");
   let nameHasChanges = false;
@@ -53,30 +65,17 @@
     objectName = val ?? "";
     nameHasChanges =
       (objectName?.trim() || "") !== (data.object.name?.trim() || "");
-    componentChanges.set("name", {
-      component: "name",
-      hasChanges: nameHasChanges,
-      saveFunction: saveNameChange,
-    });
-    componentChanges = new Map(componentChanges);
+    setComponentChange("name", nameHasChanges, saveNameChange);
   }
 
   async function saveNameChange() {
     if (!nameHasChanges) return;
     const res = await updateObjectName(data.object.id, objectName ?? "");
-    if (res?.error) {
-      console.error("Failed to update object name:", res.error);
-      throw res.error;
-    }
+    logAndThrowIfError(res, "Failed to update object name:");
     // Reflect saved value locally and reset change state
     data.object.name = objectName ?? "";
     nameHasChanges = false;
-    componentChanges.set("name", {
-      component: "name",
-      hasChanges: false,
-      saveFunction: saveNameChange,
-    });
-    componentChanges = new Map(componentChanges);
+    setComponentChange("name", false, saveNameChange);
   }
 
   // Institution selection (event-driven, no runes)
@@ -90,13 +89,7 @@
       selectedInstitutionId !== (data.object.institution_id || null);
 
     // Register/update change entry for institution
-    componentChanges.set("institution", {
-      component: "institution",
-      hasChanges: institutionHasChanges,
-      saveFunction: saveInstitutionChange,
-    });
-    // Trigger reactivity for Map consumers
-    componentChanges = new Map(componentChanges);
+    setComponentChange("institution", institutionHasChanges, saveInstitutionChange);
   }
 
   async function saveInstitutionChange() {
@@ -105,24 +98,12 @@
       data.object.id,
       selectedInstitutionId,
     );
-    if (res?.error) {
-      console.error("Failed to update object institution:", res.error);
-      throw res.error;
-    }
+    logAndThrowIfError(res, "Failed to update object institution:");
     // Reflect saved value locally and reset change state
     data.object.institution_id = selectedInstitutionId;
     institutionHasChanges = false;
-    componentChanges.set("institution", {
-      component: "institution",
-      hasChanges: false,
-      saveFunction: saveInstitutionChange,
-    });
-    componentChanges = new Map(componentChanges);
+    setComponentChange("institution", false, saveInstitutionChange);
   }
-
-  // Centralized change management
-  let componentChanges = $state(new Map());
-  let isSaving = $state(false);
 
   // Derived state for overall changes
   const hasAnyChanges = $derived(
@@ -148,7 +129,7 @@
 
   const markPageClean = () => {
     componentChanges.clear();
-    componentChanges = new Map(componentChanges);
+    syncComponentChanges();
     nameHasChanges = false;
     institutionHasChanges = false;
     objectName = data.object.name || "";
@@ -159,8 +140,7 @@
   // Handle changes from child components
   function handleComponentChanges(changeData) {
     componentChanges.set(changeData.component, changeData);
-    // Trigger reactivity
-    componentChanges = new Map(componentChanges);
+    syncComponentChanges();
   }
 
   // Save all changes from all components
@@ -179,7 +159,7 @@
       const savePromises = [];
 
       // Collect save functions from all components with changes
-      for (const [componentName, componentData] of componentChanges) {
+      for (const componentData of componentChanges.values()) {
         if (componentData.hasChanges && componentData.saveFunction) {
           savePromises.push(componentData.saveFunction());
         }
@@ -355,50 +335,12 @@
   </div>
 </PageActionFooter>
 
-  <!-- Delete Confirmation Modal -->
-  {#snippet header()}
-    {t("common.confirm-delete", { fallback: "Confirm Deletion" })}
-  {/snippet}
-
-  {#snippet body()}
-    <p>
-      {t("common.confirm-delete-object", {
-        fallback:
-          "Are you sure you want to delete this object? This action cannot be undone.",
-      })}
-    </p>
-  {/snippet}
-
-  {#snippet actions()}
-    <div class="d-flex justify-content-end gap-2">
-      <BaseButton
-        type="button"
-        class="btn btn-secondary btn-sm"
-        text={t("common.cancel", { fallback: "cancel" })}
-        onClick={cancelDelete}
-        disabled={isDeleting}
-      />
-      <BaseButton
-        type="button"
-        class="btn btn-danger btn-sm"
-        text={isDeleting
-          ? t("common.deleting", { fallback: "Deleting..." })
-          : t("common.confirm-and-delete", { fallback: "Confirm and delete" })}
-        onClick={confirmDeleteObject}
-        disabled={isDeleting}
-      />
-    </div>
-  {/snippet}
-
-  {#if showDeleteModal}
-    <BaseModal
-      bind:isOpen={showDeleteModal}
-      size="md"
-      {header}
-      {body}
-      {actions}
-    />
-  {/if}
+<ObjectDeleteModal
+  bind:isOpen={showDeleteModal}
+  {isDeleting}
+  onCancel={cancelDelete}
+  onConfirm={confirmDeleteObject}
+/>
 
 <ManualDirtyGuard
   values={dirtyValues}
