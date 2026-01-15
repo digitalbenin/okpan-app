@@ -24,133 +24,72 @@
     let selectedFieldId = $state("all");
     let isCreating = $state(false);
     let creationError = $state(null);
-    // Track vocabularies created during this modal session so parent can merge/display them
     let createdVocabularies = $state([]);
 
     // Reset search when modal opens
-    let previousIsOpen = $state(false);
-    const resetSearchOnOpen = $derived.by(() => {
-        if (isOpen && !previousIsOpen) {
+    $effect(() => {
+        if (isOpen) {
             searchQuery = "";
-            selectedFieldId = "all"; // Default to 'all'
+            selectedFieldId = "all";
             creationError = null;
             isCreating = false;
             createdVocabularies = [];
         }
-        previousIsOpen = isOpen;
-        return null; // derived.by must return something
     });
 
     // Get the currently selected field from vocabularyFields
-    const currentField = $derived.by(() => {
-        if (selectedFieldId === "all") return null; // null means all fields
-        if (!selectedFieldId) return field;
-        return vocabularyFields.find(f => f.id === selectedFieldId) || field;
-    });
+    const currentField = $derived.by(() => 
+        selectedFieldId === "all" ? null : 
+        vocabularyFields.find(f => f.id === selectedFieldId) || field
+    );
 
     // Get vocabulary IDs selected for the current field (or all if 'all' selected)
-    const selectedIdsForCurrentField = $derived.by(() => {
-        if (selectedFieldId === "all") {
-            // Return all selected vocabulary IDs across all fields
-            return currentSelections.map(sel => sel.vocabularyId);
-        }
-        if (!currentField) return [];
-        return currentSelections
-            .filter(sel => sel.fieldId === currentField.id)
-            .map(sel => sel.vocabularyId);
-    });
+    const selectedIdsForCurrentField = $derived.by(() => 
+        selectedFieldId === "all" ? currentSelections.map(sel => sel.vocabularyId) :
+        !currentField ? [] :
+        currentSelections.filter(sel => sel.fieldId === currentField.id).map(sel => sel.vocabularyId)
+    );
 
     // Filter vocabularies based on search and selected field
     const filteredVocabularies = $derived.by(() => {
-        let allVocabs = [];
-        
-        if (selectedFieldId === "all") {
-            // Get vocabularies from all fields with field name attached
-            vocabularyFields.forEach(field => {
-                if (field.vocabularies) {
-                    field.vocabularies.forEach(vocab => {
-                        allVocabs.push({
-                            ...vocab,
-                            _fieldId: field.id,
-                            _fieldName: field.name?.content || "Unknown"
-                        });
-                    });
-                }
-            });
-        } else if (currentField?.vocabularies) {
-            allVocabs = currentField.vocabularies.map(vocab => ({
+        const allVocabs = selectedFieldId === "all" 
+            ? vocabularyFields.flatMap(field => 
+                (field.vocabularies || []).map(vocab => ({
+                    ...vocab,
+                    _fieldId: field.id,
+                    _fieldName: field.name?.content || "Unknown"
+                }))
+            )
+            : (currentField?.vocabularies || []).map(vocab => ({
                 ...vocab,
                 _fieldId: currentField.id,
                 _fieldName: currentField.name?.content || "Unknown"
             }));
-        }
 
-        if (!searchQuery.trim()) return allVocabs;
-
-        return allVocabs.filter((vocab) =>
-            vocab.option?.content
-                ?.toLowerCase()
-                .includes(searchQuery.toLowerCase()),
-        );
+        return searchQuery.trim() 
+            ? allVocabs.filter(vocab => vocab.option?.content?.toLowerCase().includes(searchQuery.toLowerCase()))
+            : allVocabs;
     });
 
-    // Check if vocabulary is selected (field-aware)
-    function isSelected(vocabularyId, fieldId) {
-        return currentSelections.some(
-            sel => sel.vocabularyId === vocabularyId && sel.fieldId === fieldId
-        );
-    }
+    const isSelected = (vocabularyId, fieldId) => 
+        currentSelections.some(sel => sel.vocabularyId === vocabularyId && sel.fieldId === fieldId);
 
-    function toggleVocabulary(vocabularyId, fieldId) {
-        if (isSelected(vocabularyId, fieldId)) {
-            currentSelections = currentSelections.filter(
-                (sel) => !(sel.fieldId === fieldId && sel.vocabularyId === vocabularyId)
-            );
-        } else {
-            currentSelections = [...currentSelections, { 
-                fieldId, 
-                vocabularyId 
-            }];
-        }
-    }
+    const toggleVocabulary = (vocabularyId, fieldId) => {
+        currentSelections = isSelected(vocabularyId, fieldId)
+            ? currentSelections.filter(sel => !(sel.fieldId === fieldId && sel.vocabularyId === vocabularyId))
+            : [...currentSelections, { fieldId, vocabularyId }];
+    };
 
-    function handleSave() {
-        // Pass back selections with field IDs and any vocabularies created during this session
-        onSave?.({
-            selections: currentSelections,
-            created: createdVocabularies,
-        });
-    }
-
-    function handleCancel() {
-        onCancel?.();
-    }
+    const handleSave = () => onSave?.({ selections: currentSelections, created: createdVocabularies });
+    const handleCancel = () => onCancel?.();
 
     async function createNewVocabulary() {
+        const optionText = searchQuery.trim();
+        if (!optionText) return creationError = t("common.validation.required", { fallback: "Value is required" });
+        if (!defaultLanguageId) return creationError = t("objects.research_fields.default_language_required", { fallback: "Default language is required to create a new option." });
+        if (selectedFieldId === "all" || !currentField?.id) return creationError = t("objects.connections.select_specific_type", { fallback: "Please select a specific connection type to create a new item." });
+
         creationError = null;
-        const optionText = (searchQuery || "").trim();
-        if (!optionText) {
-            creationError = t("common.validation.required", {
-                fallback: "Value is required",
-            });
-            return;
-        }
-        if (!defaultLanguageId) {
-            creationError = t(
-                "objects.research_fields.default_language_required",
-                {
-                    fallback:
-                        "Default language is required to create a new option.",
-                },
-            );
-            return;
-        }
-        if (selectedFieldId === "all" || !currentField?.id) {
-            creationError = t("objects.connections.select_specific_type", {
-                fallback: "Please select a specific connection type to create a new item.",
-            });
-            return;
-        }
 
         isCreating = true;
         try {
@@ -159,20 +98,10 @@
                 option: optionText,
                 description: "",
             });
-            if (error) {
-                creationError =
-                    typeof error === "string"
-                        ? error
-                        : error?.message || "Failed to create vocabulary";
-                return;
-            }
+            if (error) return creationError = typeof error === "string" ? error : error?.message || "Failed to create vocabulary";
 
-            // Extract new vocabulary id from multi-step mutation result
             const newId = result?.insertIntoVocabularies?.[0]?.id;
-            if (!newId) {
-                creationError = "Failed to obtain new vocabulary ID.";
-                return;
-            }
+            if (!newId) return creationError = "Failed to obtain new vocabulary ID.";
 
             const newVocab = {
                 id: newId,
@@ -182,31 +111,19 @@
                 description: { content: "" },
             };
 
-            // Update vocabularyFields to show the new item immediately
             const fieldIndex = vocabularyFields.findIndex(f => f.id === currentField.id);
             if (fieldIndex !== -1) {
-                const existing = Array.isArray(vocabularyFields[fieldIndex].vocabularies)
-                    ? vocabularyFields[fieldIndex].vocabularies
-                    : [];
                 vocabularyFields[fieldIndex] = { 
                     ...vocabularyFields[fieldIndex], 
-                    vocabularies: [newVocab, ...existing] 
+                    vocabularies: [newVocab, ...(vocabularyFields[fieldIndex].vocabularies || [])] 
                 };
-                // Trigger reactivity
                 vocabularyFields = [...vocabularyFields];
             }
 
-            // Remember the created vocabulary to send back to parent for merging
             createdVocabularies = [...createdVocabularies, newVocab];
-
-            // Select the newly created vocabulary with its field ID
-            currentSelections = [...currentSelections, { 
-                fieldId: currentField.id, 
-                vocabularyId: newId 
-            }];
+            currentSelections = [...currentSelections, { fieldId: currentField.id, vocabularyId: newId }];
         } catch (e) {
-            creationError =
-                e?.message || "Unexpected error while creating vocabulary";
+            creationError = e?.message || "Unexpected error while creating vocabulary";
         } finally {
             isCreating = false;
         }
@@ -278,11 +195,11 @@
                     <div class="fw-medium">
                         {vocab.option?.content || "Unnamed option"}
                     </div>
-                    {#if selectedFieldId === "all"}
+                    <!--{#if selectedFieldId === "all"}
                         <small class="text-muted">
                             {vocab._fieldName}
-                        </small>
-                    {:else if vocab.description?.content}
+                        </small>-->
+                    {#if vocab.description?.content}
                         <small class="text-muted">
                             {vocab.description.content}
                         </small>
@@ -314,9 +231,7 @@
             <div class="text-center py-4 text-muted">
                 {#if searchQuery.trim()}
                     <div class="mb-2 ps-3 d-flex justify-content-start">
-                        {t("common.no_results", {
-                            fallback: "No results found",
-                        })}
+                        {t("common.no_results", { fallback: "No results found" })}
                     </div>
                     <BaseButton
                         class="btn btn-link text-dark text-decoration-none"
@@ -326,36 +241,16 @@
                         disabled={!defaultLanguageId || isCreating || selectedFieldId === "all"}
                     />
                     {#if selectedFieldId === "all"}
-                        <div class="small mt-2">
-                            {t(
-                                "objects.connections.select_specific_type",
-                                {
-                                    fallback:
-                                        "Please select a specific connection type to create a new item.",
-                                },
-                            )}
-                        </div>
+                        <div class="small mt-2">{t("objects.connections.select_specific_type", { fallback: "Please select a specific connection type to create a new item." })}</div>
                     {/if}
                     {#if !defaultLanguageId}
-                        <div class="small mt-2">
-                            {t(
-                                "objects.research_fields.default_language_required",
-                                {
-                                    fallback:
-                                        "Default language is required to create a new option.",
-                                },
-                            )}
-                        </div>
+                        <div class="small mt-2">{t("objects.research_fields.default_language_required", { fallback: "Default language is required to create a new option." })}</div>
                     {/if}
                     {#if creationError}
-                        <div class="text-danger small mt-2">
-                            {creationError}
-                        </div>
+                        <div class="text-danger small mt-2">{creationError}</div>
                     {/if}
                 {:else}
-                    {t("objects.research_fields.no_vocabularies", {
-                        fallback: "No vocabulary options available",
-                    })}
+                    {t("objects.research_fields.no_vocabularies", { fallback: "No vocabulary options available" })}
                 {/if}
             </div>
         {/if}

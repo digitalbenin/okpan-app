@@ -329,9 +329,9 @@
                             {/if}
                         </div>
                         <div class="flex-grow-1 overflow-hidden">
-                             <h6 class="card-title mb-0 text-truncate" title={vocabulary.option?.content}>   
+                             <p class="card-title mb-0 text-truncate" title={vocabulary.option?.content}>   
                                 {vocabulary.option?.content || t("common.untitled", {fallback: "Untitled"})} 
-                             </h6>
+                             </p>
                         </div>
 
                          <div role="presentation" onclick={(e) => e.stopPropagation()}>

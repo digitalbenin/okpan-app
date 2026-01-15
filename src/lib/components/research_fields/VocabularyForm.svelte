@@ -65,12 +65,8 @@
             ...initialValues
         },
         onSubmit: async ({ value }) => {
-             // Recombine assets
-            const otherAssetsCombined = [...imageAssets, ...videoAssets, ...audioAssets];
-            const mainAssetId = mainAsset?.id || null;
-            const otherAssetIds = otherAssetsCombined.map(a => a.id);
-
-            await onSubmit(value, mainAssetId, otherAssetIds);
+            const otherAssetIds = [...assetsByType.image, ...assetsByType.video, ...assetsByType.audio].map(a => a.id);
+            await onSubmit(value, mainAsset?.id || null, otherAssetIds);
         },
         validatorAdapter: (schema) => (value) => {
             const result = schema.safeParse(value);
@@ -80,47 +76,38 @@
 
     const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
 
-    // Media State
-    // Handle both direct 'otherAssets' (if backend sends it) and 'vocabulariesGenericAssets' (from Drizzle relations)
-    let initialOtherAssets = initialValues.otherAssets || initialValues.vocabulariesGenericAssets?.map(vga => vga.genericAsset) || [];
-    
+    // Media State - consolidated asset management
+    const initialOtherAssets = initialValues.otherAssets || initialValues.vocabulariesGenericAssets?.map(vga => vga.genericAsset) || [];
     let mainAsset = $state(initialValues.mainAsset || null);
-    
-    let imageAssets = $state(initialOtherAssets.filter(a => getMediaType(a) === 'image').map((a, i) => ({ ...a, id: a.id || `img-${i}` })));
-    let videoAssets = $state(initialOtherAssets.filter(a => getMediaType(a) === 'video').map((a, i) => ({ ...a, id: a.id || `vid-${i}` })));
-    let audioAssets = $state(initialOtherAssets.filter(a => getMediaType(a) === 'audio').map((a, i) => ({ ...a, id: a.id || `aud-${i}` })));
-    
+    let assetsByType = $state({
+        image: initialOtherAssets.filter(a => getMediaType(a) === 'image').map((a, i) => ({ ...a, id: a.id || `img-${i}` })),
+        video: initialOtherAssets.filter(a => getMediaType(a) === 'video').map((a, i) => ({ ...a, id: a.id || `vid-${i}` })),
+        audio: initialOtherAssets.filter(a => getMediaType(a) === 'audio').map((a, i) => ({ ...a, id: a.id || `aud-${i}` }))
+    });
     const flipDurationMs = 200;
 
-    // Helper to request asset import
+    // Unified asset handlers
     const handleAddAsset = async (type) => {
         try {
-            // Use Electron API to open file dialog and import
             const result = await window.api.openFileDialog({
                 properties: ['openFile', 'multiSelections'],
                 filters: createMediaFilters([type])
             });
 
-            if (result && !result.canceled && result.filePaths.length > 0) {
-                 const importResult = await window.api.importAssets({
-                     path: result.filePaths,
-                     projectId: project.id,
-                     isGenericAsset: true
-                 });
+            if (result?.canceled || !result.filePaths.length) return;
 
-                 if (importResult?.createdAssets) {
-                     // Add to appropriate list
-                     const newAssets = importResult.createdAssets;
-                     if (type === 'image') {
-                         imageAssets = [...imageAssets, ...newAssets];
-                     } else if (type === 'video') {
-                         videoAssets = [...videoAssets, ...newAssets];
-                     } else if (type === 'audio') {
-                         audioAssets = [...audioAssets, ...newAssets];
-                     } else if (type === 'main') {
-                         mainAsset = newAssets[0];
-                     }
-                 }
+            const importResult = await window.api.importAssets({
+                path: result.filePaths,
+                projectId: project.id,
+                isGenericAsset: true
+            });
+
+            if (importResult?.createdAssets) {
+                if (type === 'main') {
+                    mainAsset = importResult.createdAssets[0];
+                } else {
+                    assetsByType[type] = [...assetsByType[type], ...importResult.createdAssets];
+                }
             }
         } catch (e) {
             console.error("Failed to add asset", e);
@@ -128,28 +115,15 @@
     };
 
     const handleRemoveAsset = (asset, type) => {
-        if (type === 'image') {
-            imageAssets = imageAssets.filter(a => a.id !== asset.id);
-        } else if (type === 'video') {
-            videoAssets = videoAssets.filter(a => a.id !== asset.id);
-        } else if (type === 'audio') {
-             audioAssets = audioAssets.filter(a => a.id !== asset.id);
-        } else if (type === 'main') {
+        if (type === 'main') {
             mainAsset = null;
+        } else {
+            assetsByType[type] = assetsByType[type].filter(a => a.id !== asset.id);
         }
     };
 
-    // DND Handlers
-    function handleDndConsider(e, type) {
-        if (type === 'image') imageAssets = e.detail.items;
-        if (type === 'video') videoAssets = e.detail.items;
-        if (type === 'audio') audioAssets = e.detail.items;
-    }
-    function handleDndFinalize(e, type) {
-        if (type === 'image') imageAssets = e.detail.items;
-        if (type === 'video') videoAssets = e.detail.items;
-        if (type === 'audio') audioAssets = e.detail.items;
-    }
+    const handleDndConsider = (e, type) => { assetsByType[type] = e.detail.items; };
+    const handleDndFinalize = (e, type) => { assetsByType[type] = e.detail.items; };
 
     const rightActionButtons = $derived([
         {
@@ -171,33 +145,22 @@
         }
     ]);
 
-    // Linked objects pagination controls (drive route load via query params)
+    const mediaSections = $derived([
+        { type: 'image', icon: 'images', emptyIcon: 'images', size: 150, label: t("common.images", {fallback: "Images"}), addLabel: t("common.add-images", {fallback: "Add Images"}), emptyText: t("common.drag-upload-images", {fallback: "No images"}), visible: visibleFields.images },
+        { type: 'video', icon: 'camera-video', emptyIcon: 'camera-video', size: 200, label: t("common.videos", {fallback: "Videos"}), addLabel: t("common.add-videos", {fallback: "Add Videos"}), emptyText: t("common.no-videos", {fallback: "No videos. Click to add."}), visible: visibleFields.videos },
+        { type: 'audio', icon: 'mic', emptyIcon: 'mic', size: 200, label: t("common.audio", {fallback: "Audio"}), addLabel: t("common.add-audio", {fallback: "Add Audio"}), emptyText: t("common.no-audio", {fallback: "No audio. Click to add."}), visible: visibleFields.audios }
+    ]);
+
+    // Linked objects pagination
     let loPage = $state(linkedObjectsPage);
     let loPageSize = $state(linkedObjectsPageSize);
-    let lastPropsLoPage = $state(linkedObjectsPage);
-    let lastPropsLoPageSize = $state(linkedObjectsPageSize);
-    let lastNavigatedLoPage = $state(linkedObjectsPage);
-    let lastNavigatedLoPageSize = $state(linkedObjectsPageSize);
+    let lastNavigated = $state({ page: linkedObjectsPage, pageSize: linkedObjectsPageSize });
     let navReady = $state(false);
 
     const pageSizeOptions = [12, 24, 48, 96].map((n) => ({ value: n, label: String(n) }));
-
-    const getObjectDisplayName = (obj) => {
-        return (
-            (obj?.name?.content && String(obj.name.content).trim()) ||
-            (typeof obj?.name === "string" && String(obj.name).trim()) ||
-            getObjectIdentifier(obj)
-        );
-    };
-
+    const getObjectDisplayName = (obj) => obj?.name?.content?.trim() || (typeof obj?.name === "string" ? obj.name.trim() : null) || getObjectIdentifier(obj);
     const getObjectThumb = (obj) => obj?.objectsAssets?.[0]?.asset || null;
-
-    const getObjectsLabel = (count) => {
-        const n = Number(count) || 0;
-        return n === 1
-            ? t("common.object", { fallback: "object" })
-            : t("common.objects", { fallback: "objects" });
-    };
+    const getObjectsLabel = (count) => (count === 1 ? t("common.object", { fallback: "object" }) : t("common.objects", { fallback: "objects" }));
 
     const navigateLinkedObjects = async (page, pageSize) => {
         const vocabularyId = initialValues?.id;
@@ -215,41 +178,29 @@
         }
     };
 
-    // Keep local pagination in sync when props change (after load)
+    // Sync pagination with props
     $effect(() => {
-        if (linkedObjectsPage !== lastPropsLoPage) {
-            lastPropsLoPage = linkedObjectsPage;
-            loPage = linkedObjectsPage;
-        }
-        if (linkedObjectsPageSize !== lastPropsLoPageSize) {
-            lastPropsLoPageSize = linkedObjectsPageSize;
-            loPageSize = linkedObjectsPageSize;
-        }
+        loPage = linkedObjectsPage;
+        loPageSize = linkedObjectsPageSize;
     });
 
-    $effect(() => {
-        navReady = true;
-    });
+    $effect(() => { navReady = true; });
 
-    // Trigger navigation when user changes page/pageSize
+    // Navigate on pagination change
     $effect(() => {
         if (!navReady) return;
 
-        const page = Number.isFinite(Number(loPage)) ? Math.max(1, Math.floor(Number(loPage))) : 1;
-        const pageSize = Number.isFinite(Number(loPageSize)) ? Math.max(1, Math.floor(Number(loPageSize))) : 24;
+        const page = Math.max(1, Math.floor(Number(loPage) || 1));
+        const pageSize = Math.max(1, Math.floor(Number(loPageSize) || 24));
 
-        // If page size changed, reset to page 1 first
-        if (pageSize !== lastPropsLoPageSize && page !== 1) {
+        if (pageSize !== lastNavigated.pageSize && page !== 1) {
             loPage = 1;
             return;
         }
 
-        // Only navigate when local state differs from props
-        if (page === lastPropsLoPage && pageSize === lastPropsLoPageSize) return;
-        if (page === lastNavigatedLoPage && pageSize === lastNavigatedLoPageSize) return;
+        if (page === lastNavigated.page && pageSize === lastNavigated.pageSize) return;
 
-        lastNavigatedLoPage = page;
-        lastNavigatedLoPageSize = pageSize;
+        lastNavigated = { page, pageSize };
         navigateLinkedObjects(page, pageSize);
     });
 </script>
@@ -297,89 +248,35 @@
                      </div>
                 </div>
 
-                <!-- Images -->
-                {#if visibleFields.images}
-                    <div class="card shadow-sm mb-4">
-                                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <div class="m-0 text-muted fw-bold">{t("common.images", {fallback: "Images"})}</div>
-                               <button type="button" class="btn btn-sm btn-secondary d-flex align-items-center gap-2" onclick={() => handleAddAsset('image')}>
-                                 <i class="bi bi-plus-lg"></i> {t("common.add-images", {fallback: "Add Images"})}
-                            </button>
-                         </div>
-                         <div class="card-body">
-                            {#if imageAssets.length > 0}
-                                <div class="d-flex flex-wrap gap-3" use:dndzone={{items: imageAssets, flipDurationMs}} onconsider={(e) => handleDndConsider(e, 'image')} onfinalize={(e) => handleDndFinalize(e, 'image')}>
-                                    {#each imageAssets as asset (asset.id)}
-                                        <div animate:flip={{duration: flipDurationMs}}>
-                                            <AssetPreview {asset} size={150} showRemoveButton={true} onRemove={() => handleRemoveAsset(asset, 'image')} />
-                                        </div>
-                                    {/each}
-                                </div>
-                            {:else}
-                                 <div class="text-muted text-center py-5 m-0 bg-light rounded border border-dashed  hover-bg-light-dark" >
-                                    <i class="bi bi-images fs-1 mb-2 d-block opacity-50"></i>
-                                    {t("common.drag-upload-images", {fallback: "No images"})}
-                                 </div>
-                            {/if}
-                         </div>
-                    </div>
-                {/if}
-                
-                 <!-- Video -->
-                {#if visibleFields.videos}
-                    <div class="card shadow-sm mb-4">
-                                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <div class="m-0 text-muted fw-bold">{t("common.videos", {fallback: "Videos"})}</div>
-                               <button type="button" class="btn btn-sm btn-secondary d-flex align-items-center gap-2" onclick={() => handleAddAsset('video')}>
-                                 <i class="bi bi-plus-lg"></i> {t("common.add-videos", {fallback: "Add Videos"})}
-                            </button>
-                         </div>
-                         <div class="card-body">
-                            {#if videoAssets.length > 0}
-                                <div class="d-flex flex-wrap gap-3" use:dndzone={{items: videoAssets, flipDurationMs}} onconsider={(e) => handleDndConsider(e, 'video')} onfinalize={(e) => handleDndFinalize(e, 'video')}>
-                                    {#each videoAssets as asset (asset.id)}
-                                        <div animate:flip={{duration: flipDurationMs}}>
-                                            <AssetPreview {asset} size={200} showRemoveButton={true} onRemove={() => handleRemoveAsset(asset, 'video')} />
-                                        </div>
-                                    {/each}
-                                </div>
-                            {:else}
-                                 <div class="text-muted text-center py-5 m-0 bg-light rounded border border-dashed  hover-bg-light-dark" >
-                                    <i class="bi bi-camera-video fs-1 mb-2 d-block opacity-50"></i>
-                                    {t("common.no-videos", {fallback: "No videos. Click to add."})}
-                                 </div>
-                            {/if}
-                         </div>
-                    </div>
-                {/if}
-
-                 <!-- Audio -->
-                {#if visibleFields.audios}
-                    <div class="card shadow-sm mb-4">
-                                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <div class="m-0 text-muted fw-bold">{t("common.audio", {fallback: "Audio"})}</div>
-                               <button type="button" class="btn btn-sm btn-secondary d-flex align-items-center gap-2" onclick={() => handleAddAsset('audio')}>
-                                 <i class="bi bi-plus-lg"></i> {t("common.add-audio", {fallback: "Add Audio"})}
-                            </button>
-                         </div>
-                         <div class="card-body">
-                            {#if audioAssets.length > 0}
-                                <div class="d-flex flex-wrap gap-3" use:dndzone={{items: audioAssets, flipDurationMs}} onconsider={(e) => handleDndConsider(e, 'audio')} onfinalize={(e) => handleDndFinalize(e, 'audio')}>
-                                    {#each audioAssets as asset (asset.id)}
-                                        <div animate:flip={{duration: flipDurationMs}}>
-                                            <AssetPreview {asset} size={200} showRemoveButton={true} onRemove={() => handleRemoveAsset(asset, 'audio')} />
-                                        </div>
-                                    {/each}
-                                </div>
-                            {:else}
-                                 <div class="text-muted text-center py-5 m-0 bg-light rounded border border-dashed  hover-bg-light-dark" >
-                                    <i class="bi bi-mic fs-1 mb-2 d-block opacity-50"></i>
-                                    {t("common.no-audio", {fallback: "No audio. Click to add."})}
-                                 </div>
-                            {/if}
-                         </div>
-                    </div>
-                {/if}
+                <!-- Media Sections -->
+                {#each mediaSections as section}
+                    {#if section.visible}
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                                <div class="m-0 text-muted fw-bold">{section.label}</div>
+                                <button type="button" class="btn btn-sm btn-secondary d-flex align-items-center gap-2" onclick={() => handleAddAsset(section.type)}>
+                                    <i class="bi bi-plus-lg"></i> {section.addLabel}
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                {#if assetsByType[section.type].length > 0}
+                                    <div class="d-flex flex-wrap gap-3" use:dndzone={{items: assetsByType[section.type], flipDurationMs}} onconsider={(e) => handleDndConsider(e, section.type)} onfinalize={(e) => handleDndFinalize(e, section.type)}>
+                                        {#each assetsByType[section.type] as asset (asset.id)}
+                                            <div animate:flip={{duration: flipDurationMs}}>
+                                                <AssetPreview {asset} size={section.size} showRemoveButton={true} onRemove={() => handleRemoveAsset(asset, section.type)} />
+                                            </div>
+                                        {/each}
+                                    </div>
+                                {:else}
+                                    <div class="text-muted text-center py-5 m-0 bg-light rounded border border-dashed hover-bg-light-dark">
+                                        <i class="bi bi-{section.emptyIcon} fs-1 mb-2 d-block opacity-50"></i>
+                                        {section.emptyText}
+                                    </div>
+                                {/if}
+                            </div>
+                        </div>
+                    {/if}
+                {/each}
 
                 <!-- Linked Objects (objects using this connection option) -->
                 <div class="card shadow-sm mb-4">
