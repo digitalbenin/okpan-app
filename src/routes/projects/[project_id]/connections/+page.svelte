@@ -31,9 +31,9 @@
   </div>
 
   <!-- Cards Grid -->
-  <div class="row g-4 mt-4">
+  <div class="row g-4 mx-2">
     {#each data.researchFields || [] as field (field.id)}
-      <div class="col-md-4 mb-4">
+      <div class="col-md-4">
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div 
