@@ -6,6 +6,7 @@
     import PreviewTable from "$lib/components/export/PreviewTable.svelte";
     import StatusFilter from "$lib/components/export/StatusFilter.svelte";
     import InstitutionFilter from "$lib/components/export/InstitutionFilter.svelte";
+    import ConnectionFilters from "$lib/components/export/ConnectionFilters.svelte";
     import ResearchFieldFilters from "$lib/components/export/ResearchFieldFilters.svelte";
     import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
 
@@ -20,7 +21,8 @@
     // Filter states
     let selectedStatus = $state("all");
     let selectedInstitutions = $state([]);
-    let researchFieldFilters = $state([]);
+    let connectionFilters = $state([]);
+    let freeTextFilters = $state([]);
 
     // Pagination and data states
     let currentPage = $state(1);
@@ -84,19 +86,48 @@
         performSearch();
     });
 
-    // Get research fields from page data
-    let researchFields = $derived.by(() => {
-        const rf = data.researchFields;
-        if (Array.isArray(rf)) return rf; // Already an array
-        if (rf && Array.isArray(rf.result)) return rf.result; // Response wrapper with .result
-        if (rf && Array.isArray(rf.research_fields)) return rf.research_fields; // Alt shape
+    // Get connection fields (vocabulary type) from page data
+    let connectionFields = $derived.by(() => {
+        const cf = data.connectionFields;
+        if (Array.isArray(cf)) return cf;
         return [];
     });
 
-    // Convert research fields to select options
-    let researchFieldOptions = $derived.by(() => {
-        const list = Array.isArray(researchFields) ? researchFields : [];
-        return list.map((field) => {
+    // Get free text fields from page data
+    let freeTextFields = $derived.by(() => {
+        const ftf = data.freeTextFields;
+        if (Array.isArray(ftf)) return ftf;
+        return [];
+    });
+
+    // Convert connection fields to select options
+    let connectionFieldOptions = $derived.by(() => {
+        return connectionFields.map((field) => {
+            const name = field?.name;
+            const label =
+                typeof name === "string"
+                    ? name
+                    : (name?.content ??
+                      (Array.isArray(name?.translations) &&
+                          name.translations[0]?.content) ??
+                      String(field.id));
+            return {
+                value: field.id,
+                label,
+                group: field?.project?.title?.content ?? "Connections",
+                vocabOptions: Array.isArray(field?.vocabularies)
+                    ? field.vocabularies.map((v) => ({
+                          value: v.id,
+                          label: v?.option?.content ?? v.id,
+                      }))
+                    : [],
+            };
+        });
+    });
+
+    // Convert free text fields to select options
+    let freeTextFieldOptions = $derived.by(() => {
+        return freeTextFields.map((field) => {
             const name = field?.name;
             const label =
                 typeof name === "string"
@@ -109,22 +140,16 @@
                 value: field.id,
                 label,
                 group: field?.project?.title?.content ?? "Research Fields",
-                vocabOptions: Array.isArray(field?.vocabularies)
-                    ? field.vocabularies.map((v) => ({
-                          value: v.id,
-                          label: v?.option?.content ?? v.id,
-                      }))
-                    : [],
             };
         });
     });
 
     // Helpers to keep IPC/search payloads serializable and DRY
-    function sanitizeResearchFieldFilters(filters) {
+    function sanitizeConnectionFilters(filters) {
         if (!Array.isArray(filters) || filters.length === 0) return [];
         return filters.map((filter) => {
             const allowed = (
-                researchFieldOptions.find((o) => o.value === filter.fieldId)
+                connectionFieldOptions.find((o) => o.value === filter.fieldId)
                     ?.vocabOptions || []
             ).map((v) => v.value);
             const vocab = (
@@ -132,28 +157,48 @@
             ).filter((id) => allowed.includes(id));
             return {
                 fieldId: filter.fieldId,
-                query: filter.query || "",
                 vocabularyIds: vocab,
             };
         });
     }
 
+    function sanitizeFreeTextFilters(filters) {
+        if (!Array.isArray(filters) || filters.length === 0) return [];
+        return filters
+            .filter((filter) => filter.query && filter.query.trim())
+            .map((filter) => ({
+                fieldId: filter.fieldId,
+                query: filter.query.trim(),
+            }));
+    }
+
     function buildCommonFilters() {
-        return {
+        const filters = {
             project_id: projectId,
             ...(selectedStatus !== "all" && { status: selectedStatus }),
             ...(selectedInstitutions.length > 0 && {
                 institutionIds: [...selectedInstitutions],
             }),
-            ...(researchFieldFilters.length > 0 && {
-                researchFieldFilters:
-                    sanitizeResearchFieldFilters(researchFieldFilters),
-            }),
         };
+
+        // Combine connection filters (vocabularies) and free text filters
+        const sanitizedConnectionFilters = sanitizeConnectionFilters(connectionFilters);
+        const sanitizedFreeTextFilters = sanitizeFreeTextFilters(freeTextFilters);
+        
+        const allResearchFieldFilters = [
+            ...sanitizedConnectionFilters,
+            ...sanitizedFreeTextFilters,
+        ];
+
+        if (allResearchFieldFilters.length > 0) {
+            filters.researchFieldFilters = allResearchFieldFilters;
+        }
+
+        return filters;
     }
 
     function buildSearchParams() {
-        return {
+        const params = {
             projectId,
             page: currentPage - 1, // Convert to 0-based for backend
             pageSize,
@@ -161,11 +206,22 @@
             ...(selectedInstitutions.length > 0 && {
                 institutionIds: [...selectedInstitutions],
             }),
-            ...(researchFieldFilters.length > 0 && {
-                researchFieldFilters:
-                    sanitizeResearchFieldFilters(researchFieldFilters),
-            }),
         };
+
+        // Combine connection filters (vocabularies) and free text filters
+        const sanitizedConnectionFilters = sanitizeConnectionFilters(connectionFilters);
+        const sanitizedFreeTextFilters = sanitizeFreeTextFilters(freeTextFilters);
+        
+        const allResearchFieldFilters = [
+            ...sanitizedConnectionFilters,
+            ...sanitizedFreeTextFilters,
+        ];
+
+        if (allResearchFieldFilters.length > 0) {
+            params.researchFieldFilters = allResearchFieldFilters;
+        }
+
+        return params;
     }
 
     function onStatusChanged(newStatus) {
@@ -182,8 +238,14 @@
         performSearch();
     }
 
-    function onResearchFieldsChanged(newFilters) {
-        researchFieldFilters = Array.isArray(newFilters) ? newFilters : [];
+    function onConnectionFiltersChanged(newFilters) {
+        connectionFilters = Array.isArray(newFilters) ? newFilters : [];
+        currentPage = 1;
+        performSearch();
+    }
+
+    function onFreeTextFiltersChanged(newFilters) {
+        freeTextFilters = Array.isArray(newFilters) ? newFilters : [];
         currentPage = 1;
         performSearch();
     }
@@ -332,11 +394,18 @@
                 onChange={onInstitutionsChanged}
             />
 
-            <!-- Research Field Filters -->
+            <!-- Connection Filters -->
+            <ConnectionFilters
+                {connectionFieldOptions}
+                bind:connectionFilters
+                onChange={onConnectionFiltersChanged}
+            />
+
+            <!-- Free Text Research Field Filters -->
             <ResearchFieldFilters
-                {researchFieldOptions}
-                bind:researchFieldFilters
-                onChange={onResearchFieldsChanged}
+                {freeTextFieldOptions}
+                bind:freeTextFilters
+                onChange={onFreeTextFiltersChanged}
             />
         </div>
 
