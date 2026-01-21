@@ -178,8 +178,12 @@ export async function exportProjectCsv(options,{ db }){
   const iOF = idx(ontologyFields);
   const byObjOofs = by(oofs,'object_id');
 
-  // OBJECTS.csv
-  const rfList = researchFields.slice().sort((a,b)=>String(tcont(a.name_id)).localeCompare(String(tcont(b.name_id))));
+  // Separate research fields by type: free text vs vocabulary (connections)
+  const researchFields_list = researchFields.filter(f => (f.type || '').toLowerCase() !== 'vocabulary');
+  const connectionFields = researchFields.filter(f => (f.type || '').toLowerCase() === 'vocabulary');
+
+  // OBJECTS.csv - only research fields in the main objects table
+  const rfList = researchFields_list.slice().sort((a,b)=>String(tcont(a.name_id)).localeCompare(String(tcont(b.name_id))));
   const instNameHeaders = (langCodes.length? langCodes.map(c=>`institution_name_${c}`): ['institution_name']);
   const objHeader = ['obj_id','primary_id','institution_id', ...instNameHeaders,'assets_ids','assets_filenames'];
   rfList.forEach((_,i)=>{ 
@@ -197,22 +201,17 @@ export async function exportProjectCsv(options,{ db }){
     const instNameCols = langCodes.length? langCodes.map(c=> (instNameMap?.[c]||'')) : [inst? tcont(inst.name_id):''];
     const rfByField = byObjOrfs[o.id]||[];
     const rfPairs = rfList.map(f=>{
-      const vals = rfByField.filter(r=>r.field_id===f.id);
-      const idList = vals.map(v=> v.vocabulary_id||'');
+      // Only free text values (no vocabulary_id)
+      const vals = rfByField.filter(r=>r.field_id===f.id && !r.vocabulary_id);
+      const idList = vals.map(v=> ''); // No vocab IDs for free text
       if (langCodes.length){
         const labelCols = langCodes.map(c=>{
-          const lbls = vals.map(v=>{
-            if (v.vocabulary_id){
-              const map = expandText(iVoc[v.vocabulary_id]?.option_id);
-              return map[c]||'';
-            }
-            return v.value||'';
-          });
+          const lbls = vals.map(v=> v.value||'');
           return lbls.join(SEP);
         });
         return [idList.join(SEP), ...labelCols];
       } else {
-        const labels = vals.map(v=> v.vocabulary_id? (tcont(iVoc[v.vocabulary_id]?.option_id)||'') : (v.value||''));
+        const labels = vals.map(v=> v.value||'');
         return [idList.join(SEP), labels.join(SEP)];
       }
     });
@@ -260,11 +259,11 @@ export async function exportProjectCsv(options,{ db }){
   }));
   await writeCsv(path.join(dataDir,'assets.csv'), assetHeader, assetRows);
 
-  // RESEARCH_FIELDS.csv
+  // RESEARCH_FIELDS.csv (research fields without connections)
   const rfNameHs = langCodes.length? langCodes.map(c=>`name_${c}`): ['name'];
   const rfDescHs = langCodes.length? langCodes.map(c=>`description_${c}`): ['description'];
   const rfHeader = ['id', ...rfNameHs, ...rfDescHs, 'type'];
-  const rfRows = researchFields.map(f=>{
+  const rfRows = researchFields_list.map(f=>{
     const nameMap = expandText(f.name_id);
     const descMap = expandText(f.description_id);
     const names = langCodes.length? langCodes.map(c=> (nameMap?.[c]||'')) : [tcont(f.name_id)];
@@ -273,11 +272,46 @@ export async function exportProjectCsv(options,{ db }){
   });
   await writeCsv(path.join(dataDir,'research_fields.csv'), rfHeader, rfRows);
 
-  // VOCABULARIES.csv (only those used)
-  const rfNameVocHs = langCodes.length? langCodes.map(c=>`research_field_name_${c}`): ['research_field_name'];
-  const valLabelHs = langCodes.length? langCodes.map(c=>`value_label_${c}`): ['value_label'];
-  const valDescHs = langCodes.length? langCodes.map(c=>`value_description_${c}`): ['value_description'];
-  const vocHeader = ['research_field_id', ...rfNameVocHs, 'value_id', ...valLabelHs, ...valDescHs, 'media_id','media_filename'];
+  // CONNECTION_TYPE_DEFINITIONS.csv (connection type definitions - vocabulary-based research fields)
+  const ctNameHs = langCodes.length? langCodes.map(c=>`name_${c}`): ['name'];
+  const ctDescHs = langCodes.length? langCodes.map(c=>`description_${c}`): ['description'];
+  const ctHeader = ['id', ...ctNameHs, ...ctDescHs];
+  const ctRows = connectionFields.map(f=>{
+    const nameMap = expandText(f.name_id);
+    const descMap = expandText(f.description_id);
+    const names = langCodes.length? langCodes.map(c=> (nameMap?.[c]||'')) : [tcont(f.name_id)];
+    const descs = langCodes.length? langCodes.map(c=> (descMap?.[c]||'')) : [tcont(f.description_id)];
+    return [f.id, ...names, ...descs];
+  });
+  await writeCsv(path.join(dataDir,'connection_types.csv'), ctHeader, ctRows);
+
+  // OBJECT_CONNECTIONS.csv (junction table: object_id -> connection_type_id -> vocabulary_id)
+  const connNameHs = langCodes.length? langCodes.map(c=>`connection_type_name_${c}`): ['connection_type_name'];
+  const connValHs = langCodes.length? langCodes.map(c=>`value_label_${c}`): ['value_label'];
+  const objConnHeader = ['object_id', 'connection_type_id', ...connNameHs, 'vocabulary_id', ...connValHs];
+  const objConnRows = [];
+  for (const o of objects) {
+    const rfByField = byObjOrfs[o.id] || [];
+    for (const r of rfByField) {
+      // Only include vocabulary-based connections
+      if (!r.vocabulary_id) continue;
+      const rf = iRF[r.field_id];
+      if (!rf || (rf.type || '').toLowerCase() !== 'vocabulary') continue;
+      const voc = iVoc[r.vocabulary_id];
+      const rfNameMap = rf ? expandText(rf.name_id) : null;
+      const vocLabelMap = voc ? expandText(voc.option_id) : null;
+      const rfNames = langCodes.length ? langCodes.map(c => (rfNameMap?.[c] || '')) : [rf ? tcont(rf.name_id) : ''];
+      const vocLabels = langCodes.length ? langCodes.map(c => (vocLabelMap?.[c] || '')) : [voc ? tcont(voc.option_id) : ''];
+      objConnRows.push([o.id, r.field_id, ...rfNames, r.vocabulary_id, ...vocLabels]);
+    }
+  }
+  await writeCsv(path.join(dataDir,'object_connections.csv'), objConnHeader, objConnRows);
+
+  // CONNECTION_TYPES.csv (connection type options - vocabulary options)
+  const rfNameVocHs = langCodes.length? langCodes.map(c=>`connection_type_name_${c}`): ['connection_type_name'];
+  const valLabelHs = langCodes.length? langCodes.map(c=>`connection_label_${c}`): ['connection_label'];
+  const valDescHs = langCodes.length? langCodes.map(c=>`connection_description_${c}`): ['connection_description'];
+  const vocHeader = ['connection_type_id', ...rfNameVocHs, 'connection_id', ...valLabelHs, ...valDescHs, 'media_id','media_filename'];
   const vocRows = vocabularies.map(v=>{
     const ga = v.main_asset_id? iGA[v.main_asset_id]:null;
     const rf = iRF[v.field_id];
@@ -289,7 +323,7 @@ export async function exportProjectCsv(options,{ db }){
     const descs = langCodes.length? langCodes.map(c=> (descMap?.[c]||'')) : [tcont(v.description_id)];
     return [v.field_id||'', ...rfNames, v.id, ...labels, ...descs, v.main_asset_id||'', ga?.filename||''];
   });
-  await writeCsv(path.join(dataDir,'vocabularies.csv'), vocHeader, vocRows);
+  await writeCsv(path.join(dataDir,'connections.csv'), vocHeader, vocRows);
 
   // INSTITUTION DATA per object (object_ontology_fields)
   const instDataDir = path.join(dataDir,'institution_data');

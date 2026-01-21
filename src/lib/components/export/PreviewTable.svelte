@@ -106,6 +106,7 @@
                 <th class="checkbox-column" style="width: 40px;">
                     <input
                         type="checkbox"
+                        class="form-check-input"
                         checked={objects.length > 0 &&
                             objects.every(
                                 (o) => !deselectedObjectIds.has(o.id),
@@ -127,6 +128,7 @@
                     <td class="checkbox-column">
                         <input
                             type="checkbox"
+                            class="form-check-input"
                             checked={!deselectedObjectIds.has(object.id)}
                             onclick={() => toggleObjectSelection(object.id)}
                         />

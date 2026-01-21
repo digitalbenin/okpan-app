@@ -72,7 +72,7 @@
         </div>
     {/each}
     <button
-        class="add-filter mt-2 border btn btn-sm btn-light border-secondary-subtle rounded-2 px-3 py-1 cursor-pointer"
+        class="add-filter mt-2 border btn btn-sm btn-secondary border-secondary-subtle rounded-2 px-3 py-1 cursor-pointer"
         onclick={addFreeTextFilter}
     >
         <i class="bi bi-plus-circle"></i>

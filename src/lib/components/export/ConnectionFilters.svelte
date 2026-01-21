@@ -84,7 +84,7 @@
         </div>
     {/each}
     <button
-        class="btn btn-sm btn-light border-secondary-subtle add-filter mt-1 rounded-2 px-3 py-1 cursor-pointer"
+        class="btn btn-sm btn-secondary border-secondary-subtle add-filter mt-1 rounded-2 px-3 py-1 cursor-pointer"
         onclick={addConnectionFilter}
     >
         <i class="bi bi-plus-circle"></i>

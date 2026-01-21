@@ -333,6 +333,7 @@
                     >
                         <input
                             type="radio"
+                            class="form-check-input"
                             bind:group={selectedFormat}
                             value={format.value}
                         />
@@ -370,7 +371,7 @@
         <!-- Assets Section -->
         <div class="assets-section mb-4">
             <label class="asset-option d-flex align-items-center gap-2">
-                <input type="checkbox" bind:checked={includeAssets} />
+                <input type="checkbox" class="form-check-input" bind:checked={includeAssets} />
                 <span>Include media in the export</span>
             </label>
         </div>
