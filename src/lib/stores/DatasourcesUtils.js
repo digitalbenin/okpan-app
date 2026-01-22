@@ -289,11 +289,12 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
     });
 
     try {
+        console.log("Execute Query: saveOntologyFields with params:", { objectId, datasourceId, templateId });
         // First, get the existing fields to determine what needs updating vs inserting
         const result = await executeQuery('datasources', 'saveOntologyFields', {
             objectId,
             datasourceId,
-            templateId,
+            templateId: templateId || null,
         });
 
         // For composite mutations, the result has properties for each step
@@ -328,7 +329,7 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
                     toUpdate.push({
                         id: existing.id,
                         value: field.value || "",
-                        field_id: field.field_id,
+                        field_id: field.field_id || null,
                         primary: field.primary || 0,
                     });
                 }
@@ -339,7 +340,7 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
                     datasources_id: datasourceId,
                     label: field.label,
                     value: field.value || "",
-                    field_id: field.field_id,
+                    field_id: field.field_id || null,
                     primary: field.primary || 0,
                     default_description: 0,
                 });

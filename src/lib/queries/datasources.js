@@ -423,6 +423,7 @@ export const datasourcesOperations = {
 }`,
         useVariables: ["method"],
         mapVariables: { methodId: { from: "getDatasource", path: "datasources.0.method_id" } },
+        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: false },
         skipIf: { variableName: "method", isUndefined: true }
       },
       // Create method text if missing and a method value is provided

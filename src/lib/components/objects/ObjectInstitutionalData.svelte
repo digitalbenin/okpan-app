@@ -177,6 +177,10 @@
     if (result) {
       // Add to local array - result is an array from the mutation
       const newDatasource = Array.isArray(result) ? result[0] : result;
+      // Ensure the name is populated for immediate display in the tab
+      if (!newDatasource.name) {
+        newDatasource.name = { content: defaultName };
+      }
       datasourcesArray = [...datasourcesArray, newDatasource];
       // Select the new datasource
       activeDatasourceId = newDatasource.id;
