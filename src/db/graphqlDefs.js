@@ -20,6 +20,7 @@ import {
     createObjectImportUsingTemplateMutation,
     createResearchFieldObjectsCountQuery,
     createProjectCreateMutation,
+    createProjectDeleteCascadeMutation,
     createAssetsObjectsBulkLinkMutation,
     createAssetsBulkDeleteMutation,
     createObjectsOntologyFieldsUnlinkMutation,
@@ -110,6 +111,8 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Mutation._fields.objectImportUsingTemplate = createObjectImportUsingTemplateMutation(db, drizzleResult);
     // New consolidated project creation mutation
     drizzleResult.schema._typeMap.Mutation._fields.createProjectWithDefaults = createProjectCreateMutation(db, drizzleResult);
+    // Project delete cascade mutation
+    drizzleResult.schema._typeMap.Mutation._fields.deleteProjectCascade = createProjectDeleteCascadeMutation(db, drizzleResult);
     // Bulk link assets to objects
     drizzleResult.schema._typeMap.Mutation._fields.linkAssetsToObjectsBulk = createAssetsObjectsBulkLinkMutation(db, drizzleResult);
     // Bulk delete assets and clean filesystem

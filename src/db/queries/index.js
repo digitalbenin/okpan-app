@@ -19,6 +19,7 @@ export { createObjectSearchQuery } from './objectSearch';
 export { createObjectImportMutation, createObjectImportUsingTemplateMutation } from './objectImport';
 export { createResearchFieldObjectsCountQuery } from './researchFieldObjectsCount';
 export { createProjectCreateMutation } from './projectCreate';
+export { createProjectDeleteCascadeMutation } from './projectDeleteCascade';
 export { createAssetsObjectsBulkLinkMutation } from './assetsObjectsBulkLink';
 export { createAssetsBulkDeleteMutation } from './assetsBulkDelete';
 export { createObjectsOntologyFieldsUnlinkMutation } from './objectsOntologyFieldsUnlink';
