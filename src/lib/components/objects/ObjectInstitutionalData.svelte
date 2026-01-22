@@ -252,10 +252,10 @@
 <div class="card bg-white border-0">
   <div class="card-body p-0">
     <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
-      <div class="d-flex align-items-center gap-2 fw-bold">
+      <div class="d-flex align-items-center gap-2">
         <i class="bi bi-table"></i>
         <span>
-          {t("objects.institution_data.title", { fallback: "Data source" })}
+          {t("objects.institution_data.title", { fallback: "Data sources" })}
         </span>
       </div>
       <BaseButton

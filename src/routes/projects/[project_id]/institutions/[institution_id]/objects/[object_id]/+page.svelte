@@ -13,6 +13,11 @@
   import { updateObjectInstitution, deleteObject, updateObjectStatus, updateObjectName } from "$lib/stores/ObjectsUtils.js";
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
+  import { createForm } from "@tanstack/svelte-form";
+  import { z } from "zod";
+  import { getFormConfig, createFieldValidator } from "$lib/stores/formValidationUtils.js";
+  import AutoForm from "$lib/components/form/AutoForm.svelte";
+  import { watch } from "runed";
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -37,6 +42,38 @@
   // Centralized change management
   let componentChanges = $state(new Map());
   let isSaving = $state(false);
+
+  // Form setup for validation
+  const nameSchema = z.object({
+    name: z.string().min(1, t("objects.object_name_required", { fallback: "Object name is required" }))
+  });
+
+  const customValidator = {
+      schema: nameSchema,
+      requiredFields: new Set(["name"])
+  };
+  
+  const form = createForm(() => ({
+    defaultValues: {
+      name: data.object.name || ""
+    },
+    onSubmit: async () => {}, // Handled by saveAllChanges
+    validators: {
+      onChange: nameSchema
+    }
+  }));
+
+  const formStore = form.useStore((state) => state);
+
+  // Sync form name changes to local state
+  watch(
+    () => formStore?.current?.values?.name,
+    (val) => {
+      if (val !== undefined && val !== objectName) {
+        onNameValueChange(val);
+      }
+    }
+  );
 
   const syncComponentChanges = () => {
     componentChanges = new Map(componentChanges);
@@ -265,6 +302,7 @@
       text: t("common.confirm", { fallback: "Confirm" }),
       class: "btn btn-success",
       disabled: !hasAnyChanges || isSaving,
+      disableOnError: true,
       onClick: saveAllChanges,
     },
   ]);
@@ -272,6 +310,7 @@
 <PageActionFooter
   leftButtons={leftActionButtons}
   rightButtons={rightActionButtons}
+  {formStore}
 >
   <ObjectHeader
     institutionName={data.institution.name.content}
@@ -293,7 +332,18 @@
             institutionItems={institutionItems}
             onNameInput={handleNameInput}
             onInstitutionValueChange={onInstitutionValueChange}
-          />
+          >
+               <AutoForm 
+                  {form} 
+                  validator={customValidator}
+                  {createFieldValidator}
+                  margin={0}
+                  enableDirtyTracking={false}
+                  uiSchema={{
+                    name: { label: t("objects.object_name", { fallback: "Object name" }), placeholder: t("objects.object_name", { fallback: "Object name" }) }
+                  }}
+               />
+          </ObjectBasicInfo>
         </div>
         <div class="mt-2 mb-3 px-2">
           <ObjectLinkedMedia

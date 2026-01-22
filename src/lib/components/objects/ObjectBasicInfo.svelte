@@ -11,6 +11,7 @@
     institutionItems = [],
     onNameInput = undefined,
     onInstitutionValueChange = undefined,
+    children
   } = $props();
 
 
@@ -22,25 +23,23 @@
 
 <div class="card bg-white border-0">
   <div class="card-body">
-    <div class="mb-3">
-      <p class="mb-0">
-        <i class="bi bi-info-circle me-2"></i>
-        {t("objects.basic_object_information", {
-      fallback: "Basic object Information",
-    })}</p>
-    </div>
+   
 
-    <div class="d-flex flex-column gap-3">
+    <div class="d-flex flex-column gap-0">
       <div>
-        <p class="mb-2">
-          {t("objects.object_name", { fallback: "Object name" })}
-        </p>
-        <BaseInput
-          placeholder={t("objects.object_name", { fallback: "Object name" })}
-          size="sm"
-          bind:value={objectName}
-          {onNameInput}
-        />
+        {#if children}
+          {@render children()}
+        {:else}
+          <p class="mb-2">
+            {t("objects.object_name", { fallback: "Object name" })}
+          </p>
+          <BaseInput
+            placeholder={t("objects.object_name", { fallback: "Object name" })}
+            size="sm"
+            bind:value={objectName}
+            {onNameInput}
+          />
+        {/if}
       </div>
 
       <div>

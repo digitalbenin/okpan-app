@@ -16,7 +16,7 @@
   };
 </script>
 
-<div class="container-fluid py-4 bg-white">
+<div class="container-fluid py-4 bg-light">
   {#if onBack || (institutionName && showStatus) || showStatus}
     <div class="row mb-3">
       <div class="col-12">
