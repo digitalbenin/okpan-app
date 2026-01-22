@@ -739,6 +739,23 @@ export const datasourcesOperations = {
         useVariables: ["objectId", "datasourceId", "templateId"]
       },
       {
+        name: "updateJunctionTemplate",
+        query: `mutation UpdateObjectDatasourceTemplate($objectId: String!, $datasourceId: String!, $templateId: String) {
+  result: updateObjects_datasources(
+    where: {
+      object_id: { eq: $objectId }
+      datasource_id: { eq: $datasourceId }
+    }
+    set: {
+      template_id: $templateId
+    }
+  ) {
+    id
+  }
+}`,
+        useVariables: ["objectId", "datasourceId", "templateId"]
+      },
+      {
         name: "getExistingFields",
         query: `query GetExistingOntologyFields($objectId: String!, $datasourceId: String!) {
   result: objects_ontology_fields(
