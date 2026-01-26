@@ -167,7 +167,8 @@ const generateSchemaDDL = () => {
     description_id TEXT REFERENCES texts(id),
     project_id TEXT REFERENCES project(id),
     private INTEGER NOT NULL DEFAULT 0,
-    onwebsite INTEGER NOT NULL DEFAULT 1
+    onwebsite INTEGER NOT NULL DEFAULT 1,
+    fields_config TEXT
   )`);
 
   push('vocabularies', `CREATE TABLE IF NOT EXISTS vocabularies (
@@ -177,6 +178,7 @@ const generateSchemaDDL = () => {
     option_id TEXT REFERENCES texts(id),
     description_id TEXT REFERENCES texts(id),
     main_asset_id TEXT REFERENCES generic_assets(id),
+    external_link TEXT,
     field_id TEXT REFERENCES research_fields(id) ON DELETE CASCADE
   )`);
 
