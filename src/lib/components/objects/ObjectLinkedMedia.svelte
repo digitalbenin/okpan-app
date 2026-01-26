@@ -217,7 +217,7 @@
                 </BaseTooltip>
             {:else}
                 <BaseButton
-                    class="btn btn-sm btn-light"
+                    class="btn btn-sm btn-secondary"
                     icon="plus"
                     text={t("objects.linked_media.add_media", {
                         fallback: "Add media",

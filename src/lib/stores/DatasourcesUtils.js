@@ -280,31 +280,29 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
         return { error: "Missing object or datasource ID" };
     }
 
-    console.log('saveOntologyFieldsForDatasource called:', {
-        objectId,
-        datasourceId,
-        templateId,
-        fieldsCount: fields?.length,
-        fields
-    });
-
     try {
         // First, get the existing fields to determine what needs updating vs inserting
         const result = await executeQuery('datasources', 'saveOntologyFields', {
             objectId,
             datasourceId,
-            templateId,
+            templateId: templateId || null,
         });
 
-        // For composite mutations, the result has properties for each step
-        // getExistingFields returns the query result
-        const existingFields = result?.getExistingFields?.result || [];
-        console.log('Existing fields:', existingFields);
+        // The query returns with the alias 'result', not the step name 'getExistingFields'
+        const existingFields = result?.result || [];
 
-        // Build maps for quick lookup
+        // Build maps for quick lookup and identify duplicates
         const existingByLabel = new Map();
+        const duplicatesIds = [];
+
         existingFields.forEach(ef => {
-            existingByLabel.set(ef.label, ef);
+            if (existingByLabel.has(ef.label)) {
+                // Duplicate found! We should mark this for deletion to clean up the DB.
+                // We keep the FIRST one seen (matching frontend behavior) and delete subsequent ones.
+                duplicatesIds.push(ef.id);
+            } else {
+                existingByLabel.set(ef.label, ef);
+            }
         });
 
         const newFieldLabels = new Set((fields || []).map(f => f.label));
@@ -312,7 +310,7 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
         // Determine operations
         const toUpdate = [];
         const toInsert = [];
-        const toDelete = [];
+        const toDelete = [...duplicatesIds]; // Start with duplicates
 
         // Process new/updated fields
         for (const field of fields || []) {
@@ -321,14 +319,14 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
                 // Field exists - check if it needs updating
                 const needsUpdate = 
                     existing.value !== (field.value || "") ||
-                    existing.field_id !== field.field_id ||
+                    (existing.field_id || null) !== (field.field_id || null) ||
                     existing.primary !== (field.primary || 0);
 
                 if (needsUpdate) {
                     toUpdate.push({
                         id: existing.id,
                         value: field.value || "",
-                        field_id: field.field_id,
+                        field_id: field.field_id || null,
                         primary: field.primary || 0,
                     });
                 }
@@ -339,7 +337,7 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
                     datasources_id: datasourceId,
                     label: field.label,
                     value: field.value || "",
-                    field_id: field.field_id,
+                    field_id: field.field_id || null,
                     primary: field.primary || 0,
                     default_description: 0,
                 });
@@ -352,8 +350,6 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
                 toDelete.push(existing.id);
             }
         }
-
-        console.log('Operations:', { toUpdate, toInsert, toDelete });
 
         // Execute operations in parallel for efficiency
         const operations = [];
@@ -380,18 +376,20 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
         }
 
         if (toDelete.length > 0) {
-            operations.push(
-                executeQuery('objects', 'deleteOntologyFields', {
-                    fieldIds: toDelete,
-                })
-            );
+            // Bulk delete not supported by schema for IDs, doing one-by-one
+            for (const id of toDelete) {
+                 operations.push(
+                    executeQuery('objects', 'deleteOntologyFieldById', {
+                        id: id,
+                    })
+                );
+            }
         }
 
         if (operations.length > 0) {
             await Promise.all(operations);
         }
 
-        console.log('saveOntologyFieldsForDatasource completed successfully');
         invalidate('app:objects');
         return { success: true, error: null };
     } catch (error) {

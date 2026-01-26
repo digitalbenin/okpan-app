@@ -131,7 +131,28 @@
         const { error, result } = await updateDatasource(datasource.id, payload);
         if (!error) {
              _form.reset();
-             if (onSuccess) onSuccess(result);
+             // Build the updated datasource object with the new values
+             // The API result doesn't return the complete datasource, so we construct it
+             const updatedDatasource = {
+                ...datasource,
+                date: value.date,
+                language: value.language,
+                contact: value.contact,
+                copyright: value.copyright,
+                name: { 
+                    ...datasource.name,
+                    content: value.name 
+                },
+                method: value.method ? { 
+                    ...datasource.method,
+                    content: value.method 
+                } : datasource.method,
+                notes: value.notes ? { 
+                    ...datasource.notes,
+                    content: value.notes 
+                } : datasource.notes
+             };
+             if (onSuccess) onSuccess(updatedDatasource);
         }
       },
     }),

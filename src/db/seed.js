@@ -370,7 +370,7 @@ const seed = async () => {
                 name_id: nameText[0].id,
                 description_id: descriptionText[0].id,
                 project_id: projectRecord.id,
-                type: isVocabulary ? 'vocabulary' : 'free_text'
+                type: isVocabulary ? 'vocabulary' : 'freetext'
             }).returning();
 
             // For vocabulary fields, create vocabulary options

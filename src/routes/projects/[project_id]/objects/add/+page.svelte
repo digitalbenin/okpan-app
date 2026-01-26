@@ -15,6 +15,10 @@
     import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
     import { watch } from "runed";
     import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
+    import { createForm } from "@tanstack/svelte-form";
+    import { z } from "zod";
+    import { createFieldValidator } from "$lib/stores/formValidationUtils.js";
+    import AutoForm from "$lib/components/form/AutoForm.svelte";
 
     const { data } = $props();
     const { t } = getTranslationStore();
@@ -83,6 +87,38 @@
     // Object name input (default language only for now)
     let objectName = $state("");
 
+    // Form setup for validation
+    const nameSchema = z.object({
+        name: z.string().min(1, t("objects.object_name_required", { fallback: "Object name is required" }))
+    });
+
+    const customValidator = {
+        schema: nameSchema,
+        requiredFields: new Set(["name"])
+    };
+
+    const form = createForm(() => ({
+        defaultValues: {
+            name: objectName
+        },
+        onSubmit: async () => {}, // Handled by saveAllChanges
+        validators: {
+            onChange: nameSchema
+        }
+    }));
+
+    const formStore = form.useStore((state) => state);
+
+    // Sync form name changes to local state
+    watch(
+        () => formStore?.current?.values?.name,
+        (val) => {
+            if (val !== undefined) {
+                objectName = val;
+            }
+        }
+    );
+
     // Centralized change management
     let componentChanges = $state(new Map());
     let isSaving = $state(false);
@@ -115,6 +151,7 @@
         text: t("common.confirm", { fallback: "Confirm" }),
         class: "btn btn-success",
         disabled: !hasAnyChanges || isSaving || !selectedInstitutionId,
+        disableOnError: true,
         onClick: saveAllChanges,
     }]);
 
@@ -183,17 +220,17 @@
     }
 </script>
 
-<PageActionFooter rightButtons={rightActionButtons}>
+<PageActionFooter rightButtons={rightActionButtons} {formStore}>
     <ObjectHeader
         institutionName={selectedInstitutionName}
         title={t("objects.add_object", { fallback: "Add Object" })}
         status="in progress"
         statusDisabled={true}
-        onBack={backToInstitution}
+        showStatus={false}
     />
 
     <!-- Research Fields and Linked Media Section -->
-    <div class="container-fluid bg-light">
+    <div class="container-fluid bg-white">
         <div class="row">
             <div class="col-10">
                 <div class="mt-2 mb-3 px-2">
@@ -202,7 +239,18 @@
                         bind:selectedInstitutionId
                         institutionItems={institutionItems}
                         onInstitutionValueChange={onInstitutionValueChange}
-                    />
+                    >
+                           <AutoForm 
+                              {form} 
+                              validator={customValidator}
+                              {createFieldValidator}
+                              margin={0}
+                              enableDirtyTracking={false}
+                              uiSchema={{
+                                name: { label: t("objects.object_name", { fallback: "Object name" }), placeholder: t("objects.object_name", { fallback: "Object name" }) }
+                              }}
+                           />
+                    </ObjectBasicInfo>
                 </div>
                 <div class="mt-2 mb-3 px-2">
                     <ObjectLinkedMedia

@@ -308,7 +308,7 @@
             </div>
             {#if allVocabularyFields.length > 0}
                 <BaseButton
-                    class="btn btn-sm btn-light"
+                    class="btn btn-sm btn-secondary"
                     icon="plus"
                     text={t("objects.connections.add", { fallback: "Add connection" })}
                     onClick={() => openVocabularyModal(allVocabularyFields[0])}

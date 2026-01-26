@@ -46,6 +46,7 @@
             >
                 <input
                     type="radio"
+                    class="form-check-input"
                     bind:group={selectedStatus}
                     value={status.value}
                     disabled={countByStatus(status.value) === 0}

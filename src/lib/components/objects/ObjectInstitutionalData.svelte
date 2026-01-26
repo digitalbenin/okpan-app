@@ -1,6 +1,7 @@
 <script>
   import { invalidate, goto } from "$app/navigation";
   import { tick } from "svelte";
+  import { invalidateAll } from '$app/navigation';
   import ObjectInstitutionalDataSource from "./ObjectInstitutionalDataSource.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
@@ -29,7 +30,26 @@
 
   const { t } = getTranslationStore();
 
-  let datasourcesArray = $state([...datasources]);
+  let localDatasources = $state([]);
+
+  const datasourcesArray = $derived.by(() => {
+    const combined = [...datasources];
+    // Add local datasources that are NOT in props (optimistic updates)
+    localDatasources.forEach(local => {
+       if (!combined.some(d => d.id === local.id)) {
+           combined.push(local);
+       }
+    });
+
+    const sorted = combined.sort((a, b) => {
+      // Convert string timestamps to numbers
+      const dateA = typeof a.date === 'number' ? a.date : Number(a.date) || 0;
+      const dateB = typeof b.date === 'number' ? b.date : Number(b.date) || 0;
+      return dateA - dateB; // Ascending: oldest first (left)
+    });
+    return sorted;
+  });
+  
   let creating = $state(false);
   let componentChanges = $state(new Map());
   let activeDatasourceId = $state(null);
@@ -44,12 +64,6 @@
   let editForm = $state(null);
 
   const handleEditSuccess = (updatedDatasource) => {
-      // Update local array
-      if (updatedDatasource) {
-        datasourcesArray = datasourcesArray.map(ds => 
-            ds.id === updatedDatasource.id ? updatedDatasource : ds
-        );
-      }
       editModalOpen = false;
       datasourceToEdit = null;
       invalidate("custom:object");
@@ -57,56 +71,42 @@
 
   // Initialize active datasource
   $effect(() => {
-    if (datasourcesArray.length > 0 && !activeDatasourceId) {
+    const hasActive = datasourcesArray.some(d => d.id === activeDatasourceId);
+    if (!hasActive && datasourcesArray.length > 0) {
       activeDatasourceId = datasourcesArray[0].id;
-    } else if (activeDatasourceId && !datasourcesArray.find(d => d.id === activeDatasourceId)) {
-       activeDatasourceId = datasourcesArray.length > 0 ? datasourcesArray[0].id : null;
     }
   });
 
   const scrollToTab = (direction) => {
-    if (!tabsContainer) return;
-    const scrollAmount = 400;
-    if (direction === 'left') {
-      tabsContainer.scr9ollBy({ left: -scrollAmount, behavior: "smooth" });
-    } else {
-      tabsContainer.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    if (tabsContainer) {
+      tabsContainer.scrollBy({ 
+        left: direction === 'left' ? -400 : 400, 
+        behavior: "smooth" 
+      });
     }
   };
 
-
-  console.log('ObjectInstitutionalData loaded:', {
-    datasourcesCount: datasources.length,
-    datasources,
-    objectDatasources: object?.objectsDatasources,
-    objectOntologyFields: object?.objectsOntologyFields
-  });
-
-  // Build map of datasource -> template from object's objectsDatasources
-  const datasourceTemplateMap = $derived.by(() => {
-    const map = new Map();
-    const objectDatasources = object?.objectsDatasources || [];
-    objectDatasources.forEach(od => {
+  // Build maps for datasource templates and fields
+  const { datasourceTemplateMap, datasourceFieldsMap } = $derived.by(() => {
+    const templates = new Map();
+    const fields = new Map();
+    
+    (object?.objectsDatasources || []).forEach(od => {
       if (od.datasource_id && od.template) {
-        map.set(od.datasource_id, od.template);
+        templates.set(od.datasource_id, od.template);
       }
     });
-    return map;
-  });
-
-  // Build map of datasource -> ontology fields from object's objectsOntologyFields
-  const datasourceFieldsMap = $derived.by(() => {
-    const map = new Map();
-    const ontologyFields = object?.objectsOntologyFields || [];
-    ontologyFields.forEach(field => {
+    
+    (object?.objectsOntologyFields || []).forEach(field => {
       if (field.datasources_id) {
-        if (!map.has(field.datasources_id)) {
-          map.set(field.datasources_id, []);
+        if (!fields.has(field.datasources_id)) {
+          fields.set(field.datasources_id, []);
         }
-        map.get(field.datasources_id).push(field);
+        fields.get(field.datasources_id).push(field);
       }
     });
-    return map;
+    
+    return { datasourceTemplateMap: templates, datasourceFieldsMap: fields };
   });
 
   // Track changes from child components
@@ -116,38 +116,24 @@
     
     // Notify parent if callback provided
     if (onChangesUpdate) {
-      const hasAnyChanges = Array.from(componentChanges.values()).some(
-        (comp) => comp.hasChanges
-      );
-      
-      // Create save function that saves all datasource changes
-      const saveFunction = async () => {
-        const savePromises = [];
-        for (const [_, changeData] of componentChanges) {
-          if (changeData.hasChanges && changeData.getData) {
-            const data = changeData.getData();
-            savePromises.push(
-              saveOntologyFieldsForDatasource(
-                object.id,
-                data.datasourceId,
-                data.templateId,
-                data.fields
-              )
-            );
-          }
-        }
-        await Promise.all(savePromises);
-        await invalidate("custom:object");
-        
-        // Reset changes after successful save
-        componentChanges.clear();
-        componentChanges = new Map(componentChanges);
-      };
+      const hasAnyChanges = Array.from(componentChanges.values()).some(c => c.hasChanges);
       
       onChangesUpdate({
         component: "institutional-data",
         hasChanges: hasAnyChanges,
-        saveFunction,
+        saveFunction: async () => {
+          const saves = Array.from(componentChanges.values())
+            .filter(c => c.hasChanges && c.getData)
+            .map(c => c.getData())
+            .map(data => saveOntologyFieldsForDatasource(
+              object.id, data.datasourceId, data.templateId, data.fields
+            ));
+          
+          await Promise.all(saves);
+          await invalidate("custom:object");
+          componentChanges.clear();
+          componentChanges = new Map(componentChanges);
+        }
       });
     }
   };
@@ -158,35 +144,55 @@
     
     creating = true;
     
-    const timestamp = new Date().toISOString();
-    const defaultName = `Data source ${epochToDate(Date.now(), true)}`;
+    const timestamp = Date.now();
+    const defaultName = `Data source ${epochToDate(timestamp, true)}`;
     
     const { result, error } = await createDatasource({
       name: defaultName,
       institutionId,
       languageId: defaultLanguageId,
-      date: timestamp,
+      date: new Date(timestamp).toISOString(), // ISO string format
     });
-    creating = false;
-
+    
     if (error) {
       console.error("Failed to create datasource:", error);
+      creating = fals
       return;
     }
 
     if (result) {
-      // Add to local array - result is an array from the mutation
       const newDatasource = Array.isArray(result) ? result[0] : result;
-      datasourcesArray = [...datasourcesArray, newDatasource];
-      // Select the new datasource
+
+      // Link the new datasource to the current object
+      if (object && object.id && newDatasource?.id) {
+        await saveOntologyFieldsForDatasource(
+            object.id, 
+            newDatasource.id, 
+            null, 
+            []
+        );
+      }
+      
+      // Add to local state for immediate optimistic update
+      // Ensure the name is populated for immediate display in the tab
+      if (!newDatasource.name) {
+          newDatasource.name = { content: defaultName };
+      }
+      localDatasources.push(newDatasource);
+
+      // Invalidate to refresh data
+      await invalidateAll();
+      
+      // Select the new datasource after data is refreshed
       activeDatasourceId = newDatasource.id;
+      
       // Scroll to end
       await tick();
       if (tabsContainer) {
           tabsContainer.scrollTo({ left: tabsContainer.scrollWidth, behavior: 'smooth' });
       }
-      await invalidate("custom:object");
     }
+    creating = false;
   };
 
   // Delete datasource
@@ -201,65 +207,60 @@
     deleting = true;
     const datasourceId = datasourceToDeleteId;
     
-    // If deleting active datasource, try to switch to another
+    // Switch to another datasource if deleting the active one
     if (activeDatasourceId === datasourceId) {
-        const index = datasourcesArray.findIndex(d => d.id === datasourceId);
-        // Try previous first, then next
-        const next = index > 0 ? datasourcesArray[index - 1] : datasourcesArray[index + 1];
-        activeDatasourceId = next ? next.id : null;
+      const index = datasourcesArray.findIndex(d => d.id === datasourceId);
+      const next = datasourcesArray[index > 0 ? index - 1 : index + 1];
+      activeDatasourceId = next?.id || null;
     }
 
     const { error } = await deleteDatasourceFromObject(object.id, datasourceId);
 
-
     if (error) {
       console.error("Failed to delete datasource:", error);
-      deleting = false;
-      deleteDialogOpen = false;
-      return;
+    } else {
+      componentChanges.delete(`datasource-${datasourceId}`);
+      componentChanges = new Map(componentChanges);
+      await invalidate("custom:object");
     }
-
-    // Remove from local array
-    datasourcesArray = datasourcesArray.filter((ds) => ds.id !== datasourceId);
-    
-    // Remove from changes tracking
-    componentChanges.delete(`datasource-${datasourceId}`);
-    componentChanges = new Map(componentChanges);
     
     deleting = false;
     deleteDialogOpen = false;
     datasourceToDeleteId = null;
-
-    await invalidate("custom:object");
   };
 
   const handleEditDataSource = (datasourceId) => {
-    const ds = datasourcesArray.find(d => d.id === datasourceId);
-    if(ds) {
-        datasourceToEdit = ds;
-        editModalOpen = true;
-    }
+    datasourceToEdit = datasourcesArray.find(d => d.id === datasourceId);
+    if (datasourceToEdit) editModalOpen = true;
   };
 
-  const allDatasourcesMenu = $derived(
-    datasourcesArray.map(ds => ({
-        label: ds.name?.content || t("common.unnamed", { fallback: "Unnamed" }),
-        onClick: () => { activeDatasourceId = ds.id; }
-    }))
-  );
+  const createDatasourceMenu = (ds, includeActions = false) => {
+    if (!includeActions) {
+      return { 
+        label: ds.name?.content || t("common.unnamed", { fallback: "Unnamed" }), 
+        onClick: () => activeDatasourceId = ds.id 
+      };
+    }
+    return [
+      { label: t("common.edit", { fallback: "Edit" }), icon: "pencil", onClick: () => handleEditDataSource(ds.id) },
+      { label: t("common.delete", { fallback: "Delete" }), icon: "trash", class: "text-danger", onClick: () => requestDeleteDataSource(ds.id) }
+    ];
+  };
+
+  const allDatasourcesMenu = $derived(datasourcesArray.map(ds => createDatasourceMenu(ds)));
 </script>
 
 <div class="card bg-white border-0">
   <div class="card-body p-0">
     <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
-      <div class="d-flex align-items-center gap-2 fw-bold">
+      <div class="d-flex align-items-center gap-2">
         <i class="bi bi-table"></i>
         <span>
-          {t("objects.institution_data.title", { fallback: "Data source" })}
+          {t("objects.institution_data.title", { fallback: "Data sources" })}
         </span>
       </div>
       <BaseButton
-        class="btn btn-sm btn-light"
+        class="btn btn-sm btn-secondary"
         icon="plus-lg"
         text={t("objects.add-data-source", { fallback: "Add data source" })}
         onClick={handleAddDataSource}
@@ -277,7 +278,7 @@
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div 
                     class="d-flex align-items-center px-3 py-2 border-end cursor-pointer position-relative user-select-none {activeDatasourceId === datasource.id ? 'fw-bold border-bottom border-bottom-0' : 'text-muted'}"
-                    style="width: 400px; min-width: 400px; flex-shrink: 0; height: 42px; cursor: pointer; border-bottom: {activeDatasourceId === datasource.id ? '2px solid white' : 'none'}; margin-bottom: -1px;"
+                    style="max-width: 400px; min-width: 120px; flex-shrink: 0; height: 42px; cursor: pointer; border-bottom: {activeDatasourceId === datasource.id ? '2px solid white' : 'none'}; margin-bottom: -1px;"
                     onclick={() => activeDatasourceId = datasource.id}
                   >
                         <span class="text-truncate flex-grow-1 me-2" title={datasource.name?.content}>
@@ -286,19 +287,7 @@
                         
                         <div onclick={(e) => e.stopPropagation()} class="d-flex align-items-center">
                             <BaseDropdownMenu
-                                items={[
-                                    { 
-                                        label: t("common.edit", { fallback: "Edit" }), 
-                                        icon: "pencil", 
-                                        onClick: () => handleEditDataSource(datasource.id) 
-                                    },
-                                    { 
-                                        label: t("common.delete", { fallback: "Delete" }), 
-                                        icon: "trash", 
-                                        class: "text-danger",
-                                        onClick: () => requestDeleteDataSource(datasource.id) 
-                                    }
-                                ]}
+                                items={createDatasourceMenu(datasource, true)}
                                 triggerClass="btn btn-sm btn-link text-muted border-0 bg-transparent p-0 shadow-none"
                                 side="bottom"
                                 align="end"

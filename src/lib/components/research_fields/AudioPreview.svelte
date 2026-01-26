@@ -2,6 +2,7 @@
     let {
         asset,
         size = 200,
+        width = undefined,
         showRemoveButton = false,
         onRemove = null,
     } = $props();
@@ -94,19 +95,19 @@
 
 <div
     class="position-relative"
-    style="width: {size}px; height: {size}px;"
+    style="width: {width ?? size + 'px'}; height: {size}px; max-width: 100%;"
 >
     <!-- Remove Button -->
     {#if showRemoveButton}
         <button
             type="button"
-            class="btn btn-sm btn-danger rounded-circle position-absolute d-flex align-items-center justify-content-center shadow-sm"
-            style="width: 20px; height: 20px; padding: 0; top: -8px; left: -8px; z-index: 10;"
+            class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle position-absolute d-flex align-items-center justify-content-center border-0 opacity-0-hover-100 transition-opacity"
+            style="width: 22px; height: 22px; padding: 0; top: 5px; right: 5px; z-index: 10;"
             onclick={handleRemove}
             title="Remove audio"
             aria-label="Remove audio"
         >
-            <i class="bi bi-x" style="font-size: 10px;"></i>
+            <i class="bi bi-x-lg" style="font-size: 10px;"></i>
         </button>
     {/if}
 

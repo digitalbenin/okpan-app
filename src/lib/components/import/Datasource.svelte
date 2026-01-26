@@ -139,6 +139,8 @@
           {fieldOrder}
           hiddenStaticValues={{ templateId: null }}
           {uiSchema}
+          usePortal={false}
+          
         />
       </div>
     </div>

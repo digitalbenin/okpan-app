@@ -69,11 +69,11 @@
           <div {...wrapperProps} style="{wrapperProps.style}; z-index: 100000;">
             <div 
               {...props} 
-              class="dropdown-menu show shadow-sm border-0 rounded-2 p-1 {contentProps.class || ''}"
+              class="dropdown-menu show shadow-sm border-0 rounded-2 px-1 py-2 {contentProps.class || ''}"
               style={contentProps.style || ''}
             >
               {#if children}
-                {@render children()}
+                {@render children({ close: () => open = false })}
               {:else}
                 {#each items as item}
                   {#if item.type === 'separator'}

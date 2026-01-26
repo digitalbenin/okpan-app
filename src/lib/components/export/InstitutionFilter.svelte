@@ -18,7 +18,7 @@
     }
 </script>
 
-<div class="filter-group mb-3">
+<div class="filter-group mb-4">
     <p class="filter-label fw-semibold mb-2 d-block">Institution</p>
     <div class="institution-selection d-flex flex-column gap-2">
         <BaseSelect

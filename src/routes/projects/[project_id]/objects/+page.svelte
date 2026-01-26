@@ -299,13 +299,19 @@
   };
 </script>
 
-<div class="container-fluid">
-  <div class="row my-3">
-    <div class="col-12">
-      <h1>
-        <i class="bi bi-box"></i>
+<div class="container-fluid h-100 bg-light">
+  <div class="row pt-3 pb-3 border-bottom mb-4 align-items-center">
+    <div class="col">
+      <h2 class="m-0 d-flex align-items-center gap-2">
+        <i class="bi bi-box text-muted"></i>
         {i18n.objects}
-      </h1>
+      </h2>
+    </div>
+    <div class="col-auto">
+      <a class="btn btn-primary btn-sm" href="/projects/{data.project.id}/objects/add">
+        <i class="bi bi-plus-lg"></i>
+        {i18n.addNew}
+      </a>
     </div>
   </div>
   <div class="row align-items-center mb-3 position-relative overflow-hidden py-2">
@@ -368,10 +374,6 @@
         <i class="bi bi-filter"></i>
         {i18n.filter}
       </button>
-      <a class="btn btn-primary btn-sm" href="/projects/{data.project.id}/objects/add">
-        <i class="bi bi-plus-lg"></i>
-        {i18n.addNew}
-      </a>
     </div>
   </div>
   {#if searchData.totalCount}

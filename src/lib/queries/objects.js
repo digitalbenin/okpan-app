@@ -677,6 +677,23 @@ export const objectsOperations = {
 }`
   },
 
+  // DELETE ONTOLOGY FIELD BY ID
+  deleteOntologyFieldById: {
+    type: "mutation",
+    name: "Delete Object Ontology Field By ID",
+    description: "Deletes a single ontology field record by its ID",
+    variables: {
+      id: "ID of the field to delete"
+    },
+    query: `mutation DeleteOntologyFieldById($id: String!) {
+  result: deleteFromObjects_ontology_fields(
+    where: { id: { eq: $id } }
+  ) {
+    id
+  }
+}`
+  },
+
   // IMPORT OBJECTS
   import: {
     type: "mutation",

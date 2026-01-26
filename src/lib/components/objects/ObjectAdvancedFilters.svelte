@@ -64,6 +64,14 @@
     return fields.sort((a, b) => (a.label || "").localeCompare(b.label || ""));
   });
 
+  const textResearchFields = $derived.by(() =>
+    (researchFields || []).filter((f) => (f.type || "").toLowerCase() !== "vocabulary")
+  );
+
+  const connectionResearchFields = $derived.by(() =>
+    (researchFields || []).filter((f) => (f.type || "").toLowerCase() === "vocabulary")
+  );
+
   // Helpers
   const getFieldKey = () => selectedField?.type === "institutions" ? "institutions" : selectedField?.id;
   
@@ -282,15 +290,32 @@
               </button>
             {/if}
 
-        <div class="px-3 py-3 text-muted">Research fields</div>
+              {#if connectionResearchFields.length > 0}
+          <div class="mt-3 px-3 pt-3 text-muted">Connections</div>
 
-            {#each researchFields || [] as field (field.id)}
+          {#each connectionResearchFields as field (field.id)}
+            <button
+              type="button"
+              class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
+              onclick={() => showDetail({ type: "vocabulary", id: field.id })}
+              aria-label={`Filter by ${field.name?.content || field.name}`}
+            >
+              <div class="fw-semibold">{field.name?.content || field.name}</div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="text-muted ps-3">{getResearchFieldSelectionLabel(field)}</span>
+                <i class="bi bi-chevron-right"></i>
+              </div>
+            </button>
+          {/each}
+        {/if}
+
+        <div class="mt-3 px-3 pt-3 text-muted">Research fields</div>
+
+            {#each textResearchFields as field (field.id)}
               <button
                 type="button"
                 class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
-                onclick={() => (field.type || "").toLowerCase() === "vocabulary"
-                  ? showDetail({ type: "vocabulary", id: field.id })
-                  : showAddTextSearch(`r:${field.id}`, getCurrentTextQuery("research", field.id))}
+                onclick={() => showAddTextSearch(`r:${field.id}`, getCurrentTextQuery("research", field.id))}
                 aria-label={`Filter by ${field.name?.content || field.name}`}
               >
                 <div class="fw-semibold">{field.name?.content || field.name}</div>
@@ -301,14 +326,15 @@
               </button>
             {/each}
 
-        <!-- Ontology fields list removed; use Active text filters overview -->
+        
 
+    
         <!-- Active text filters overview (shown in main list) -->
         <div class="list-group-item py-3">
           <div
             class="d-flex flex-column justify-content-between align-items-start"
           >
-            <div class="text-muted mb-2">Institution fields</div>
+            <div class="text-muted pb-3 mt-3">Institution fields</div>
             <button
               type="button"
               class="btn btn-outline-secondary btn-sm"

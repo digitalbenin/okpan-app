@@ -119,10 +119,10 @@
   }
 </script>
 
-<div class="container-fluid">
-  <div class="row my-3">
+<div class="container-fluid py-4">
+  <div class="row mb-4">
     <div class="col-12">
-      <h1>{t("project.research-fields", { fallback: "Research Fields" })}</h1>
+      <h1 class="h3 mb-0">{t("project.research-fields", { fallback: "Research Fields" })}</h1>
     </div>
   </div>
   <div class="row align-items-center mb-3">

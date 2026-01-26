@@ -33,10 +33,6 @@ export const load = async ({ params, depends }) => {
     }));
 
     depends("custom:object");
-    console.log("Loaded object page data:", {
-        datasources: datasourcesResponse.items,
-        templates: templatesResponse?.result
-    });
     return {
         object: objectResponse.result,
         researchFields: researchFieldsResponse.result || [],

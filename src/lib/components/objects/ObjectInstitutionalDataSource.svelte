@@ -44,19 +44,14 @@
   // Build mapped fields from template
   const mappedFields = $derived.by(() => {
     if (!selectedTemplate?.mapping) {
-      console.log('No template or mapping found');
       return [];
     }
-    
-    console.log('Raw template mapping:', selectedTemplate.mapping);
-    console.log('Mapping type:', typeof selectedTemplate.mapping);
     
     // Parse mapping if it's a string
     let mapping = selectedTemplate.mapping;
     if (typeof mapping === 'string') {
       try {
         mapping = JSON.parse(mapping);
-        console.log('Parsed mapping:', mapping);
       } catch (e) {
         console.error('Failed to parse template mapping:', e);
         return [];
@@ -64,21 +59,15 @@
     }
     
     if (!Array.isArray(mapping)) {
-      console.log('Mapping is not an array:', mapping);
       return [];
     }
     
-    console.log('First mapping item:', mapping[0]);
-    
     return mapping.map((item, index) => {
-      console.log(`Processing item ${index}:`, item);
-      
       // Parse each item if it's a string
       let parsedItem = item;
       if (typeof item === 'string') {
         try {
           parsedItem = JSON.parse(item);
-          console.log(`  Parsed item:`, parsedItem);
         } catch (e) {
           console.error('Failed to parse item:', item, e);
           return null;
@@ -88,9 +77,6 @@
       const ontologyField = ontologyFields.find(f => f.id === parsedItem.mappedField);
       const institutionFieldName = parsedItem.headerField || `Unnamed Field ${index + 1}`;
       const ontologyFieldName = ontologyField?.name?.content || "Not mapped";
-      
-      console.log(`  institutionField: ${institutionFieldName}`);
-      console.log(`  ontologyFieldName: ${ontologyFieldName}`);
       
       return {
         institutionField: institutionFieldName,
@@ -121,32 +107,66 @@
   });
 
   // Initialize field values from existing fields
-  const initializeFieldValues = () => {
+  // reason parameter used for internal logic flow or debugging if needed
+  const initializeFieldValues = (reason = 'unknown') => {
     const newValues = new Map();
+    const newInitialValues = new Map();
     
     mappedFields.forEach(field => {
-      // Match by label (institution field name) only, not field_id
-      // This allows values to persist when template mappings change
+      // 1. Determine what the "Server" says the value is right now (from props)
       const existingField = existingFields.find(
         ef => ef.label === field.institutionField
       );
-      const value = existingField?.value || "";
-      newValues.set(field.institutionField, value);
+      const serverValue = existingField?.value || "";
+      newInitialValues.set(field.institutionField, serverValue);
+
+      // 2. Determine what our current local state is
+      const localValue = fieldValues.get(field.institutionField);
+      // 3. Determine what we thought the server value was previously (baseline)
+      const baseValue = initialValues.get(field.institutionField);
+
+      // 4. Resolve Conflict
+      // If we are just starting (reason === 'template changed'), take the server value.
+      if (reason === 'template changed' || fieldValues.size === 0) {
+        newValues.set(field.institutionField, serverValue);
+      } else {
+        // If this is an update to existing fields (e.g. stale refresh or save confirmation)
+        if (serverValue === baseValue && localValue !== undefined && localValue !== baseValue) {
+             // Case: Server hasn't changed, but User has unsaved changes.
+             // Action: PRESERVE LOCAL CHANGES (Ignore stale refresh)
+             newValues.set(field.institutionField, localValue);
+        } else {
+             // Case: Server has changed (e.g. save completed), OR user matches server.
+             // Action: ACCEPT SERVER TRUTH
+             newValues.set(field.institutionField, serverValue);
+        }
+      }
     });
     
     fieldValues = newValues;
-    initialValues = new Map(newValues);
+    initialValues = newInitialValues;
   };
 
   // Watch for template selection and initialize values
+  // Only re-initialize if the template ID changes, preventing resets on purely referential updates
   watch(
-    () => selectedTemplate,
-    (template) => {
-      if (template) {
-        initializeFieldValues();
+    () => selectedTemplate?.id,
+    (newId, oldId) => {
+      if (newId && (newId !== oldId || fieldValues.size === 0)) {
+        initializeFieldValues('template changed');
       }
-    },
-    { lazy: false }
+    }
+  );
+
+  // Watch for updates to existing fields (e.g. after a save or external update)
+  watch(
+    () => existingFields,
+    (fields) => {
+      // When backend data syncs down, only overwrite if actually new
+      if (selectedTemplate) {
+        initializeFieldValues('existingFields changed');
+      }
+    }
   );
 
   // Track changes
@@ -179,13 +199,6 @@
               };
             });
 
-            console.log('getData called - current fieldValues:', {
-              datasourceId: datasource.id,
-              templateId: selectedTemplate?.id,
-              fieldsCount: fieldsData.length,
-              fields: fieldsData,
-              fieldValuesMap: Array.from(fieldValues.entries())
-            });
             return {
               datasourceId: datasource.id,
               templateId: selectedTemplate?.id,
@@ -202,7 +215,6 @@
   };
 
   const handleFieldChange = (institutionField, newValue) => {
-    const currentValue = fieldValues.get(institutionField) || "";
     fieldValues.set(institutionField, newValue);
     fieldValues = new Map(fieldValues);
   };

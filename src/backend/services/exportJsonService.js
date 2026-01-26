@@ -51,7 +51,7 @@ const TEXT_FIELD_LABEL_MAP = {
 const EXCLUDE_FIELDS_MAP = {
   ontology_fields: ['embeddings', 'onwebsite'],
   objects_ontology_fields: ['default_description'],
-  research_fields: ['onwebsite'],
+  research_fields: ['onwebsite', 'fields_config', 'type'],
   // keep aligned with CSV/SQL exporters
   assets: ['path', 'formats'],
   objects_assets: ['order']
@@ -307,28 +307,50 @@ export async function exportProjectJson(options, { db }) {
       return dsOut;
     });
 
-    // expand research fields
+    // expand research fields - separate free text from connections (vocabulary-based)
     const myOrfs = byObjectOrfs[obj.id] || [];
-    oJson.research_fields = myOrfs.map((r) => {
+    
+    // Free text research fields (non-vocabulary type)
+    const freeTextOrfs = myOrfs.filter((r) => {
       const field = iResearchFields[r.field_id];
-      const vocab = iVocabs[r.vocabulary_id];
-      const valueOut = r.vocabulary_id
-        ? (r.value ?? (vocab ? expandText(vocab.option_id) : null))
-        : (r.value ?? null);
-
+      return field && (field.type || '').toLowerCase() !== 'vocabulary';
+    });
+    oJson.research_fields = freeTextOrfs.map((r) => {
+      const field = iResearchFields[r.field_id];
       return {
         ...sanitizeRow('objects_research_fields', r),
         field: field ? expandEntity('research_fields', field) : null,
-        value: valueOut,
-        main_asset: (vocab && vocab.main_asset_id) ? (() => {
-          const ga = iGenericAssets[vocab.main_asset_id];
-          return ga ? {
-            filename: ga.filename || null,
-            type: ga.type || null,
-            properties: ga.properties ?? null
-          } : null;
-        })() : null,
-        generic_assets: vocab ? (byVocabGA[vocab.id] || []).map((ga) => sanitizeRow('generic_assets', iGenericAssets[ga.generic_asset_id])).filter(Boolean) : []
+        value: r.value ?? null
+      };
+    });
+
+    // Connections (vocabulary-based research fields)
+    const connectionOrfs = myOrfs.filter((r) => {
+      const field = iResearchFields[r.field_id];
+      return field && (field.type || '').toLowerCase() === 'vocabulary' && r.vocabulary_id;
+    });
+    oJson.connections = connectionOrfs.map((r) => {
+      const field = iResearchFields[r.field_id];
+      const vocab = iVocabs[r.vocabulary_id];
+      const valueOut = vocab ? expandText(vocab.option_id) : null;
+
+      return {
+        ...sanitizeRow('objects_research_fields', r),
+        connection_type: field ? expandEntity('research_fields', field) : null,
+        option: vocab ? {
+          ...sanitizeRow('vocabularies', vocab),
+          label: valueOut,
+          description: expandText(vocab.description_id),
+          main_asset: vocab.main_asset_id ? (() => {
+            const ga = iGenericAssets[vocab.main_asset_id];
+            return ga ? {
+              filename: ga.filename || null,
+              type: ga.type || null,
+              properties: ga.properties ?? null
+            } : null;
+          })() : null,
+          generic_assets: (byVocabGA[vocab.id] || []).map((ga) => sanitizeRow('generic_assets', iGenericAssets[ga.generic_asset_id])).filter(Boolean)
+        } : null
       };
     });
 

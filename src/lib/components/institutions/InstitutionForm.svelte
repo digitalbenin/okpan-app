@@ -205,29 +205,31 @@
   }}
 >
   <PageActionFooter
-    contentClass="container-fluid"
+    contentClass="container-fluid py-4"
     leftButtons={leftActionButtons}
     rightButtons={rightActionButtons}
     formStore={formStore}
   >
-    <div class="row">
+    <div class="row mb-4">
       <div class="col-12">
-        <h2 class="mt-3">
+        <h1 class="h3 mb-0">
           {isEditMode
             ? t("common.edit-institution", { fallback: "Edit Institution" })
-            : t("common.add-new-institution", {
-                fallback: "Add New Institution",
-              })}
-        </h2>
+            : t("common.add-new-institution", { fallback: "Add New Institution" })}
+        </h1>
         {#if !isEditMode}
-          <p>
+          <p class="text-muted mt-2 mb-0">
             {t("common.add-new-institution-desc", {
               fallback:
                 "Please fill out the details below to add a new institution to your project.",
             })}
           </p>
         {/if}
+      </div>
+    </div>
 
+    <div class="row">
+      <div class="col-12">
         <AutoForm
           {form}
           {validator}
