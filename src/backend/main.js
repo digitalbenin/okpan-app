@@ -352,9 +352,12 @@ app.whenReady().then(() => {
       const buildDir = path.join(app.getAppPath(), 'src', 'website', 'build');
 
       let filePath;
-      // Default to index.html for SPA fallback
+      // Default to index.html (or 200.html) for SPA fallback
       if (!pathname || pathname === '' || pathname === 'index.html') {
         filePath = path.join(buildDir, 'index.html');
+        if (!fs.existsSync(filePath)) {
+          filePath = path.join(buildDir, '200.html');
+        }
       } else {
         filePath = path.join(buildDir, pathname);
       }
@@ -362,9 +365,13 @@ app.whenReady().then(() => {
       if (fs.existsSync(filePath)) {
         callback({ path: filePath });
       } else {
-        const fallbackPath = path.join(buildDir, 'index.html');
+        // Fallback to index.html or 200.html for client-side routing
+        let fallbackPath = path.join(buildDir, 'index.html');
+        if (!fs.existsSync(fallbackPath)) {
+          fallbackPath = path.join(buildDir, '200.html');
+        }
+
         if (fs.existsSync(fallbackPath)) {
-          // Fallback to index.html for client-side routing
           callback({ path: fallbackPath });
         } else {
           // If even the fallback is missing, signal not found
