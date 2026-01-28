@@ -25,6 +25,7 @@ export async function load({ url, fetch }) {
         return { 
           project: siteData.project || {},
           settings: siteData.settings || {},
+          connection_types: siteData.connection_types || [],
           needsClientLoad: false // Already have the data
         };
       } catch (e) {
@@ -61,6 +62,9 @@ export async function load({ url, fetch }) {
   const vocabularies = fetchVocabularies(db, projectId);
   const project = fetchProject(db, projectId);
   const settings = fetchWebsiteSettings(db, projectId);
+  const connection_types = (research_fields || [])
+    .filter((field) => field?.type === 'vocabulary')
+    .map((field) => ({ id: field.id, name: field.name, description: field.description }));
 
   return {
     institutions,
@@ -68,6 +72,7 @@ export async function load({ url, fetch }) {
     research_fields,
     vocabularies,
     project,
-    settings
+    settings,
+    connection_types
   };
 }
