@@ -34,7 +34,7 @@
         </a>
         <a class={`nav-link d-flex align-items-center gap-2 rounded-3 px-3 py-2 text-dark ${isConnections ? 'bg-light fw-semibold' : 'text-muted'}`} href="/connections">
             <i class="bi bi-bank2"></i>
-            <span>Connection</span>
+            <span>Connections</span>
         </a>
         <a class={`nav-link d-flex align-items-center gap-2 rounded-3 px-3 py-2 text-dark ${isAbout ? 'bg-light fw-semibold' : 'text-muted'}`} href="/about">
             <i class="bi bi-box"></i>
