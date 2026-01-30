@@ -23,6 +23,12 @@ function countDocTables(doc) {
   }
 }
 
+function safeGetMap(doc, name) {
+    const tables = doc.getMap('tables');
+    if (!tables.get(name)) tables.set(name, new Y.Map());
+    return tables.get(name);
+}
+
 // Minimal P2P provider registry keyed by projectId
 // Stores { provider, awareness, onUpdate }
 const providers = new Map()

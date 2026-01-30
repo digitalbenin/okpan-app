@@ -256,26 +256,31 @@ export async function hydrateProjectFromDatabase(projectId) {
 
   // Texts & Translations (via Languages)
   try {
-     const langSq = db.select({ id: schema.languages.id }).from(schema.languages).where(eq(schema.languages.project_id, projectId));
+     const langIds = (await db.select({ id: schema.languages.id }).from(schema.languages).where(eq(schema.languages.project_id, projectId)).execute()).map(r => r.id);
      
-     const textRows = await db.select().from(schema.texts).where(inArray(schema.texts.original_language_id, langSq)).execute();
-     loadIntoDoc('texts', textRows);
+     if (langIds.length > 0) {
+        const textRows = await db.select().from(schema.texts).where(inArray(schema.texts.original_language_id, langIds)).execute();
+        loadIntoDoc('texts', textRows);
 
-     const transRows = await db.select().from(schema.translations).where(inArray(schema.translations.language_id, langSq)).execute();
-     loadIntoDoc('translations', transRows);
+        const transRows = await db.select().from(schema.translations).where(inArray(schema.translations.language_id, langIds)).execute();
+        loadIntoDoc('translations', transRows);
+     }
   } catch(err) { console.warn('[Snapshot] Failed to hydrate texts/translations', err); }
 
   // Datasources (via Institution OR Template)
   try {
-     const instSq = db.select({ id: schema.institutions.id }).from(schema.institutions).where(eq(schema.institutions.project_id, projectId));
-     const tplSq = db.select({ id: schema.templates.id }).from(schema.templates).where(eq(schema.templates.project_id, projectId));
+     const instIds = (await db.select({ id: schema.institutions.id }).from(schema.institutions).where(eq(schema.institutions.project_id, projectId)).execute()).map(r => r.id);
+     const tplIds = (await db.select({ id: schema.templates.id }).from(schema.templates).where(eq(schema.templates.project_id, projectId)).execute()).map(r => r.id);
      
-     const dsRows = await db.select().from(schema.datasources)
-       .where(or(
-         inArray(schema.datasources.institution_id, instSq),
-         inArray(schema.datasources.template_id, tplSq)
-       )).execute();
-     loadIntoDoc('datasources', dsRows);
+     const conditions = [];
+     if (instIds.length > 0) conditions.push(inArray(schema.datasources.institution_id, instIds));
+     if (tplIds.length > 0) conditions.push(inArray(schema.datasources.template_id, tplIds));
+
+     if (conditions.length > 0) {
+        const dsRows = await db.select().from(schema.datasources)
+          .where(or(...conditions)).execute();
+        loadIntoDoc('datasources', dsRows);
+     }
   } catch(err) { console.warn('[Snapshot] Failed to hydrate datasources', err); }
 
   // Junctions
@@ -292,23 +297,28 @@ export async function hydrateProjectFromDatabase(projectId) {
     const refDef = resolveSchema(l.ref);
     if (!tableDef || !refDef) continue;
     try {
-       const refSq = db.select({ id: refDef[l.refCol] }).from(refDef).where(eq(refDef.project_id, projectId));
-       const rows = await db.select().from(tableDef).where(inArray(tableDef[l.col], refSq)).execute();
-       loadIntoDoc(l.name, rows);
+       const refIds = (await db.select({ id: refDef[l.refCol] }).from(refDef).where(eq(refDef.project_id, projectId)).execute()).map(r => r.id);
+       if (refIds.length > 0) {
+           const rows = await db.select().from(tableDef).where(inArray(tableDef[l.col], refIds)).execute();
+           loadIntoDoc(l.name, rows);
+       }
     } catch(err) { console.warn(`[Snapshot] Failed to hydrate ${l.name}`, err); }
   }
 
   // Vocabularies (via Field OR Main Asset)
   try {
-     const fieldSq = db.select({ id: schema.ontology_fields.id }).from(schema.ontology_fields).where(eq(schema.ontology_fields.project_id, projectId));
-     const assetSq = db.select({ id: schema.assets.id }).from(schema.assets).where(eq(schema.assets.project_id, projectId));
+     const fieldIds = (await db.select({ id: schema.ontology_fields.id }).from(schema.ontology_fields).where(eq(schema.ontology_fields.project_id, projectId)).execute()).map(r => r.id);
+     const assetIds = (await db.select({ id: schema.assets.id }).from(schema.assets).where(eq(schema.assets.project_id, projectId)).execute()).map(r => r.id);
 
-     const vocRows = await db.select().from(schema.vocabularies)
-       .where(or(
-          inArray(schema.vocabularies.field_id, fieldSq),
-          inArray(schema.vocabularies.main_asset_id, assetSq)
-       )).execute();
-     loadIntoDoc('vocabularies', vocRows);
+     const conditions = [];
+     if (fieldIds.length > 0) conditions.push(inArray(schema.vocabularies.field_id, fieldIds));
+     if (assetIds.length > 0) conditions.push(inArray(schema.vocabularies.main_asset_id, assetIds));
+
+     if (conditions.length > 0) {
+         const vocRows = await db.select().from(schema.vocabularies)
+           .where(or(...conditions)).execute();
+         loadIntoDoc('vocabularies', vocRows);
+     }
   } catch(err) { console.warn('[Snapshot] Failed to hydrate vocabularies', err); }
 
   console.log('[Snapshot] Deep hydration complete', { projectId, loadedRows: loadedCount });

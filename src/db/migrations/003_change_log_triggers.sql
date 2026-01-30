@@ -1323,10 +1323,7 @@ BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
     lower(hex(randomblob(16))),
-    COALESCE(
-      (SELECT project_id FROM institutions WHERE id = NEW.institution_id),
-      (SELECT project_id FROM templates WHERE id = NEW.template_id)
-    ),
+    (SELECT project_id FROM institutions WHERE id = NEW.institution_id),
     'datasources',
     'INSERT',
     NEW.id,
@@ -1336,7 +1333,6 @@ BEGIN
       'id', NEW.id,
       'name_id', NEW.name_id,
       'institution_id', NEW.institution_id,
-      'template_id', NEW.template_id,
       'language', NEW.language,
       'copyright', NEW.copyright,
       'method_id', NEW.method_id,
@@ -1356,10 +1352,7 @@ BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
     lower(hex(randomblob(16))),
-    COALESCE(
-      (SELECT project_id FROM institutions WHERE id = COALESCE(NEW.institution_id, OLD.institution_id)),
-      (SELECT project_id FROM templates WHERE id = COALESCE(NEW.template_id, OLD.template_id))
-    ),
+    (SELECT project_id FROM institutions WHERE id = COALESCE(NEW.institution_id, OLD.institution_id)),
     'datasources',
     'UPDATE',
     COALESCE(NEW.id, OLD.id),
@@ -1369,7 +1362,6 @@ BEGIN
       'id', COALESCE(NEW.id, OLD.id),
       'name_id', COALESCE(NEW.name_id, OLD.name_id),
       'institution_id', COALESCE(NEW.institution_id, OLD.institution_id),
-      'template_id', COALESCE(NEW.template_id, OLD.template_id),
       'language', COALESCE(NEW.language, OLD.language),
       'copyright', COALESCE(NEW.copyright, OLD.copyright),
       'method_id', COALESCE(NEW.method_id, OLD.method_id),
@@ -1383,7 +1375,6 @@ BEGIN
       'id', COALESCE(NEW.id, OLD.id),
       'name_id', OLD.name_id,
       'institution_id', OLD.institution_id,
-      'template_id', OLD.template_id,
       'language', OLD.language,
       'copyright', OLD.copyright,
       'method_id', OLD.method_id,
@@ -1402,10 +1393,7 @@ BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
     lower(hex(randomblob(16))),
-    COALESCE(
-      (SELECT project_id FROM institutions WHERE id = OLD.institution_id),
-      (SELECT project_id FROM templates WHERE id = OLD.template_id)
-    ),
+    (SELECT project_id FROM institutions WHERE id = OLD.institution_id),
     'datasources',
     'DELETE',
     OLD.id,
@@ -1416,92 +1404,12 @@ BEGIN
       'id', OLD.id,
       'name_id', OLD.name_id,
       'institution_id', OLD.institution_id,
-      'template_id', OLD.template_id,
       'language', OLD.language,
       'copyright', OLD.copyright,
       'method_id', OLD.method_id,
       'contact', OLD.contact,
       'notes_id', OLD.notes_id,
       'date', OLD.date,
-      'created_at', OLD.created_at,
-      'updated_at', OLD.updated_at
-    )
-  );
-END;
-
--- imports
-CREATE TRIGGER IF NOT EXISTS trg_imports_change_log_insert
-AFTER INSERT ON imports
-BEGIN
-  INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
-  VALUES (
-    lower(hex(randomblob(16))),
-    (SELECT project_id FROM templates WHERE id = NEW.template_id),
-    'imports',
-    'INSERT',
-    NEW.id,
-    (SELECT client_id FROM global_settings WHERE id = 1),
-    'local',
-    json_object(
-      'id', NEW.id,
-      'filename', NEW.filename,
-      'template_id', NEW.template_id,
-      'created_at', NEW.created_at,
-      'updated_at', NEW.updated_at
-    ),
-    NULL
-  );
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_imports_change_log_update
-AFTER UPDATE ON imports
-BEGIN
-  INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
-  VALUES (
-    lower(hex(randomblob(16))),
-    COALESCE(
-      (SELECT project_id FROM templates WHERE id = NEW.template_id),
-      (SELECT project_id FROM templates WHERE id = OLD.template_id)
-    ),
-    'imports',
-    'UPDATE',
-    COALESCE(NEW.id, OLD.id),
-    (SELECT client_id FROM global_settings WHERE id = 1),
-    'local',
-    json_object(
-      'id', COALESCE(NEW.id, OLD.id),
-      'filename', COALESCE(NEW.filename, OLD.filename),
-      'template_id', COALESCE(NEW.template_id, OLD.template_id),
-      'created_at', COALESCE(NEW.created_at, OLD.created_at),
-      'updated_at', COALESCE(NEW.updated_at, OLD.updated_at)
-    ),
-    json_object(
-      'id', COALESCE(NEW.id, OLD.id),
-      'filename', OLD.filename,
-      'template_id', OLD.template_id,
-      'created_at', OLD.created_at,
-      'updated_at', OLD.updated_at
-    )
-  );
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_imports_change_log_delete
-AFTER DELETE ON imports
-BEGIN
-  INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
-  VALUES (
-    lower(hex(randomblob(16))),
-    (SELECT project_id FROM templates WHERE id = OLD.template_id),
-    'imports',
-    'DELETE',
-    OLD.id,
-    (SELECT client_id FROM global_settings WHERE id = 1),
-    'local',
-    NULL,
-    json_object(
-      'id', OLD.id,
-      'filename', OLD.filename,
-      'template_id', OLD.template_id,
       'created_at', OLD.created_at,
       'updated_at', OLD.updated_at
     )
