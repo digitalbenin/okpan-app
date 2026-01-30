@@ -5,12 +5,27 @@
   import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
   import ProjectImport from "$lib/components/projects/ProjectImport.svelte";
   import { goto, invalidateAll } from "$app/navigation";
+  import { page } from "$app/stores";
 
   const { data } = $props();
   const { t } = getTranslationStore();
 
   let newProjectOpen = $state(false);
   let importProjectOpen = $state(false);
+
+  // Watch for URL parameters to trigger modals
+  $effect(() => {
+    const createParam = $page.url.searchParams.get('create');
+    if (createParam === 'new') {
+      setTimeout(() => {
+        newProjectOpen = true;
+        // Remove the parameter from URL without navigation
+        const url = new URL(window.location.href);
+        url.searchParams.delete('create');
+        window.history.replaceState({}, '', url);
+      }, 100);
+    }
+  });
 
   const dropdownItems = [
     {

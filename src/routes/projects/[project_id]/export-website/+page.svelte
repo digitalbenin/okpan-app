@@ -68,11 +68,15 @@
 </script>
 
 <PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons}>
-	<div class="row">
+	<div class="row mb-4">
 		<div class="col-12">
-			<h2 class="mb-4">
+			<h1 class="h3 mb-0">
 				{t('export-website.title', { fallback: 'Export Static Website' })}
-			</h2>
+			</h1>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-8">
 
 			<div class="card shadow-sm">
 				<div class="card-body">
@@ -83,7 +87,7 @@
 					<p class="card-text text-muted mb-4">
 						{t('export-website.description', {
 							fallback:
-								'Export your project data as a static website that can be hosted on any web server. The export includes all objects, research fields, and assets configured in your website settings.'
+								'Export your project data as a static website that can be hosted on any web server. The export includes all entities and configurations set in your website settings.'
 						})}
 					</p>
 
@@ -94,15 +98,15 @@
 						<ul class="text-muted">
 							<li>
 								{t('export-website.include-objects', {
-									fallback: 'All objects and their associated data'
+									fallback: 'Objects and institutions, along with their metadata'
 								})}
 							</li>
 							<li>
-								{t('export-website.include-assets', { fallback: 'Project assets and images' })}
+								{t('export-website.include-assets', { fallback: 'Project media (images, videos, audios)' })}
 							</li>
 							<li>
 								{t('export-website.include-fields', {
-									fallback: 'Research fields and ontology mappings'
+									fallback: 'Connections, research fields and institutional data'
 								})}
 							</li>
 							<li>

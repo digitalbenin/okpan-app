@@ -117,11 +117,11 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
 
             // Apply object_id filter if provided
             if (args.object_id) {
-                // Filter datasources that have ontology fields linked to the specified object
+                // Filter datasources that are linked to the specified object via the junction table
                 conditions.push(sql`EXISTS (
-                    SELECT 1 FROM ${dbSchema.objects_ontology_fields} 
-                    WHERE ${dbSchema.objects_ontology_fields.datasources_id} = ${dbSchema.datasources.id}
-                    AND ${dbSchema.objects_ontology_fields.object_id} = ${args.object_id}
+                    SELECT 1 FROM ${dbSchema.objects_datasources} 
+                    WHERE ${dbSchema.objects_datasources.datasource_id} = ${dbSchema.datasources.id}
+                    AND ${dbSchema.objects_datasources.object_id} = ${args.object_id}
                 )`);
             }
 

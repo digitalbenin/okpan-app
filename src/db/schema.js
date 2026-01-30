@@ -217,12 +217,13 @@ export const institutionsRelations = relations(institutions, ({ one, many }) => 
 // Research Fields table
 export const research_fields = sqliteTable('research_fields', {
     ...commonFields,
-    name_id: text('name_id').references(() => texts.id),
+    name_id: text('name_id').notNull().references(() => texts.id),
     type: text('type'),
     description_id: text('description_id').references(() => texts.id),
     project_id: text('project_id').references(() => project.id),
     private: integer('private').notNull().default(0), // false by default
-    onwebsite: integer('onwebsite').notNull().default(1) // true by default
+    onwebsite: integer('onwebsite').notNull().default(1), // true by default
+    fields_config: text('fields_config', { mode: 'json' })
 }, (table) => ({
     projectIdx: index('idx_research_fields_project_id').on(table.project_id),
     typeIdx: index('idx_research_fields_type').on(table.type)

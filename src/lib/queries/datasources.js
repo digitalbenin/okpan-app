@@ -423,6 +423,7 @@ export const datasourcesOperations = {
 }`,
         useVariables: ["method"],
         mapVariables: { methodId: { from: "getDatasource", path: "datasources.0.method_id" } },
+        onlyIf: { from: "getDatasource", path: "datasources.0.method_id", isNull: false },
         skipIf: { variableName: "method", isUndefined: true }
       },
       // Create method text if missing and a method value is provided
@@ -731,6 +732,23 @@ export const datasourcesOperations = {
       datasource_id: $datasourceId
       template_id: $templateId
     }]
+  ) {
+    id
+  }
+}`,
+        useVariables: ["objectId", "datasourceId", "templateId"]
+      },
+      {
+        name: "updateJunctionTemplate",
+        query: `mutation UpdateObjectDatasourceTemplate($objectId: String!, $datasourceId: String!, $templateId: String) {
+  result: updateObjects_datasources(
+    where: {
+      object_id: { eq: $objectId }
+      datasource_id: { eq: $datasourceId }
+    }
+    set: {
+      template_id: $templateId
+    }
   ) {
     id
   }

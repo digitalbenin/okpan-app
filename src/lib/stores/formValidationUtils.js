@@ -696,14 +696,29 @@ registerCustomValidator('research_fields', 'languageId', {
     defaultValue: ''
 });
 
+// Name (Title) validator - required field (not in schema; name_id is stored)
+registerCustomValidator('research_fields', 'name', {
+    validator: () => z.string().min(1, 'Title is required'),
+    required: true,
+    defaultValue: ''
+});
+
 // Type validator - required field for research field type
 registerCustomValidator('research_fields', 'type', {
-    validator: () => z.enum(['free text', 'vocabulary'], {
+    validator: () => z.enum(['freetext', 'vocabulary'], {
         required_error: 'Field type is required',
-        invalid_type_error: 'Field type must be either "free text" or "vocabulary"'
+        invalid_type_error: 'Field type must be either "freetext" or "vocabulary"'
     }),
     required: true,
-    defaultValue: 'free text'
+    defaultValue: 'freetext'
+});
+
+// fieldsConfig is edited elsewhere (connection type detail); keep it hidden here
+registerCustomValidator('research_fields', 'fieldsConfig', {
+    validator: () => z.any().optional(),
+    required: false,
+    defaultValue: undefined,
+    hidden: true
 });
 
 

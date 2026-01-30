@@ -1,6 +1,45 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
+import { searchObjects } from "$lib/stores/ObjectsUtils.js";
+import { isElectronApiAvailable } from "$lib/utils/electronApi.js";
 // Note: Replace 'researchFields', 'list', 'getById', etc., with your actual GraphQL section and operation names.
+
+// Fetch objects linked to a specific connection option (vocabulary) for a research field
+export async function fetchLinkedObjectsByVocabularyOption({
+    projectId,
+    fieldId,
+    vocabularyId,
+    page = 1,
+    pageSize = 24,
+}) {
+    if (!projectId || !fieldId || !vocabularyId) {
+        return { items: [], totalCount: 0 };
+    }
+
+    // Avoid triggering GraphQL/toasts when not running in Electron.
+    if (!isElectronApiAvailable()) {
+        return { items: [], totalCount: 0 };
+    }
+
+    const linkedRes = await searchObjects({
+        projectId,
+        researchFieldFilters: [
+            {
+                fieldId,
+                vocabularyIds: [vocabularyId],
+            },
+        ],
+        page: page - 1, // backend is 0-based
+        pageSize,
+        orderBy: "updated_at",
+        direction: "desc",
+    });
+
+    return {
+        items: linkedRes?.items || [],
+        totalCount: linkedRes?.totalCount || 0,
+    };
+}
 
 // Fetch all research fields for a specific project
 export const getResearchFields = async (projectId, page, pageSize) => {
@@ -49,6 +88,7 @@ export const createResearchField = async (fieldData) => {
     // Set default values for new boolean fields if not provided
     const params = {
         ...fieldData,
+        fieldsConfig: fieldData.fieldsConfig || fieldData.fields_config,
         private: fieldData.private !== undefined ? (fieldData.private ? 1 : 0) : 0, // default false
         onwebsite: fieldData.onwebsite !== undefined ? (fieldData.onwebsite ? 1 : 0) : 1 // default true
     };
@@ -77,6 +117,7 @@ export const updateResearchField = async (fieldId, updateData) => {
         // Text content for default language
         name: updateData.name,
         description: updateData.description,
+        fieldsConfig: updateData.fields_config || updateData.fieldsConfig,
         // Translation arrays
         nameTranslations: updateData.nameTranslations,
         descriptionTranslations: updateData.descriptionTranslations
@@ -188,7 +229,7 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
         }
     });
 
-
+    console.log("[DEBUG] STORE UpdateParams:", JSON.stringify(updateParams));
 
     // Execute the multi-step mutation
     const result = await executeQuery('research_fields', 'updateVocabulary', updateParams);
@@ -201,6 +242,27 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
 
     invalidate("app:research-fields");
     return { result: result.result, error: null };
+};
+
+export const updateVocabularyAssets = async (vocabularyId, assetIds) => {
+    // 1. Unlink all existing assets
+    const deleteResult = await executeQuery('vocabulary_assets', 'delete', { vocabularyId });
+    if (deleteResult.error) return { error: deleteResult.error };
+
+    // 2. Link new assets if any
+    if (assetIds && assetIds.length > 0) {
+        const values = assetIds.map((assetId, index) => ({
+            vocabulary_id: vocabularyId,
+            generic_asset_id: assetId,
+            order: index
+        }));
+        
+        const insertResult = await executeQuery('vocabulary_assets', 'create', { values });
+        if (insertResult.error) return { error: insertResult.error };
+        return { result: insertResult.result, error: null };
+    }
+
+    return { result: true, error: null };
 };
 
 // Create a vocabulary for a research field (supports translations on create)

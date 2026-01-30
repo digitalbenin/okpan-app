@@ -2,28 +2,27 @@
     import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
 
     let {
-        researchFieldOptions = [],
-        researchFieldFilters = $bindable([]),
+        freeTextFieldOptions = [],
+        freeTextFilters = $bindable([]),
         onChange = null,
     } = $props();
 
-    function addResearchFieldFilter() {
-        researchFieldFilters = [
-            ...researchFieldFilters,
+    function addFreeTextFilter() {
+        freeTextFilters = [
+            ...freeTextFilters,
             {
                 fieldId:
-                    researchFieldOptions.length > 0
-                        ? researchFieldOptions[0]?.value
+                    freeTextFieldOptions.length > 0
+                        ? freeTextFieldOptions[0]?.value
                         : "",
                 query: "",
-                vocabularyIds: [],
             },
         ];
         notify();
     }
 
-    function removeResearchFieldFilter(index) {
-        researchFieldFilters = researchFieldFilters.filter(
+    function removeFreeTextFilter(index) {
+        freeTextFilters = freeTextFilters.filter(
             (_, i) => i !== index,
         );
         notify();
@@ -32,26 +31,23 @@
     function notify() {
         if (typeof onChange === "function") {
             try {
-                onChange(researchFieldFilters);
+                onChange(freeTextFilters);
             } catch (e) {
-                console.error("Error in onResearchFieldsChanged:", e);
+                console.error("Error in onFreeTextFiltersChanged:", e);
             }
         }
     }
 </script>
 
-<div class="filter-group">
-    <p class="filter-label fw-semibold mb-2 d-block">Research field</p>
-    {#each researchFieldFilters as filter, index}
-        {@const selectedField = researchFieldOptions.find(
-            (o) => o.value === filter.fieldId,
-        )}
+<div class="filter-group mb-4">
+    <p class="filter-label fw-semibold mb-1 d-block">Research fields (free text)</p>
+    {#each freeTextFilters as filter, index}
         <div
-            class="research-field-filter bg-white border border-light-subtle rounded-3 p-3 d-flex flex-column gap-2 mb-2"
+            class="free-text-filter bg-white border border-light-subtle rounded-3 p-3 d-flex flex-column gap-2 mb-2"
         >
             <div class="field-row d-flex align-items-center gap-2">
                 <BaseSelect
-                    items={researchFieldOptions}
+                    items={freeTextFieldOptions}
                     bind:value={filter.fieldId}
                     placeholder="Select research field..."
                     type="single"
@@ -59,28 +55,16 @@
                     onValueChange={notify}
                 />
                 <span class="arrow text-body-tertiary">→</span>
-                {#if selectedField && selectedField.vocabOptions && selectedField.vocabOptions.length > 0}
-                    <BaseSelect
-                        class="flex-grow-1"
-                        items={selectedField.vocabOptions}
-                        bind:value={filter.vocabularyIds}
-                        placeholder="Select vocabulary options..."
-                        type="multiple"
-                        size="sm"
-                        onValueChange={notify}
-                    />
-                {:else}
-                    <input
-                        type="text"
-                        class="value-input flex-grow-1 px-2 py-1 border rounded-2"
-                        bind:value={filter.query}
-                        placeholder="Enter search terms..."
-                        oninput={notify}
-                    />
-                {/if}
+                <input
+                    type="text"
+                    class="value-input flex-grow-1 px-2 py-1 border rounded-2"
+                    bind:value={filter.query}
+                    placeholder="Enter search terms..."
+                    oninput={notify}
+                />
                 <button
                     class="remove-filter bg-transparent border-0 text-danger cursor-pointer fs-5"
-                    onclick={() => removeResearchFieldFilter(index)}
+                    onclick={() => removeFreeTextFilter(index)}
                 >
                     ×
                 </button>
@@ -88,8 +72,8 @@
         </div>
     {/each}
     <button
-        class="add-filter mt-2 border border-dark bg-transparent text-dark rounded-2 px-3 py-1 cursor-pointer"
-        onclick={addResearchFieldFilter}
+        class="add-filter mt-2 border btn btn-sm btn-secondary border-secondary-subtle rounded-2 px-3 py-1 cursor-pointer"
+        onclick={addFreeTextFilter}
     >
         <i class="bi bi-plus-circle"></i>
         Add field

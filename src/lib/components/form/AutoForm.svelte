@@ -26,6 +26,7 @@
         enableDirtyTracking = true,
         dirtyTrackingMessage = null,
         usePortal = true,
+        margin = 4,
     } = $props();
 
     const { t } = getTranslationStore();
@@ -338,7 +339,7 @@
 {/if}
 
 <!-- Non-translatable fields -->
-<div class="m-4">
+<div class="m-{margin}">
     <div class="row">
         {#each orderedFields as fieldName}
             {#if !getFieldConfig(fieldName).hidden && !derivedTranslatable.includes(fieldName)}

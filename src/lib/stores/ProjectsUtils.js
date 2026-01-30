@@ -160,9 +160,21 @@ export const updateProject = async (projectId, updatedData) => {
 
 export const deleteProject = async (projectId) => {
     // Use executeQuery which handles errors, logging, and notifications
-    const result = await executeQuery('projects', 'delete', { projectId });
+    const response = await executeQuery('projects', 'delete', { projectId });
+    
+    if (response?.error) {
+        return { success: false, error: response.error };
+    }
+    
+    const result = response?.result;
     invalidate("app:projects");
-    return result;
+    
+    return {
+        success: result?.deleted || false,
+        projectId: result?.projectId,
+        assetsFolderRemoved: result?.assetsFolderRemoved,
+        counts: result?.counts
+    };
 };
 
 export const addLanguageToProject = async (projectId, languageCode, languageName, isDefault = 0) => {

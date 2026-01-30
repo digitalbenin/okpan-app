@@ -590,6 +590,10 @@ export const updateObjectName = async (objectId, name) => {
 
 // Default pastel color palette for connection field types
 const CONNECTION_COLORS = [
+    "#FFFFFF"
+];
+/*
+const CONNECTION_COLORS = [
     "#E0F2F1", // Light teal
     "#FFF4E6", // Light orange
     "#F3E5F5", // Light purple
@@ -601,7 +605,7 @@ const CONNECTION_COLORS = [
     "#FFEBEE", // Light rose
     "#E8EAF6", // Light indigo
 ];
-
+*/
 /**
  * Get a consistent color for a connection field type
  * Uses a hash function to ensure the same field type always gets the same color

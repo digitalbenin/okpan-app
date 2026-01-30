@@ -8,6 +8,7 @@
     let {
         asset = null,
         size = 150,
+        width = undefined,
         class: customClass = "",
         onRemove = null,
         showRemoveButton = false,
@@ -30,11 +31,12 @@
 </script>
 
 {#if asset}
-    <div class="asset-preview {customClass}">
+    <div class="asset-preview {customClass}" style="max-width: 100%;">
         {#if assetType === "image"}
             <ImagePreview
                 {asset}
                 {size}
+                {width}
                 {showRemoveButton}
                 {onRemove}
                 onClick={handleMediaClick}
@@ -43,17 +45,18 @@
             <VideoPreview
                 {asset}
                 {size}
+                {width}
                 {showRemoveButton}
                 {onRemove}
                 onClick={handleMediaClick}
             />
         {:else if assetType === "audio"}
-            <AudioPreview {asset} {size} {showRemoveButton} {onRemove} />
+            <AudioPreview {asset} {size} {width} {showRemoveButton} {onRemove} />
         {:else}
             <!-- Fallback for unknown file types -->
             <div
                 class="unknown-file-preview bg-white rounded border p-3"
-                style="width: {size}px;"
+                style="width: {width ?? size + 'px'};"
             >
                 <div
                     class="d-flex align-items-center justify-content-center"

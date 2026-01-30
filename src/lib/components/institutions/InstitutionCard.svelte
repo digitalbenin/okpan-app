@@ -8,7 +8,7 @@
 </script>
 
 <div
-  class="w-100 h-100 position-relative d-flex flex-column border p-2 rounded"
+  class="w-100 h-100 position-relative d-flex flex-column border p-2 rounded bg-white"
 >
   <div class="d-flex justify-content-between align-items-center mb-2">
     <div><BaseBadgeStaus status={institution.status}></BaseBadgeStaus></div>

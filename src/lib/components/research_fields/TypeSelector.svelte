@@ -1,6 +1,6 @@
 <script>
     let {
-        value = $bindable("free text"),
+        value = $bindable("freetext"),
         onChange = () => {},
         errors = [],
         onTypeChange = () => {}, // Custom callback for type changes
@@ -19,7 +19,7 @@
     {value}
     onchange={handleChange}
 >
-    <option value="free text">Free Text</option>
+    <option value="freetext">Free Text</option>
     <option value="vocabulary">Vocabulary</option>
 </select>
 

@@ -117,83 +117,32 @@ export const projectsOperations = {
     variables: {
       projectId: "ID of the project to delete"
     },
-    mutations: [
-      {
-        name: "getProject",
-        query: `query GetProjectForDelete($projectId: String!) {
-  project(where: { id: { eq: $projectId } }) {
-    id
-    title_id
-    description_id
+    query: `mutation DeleteProjectCascade($projectId: String!) {
+  result: deleteProjectCascade(projectId: $projectId) {
+    projectId
+    deleted
+    assetsFolderRemoved
+    assetFolderErrors
+    counts {
+      actions
+      websiteSettings
+      settings
+      objects
+      assets
+      genericAssets
+      templates
+      institutions
+      researchFields
+      ontologyFields
+      objectDisplayFields
+      translations
+      texts
+      languages
+      imports
+      project
+    }
   }
-}`,
-        useVariables: ["projectId"]
-      },
-      {
-        name: "deleteProjectLanguages",
-        query: `mutation DeleteProjectLanguages($projectId: String!) {
-  deleteFromLanguages(where: { project_id: { eq: $projectId } }) {
-    id
-    project_id
-  }
-}`,
-        useVariables: ["projectId"]
-      },
-      {
-        name: "deleteInstitutions",
-        query: `mutation DeleteProjectInstitutions($projectId: String!) {
-  deleteFromInstitutions(where: { project_id: { eq: $projectId } }) {
-    id
-  }
-}`,
-        useVariables: ["projectId"]
-      },
-      {
-        name: "deleteObjects",
-        query: `mutation DeleteProjectObjects($projectId: String!) {
-  deleteFromObjects(where: { project_id: { eq: $projectId } }) {
-    id
-  }
-}`,
-        useVariables: ["projectId"]
-      },
-      {
-        name: "deleteProject",
-        query: `mutation DeleteProjectFinal($projectId: String!) {
-  deleteFromProject(where: { id: { eq: $projectId } }) {
-    id
-    title_id
-    description_id
-  }
-}`,
-        useVariables: ["projectId"]
-      },
-      {
-        name: "deleteTitleText",
-        query: `mutation DeleteProjectTitleText($titleId: String!) {
-  deleteFromTexts(where: { id: { eq: $titleId } }) {
-    id
-  }
-}`,
-        mapVariables: {
-          titleId: { from: "getProject", path: "project.0.title_id" }
-        },
-        skipIf: { variableName: "titleId", isUndefined: true }
-      },
-      {
-        name: "deleteDescriptionText",
-        query: `mutation DeleteProjectDescriptionText($descriptionId: String!) {
-  deleteFromTexts(where: { id: { eq: $descriptionId } }) {
-    id
-  }
-}`,
-        mapVariables: {
-          descriptionId: { from: "getProject", path: "project.0.description_id" }
-        },
-        skipIf: { variableName: "descriptionId", isUndefined: true }
-      }
-    ],
-    query: null
+}`
   },
 
   // GET BY ID - Using the custom resolver from graphqlDefs.js

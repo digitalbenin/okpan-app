@@ -20,6 +20,7 @@ import {
     createObjectImportUsingTemplateMutation,
     createResearchFieldObjectsCountQuery,
     createProjectCreateMutation,
+    createProjectDeleteCascadeMutation,
     createAssetsObjectsBulkLinkMutation,
     createAssetsBulkDeleteMutation,
     createObjectsOntologyFieldsUnlinkMutation,
@@ -71,6 +72,9 @@ export function createGraphQLSchema(db) {
         }
     }
 
+    // Explicitly add fields_config as it is a text column with JSON mode
+    fieldsToConvertToJSON.add('fields_config');
+
     // General approach to set specific fields to JSON type across all object types
     for (const type of Object.values(drizzleResult.schema._typeMap)) {
         // Check if it's a GraphQLObjectType and has fields
@@ -107,6 +111,8 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Mutation._fields.objectImportUsingTemplate = createObjectImportUsingTemplateMutation(db, drizzleResult);
     // New consolidated project creation mutation
     drizzleResult.schema._typeMap.Mutation._fields.createProjectWithDefaults = createProjectCreateMutation(db, drizzleResult);
+    // Project delete cascade mutation
+    drizzleResult.schema._typeMap.Mutation._fields.deleteProjectCascade = createProjectDeleteCascadeMutation(db, drizzleResult);
     // Bulk link assets to objects
     drizzleResult.schema._typeMap.Mutation._fields.linkAssetsToObjectsBulk = createAssetsObjectsBulkLinkMutation(db, drizzleResult);
     // Bulk delete assets and clean filesystem
