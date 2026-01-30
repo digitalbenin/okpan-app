@@ -178,7 +178,7 @@ function tablesStats(tablesJson) {
 }
 
 
-function computeDiff(beforeTables, afterTables) {
+function computeDiff(beforeTables, afterTables, { allowTableDeletes = false } = {}) {
   const diffs = deepDiff(beforeTables || {}, afterTables || {}) || []
 
   const inserts = []
@@ -225,8 +225,11 @@ function computeDiff(beforeTables, afterTables) {
         }
       } else if (t === 0) {
         // Table deleted → explicit bulk deletes for all existing rows
-        for (const id of Object.keys(beforeRows)) {
-          deleteKeys.add(makeKey(table, id))
+        // Guarded to avoid accidental mass deletes from transient table-map replacements
+        if (allowTableDeletes) {
+          for (const id of Object.keys(beforeRows)) {
+            deleteKeys.add(makeKey(table, id))
+          }
         }
       } else if (t === 2) {
         // Table updated → when BEFORE is empty and AFTER has rows, treat as creation
@@ -369,7 +372,9 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
       after: afterStats
     })
   } catch (_) {}
-  const { inserts, updates, deletes } = computeDiff(beforeTables, afterTables)
+  const { inserts, updates, deletes } = computeDiff(beforeTables, afterTables, {
+    allowTableDeletes: options?.allowTableDeletes === true
+  })
 
   let applied = 0
   let deferredInserts = 0
