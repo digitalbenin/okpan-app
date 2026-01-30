@@ -1,8 +1,9 @@
 import * as Y from 'yjs';
 import { db } from '../../db/init.js';
-import { eq, and, gt, desc, sql } from 'drizzle-orm';
+import { eq, and, gt, desc, sql, inArray, or } from 'drizzle-orm';
 import { yjs_snapshots, yjs_updates, change_log, ingestion_state } from '../../db/schema.js';
-import { getProjectDoc } from './projectCache.js';
+import * as schema from '../../db/schema.js';
+import { getProjectDoc, ensureTableMap } from './projectCache.js';
 
 // Minimal compatibility: ensure parent table maps exist before applying updates
 const TABLES = [
@@ -197,4 +198,119 @@ export async function hydrateProjectFromLatestSnapshot(projectId) {
     console.error('[Snapshot] Hydration error', { projectId }, err);
     return { applied: 0, fromSnapshot: false, error: err?.message };
   }
+}
+
+export async function hydrateProjectFromDatabase(projectId) {
+  if (!projectId) return { applied: 0 };
+  const doc = getProjectDoc(projectId);
+  const tables = doc.getMap('tables');
+
+  // Optimization: If doc is already populated, assume it's valid and skip hydration
+  if (tables.size > 0) {
+     console.log('[Snapshot] Doc already hydrated, skipping DB load', { projectId });
+     return { applied: 0, skipped: true };
+  }
+
+  let loadedCount = 0;
+
+  console.log('[Snapshot] Deep hydration from SQLite start', { projectId });
+
+  // Resolve schema table from string name
+  const resolveSchema = (name) => {
+    if (name === 'generic_assets') return schema.genericAssets;
+    if (name === 'website_settings') return schema.websiteSettings;
+    return schema[name];
+  };
+
+  // Helper to load rows into Yjs
+  const loadIntoDoc = (tableName, rows) => {
+    if (!rows || rows.length === 0) return;
+    const yMap = ensureTableMap(projectId, tableName);
+    doc.transact(() => {
+      for (const row of rows) {
+        yMap.set(row.id, row);
+      }
+    }, 'hydration'); // Origin 'hydration' to skip tailing (p2pService should ignore these if it sees them, but they are local)
+    loadedCount += rows.length;
+  };
+
+  // 1. Core Project Tables (Direct project_id)
+  const directProjectTables = [
+    'project', 'settings', 'website_settings', 'object_display_fields',
+    'research_fields', 'ontology_fields', 'assets', 'generic_assets',
+    'objects', 'templates', 'languages', 'institutions'
+  ];
+
+  for (const t of directProjectTables) {
+    const tableDef = resolveSchema(t);
+    if (!tableDef) continue;
+    try {
+      const rows = await db.select().from(tableDef).where(eq(tableDef.project_id, projectId)).execute();
+      loadIntoDoc(t, rows);
+    } catch(err) {
+      console.warn(`[Snapshot] Failed to hydrate table ${t}`, err);
+    }
+  }
+
+  // 2. Dependent Tables
+
+  // Texts & Translations (via Languages)
+  try {
+     const langSq = db.select({ id: schema.languages.id }).from(schema.languages).where(eq(schema.languages.project_id, projectId));
+     
+     const textRows = await db.select().from(schema.texts).where(inArray(schema.texts.original_language_id, langSq)).execute();
+     loadIntoDoc('texts', textRows);
+
+     const transRows = await db.select().from(schema.translations).where(inArray(schema.translations.language_id, langSq)).execute();
+     loadIntoDoc('translations', transRows);
+  } catch(err) { console.warn('[Snapshot] Failed to hydrate texts/translations', err); }
+
+  // Datasources (via Institution OR Template)
+  try {
+     const instSq = db.select({ id: schema.institutions.id }).from(schema.institutions).where(eq(schema.institutions.project_id, projectId));
+     const tplSq = db.select({ id: schema.templates.id }).from(schema.templates).where(eq(schema.templates.project_id, projectId));
+     
+     const dsRows = await db.select().from(schema.datasources)
+       .where(or(
+         inArray(schema.datasources.institution_id, instSq),
+         inArray(schema.datasources.template_id, tplSq)
+       )).execute();
+     loadIntoDoc('datasources', dsRows);
+  } catch(err) { console.warn('[Snapshot] Failed to hydrate datasources', err); }
+
+  // Junctions
+  const linkTables = [
+     { name: 'objects_assets', col: 'object_id', ref: 'objects', refCol: 'id' },
+     { name: 'assets_institutions', col: 'asset_id', ref: 'assets', refCol: 'id' },
+     { name: 'objects_research_fields', col: 'object_id', ref: 'objects', refCol: 'id' },
+     { name: 'objects_ontology_fields', col: 'object_id', ref: 'objects', refCol: 'id' },
+     { name: 'vocabularies_generic_assets', col: 'generic_asset_id', ref: 'generic_assets', refCol: 'id' }
+  ];
+
+  for (const l of linkTables) {
+    const tableDef = resolveSchema(l.name);
+    const refDef = resolveSchema(l.ref);
+    if (!tableDef || !refDef) continue;
+    try {
+       const refSq = db.select({ id: refDef[l.refCol] }).from(refDef).where(eq(refDef.project_id, projectId));
+       const rows = await db.select().from(tableDef).where(inArray(tableDef[l.col], refSq)).execute();
+       loadIntoDoc(l.name, rows);
+    } catch(err) { console.warn(`[Snapshot] Failed to hydrate ${l.name}`, err); }
+  }
+
+  // Vocabularies (via Field OR Main Asset)
+  try {
+     const fieldSq = db.select({ id: schema.ontology_fields.id }).from(schema.ontology_fields).where(eq(schema.ontology_fields.project_id, projectId));
+     const assetSq = db.select({ id: schema.assets.id }).from(schema.assets).where(eq(schema.assets.project_id, projectId));
+
+     const vocRows = await db.select().from(schema.vocabularies)
+       .where(or(
+          inArray(schema.vocabularies.field_id, fieldSq),
+          inArray(schema.vocabularies.main_asset_id, assetSq)
+       )).execute();
+     loadIntoDoc('vocabularies', vocRows);
+  } catch(err) { console.warn('[Snapshot] Failed to hydrate vocabularies', err); }
+
+  console.log('[Snapshot] Deep hydration complete', { projectId, loadedRows: loadedCount });
+  return { applied: loadedCount };
 }
