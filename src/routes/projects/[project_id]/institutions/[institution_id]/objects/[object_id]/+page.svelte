@@ -26,6 +26,7 @@
   const projectId = $derived($page.params.project_id);
   const currentInstitutionIdParam = $derived($page.params.institution_id);
   const languages = $derived($page.data.languages || []);
+  const listQuery = $derived($page.url.search || "");
   const defaultLanguageId = $derived.by(() => {
     const langs = languages || [];
     const def = langs.find((l) => l.is_default);
@@ -317,7 +318,7 @@
     title={displayTitle}
     status={data.object.status}
     statusDisabled={statusUpdating}
-    onBack={() => goto(`/projects/${projectId}/institutions/${currentInstitutionIdParam}`)}
+    onBack={() => goto(`/projects/${projectId}/institutions/${currentInstitutionIdParam}${listQuery}`)}
     onStatusChange={setStatus}
   />
 

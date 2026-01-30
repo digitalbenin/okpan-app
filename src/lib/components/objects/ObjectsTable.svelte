@@ -16,6 +16,7 @@
     selectedObjects = $bindable(),
     displayFields,
     displayInstitution = false,
+    listQuery = "",
   } = $props();
 
   const { t, translationState } = getTranslationStore();
@@ -36,15 +37,16 @@
         }),
       },
       {
-        value: "object_id",
+        value: "name",
         label: t("common.object-id", { fallback: "Object ID" }),
-        sortable: false,
+        sortable: true,
         accessor: (value) => {
           const text =
             (value?.name?.content && String(value.name.content).trim()) ||
             (typeof value?.name === "string" && String(value.name).trim()) ||
             getObjectIdentifier(value);
-          const url = `/projects/${value.project_id}/institutions/${value.institution_id}/objects/${value.id}`;
+          const baseUrl = `/projects/${value.project_id}/institutions/${value.institution_id}/objects/${value.id}`;
+          const url = listQuery ? `${baseUrl}${listQuery}` : baseUrl;
           return {
             url,
             text,

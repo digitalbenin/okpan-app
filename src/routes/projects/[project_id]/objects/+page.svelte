@@ -23,6 +23,7 @@
   // Query parameters
   const params = queryParameters({
     view: ssp.string("objects"),
+    viewAs: ssp.string("grid"),
     pageSize: { encode: (v) => v.toString(), decode: (v) => (v ? parseInt(v) : null), defaultValue: 25 },
     page: { encode: (v) => v.toString(), decode: (v) => (v ? parseInt(v) : null), defaultValue: 1 },
     orderBy: ssp.string("updated_at"),
@@ -54,7 +55,6 @@
 
   // State
   let searchText = $state(params.search || "");
-  let viewAs = $state("grid");
   let selectedObjects = $state([]);
   let bulkStatusValue = $state("");
   let showAdvancedFilters = $state(false);
@@ -68,11 +68,8 @@
   const searchData = $derived(data.objects || { items: [], totalCount: 0, facets: {} });
   const displayFields = $derived(data.displayFields);
   const researchFields = $derived(data.researchFields);
-
-  const viewAsOptions = $derived([
-    { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
-    { value: "table", label: t("common.table-view", { fallback: "Table" }) },
-  ]);
+  const listQuery = $derived($page.url.search || "");
+  const viewAs = $derived(params.viewAs || "grid");
 
   const ontologyFieldsList = $derived.by(() => [
     { value: "name", label: t("common.name", { fallback: "Name" }) },
@@ -81,9 +78,15 @@
   ]);
 
   const statuses = $derived([
-    { value: "all", label: t("common.all", { fallback: "All" }) },
+    { value: "all", label: t("common.all-status", { fallback: "All status" }) },
     { value: "in progress", label: t("common.in-progress", { fallback: "In progress" }) },
     { value: "completed", label: t("common.completed", { fallback: "Completed" }) },
+  ]);
+
+  const sortOptions = $derived([
+    { value: "updated_at", label: t("common.sort-by-date", { fallback: "Sort by date" }) },
+    { value: "created_at", label: t("common.sort-by-created", { fallback: "Sort by created" }) },
+    { value: "name", label: t("common.sort-by-name", { fallback: "Sort by name" }) },
   ]);
 
   const vocabularies = $derived.by(() => {
@@ -307,19 +310,10 @@
         {i18n.objects}
       </h2>
     </div>
-    <div class="col-auto">
-      <a class="btn btn-primary btn-sm" href="/projects/{data.project.id}/objects/add">
-        <i class="bi bi-plus-lg"></i>
-        {i18n.addNew}
-      </a>
-    </div>
   </div>
-  <div class="row align-items-center mb-3 position-relative overflow-hidden py-2">
+  <div class="row align-items-center mb-3 position-relative overflow-hidden py-2 ps-2">
     {#if selectedObjects.length > 0}
-      <div
-        transition:fly={{ opacity: 1, y: -35 }}
-        class="d-flex align-items-center px-3 gap-2 position-absolute top-0 start-0 end-0 bottom-0 z-1 bg-white border-bottom"
-      >
+      <div class="d-flex align-items-center px-3 gap-2 py-2 bg-white border rounded-3">
         <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
           <span>{i18n.clearSelection}</span>
           <i class="bi bi-x-circle"></i>
@@ -344,63 +338,86 @@
           </button>
         </div>
       </div>
-    {/if}
-    <div class="col-4">
-      <BaseInput
-        icon="search"
-        placeholder={i18n.search}
-        size="sm"
-        bind:value={searchText}
-        onInput={handleSearchInput}
-        optionsList={ontologyFieldsList}
-        bind:optionsValue={params.searchField}
-      />
-    </div>
-    <div class="col-8 d-flex justify-content-end gap-3 align-items-center">
-      <div class="d-flex align-items-center text-truncate gap-2">
-        <div class="col-auto fs-7">{i18n.selectFields}</div>
-        <InstitutionObjectsFields {displayFields} {researchFields} projectId={data.project.id} />
+    {:else}
+      <div class="row align-items-center g-2 py-2">
+        <div class="col-12 col-md-6">
+          <BaseInput
+            icon="search"
+            placeholder={i18n.search}
+            size="sm"
+            bind:value={searchText}
+            onInput={handleSearchInput}
+            optionsList={ontologyFieldsList}
+            bind:optionsValue={params.searchField}
+          />
+        </div>
+        <div class="col-12 col-md-6 d-flex justify-content-md-end gap-2">
+          <a class="btn btn-secondary btn-sm" href="/projects/{data.project.id}/objects/add">
+            <i class="bi bi-plus-lg"></i>
+            {i18n.addNew}
+          </a>
+        </div>
       </div>
 
-      <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">{i18n.status}</div>
-        <BaseSelect items={statuses} bind:value={params.status} size="sm" />
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">{i18n.viewAs}</div>
-        <BaseSelect items={viewAsOptions} bind:value={viewAs} size="sm" />
-      </div>
-      <button type="button" class="btn btn-outline-primary btn-sm" onclick={handleFiltersClick}>
-        <i class="bi bi-filter"></i>
-        {i18n.filter}
-      </button>
-    </div>
-  </div>
-  {#if searchData.totalCount}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div>
-        {searchData.totalCount}
-        {searchData.totalCount > 1 ? t("common.objects", { fallback: "objects" }) : t("common.object", { fallback: "object" })}
-      </div>
-      {#if hasAppliedFilters}
-        <div class="d-flex align-items-center justify-content-end gap-2 flex-wrap">
-          {#each filterBadges as b}
-            <span class="badge rounded-pill text-bg-secondary d-flex align-items-center gap-1">
-              <span class="text-truncate" style="max-width: 240px;">{b.text}</span>
-              <button class="btn btn-sm btn-link text-white p-0 m-0" aria-label={t("common.remove", { fallback: "Remove" })} onclick={b.onClear}>
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </span>
-          {/each}
+      <div class="row align-items-center g-2 pb-2 mt-2">
+        <div class="col-auto">
+          {searchData.totalCount}
+          {searchData.totalCount === 1 ? t("common.object", { fallback: "object" }) : t("common.objects", { fallback: "objects" })}
         </div>
-      {/if}
+        <div class="col d-flex justify-content-end gap-2 flex-wrap">
+          <BaseSelect items={statuses} bind:value={params.status} as="button" inputClass="btn-light btn-sm border">
+            <i class="bi bi-chevron-down"></i>
+          </BaseSelect>
+          <BaseSelect items={sortOptions} bind:value={params.orderBy} as="button" inputClass="btn-light btn-sm border">
+            <i class="bi bi-chevron-down"></i>
+          </BaseSelect>
+          <InstitutionObjectsFields
+            {displayFields}
+            {researchFields}
+            projectId={data.project.id}
+            as="button"
+            inputClass="btn-light btn-sm border"
+          />
+          <button type="button" class="btn btn-light btn-sm border" onclick={handleFiltersClick}>
+            <i class="bi bi-filter"></i>
+            {i18n.filter}
+          </button>
+          <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as", { fallback: "View as" })}>
+            {#each [{ val: "grid", icon: "grid-3x3-gap", label: t("common.grid-view", { fallback: "Grid" }) }, { val: "table", icon: "list", label: t("common.table-view", { fallback: "Table" }) }] as view}
+              <button
+                type="button"
+                class="btn btn-light border"
+                class:active={viewAs === view.val}
+                onclick={() => (params.viewAs = view.val)}
+                aria-label={view.label}
+              >
+                <i class="bi bi-{view.icon}"></i>
+              </button>
+            {/each}
+          </div>
+        </div>
+      </div>
+    {/if}
+  </div>
+  {#if hasAppliedFilters}
+    <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+      {#each filterBadges as b}
+        <span class="badge rounded-pill text-bg-secondary d-flex align-items-center gap-1">
+          <span class="text-truncate" style="max-width: 240px;">{b.text}</span>
+          <button class="btn btn-sm btn-link text-white p-0 m-0" aria-label={t("common.remove", { fallback: "Remove" })} onclick={b.onClear}>
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </span>
+      {/each}
     </div>
+  {/if}
+  {#if searchData.totalCount}
     {#key displayFields}
       {#if viewAs === "grid"}
         <div class="row">
           {#each searchData.items as object (object.id)}
             <div class="col-3">
-              <ObjectCard {object} {displayFields} displayInstitution={true} bind:selected={selectedObjects} />
+              <ObjectCard {object} {displayFields} displayInstitution={true} bind:selected={selectedObjects} listQuery={listQuery} />
             </div>
           {/each}
         </div>
@@ -412,6 +429,7 @@
           bind:selectedObjects
           {displayFields}
           displayInstitution={true}
+          listQuery={listQuery}
         />
       {/if}
     {/key}

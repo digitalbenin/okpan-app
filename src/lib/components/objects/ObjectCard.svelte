@@ -7,7 +7,7 @@
   import Swiper from "swiper";
   import { Navigation } from "swiper/modules";
 
-  let { object, displayFields, displayInstitution = false, selected = $bindable([]) } = $props();
+  let { object, displayFields, displayInstitution = false, selected = $bindable([]), listQuery = "" } = $props();
   
   // Selection logic
   let isSelected = $derived(selected.includes(object.id));
@@ -28,6 +28,8 @@
       (typeof object?.name === "string" && String(object.name).trim()) ||
       getObjectIdentifier(object)
   );
+
+  const withQuery = (url) => (listQuery ? `${url}${listQuery}` : url);
 
   const attachSwiper = (element) => {
     const swiperInstance = new Swiper(element, {
@@ -146,7 +148,7 @@
   </div>
   <div class="fs-5 mb-2">
     <a
-      href="/projects/{object.project_id}/institutions/{object.institution_id}/objects/{object.id}"
+      href={withQuery(`/projects/${object.project_id}/institutions/${object.institution_id}/objects/${object.id}`)}
       class="link-dark">{title}</a
     >
   </div>

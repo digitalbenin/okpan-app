@@ -25,6 +25,7 @@
       decode: (value) => (value ? value : "all"),
       defaultValue: undefined,
     },
+    oViewAs: ssp.string("grid"),
     oStatus: {
       encode: (value) => (value === "all" ? undefined : value),
       decode: (value) => (value ? value : "all"),
