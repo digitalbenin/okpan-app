@@ -1,6 +1,7 @@
 <script>
   import { watch } from "runed";
   import SetMatch from "$lib/components/import/matchPreview/SetMatch.svelte";
+  import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
   import { createTemplate, updateTemplate, updateTemplateAndPropagate } from "$lib/stores/TemplatesUtils.js";
   import { page } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -60,6 +61,16 @@
   function ontologyName(fieldId) {
     if (!fieldId) return "";
     return ontologyLabelById.get(fieldId) || "";
+  }
+
+  function isObjectIdField(fieldId) {
+    if (!fieldId) return false;
+    const name = ontologyLabelById.get(fieldId) || "";
+    return name.toLowerCase() === "object id";
+  }
+
+  function rowHasObjectIdField(row) {
+    return row.mappedFields.some(fieldId => isObjectIdField(fieldId));
   }
 
   function coercePrimaryBool(val) {
@@ -482,15 +493,36 @@
                       </div>
                     </td>
                     <td class="text-end">
-                      <button
-                        type="button"
-                        class="btn btn-link text-danger p-0"
-                        onclick={() => removeRow(row.rowId)}
-                        disabled={!canEdit}
-                        aria-label="Delete row"
-                      >
-                        <i class="bi bi-dash-circle-fill"></i>
-                      </button>
+                      {#if rowHasObjectIdField(row)}
+                        <BaseTooltip rootProps={{ side: "left", align: "start" }}>
+                          {#snippet trigger(props)}
+                            <div class="d-inline-block" {...(({ type, ...rest }) => rest)(props)}>
+                              <button
+                                type="button"
+                                class="btn btn-link text-danger p-0"
+                                onclick={() => removeRow(row.rowId)}
+                                disabled={true}
+                                aria-label="Delete row"
+                              >
+                                <i class="bi bi-dash-circle-fill"></i>
+                              </button>
+                            </div>
+                          {/snippet}
+                          {t("common.object-id-field-cannot-be-deleted", {
+                            fallback: "Cannot delete: mapped to Object ID field"
+                          })}
+                        </BaseTooltip>
+                      {:else}
+                        <button
+                          type="button"
+                          class="btn btn-link text-danger p-0"
+                          onclick={() => removeRow(row.rowId)}
+                          disabled={!canEdit}
+                          aria-label="Delete row"
+                        >
+                          <i class="bi bi-dash-circle-fill"></i>
+                        </button>
+                      {/if}
                     </td>
                   </tr>
                 {/each}
