@@ -33,6 +33,8 @@ import { handleListLanguages } from './handlers/languagesHandlers.js';
 import { applyMigration } from '../db/scripts/applyMigration.js';
 import { handleCreateBackup, handleSelectBackupFile, handleCheckBackupFile, handleRestoreBackup } from './handlers/backupHandler.js';
 
+app.disableHardwareAcceleration()
+
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
 
@@ -43,6 +45,11 @@ if (started) {
 
 // Register IPC handlers
 ipcMain.handle('ping', handlePing);
+ipcMain.handle('get-system-info', () => ({
+  arch: process.arch,
+  platform: process.platform,
+  isDev: !!MAIN_WINDOW_VITE_DEV_SERVER_URL
+}));
 ipcMain.handle('execute-graphql', (event, params) =>
   handleGraphQL(event, params, { schema, resolvers, db })
 );

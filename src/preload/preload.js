@@ -7,6 +7,7 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron';
 contextBridge.exposeInMainWorld('api', {
     executeGraphQL: (query, variables, context) => ipcRenderer.invoke('execute-graphql', { query, variables, context }),
     ping: () => ipcRenderer.invoke('ping'),
+    getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
     exportTranslations: (filePath) => ipcRenderer.invoke('export-translations', filePath),
     importTranslations: (filePath) => ipcRenderer.invoke('import-translations', filePath),
     exportLogs: (filePath) => ipcRenderer.invoke('export-logs', filePath),

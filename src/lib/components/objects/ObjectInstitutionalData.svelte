@@ -250,7 +250,7 @@
   const allDatasourcesMenu = $derived(datasourcesArray.map(ds => createDatasourceMenu(ds)));
 </script>
 
-<div class="card bg-white border-0">
+<div class="card bg-white border-0 pb-4">
   <div class="card-body p-0">
     <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
       <div class="d-flex align-items-center gap-2">
