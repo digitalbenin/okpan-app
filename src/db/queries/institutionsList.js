@@ -116,40 +116,68 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                 objectsCount: sql`COALESCE(${objectsSubquery.objects_count}, 0)`.as('objectsCount'),
                 datasourcesCount: sql`COALESCE(${datasourcesSubquery.datasources_count}, 0)`.as('datasourcesCount'),
                 assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount'),
-                previewImages: sql`COALESCE((
-                    SELECT json_group_array(json(preview.formats)) 
-                    FROM (
-                        SELECT a.formats
+                previewImages: sql`COALESCE(
+                    (
+                        SELECT json_group_array(json(preview.formats))
                         FROM (
-                            SELECT o.id, o.created_at
-                            FROM objects o
-                            WHERE o.institution_id = ${dbSchema.institutions.id}
-                            ORDER BY o.created_at DESC
+                            SELECT a.formats
+                            FROM assets a
+                            WHERE a.institution_id = ${dbSchema.institutions.id}
+                              AND (LOWER(a.type) LIKE '%image%'
+                                   OR LOWER(a.filename) LIKE '%.jpg'
+                                   OR LOWER(a.filename) LIKE '%.png'
+                                   OR LOWER(a.filename) LIKE '%.jpeg'
+                                   OR LOWER(a.filename) LIKE '%.avif'
+                                   OR LOWER(a.filename) LIKE '%.webp')
+                            ORDER BY a.created_at DESC
                             LIMIT 3
-                        ) top_objects
-                        JOIN objects_assets oa ON top_objects.id = oa.object_id
-                        JOIN assets a ON oa.asset_id = a.id  
-                        WHERE (LOWER(a.type) LIKE '%image%' 
-                               OR LOWER(a.filename) LIKE '%.jpg'
-                               OR LOWER(a.filename) LIKE '%.png'
-                               OR LOWER(a.filename) LIKE '%.jpeg' 
-                               OR LOWER(a.filename) LIKE '%.avif'
-                               OR LOWER(a.filename) LIKE '%.webp')
-                            AND oa."order" = (
-                                SELECT MIN(oa2."order")
-                                FROM objects_assets oa2
-                                JOIN assets a2 ON oa2.asset_id = a2.id
-                                WHERE oa2.object_id = top_objects.id
-                                    AND (LOWER(a2.type) LIKE '%image%' 
-                                         OR LOWER(a2.filename) LIKE '%.jpg'
-                                         OR LOWER(a2.filename) LIKE '%.png'
-                                         OR LOWER(a2.filename) LIKE '%.jpeg' 
-                                         OR LOWER(a2.filename) LIKE '%.avif'
-                                         OR LOWER(a2.filename) LIKE '%.webp')
-                            )
-                        ORDER BY top_objects.created_at DESC
-                    ) preview
-                ), '[]')`.as('previewImages')
+                        ) preview
+                    ),
+                    (
+                        SELECT json_group_array(json(preview.formats)) 
+                        FROM (
+                            SELECT a.formats
+                            FROM (
+                                SELECT o.id, o.created_at
+                                FROM objects o
+                                JOIN objects_assets oa ON o.id = oa.object_id
+                                JOIN assets a ON oa.asset_id = a.id
+                                WHERE o.institution_id = ${dbSchema.institutions.id}
+                                  AND (LOWER(a.type) LIKE '%image%' 
+                                       OR LOWER(a.filename) LIKE '%.jpg'
+                                       OR LOWER(a.filename) LIKE '%.png'
+                                       OR LOWER(a.filename) LIKE '%.jpeg' 
+                                       OR LOWER(a.filename) LIKE '%.avif'
+                                       OR LOWER(a.filename) LIKE '%.webp')
+                                GROUP BY o.id
+                                ORDER BY o.created_at DESC
+                                LIMIT 3
+                            ) top_objects
+                            JOIN objects_assets oa ON top_objects.id = oa.object_id
+                            JOIN assets a ON oa.asset_id = a.id  
+                            WHERE (LOWER(a.type) LIKE '%image%' 
+                                   OR LOWER(a.filename) LIKE '%.jpg'
+                                   OR LOWER(a.filename) LIKE '%.png'
+                                   OR LOWER(a.filename) LIKE '%.jpeg' 
+                                   OR LOWER(a.filename) LIKE '%.avif'
+                                   OR LOWER(a.filename) LIKE '%.webp')
+                                AND oa."order" = (
+                                    SELECT MIN(oa2."order")
+                                    FROM objects_assets oa2
+                                    JOIN assets a2 ON oa2.asset_id = a2.id
+                                    WHERE oa2.object_id = top_objects.id
+                                        AND (LOWER(a2.type) LIKE '%image%' 
+                                             OR LOWER(a2.filename) LIKE '%.jpg'
+                                             OR LOWER(a2.filename) LIKE '%.png'
+                                             OR LOWER(a2.filename) LIKE '%.jpeg' 
+                                             OR LOWER(a2.filename) LIKE '%.avif'
+                                             OR LOWER(a2.filename) LIKE '%.webp')
+                                )
+                            ORDER BY top_objects.created_at DESC
+                        ) preview
+                    ),
+                    '[]'
+                )`.as('previewImages')
             })
                 .from(dbSchema.institutions)
                 .leftJoin(objectsSubquery, eq(dbSchema.institutions.id, objectsSubquery.institution_id))

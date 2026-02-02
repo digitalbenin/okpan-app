@@ -26,6 +26,7 @@
   const projectId = $derived($page.params.project_id);
   const currentInstitutionIdParam = $derived($page.params.institution_id);
   const languages = $derived($page.data.languages || []);
+  const listQuery = $derived($page.url.search || "");
   const defaultLanguageId = $derived.by(() => {
     const langs = languages || [];
     const def = langs.find((l) => l.is_default);
@@ -317,14 +318,14 @@
     title={displayTitle}
     status={data.object.status}
     statusDisabled={statusUpdating}
-    onBack={() => goto(`/projects/${projectId}/institutions/${currentInstitutionIdParam}`)}
+    onBack={() => goto(`/projects/${projectId}/institutions/${currentInstitutionIdParam}${listQuery}`)}
     onStatusChange={setStatus}
   />
 
   <!-- Research Fields and Linked Media Section -->
   <div class="container-fluid bg-light">
     <div class="row">
-      <div class="col-9">
+      <div class="col-9 mb-4">
         <div class="mt-2 mb-3 px-2">
           <ObjectBasicInfo
             bind:objectName
@@ -367,7 +368,7 @@
             onChangesUpdate={handleComponentChanges}
           />
         </div>
-        <div class="mt-2 mb-3 px-2">
+        <div class="mt-2 mb-3 px-2 pb-4">
           <ObjectInstitutionalData
             object={data.object}
             datasources={data.datasources}

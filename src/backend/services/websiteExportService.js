@@ -67,10 +67,13 @@ export async function exportStaticWebsite(projectId, outputPath, { db }) {
     await fs.writeFile(dataJsonPath, JSON.stringify(data, null, 2), 'utf-8');
     console.log(`[Website Export] Exported ${data.objects.length} objects to data.json`);
     
-    // Also write site.json with just project and settings (for sidebar)
+    // Also write site.json with just project/settings and connection types (small file, loaded client-side)
     const siteData = {
       project: data.project || {},
-      settings: data.settings || {}
+      settings: data.settings || {},
+      connection_types: (data.research_fields || [])
+        .filter((field) => field?.type === 'vocabulary')
+        .map((field) => ({ id: field.id, name: field.name, description: field.description }))
     };
     await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');
     console.log('[Website Export] Exported site.json for sidebar');
@@ -512,13 +515,19 @@ async function exportWebsiteData(projectId, db) {
     } : {};
 
     // Transform settings with resolved text, falling back to project values
+    const aboutText = textMap[settings?.about_id] || textMap[project?.description_id] || null;
     const transformedSettings = {
       title: textMap[settings?.title_id] || textMap[project?.title_id] || null,
-      description: textMap[settings?.about_id] || textMap[project?.description_id] || null,
+      about: aboutText,
+      description: aboutText,
       authors: settings?.authors || null,
       logo_asset_path: logoAssetPath,
       show_unmapped: settings?.show_unmapped || 0
     };
+
+    const connectionTypes = transformedResearchFields
+      .filter((field) => field?.type === 'vocabulary')
+      .map((field) => ({ id: field.id, name: field.name, description: field.description }));
 
     return {
       metadata: {
@@ -533,7 +542,8 @@ async function exportWebsiteData(projectId, db) {
       institutions: transformedInstitutions,
       research_fields: transformedResearchFields,
       ontology_fields: transformedOntologyFields,
-      vocabularies: transformedVocabularies
+      vocabularies: transformedVocabularies,
+      connection_types: connectionTypes
     };
   } catch (error) {
     console.error('[exportWebsiteData] Error:', error);

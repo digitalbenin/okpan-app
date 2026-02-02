@@ -2,7 +2,14 @@
   import { page } from "$app/state";
   import SidebarMenu from "$lib/components/projects/SidebarMenu.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { onMount } from "svelte";
   const { t } = getTranslationStore();
+
+  let systemInfo = $state({ arch: '', platform: '', isDev: false });
+
+  onMount(async () => {
+    systemInfo = await window.api.getSystemInfo();
+  });
 
   const projectLinks = $derived([
     {
@@ -120,11 +127,16 @@
   <SidebarMenu items={websiteLinks} pathname={page.url.pathname} />
   <h5>Other</h5>
   <SidebarMenu items={otherLinks} pathname={page.url.pathname} />
-  <a href="/debug" class="btn btn-link">debug</a>
-  <button
-    onclick={() => window.api.openPreview(page.data.project.id)}
-    class="btn btn-link">Preview</button
-  >
+  {#if systemInfo.isDev}
+    <a href="/debug" class="btn btn-link">debug</a>
+    <button
+      onclick={() => window.api.openPreview(page.data.project.id)}
+      class="btn btn-link">Preview</button
+    >
+    <div class="mt-3 text-muted small">
+      <div>{systemInfo.platform} ({systemInfo.arch})</div>
+    </div>
+  {/if}
 </div>
 
 <style>

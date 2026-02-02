@@ -1,7 +1,10 @@
 <script>
   import { page as pageData } from "$app/state";
+  import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
+  let { institutionsCount = 0 } = $props();
   const projectId = $derived(pageData.data.project.id);
   const baseUrl = $derived(`/projects/${projectId}`);
+  const hasInstitutions = $derived((institutionsCount ?? 0) > 0);
 </script>
 
 <div class="container-fluid py-4">
@@ -17,29 +20,29 @@
   </div>
 
   <div class="row g-4 mx-3 mt-1">
-    <!-- Define data structure -->
+    <!-- Define connections -->
     <div class="col-12 col-md-4">
       <div
         class="h-100 border rounded p-3 bg-white d-flex flex-column justify-content-between"
       >
         <div class="mb-3 text-muted">
           <i
-            class="bi bi-grid-3x3-gap-fill fs-1 mb-3 d-block"
+            class="bi bi-share-fill fs-1 mb-3 d-block"
             style="color:#dddddd"
           ></i>
           <div class="mb-3">
-            <div class="h4 mb-0">Define your data structure</div>
+            <div class="h4 mb-0">Create connections</div>
           </div>
           <p class="text-muted">
-            How do you want to describe the objects you import? Define the
-            ontology and vocabularies for your research project.
+            Set up connections for your project so you can link objects to
+            controlled vocabularies and shared terms.
           </p>
         </div>
         <div>
           <a
             class="btn btn-primary"
-            href={`${baseUrl}/data-structure/research-fields`}
-            >Define data structure</a
+            href={`${baseUrl}/connections`}
+            >Create connections</a
           >
         </div>
       </div>
@@ -84,7 +87,22 @@
           </p>
         </div>
         <div>
-          <a class="btn btn-primary" href={`${baseUrl}/import-data`}>Import data</a>
+          {#if hasInstitutions}
+            <a class="btn btn-primary" href={`${baseUrl}/import-data`}>Import data</a>
+          {:else}
+            <BaseTooltip>
+              {#snippet trigger(props)}
+                <span {...props}>
+                  <button class="btn btn-primary" type="button" disabled>
+                    Import data
+                  </button>
+                </span>
+              {/snippet}
+              {#snippet children()}
+                Create at least one institution to import data.
+              {/snippet}
+            </BaseTooltip>
+          {/if}
         </div>
       </div>
     </div>

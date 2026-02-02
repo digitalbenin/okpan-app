@@ -31,6 +31,7 @@
             };
           })
       );
+      wizard.importCompleted = true;
       open = true;
       console.log("Assets linked:", response);
     } catch (error) {

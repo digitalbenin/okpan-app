@@ -38,7 +38,7 @@
 </script>
 
 {#if (data.objects?.totalCount ?? 0) === 0}
-  <ProjectWelcome />
+  <ProjectWelcome institutionsCount={data.institutions?.count ?? 0} />
 {:else}
   <div class="wrapper container-fluid bg-light pb-3">
     <div class="row">

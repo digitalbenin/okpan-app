@@ -28,6 +28,7 @@
 
       const response = await saveFetcher.fetch(saveParams);
       console.log("Datasource saved:", response);
+      wizard.importCompleted = true;
       open = true;
     } catch (error) {
       console.error("Error saving datasource:", error);

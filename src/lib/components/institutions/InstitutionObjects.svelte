@@ -12,6 +12,7 @@
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import ObjectAdvancedFilters from "$lib/components/objects/ObjectAdvancedFilters.svelte";
   import { afterNavigate, goto } from "$app/navigation";
+  import { page } from "$app/stores";
   import { resource } from "runed";
   import { updateObjectsStatusBulk, updateObjectsInstitutionBulk, searchObjects } from "$lib/stores/ObjectsUtils.js";
 
@@ -20,7 +21,6 @@
   const { t } = getTranslationStore();
 
   // State
-  let viewAs = $state("grid");
   let selectedObjects = $state([]);
   let showBulkDeleteModal = $state(false);
   let showBulkInstitutionModal = $state(false);
@@ -29,6 +29,8 @@
   let advancedFilters = $state(params?.oFilters || {});
 
   afterNavigate(() => { advancedFilters = params?.oFilters || {}; });
+  const listQuery = $derived($page.url.search || "");
+  const viewAs = $derived(params?.oViewAs || "grid");
 
   // Helpers
   const getFieldList = (fields) => fields?.result || fields || [];
@@ -324,7 +326,7 @@
                 type="button"
                 class="btn btn-light border"
                 class:active={viewAs === view.val}
-                onclick={() => (viewAs = view.val)}
+                onclick={() => (params.oViewAs = view.val)}
                 aria-label={view.label}
               >
                 <i class="bi bi-{view.icon}"></i>
@@ -354,11 +356,11 @@
       {#if viewAs === "grid"}
         <div class="row">
           {#each objectsData.items as object (object.id)}
-            <div class="col-3"><ObjectCard {object} {displayFields} bind:selected={selectedObjects} /></div>
+            <div class="col-3"><ObjectCard {object} {displayFields} bind:selected={selectedObjects} listQuery={listQuery} /></div>
           {/each}
         </div>
       {:else}
-        <ObjectsTable items={objectsData.items} bind:orderBy={params.oOrderBy} bind:direction={params.oDirection} bind:selectedObjects {displayFields} />
+        <ObjectsTable items={objectsData.items} bind:orderBy={params.oOrderBy} bind:direction={params.oDirection} bind:selectedObjects {displayFields} listQuery={listQuery} />
       {/if}
     {/key}
 

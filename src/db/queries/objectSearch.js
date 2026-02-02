@@ -103,7 +103,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             {
                 name: 'orderBy',
                 type: drizzleResult.schema._typeMap.String,
-                description: 'Field to order by (created_at, updated_at, status)',
+                description: 'Field to order by (created_at, updated_at, status, name)',
                 defaultValue: 'created_at'
             },
             {
@@ -288,6 +288,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             switch (args.orderBy) {
                 case 'updated_at': orderByField = dbSchema.objects.updated_at; break;
                 case 'status': orderByField = dbSchema.objects.status; break;
+                case 'name': orderByField = sql`lower(${dbSchema.objects.name})`; break;
                 case 'created_at': default: orderByField = dbSchema.objects.created_at; break;
             }
 
