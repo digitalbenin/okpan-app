@@ -2,9 +2,34 @@
   import Steps from "$lib/components/import/Steps.svelte";
   import BottomToolbar from "$lib/components/import/BottomToolbar.svelte";
   import { createImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
+  import { onDestroy } from "svelte";
+  import { deleteDatasource } from "$lib/stores/DatasourcesUtils.js";
+  import DirtyNavigationGuard from "$lib/components/navigation/DirtyNavigationGuard.svelte";
 
   const { data, children } = $props();
   const wizard = createImportWizardContext({ projectId: data.project.id });
+
+  const dirtyTracker = {
+    get isDirty() {
+      return !wizard.importCompleted && (
+        wizard.currentStep > 1 ||
+        Boolean(wizard.datasourceId) ||
+        (wizard.data?.length || 0) > 0 ||
+        (wizard.mapping?.length || 0) > 0 ||
+        Boolean(wizard.file)
+      );
+    }
+  };
+
+  onDestroy(() => {
+    if (!wizard.importCompleted && wizard.datasourceId) {
+      deleteDatasource(wizard.datasourceId)
+        .catch((err) => console.warn("[Import] Failed to delete datasource on abort", err))
+        .finally(() => {
+          wizard.datasourceId = null;
+        });
+    }
+  });
 </script>
 
 <div class="h-100 d-flex flex-column">
@@ -14,3 +39,12 @@
   </div>
   <BottomToolbar />
 </div>
+
+<DirtyNavigationGuard
+  {dirtyTracker}
+  enabled={!wizard.importCompleted}
+  title="Import not completed"
+  message="The import process is not completed. Are you sure you want to leave?"
+  confirmText="Leave"
+  cancelText="Stay"
+/>

@@ -1,0 +1,341 @@
+import * as Y from 'yjs';
+import { db } from '../../db/init.js';
+import { eq, and, or, gt, sql } from 'drizzle-orm';
+import {
+  change_log,
+  yjs_updates,
+  ingestion_state,
+  project,
+  settings,
+  websiteSettings,
+  object_display_fields,
+  research_fields,
+  ontology_fields,
+  assets,
+  genericAssets,
+  objects,
+  templates,
+  languages,
+  institutions,
+  texts,
+  translations,
+  vocabularies,
+  datasources,
+  imports,
+  objects_assets,
+  assets_institutions,
+  objects_research_fields,
+  objects_ontology_fields,
+  vocabularies_generic_assets
+} from '../../db/schema.js';
+import {
+  getProjectDoc,
+  ensureRowMap,
+  setRowFields,
+  deleteRow,
+  getCurrentProjectId,
+  hasCurrentProjectId,
+} from './projectCache.js';
+import { ensureAssetsAvailableForProject } from './p2pAssetSyncService.js';
+
+const DEFAULT_INGEST_BATCH_SIZE = 200;
+const DEFAULT_INGEST_INTERVAL_MS = 1000;
+
+const tailerLocks = new Map(); // projectId → boolean
+
+async function fetchNextChangeBatch(projectId, batchSize) {
+  const stateRows = await db
+    .select()
+    .from(ingestion_state)
+    .where(eq(ingestion_state.project_id, projectId))
+    .limit(1)
+    .execute();
+
+  const lastId = stateRows[0]?.last_processed_change_id || null;
+
+  // Use rowid for deterministic, monotonic ordering regardless of created_at formatting
+  let lastRowid = 0;
+  if (lastId) {
+    const lastRowidRows = await db
+      .select({ rowid: sql`rowid` })
+      .from(change_log)
+      .where(eq(change_log.id, lastId))
+      .limit(1)
+      .execute();
+    lastRowid = lastRowidRows[0]?.rowid || 0;
+  }
+
+  // Select only metadata columns to avoid materializing huge JSON strings
+  const rows = await db
+    .select({
+      id: change_log.id,
+      project_id: change_log.project_id,
+      table_name: change_log.table_name,
+      op: change_log.op,
+      row_id: change_log.row_id,
+      created_at: change_log.created_at
+    })
+    .from(change_log)
+    .where(and(eq(change_log.project_id, projectId), gt(sql`rowid`, lastRowid)))
+    .orderBy(sql`rowid`)
+    .limit(batchSize)
+    .execute();
+
+  return rows;
+}
+
+// Helper: load a single row from a table by id; skip heavy fields for certain tables
+async function loadRowPayload(tableName, rowId) {
+  try {
+    switch (tableName) {
+      case 'project': {
+        const res = await db.select().from(project).where(eq(project.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'settings': {
+        const res = await db.select().from(settings).where(eq(settings.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'website_settings': {
+        const res = await db.select().from(websiteSettings).where(eq(websiteSettings.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'object_display_fields': {
+        const res = await db.select().from(object_display_fields).where(eq(object_display_fields.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'research_fields': {
+        const res = await db.select().from(research_fields).where(eq(research_fields.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'ontology_fields': {
+        const res = await db.select().from(ontology_fields).where(eq(ontology_fields.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'assets': {
+        const res = await db.select().from(assets).where(eq(assets.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'generic_assets': {
+        const res = await db.select().from(genericAssets).where(eq(genericAssets.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'objects': {
+        const res = await db.select().from(objects).where(eq(objects.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'templates': {
+        const res = await db.select().from(templates).where(eq(templates.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'languages': {
+        const res = await db.select().from(languages).where(eq(languages.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'institutions': {
+        const res = await db.select().from(institutions).where(eq(institutions.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'texts': {
+        const res = await db.select().from(texts).where(eq(texts.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'translations': {
+        const res = await db.select().from(translations).where(eq(translations.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'vocabularies': {
+        const res = await db.select().from(vocabularies).where(eq(vocabularies.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'datasources': {
+        const res = await db.select().from(datasources).where(eq(datasources.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'imports': {
+        // Skip heavy imports payloads entirely during hydration
+        return null;
+      }
+      case 'objects_assets': {
+        const res = await db.select().from(objects_assets).where(eq(objects_assets.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'assets_institutions': {
+        const res = await db.select().from(assets_institutions).where(eq(assets_institutions.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'objects_research_fields': {
+        const res = await db.select().from(objects_research_fields).where(eq(objects_research_fields.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'objects_ontology_fields': {
+        const res = await db.select().from(objects_ontology_fields).where(eq(objects_ontology_fields.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      case 'vocabularies_generic_assets': {
+        const res = await db.select().from(vocabularies_generic_assets).where(eq(vocabularies_generic_assets.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
+      default:
+        return null;
+    }
+  } catch (_) {
+    return null;
+  }
+}
+
+async function applyBatchToDoc(projectId, rows) {
+  if (!rows || rows.length === 0) return null;
+
+  const doc = getProjectDoc(projectId);
+  const stateVector = Y.encodeStateVector(doc);
+
+  // Track if the transaction produced any Yjs changes
+  let changed = false;
+  const onUpdate = (_update, origin) => {
+    // Only count updates originating from this ingestion transaction
+    if (origin === 'ingestion') changed = true;
+  };
+  doc.on('update', onUpdate);
+
+  // Build ops with payloads outside of Yjs transaction (no awaits inside transact)
+  const ops = [];
+  const assetIds = [];
+  const genericAssetIds = [];
+  for (const row of rows) {
+    try {
+      const tableName = row.table_name;
+      const rowId = row.row_id;
+      const op = row.op;
+      // Skip hydration for imports rows to avoid huge JSON payloads
+      if (tableName === 'imports') {
+        if (op === 'DELETE') {
+          ops.push({ kind: 'delete', tableName, rowId });
+        }
+        continue;
+      }
+      if (op === 'DELETE') {
+        ops.push({ kind: 'delete', tableName, rowId });
+        continue;
+      }
+      // Load current row payload directly from the actual table
+      const payload = await loadRowPayload(tableName, rowId) || {};
+      ops.push({ kind: 'set', tableName, rowId, payload });
+      if (tableName === 'assets') assetIds.push(rowId);
+      if (tableName === 'generic_assets') genericAssetIds.push(rowId);
+    } catch (err) {
+      console.error('Tailer prep error:', err);
+    }
+  }
+
+  doc.transact(() => {
+    try {
+      for (const op of ops) {
+        if (op.kind === 'delete') {
+          deleteRow(projectId, op.tableName, op.rowId);
+        } else if (op.kind === 'set') {
+          const rowMap = ensureRowMap(projectId, op.tableName, op.rowId);
+          setRowFields(rowMap, op.payload);
+        }
+      }
+    } catch (err) {
+      console.error('Tailer apply error:', err);
+    }
+  }, 'ingestion');
+
+  doc.off('update', onUpdate);
+
+  const updateBytes = Y.encodeStateAsUpdate(doc, stateVector);
+
+  const fromId = rows[0].id;
+  const toId = rows[rows.length - 1].id;
+  // If no actual changes occurred (idempotent apply), skip persisting update bytes
+  // Persist update bytes only if the doc actually changed
+  if (changed && updateBytes && updateBytes.length > 0) {
+    // Avoid inserting duplicates for the same change-id window
+    const existing = await db
+      .select({ id: yjs_updates.id })
+      .from(yjs_updates)
+      .where(and(
+        eq(yjs_updates.project_id, projectId),
+        eq(yjs_updates.from_change_id, fromId),
+        eq(yjs_updates.to_change_id, toId)
+      ))
+      .limit(1)
+      .execute();
+
+    if (!existing.length) {
+      await db.insert(yjs_updates).values({
+        project_id: projectId,
+        from_change_id: fromId,
+        to_change_id: toId,
+        update_bytes: Buffer.from(updateBytes)
+      }).execute();
+    }
+  }
+
+  const stateRows = await db
+    .select()
+    .from(ingestion_state)
+    .where(eq(ingestion_state.project_id, projectId))
+    .limit(1)
+    .execute();
+  if (stateRows.length === 0) {
+    await db.insert(ingestion_state).values({
+      project_id: projectId,
+      last_processed_change_id: toId
+    }).execute();
+  } else {
+    await db
+      .update(ingestion_state)
+      .set({ last_processed_change_id: toId })
+      .where(eq(ingestion_state.project_id, projectId))
+      .execute();
+  }
+
+  // If asset rows were ingested, ensure missing binaries are requested from peers
+  if (assetIds.length || genericAssetIds.length) {
+    try {
+      await ensureAssetsAvailableForProject(projectId, { assetIds, genericAssetIds });
+    } catch (err) {
+      console.warn('[Tailer] Failed to request missing asset files', err);
+    }
+  }
+
+  return { fromId, toId, changed };
+}
+
+export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST_BATCH_SIZE) {
+  if (!projectId) return false;
+  if (tailerLocks.get(projectId)) return false;
+  tailerLocks.set(projectId, true);
+  try {
+    const rows = await fetchNextChangeBatch(projectId, batchSize);
+    if (!rows || rows.length === 0) return false;
+    const res = await applyBatchToDoc(projectId, rows);
+    console.log('[Tailer] Applied batch', { projectId, fromId: res?.fromId, toId: res?.toId, changed: !!res?.changed });
+    return true;
+  } catch (error) {
+    console.error('Error ingesting change_log:', error);
+    return false;
+  } finally {
+    tailerLocks.delete(projectId);
+  }
+}
+
+export function startChangeLogTailer({ intervalMs = DEFAULT_INGEST_INTERVAL_MS, batchSize = DEFAULT_INGEST_BATCH_SIZE } = {}) {
+  setInterval(async () => {
+    try {
+      if (!hasCurrentProjectId()) return;
+      const projectId = getCurrentProjectId();
+      let progressed = true;
+      let safeGuard = 5;
+      while (progressed && safeGuard > 0) {
+        progressed = await ingestOnceForProject(projectId, batchSize);
+        safeGuard -= 1;
+      }
+    } catch (err) {
+      console.error('Tailer tick error:', err);
+    }
+  }, intervalMs);
+}
