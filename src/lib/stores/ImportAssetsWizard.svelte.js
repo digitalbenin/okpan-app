@@ -16,6 +16,7 @@ export function createImportAssetsWizardContext(params) {
     let institutionId = $state(null);
     let assets = $state([]);
     let mapping = $state([])
+    let importCompleted = $state(false);
     // let useMatchingSuggestions = $state(false);
     // let formData = $state({});
     // let isValid = $state(false);
@@ -52,6 +53,9 @@ export function createImportAssetsWizardContext(params) {
 
         get mapping() { return mapping; },
         set mapping(value) { mapping = value; },
+
+        get importCompleted() { return importCompleted; },
+        set importCompleted(value) { importCompleted = value; },
 
         // get data() { return data; },
         // set data(value) { data = value; },
@@ -116,6 +120,7 @@ export function createImportAssetsWizardContext(params) {
 
         reset() {
             currentStep = 1;
+            importCompleted = false;
             // formData = {};
             // isValid = false;
             // errors = [];

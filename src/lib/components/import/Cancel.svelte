@@ -13,7 +13,8 @@
   //   const fetcherMapping = createFetcher(deleteMapping);
   async function cancelImport() {
     if (wizard.datasourceId) {
-      await fetcherDatasource.fetch({ datasourceId: wizard.datasourceId });
+      await fetcherDatasource.fetch(wizard.datasourceId);
+      wizard.datasourceId = null;
     }
     if (wizard.mappingId) {
       //   await fetcherMapping.fetch({ mappingId: wizard.mappingId });

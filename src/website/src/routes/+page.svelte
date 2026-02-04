@@ -295,7 +295,7 @@
 </svelte:head>
 
 <div class="row">
-	<div class="col-12 p-3 min-vh-100">
+	<div class="col-12 p-3 min-vh-100 overflow-y-hidden">
 		<h1>Archive</h1>
 		{#if isLoading}
 			<div class="text-center py-5">
