@@ -237,7 +237,11 @@ export async function hydrateProjectFromDatabase(projectId) {
     const yMap = ensureTableMap(projectId, tableName);
     doc.transact(() => {
       for (const row of rows) {
-        yMap.set(row.id, row);
+        const rowMap = new Y.Map();
+        for (const [k, v] of Object.entries(row)) {
+          rowMap.set(k, v);
+        }
+        yMap.set(row.id, rowMap);
       }
     }, 'hydration'); // Origin 'hydration' to skip tailing (p2pService should ignore these if it sees them, but they are local)
     loadedCount += rows.length;
