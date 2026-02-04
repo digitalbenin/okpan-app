@@ -217,6 +217,13 @@ async function applyBatchToDoc(projectId, rows) {
       }
       // Load current row payload directly from the actual table
       const payload = await loadRowPayload(tableName, rowId) || {};
+      
+      // Filter out system timestamps to prevent infinite sync loops
+      // The DB will manage its own timestamps on write
+      if (payload.created_at) delete payload.created_at;
+      if (payload.updated_at) delete payload.updated_at;
+      if (payload.initialized_at) delete payload.initialized_at;
+      
       ops.push({ kind: 'set', tableName, rowId, payload });
     } catch (err) {
       console.error('Tailer prep error:', err);

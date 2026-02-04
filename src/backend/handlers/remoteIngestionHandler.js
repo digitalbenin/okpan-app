@@ -473,7 +473,10 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
                 .onConflictDoUpdate({ target: tableRef.id, set: { ...payload } })
                 .execute()
             } else {
-              await tx.update(tableRef).set({ ...payload }).where(eq(tableRef.id, up.id)).execute()
+              // Ensure we don't call update().set({}) with empty object
+              if (Object.keys(payload).length > 0) {
+                 await tx.update(tableRef).set({ ...payload }).where(eq(tableRef.id, up.id)).execute()
+              }
             }
             applied += 1
             remainingUpdates.splice(i, 1)

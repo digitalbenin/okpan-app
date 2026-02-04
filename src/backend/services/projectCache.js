@@ -61,7 +61,15 @@ export const ensureRowMap = (projectId, tableName, rowId) => {
  */
 export const setRowFields = (rowMap, fieldsObj) => {
   Object.entries(fieldsObj).forEach(([k, v]) => {
-    rowMap.set(k, v);
+     // Check if value is actually different to avoid unnecessary Yjs ops
+     // For objects/arrays, we might want deep equality, but strict equality is safer for primitives
+     // Yjs handles this internally too, but doing it here prevents "op" generation?
+     // Actually Yjs Map.set(k,v) generates an op even if value is same? 
+     // Yes: "Yjs sets are always updates". Even if value is same.
+     const current = rowMap.get(k);
+     if (current !== v) { 
+        rowMap.set(k, v);
+     }
   });
 };
 
