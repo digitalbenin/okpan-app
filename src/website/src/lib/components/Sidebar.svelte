@@ -34,9 +34,9 @@
 </script>
 
 <div class={`d-flex flex-column h-100 bg-white border-end shadow-sm ${isExpanded ? 'p-4' : 'align-items-center py-3 px-3'}`} 
-    style:width={isExpanded ? '25vw' : '78px'}
-    style:min-width={isExpanded ? '25vw' : '78px'}
-    style:max-width={isExpanded ? '25vw' : '78px'}
+    style:width={isExpanded ? '20vw' : '78px'}
+    style:min-width={isExpanded ? '20vw' : '78px'}
+    style:max-width={isExpanded ? '20vw' : '78px'}
     style:overflow-x="hidden"
     style:overflow-y="auto"
     style:transition="width 0.3s ease-in-out">
