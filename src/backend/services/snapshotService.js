@@ -205,9 +205,18 @@ export async function hydrateProjectFromDatabase(projectId) {
   const doc = getProjectDoc(projectId);
   const tables = doc.getMap('tables');
 
-  // Optimization: If doc is already populated, assume it's valid and skip hydration
-  if (tables.size > 0) {
-     console.log('[Snapshot] Doc already hydrated, skipping DB load', { projectId });
+  // Optimization: If doc already has rows, assume it's valid and skip hydration
+  let existingRows = 0;
+  try {
+    tables.forEach((tableMap) => {
+      const size = typeof tableMap?.size === 'number' ? tableMap.size : 0;
+      existingRows += size;
+    });
+  } catch {
+    existingRows = 0;
+  }
+  if (existingRows > 0) {
+     console.log('[Snapshot] Doc already hydrated, skipping DB load', { projectId, existingRows });
      return { applied: 0, skipped: true };
   }
 
