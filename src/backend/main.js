@@ -30,7 +30,7 @@ import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';
 import { handleExportProject } from './handlers/exportHandlers.js';
 import { handleListLanguages } from './handlers/languagesHandlers.js';
-import { applyMigration } from '../db/scripts/applyMigration.js';
+// import { applyMigration } from '../db/scripts/applyMigration.js';
 import { handleCreateBackup, handleSelectBackupFile, handleCheckBackupFile, handleRestoreBackup } from './handlers/backupHandler.js';
 
 app.disableHardwareAcceleration()

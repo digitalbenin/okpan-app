@@ -324,7 +324,10 @@ async function applyMigration() {
                 'trg_objects_ontology_fields_change_log_delete',
                 'trg_vocabularies_generic_assets_change_log_insert',
                 'trg_vocabularies_generic_assets_change_log_update',
-                'trg_vocabularies_generic_assets_change_log_delete'
+                'trg_vocabularies_generic_assets_change_log_delete',
+                'trg_objects_datasources_change_log_insert',
+                'trg_objects_datasources_change_log_update',
+                'trg_objects_datasources_change_log_delete'
             ];
             for (const tname of junctionTriggerNames) {
                 try {
@@ -378,6 +381,7 @@ async function applyMigration() {
         } else {
             console.log('⚠ 004_change_log_junction_triggers.sql not found; skipping');
         }
+
     } catch (error) {
         console.error('❌ Search setup failed:', error);
     } finally {

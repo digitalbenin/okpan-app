@@ -469,3 +469,83 @@ BEGIN
     )
   );
 END;
+
+-- objects_datasources
+CREATE TRIGGER IF NOT EXISTS trg_objects_datasources_change_log_insert
+AFTER INSERT ON objects_datasources
+BEGIN
+  INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
+  VALUES (
+    lower(hex(randomblob(16))),
+    (SELECT project_id FROM objects WHERE id = NEW.object_id),
+    'objects_datasources',
+    'INSERT',
+    NEW.id,
+    (SELECT client_id FROM global_settings WHERE id = 1),
+    'local',
+    json_object(
+      'id', NEW.id,
+      'object_id', NEW.object_id,
+      'datasource_id', NEW.datasource_id,
+      'template_id', NEW.template_id,
+      'created_at', NEW.created_at,
+      'updated_at', NEW.updated_at
+    ),
+    NULL
+  );
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_objects_datasources_change_log_update
+AFTER UPDATE ON objects_datasources
+BEGIN
+  INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
+  VALUES (
+    lower(hex(randomblob(16))),
+    (SELECT project_id FROM objects WHERE id = COALESCE(NEW.object_id, OLD.object_id)),
+    'objects_datasources',
+    'UPDATE',
+    COALESCE(NEW.id, OLD.id),
+    (SELECT client_id FROM global_settings WHERE id = 1),
+    'local',
+    json_object(
+      'id', COALESCE(NEW.id, OLD.id),
+      'object_id', COALESCE(NEW.object_id, OLD.object_id),
+      'datasource_id', COALESCE(NEW.datasource_id, OLD.datasource_id),
+      'template_id', COALESCE(NEW.template_id, OLD.template_id),
+      'created_at', COALESCE(NEW.created_at, OLD.created_at),
+      'updated_at', COALESCE(NEW.updated_at, OLD.updated_at)
+    ),
+    json_object(
+      'id', COALESCE(NEW.id, OLD.id),
+      'object_id', OLD.object_id,
+      'datasource_id', OLD.datasource_id,
+      'template_id', OLD.template_id,
+      'created_at', OLD.created_at,
+      'updated_at', OLD.updated_at
+    )
+  );
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_objects_datasources_change_log_delete
+AFTER DELETE ON objects_datasources
+BEGIN
+  INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
+  VALUES (
+    lower(hex(randomblob(16))),
+    (SELECT project_id FROM objects WHERE id = OLD.object_id),
+    'objects_datasources',
+    'DELETE',
+    OLD.id,
+    (SELECT client_id FROM global_settings WHERE id = 1),
+    'local',
+    NULL,
+    json_object(
+      'id', OLD.id,
+      'object_id', OLD.object_id,
+      'datasource_id', OLD.datasource_id,
+      'template_id', OLD.template_id,
+      'created_at', OLD.created_at,
+      'updated_at', OLD.updated_at
+    )
+  );
+END;
