@@ -3,7 +3,7 @@ import { db } from '../../db/init.js';
 import { eq, and, gt, desc, sql, inArray, or } from 'drizzle-orm';
 import { yjs_snapshots, yjs_updates, change_log, ingestion_state } from '../../db/schema.js';
 import * as schema from '../../db/schema.js';
-import { getProjectDoc, ensureTableMap, disposeProjectDoc } from './projectCache.js';
+import { getProjectDoc, ensureTableMap } from './projectCache.js';
 
 // Minimal compatibility: ensure parent table maps exist before applying updates
 const TABLES = [
@@ -129,7 +129,7 @@ export async function replayUpdatesAfterSnapshot(projectId, snapshotRow) {
     const bytes = row.update_bytes;
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     if (!u8 || u8.length < 3) continue;
-    Y.applyUpdate(doc, u8, 'replay');
+    Y.applyUpdate(doc, u8);
     applied += 1;
   }
   return applied;
@@ -154,7 +154,7 @@ async function replayAllUpdates(projectId) {
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     if (!u8 || u8.length < 3) continue;
     try {
-      Y.applyUpdate(doc, u8, 'replay');
+      Y.applyUpdate(doc, u8);
       applied += 1;
     } catch (err) {
       console.warn('[Snapshot] Failed to apply update during full replay', { projectId, updateId: row.id }, err);
@@ -202,188 +202,144 @@ export async function hydrateProjectFromLatestSnapshot(projectId) {
 
 export async function hydrateProjectFromDatabase(projectId) {
   if (!projectId) return { applied: 0 };
-  let doc = getProjectDoc(projectId);
+  const doc = getProjectDoc(projectId);
   const tables = doc.getMap('tables');
 
-  // Optimization: If doc already has rows, assume it's valid and skip hydration
-  // Also check if we have any Yjs updates in the database. If we do, we should prefer replaying them
-  // rather than reconstructing from raw DB state, to preserve update history and vector clocks.
-  let existingRows = 0;
+  // 1. Snapshot / History Strategy (Primary)
+  // We prefer loading this because it preserves Vector Clocks and Deletions.
+  let historyApplied = 0;
   try {
-    tables.forEach((tableMap) => {
-      const size = typeof tableMap?.size === 'number' ? tableMap.size : 0;
-      existingRows += size;
-    });
-  } catch {
-    existingRows = 0;
-  }
-  if (existingRows > 0) {
-     console.log('[Snapshot] Doc already hydrated, skipping DB load', { projectId, existingRows });
-     return { applied: 0, skipped: true };
-  }
-
-  // Check if we have Yjs history. If so, replay it instead of deep reconstruction.
-  try {
-     // Use unified snapshot hydration which handles both Snapshots and Updates
-     // This prioritizes correctness and vector clocks over raw DB state
-     const res = await hydrateProjectFromLatestSnapshot(projectId);
-     const stats = countDocRows(doc);
-     
-     // 1. Success case: We have rows
-     if (stats.total > 0) {
-        return { ...res, source: 'history' };
-     }
-
-     // 2. Corrupt case: We applied history but got no rows. 
-     // This means our history log describes an empty project, but we likely have data in SQLite.
-     if (res.applied > 0 && stats.total === 0) {
-        console.warn('[Snapshot] History replay yielded 0 rows (Corrupt). Resetting.', { projectId });
-        await db.delete(yjs_updates).where(eq(yjs_updates.project_id, projectId)).execute();
-        await db.delete(yjs_snapshots).where(eq(yjs_snapshots.project_id, projectId)).execute();
-        disposeProjectDoc(projectId);
-        doc = getProjectDoc(projectId); // Re-acquire fresh doc logic
-     }
-     // 3. Fall through (applied == 0 or corrupt history wiped)
+      const res = await hydrateProjectFromLatestSnapshot(projectId);
+      historyApplied = res.applied;
   } catch (err) {
-     console.warn('[Snapshot] History hydration failed, falling back to deep hydration', err);
+      console.warn('[Snapshot] Failed to load history', err);
   }
 
+  // 2. Validation
+  const stats = countDocRows(doc);
+  if (stats.total > 0) {
+      console.log('[Snapshot] Hydrated successfully from History', { projectId, rows: stats.total });
+      return { applied: historyApplied, source: 'history' };
+  }
+
+  // 3. Fallback / Migration Strategy
+  // If History yielded 0 rows, check if SQLite has data.
+  // This happens on:
+  // - First run after feature enable
+  // - Disaster recovery (history wiped)
+  // - Fresh import via SQL script
+  let dbHasData = false;
+  try {
+      // Fast check: do we have a project record?
+      const pCount = (await db.select({ c: sql`COUNT(*)` }).from(schema.project).where(eq(schema.project.id, projectId)).execute())[0].c;
+      dbHasData = (pCount > 0);
+  } catch {}
+
+  if (!dbHasData) {
+      // Empty DB, Empty Doc. Clean slate.
+      return { applied: 0, source: 'empty' };
+  }
+
+  // 4. Perform Deep Hydration (SQL -> Yjs)
+  console.log('[Snapshot] History empty but DB has data. Performing Migration Hydration.', { projectId });
   let loadedCount = 0;
-
-  console.log('[Snapshot] Deep hydration from SQLite start', { projectId });
-
-  // Resolve schema table from string name
+  
+  // -- Deep Hydration Logic Start -- 
   const resolveSchema = (name) => {
     if (name === 'generic_assets') return schema.genericAssets;
     if (name === 'website_settings') return schema.websiteSettings;
     return schema[name];
   };
 
-  // Helper to load rows into Yjs
   const loadIntoDoc = (tableName, rows) => {
     if (!rows || rows.length === 0) return;
     const yMap = ensureTableMap(projectId, tableName);
     doc.transact(() => {
       for (const row of rows) {
+        // Strict: Only string/number/boolean/null allowed at top level of Y.Map if we want easy interop
+        // But we store row as a nested Y.Map for atomicity
         const rowMap = new Y.Map();
         for (const [k, v] of Object.entries(row)) {
-          rowMap.set(k, v);
+           rowMap.set(k, v);
         }
         yMap.set(row.id, rowMap);
       }
-    }, 'hydration'); // Origin 'hydration' to skip tailing (p2pService should ignore these if it sees them, but they are local)
+    }, 'hydration');
     loadedCount += rows.length;
   };
 
-  // 1. Core Project Tables
-  const directProjectTables = [
-    'settings', 'website_settings', 'object_display_fields',
-    'research_fields', 'ontology_fields', 'assets', 'generic_assets',
-    'objects', 'templates', 'languages', 'institutions'
-  ];
-
-  // Project table uses id instead of project_id
   try {
-    const projectRows = await db
-      .select()
-      .from(schema.project)
-      .where(eq(schema.project.id, projectId))
-      .execute();
-    loadIntoDoc('project', projectRows);
-  } catch (err) {
-    console.warn('[Snapshot] Failed to hydrate table project', err);
-  }
+      // Project
+      const projectRows = await db.select().from(schema.project).where(eq(schema.project.id, projectId)).execute();
+      loadIntoDoc('project', projectRows);
 
-  for (const t of directProjectTables) {
-    const tableDef = resolveSchema(t);
-    if (!tableDef || !tableDef.project_id) continue;
-    try {
-      const rows = await db.select().from(tableDef).where(eq(tableDef.project_id, projectId)).execute();
-      loadIntoDoc(t, rows);
-    } catch(err) {
-      console.warn(`[Snapshot] Failed to hydrate table ${t}`, err);
-    }
-  }
-
-  // 2. Dependent Tables
-
-  // Texts & Translations (via Languages)
-  try {
-     const langIds = (await db.select({ id: schema.languages.id }).from(schema.languages).where(eq(schema.languages.project_id, projectId)).execute()).map(r => r.id);
-     
-     if (langIds.length > 0) {
-        const textRows = await db.select().from(schema.texts).where(inArray(schema.texts.original_language_id, langIds)).execute();
-        loadIntoDoc('texts', textRows);
-
-        const transRows = await db.select().from(schema.translations).where(inArray(schema.translations.language_id, langIds)).execute();
-        loadIntoDoc('translations', transRows);
-     }
-  } catch(err) { console.warn('[Snapshot] Failed to hydrate texts/translations', err); }
-
-  // Datasources (via Institution)
-  try {
-     // Retrieve institution IDs involved in this project
-     const instIds = (await db.select({ id: schema.institutions.id }).from(schema.institutions).where(eq(schema.institutions.project_id, projectId)).execute()).map(r => r.id);
-     
-     // Hydrate datasources belonging to these institutions
-     if (instIds.length > 0) {
-        const dsRows = await db.select().from(schema.datasources)
-          .where(inArray(schema.datasources.institution_id, instIds)).execute();
-        loadIntoDoc('datasources', dsRows);
-     }
-  } catch(err) { console.warn('[Snapshot] Failed to hydrate datasources', err); }
-
-  // Junctions
-  const linkTables = [
-     { name: 'objects_assets', col: 'object_id', ref: 'objects', refCol: 'id' },
-     { name: 'assets_institutions', col: 'asset_id', ref: 'assets', refCol: 'id' },
-     { name: 'objects_research_fields', col: 'object_id', ref: 'objects', refCol: 'id' },
-     { name: 'objects_ontology_fields', col: 'object_id', ref: 'objects', refCol: 'id' },
-     { name: 'objects_datasources', col: 'object_id', ref: 'objects', refCol: 'id' },
-     { name: 'vocabularies_generic_assets', col: 'generic_asset_id', ref: 'generic_assets', refCol: 'id' }
-  ];
-
-  for (const l of linkTables) {
-    const tableDef = resolveSchema(l.name);
-    const refDef = resolveSchema(l.ref);
-    if (!tableDef || !refDef) continue;
-    try {
-       const refIds = (await db.select({ id: refDef[l.refCol] }).from(refDef).where(eq(refDef.project_id, projectId)).execute()).map(r => r.id);
-       if (refIds.length > 0) {
-           const rows = await db.select().from(tableDef).where(inArray(tableDef[l.col], refIds)).execute();
-           loadIntoDoc(l.name, rows);
-       }
-    } catch(err) { console.warn(`[Snapshot] Failed to hydrate ${l.name}`, err); }
-  }
-
-  // Vocabularies (via Field OR Main Asset)
-  try {
-     const fieldIds = (await db.select({ id: schema.ontology_fields.id }).from(schema.ontology_fields).where(eq(schema.ontology_fields.project_id, projectId)).execute()).map(r => r.id);
-     const assetIds = (await db.select({ id: schema.assets.id }).from(schema.assets).where(eq(schema.assets.project_id, projectId)).execute()).map(r => r.id);
-
-     const conditions = [];
-     if (fieldIds.length > 0) conditions.push(inArray(schema.vocabularies.field_id, fieldIds));
-     if (assetIds.length > 0) conditions.push(inArray(schema.vocabularies.main_asset_id, assetIds));
-
-     if (conditions.length > 0) {
-         const vocRows = await db.select().from(schema.vocabularies)
-           .where(or(...conditions)).execute();
-         loadIntoDoc('vocabularies', vocRows);
-     }
-  } catch(err) { console.warn('[Snapshot] Failed to hydrate vocabularies', err); }
-
-  console.log('[Snapshot] Deep hydration complete', { projectId, loadedRows: loadedCount });
-
-  // Self-Healing: If we performed a deep hydration (likely due to missing history), 
-  // save a snapshot immediately so future loads can use efficient history replay
-  if (loadedCount > 0) {
-      try {
-          await createProjectSnapshot(projectId);
-          console.log('[Snapshot] Saved recovery snapshot to prevent future deep hydration');
-      } catch (err) {
-          console.warn('[Snapshot] Failed to save recovery snapshot', err);
+      // Core Tables
+      const directProjectTables = [
+        'settings', 'website_settings', 'object_display_fields',
+        'research_fields', 'ontology_fields', 'assets', 'generic_assets',
+        'objects', 'templates', 'languages', 'institutions'
+      ];
+      for (const t of directProjectTables) {
+         const tableDef = resolveSchema(t);
+         if (tableDef && tableDef.project_id) {
+             const rows = await db.select().from(tableDef).where(eq(tableDef.project_id, projectId)).execute();
+             loadIntoDoc(t, rows);
+         }
       }
+
+      // Dependent Tables (Translations, Datasources, Junctions, Vocabs)
+      // (Simplified for brevity, assuming existing logic was mostly correct but mis-ordered)
+      
+      // Texts/Translations
+      const langIds = (await db.select({ id: schema.languages.id }).from(schema.languages).where(eq(schema.languages.project_id, projectId)).execute()).map(r => r.id);
+      if (langIds.length > 0) {
+          loadIntoDoc('texts', await db.select().from(schema.texts).where(inArray(schema.texts.original_language_id, langIds)).execute());
+          loadIntoDoc('translations', await db.select().from(schema.translations).where(inArray(schema.translations.language_id, langIds)).execute());
+      }
+      
+      // Datasources
+      const instIds = (await db.select({ id: schema.institutions.id }).from(schema.institutions).where(eq(schema.institutions.project_id, projectId)).execute()).map(r => r.id);
+      if (instIds.length > 0) {
+          loadIntoDoc('datasources', await db.select().from(schema.datasources).where(inArray(schema.datasources.institution_id, instIds)).execute());
+      }
+
+      // Junctions
+      const linkTables = [
+         { name: 'objects_assets', col: 'object_id', ref: 'objects', refCol: 'id' },
+         { name: 'assets_institutions', col: 'asset_id', ref: 'assets', refCol: 'id' },
+         { name: 'objects_research_fields', col: 'object_id', ref: 'objects', refCol: 'id' },
+         { name: 'objects_ontology_fields', col: 'object_id', ref: 'objects', refCol: 'id' },
+         { name: 'objects_datasources', col: 'object_id', ref: 'objects', refCol: 'id' },
+         { name: 'vocabularies_generic_assets', col: 'generic_asset_id', ref: 'generic_assets', refCol: 'id' }
+      ];
+      for (const l of linkTables) {
+          const tableDef = resolveSchema(l.name);
+          const refDef = resolveSchema(l.ref);
+          const refIds = (await db.select({ id: refDef[l.refCol] }).from(refDef).where(eq(refDef.project_id, projectId)).execute()).map(r => r.id);
+          if (refIds.length > 0) {
+             loadIntoDoc(l.name, await db.select().from(tableDef).where(inArray(tableDef[l.col], refIds)).execute());
+          }
+      }
+
+      // Vocabularies
+      const fieldIds = (await db.select({ id: schema.ontology_fields.id }).from(schema.ontology_fields).where(eq(schema.ontology_fields.project_id, projectId)).execute()).map(r => r.id);
+      const assetIds = (await db.select({ id: schema.assets.id }).from(schema.assets).where(eq(schema.assets.project_id, projectId)).execute()).map(r => r.id);
+      const conds = [];
+      if (fieldIds.length) conds.push(inArray(schema.vocabularies.field_id, fieldIds));
+      if (assetIds.length) conds.push(inArray(schema.vocabularies.main_asset_id, assetIds));
+      if (conds.length) {
+          loadIntoDoc('vocabularies', await db.select().from(schema.vocabularies).where(or(...conds)).execute());
+      }
+
+  } catch (err) {
+      console.error('[Snapshot] Deep hydration failed', err);
   }
 
-  return { applied: loadedCount };
+  // 5. Important: Lock in this state as a snapshot immediately
+  if (loadedCount > 0) {
+      await createProjectSnapshot(projectId);
+      console.log('[Snapshot] Saved Migration Snapshot. Future loads will use History.');
+  }
+
+  return { applied: loadedCount, source: 'migration' };
 }
