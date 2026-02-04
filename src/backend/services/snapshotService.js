@@ -206,6 +206,8 @@ export async function hydrateProjectFromDatabase(projectId) {
   const tables = doc.getMap('tables');
 
   // Optimization: If doc already has rows, assume it's valid and skip hydration
+  // Also check if we have any Yjs updates in the database. If we do, we should prefer replaying them
+  // rather than reconstructing from raw DB state, to preserve update history and vector clocks.
   let existingRows = 0;
   try {
     tables.forEach((tableMap) => {
@@ -218,6 +220,18 @@ export async function hydrateProjectFromDatabase(projectId) {
   if (existingRows > 0) {
      console.log('[Snapshot] Doc already hydrated, skipping DB load', { projectId, existingRows });
      return { applied: 0, skipped: true };
+  }
+
+  // Check if we have Yjs history. If so, replay it instead of deep reconstruction.
+  try {
+     const updateCount = (await db.select({ c: sql`COUNT(*)` }).from(yjs_updates).where(eq(yjs_updates.project_id, projectId)).execute())[0].c;
+     if (updateCount > 0) {
+       console.log('[Snapshot] Found existing Yjs history, replaying instead of deep hydration', { projectId, updateCount });
+       const applied = await replayAllUpdates(projectId);
+       return { applied, fromSnapshot: false, source: 'replay' };
+     }
+  } catch (err) {
+     console.warn('[Snapshot] Failed to check Yjs history, falling back to deep hydration', err);
   }
 
   let loadedCount = 0;
