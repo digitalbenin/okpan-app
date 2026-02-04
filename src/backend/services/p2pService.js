@@ -44,8 +44,11 @@ if (typeof globalThis.WebSocket === 'undefined') {
 /**
  * Start a Trystero-backed Yjs provider for the given project.
  * Uses the shared Y.Doc from projectCache.
+ * @param {string} projectId
+ * @param {Object} options
+ * @param {Function} [options.onDataChange] Callback when remote data is ingested
  */
-export async function startP2PForProject(projectId) {
+export async function startP2PForProject(projectId, options = {}) {
   if (!projectId) return null
   if (providers.has(projectId)) return providers.get(projectId).provider
 
@@ -144,6 +147,11 @@ export async function startP2PForProject(projectId) {
           console.log('[P2P] Baseline advanced', { projectId, baselineAfter: afterBase, canonicalAfter: afterCanon })
         } catch (advErr) {
           console.warn('[P2P] Failed to advance baseline doc', advErr)
+        }
+        
+        // Notify listener (frontend) that data has changed
+        if (options.onDataChange && typeof options.onDataChange === 'function') {
+          options.onDataChange();
         }
       }
     } catch (err) {

@@ -292,18 +292,15 @@ export async function hydrateProjectFromDatabase(projectId) {
      }
   } catch(err) { console.warn('[Snapshot] Failed to hydrate texts/translations', err); }
 
-  // Datasources (via Institution OR Template)
+  // Datasources (via Institution)
   try {
+     // Retrieve institution IDs involved in this project
      const instIds = (await db.select({ id: schema.institutions.id }).from(schema.institutions).where(eq(schema.institutions.project_id, projectId)).execute()).map(r => r.id);
-     const tplIds = (await db.select({ id: schema.templates.id }).from(schema.templates).where(eq(schema.templates.project_id, projectId)).execute()).map(r => r.id);
      
-     const conditions = [];
-     if (instIds.length > 0) conditions.push(inArray(schema.datasources.institution_id, instIds));
-     if (tplIds.length > 0) conditions.push(inArray(schema.datasources.template_id, tplIds));
-
-     if (conditions.length > 0) {
+     // Hydrate datasources belonging to these institutions
+     if (instIds.length > 0) {
         const dsRows = await db.select().from(schema.datasources)
-          .where(or(...conditions)).execute();
+          .where(inArray(schema.datasources.institution_id, instIds)).execute();
         loadIntoDoc('datasources', dsRows);
      }
   } catch(err) { console.warn('[Snapshot] Failed to hydrate datasources', err); }

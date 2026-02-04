@@ -116,7 +116,17 @@ ipcMain.handle('set-current-project', async (event, projectId) => {
   }
   // Start P2P provider for this project (Trystero + Yjs)
   try {
-    await startP2PForProject(projectId);
+    const notifyFrontend = () => {
+      // Notify the renderer that data has changed so it can invalidate queries
+      if (event && event.sender && !event.sender.isDestroyed()) {
+        try {
+           event.sender.send('data-changed', { projectId, origin: 'p2p' });
+        } catch (e) {
+           console.warn('Failed to notify frontend of data change', e);
+        }
+      }
+    };
+    await startP2PForProject(projectId, { onDataChange: notifyFrontend });
   } catch (err) {
     console.error('Failed to start P2P provider for project', projectId, err);
   }

@@ -46,6 +46,11 @@ contextBridge.exposeInMainWorld('api', {
     hydrateFromSnapshot: (projectId) => ipcRenderer.invoke('snapshot-hydrate', projectId),
 
     // Listeners for backend events
+    onDataChanged: (callback) => {
+        const subscription = (event, ...args) => callback(...args);
+        ipcRenderer.on('data-changed', subscription);
+        return () => ipcRenderer.removeListener('data-changed', subscription);
+    },
     onImportProgress: (callback) => ipcRenderer.on('import-assets-progress', callback),
     removeImportProgressListeners: () => ipcRenderer.removeAllListeners('import-assets-progress'),
     openPreview: (projectId) => ipcRenderer.send('open-preview', projectId),
