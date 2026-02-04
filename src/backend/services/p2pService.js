@@ -117,8 +117,8 @@ export async function startP2PForProject(projectId, options = {}) {
   // Persist non-ingestion updates to SQLite via remote ingestion pipeline
   const onDocUpdatePersist = async (update, origin) => {
     try {
-      // Ignore updates originating from DB tailer projections
-      if (origin === 'ingestion') {
+      // Ignore updates originating from DB tailer projections or local hydration/replay
+      if (origin === 'ingestion' || origin === 'hydration' || origin === 'replay') {
         const baseStats = countDocTables(baselineDoc)
         const canonStats = countDocTables(doc)
         console.log('[P2P] Ingestion update observed on canonical', { projectId, bytes: update?.length || 0, baseline: baseStats, canonical: canonStats })

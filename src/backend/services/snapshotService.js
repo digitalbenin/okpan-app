@@ -3,7 +3,7 @@ import { db } from '../../db/init.js';
 import { eq, and, gt, desc, sql, inArray, or } from 'drizzle-orm';
 import { yjs_snapshots, yjs_updates, change_log, ingestion_state } from '../../db/schema.js';
 import * as schema from '../../db/schema.js';
-import { getProjectDoc, ensureTableMap } from './projectCache.js';
+import { getProjectDoc, ensureTableMap, disposeProjectDoc } from './projectCache.js';
 
 // Minimal compatibility: ensure parent table maps exist before applying updates
 const TABLES = [
@@ -129,7 +129,7 @@ export async function replayUpdatesAfterSnapshot(projectId, snapshotRow) {
     const bytes = row.update_bytes;
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     if (!u8 || u8.length < 3) continue;
-    Y.applyUpdate(doc, u8);
+    Y.applyUpdate(doc, u8, 'replay');
     applied += 1;
   }
   return applied;
@@ -154,7 +154,7 @@ async function replayAllUpdates(projectId) {
     const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     if (!u8 || u8.length < 3) continue;
     try {
-      Y.applyUpdate(doc, u8);
+      Y.applyUpdate(doc, u8, 'replay');
       applied += 1;
     } catch (err) {
       console.warn('[Snapshot] Failed to apply update during full replay', { projectId, updateId: row.id }, err);
@@ -202,7 +202,7 @@ export async function hydrateProjectFromLatestSnapshot(projectId) {
 
 export async function hydrateProjectFromDatabase(projectId) {
   if (!projectId) return { applied: 0 };
-  const doc = getProjectDoc(projectId);
+  let doc = getProjectDoc(projectId);
   const tables = doc.getMap('tables');
 
   // Optimization: If doc already has rows, assume it's valid and skip hydration
@@ -224,14 +224,28 @@ export async function hydrateProjectFromDatabase(projectId) {
 
   // Check if we have Yjs history. If so, replay it instead of deep reconstruction.
   try {
-     const updateCount = (await db.select({ c: sql`COUNT(*)` }).from(yjs_updates).where(eq(yjs_updates.project_id, projectId)).execute())[0].c;
-     if (updateCount > 0) {
-       console.log('[Snapshot] Found existing Yjs history, replaying instead of deep hydration', { projectId, updateCount });
-       const applied = await replayAllUpdates(projectId);
-       return { applied, fromSnapshot: false, source: 'replay' };
+     // Use unified snapshot hydration which handles both Snapshots and Updates
+     // This prioritizes correctness and vector clocks over raw DB state
+     const res = await hydrateProjectFromLatestSnapshot(projectId);
+     const stats = countDocRows(doc);
+     
+     // 1. Success case: We have rows
+     if (stats.total > 0) {
+        return { ...res, source: 'history' };
      }
+
+     // 2. Corrupt case: We applied history but got no rows. 
+     // This means our history log describes an empty project, but we likely have data in SQLite.
+     if (res.applied > 0 && stats.total === 0) {
+        console.warn('[Snapshot] History replay yielded 0 rows (Corrupt). Resetting.', { projectId });
+        await db.delete(yjs_updates).where(eq(yjs_updates.project_id, projectId)).execute();
+        await db.delete(yjs_snapshots).where(eq(yjs_snapshots.project_id, projectId)).execute();
+        disposeProjectDoc(projectId);
+        doc = getProjectDoc(projectId); // Re-acquire fresh doc logic
+     }
+     // 3. Fall through (applied == 0 or corrupt history wiped)
   } catch (err) {
-     console.warn('[Snapshot] Failed to check Yjs history, falling back to deep hydration', err);
+     console.warn('[Snapshot] History hydration failed, falling back to deep hydration', err);
   }
 
   let loadedCount = 0;
@@ -359,5 +373,17 @@ export async function hydrateProjectFromDatabase(projectId) {
   } catch(err) { console.warn('[Snapshot] Failed to hydrate vocabularies', err); }
 
   console.log('[Snapshot] Deep hydration complete', { projectId, loadedRows: loadedCount });
+
+  // Self-Healing: If we performed a deep hydration (likely due to missing history), 
+  // save a snapshot immediately so future loads can use efficient history replay
+  if (loadedCount > 0) {
+      try {
+          await createProjectSnapshot(projectId);
+          console.log('[Snapshot] Saved recovery snapshot to prevent future deep hydration');
+      } catch (err) {
+          console.warn('[Snapshot] Failed to save recovery snapshot', err);
+      }
+  }
+
   return { applied: loadedCount };
 }
