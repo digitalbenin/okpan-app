@@ -374,27 +374,31 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                     }
                     
                     let deletedTextsCount = 0;
+                    if (textsWhereClause) {
+                        const deletedTexts = await tx
+                            .delete(dbSchema.texts)
                             .where(textsWhereClause)
                             .returning({ id: dbSchema.texts.id })
-                         deletedTextsCount = deletedTexts.length;
+                            .execute();
+                        deletedTextsCount = deletedTexts.length;
                     }
                     counts.texts = deletedTextsCount;
-                    logDeleteStep('Deleted texts', { count: counts.texts });
 
                     // 15. Delete languages last (nothing references them anymore)
+                    const deletedLanguages = await tx
                         .delete(dbSchema.languages)
                         .where(eq(dbSchema.languages.project_id, projectId))
-                        settings: await countByProjectId(tx, dbSchema.settings, projectId)
-                    };
+                        .returning({ id: dbSchema.languages.id })
+                        .execute();
+                    counts.languages = deletedLanguages.length;
 
-                    logDeleteStep('Remaining project_id references before delete', projectRefCounts);
-
-                    logDeleteStep('Deleting project');
+                    // 15. Delete the project last
+                    const deletedProject = await tx
+                        .delete(dbSchema.project)
                         .where(eq(dbSchema.project.id, projectId))
                         .returning({ id: dbSchema.project.id })
                         .execute();
                     counts.project = deletedProject.length;
-                    logDeleteStep('Deleted project', { count: counts.project });
                 } catch (error) {
                     console.error('[DELETE CASCADE] Transaction failed:', error);
                     throw error;
