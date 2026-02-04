@@ -122,6 +122,13 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
 
             const researchFieldIds = normalizeIdList(researchFields.map((row) => row.id));
 
+            const genericAssets = await db
+                .select({ id: dbSchema.genericAssets.id })
+                .from(dbSchema.genericAssets)
+                .where(eq(dbSchema.genericAssets.project_id, projectId))
+                .execute();
+            const genericAssetIds = normalizeIdList(genericAssets.map((row) => row.id));
+
             const ontologyFields = await db
                 .select({
                     id: dbSchema.ontology_fields.id,
@@ -269,6 +276,17 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                         .execute();
                     counts.templates = deletedTemplates.length;
 
+                    // 4b. Delete datasources explicitly (before institutions to ensure triggers resolve project_id)
+                    // Datasources rely on institution lookup for project_id interpretation
+                    if (institutionIds.length > 0) {
+                        const deletedDatasources = await tx
+                             .delete(dbSchema.datasources)
+                             .where(inArray(dbSchema.datasources.institution_id, institutionIds))
+                             .returning({ id: dbSchema.datasources.id })
+                             .execute();
+                        // counts.datasources = deletedDatasources.length; // Add if we track this count later
+                    }
+
                     // 5. Delete institutions (this cascades to datasources)
                     const deletedInstitutions = await tx
                         .delete(dbSchema.institutions)
@@ -277,7 +295,20 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                         .execute();
                     counts.institutions = deletedInstitutions.length;
 
-                    // 6. Delete research fields (this cascades to vocabularies)
+            // 5b. Delete vocabularies explicitly (before research fields/generic assets)
+                    // Vocabularies rely on parent lookup triggers
+                    if (researchFieldIds.length > 0) {
+                         await tx.delete(dbSchema.vocabularies)
+                           .where(inArray(dbSchema.vocabularies.field_id, researchFieldIds))
+                           .execute();
+                    }
+                    if (genericAssetIds.length > 0) {
+                         await tx.delete(dbSchema.vocabularies)
+                           .where(inArray(dbSchema.vocabularies.main_asset_id, genericAssetIds))
+                           .execute();
+                    }
+
+                    // 6. Delete research fields (this cascades to vocabularies but we deleted them safely)
                     const deletedResearchFields = await tx
                         .delete(dbSchema.research_fields)
                         .where(eq(dbSchema.research_fields.project_id, projectId))

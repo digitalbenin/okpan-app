@@ -171,6 +171,11 @@ async function loadRowPayload(tableName, rowId) {
         const res = await db.select().from(objects_ontology_fields).where(eq(objects_ontology_fields.id, rowId)).limit(1).execute();
         return res[0] || null;
       }
+      case 'objects_datasources': {
+        const { objects_datasources } = await import('../../db/schema.js');
+        const res = await db.select().from(objects_datasources).where(eq(objects_datasources.id, rowId)).limit(1).execute();
+        return res[0] || null;
+      }
       case 'vocabularies_generic_assets': {
         const res = await db.select().from(vocabularies_generic_assets).where(eq(vocabularies_generic_assets.id, rowId)).limit(1).execute();
         return res[0] || null;

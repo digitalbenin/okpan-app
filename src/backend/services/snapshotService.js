@@ -311,6 +311,7 @@ export async function hydrateProjectFromDatabase(projectId) {
      { name: 'assets_institutions', col: 'asset_id', ref: 'assets', refCol: 'id' },
      { name: 'objects_research_fields', col: 'object_id', ref: 'objects', refCol: 'id' },
      { name: 'objects_ontology_fields', col: 'object_id', ref: 'objects', refCol: 'id' },
+     { name: 'objects_datasources', col: 'object_id', ref: 'objects', refCol: 'id' },
      { name: 'vocabularies_generic_assets', col: 'generic_asset_id', ref: 'generic_assets', refCol: 'id' }
   ];
 
