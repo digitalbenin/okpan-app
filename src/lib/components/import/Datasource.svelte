@@ -97,19 +97,20 @@
     languageId: { hidden: true },
     templateId: { hidden: true },
     source: { hidden: true },
-    name: { label: t("common.datasource-name", { fallback: "Datasource Name" }), colSize: 6 },
-    method: { type: "textarea", label: t("common.method", { fallback: "Method" }), colSize: 6 },
-    notes: { type: "textarea", label: t("common.notes", { fallback: "Notes" }), colSize: 6 },
+    importId: { hidden: true },
+    name: { label: t("common.datasource-name", { fallback: "Datasource Name" }), colSize: 9 },
+    method: { type: "textarea", label: t("common.method", { fallback: "Method" }), colSize: 9 },
+    notes: { type: "textarea", label: t("common.notes", { fallback: "Notes" }), colSize: 9 },
     institutionId: {
       type: "select",
       label: t("common.institution", { fallback: "Institution" }),
       options: institutions.map((i) => ({ value: i.id, label: i.name.content })),
-      colSize: 6,
+      colSize: 9,
     },
-    date: { type: "date", label: t("common.date", { fallback: "Date" }), colSize: 6 },
-    language: { label: t("common.datasource-language", { fallback: "Datasource Language" }), colSize: 6 },
-    copyright: { label: t("common.copyright", { fallback: "Copyright" }), colSize: 6 },
-    contact: { label: t("common.contact", { fallback: "Contact" }), colSize: 6 },
+    date: { type: "date", label: t("common.date", { fallback: "Date" }), colSize: 9 },
+    language: { label: t("common.datasource-language", { fallback: "Datasource Language" }), colSize: 9 },
+    copyright: { label: t("common.copyright", { fallback: "Copyright" }), colSize: 9 },
+    contact: { label: t("common.contact", { fallback: "Contact" }), colSize: 9 },
   });
 
   const fieldOrder = ["institutionId", "date", "language", "copyright", "contact"];
@@ -135,7 +136,7 @@
           {languages}
           translatableFields={TRANSLATABLE_FIELDS}
           {translationsValidator}
-          defaultColSize={6}
+          defaultColSize={9}
           {fieldOrder}
           hiddenStaticValues={{ templateId: null }}
           {uiSchema}
@@ -146,7 +147,7 @@
     </div>
 
     <div class="row mt-0">
-      <div class="col-12">
+      <div class="col-12 pb-4">
         <BaseButton type="submit" class="btn btn-success" text={t("common.confirm", { fallback: "Confirm" })} />
       </div>
     </div>
