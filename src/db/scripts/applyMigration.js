@@ -10,6 +10,16 @@ import { populateObjectSearchIndexes } from './populateObjectSearchIndexes.js';
 // Get the directory name of the current module
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const resolveMigrationPath = (fileName) => {
+    const migrationPath = path.resolve(process.cwd(), 'src', 'db', 'migrations', fileName);
+
+    if (fs.existsSync(migrationPath)) {
+        return migrationPath;
+    }
+
+    throw new Error(`Migration file not found: ${migrationPath}`);
+};
+
 /**
  * Applies the institutions search migration and populates the index
  */
@@ -31,7 +41,7 @@ async function applyMigration() {
         const ftsTableExists = tableCheckResult.rows.length > 0;
 
         // Read the migration file
-        const migrationPath = path.resolve(__dirname, '../migrations/001_create_institutions_search.sql');
+        const migrationPath = resolveMigrationPath('001_create_institutions_search.sql');
         const sqlContent = fs.readFileSync(migrationPath, 'utf8');
 
         // First, let's handle the CREATE VIRTUAL TABLE statement separately to ensure it's processed correctly
@@ -114,7 +124,7 @@ async function applyMigration() {
 
         // --- Objects search migration and population ---
         console.log('Setting up objects search...');
-        const objectsMigrationPath = path.resolve(__dirname, '../migrations/002_create_object_search_fts.sql');
+        const objectsMigrationPath = resolveMigrationPath('002_create_object_search_fts.sql');
         const objectsSql = fs.readFileSync(objectsMigrationPath, 'utf8');
 
         // Build statements, keeping CREATE TRIGGER blocks intact
@@ -165,7 +175,7 @@ async function applyMigration() {
 
         // --- Change log triggers for core and junction tables ---
         console.log('Applying change_log triggers for core tables (003)...');
-        const changeLogCorePath = path.resolve(__dirname, '../migrations/003_change_log_triggers.sql');
+            const changeLogCorePath = resolveMigrationPath('003_change_log_triggers.sql');
         if (fs.existsSync(changeLogCorePath)) {
             const changeLogCoreSql = fs.readFileSync(changeLogCorePath, 'utf8');
 
@@ -294,7 +304,7 @@ async function applyMigration() {
         }
 
         console.log('Applying change_log triggers for junction tables (004)...');
-        const changeLogJunctionPath = path.resolve(__dirname, '../migrations/004_change_log_junction_triggers.sql');
+            const changeLogJunctionPath = resolveMigrationPath('004_change_log_junction_triggers.sql');
         if (fs.existsSync(changeLogJunctionPath)) {
             const changeLogJunctionSql = fs.readFileSync(changeLogJunctionPath, 'utf8');
 

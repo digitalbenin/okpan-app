@@ -381,12 +381,6 @@ const createWindow = () => {
 
 // Initialize app
 app.whenReady().then(() => {
-  // Ensure DB migrations and change_log triggers are applied before any ingestion/tailer
-  // This makes ongoing local changes appear in change_log for syncing
-  applyMigration().catch((err) => {
-    console.error('Database migration/setup failed at startup:', err);
-  });
-
   // Register media protocol handler
   protocol.registerFileProtocol('media', (request, callback) => {
     try {

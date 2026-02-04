@@ -64,31 +64,6 @@ BEGIN
   );
 END;
 
-CREATE TRIGGER IF NOT EXISTS trg_project_change_log_delete
-AFTER DELETE ON project
-BEGIN
-  INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
-  VALUES (
-    lower(hex(randomblob(16))),
-    OLD.id,
-    'project',
-    'DELETE',
-    OLD.id,
-    (SELECT client_id FROM global_settings WHERE id = 1),
-    'local',
-    NULL,
-    json_object(
-      'id', OLD.id,
-      'created_at', OLD.created_at,
-      'updated_at', OLD.updated_at,
-      'title_id', OLD.title_id,
-      'description_id', OLD.description_id,
-      'exports', OLD.exports,
-      'password', OLD.password
-    )
-  );
-END;
-
 -- settings
 CREATE TRIGGER IF NOT EXISTS trg_settings_change_log_insert
 AFTER INSERT ON settings

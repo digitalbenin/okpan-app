@@ -653,7 +653,7 @@ export const logs = sqliteTable('logs', {
 
 export const actions = sqliteTable('actions', {
     ...commonFields,
-    project_id: text('project_id').references(() => project.id),
+    project_id: text('project_id').references(() => project.id, { onDelete: 'cascade' }),
     user_id: text('user_id'),
     client_id: text('client_id'),
     action_type: text('action_type').notNull(),
@@ -725,8 +725,8 @@ export const change_log = sqliteTable(
 export const yjs_updates = sqliteTable('yjs_updates', {
     ...commonFields,
     project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
-    from_change_id: text('from_change_id').references(() => change_log.id),
-    to_change_id: text('to_change_id').references(() => change_log.id),
+    from_change_id: text('from_change_id').references(() => change_log.id, { onDelete: 'set null' }),
+    to_change_id: text('to_change_id').references(() => change_log.id, { onDelete: 'set null' }),
     update_bytes: blob('update_bytes').notNull()
 });
 
@@ -734,7 +734,7 @@ export const yjs_updates = sqliteTable('yjs_updates', {
 export const yjs_snapshots = sqliteTable('yjs_snapshots', {
     ...commonFields,
     project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
-    last_change_id: text('last_change_id').references(() => change_log.id),
+    last_change_id: text('last_change_id').references(() => change_log.id, { onDelete: 'set null' }),
     snapshot_bytes: blob('snapshot_bytes').notNull(),
     state_vector: blob('state_vector')
 });
@@ -743,7 +743,7 @@ export const yjs_snapshots = sqliteTable('yjs_snapshots', {
 export const ingestion_state = sqliteTable('ingestion_state', {
     ...commonFields,
     project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }).unique(),
-    last_processed_change_id: text('last_processed_change_id').references(() => change_log.id)
+    last_processed_change_id: text('last_processed_change_id').references(() => change_log.id, { onDelete: 'set null' })
 });
 
 // Website Settings relations

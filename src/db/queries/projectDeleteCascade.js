@@ -224,6 +224,27 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                         .execute();
                     counts.actions = deletedActions.length;
 
+                    // 1b. Delete sync tables (change_log and Yjs tables)
+                    await tx
+                        .delete(dbSchema.yjs_updates)
+                        .where(eq(dbSchema.yjs_updates.project_id, projectId))
+                        .execute();
+
+                    await tx
+                        .delete(dbSchema.yjs_snapshots)
+                        .where(eq(dbSchema.yjs_snapshots.project_id, projectId))
+                        .execute();
+
+                    await tx
+                        .delete(dbSchema.ingestion_state)
+                        .where(eq(dbSchema.ingestion_state.project_id, projectId))
+                        .execute();
+
+                    await tx
+                        .delete(dbSchema.change_log)
+                        .where(eq(dbSchema.change_log.project_id, projectId))
+                        .execute();
+
                     // 2. Delete objects (before assets/institutions since junction tables reference it)
                     const deletedObjects = await tx
                         .delete(dbSchema.objects)
@@ -353,30 +374,27 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                     }
                     
                     let deletedTextsCount = 0;
-                    if (textsWhereClause) {
-                         const deletedTexts = await tx.delete(dbSchema.texts)
                             .where(textsWhereClause)
                             .returning({ id: dbSchema.texts.id })
-                            .execute();
                          deletedTextsCount = deletedTexts.length;
                     }
                     counts.texts = deletedTextsCount;
+                    logDeleteStep('Deleted texts', { count: counts.texts });
 
                     // 15. Delete languages last (nothing references them anymore)
-                    const deletedLanguages = await tx
                         .delete(dbSchema.languages)
                         .where(eq(dbSchema.languages.project_id, projectId))
-                        .returning({ id: dbSchema.languages.id })
-                        .execute();
-                    counts.languages = deletedLanguages.length;
+                        settings: await countByProjectId(tx, dbSchema.settings, projectId)
+                    };
 
-                    // 15. Delete the project last
-                    const deletedProject = await tx
-                        .delete(dbSchema.project)
+                    logDeleteStep('Remaining project_id references before delete', projectRefCounts);
+
+                    logDeleteStep('Deleting project');
                         .where(eq(dbSchema.project.id, projectId))
                         .returning({ id: dbSchema.project.id })
                         .execute();
                     counts.project = deletedProject.length;
+                    logDeleteStep('Deleted project', { count: counts.project });
                 } catch (error) {
                     console.error('[DELETE CASCADE] Transaction failed:', error);
                     throw error;
