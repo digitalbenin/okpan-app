@@ -234,16 +234,28 @@ export async function hydrateProjectFromDatabase(projectId) {
     loadedCount += rows.length;
   };
 
-  // 1. Core Project Tables (Direct project_id)
+  // 1. Core Project Tables
   const directProjectTables = [
-    'project', 'settings', 'website_settings', 'object_display_fields',
+    'settings', 'website_settings', 'object_display_fields',
     'research_fields', 'ontology_fields', 'assets', 'generic_assets',
     'objects', 'templates', 'languages', 'institutions'
   ];
 
+  // Project table uses id instead of project_id
+  try {
+    const projectRows = await db
+      .select()
+      .from(schema.project)
+      .where(eq(schema.project.id, projectId))
+      .execute();
+    loadIntoDoc('project', projectRows);
+  } catch (err) {
+    console.warn('[Snapshot] Failed to hydrate table project', err);
+  }
+
   for (const t of directProjectTables) {
     const tableDef = resolveSchema(t);
-    if (!tableDef) continue;
+    if (!tableDef || !tableDef.project_id) continue;
     try {
       const rows = await db.select().from(tableDef).where(eq(tableDef.project_id, projectId)).execute();
       loadIntoDoc(t, rows);
