@@ -3,6 +3,7 @@
   import TablePreview from "./TablePreview.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
+  import { onMount, onDestroy } from "svelte";
   const wizard = getImportAssetsWizardContext();
   const { t } = getTranslationStore();
 
@@ -10,6 +11,28 @@
   let filesSelected = $state([]);
   let importErrors = $state([]);
   let isImporting = $state(false);
+  let importProgressPercent = $state(0);
+  let importProgressText = $state("");
+
+  onMount(() => {
+    if (window.api && window.api.onImportProgress) {
+      window.api.onImportProgress((_event, data) => {
+        if (data.status === "start") {
+          importProgressPercent = 0;
+          importProgressText = `0 / ${data.total}`;
+        } else if (data.status === "progress") {
+          importProgressPercent = data.percent;
+          importProgressText = `${data.processed} / ${data.total}`;
+        }
+      });
+    }
+  });
+
+  onDestroy(() => {
+    if (window.api && window.api.removeImportProgressListeners) {
+      window.api.removeImportProgressListeners();
+    }
+  });
 
   async function choose(isDirectory) {
     const result = await window.api.openFileDialog({
@@ -159,18 +182,6 @@
           data={files.map((f) => ({ name: f.name, size: f.size, id: f.path }))}
           bind:selected={filesSelected}
         />
-        {#if wizard.assets.length}
-          <div class="alert alert-success mt-3">
-            {wizard.assets.length}
-            {wizard.assets.length === 1
-              ? t("import.asset-created", {
-                  fallback: "asset imported correctly",
-                })
-              : t("import.assets-created", {
-                  fallback: "assets imported correctly",
-                })}
-          </div>
-        {/if}
 
         {#if importErrors.length}
           <div class="alert alert-danger">
@@ -188,15 +199,54 @@
         {/if}
       </div>
     </div>
-    {#if !wizard.assets.length}
       <div class="row mt-0 bg-white border-top py-2" style="position: sticky; bottom: 0; z-index: 100;">
-        <div class="col-12 d-flex align-items-center justify-content-end">
-            {filesSelected.length}
-            {filesSelected.length === 1
-              ? t("import.file-selected", { fallback: "file selected" })
-              : t("import.files", { fallback: "files selected" })}
+        <div class="col-12 d-flex align-items-center justify-content-end gap-3">
+          {#if wizard.assets.length}
+            <div class="text-success d-flex align-items-center gap-2 me-3">
+              <i class="bi bi-check-circle-fill fs-5"></i>
+              <span class="fw-bold fs-6">
+                {wizard.assets.length}
+                {wizard.assets.length === 1
+                  ? t("import.asset-created", {
+                      fallback: "asset imported correctly",
+                    })
+                  : t("import.assets-created", {
+                      fallback: "assets imported correctly",
+                    })}
+              </span>
+            </div>
+          {:else if isImporting}
+            <div class="flex-grow-1">
+              <div
+                class="progress"
+                role="progressbar"
+                aria-label="Import progress"
+                aria-valuenow={importProgressPercent}
+                aria-valuemin="0"
+                aria-valuemax="100"
+                style="height: 10px;"
+              >
+                <div
+                  class="progress-bar"
+                  style="width: {importProgressPercent}%"
+                ></div>
+              </div>
+              <div class="text-end fs-7 text-muted mt-1">
+                {importProgressText}
+              </div>
+            </div>
+          {:else}
+            <span>
+              {filesSelected.length}
+              {filesSelected.length === 1
+                ? t("import.file-selected", { fallback: "file selected" })
+                : t("import.files", { fallback: "files selected" })}
+            </span>
+          {/if}
+          
+          {#if !wizard.assets.length}
             <button
-              class="ms-2 btn btn-success btn-sm d-flex align-items-center gap-2"
+              class=" btn btn-success btn-sm d-flex align-items-center gap-2"
               disabled={filesSelected.length === 0 || isImporting}
               onclick={importNow}
             >
@@ -211,8 +261,8 @@
                 <span>{t("import.import", { fallback: "Import" })}</span>
               {/if}
             </button>
+          {/if}
         </div>
       </div>
-    {/if}
   {/if}
 </div>
