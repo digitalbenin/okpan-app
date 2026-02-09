@@ -3,10 +3,11 @@
   import { createForm } from "@tanstack/svelte-form";
   import { getValidator, createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { createDatasource, updateDatasource } from "$lib/stores/DatasourcesUtils.js";
+  import { createDatasource, updateDatasource, getDatasource } from "$lib/stores/DatasourcesUtils.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import { queryParameters, ssp } from "sveltekit-search-params";
+  import { onMount } from "svelte";
 
   const translationStore = getTranslationStore();
   const t = $derived(translationStore.t);
@@ -25,6 +26,47 @@
 
   // State
   let allValidationErrors = $state([]);
+  let loading = $state(false);
+  let initialValues = $state({});
+
+  onMount(async () => {
+    if (wizard.datasourceId) {
+      loading = true;
+      const { result } = await getDatasource(wizard.datasourceId);
+      if (result) {
+        const values = {
+          institutionId: result.institution_id,
+          date: result.date,
+          // Handle potential object fields from Text/Translations structure by taking .content
+          name: result.name?.content || (typeof result.name === 'string' ? result.name : ""),
+          method: result.method?.content || (typeof result.method === 'string' ? result.method : ""),
+          notes: result.notes?.content || (typeof result.notes === 'string' ? result.notes : ""),
+          copyright: result.copyright,
+          contact: result.contact,
+          language: result.language,
+        };
+
+        // Populate translations for secondary languages
+        secondaryLanguages.forEach((lang) => {
+          TRANSLATABLE_FIELDS.forEach((field) => {
+            const fieldData = result[field];
+            if (fieldData?.translations && Array.isArray(fieldData.translations)) {
+              // Find translation matching the language code
+              const translation = fieldData.translations.find(
+                (t) => t.language?.code === lang.code || t.language_code === lang.code
+              );
+              if (translation) {
+                values[`translations_${lang.id}_${field}`] = translation.content;
+              }
+            }
+          });
+        });
+
+        initialValues = values;
+      }
+      loading = false;
+    }
+  });
 
   // Helper to build translations payload for create/update
   const buildTranslationsPayload = (formValues) => {
@@ -63,6 +105,7 @@
         date: new Date().toISOString(),
         languageId: defaultLanguage?.id,
         institutionId: params.institution_id || undefined,
+        ...initialValues,
       },
       onSubmit: async ({ value }) => {
         try {
@@ -125,31 +168,40 @@
       </div>
     </div>
 
-    <div class="row">
-      <div class="col-12">
-        <AutoForm
-          {form}
-          {validator}
-          {createFieldValidator}
-          entity="datasources"
-          operation="create"
-          {languages}
-          translatableFields={TRANSLATABLE_FIELDS}
-          {translationsValidator}
-          defaultColSize={9}
-          {fieldOrder}
-          hiddenStaticValues={{ templateId: null }}
-          {uiSchema}
-          usePortal={false}
-          
-        />
+    {#if loading}
+      <div class="d-flex justify-content-center p-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
       </div>
-    </div>
+    {:else}
+      <div class="row">
+        <div class="col-12">
+          <AutoForm
+            {form}
+            {validator}
+            {createFieldValidator}
+            entity="datasources"
+            operation="create"
+            {languages}
+            translatableFields={TRANSLATABLE_FIELDS}
+            {translationsValidator}
+            defaultColSize={9}
+            {fieldOrder}
+            hiddenStaticValues={{ templateId: null }}
+            {uiSchema}
+            usePortal={false}
+            enableDirtyTracking={false}
+            
+          />
+        </div>
+      </div>
 
-    <div class="row mt-0">
-      <div class="col-12 pb-4">
-        <BaseButton type="submit" class="btn btn-success" text={t("common.confirm", { fallback: "Confirm" })} />
+      <div class="row mt-0 bg-white border-top py-2" style="position: sticky; bottom: 0; z-index: 100;">
+        <div class="col-12 d-flex align-items-center justify-content-end">
+          <BaseButton type="submit" class="btn btn-success btn-sm" text={t("common.confirm", { fallback: "Confirm" })} />
+        </div>
       </div>
-    </div>
+    {/if}
   </div>
 </form>

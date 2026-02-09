@@ -154,35 +154,11 @@
   </div>
   {#if files.length}
     <div class="row">
-      <div class="col-12">
+      <div class="col-9">
         <TablePreview
           data={files.map((f) => ({ name: f.name, size: f.size, id: f.path }))}
           bind:selected={filesSelected}
         />
-        {#if !wizard.assets.length}
-          <div class="d-flex align-items-center">
-            {filesSelected.length}
-            {filesSelected.length === 1
-              ? t("import.file-selected", { fallback: "file selected" })
-              : t("import.files", { fallback: "files selected" })}
-            <button
-              class="ms-2 btn btn-success d-flex align-items-center gap-2"
-              disabled={filesSelected.length === 0 || isImporting}
-              onclick={importNow}
-            >
-              {#if isImporting}
-                <span
-                  class="spinner-border spinner-border-sm"
-                  role="status"
-                  aria-hidden="true"
-                ></span>
-                <span>{t("import.importing", { fallback: "Importing..." })}</span>
-              {:else}
-                <span>{t("import.import", { fallback: "Import" })}</span>
-              {/if}
-            </button>
-          </div>
-        {/if}
         {#if wizard.assets.length}
           <div class="alert alert-success mt-3">
             {wizard.assets.length}
@@ -212,5 +188,31 @@
         {/if}
       </div>
     </div>
+    {#if !wizard.assets.length}
+      <div class="row mt-0 bg-white border-top py-2" style="position: sticky; bottom: 0; z-index: 100;">
+        <div class="col-12 d-flex align-items-center justify-content-end">
+            {filesSelected.length}
+            {filesSelected.length === 1
+              ? t("import.file-selected", { fallback: "file selected" })
+              : t("import.files", { fallback: "files selected" })}
+            <button
+              class="ms-2 btn btn-success btn-sm d-flex align-items-center gap-2"
+              disabled={filesSelected.length === 0 || isImporting}
+              onclick={importNow}
+            >
+              {#if isImporting}
+                <span
+                  class="spinner-border spinner-border-sm"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                <span>{t("import.importing", { fallback: "Importing..." })}</span>
+              {:else}
+                <span>{t("import.import", { fallback: "Import" })}</span>
+              {/if}
+            </button>
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>
