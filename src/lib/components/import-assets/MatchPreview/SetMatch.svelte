@@ -69,7 +69,7 @@
     class: "btn btn-outline-secondary btn-sm",
     disabled: disabled,
   }}
-  size="lg"
+  size="xl"
 >
   {#snippet title()}
     {t("import.edit-link", { fallback: "Edit linked asset" })}
@@ -123,7 +123,7 @@
         </div>
       {/if}
       {#if searchResults.current}
-        <div>
+        <div class="mt-4">
           <h6 class="fw-bold">
             {t("import.other-results", { fallback: "Other Results" })}
           </h6>
