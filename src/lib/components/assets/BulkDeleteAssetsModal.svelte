@@ -29,7 +29,8 @@
     }
     isDeleting = true;
     try {
-      const { successes, errors, error } = await deleteAssetsBulk(selectedIds);
+      const idsToDelete = $state.snapshot(selectedIds);
+      const { successes, errors, error } = await deleteAssetsBulk(idsToDelete);
       deleteErrors = [];
       if (error) deleteErrors.push(error);
       if (errors && errors.length > 0) {
