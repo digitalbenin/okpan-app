@@ -64,7 +64,12 @@ export async function load({ url, fetch }) {
   const settings = fetchWebsiteSettings(db, projectId);
   const connection_types = (research_fields || [])
     .filter((field) => field?.type === 'vocabulary')
-    .map((field) => ({ id: field.id, name: field.name, description: field.description }));
+    .map((field) => ({
+      id: field.id,
+      name: field.name,
+      description: field.description,
+      count: (vocabularies || []).filter(v => v.field_id === field.id).length
+    }));
 
   return {
     institutions,

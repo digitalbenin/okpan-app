@@ -29,14 +29,19 @@
 		<p class="text-muted">Loading connections…</p>
 	{:else}
 		{#if connectionTypes.length > 0}
-			<div class="ms-1 list-group list-group-flush row g-3 ">
+			<div class="d-flex flex-column gap-3">
 				{#each connectionTypes as type}
-					<div class="col-md-4 list-group-item p-0 border rounded">
-						<p class="fw-bold mb-1 bg-light p-3">{type.name}</p>
-						{#if type.description}
-							<p class="mb-0 text-muted p-3">{type.description}</p>
-						{/if}
-					</div>
+					<a href="/connections/{type.id}" class="text-decoration-none text-dark">
+						<div class="card border rounded p-3 hover-shadow">
+							<h3 class="fs-4 mb-0 fw-normal">
+								{type.name}
+								<sup class="fs-6 fw-bold text-secondary">{type.count !== undefined ? type.count : ''}</sup>
+							</h3>
+							<!--{#if type.description}
+								<p class="mb-0 text-muted mt-2">{type.description}</p>
+							{/if}-->
+						</div>
+					</a>
 				{/each}
 			</div>
 		{:else}
