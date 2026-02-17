@@ -3,6 +3,8 @@
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
 
+    const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
+
     let { data } = $props();
     let researchField = $derived(data.researchField);
     let vocabulary = $derived(data.vocabulary);
@@ -188,7 +190,10 @@
         
         <div class="list-group list-group-flush">
             {#each paginatedObjects as obj}
-                <a href="/{obj.id}" class="list-group-item list-group-item-action p-3 d-flex align-items-center">
+                <a href="/{obj.id}" 
+                   class="list-group-item list-group-item-action p-3 d-flex align-items-center"
+                   data-sveltekit-reload={isStaticExport ? '' : null}
+                >
                     <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;">
                         {#if obj.main_image}
                              <img src={getAssetUrl({ asset_path: obj.main_image })} alt={obj.name} class="w-100 h-100 object-fit-cover">

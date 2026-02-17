@@ -42,7 +42,12 @@ export async function exportStaticWebsite(projectId, outputPath, { db }) {
       settings: data.settings || {},
       connection_types: (data.research_fields || [])
         .filter((field) => field?.type === 'vocabulary')
-        .map((field) => ({ id: field.id, name: field.name, description: field.description }))
+        .map((field) => ({
+          id: field.id,
+          name: field.name,
+          description: field.description,
+          count: (data.vocabularies || []).filter(v => v.field_id === field.id).length
+        }))
     };
     await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');
     console.log('[Website Export] Exported site.json for sidebar');
@@ -234,18 +239,33 @@ async function exportWebsiteData(projectId, db) {
           .where(inArray(dbSchema.assets.id, assetIds)).execute()
       : [];
 
-    // Fetch vocabularies
-    const fieldIds = [...new Set(objectsResearchFields.map(orf => orf.field_id).filter(Boolean))];
-    const vocabularies = fieldIds.length > 0
+    // Fetch vocabularies for all project research fields of type 'vocabulary'
+    const vocabularyFieldIds = researchFields
+      .filter(rf => rf.type === 'vocabulary')
+      .map(rf => rf.id);
+      
+    const vocabularies = vocabularyFieldIds.length > 0
       ? await db.select().from(dbSchema.vocabularies)
-          .where(inArray(dbSchema.vocabularies.field_id, fieldIds)).execute()
+          .where(inArray(dbSchema.vocabularies.field_id, vocabularyFieldIds)).execute()
       : [];
 
     // Fetch generic assets for vocabulary images
     const genericAssetIds = [...new Set(vocabularies.map(v => v.main_asset_id).filter(Boolean))];
-    const genericAssets = genericAssetIds.length > 0
+    
+    // Also fetch generic assets associated via vocabularies_generic_assets
+    const vocabGenericAssets = vocabularies.length > 0
+        ? await db.select().from(dbSchema.vocabularies_generic_assets)
+            .where(inArray(dbSchema.vocabularies_generic_assets.vocabulary_id, vocabularies.map(v => v.id))).execute()
+        : [];
+    
+    vocabGenericAssets.forEach(vga => {
+        if (vga.generic_asset_id) genericAssetIds.push(vga.generic_asset_id);
+    });
+
+    const uniqueGenericAssetIds = [...new Set(genericAssetIds)];
+    const genericAssets = uniqueGenericAssetIds.length > 0
       ? await db.select().from(dbSchema.genericAssets)
-          .where(inArray(dbSchema.genericAssets.id, genericAssetIds)).execute()
+          .where(inArray(dbSchema.genericAssets.id, uniqueGenericAssetIds)).execute()
       : [];
     const genericAssetMap = Object.fromEntries(genericAssets.map(ga => [ga.id, ga]));
 
@@ -456,14 +476,40 @@ async function exportWebsiteData(projectId, db) {
       onwebsite: of.onwebsite
     }));
 
+    // Calculate vocabulary object counts
+    const vocabularyCounts = {}; 
+    objectsResearchFields.forEach(orf => {
+      if (orf.vocabulary_id) {
+        vocabularyCounts[orf.vocabulary_id] = (vocabularyCounts[orf.vocabulary_id] || 0) + 1;
+      }
+    });
+
     const transformedVocabularies = vocabularies.map(v => {
       const genericAsset = v.main_asset_id ? genericAssetMap[v.main_asset_id] : null;
+      
+      // Get associated assets from junction table
+      const attachedAssets = vocabGenericAssets
+        .filter(vga => vga.vocabulary_id === v.id)
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+        .map(vga => {
+             const asset = genericAssetMap[vga.generic_asset_id];
+             return asset ? {
+                 path: asset.path,
+                 type: asset.type,
+                 id: asset.id
+             } : null;
+        })
+        .filter(Boolean);
+
       return {
         id: v.id,
         field_id: v.field_id,
         name: textMap[v.option_id],
         description: textMap[v.description_id],
-        main_asset_path: genericAsset?.path || null
+        external_link: v.external_link,
+        main_asset_path: genericAsset?.path || null,
+        assets: attachedAssets,
+        count: vocabularyCounts[v.id] || 0
       };
     });
 
@@ -496,7 +542,12 @@ async function exportWebsiteData(projectId, db) {
 
     const connectionTypes = transformedResearchFields
       .filter((field) => field?.type === 'vocabulary')
-      .map((field) => ({ id: field.id, name: field.name, description: field.description }));
+      .map((field) => ({
+        id: field.id,
+        name: field.name,
+        description: field.description,
+        count: transformedVocabularies.filter(v => v.field_id === field.id).length
+      }));
 
     return {
       metadata: {
