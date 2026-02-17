@@ -2,20 +2,21 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
 
-  let { mappedObject = $bindable(null) } = $props();
+  let { mappedObjects = $bindable([]) } = $props();
   const { t } = getTranslationStore();
 
   function resetFieldMatched() {
-    mappedObject = null;
+    mappedObjects = [];
   }
 
-  let primaryId = $derived.by(() => {
-    if (!mappedObject) return null;
-    return getObjectIdentifier(mappedObject);
+  let displayText = $derived.by(() => {
+    if (!mappedObjects || mappedObjects.length === 0) return null;
+    if (mappedObjects.length === 1) return getObjectIdentifier(mappedObjects[0]);
+    return `${mappedObjects.length} linked objects`;
   });
 </script>
 
-{#if mappedObject}
+{#if mappedObjects.length > 0}
   <div
     class="d-flex align-items-center bg-white rounded overflow-hidden text-capitalize position-relative"
   >
@@ -24,7 +25,7 @@
         <i class="bi bi-stars"></i>
       </div>
     {/if}
-    <div class="ps-2">{primaryId}</div>
+    <div class="ps-2">{displayText}</div>
 
     <button
       class="btn btn-sm"

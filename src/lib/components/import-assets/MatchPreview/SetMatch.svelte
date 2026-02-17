@@ -5,19 +5,28 @@
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import ChipObject from "./ChipObject.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import { getAssetImageUrl } from "$lib/utils/media.js";
   import { resource } from "runed";
 
   let {
     asset,
     suggestions = [],
-    mappedObject = $bindable(null),
+    mappedObjects = $bindable([]),
     disabled = false,
   } = $props();
   const { t } = getTranslationStore();
+  const wizard = getImportAssetsWizardContext();
 
   let open = $state(false);
   let search = $state();
+  let tempMappedObjects = $state([]);
+
+  $effect(() => {
+    if (open) {
+      tempMappedObjects = [...mappedObjects];
+    }
+  });
 
   const searchResults = resource(
     () => search,
@@ -51,15 +60,20 @@
   // });
 
   function updateMatch() {
-    // fieldMatched = page.data.ontologyFields.result
-    //   .filter((f) => f.id === value)
-    //   .map((f) => ({
-    //     name: f.name.content,
-    //     id: f.id,
-    //     description: f.description.content,
-    //     suggestion: suggestions.some((ss) => ss.ontologyFieldId === f.id),
-    //   }))[0];
-    // open = false;
+    // Determine objects to remove (present in mappedObjects but not in tempMappedObjects)
+    const toRemove = mappedObjects.filter(
+      (m) => !tempMappedObjects.some((t) => t.id === m.id)
+    );
+    // Determine objects to add (present in tempMappedObjects but not in mappedObjects)
+    const toAdd = tempMappedObjects.filter(
+      (t) => !mappedObjects.some((m) => m.id === t.id)
+    );
+
+    toRemove.forEach((obj) => wizard.removeMappingEntry(obj, asset.id));
+    toAdd.forEach((obj) => wizard.addMappingEntry(obj, asset.id));
+    
+    mappedObjects = [...tempMappedObjects];
+    open = false;
   }
 </script>
 
@@ -84,6 +98,11 @@
     {t("import.match-description", {
       fallback: "Change the linked asset for",
     })} <span class="fw-bold">{asset.filename}</span>
+    {#if tempMappedObjects.length > 0}
+      <div class="mt-1 small text-primary">
+        {tempMappedObjects.length} {t("common.selected", { fallback: "selected" })}
+      </div>
+    {/if}
   {/snippet}
 
   <div class="row mt-3">
@@ -117,7 +136,7 @@
               assetId={asset.id}
               object={suggestion.object}
               suggested={true}
-              bind:mappedObject
+              bind:mappedObjects={tempMappedObjects}
             />
           {/each}
         </div>
@@ -132,16 +151,19 @@
               assetId={asset.id}
               object={result}
               suggested={false}
-              bind:mappedObject
+              bind:mappedObjects={tempMappedObjects}
             />
           {/each}
         </div>
       {/if}
     </div>
   </div>
-  <!-- {#snippet footer()}
+  {#snippet footer()}
+    <button class="btn btn-secondary me-2" onclick={() => (open = false)}>
+      {t("common.cancel", { fallback: "Cancel" })}
+    </button>
     <button class="btn btn-success" onclick={updateMatch}>
       {t("common.confirm", { fallback: "Confirm" })}
     </button>
-  {/snippet} -->
+  {/snippet}
 </BaseAlertDialog>

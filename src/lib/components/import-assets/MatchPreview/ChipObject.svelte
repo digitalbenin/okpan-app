@@ -8,7 +8,7 @@
 
   let {
     object,
-    mappedObject = $bindable(null),
+    mappedObjects = $bindable([]),
     suggested = false,
     assetId,
   } = $props();
@@ -21,22 +21,42 @@
   });
 
   let selected = $derived.by(() => {
-    return mappedObject && object && mappedObject.id === object.id;
+    return mappedObjects && object && mappedObjects.some((o) => o.id === object.id);
   });
 
   function handleSelect() {
-    if (mappedObject && mappedObject.id === object.id) {
-      mappedObject = null;
-      wizard.removeMappingEntry(object, assetId);
+    if (selected) {
+      // Remove object from array
+      mappedObjects = mappedObjects.filter((o) => o.id !== object.id);
     } else {
-      mappedObject = object;
-      wizard.addMappingEntry(object, assetId);
+      // Add object to array
+      mappedObjects = [...mappedObjects, object];
     }
   }
 
   let connectionsOpen = $state(false);
   let institutionOpen = $state(false);
   let expanded = $state(false);
+
+  function getVocabularyThumbUrl(vocabulary) {
+    if (!vocabulary) return null;
+
+    if (vocabulary.mainAsset) {
+      return getAssetImageUrl(vocabulary.mainAsset, "sm");
+    }
+
+    if (vocabulary.main_asset_path || vocabulary.main_asset_formats) {
+      return getAssetImageUrl(
+        {
+          path: vocabulary.main_asset_path,
+          formats: vocabulary.main_asset_formats,
+        },
+        "sm",
+      );
+    }
+
+    return null;
+  }
 </script>
 
 <div class="rounded bg-secondary-subtle p-2 mb-2">
@@ -101,7 +121,7 @@
                 >
                     <div style="width: 40px; height: 40px;" class="flex-shrink-0">
                          <BaseImage 
-                            src={field.vocabulary?.mainAsset?.path ? `media://${field.vocabulary.mainAsset.path}` : null}
+                          src={getVocabularyThumbUrl(field.vocabulary)}
                             alt={field.vocabulary?.option?.content}
                             width={40}
                             height={40}

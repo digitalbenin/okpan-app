@@ -320,9 +320,15 @@ async function getFullObjectsByIds(objectIds) {
         'id', v.id,
         'option', json_object(
           'content', v_option_texts.content
-        )
+                ),
+                'mainAsset', json_object(
+                    'id', ga.id,
+                    'path', ga.path,
+                    'formats', ga.formats,
+                    'type', ga.type
+                )
       )
-    )) FROM objects_research_fields orf JOIN research_fields rf ON orf.field_id = rf.id JOIN texts rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN vocabularies v ON orf.vocabulary_id = v.id LEFT JOIN texts v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = ${sql.raw(`"objects_get_full"."id"`)} )`;
+        )) FROM objects_research_fields orf JOIN research_fields rf ON orf.field_id = rf.id JOIN texts rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN vocabularies v ON orf.vocabulary_id = v.id LEFT JOIN texts v_option_texts ON v.option_id = v_option_texts.id LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id WHERE orf.object_id = ${sql.raw(`"objects_get_full"."id"`)} )`;
 
         const query = db
             .select({
