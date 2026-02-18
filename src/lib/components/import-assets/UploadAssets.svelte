@@ -148,7 +148,7 @@
   ];
 </script>
 
-<div class="container-fluid mt-3">
+<div class="container-fluid pt-3 h-100 d-flex flex-column">
   <div class="row">
     <div class="col-12">
       <h2 class="mt-3">
@@ -176,30 +176,33 @@
     </div>
   </div>
   {#if files.length}
-    <div class="row">
-      <div class="col-9">
-        <TablePreview
-          data={files.map((f) => ({ name: f.name, size: f.size, id: f.path }))}
-          bind:selected={filesSelected}
-        />
-
-        {#if importErrors.length}
-          <div class="alert alert-danger">
-            <h4>
-              {t("import.errors-occurred", {
-                fallback: "Some errors occurred",
-              })}
-            </h4>
-            <ul>
-              {#each importErrors as err}
-                <li>{err}</li>
-              {/each}
-            </ul>
+    <div class="d-flex flex-column flex-grow-1 min-h-0">
+      <div class="row flex-grow-1 min-h-0 overflow-y-auto">
+        <div class="col-9 h-100 d-flex flex-column">
+          <div class="flex-grow-1 min-h-0 overflow-y-auto">
+            <TablePreview
+              data={files.map((f) => ({ name: f.name, size: f.size, id: f.path }))}
+              bind:selected={filesSelected}
+            />
           </div>
-        {/if}
+
+          {#if importErrors.length}
+            <div class="alert alert-danger mt-2 mb-0">
+              <h4>
+                {t("import.errors-occurred", {
+                  fallback: "Some errors occurred",
+                })}
+              </h4>
+              <ul>
+                {#each importErrors as err}
+                  <li>{err}</li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+        </div>
       </div>
-    </div>
-      <div class="row mt-0 bg-white border-top py-2" style="position: sticky; bottom: 0; z-index: 100;">
+      <div class="row bg-white border-top py-2 position-sticky bottom-0 z-3 mt-2">
         <div class="col-12 d-flex align-items-center justify-content-end gap-3">
           {#if wizard.assets.length}
             <div class="text-success d-flex align-items-center gap-2 me-3">
@@ -264,5 +267,6 @@
           {/if}
         </div>
       </div>
+    </div>
   {/if}
 </div>
