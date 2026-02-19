@@ -202,7 +202,7 @@
                         {/if}
                     </div>
                     <div>
-                        <div class="fw-bold text-decoration-underline text-success">{obj.name || obj.id}</div> 
+                        <div class="fw-bold text-decoration-underline text-success-emphasis">{obj.name || obj.id}</div> 
                         <!-- ID is used as link text in mockup (2014.2021.277) -->
                         <div class="small text-muted">{obj.institution_name}</div>
                     </div>
