@@ -121,12 +121,17 @@
       onChangesUpdate({
         component: "institutional-data",
         hasChanges: hasAnyChanges,
-        saveFunction: async () => {
+        saveFunction: async (targetObjectId) => {
+          const objectId = targetObjectId || object?.id;
+          if (!objectId) {
+            throw new Error("Missing object ID for institutional data save");
+          }
+
           const saves = Array.from(componentChanges.values())
             .filter(c => c.hasChanges && c.getData)
             .map(c => c.getData())
             .map(data => saveOntologyFieldsForDatasource(
-              object.id, data.datasourceId, data.templateId, data.fields
+              objectId, data.datasourceId, data.templateId, data.fields
             ));
           
           await Promise.all(saves);
@@ -156,7 +161,7 @@
     
     if (error) {
       console.error("Failed to create datasource:", error);
-      creating = fals
+      creating = false;
       return;
     }
 
