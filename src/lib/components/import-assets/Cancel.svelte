@@ -3,34 +3,28 @@
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
-  import { deleteAssetsBulk } from "$lib/stores/AssetsUtils.js";
 
   const { t } = getTranslationStore();
   const wizard = getImportAssetsWizardContext();
   let open = $state(false);
-  let isDeleting = $state(false);
 
   async function cancelImport() {
-    if (isDeleting) return;
+    if (wizard.isCleaningUp) return;
 
-    const importedAssetIds = wizard.assets?.map((a) => a.id).filter(Boolean) || [];
-
-    if (importedAssetIds.length > 0) {
-      isDeleting = true;
+    if (!wizard.importCompleted) {
       try {
-        const result = await deleteAssetsBulk(importedAssetIds);
-        if (result.errors?.length) {
+        const result = await wizard.cleanupImportedAssets();
+        if (result?.errors?.length) {
           console.warn("Some assets could not be deleted:", result.errors);
         }
       } catch (error) {
-        console.error("Failed to delete imported assets:", error);
-      } finally {
-        isDeleting = false;
+        console.error("Failed to cleanup imported assets during cancel:", error);
       }
     }
 
+    wizard.clearFlowState();
     open = false;
-    goto(`/projects/${wizard.projectId}/import-assets`);
+    goto(`/projects/${wizard.projectId}`);
   }
 </script>
 
@@ -47,12 +41,12 @@
     })}
   {/snippet}
   {#snippet footer()}
-    {#if isDeleting}
+    {#if wizard.isCleaningUp}
       <div class="spinner-border text-danger" role="status">
         <span class="visually-hidden">{t("common.deleting", { fallback: "Deleting..." })}</span>
       </div>
     {/if}
-    <button class="btn btn-success" onclick={cancelImport} disabled={isDeleting}>
+    <button class="btn btn-success" onclick={cancelImport} disabled={wizard.isCleaningUp}>
       {t("common.confirm", { fallback: "Confirm" })}
     </button>
   {/snippet}

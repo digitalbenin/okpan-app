@@ -90,6 +90,12 @@ export const objectsOperations = {
           option {
             content
           }
+          mainAsset {
+            id
+            path
+            formats
+            type
+          }
         }
       }
       displayFields

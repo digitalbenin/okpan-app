@@ -60,6 +60,7 @@ export async function findMatchingTemplates(inputHeaders, projectId, institution
                 if (allTemplateHeadersFound) {
                     // Get usage info for this template (how many objects/datasources used it)
                     const usageInfo = await getTemplateUsageInfo(template.id);
+                    const templateDatasources = await getTemplateDatasources(template.id);
 
                     matchingTemplates.push({
                         id: template.id,
@@ -70,6 +71,7 @@ export async function findMatchingTemplates(inputHeaders, projectId, institution
                         created_at: template.created_at,
                         updated_at: template.updated_at,
                         usageInfo: usageInfo,
+                        datasources: templateDatasources,
                         // Flag templates from the same institution for prioritization
                         sameInstitution: institutionId && template.institution_id === institutionId
                     });
@@ -94,6 +96,33 @@ export async function findMatchingTemplates(inputHeaders, projectId, institution
     } catch (error) {
         console.error('Error finding matching templates:', error);
         throw new Error(`Failed to find matching templates: ${error.message}`);
+    }
+}
+
+/**
+ * Gets datasources associated with a template
+ * @param {string} templateId - Template ID
+ * @returns {Promise<Array>} Array of datasources
+ */
+async function getTemplateDatasources(templateId) {
+    try {
+        return await db
+            .select({
+                id: datasources.id,
+                date: datasources.date,
+                name: {
+                    content: texts.content
+                }
+            })
+            .from(objects_datasources)
+            .innerJoin(datasources, eq(objects_datasources.datasource_id, datasources.id))
+            .leftJoin(texts, eq(datasources.name_id, texts.id))
+            .where(eq(objects_datasources.template_id, templateId))
+            .groupBy(datasources.id)
+            .execute();
+    } catch (error) {
+        console.error('Error getting template datasources:', error);
+        return [];
     }
 }
 

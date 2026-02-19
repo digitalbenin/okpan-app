@@ -47,6 +47,11 @@
     open = false;
     goto("/projects/" + wizard.projectId);
   }
+
+  function goToImportAssets() {
+    open = false;
+    goto(`/projects/${wizard.projectId}/import-assets`);
+  }
 </script>
 
 <div class="container-fluid mt-3">
@@ -119,14 +124,24 @@
     })}
   {/snippet} -->
   {#snippet description()}
-    <span class="fw-bold">{wizard.data.length}</span>
-    {t("import.match-description", {
-      fallback: "objects imported correctly",
-    })}
+    <p class="mb-2">
+      <span class="fw-bold">{wizard.data.length}</span>
+      {t("import.match-description", {
+        fallback: "objects imported correctly",
+      })}
+    </p>
+    <p class="mb-0">
+      {t("import.ask-import-media", {
+        fallback: "Do you want to import linked media for these objects?",
+      })}
+    </p>
   {/snippet}
   {#snippet footer()}
-    <button class="btn btn-success" onclick={closeAndHome}>
-      {t("common.continue", { fallback: "Continue" })}
+    <button class="btn btn-outline-secondary" onclick={closeAndHome}>
+      {t("common.no-skip", { fallback: "No, return to project" })}
+    </button>
+    <button class="btn btn-success" onclick={goToImportAssets}>
+      {t("import.yes-import-media", { fallback: "Yes, import media" })}
     </button>
   {/snippet}
 </BaseAlertDialog>

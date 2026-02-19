@@ -180,7 +180,20 @@
               <MatchBadge field={mf} disabled={true} />
             {/each}
           {:else}
-            <MatchBadge bind:field={fieldMatched} disabled={!editEnabled} />
+            {#if !fieldMatched}
+              <div
+                class="d-flex align-items-center gap-2 bg-warning-subtle border border-warning-subtle text-warning-emphasis px-3 py-1 rounded"
+              >
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span
+                  >{t("import.field-unmapped", {
+                    fallback: "This field is unmapped",
+                  })}</span
+                >
+              </div>
+            {:else}
+              <MatchBadge bind:field={fieldMatched} disabled={!editEnabled} />
+            {/if}
           {/if}
           <SetMatch
             {field}

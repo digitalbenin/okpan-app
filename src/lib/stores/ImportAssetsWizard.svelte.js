@@ -1,5 +1,6 @@
 import { getContext, setContext } from 'svelte';
 import { getObjectIdentifier } from '$lib/utils/objects.js';
+import { deleteAssetsBulk } from '$lib/stores/AssetsUtils.js';
 
 const IMPORT_WIZARD_KEY = 'importAssetsWizard';
 
@@ -17,10 +18,42 @@ export function createImportAssetsWizardContext(params) {
     let assets = $state([]);
     let mapping = $state([])
     let importCompleted = $state(false);
+    let isCleaningUp = $state(false);
     // let useMatchingSuggestions = $state(false);
     // let formData = $state({});
     // let isValid = $state(false);
     // let errors = $state([]);
+
+    const cleanupImportedAssets = async () => {
+        if (isCleaningUp) {
+            return { successes: [], errors: [] };
+        }
+
+        const importedAssetIds = (assets || []).map((asset) => asset?.id).filter(Boolean);
+
+        if (!importedAssetIds.length) {
+            mapping = [];
+            nextEnabled = false;
+            return { successes: [], errors: [] };
+        }
+
+        isCleaningUp = true;
+        try {
+            const result = await deleteAssetsBulk(importedAssetIds);
+            return result;
+        } catch (error) {
+            console.error('Failed to delete imported assets:', error);
+            return {
+                successes: [],
+                errors: [{ error: error?.message || 'Failed to delete imported assets' }]
+            };
+        } finally {
+            assets = [];
+            mapping = [];
+            nextEnabled = false;
+            isCleaningUp = false;
+        }
+    };
 
     const context = {
         // Getters and setters for reactive state
@@ -56,6 +89,9 @@ export function createImportAssetsWizardContext(params) {
 
         get importCompleted() { return importCompleted; },
         set importCompleted(value) { importCompleted = value; },
+
+        get isCleaningUp() { return isCleaningUp; },
+        set isCleaningUp(value) { isCleaningUp = value; },
 
         // get data() { return data; },
         // set data(value) { data = value; },
@@ -114,6 +150,29 @@ export function createImportAssetsWizardContext(params) {
             if (currentStep > 1) currentStep--;
         },
 
+        cleanupImportedAssets,
+
+        async goBackOneStep() {
+            if (isCleaningUp || currentStep <= 1) return;
+
+            const targetStep = currentStep - 1;
+
+            if (!importCompleted && targetStep < 2 && (assets || []).length) {
+                await cleanupImportedAssets();
+            }
+
+            currentStep = targetStep;
+        },
+
+        clearFlowState() {
+            currentStep = 1;
+            nextEnabled = false;
+            institutionId = null;
+            assets = [];
+            mapping = [];
+            importCompleted = false;
+        },
+
         // updateFormData(newData) {
         //     formData = { ...formData, ...newData };
         // },
@@ -121,6 +180,10 @@ export function createImportAssetsWizardContext(params) {
         reset() {
             currentStep = 1;
             importCompleted = false;
+            nextEnabled = false;
+            institutionId = null;
+            assets = [];
+            mapping = [];
             // formData = {};
             // isValid = false;
             // errors = [];

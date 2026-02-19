@@ -1,54 +1,85 @@
 <script>
-  import Table from "$lib/components/base/table/Table.svelte";
-  import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
+  import { getAssetImageUrl } from "$lib/utils/media.js";
   const { data } = $props();
 
-  const items = $derived.by(() => {
+  const rows = $derived.by(() => {
     return data.map((item) => ({
-      image: $state.snapshot(item.asset),
-      fileName: item.asset.filename,
-      linkedObjects: item.objects_primary_ids
-        ? item.objects_primary_ids.join(", ")
-        : "None",
+      id: item.asset?.id || item.asset_id,
+      imageUrl: getAssetImageUrl($state.snapshot(item.asset), "sm"),
+      fileName: item.asset?.filename || "",
+      linkedObjects: Array.isArray(item.objects_primary_ids)
+        ? item.objects_primary_ids
+        : Array.isArray(item.object_ids)
+          ? item.object_ids
+          : [],
     }));
   });
-  // const columns = $derived.by(() => {
-  //   const headers = Object.keys(data[0]);
-  //   return headers.map((header) => ({
-  //     value: header,
-  //     label: header,
-  //     sortable: false,
-  //   }));
-  // });
-
-  const columns = $derived.by(() => [
-    {
-      value: "image",
-      label: "Image",
-      sortable: false,
-      accessor: (value) => {
-        const src = value.image.formats.sm;
-        const id = value.id;
-        return {
-          src,
-          id,
-        };
-      },
-      render: (value) => ({
-        component: TableImagePreview,
-        props: value,
-      }),
-    },
-    { value: "fileName", label: "File Name", sortable: false },
-    { value: "linkedObjects", label: "Linked Objects", sortable: false },
-  ]);
 </script>
 
-<Table
-  {items}
-  {columns}
-  selectable={false}
-  size="sm"
-  bordered={true}
-  wrap={true}
-/>
+<div class="table-responsive">
+  <table class="table align-middle mb-0 confirmation-table">
+    <thead>
+      <tr>
+        <th>Image</th>
+        <th>Name</th>
+        <th>Linked objects</th>
+      </tr>
+    </thead>
+    <tbody>
+      {#each rows as row}
+        <tr>
+          <td class="image-col">
+            {#if row.imageUrl}
+              <img class="asset-preview" src={row.imageUrl} alt={row.fileName} />
+            {:else}
+              <div
+                class="asset-preview d-flex align-items-center justify-content-center bg-light"
+              >
+                <i class="bi bi-image text-muted"></i>
+              </div>
+            {/if}
+          </td>
+          <td class="name-col">{row.fileName}</td>
+          <td>
+            {#if row.linkedObjects.length > 0}
+              <span class="me-2">Linked to →</span>
+              {#each row.linkedObjects as objectId}
+                <span style="font-size:1.1rem" class="badge text-bg-light border fw-medium me-2">{objectId}</span>
+              {/each}
+            {/if}
+          </td>
+        </tr>
+      {/each}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .confirmation-table thead th {
+    color: var(--bs-body-color);
+    font-size: 1.125rem;
+    font-weight: 700;
+    border-bottom-width: 1px;
+  }
+
+  .confirmation-table tbody td {
+    font-size: 1rem;
+    vertical-align: middle;
+    border-bottom-color: var(--bs-border-color);
+  }
+
+  .image-col {
+    width: 110px;
+  }
+
+  .asset-preview {
+    width: 76px;
+    height: 76px;
+    object-fit: cover;
+    border-radius: 0.375rem;
+  }
+
+  .name-col {
+    min-width: 280px;
+  }
+</style>

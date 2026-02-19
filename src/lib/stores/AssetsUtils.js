@@ -24,7 +24,7 @@ export const getTotalAssetsForInstitution = async (projectId, institutionId) => 
 
 export const updateAsset = async (assetId, data) => {
     const result = await executeQuery('assets', 'update', { assetId, ...data });
-    invalidate("app:assets");
+    await invalidateAll();
     return result;
 };
 
@@ -36,6 +36,8 @@ export const getAssetById = async (assetId) => {
 export const deleteAsset = async (assetId) => {
     let result = await executeQuery('assets', 'delete', { assetId: assetId });
     invalidate("app:assets");
+    invalidate("app:projects");
+    try { invalidate("app:project-shared"); } catch (_) {}
     return result;
 };
 
@@ -61,8 +63,7 @@ export const deleteAssetsBulk = async (assetIds) => {
     }
 
     // Invalidate caches to reflect deletions
-    invalidate("app:assets");
-    //invalidateAll();
+    await invalidateAll();
 
     return { successes, errors, missingIds, fileErrors };
 };
@@ -78,7 +79,7 @@ export const bulkLinkAssetsToObjects = async (links) => {
     const result = await executeQuery('assets', 'linkObjectsBulk', { links });
 
     // Invalidate caches to reflect new associations
-    invalidate("app:assets");
+    await invalidateAll();
 
     // Normalize response
     if (result && result.result) {

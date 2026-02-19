@@ -14,14 +14,19 @@
   <BaseTooltip>
     {#snippet trigger(props)}
       <div
-        class="d-flex align-items-center bg-white px-2 py-1 rounded text-capitalize position-relative"
+        class="d-flex align-items-center bg-white rounded-2 text-capitalize border-0"
         {...(({ type, ...rest }) => rest)(props)}
       >
         {#if field.suggestion}
-          <span class="p-1 bg-primary border border-light rounded-circle me-1">
-            <span class="visually-hidden">Suggested field</span>
-          </span>
+          <div
+            class="d-flex align-items-center justify-content-center border-0 rounded-start bg-primary px-1 me-2"
+          >
+            <i class="bi bi-stars text-white" style="font-size: 1.2rem;"></i>
+          </div>
         {/if}
+
+        <div class="px-2 py-1">
+          <i class="bi bi-link-45deg me-2"></i>
         {field.name}
         {#if !disabled}
           <button
@@ -34,6 +39,7 @@
             <i class="bi bi-x-lg"></i>
           </button>
         {/if}
+        </div>
       </div>
     {/snippet}
     {field.description}
