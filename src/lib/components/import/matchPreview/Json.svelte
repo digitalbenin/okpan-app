@@ -18,6 +18,27 @@
 
   const fields = $derived(extractLeafPaths(tree).sort());
 
+  // Per-field inclusion tracking (all included by default)
+  let fieldInclusion = $state({});
+  $effect(() => {
+    for (const field of fields) {
+      if (!(field in fieldInclusion)) {
+        fieldInclusion[field] = true;
+      }
+    }
+  });
+
+  const allIncluded = $derived(fields.length > 0 && fields.every((f) => fieldInclusion[f] !== false));
+  const noneIncluded = $derived(fields.length > 0 && fields.every((f) => fieldInclusion[f] === false));
+  const mixedInclusion = $derived(!allIncluded && !noneIncluded);
+
+  function toggleAll() {
+    const newVal = !allIncluded || mixedInclusion;
+    for (const field of fields) {
+      fieldInclusion[field] = newVal;
+    }
+  }
+
   const matchingSuggestions = resource(
     () => [fields, wizard.useMatchingSuggestions],
     async (
@@ -72,11 +93,30 @@
 <SuggestTemplate {templateSuggestions}></SuggestTemplate>
 {#if wizard.useMatchingTemplate || wizard.useMatchingSuggestions || wizard.mapping.length > 0}
   <div class="w-100">
+    <div class="d-flex align-items-center justify-content-between mb-2 px-3 py-2 bg-white border rounded">
+      <span class="text-muted">
+        {t("import.fields-count", { fallback: "{count} fields", count: fields.length })}
+      </span>
+      <div class="form-check mb-0">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="global-field-include-json"
+          checked={allIncluded}
+          indeterminate={mixedInclusion}
+          onclick={toggleAll}
+        />
+        <label class="form-check-label text-capitalize" for="global-field-include-json">
+          {t("import.include-all-fields", { fallback: "Include all fields" })}
+        </label>
+      </div>
+    </div>
     <CardTree
       node={tree}
       matchingSuggestions={matchingSuggestions.current}
       matchingSuggestionsLoading={matchingSuggestions.loading}
       {fields}
+      {fieldInclusion}
     ></CardTree>
   </div>
 {/if}
