@@ -4,10 +4,10 @@ import { db } from '../../db/init.js';
 import { assets, genericAssets } from '../../db/schema.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { getProjectAssetFolder } from '../utils/paths.js';
 
 const sm = 300
 const md = 1400
+const assetPath = "./src/assets/project_assets"
 
 // Configuration object for file types and limits
 const assetConfig = {
@@ -77,7 +77,7 @@ const handleImportAssets = async (event, data) => {
 
 
     //check if folder with projectid is present, otherwise create it
-    const projectFolder = getProjectAssetFolder(data.projectId);
+    const projectFolder = path.join(assetPath, data.projectId);
     if (!fs.existsSync(projectFolder)) {
         fs.mkdirSync(projectFolder, { recursive: true });
     }
@@ -131,7 +131,7 @@ const handleImportAssets = async (event, data) => {
     for (const filePath of filesToProcess) {
         try {
             console.debug('[import-assets] processing file:', filePath);
-            const asset = await processAssetFile(filePath, projectFolder, data, basePath);
+            const asset = await processAssetFile(filePath, projectFolder, data);
 
             if (asset) {
                 const newAsset = await saveAssetToDb(asset, data.isGenericAsset);
@@ -230,7 +230,7 @@ const processMediaFile = async (filePath, destPath, assetType) => {
 }
 
 // Unified file processor that handles all asset types
-const processAssetFile = async (filePath, projectFolder, data, basePath) => {
+const processAssetFile = async (filePath, projectFolder, data) => {
     const assetType = checkAssetType(filePath);
     let formats = null;
 
@@ -243,15 +243,13 @@ const processAssetFile = async (filePath, projectFolder, data, basePath) => {
         return null;
     }
 
-    const logicalFormats = toLogicalFormats(formats, basePath);
-
     return {
         project_id: data?.projectId,
         institution_id: data.isGenericAsset ? undefined : data?.institutionId,
-        path: logicalFormats.original,
+        path: formats.original,
         filename: path.basename(filePath),
         type: assetType,
-        formats: logicalFormats
+        formats
     };
 }
 

@@ -229,54 +229,39 @@ protocol.registerSchemesAsPrivileged([
 function resolveMediaPath(urlObj) {
   let pathStr;
 
-  if (urlObj.hostname) {
-    // Non-empty hostname means either:
-    //   - A Windows drive letter:  media://c/Users/...  -> hostname='c', pathname='/Users/...'
-    //   - First segment of a relative stored path: media://src/assets/... -> hostname='src', pathname='/assets/...'
-    // In both cases reconstruct by prepending the hostname so pathStr has no leading slash and is relative/drive-rooted.
+  // Single-letter hostname = Windows drive letter: media://c/Users/... -> 'c/Users/...'
+  if (urlObj.hostname && /^[a-zA-Z]$/.test(urlObj.hostname)) {
     pathStr = urlObj.hostname + decodeURIComponent(urlObj.pathname);
   } else {
-    // Empty hostname = macOS/Linux absolute path: media:///Users/... -> pathname='/Users/...'
-    pathStr = decodeURIComponent(urlObj.pathname);
+    // Multi-segment hostname (e.g. 'src') is the first component of a relative
+    // stored path. Drop it here; candidate 1 below re-adds 'src/' via the
+    // projectRoot/src join, so the full path is still found.
+    pathStr = decodeURIComponent(urlObj.pathname).replace(/^\//, '');
   }
 
-  // Convert to absolute path if needed
-  if (/^[/\\]?[a-zA-Z][/\\]/.test(pathStr)) {
-    // Windows drive format (c/Users/... or /c/Users/... -> C:\Users\...)
-    const stripped = pathStr.replace(/^\//, ''); // remove optional leading slash
-    const driveLetter = stripped.charAt(0).toUpperCase();
-    const restOfPath = stripped.substring(2);
+  // Windows drive format: c/Users/... -> C:\Users\...
+  if (/^[a-zA-Z]\//.test(pathStr)) {
+    const driveLetter = pathStr.charAt(0).toUpperCase();
+    const restOfPath = pathStr.substring(2);
     return process.platform === 'win32'
       ? `${driveLetter}:\\${restOfPath.replace(/\//g, '\\')}`
-      : `/${stripped}`;
+      : `/${pathStr}`;
   }
 
   if (path.isAbsolute(pathStr)) {
     return path.normalize(pathStr);
   }
 
-  // pathStr is relative - strip any accidental leading slash before joining
-  const relPathStr = pathStr.replace(/^\//, '');
-
-  // Try paths in order: userData (new production location), then legacy CWD-relative paths
-  const userDataBase = app.getPath('userData');
+  // Relative path: try both process.cwd() (dev) and app.getAppPath() (production)
+  // app.getAppPath() reliably points to resources/app regardless of how the
+  // app is launched, while process.cwd() may vary in production.
   const projectRoot = process.cwd();
-  const appRoot = app.getAppPath?.() || '';
-  const resourcesApp = process.resourcesPath ? path.join(process.resourcesPath, 'app') : '';
-  const userData = app?.getPath?.('userData') || '';
-  const userAssetsRoot = userData ? path.join(userData, 'assets', 'project_assets') : '';
-
-  // Special mapping: logical seeded path -> userData assets
-  let userDataCandidate = null;
-  if (pathStr.startsWith('src/assets/project_assets')) {
-    const rest = pathStr.replace(/^src\/assets\/project_assets\/?/, '');
-    userDataCandidate = userAssetsRoot ? path.join(userAssetsRoot, rest) : null;
-  }
-
+  const appRoot = app.getAppPath();
   const candidates = [
-    path.join(userDataBase, relPathStr),
-    path.join(projectRoot, 'src', relPathStr),
-    path.join(projectRoot, relPathStr)
+    path.join(projectRoot, 'src', pathStr),  // dev: cwd = project root
+    path.join(projectRoot, pathStr),
+    path.join(appRoot, 'src', pathStr),      // production: resources/app/src/...
+    path.join(appRoot, pathStr),
   ];
 
   return candidates.find(fs.existsSync) || null;
