@@ -124,7 +124,7 @@
 															{/each}
 														</div>
 													</td>
-													<td>
+													<td style="word-break: break-word; overflow-wrap: break-word; max-width: 0;">
 														{#if fields[0]?.value}
 															<span>{getDisplayText(fields[0].id, fields[0].value)}</span>
 															{#if shouldTruncate(fields[0].value)}

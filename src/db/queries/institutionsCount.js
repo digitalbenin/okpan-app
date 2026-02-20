@@ -46,8 +46,14 @@ export const createInstitutionsCountQuery = (db, drizzleResult) => {
             // Apply search filter if provided
             if (args.search && args.search.trim()) {
                 const searchTerm = args.search.trim();
-                // Use double quotes for exact phrase matching
-                const searchQuery = `content:${searchTerm}*`;
+                // Wrap each token in double quotes so FTS5 special chars (:, /, ", etc.)
+                // are treated as literals and don't cause query syntax errors.
+                const searchQuery = searchTerm
+                    .toLowerCase()
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .map(t => `content:"${t.replace(/"/g, '""')}"*`)
+                    .join(' AND ');
 
                 try {
                     // If languageCode is provided, find the corresponding language_id within the project

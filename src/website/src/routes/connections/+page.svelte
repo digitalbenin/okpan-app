@@ -1,11 +1,15 @@
 <script>
 	import { onMount } from 'svelte';
+	import { currentProjectId } from '$lib/stores/project.js';
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	let { data } = $props();
 
 	let connectionTypes = $state(data?.connection_types || []);
 	let isLoading = $state(isStaticExport && data?.needsClientLoad);
+
+	// Preserve project_id in links (preview mode only)
+	const projectQuery = $derived.by(() => $currentProjectId ? `?project_id=${$currentProjectId}` : '');
 
 	onMount(async () => {
 		if (isStaticExport && data?.needsClientLoad) {
@@ -31,7 +35,7 @@
 		{#if connectionTypes.length > 0}
 			<div class="d-flex flex-column gap-3">
 				{#each connectionTypes as type}
-					<a href="/connections/{type.id}" class="text-decoration-none text-dark">
+					<a href={`/connections/${type.id}${projectQuery}`} class="text-decoration-none text-dark">
 						<div class="card border rounded p-3 hover-shadow">
 							<h3 class="fs-4 mb-0 fw-normal">
 								{type.name}

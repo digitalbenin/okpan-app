@@ -175,14 +175,14 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content, 'vocabulary_main_asset_id', ga.id, 'vocabulary_main_asset_path', ga.path, 'vocabulary_main_asset_formats', ga.formats, 'vocabulary_main_asset_type', ga.type )) FROM objects_research_fields orf JOIN research_fields rf ON orf.field_id = rf.id JOIN texts rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN vocabularies v ON orf.vocabulary_id = v.id LEFT JOIN texts v_option_texts ON v.option_id = v_option_texts.id LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id WHERE orf.object_id = objects.id)`;
 
             // Helper builders to keep condition construction DRY and precise
-            // Helper to convert raw string into FTS5 AND wildcard query
-            const toFtsAndQuery = (s) => s
-                ?.trim()
-                .toLowerCase()
-                .split(/\s+/)
-                .filter(Boolean)
-                .map(t => `${t}*`)
-                .join(' AND ');
+            // Helper to convert raw string into FTS5 AND wildcard query.
+            // Tokens are double-quoted so FTS5 special chars (:, /, ", (, ), * etc.)
+            // are treated as literals and don't cause query syntax errors.
+            const toFtsAndQuery = (s) => {
+                const tokens = s?.trim().toLowerCase().split(/\s+/).filter(Boolean) ?? [];
+                if (tokens.length === 0) return null;
+                return tokens.map(t => `"${t.replace(/"/g, '""')}"*`).join(' AND ');
+            };
 
             const buildOntologyConditions = (queries) => {
                 if (!queries || queries.length === 0) return [];

@@ -54,7 +54,14 @@ export async function load({ url, fetch }) {
   // getDb returns a promise, so await it
   db = await db;
   
-  const projectId = url.searchParams.get('project_id');
+  // Prefer project_id from URL; fall back to last known value stored in localStorage
+  const projectId = url.searchParams.get('project_id') ||
+    (typeof localStorage !== 'undefined' ? localStorage.getItem('preview_project_id') : null);
+  
+  // Persist so subsequent navigations that lose the query param can recover it
+  if (projectId && typeof localStorage !== 'undefined') {
+    localStorage.setItem('preview_project_id', projectId);
+  }
 
   const institutions = fetchInstitutions(db, projectId);
   const ontology_fields = fetchOntologyFields(db, projectId);
@@ -78,6 +85,7 @@ export async function load({ url, fetch }) {
     vocabularies,
     project,
     settings,
-    connection_types
+    connection_types,
+    projectId
   };
 }

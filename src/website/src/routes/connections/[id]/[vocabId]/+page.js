@@ -101,7 +101,8 @@ export async function load({ params, url }) {
     }
     db = await db;
     
-    const projectId = url.searchParams.get('project_id');
+    const projectId = url.searchParams.get('project_id') ||
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('preview_project_id') : null);
     
     const allFields = fetchResearchFields(db, projectId);
     const researchField = allFields.find(f => f.id === connectionId);

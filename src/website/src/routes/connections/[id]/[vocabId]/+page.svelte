@@ -1,7 +1,7 @@
 <script>
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
-    import { page } from '$app/stores';
     import { browser } from '$app/environment';
+    import { currentProjectId } from '$lib/stores/project.js';
 
     const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -9,6 +9,9 @@
     let researchField = $derived(data.researchField);
     let vocabulary = $derived(data.vocabulary);
     let allObjects = $derived(data.connectedObjects || []);
+
+    // Preserve project_id in links (preview mode only)
+    const projectQuery = $derived.by(() => $currentProjectId ? `?project_id=${$currentProjectId}` : '');
     
     // Pagination
     let currentPage = $state(1);
@@ -65,7 +68,7 @@
     <!-- Breadcrumb / Header -->
     <div class="mb-4">
         {#if researchField}
-            <a href="/connections/{researchField.id}" class="text-secondary text-decoration-none small mb-2 d-inline-block">
+            <a href={`/connections/${researchField.id}${projectQuery}`} class="text-secondary text-decoration-none small mb-2 d-inline-block">
                 {researchField.name}
             </a>
         {/if}
@@ -190,9 +193,9 @@
         
         <div class="list-group list-group-flush">
             {#each paginatedObjects as obj}
-                <a href="/{obj.id}" 
+                <a href={isStaticExport ? `/${obj.id}/` : `/${obj.id}${projectQuery}`}
                    class="list-group-item list-group-item-action p-3 d-flex align-items-center"
-                   data-sveltekit-reload={isStaticExport ? '' : null}
+                   data-sveltekit-reload={isStaticExport ? '' : undefined}
                 >
                     <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;">
                         {#if obj.main_image}
@@ -202,7 +205,7 @@
                         {/if}
                     </div>
                     <div>
-                        <div class="fw-bold text-decoration-underline text-success">{obj.name || obj.id}</div> 
+                        <div class="fw-bold text-decoration-underline text-success-emphasis">{obj.name || obj.id}</div> 
                         <!-- ID is used as link text in mockup (2014.2021.277) -->
                         <div class="small text-muted">{obj.institution_name}</div>
                     </div>

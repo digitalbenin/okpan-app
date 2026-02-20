@@ -2,6 +2,7 @@
     import { page } from '$app/stores';
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
     import logoWip from '../../assets/logo_wip.png';
+    import { currentProjectId } from '$lib/stores/project.js';
     let { project, settings } = $props();
     
     let isExpanded = $state(true);
@@ -27,6 +28,9 @@
     const isConnections = $derived.by(() => pathname.startsWith('/connections'));
     const isAbout = $derived.by(() => pathname.startsWith('/about'));
     const isArchive = $derived.by(() => !isConnections && !isAbout);
+
+    // Append project_id query param to internal links in preview mode
+    const projectQuery = $derived.by(() => $currentProjectId ? `?project_id=${$currentProjectId}` : '');
 
     function toggle() {
         isExpanded = !isExpanded;
@@ -62,7 +66,7 @@
     <nav class={`nav flex-column w-100 gap-1 ${isExpanded ? '' : 'align-items-center'}`}>
         <!-- Archive -->
         <a class={`nav-link d-flex align-items-center gap-3 rounded-2 px-3 py-2 ${isArchive ? 'bg-light text-dark fw-bold' : 'text-secondary'}`} 
-           href="/" 
+           href={`/${projectQuery}`} 
            title="Archive"
            style:width={isExpanded ? '100%' : 'auto'}
            style:height={isExpanded ? 'auto' : '44px'}>
@@ -72,7 +76,7 @@
 
         <!-- Connections -->
         <a class={`nav-link d-flex align-items-center gap-3 rounded-2 px-3 py-2 ${isConnections ? 'bg-light text-dark fw-bold' : 'text-secondary'}`} 
-           href="/connections" 
+           href={`/connections${projectQuery}`} 
            title="Connections"
            style:width={isExpanded ? '100%' : 'auto'}
            style:height={isExpanded ? 'auto' : '44px'}>
@@ -82,7 +86,7 @@
 
         <!-- About -->
         <a class={`nav-link d-flex align-items-center gap-3 rounded-2 px-3 py-2 ${isAbout ? 'bg-light text-dark fw-bold' : 'text-secondary'}`} 
-           href="/about" 
+           href={`/about${projectQuery}`} 
            title="About"
            style:width={isExpanded ? '100%' : 'auto'}
            style:height={isExpanded ? 'auto' : '44px'}>

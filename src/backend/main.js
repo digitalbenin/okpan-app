@@ -229,31 +229,37 @@ protocol.registerSchemesAsPrivileged([
 function resolveMediaPath(urlObj) {
   let pathStr;
 
-  // Handle Windows drive letters in hostname (media://c/Users/... -> c/Users/...)
-  if (urlObj.hostname && /^[a-zA-Z]$/.test(urlObj.hostname)) {
+  if (urlObj.hostname) {
+    // Non-empty hostname means either:
+    //   - A Windows drive letter:  media://c/Users/...  -> hostname='c', pathname='/Users/...'
+    //   - First segment of a relative stored path: media://src/assets/... -> hostname='src', pathname='/assets/...'
+    // In both cases reconstruct by prepending the hostname so pathStr has no leading slash and is relative/drive-rooted.
     pathStr = urlObj.hostname + decodeURIComponent(urlObj.pathname);
   } else {
-    // In dev, addImageProtocolPrefix("src/...") produces hostname="src" and pathname="/assets/..."
-    const host = urlObj.hostname || '';
-    const pathname = decodeURIComponent(urlObj.pathname || '');
-    pathStr = (host ? host + pathname : pathname).replace(/^\//, '');
+    // Empty hostname = macOS/Linux absolute path: media:///Users/... -> pathname='/Users/...'
+    pathStr = decodeURIComponent(urlObj.pathname);
   }
 
   // Convert to absolute path if needed
-  if (/^[a-zA-Z]\//.test(pathStr)) {
-    // Windows drive format (c/Users/... -> C:\\Users\\...)
-    const driveLetter = pathStr.charAt(0).toUpperCase();
-    const restOfPath = pathStr.substring(2);
+  if (/^[/\\]?[a-zA-Z][/\\]/.test(pathStr)) {
+    // Windows drive format (c/Users/... or /c/Users/... -> C:\Users\...)
+    const stripped = pathStr.replace(/^\//, ''); // remove optional leading slash
+    const driveLetter = stripped.charAt(0).toUpperCase();
+    const restOfPath = stripped.substring(2);
     return process.platform === 'win32'
       ? `${driveLetter}:\\${restOfPath.replace(/\//g, '\\')}`
-      : `/${pathStr}`;
+      : `/${stripped}`;
   }
 
   if (path.isAbsolute(pathStr)) {
     return path.normalize(pathStr);
   }
 
-  // Try relative paths in project and packaged app
+  // pathStr is relative - strip any accidental leading slash before joining
+  const relPathStr = pathStr.replace(/^\//, '');
+
+  // Try paths in order: userData (new production location), then legacy CWD-relative paths
+  const userDataBase = app.getPath('userData');
   const projectRoot = process.cwd();
   const appRoot = app.getAppPath?.() || '';
   const resourcesApp = process.resourcesPath ? path.join(process.resourcesPath, 'app') : '';
@@ -268,17 +274,10 @@ function resolveMediaPath(urlObj) {
   }
 
   const candidates = [
-    // Packaged app locations
-    appRoot ? path.join(appRoot, pathStr) : null,
-    appRoot ? path.join(appRoot, 'src', pathStr) : null,
-    resourcesApp ? path.join(resourcesApp, pathStr) : null,
-    resourcesApp ? path.join(resourcesApp, 'src', pathStr) : null,
-    // userData mapping for writable assets
-    userDataCandidate,
-    // Dev locations
-    path.join(projectRoot, pathStr),
-    path.join(projectRoot, 'src', pathStr)
-  ].filter(Boolean);
+    path.join(userDataBase, relPathStr),
+    path.join(projectRoot, 'src', relPathStr),
+    path.join(projectRoot, relPathStr)
+  ];
 
   return candidates.find(fs.existsSync) || null;
 }

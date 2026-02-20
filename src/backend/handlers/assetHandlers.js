@@ -4,37 +4,10 @@ import { db } from '../../db/init.js';
 import { assets, genericAssets } from '../../db/schema.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import electron from 'electron';
-const { app } = electron;
+import { getProjectAssetFolder } from '../utils/paths.js';
 
 const sm = 300
 const md = 1400
-// const assetPath = "./src/assets/project_assets"
-
-// Resolve a writable base path for assets that works in dev and packaged app
-const getAssetBasePath = () => {
-  try {
-    const userData = app?.getPath?.('userData');
-    if (userData) return path.join(userData, 'assets', 'project_assets');
-  } catch {}
-  // Fallback to project-relative path in dev
-  return path.join(process.cwd(), 'src', 'assets', 'project_assets');
-};
-
-const toPosix = (p) => (p ? p.replace(/\\/g, '/') : p);
-const toLogicalFormats = (fmts, basePath) => {
-  const basePosix = toPosix(basePath);
-  const logicalRoot = 'src/assets/project_assets';
-  const replaceBase = (p) => {
-    const pos = toPosix(p);
-    return pos.startsWith(basePosix) ? logicalRoot + pos.substring(basePosix.length) : pos;
-  };
-  return {
-    sm: replaceBase(fmts.sm),
-    md: replaceBase(fmts.md),
-    original: replaceBase(fmts.original),
-  };
-};
 
 // Configuration object for file types and limits
 const assetConfig = {
@@ -104,8 +77,7 @@ const handleImportAssets = async (event, data) => {
 
 
     //check if folder with projectid is present, otherwise create it
-    const basePath = getAssetBasePath();
-    const projectFolder = path.join(basePath, data.projectId);
+    const projectFolder = getProjectAssetFolder(data.projectId);
     if (!fs.existsSync(projectFolder)) {
         fs.mkdirSync(projectFolder, { recursive: true });
     }
