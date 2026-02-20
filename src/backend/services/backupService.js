@@ -6,6 +6,7 @@ import yazl from 'yazl';
 import yauzl from 'yauzl';
 import { eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
+import { getProjectAssetFolder } from '../utils/paths.js';
 
 const sqlEscape = (val) => String(val).replace(/'/g, "''");
 
@@ -680,7 +681,12 @@ export async function createProjectBackup(options, { db }) {
     'utf-8'
   );
 
-  const projectAssetsFolder = path.join(process.cwd(), 'src', 'assets', 'project_assets', project_id);
+  // Check userData location first (new), then legacy CWD location
+  const projectAssetsFolder = (() => {
+    const newPath = getProjectAssetFolder(project_id);
+    if (fs.existsSync(newPath)) return newPath;
+    return path.join(process.cwd(), 'src', 'assets', 'project_assets', project_id);
+  })();
   let copiedAssets = 0;
   
   if (fs.existsSync(projectAssetsFolder)) {
@@ -823,7 +829,7 @@ export async function restoreProjectBackup(options, { db }) {
     let copiedAssets = 0;
 
     if (fs.existsSync(assetsSourceDir)) {
-      const assetsDestDir = path.join(process.cwd(), 'src', 'assets', 'project_assets', project_id);
+      const assetsDestDir = getProjectAssetFolder(project_id);
       
       if (strategy === 'overwrite' && fs.existsSync(assetsDestDir)) {
         await fsPromises.rm(assetsDestDir, { recursive: true, force: true });

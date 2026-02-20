@@ -3,6 +3,7 @@
     import { page } from '$app/stores';
     import { slide } from 'svelte/transition';
     import logoWip from '../../assets/logo_wip.png';
+    import { currentProjectId } from '$lib/stores/project.js';
     let { project, settings } = $props();
     let expanded = $state(false);
 
@@ -21,6 +22,8 @@
         }
         return '';
     });
+
+    const projectQuery = $derived.by(() => $currentProjectId ? `?project_id=${$currentProjectId}` : '');
 
     function toggle() {
         expanded = !expanded;
@@ -55,9 +58,9 @@
         class="position-fixed w-100 bg-white d-md-none shadow-lg" 
         style="z-index: 1025; top: 60px; left: 0; overflow: hidden;">
         <nav class="nav flex-column">
-            <a class="nav-link text-dark px-4 py-3 border-bottom" href="/" onclick={toggle}>Archive</a>
-            <a class="nav-link text-dark px-4 py-3 border-bottom" href="/connections" onclick={toggle}>Connections</a>
-            <a class="nav-link text-dark px-4 py-3 border-bottom" href="/about" onclick={toggle}>About</a>
+            <a class="nav-link text-dark px-4 py-3 border-bottom" href={`/${projectQuery}`} onclick={toggle}>Archive</a>
+            <a class="nav-link text-dark px-4 py-3 border-bottom" href={`/connections${projectQuery}`} onclick={toggle}>Connections</a>
+            <a class="nav-link text-dark px-4 py-3 border-bottom" href={`/about${projectQuery}`} onclick={toggle}>About</a>
         </nav>
     </div>
 {/if}

@@ -1,8 +1,10 @@
 import { spawn } from 'child_process';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
+import { getProjectAssetFolder } from '../utils/paths.js';
 
 /**
  * Export website data to JSON file and build static site
@@ -124,7 +126,13 @@ export async function exportStaticWebsite(projectId, outputPath, { db }) {
 
     // Step 4: Copy project assets folder
     console.log('[Website Export] Step 4/4: Copying assets...');
-    const projectAssetsSource = path.join(rootDir, 'src', 'assets', 'project_assets', projectId);
+    // Check userData location first (new), then legacy CWD location
+    const projectAssetsSource = (() => {
+      const newPath = getProjectAssetFolder(projectId);
+      if (fsSync.existsSync(newPath)) return newPath;
+      const legacyPath = path.join(rootDir, 'src', 'assets', 'project_assets', projectId);
+      return fsSync.existsSync(legacyPath) ? legacyPath : newPath; // default to new even if missing
+    })();
     const projectAssetsDest = path.join(outputPath, 'assets', projectId);
     
     try {

@@ -4,10 +4,10 @@ import { db } from '../../db/init.js';
 import { assets, genericAssets } from '../../db/schema.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { getProjectAssetFolder } from '../utils/paths.js';
 
 const sm = 300
 const md = 1400
-const assetPath = "./src/assets/project_assets"
 
 // Configuration object for file types and limits
 const assetConfig = {
@@ -77,7 +77,7 @@ const handleImportAssets = async (event, data) => {
 
 
     //check if folder with projectid is present, otherwise create it
-    const projectFolder = path.join(assetPath, data.projectId);
+    const projectFolder = getProjectAssetFolder(data.projectId);
     if (!fs.existsSync(projectFolder)) {
         fs.mkdirSync(projectFolder, { recursive: true });
     }

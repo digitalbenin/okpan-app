@@ -34,7 +34,8 @@ export async function load({ url, fetch }) {
 
 	// Preview mode: parse query params (only available client-side or non-prerendered)
 	const queryParams = {
-		projectId: url.searchParams.get('project_id'),
+		projectId: url.searchParams.get('project_id') ||
+			(typeof localStorage !== 'undefined' ? localStorage.getItem('preview_project_id') : null),
 		q: url.searchParams.get('q') || '',
 		page: parseInt(url.searchParams.get('page') || '1'),
 		pageSize: parseInt(url.searchParams.get('pageSize') || url.searchParams.get('limit') || '10'),

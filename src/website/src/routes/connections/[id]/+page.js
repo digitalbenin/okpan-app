@@ -82,7 +82,8 @@ export async function load({ params, url }) {
     // getDb returns a promise, so await it
     db = await db;
     
-    const projectId = url.searchParams.get('project_id'); // Might be passed or needed context
+    const projectId = url.searchParams.get('project_id') ||
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('preview_project_id') : null);
     
     // Fetch all and filter, or fetch specific? dbUtils has fetchResearchFields(db, projectId)
     // We can filter the result.

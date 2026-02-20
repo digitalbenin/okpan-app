@@ -4,6 +4,7 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Topbar from '$lib/components/Topbar.svelte';
 	import { onMount } from 'svelte';
+	import { currentProjectId } from '$lib/stores/project.js';
 
 	let { children, data } = $props();
 	
@@ -12,6 +13,11 @@
 	let settings = $state(data?.settings);
 	
 	onMount(async () => {
+		// Initialise the projectId store from layout data (preview mode)
+		if (data?.projectId) {
+			currentProjectId.set(data.projectId);
+		}
+
 		if (data?.needsClientLoad) {
 			try {
 				const response = await fetch('/site.json');
