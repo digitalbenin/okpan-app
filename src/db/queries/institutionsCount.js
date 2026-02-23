@@ -1,4 +1,4 @@
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, and } from 'drizzle-orm';
 import * as dbSchema from '../schema';
 import { buildSafeFtsAndPrefixQuery } from './common';
 
@@ -34,14 +34,16 @@ export const createInstitutionsCountQuery = (db, drizzleResult) => {
                 .select({ count: sql`count(*)` })
                 .from(dbSchema.institutions);
 
+            const whereConditions = [];
+
             // Apply project_id filter if specified
             if (args.project_id) {
-                query = query.where(eq(dbSchema.institutions.project_id, args.project_id));
+                whereConditions.push(eq(dbSchema.institutions.project_id, args.project_id));
             }
 
             // Apply status filter if specified
             if (args.status) {
-                query = query.where(eq(dbSchema.institutions.status, args.status));
+                whereConditions.push(eq(dbSchema.institutions.status, args.status));
             }
 
             // Apply search filter if provided
@@ -69,20 +71,21 @@ export const createInstitutionsCountQuery = (db, drizzleResult) => {
                         }
                     }
 
-                    // Add a WHERE condition to filter by institutions that match the search term
-                    query = query.where(
-                        sql`${dbSchema.institutions.id} IN (
-                            SELECT s.institution_id 
-                            FROM institutions_search s
-                            WHERE s.institutions_search MATCH ${searchQuery}
-                            ${languageFilter}
-                        )`
-                    );
+                    whereConditions.push(sql`${dbSchema.institutions.id} IN (
+                        SELECT s.institution_id 
+                        FROM institutions_search s
+                        WHERE s.institutions_search MATCH ${searchQuery}
+                        ${languageFilter}
+                    )`);
                 } catch (error) {
                     console.error('Error building FTS search for count:', error);
                     // If search fails, return zero
                     return 0;
                 }
+            }
+
+            if (whereConditions.length > 0) {
+                query = query.where(and(...whereConditions));
             }
 
             const result = await query.execute();
