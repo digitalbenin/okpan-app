@@ -1,7 +1,7 @@
-import { sql, eq, aliasedTable } from 'drizzle-orm';
+import { sql, eq, aliasedTable, and } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema';
-import { addCountField, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common';
+import { addCountField, buildSafeFtsAndPrefixQuery, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common';
 
 export const createInstitutionsListQuery = (db, drizzleResult) => {
     // Add count fields to InstitutionsSelectItem type
@@ -196,21 +196,25 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                 .leftJoin(countryTranslations, eq(countryTexts.id, countryTranslations.text_id))
                 .leftJoin(countryLanguages, eq(countryTranslations.language_id, countryLanguages.id));
 
+            const whereConditions = [];
+
             // Apply the project_id filter if specified
             if (args.project_id) {
-                query = query.where(eq(dbSchema.institutions.project_id, args.project_id));
+                whereConditions.push(eq(dbSchema.institutions.project_id, args.project_id));
             }
 
             // Apply the status filter if specified
             if (args.status) {
-                query = query.where(eq(dbSchema.institutions.status, args.status));
+                whereConditions.push(eq(dbSchema.institutions.status, args.status));
             }
 
             // Apply search filter if provided
             if (args.search && args.search.trim()) {
-                const searchTerm = args.search.trim();
-                // Use double quotes for exact phrase matching
-                const searchQuery = `content:${searchTerm}*`;
+                const searchQuery = buildSafeFtsAndPrefixQuery(args.search);
+
+                if (!searchQuery) {
+                    return [];
+                }
 
                 try {
                     // If languageCode is provided, find the corresponding language_id within the project
@@ -229,20 +233,21 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                         }
                     }
 
-                    // Join the main query with the search results
-                    query = query.where(
-                        sql`${dbSchema.institutions.id} IN (
-                            SELECT s.institution_id 
-                            FROM institutions_search s
-                            WHERE s.institutions_search MATCH ${searchQuery}
-                            ${languageFilter}
-                        )`
-                    );
+                    whereConditions.push(sql`${dbSchema.institutions.id} IN (
+                        SELECT s.institution_id 
+                        FROM institutions_search s
+                        WHERE s.institutions_search MATCH ${searchQuery}
+                        ${languageFilter}
+                    )`);
                 } catch (error) {
                     console.error('Error building FTS search:', error);
                     // If search fails, return no results
                     return [];
                 }
+            }
+
+            if (whereConditions.length > 0) {
+                query = query.where(and(...whereConditions));
             }
 
             // Apply ordering

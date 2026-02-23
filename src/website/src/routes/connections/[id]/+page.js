@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { resolveProjectId } from '$lib/utils/projectContext.js';
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -82,7 +83,7 @@ export async function load({ params, url }) {
     // getDb returns a promise, so await it
     db = await db;
     
-    const projectId = url.searchParams.get('project_id'); // Might be passed or needed context
+    const projectId = resolveProjectId(url);
     
     // Fetch all and filter, or fetch specific? dbUtils has fetchResearchFields(db, projectId)
     // We can filter the result.
@@ -94,6 +95,7 @@ export async function load({ params, url }) {
 
     return {
         researchField,
-        vocabularies
+        vocabularies,
+        queryParams: { projectId }
     };
 }

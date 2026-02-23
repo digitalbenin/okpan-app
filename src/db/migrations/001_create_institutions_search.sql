@@ -8,10 +8,58 @@ CREATE VIRTUAL TABLE IF NOT EXISTS institutions_search USING FTS5(
   tokenize='porter unicode61'
 );
 
+DROP TRIGGER IF EXISTS institution_delete;
+DROP TRIGGER IF EXISTS institution_insert;
+DROP TRIGGER IF EXISTS institution_text_ref_update;
+DROP TRIGGER IF EXISTS text_content_change;
+DROP TRIGGER IF EXISTS translation_insert;
+DROP TRIGGER IF EXISTS translation_content_change;
+DROP TRIGGER IF EXISTS translation_delete;
+
 -- Trigger for when an institution is deleted
 CREATE TRIGGER IF NOT EXISTS institution_delete AFTER DELETE ON institutions
 BEGIN
   DELETE FROM institutions_search WHERE institution_id = OLD.id;
+END;
+
+-- Trigger for when an institution is created
+CREATE TRIGGER IF NOT EXISTS institution_insert AFTER INSERT ON institutions
+BEGIN
+  -- Index original-language text content
+  INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
+  SELECT NEW.id, NEW.name_id, 'name', t.content, t.original_language_id
+  FROM texts t
+  WHERE NEW.name_id IS NOT NULL AND t.id = NEW.name_id
+  UNION ALL
+  SELECT NEW.id, NEW.description_id, 'description', t.content, t.original_language_id
+  FROM texts t
+  WHERE NEW.description_id IS NOT NULL AND t.id = NEW.description_id
+  UNION ALL
+  SELECT NEW.id, NEW.country_id, 'country', t.content, t.original_language_id
+  FROM texts t
+  WHERE NEW.country_id IS NOT NULL AND t.id = NEW.country_id
+  UNION ALL
+  SELECT NEW.id, NEW.location_id, 'location', t.content, t.original_language_id
+  FROM texts t
+  WHERE NEW.location_id IS NOT NULL AND t.id = NEW.location_id;
+
+  -- Index all existing translations for referenced texts
+  INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
+  SELECT NEW.id, NEW.name_id, 'name', tr.content, tr.language_id
+  FROM translations tr
+  WHERE NEW.name_id IS NOT NULL AND tr.text_id = NEW.name_id
+  UNION ALL
+  SELECT NEW.id, NEW.description_id, 'description', tr.content, tr.language_id
+  FROM translations tr
+  WHERE NEW.description_id IS NOT NULL AND tr.text_id = NEW.description_id
+  UNION ALL
+  SELECT NEW.id, NEW.country_id, 'country', tr.content, tr.language_id
+  FROM translations tr
+  WHERE NEW.country_id IS NOT NULL AND tr.text_id = NEW.country_id
+  UNION ALL
+  SELECT NEW.id, NEW.location_id, 'location', tr.content, tr.language_id
+  FROM translations tr
+  WHERE NEW.location_id IS NOT NULL AND tr.text_id = NEW.location_id;
 END;
 
 -- Trigger for when institution text references change
@@ -19,14 +67,44 @@ CREATE TRIGGER IF NOT EXISTS institution_text_ref_update AFTER UPDATE ON institu
 WHEN OLD.name_id != NEW.name_id OR OLD.description_id != NEW.description_id 
   OR OLD.country_id != NEW.country_id OR OLD.location_id != NEW.location_id
 BEGIN
-  -- Remove old records for changed fields
-  DELETE FROM institutions_search 
-  WHERE institution_id = OLD.id AND (
-    (OLD.name_id IS NOT NULL AND NEW.name_id != OLD.name_id AND text_id = OLD.name_id) OR
-    (OLD.description_id IS NOT NULL AND NEW.description_id != OLD.description_id AND text_id = OLD.description_id) OR
-    (OLD.country_id IS NOT NULL AND NEW.country_id != OLD.country_id AND text_id = OLD.country_id) OR
-    (OLD.location_id IS NOT NULL AND NEW.location_id != OLD.location_id AND text_id = OLD.location_id)
-  );
+  -- Reindex this institution from scratch using current references
+  DELETE FROM institutions_search WHERE institution_id = NEW.id;
+
+  -- Index original-language text content
+  INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
+  SELECT NEW.id, NEW.name_id, 'name', t.content, t.original_language_id
+  FROM texts t
+  WHERE NEW.name_id IS NOT NULL AND t.id = NEW.name_id
+  UNION ALL
+  SELECT NEW.id, NEW.description_id, 'description', t.content, t.original_language_id
+  FROM texts t
+  WHERE NEW.description_id IS NOT NULL AND t.id = NEW.description_id
+  UNION ALL
+  SELECT NEW.id, NEW.country_id, 'country', t.content, t.original_language_id
+  FROM texts t
+  WHERE NEW.country_id IS NOT NULL AND t.id = NEW.country_id
+  UNION ALL
+  SELECT NEW.id, NEW.location_id, 'location', t.content, t.original_language_id
+  FROM texts t
+  WHERE NEW.location_id IS NOT NULL AND t.id = NEW.location_id;
+
+  -- Index all existing translations for referenced texts
+  INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
+  SELECT NEW.id, NEW.name_id, 'name', tr.content, tr.language_id
+  FROM translations tr
+  WHERE NEW.name_id IS NOT NULL AND tr.text_id = NEW.name_id
+  UNION ALL
+  SELECT NEW.id, NEW.description_id, 'description', tr.content, tr.language_id
+  FROM translations tr
+  WHERE NEW.description_id IS NOT NULL AND tr.text_id = NEW.description_id
+  UNION ALL
+  SELECT NEW.id, NEW.country_id, 'country', tr.content, tr.language_id
+  FROM translations tr
+  WHERE NEW.country_id IS NOT NULL AND tr.text_id = NEW.country_id
+  UNION ALL
+  SELECT NEW.id, NEW.location_id, 'location', tr.content, tr.language_id
+  FROM translations tr
+  WHERE NEW.location_id IS NOT NULL AND tr.text_id = NEW.location_id;
 END;
 
 -- Trigger for when text content changes

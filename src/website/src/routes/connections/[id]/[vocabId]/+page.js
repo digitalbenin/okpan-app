@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { resolveProjectId } from '$lib/utils/projectContext.js';
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -101,7 +102,7 @@ export async function load({ params, url }) {
     }
     db = await db;
     
-    const projectId = url.searchParams.get('project_id');
+    const projectId = resolveProjectId(url);
     
     const allFields = fetchResearchFields(db, projectId);
     const researchField = allFields.find(f => f.id === connectionId);
@@ -168,6 +169,7 @@ export async function load({ params, url }) {
     return {
         researchField,
         vocabulary,
-        connectedObjects
+        connectedObjects,
+        queryParams: { projectId }
     };
 }

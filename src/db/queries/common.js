@@ -132,6 +132,29 @@ export const createTextFieldWithTranslations = (textTable, translationsTable, la
     };
 };
 
+export const buildSafeFtsAndPrefixQuery = (input) => {
+    if (!input || typeof input !== 'string') return '';
+
+    const tokens = input
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean);
+
+    return tokens
+        .map((token) => {
+            const normalizedToken = token.replace(/^"+|"+$/g, '').trim();
+            if (!normalizedToken) return '';
+
+            const escapedToken = normalizedToken.replace(/"/g, '""');
+            const isPrefixSafeToken = /^[\p{L}\p{N}_-]+$/u.test(normalizedToken);
+
+            return isPrefixSafeToken ? `${escapedToken}*` : `"${escapedToken}"`;
+        })
+        .filter(Boolean)
+        .join(' AND ');
+};
+
 // Helper function to process translations in results
 export const processTranslations = (items, fields) => {
     return items.map(item => {

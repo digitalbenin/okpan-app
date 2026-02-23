@@ -1,8 +1,10 @@
 <script>
 	import { onMount } from 'svelte';
+	import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	let { data } = $props();
+	const projectId = $derived(data?.activeProjectId || null);
 
 	let connectionTypes = $state(data?.connection_types || []);
 	let isLoading = $state(isStaticExport && data?.needsClientLoad);
@@ -31,7 +33,7 @@
 		{#if connectionTypes.length > 0}
 			<div class="d-flex flex-column gap-3">
 				{#each connectionTypes as type}
-					<a href="/connections/{type.id}" class="text-decoration-none text-dark">
+					<a href={isStaticExport ? `/connections/${type.id}` : buildPathWithProjectId(`/connections/${type.id}`, projectId)} class="text-decoration-none text-dark">
 						<div class="card border rounded p-3 hover-shadow">
 							<h3 class="fs-4 mb-0 fw-normal">
 								{type.name}

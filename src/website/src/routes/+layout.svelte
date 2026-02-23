@@ -28,11 +28,11 @@
 <div class="d-flex flex-column bg-white" style="height: 100vh; overflow: hidden;">
 	<!-- Topbar visible on small screens -->
 	<div class="d-md-none sticky-top" style="z-index: 1020;">
-		<Topbar {project} {settings} />
+		<Topbar {project} {settings} activeProjectId={data?.activeProjectId} />
 	</div>
 	<div class="d-flex flex-grow-1">
 		<aside class="d-none d-md-block" style="z-index: 1000; position: sticky; top: 0; height: 100vh; flex-shrink: 0;">
-			<Sidebar {project} {settings} />
+			<Sidebar {project} {settings} activeProjectId={data?.activeProjectId} />
 		</aside>
 		<main class="flex-grow-1 p-3 min-w-0" style="overflow-x: auto; overflow-y: auto; height: 100vh;">
 			{@render children?.()}

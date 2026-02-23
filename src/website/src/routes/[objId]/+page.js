@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { resolveProjectId, setStoredProjectId } from '$lib/utils/projectContext.js';
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -73,12 +74,18 @@ export async function load({ params, url }) {
     }
     
     // Preview mode: use database
-    const projectId = url.searchParams.get('project_id');
+    const projectId = resolveProjectId(url);
     if (!browser) return { ...emptyResult, queryParams: { projectId } };
 
     const { getDb, fetchObjectById } = await import('$lib/utils/dbUtils.js');
     const db = await getDb();
     if (!db) throw new Error('Client DB not initialized');
 
-    return { queryParams: { projectId }, ...fetchObjectById(db, objId) };
+    const result = fetchObjectById(db, objId);
+    const resolvedProjectId = result?.object?.project_id || projectId || null;
+    if (resolvedProjectId) {
+        setStoredProjectId(resolvedProjectId);
+    }
+
+    return { queryParams: { projectId: resolvedProjectId }, ...result };
 }
