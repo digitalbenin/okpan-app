@@ -27,7 +27,7 @@ const toLogicalFormats = (fmts, basePath) => {
   const logicalRoot = 'src/assets/project_assets';
   const replaceBase = (p) => {
     const pos = toPosix(p);
-    return pos.startsWith(basePosix) ? logicalRoot + pos.substring(basePosix.length) : pos;
+    return (pos && typeof pos === 'string' && pos.startsWith(basePosix)) ? logicalRoot + pos.substring(basePosix.length) : pos;
   };
   return {
     sm: replaceBase(fmts.sm),
