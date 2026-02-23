@@ -1,7 +1,7 @@
 import { sql, eq, aliasedTable } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema';
-import { addCountField, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common';
+import { addCountField, buildSafeFtsAndPrefixQuery, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common';
 
 export const createInstitutionsListQuery = (db, drizzleResult) => {
     // Add count fields to InstitutionsSelectItem type
@@ -208,9 +208,11 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
 
             // Apply search filter if provided
             if (args.search && args.search.trim()) {
-                const searchTerm = args.search.trim();
-                // Use double quotes for exact phrase matching
-                const searchQuery = `content:${searchTerm}*`;
+                const searchQuery = buildSafeFtsAndPrefixQuery(args.search);
+
+                if (!searchQuery) {
+                    return [];
+                }
 
                 try {
                     // If languageCode is provided, find the corresponding language_id within the project

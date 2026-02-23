@@ -1,5 +1,6 @@
 import { sql, eq } from 'drizzle-orm';
 import * as dbSchema from '../schema';
+import { buildSafeFtsAndPrefixQuery } from './common';
 
 export const createInstitutionsCountQuery = (db, drizzleResult) => {
     return {
@@ -45,9 +46,11 @@ export const createInstitutionsCountQuery = (db, drizzleResult) => {
 
             // Apply search filter if provided
             if (args.search && args.search.trim()) {
-                const searchTerm = args.search.trim();
-                // Use double quotes for exact phrase matching
-                const searchQuery = `content:${searchTerm}*`;
+                const searchQuery = buildSafeFtsAndPrefixQuery(args.search);
+
+                if (!searchQuery) {
+                    return 0;
+                }
 
                 try {
                     // If languageCode is provided, find the corresponding language_id within the project

@@ -1,6 +1,7 @@
 import { sql, eq, aliasedTable, countDistinct, inArray, and, or } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLInt, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema';
+import { buildSafeFtsAndPrefixQuery } from './common';
 
 export const createObjectSearchQuery = (db, drizzleResult) => {
     // Define FacetItem type for facets
@@ -176,13 +177,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
 
             // Helper builders to keep condition construction DRY and precise
             // Helper to convert raw string into FTS5 AND wildcard query
-            const toFtsAndQuery = (s) => s
-                ?.trim()
-                .toLowerCase()
-                .split(/\s+/)
-                .filter(Boolean)
-                .map(t => `${t}*`)
-                .join(' AND ');
+            const toFtsAndQuery = (s) => buildSafeFtsAndPrefixQuery(s);
 
             const buildOntologyConditions = (queries) => {
                 if (!queries || queries.length === 0) return [];
