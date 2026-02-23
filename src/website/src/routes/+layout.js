@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { resolveProjectId } from '$lib/utils/projectContext.js';
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -54,7 +55,7 @@ export async function load({ url, fetch }) {
   // getDb returns a promise, so await it
   db = await db;
   
-  const projectId = url.searchParams.get('project_id');
+  const projectId = resolveProjectId(url);
 
   const institutions = fetchInstitutions(db, projectId);
   const ontology_fields = fetchOntologyFields(db, projectId);
@@ -78,6 +79,7 @@ export async function load({ url, fetch }) {
     vocabularies,
     project,
     settings,
+    activeProjectId: projectId,
     connection_types
   };
 }

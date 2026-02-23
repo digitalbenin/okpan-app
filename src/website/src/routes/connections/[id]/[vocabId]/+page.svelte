@@ -2,6 +2,7 @@
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
+    import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
 
     const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -9,6 +10,7 @@
     let researchField = $derived(data.researchField);
     let vocabulary = $derived(data.vocabulary);
     let allObjects = $derived(data.connectedObjects || []);
+    const projectId = $derived(data?.queryParams?.projectId || data?.activeProjectId || null);
     
     // Pagination
     let currentPage = $state(1);
@@ -65,7 +67,7 @@
     <!-- Breadcrumb / Header -->
     <div class="mb-4">
         {#if researchField}
-            <a href="/connections/{researchField.id}" class="text-secondary text-decoration-none small mb-2 d-inline-block">
+            <a href={isStaticExport ? `/connections/${researchField.id}` : buildPathWithProjectId(`/connections/${researchField.id}`, projectId)} class="text-secondary text-decoration-none small mb-2 d-inline-block">
                 {researchField.name}
             </a>
         {/if}
@@ -190,7 +192,7 @@
         
         <div class="list-group list-group-flush">
             {#each paginatedObjects as obj}
-                <a href="/{obj.id}" 
+                <a href={isStaticExport ? `/${obj.id}/` : buildPathWithProjectId(`/${obj.id}`, projectId)} 
                    class="list-group-item list-group-item-action p-3 d-flex align-items-center"
                    data-sveltekit-reload={isStaticExport ? '' : null}
                 >
