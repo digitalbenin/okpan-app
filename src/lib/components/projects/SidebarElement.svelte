@@ -14,9 +14,22 @@
   );
 
   function toggleCollapse() {
+    if (disabled) {
+      return;
+    }
+
     if (hasChildren) {
       isCollapsed = !isCollapsed;
     }
+  }
+
+  function blockWhenDisabled(event) {
+    if (!disabled) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
   }
 </script>
 
@@ -28,13 +41,14 @@
   {#if hasChildren}
     <div
       role="button"
-      tabindex="0"
+      tabindex={disabled ? -1 : 0}
+      aria-disabled={disabled}
       class="d-flex align-items-center justify-content-between text-decoration-none"
       class:link-secondary={!isActive}
       class:link-dark={isActive}
       onclick={toggleCollapse}
       onkeydown={toggleCollapse}
-      style="cursor: pointer;"
+      style={disabled ? "opacity: 0.5; cursor: not-allowed;" : "cursor: pointer;"}
     >
       <div>
         {#if element.icon}
@@ -51,11 +65,14 @@
     {/if}
   {:else}
     <a
-      href={element.url}
+      href={disabled ? undefined : element.url}
+      aria-disabled={disabled}
+      tabindex={disabled ? -1 : undefined}
       class="d-flex align-items-center justify-content-between text-decoration-none"
       class:link-secondary={!isActive}
       class:link-dark={isActive}
-      style={disabled ? "opacity: 0.5;" : ""}
+      onclick={blockWhenDisabled}
+      style={disabled ? "opacity: 0.5; cursor: not-allowed; pointer-events: none;" : ""}
     >
       <div>
         {#if element.icon}

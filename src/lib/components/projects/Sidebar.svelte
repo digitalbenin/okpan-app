@@ -78,6 +78,7 @@
       label: t("menu.export-website", { fallback: "Export Website" }),
       url: `/projects/${page.data.project.id}/export-website`,
       icon: "globe",
+      disabled:true,
       exact: true,
     },
   ]);
