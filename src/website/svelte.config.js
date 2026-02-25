@@ -14,6 +14,9 @@ if (isStaticExport) {
         // Generate entries: only object detail pages (homepage is CSR-only)
         // Note: (object) is a layout group, doesn't appear in URL
         entriesList = [
+            '/',
+            '/about',
+            '/connections',
             ...data.objects.map(obj => `/${obj.id}`)
         ];
         console.log(`[Config] Loaded ${data.objects.length} object routes from data.json`);

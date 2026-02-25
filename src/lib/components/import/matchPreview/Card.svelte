@@ -3,7 +3,6 @@
   import { watch } from "runed";
   import MatchBadge from "./MatchBadge.svelte";
   import SetMatch from "./SetMatch.svelte";
-  import BaseCheckbox from "$lib/components/base/BaseCheckbox.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
 
@@ -13,7 +12,7 @@
     mappedField,
     matchingSuggestion,
     matchingSuggestionsLoading,
-    matched = $bindable(),
+    included = $bindable(true),
     i,
     tot,
   } = $props();
@@ -67,23 +66,15 @@
     }
   });
 
-  let checked = $state(
-    wizard.mapping.length === 0
-      ? true
-      : wizard.mapping.find((m) => m.headerField === field)
-        ? true
-        : false
-  );
-
   const slicedValues = $derived(
     values.length > 10 ? values.slice(0, 10).sort() : values.sort()
   );
 
   watch(
-    [() => field, () => fieldMatched, () => checked],
+    [() => field, () => fieldMatched, () => included],
     (
-      [field, fieldMatched, checked],
-      [prevField, prevFieldMatched, prevChecked]
+      [field, fieldMatched, included],
+      [prevField, prevFieldMatched, prevIncluded]
     ) => {
       // When reusing an existing template, wizard.mapping may contain duplicate headerField entries (Option B).
       // This UI is read-only in that mode, so we must not mutate mapping.
@@ -93,7 +84,7 @@
       if (
         field === prevField &&
         fieldMatched === prevFieldMatched &&
-        checked === prevChecked
+        included === prevIncluded
       ) {
         return;
       }
@@ -103,7 +94,7 @@
         primary: false,
       };
 
-      if (checked) {
+      if (included) {
         wizard.addMappingEntry(entry);
       } else {
         wizard.removeMappingEntry(entry);
@@ -122,12 +113,18 @@
   <div class="d-flex justify-content-between align-items-baseline mb-2">
     <div class="fs-5 fw-bold text-break">{field}</div>
     <div class="flex-shrink-0 ms-2">
-      <BaseCheckbox
-        bind:checked
-        value={field}
-        disabled={!editEnabled}
-        labelText={t("import.import-field", { fallback: "Import Field" })}
-      />
+      <div class="form-check">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="field-include-{i}"
+          bind:checked={included}
+          disabled={!editEnabled}
+        />
+        <label class="form-check-label text-capitalize" for="field-include-{i}">
+          {t("import.import-field", { fallback: "Import Field" })}
+        </label>
+      </div>
     </div>
   </div>
   <div
@@ -180,7 +177,20 @@
               <MatchBadge field={mf} disabled={true} />
             {/each}
           {:else}
-            <MatchBadge bind:field={fieldMatched} disabled={!editEnabled} />
+            {#if !fieldMatched}
+              <div
+                class="d-flex align-items-center gap-2 bg-warning-subtle border border-warning-subtle text-warning-emphasis px-3 py-1 rounded"
+              >
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span
+                  >{t("import.field-unmapped", {
+                    fallback: "This field is unmapped",
+                  })}</span
+                >
+              </div>
+            {:else}
+              <MatchBadge bind:field={fieldMatched} disabled={!editEnabled} />
+            {/if}
           {/if}
           <SetMatch
             {field}

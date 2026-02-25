@@ -1,8 +1,9 @@
 <script>
     import { page } from '$app/stores';
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
+    import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
     import logoWip from '../../assets/logo_wip.png';
-    let { project, settings } = $props();
+    let { project, settings, activeProjectId = null } = $props();
     
     let isExpanded = $state(true);
 
@@ -27,6 +28,12 @@
     const isConnections = $derived.by(() => pathname.startsWith('/connections'));
     const isAbout = $derived.by(() => pathname.startsWith('/about'));
     const isArchive = $derived.by(() => !isConnections && !isAbout);
+
+    const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
+
+    const archiveHref = $derived.by(() => isStaticExport ? '/' : buildPathWithProjectId('/', activeProjectId));
+    const connectionsHref = $derived.by(() => isStaticExport ? '/connections' : buildPathWithProjectId('/connections', activeProjectId));
+    const aboutHref = $derived.by(() => isStaticExport ? '/about' : buildPathWithProjectId('/about', activeProjectId));
 
     function toggle() {
         isExpanded = !isExpanded;
@@ -62,7 +69,7 @@
     <nav class={`nav flex-column w-100 gap-1 ${isExpanded ? '' : 'align-items-center'}`}>
         <!-- Archive -->
         <a class={`nav-link d-flex align-items-center gap-3 rounded-2 px-3 py-2 ${isArchive ? 'bg-light text-dark fw-bold' : 'text-secondary'}`} 
-           href="/" 
+              href={archiveHref} 
            title="Archive"
            style:width={isExpanded ? '100%' : 'auto'}
            style:height={isExpanded ? 'auto' : '44px'}>
@@ -72,7 +79,7 @@
 
         <!-- Connections -->
         <a class={`nav-link d-flex align-items-center gap-3 rounded-2 px-3 py-2 ${isConnections ? 'bg-light text-dark fw-bold' : 'text-secondary'}`} 
-           href="/connections" 
+              href={connectionsHref} 
            title="Connections"
            style:width={isExpanded ? '100%' : 'auto'}
            style:height={isExpanded ? 'auto' : '44px'}>
@@ -82,7 +89,7 @@
 
         <!-- About -->
         <a class={`nav-link d-flex align-items-center gap-3 rounded-2 px-3 py-2 ${isAbout ? 'bg-light text-dark fw-bold' : 'text-secondary'}`} 
-           href="/about" 
+              href={aboutHref} 
            title="About"
            style:width={isExpanded ? '100%' : 'auto'}
            style:height={isExpanded ? 'auto' : '44px'}>

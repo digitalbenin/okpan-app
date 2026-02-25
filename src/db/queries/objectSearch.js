@@ -1,6 +1,7 @@
 import { sql, eq, aliasedTable, countDistinct, inArray, and, or } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLInt, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema';
+import { buildSafeFtsAndPrefixQuery } from './common';
 
 export const createObjectSearchQuery = (db, drizzleResult) => {
     // Define FacetItem type for facets
@@ -172,17 +173,11 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             // Build ontology and research fields queries with explicit table references
             const ontologyFieldsQuery = sql`(SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'primary', oof."primary", 'default_description', oof.default_description, 'ontology_field_name_id', ot.name_id, 'ontology_field_name_content', ot_name_texts.content )) FROM objects_ontology_fields oof JOIN ontology_fields ot ON oof.field_id = ot.id JOIN texts ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = objects.id)`;
 
-            const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content )) FROM objects_research_fields orf JOIN research_fields rf ON orf.field_id = rf.id JOIN texts rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN vocabularies v ON orf.vocabulary_id = v.id LEFT JOIN texts v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = objects.id)`;
+            const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content, 'vocabulary_main_asset_id', ga.id, 'vocabulary_main_asset_path', ga.path, 'vocabulary_main_asset_formats', ga.formats, 'vocabulary_main_asset_type', ga.type )) FROM objects_research_fields orf JOIN research_fields rf ON orf.field_id = rf.id JOIN texts rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN vocabularies v ON orf.vocabulary_id = v.id LEFT JOIN texts v_option_texts ON v.option_id = v_option_texts.id LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id WHERE orf.object_id = objects.id)`;
 
             // Helper builders to keep condition construction DRY and precise
             // Helper to convert raw string into FTS5 AND wildcard query
-            const toFtsAndQuery = (s) => s
-                ?.trim()
-                .toLowerCase()
-                .split(/\s+/)
-                .filter(Boolean)
-                .map(t => `${t}*`)
-                .join(' AND ');
+            const toFtsAndQuery = (s) => buildSafeFtsAndPrefixQuery(s);
 
             const buildOntologyConditions = (queries) => {
                 if (!queries || queries.length === 0) return [];
@@ -598,6 +593,15 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                                     id: orf.vocabulary_id,
                                     option: { content: orf.vocabulary_option_content }
                                 };
+
+                                if (orf.vocabulary_main_asset_id || orf.vocabulary_main_asset_path) {
+                                    result.vocabulary.mainAsset = {
+                                        id: orf.vocabulary_main_asset_id,
+                                        path: orf.vocabulary_main_asset_path,
+                                        formats: orf.vocabulary_main_asset_formats,
+                                        type: orf.vocabulary_main_asset_type,
+                                    };
+                                }
                             }
 
                             return result;

@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { resolveProjectId } from '$lib/utils/projectContext.js';
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -33,8 +34,9 @@ export async function load({ url, fetch }) {
 	}
 
 	// Preview mode: parse query params (only available client-side or non-prerendered)
+	const projectId = resolveProjectId(url);
 	const queryParams = {
-		projectId: url.searchParams.get('project_id'),
+		projectId,
 		q: url.searchParams.get('q') || '',
 		page: parseInt(url.searchParams.get('page') || '1'),
 		pageSize: parseInt(url.searchParams.get('pageSize') || url.searchParams.get('limit') || '10'),

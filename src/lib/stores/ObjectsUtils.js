@@ -103,8 +103,8 @@ export const createObject = async (
         resultData = response.insertIntoObjects[0];
     }
 
-    // Invalidate caches to reflect the change
-    invalidate("app:objects");
+    // Invalidate caches to reflect the change, including project stats
+    await invalidateAll();
 
     return {
         result: resultData,
@@ -136,11 +136,8 @@ export const updateObjectStatus = async (objectId, status) => {
     if (response.updateObjects && Array.isArray(response.updateObjects) && response.updateObjects.length > 0) {
         resultData = response.updateObjects[0];
     }
-    // Invalidate caches to ensure UI reflects status changes immediately
-    invalidate("app:objects");
-    invalidate("custom:object");
-    // Also invalidate institution-specific listings so institution pages refresh
-    invalidate("app:institution");
+    // Invalidate caches to ensure UI reflects status changes immediately, including project stats
+    await invalidateAll();
 
     return {
         result: resultData || { id: objectId, status: status },
@@ -177,11 +174,8 @@ export const updateObjectsStatusBulk = async (objectIds, status) => {
         }
     });
 
-    // Invalidate caches so listings and detail pages reflect status changes
-    invalidate("app:objects");
-    invalidate("custom:object");
-    // Also invalidate institution listings used by institution page loaders
-    invalidate("app:institution");
+    // Invalidate caches so listings and detail pages reflect status changes, including project stats
+    await invalidateAll();
 
     return { successes, errors };
 };
@@ -210,9 +204,8 @@ export const updateObjectInstitution = async (objectId, institutionId) => {
         resultData = response.updateObjects[0];
     }
 
-    // Invalidate caches to reflect the change (object details and listings)
-    invalidate("app:objects");
-    invalidate("custom:object");
+    // Invalidate caches to reflect the change (object details and listings), including project stats
+    await invalidateAll();
 
     return {
         result: resultData || { id: objectId, institution_id: institutionId },
@@ -315,6 +308,8 @@ export const deleteObject = async (objectId) => {
 
     const result = await executeQuery('objects', 'delete', { objectId });
     invalidate("app:objects");
+    invalidate("app:projects");
+    try { invalidate("app:project-shared"); } catch (_) {}
     return result;
 };
 
@@ -345,15 +340,7 @@ export const deleteObjectsBulk = async (objectIds) => {
     });
 
     // Invalidate caches to reflect deletions
-    invalidate("app:objects");
-    try {
-        // Best-effort: fully refresh route data if available
-        if (typeof invalidateAll === 'function') {
-            await invalidateAll();
-        }
-    } catch (_) {
-        // ignore
-    }
+    await invalidateAll();
 
     return { successes, errors };
 };
@@ -371,7 +358,9 @@ export const unlinkAssetFromObject = async (objectId, assetId) => {
     // Invalidate caches to reflect the change
     invalidate("app:objects"); // Invalidate objects as their asset list changes
     invalidate("app:assets");  // Invalidate assets as their linked status changes
-
+    invalidate("app:projects");
+    try { invalidate("app:project-shared"); } catch (_) {}
+    
     return { result: result.deleteFromObjects_assets, error: null };
 };
 
@@ -458,6 +447,8 @@ export const linkAssetToObject = async (objectId, assetId, order) => {
     invalidate("app:objects");
     invalidate("app:assets");
     invalidate("custom:object");
+    invalidate("app:projects");
+    try { invalidate("app:project-shared"); } catch (_) {}
 
     return { result: result.insertIntoObjects_assets, error: null };
 };
@@ -506,16 +497,7 @@ export const linkAssetsToObjectsBulk = async (assetIds, objectIds, { order } = {
     }
 
     // Consolidated invalidation to refresh listings and detail pages
-    invalidate("app:objects");
-    invalidate("app:assets");
-    invalidate("custom:object");
-    try {
-        if (typeof invalidateAll === 'function') {
-            await invalidateAll();
-        }
-    } catch (_) {
-        // ignore
-    }
+    await invalidateAll();
 
     return { successes, skippedDuplicates, errors };
 };
@@ -549,10 +531,8 @@ export const updateObjectsInstitutionBulk = async (objectIds, institutionId) => 
         }
     });
 
-    // Invalidate caches so listings and detail pages reflect institution changes
-    invalidate("app:objects");
-    invalidate("custom:object");
-    invalidate("app:institution");
+    // Invalidate caches so listings and detail pages reflect institution changes, including project stats
+    await invalidateAll();
 
     return { successes, errors };
 };

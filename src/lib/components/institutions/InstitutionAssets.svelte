@@ -119,16 +119,8 @@
   }
 
   function handleBulkDeleted(event) {
-    const { successes = [] } = event.detail || {};
-    if (successes.length > 0) {
-      const toRemove = new Set(successes.map((id) => String(id)));
-      const current = assets.items || [];
-      assets = {
-        ...assets,
-        items: current.filter((a) => !toRemove.has(String(a.id))),
-        totalCount: Math.max(0, (assets.totalCount || 0) - successes.length),
-      };
-    }
+    // The store action triggers invalidate('app:assets'), so the page will reload.
+    // We just need to close the modal and clear selection.
     isDeleteModalOpen = false;
     clearSelection();
   }

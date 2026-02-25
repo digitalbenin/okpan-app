@@ -202,8 +202,12 @@
                 }
             }
 
-            // 3. Execute all saves in parallel
-            await Promise.all(savePromises);
+            // 3. Execute all saves in parallel without blocking navigation
+            const saveResults = await Promise.allSettled(savePromises);
+            const failedSaves = saveResults.filter((r) => r.status === "rejected");
+            if (failedSaves.length > 0) {
+                console.error("Some object sub-sections failed to save:", failedSaves);
+            }
 
             // 4. Clear local changes before navigating away
             resetDirtyState();

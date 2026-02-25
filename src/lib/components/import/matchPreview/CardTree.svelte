@@ -3,7 +3,7 @@
 
   import Self from "./CardTree.svelte";
   import Card from "./Card.svelte";
-  const { node, matchingSuggestions, matchingSuggestionsLoading, fields } =
+  const { node, matchingSuggestions, matchingSuggestionsLoading, fields, fieldInclusion = {} } =
     $props();
 
   const wizard = getImportWizardContext();
@@ -57,6 +57,7 @@
           {mappedField}
           {matchingSuggestionsLoading}
           {fields}
+          {fieldInclusion}
         ></Self>
       </div>
     {/each}
@@ -67,6 +68,7 @@
       {mappedField}
       {matchingSuggestion}
       {matchingSuggestionsLoading}
+      bind:included={fieldInclusion[node.pathString]}
       {i}
       {tot}
     />

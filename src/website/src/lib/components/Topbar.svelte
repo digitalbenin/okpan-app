@@ -1,9 +1,10 @@
 <script>
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
     import { page } from '$app/stores';
+    import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
     import { slide } from 'svelte/transition';
     import logoWip from '../../assets/logo_wip.png';
-    let { project, settings } = $props();
+    let { project, settings, activeProjectId = null } = $props();
     let expanded = $state(false);
 
     const titleText = $derived.by(() => (settings?.title?.trim() || project?.name || 'Untitled Project'));
@@ -25,6 +26,11 @@
     function toggle() {
         expanded = !expanded;
     }
+
+    const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
+    const archiveHref = $derived.by(() => isStaticExport ? '/' : buildPathWithProjectId('/', activeProjectId));
+    const connectionsHref = $derived.by(() => isStaticExport ? '/connections' : buildPathWithProjectId('/connections', activeProjectId));
+    const aboutHref = $derived.by(() => isStaticExport ? '/about' : buildPathWithProjectId('/about', activeProjectId));
     
     // Auto-collapse when navigating
     $effect(() => {
@@ -55,9 +61,9 @@
         class="position-fixed w-100 bg-white d-md-none shadow-lg" 
         style="z-index: 1025; top: 60px; left: 0; overflow: hidden;">
         <nav class="nav flex-column">
-            <a class="nav-link text-dark px-4 py-3 border-bottom" href="/" onclick={toggle}>Archive</a>
-            <a class="nav-link text-dark px-4 py-3 border-bottom" href="/connections" onclick={toggle}>Connections</a>
-            <a class="nav-link text-dark px-4 py-3 border-bottom" href="/about" onclick={toggle}>About</a>
+            <a class="nav-link text-dark px-4 py-3 border-bottom" href={archiveHref} onclick={toggle}>Archive</a>
+            <a class="nav-link text-dark px-4 py-3 border-bottom" href={connectionsHref} onclick={toggle}>Connections</a>
+            <a class="nav-link text-dark px-4 py-3 border-bottom" href={aboutHref} onclick={toggle}>About</a>
         </nav>
     </div>
 {/if}

@@ -24,7 +24,7 @@
   //   return null;
   // });
 
-  let mappedObject = $state(results[0] ? results[0].object : null);
+  let mappedObjects = $state(results.length && results[0] ? [results[0].object] : []);
 </script>
 
 <div class="row mb-3 bg-secondary-subtle rounded mx-1">
@@ -45,8 +45,8 @@
       <div class="d-flex align-items-center gap-2">
         <div class="text-break fw-bold">{asset.filename}</div>
         <div><i class="bi bi-arrow-right-short fs-4"></i></div>
-        <MatchBadge bind:mappedObject />
-        <SetMatch {asset} bind:mappedObject suggestions={results} />
+        <MatchBadge bind:mappedObjects />
+        <SetMatch {asset} bind:mappedObjects suggestions={results} />
       </div>
     </div>
   </div>

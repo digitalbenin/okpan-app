@@ -230,6 +230,8 @@ export const deleteDatasource = async (datasourceId) => {
         return { error: "Invalid datasource ID for deleteDatasource" };
     }
     const result = await executeQuery('datasources', 'delete', { datasourceId });
+    await invalidate('app:institution');
+    await invalidate('app:datasources');
     return result;
 };
 

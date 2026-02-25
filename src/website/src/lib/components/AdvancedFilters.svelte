@@ -133,6 +133,31 @@
 		return result;
 	});
 
+	// Divide research fields into connections (vocabulary) and free-text
+	let connectionResearchFields = $derived.by(() =>
+		(researchFields || []).filter((f) => f.type === 'vocabulary')
+	);
+	let textResearchFields = $derived.by(() =>
+		(researchFields || []).filter((f) => f.type !== 'vocabulary')
+	);
+
+	function getCurrentTextQuery(kind, fieldId) {
+		const tf = (advancedFilters?.__textFilters ?? []).find(
+			(x) => x.kind === kind && String(x.fieldId) === String(fieldId)
+		);
+		return tf?.query?.trim() || '';
+	}
+
+	function getConnectionSelectionLabel(field) {
+		const selected = advancedFilters?.[field.id];
+		if (!selected || !selected.length) return 'All';
+		const names = vocabularies
+			.filter((v) => v.field_id === field.id && selected.includes(v.id))
+			.map((v) => v.name || '')
+			.filter(Boolean);
+		return names.length ? names.join(', ') : 'All';
+	}
+
 	// Selectable fields for the "Add search field" UI
 	let selectableTextFields = $derived.by(() => {
 		const list = [];
@@ -269,8 +294,9 @@
 					<i class="bi bi-chevron-right"></i>
 				</div>
 
-				{#each researchFields as field}
-					{#if field.type === 'vocabulary'}
+				{#if connectionResearchFields.length > 0}
+					<div class="px-3 pt-3 pb-1 text-muted small text-uppercase fw-semibold">Connections</div>
+					{#each connectionResearchFields as field (field.id)}
 						<div
 							class="p-3 d-flex justify-content-between align-items-center border-bottom"
 							role="button"
@@ -278,47 +304,76 @@
 							onclick={() => showDetail(field)}
 							onkeydown={() => showDetail(field)}
 						>
-							<p class="m-0">{field.name}</p>
-							<i class="bi bi-chevron-right"></i>
-						</div>
-					{/if}
-				{/each}
-				{#each currentTextFilters as tf (textFilterKey(tf))}
-					<div class="p-3 d-flex justify-content-between align-items-center border-bottom">
-						<p class="m-0">
-							<span class="">{getTextFieldLabel(tf)}</span>
-							<span class="text-muted ms-2">{tf.query}</span>
-						</p>
-						<div class="d-flex align-items-center">
-							<button
-								type="button"
-								class="btn btn-outline-danger btn-sm me-2"
-								aria-label="Remove text filter"
-								onclick={(e) => {
-									e?.stopPropagation?.();
-									removeTextFilter(tf);
-								}}
-							>
-								<i class="bi bi-trash"></i>
-							</button>
-							<button
-								type="button"
-								class="btn btn-link text-dark text-decoration-none p-0"
-								aria-label="Edit text filter"
-								onclick={(e) => {
-									e?.stopPropagation?.();
-									editTextFilter(tf);
-								}}
-							>
+							<p class="m-0 fw-semibold">{field.name}</p>
+							<div class="d-flex align-items-center gap-2">
+								<span class="text-muted">{getConnectionSelectionLabel(field)}</span>
 								<i class="bi bi-chevron-right"></i>
-							</button>
+							</div>
 						</div>
-					</div>
-				{/each}
-				<button class="btn btn-outline-secondary m-3" onclick={() => showAddTextSearch()}>
-					<i class="bi bi-plus-circle"></i>
-					<span>Add search field</span>
-				</button>
+					{/each}
+				{/if}
+
+				{#if textResearchFields.length > 0}
+					<div class="px-3 pt-3 pb-1 text-muted small text-uppercase fw-semibold">Research fields</div>
+					{#each textResearchFields as field (field.id)}
+						<div
+							class="p-3 d-flex justify-content-between align-items-center border-bottom"
+							role="button"
+							tabindex="0"
+							onclick={() => showAddTextSearch(`r:${field.id}`, getCurrentTextQuery('research', field.id))}
+							onkeydown={() => showAddTextSearch(`r:${field.id}`, getCurrentTextQuery('research', field.id))}
+						>
+							<p class="m-0 fw-semibold">{field.name}</p>
+							<div class="d-flex align-items-center gap-2">
+								<span class="text-muted">{getCurrentTextQuery('research', field.id) || 'All'}</span>
+								<i class="bi bi-chevron-right"></i>
+							</div>
+						</div>
+					{/each}
+				{/if}
+
+				{#if currentTextFilters.length > 0}
+					<div class="px-3 pt-3 pb-1 text-muted small text-uppercase fw-semibold">Active text searches</div>
+					{#each currentTextFilters as tf (textFilterKey(tf))}
+						<div class="p-3 d-flex justify-content-between align-items-center border-bottom">
+							<p class="m-0">
+								<span class="fw-semibold">{getTextFieldLabel(tf)}</span>
+								<span class="text-muted ms-2">&ldquo;{tf.query}&rdquo;</span>
+							</p>
+							<div class="d-flex align-items-center">
+								<button
+									type="button"
+									class="btn btn-outline-danger btn-sm me-2"
+									aria-label="Remove text filter"
+									onclick={(e) => {
+										e?.stopPropagation?.();
+										removeTextFilter(tf);
+									}}
+								>
+									<i class="bi bi-trash"></i>
+								</button>
+								<button
+									type="button"
+									class="btn btn-link text-dark text-decoration-none p-0"
+									aria-label="Edit text filter"
+									onclick={(e) => {
+										e?.stopPropagation?.();
+										editTextFilter(tf);
+									}}
+								>
+									<i class="bi bi-chevron-right"></i>
+								</button>
+							</div>
+						</div>
+					{/each}
+				{/if}
+
+				<div class="p-3">
+					<button class="btn btn-outline-secondary" onclick={() => showAddTextSearch()}>
+						<i class="bi bi-plus-circle"></i>
+						<span>Add text search</span>
+					</button>
+				</div>
 			</div>
 		{:else if activeView === 'addText'}
 			<div

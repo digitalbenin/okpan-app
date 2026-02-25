@@ -7,7 +7,6 @@
   import { bulkLinkAssetsToObjects } from "$lib/stores/AssetsUtils.js";
   import { goto } from "$app/navigation";
   import TableMatchPreview from "./TableMatchPreview.svelte";
-  import Table from "../base/Table/Table.svelte";
 
   // import { parseData } from "$lib/utils/import.js";
 
@@ -51,6 +50,9 @@
       .length;
   });
   const assetsImported = $derived.by(() => wizard.assets?.length || 0);
+  const assetsNotLinked = $derived.by(() =>
+    Math.max(0, assetsImported - assetsLinked)
+  );
 
   function closeAndHome() {
     open = false;
@@ -76,11 +78,26 @@
   </div>
   <div class="row mb-2">
     <div class="col-12">
-      <div class="alert alert-primary" role="alert">
-        <span class="fw-bold">{assetsLinked}</span>
-        {t("import.assets-will-be-linked", {
-          fallback: "asset(s) will be linked",
-        })}
+      <div class="alert alert-primary" role="alert" style="width: fit-content">
+        <div>
+          <span class="fw-bold me-1">{assetsImported}</span>
+          {t("import.assets-will-be-imported", {
+            fallback: "media will be imported.",
+          })}
+        </div>
+        <div>
+          {#if assetsNotLinked > 0}
+            <span class="fw-bold me-1">{assetsNotLinked}</span>
+            {t("import.media-not-linked", {
+              fallback: "media is not linked.",
+            })}
+          {:else}
+            <span class="fw-bold me-1">{assetsLinked}</span>
+            {t("import.assets-will-be-linked", {
+              fallback: "media will be linked.",
+            })}
+          {/if}
+        </div>
       </div>
       <!-- 
       <div>

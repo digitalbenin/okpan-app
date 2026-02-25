@@ -94,6 +94,12 @@ export const objectSearchOperations = {
           option {
             content
           }
+          mainAsset {
+            id
+            path
+            formats
+            type
+          }
         }
       }
     }

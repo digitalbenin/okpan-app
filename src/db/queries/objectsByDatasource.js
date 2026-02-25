@@ -72,7 +72,7 @@ export const createObjectsByDatasourceQuery = (db, drizzleResult) => {
 
             // Build queries to get all ontology and research fields
             const ontologyFieldsQuery = sql`(SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'primary', oof."primary", 'default_description', oof.default_description, 'ontology_field_name_id', ot.name_id, 'ontology_field_name_content', ot_name_texts.content )) FROM ${dbSchema.objects_ontology_fields} oof JOIN ${dbSchema.ontology_fields} ot ON oof.field_id = ot.id JOIN ${dbSchema.texts} ot_name_texts ON ot.name_id = ot_name_texts.id WHERE oof.object_id = ${dbSchema.objects.id})`;
-            const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content )) FROM ${dbSchema.objects_research_fields} orf JOIN ${dbSchema.research_fields} rf ON orf.field_id = rf.id JOIN ${dbSchema.texts} rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN ${dbSchema.vocabularies} v ON orf.vocabulary_id = v.id LEFT JOIN ${dbSchema.texts} v_option_texts ON v.option_id = v_option_texts.id WHERE orf.object_id = ${dbSchema.objects.id})`;
+            const researchFieldsQuery = sql`(SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'research_field_name_id', rf.name_id, 'research_field_name_content', rf_name_texts.content, 'vocabulary_id', orf.vocabulary_id, 'vocabulary_option_content', v_option_texts.content, 'vocabulary_main_asset_id', ga.id, 'vocabulary_main_asset_path', ga.path, 'vocabulary_main_asset_formats', ga.formats, 'vocabulary_main_asset_type', ga.type )) FROM ${dbSchema.objects_research_fields} orf JOIN ${dbSchema.research_fields} rf ON orf.field_id = rf.id JOIN ${dbSchema.texts} rf_name_texts ON rf.name_id = rf_name_texts.id LEFT JOIN ${dbSchema.vocabularies} v ON orf.vocabulary_id = v.id LEFT JOIN ${dbSchema.texts} v_option_texts ON v.option_id = v_option_texts.id LEFT JOIN ${dbSchema.genericAssets} ga ON v.main_asset_id = ga.id WHERE orf.object_id = ${dbSchema.objects.id})`;
 
             let queryBase = db.select({
                 id: dbSchema.objects.id,
@@ -234,6 +234,15 @@ export const createObjectsByDatasourceQuery = (db, drizzleResult) => {
                                     id: orf.vocabulary_id,
                                     option: { content: orf.vocabulary_option_content }
                                 };
+
+                                if (orf.vocabulary_main_asset_id || orf.vocabulary_main_asset_path) {
+                                    result.vocabulary.mainAsset = {
+                                        id: orf.vocabulary_main_asset_id,
+                                        path: orf.vocabulary_main_asset_path,
+                                        formats: orf.vocabulary_main_asset_formats,
+                                        type: orf.vocabulary_main_asset_type,
+                                    };
+                                }
                             }
                             return result;
                         }).filter(orf => orf.id != null);

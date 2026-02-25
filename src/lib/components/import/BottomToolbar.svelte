@@ -10,7 +10,14 @@
 <div
   class="w-100 bg-light p-3 d-flex justify-content-between align-items-center"
 >
-  <Cancel></Cancel>
+  <div class="d-flex gap-2">
+    <Cancel />
+    {#if wizard.currentStep > 1}
+      <button class="btn btn-outline-secondary" onclick={wizard.prevStep}>
+        {t("common.back", { fallback: "Back" })}
+      </button>
+    {/if}
+  </div>
   <div class="text-primary fw-bold">
     {t("common.step", { fallback: "Step" })}
     {wizard.currentStep}

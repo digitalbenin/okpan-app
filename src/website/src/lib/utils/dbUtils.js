@@ -185,24 +185,83 @@ export function fetchResearchFields(db, projectId) {
   return results_to_objects(res);
 }
 
+export function fetchVocabularyDetails(db, vocabId) {
+    if (!vocabId) return null;
+
+    // Fetch the main vocabulary details
+    const vocabRes = db.exec(
+        `SELECT 
+        v.*, 
+        t.content as name, 
+        dt.content as description, 
+        ga.path as main_asset_path,
+        COUNT(orf.object_id) as count
+      FROM vocabularies v 
+      LEFT JOIN texts t ON v.option_id = t.id 
+      LEFT JOIN texts dt ON v.description_id = dt.id 
+      LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id
+      LEFT JOIN objects_research_fields orf ON v.id = orf.vocabulary_id
+      WHERE v.id = ?
+      GROUP BY v.id`,
+        [vocabId]
+    );
+
+    const vocabularies = results_to_objects(vocabRes);
+    if (!vocabularies || vocabularies.length === 0) return null;
+
+    const vocabulary = vocabularies[0];
+
+    // Fetch associated generic assets
+    const assetsRes = db.exec(
+        `SELECT ga.path, ga.type, ga.id
+         FROM vocabularies_generic_assets vga
+         JOIN generic_assets ga ON vga.generic_asset_id = ga.id
+         WHERE vga.vocabulary_id = ?
+         ORDER BY vga."order" ASC`,
+        [vocabId]
+    );
+
+    vocabulary.assets = results_to_objects(assetsRes);
+
+    return vocabulary;
+}
+
 export function fetchVocabularies(db, projectId) {
   let res;
   if (projectId) {
     res = db.exec(
       `
-      SELECT v.*, t.content as name, dt.content as description, ga.path as main_asset_path
+      SELECT 
+        v.*, 
+        t.content as name, 
+        dt.content as description, 
+        ga.path as main_asset_path,
+        COUNT(orf.object_id) as count
       FROM vocabularies v
       JOIN research_fields rf ON v.field_id = rf.id
       LEFT JOIN texts t ON v.option_id = t.id
       LEFT JOIN texts dt ON v.description_id = dt.id
       LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id
+      LEFT JOIN objects_research_fields orf ON v.id = orf.vocabulary_id
       WHERE rf.project_id = ?
+      GROUP BY v.id
     `,
       [projectId]
     );
   } else {
     res = db.exec(
-      'SELECT v.*, t.content as name, dt.content as description, ga.path as main_asset_path FROM vocabularies v LEFT JOIN texts t ON v.option_id = t.id LEFT JOIN texts dt ON v.description_id = dt.id LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id'
+      `SELECT 
+        v.*, 
+        t.content as name, 
+        dt.content as description, 
+        ga.path as main_asset_path,
+        COUNT(orf.object_id) as count
+      FROM vocabularies v 
+      LEFT JOIN texts t ON v.option_id = t.id 
+      LEFT JOIN texts dt ON v.description_id = dt.id 
+      LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id
+      LEFT JOIN objects_research_fields orf ON v.id = orf.vocabulary_id
+      GROUP BY v.id`
     );
   }
   return results_to_objects(res);

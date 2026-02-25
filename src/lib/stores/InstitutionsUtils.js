@@ -1,6 +1,6 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
-import { invalidate } from "$app/navigation";
+import { invalidate, invalidateAll } from "$app/navigation";
 
 // Get validation store
 const { getSchema, validate } = getValidationStore();
@@ -33,8 +33,7 @@ export const updateInstitutionStatus = async (institutionId, status) => {
     }
 
     // Invalidate both the detail and listings
-    invalidate("app:institution");
-    invalidate("app:institutions");
+    await invalidateAll();
 
     const updated = result?.result?.updateInstitutions || result?.updateInstitutions || [{ id: institutionId, status }];
     return { result: updated, error: null };
@@ -86,14 +85,14 @@ export const updateInstitution = async (institutionId, updatedData) => {
     }
 
 
-    invalidate("app:institutions");
+    await invalidateAll();
     return { result: result.result, error: null };
 };
 
 export const deleteInstitution = async (institutionId) => {
     // The delete mutation expects variable name `id`, not `institutionId`
     const result = await executeQuery('institutions', 'delete', { id: institutionId });
-    invalidate("app:institutions");
+    await invalidateAll();
     return result;
 };
 
@@ -113,6 +112,8 @@ export const createInstitution = async (institutionData) => {
         console.error('No institution returned from create mutation:', result);
         return { result: null, error: 'No institution created' };
     }
+
+    await invalidateAll();
 
     return {
         institution,
