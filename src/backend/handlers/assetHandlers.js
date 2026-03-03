@@ -135,7 +135,7 @@ const handleImportAssets = async (event, data) => {
 
             if (asset) {
                 const newAsset = await saveAssetToDb(asset, data.isGenericAsset);
-                createdAssets.push(newAsset);
+                createdAssets.push({ ...newAsset, _sourcePath: filePath });
                 importedFilePaths.push(filePath);
             }
         } catch (error) {

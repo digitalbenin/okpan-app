@@ -16,6 +16,9 @@ export function createImportAssetsWizardContext(params) {
     let projectId = $state(params?.projectId);
     let institutionId = $state(null);
     let assets = $state([]);
+    let selectedFiles = $state([]);
+    let selectedFilePaths = $state([]);
+    let hasPersistedAssets = $state(false);
     let mapping = $state([])
     let importCompleted = $state(false);
     let isCleaningUp = $state(false);
@@ -29,7 +32,11 @@ export function createImportAssetsWizardContext(params) {
             return { successes: [], errors: [] };
         }
 
-        const importedAssetIds = (assets || []).map((asset) => asset?.id).filter(Boolean);
+        const importedAssetIds = hasPersistedAssets
+            ? (assets || [])
+                .map((asset) => asset?.id)
+                .filter((id) => typeof id === 'string' && id && !id.startsWith('tmp:'))
+            : [];
 
         if (!importedAssetIds.length) {
             mapping = [];
@@ -71,6 +78,15 @@ export function createImportAssetsWizardContext(params) {
 
         get assets() { return assets; },
         set assets(value) { assets = value; },
+
+        get selectedFiles() { return selectedFiles; },
+        set selectedFiles(value) { selectedFiles = value; },
+
+        get selectedFilePaths() { return selectedFilePaths; },
+        set selectedFilePaths(value) { selectedFilePaths = value; },
+
+        get hasPersistedAssets() { return hasPersistedAssets; },
+        set hasPersistedAssets(value) { hasPersistedAssets = value; },
 
         get institutionId() { return institutionId; },
         set institutionId(value) { institutionId = value; },
@@ -169,6 +185,9 @@ export function createImportAssetsWizardContext(params) {
             nextEnabled = false;
             institutionId = null;
             assets = [];
+            selectedFiles = [];
+            selectedFilePaths = [];
+            hasPersistedAssets = false;
             mapping = [];
             importCompleted = false;
         },
@@ -183,6 +202,9 @@ export function createImportAssetsWizardContext(params) {
             nextEnabled = false;
             institutionId = null;
             assets = [];
+            selectedFiles = [];
+            selectedFilePaths = [];
+            hasPersistedAssets = false;
             mapping = [];
             // formData = {};
             // isValid = false;
