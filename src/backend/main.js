@@ -24,7 +24,7 @@ import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.j
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { eq, sql, isNull } from 'drizzle-orm';
-import { handleExportProject } from './handlers/exportHandlers.js';
+import { handleExportProject, handleExportConnections, handleImportConnections } from './handlers/exportHandlers.js';
 import { handleListLanguages } from './handlers/languagesHandlers.js';
 import { handleCreateBackup, handleSelectBackupFile, handleCheckBackupFile, handleRestoreBackup } from './handlers/backupHandler.js';
 
@@ -76,6 +76,14 @@ ipcMain.handle('export-static-website', async (event, options) => {
 // New generic export channel supports { format: 'sql' | 'json', ... }
 ipcMain.handle('export-project', (event, options) =>
   handleExportProject(event, options, { db })
+);
+
+ipcMain.handle('export-connections', (event, options) =>
+  handleExportConnections(event, options, { db })
+);
+
+ipcMain.handle('import-connections', (event, options) =>
+  handleImportConnections(event, options, { db })
 );
 
 // Backup handlers

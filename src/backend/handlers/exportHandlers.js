@@ -4,6 +4,8 @@ import * as dbSchema from '../../db/schema.js';
 import { exportProjectJson } from '../services/exportJsonService.js';
 import { exportProjectSql } from '../services/exportSqlService.js';
 import { exportProjectCsv } from '../services/exportCsvService.js';
+import { exportConnectionsJson } from '../services/exportConnectionsJsonService.js';
+import { importConnectionsJson } from '../services/importConnectionsJsonService.js';
 
 export function buildCounts({
   objects = [],
@@ -138,4 +140,63 @@ export async function handleExportProject(event, options, { db }) {
         console.error('Error in handleExportProject:', error);
         throw error;
     }
+}
+
+export async function handleExportConnections(event, options, { db }) {
+  try {
+    const {
+      filePath: inputFilePath,
+      projectId
+    } = options || {};
+
+    if (!projectId) {
+      throw new Error('projectId is required');
+    }
+
+    let filePath = inputFilePath;
+    if (!filePath) {
+      const result = await dialog.showSaveDialog({
+        title: 'Save Connections Export ZIP',
+        defaultPath: 'connections-export.zip',
+        filters: [{ name: 'Zip', extensions: ['zip'] }]
+      });
+      if (result.canceled) return { canceled: true };
+      filePath = result.filePath;
+    }
+
+    const zipPath = filePath && typeof filePath === 'string' && filePath.toLowerCase().endsWith('.zip')
+      ? filePath
+      : (filePath + '.zip');
+
+    return await exportConnectionsJson({ filePath: zipPath, projectId }, { db });
+  } catch (error) {
+    console.error('Error in handleExportConnections:', error);
+    throw error;
+  }
+}
+
+export async function handleImportConnections(event, options, { db }) {
+  try {
+    const { filePath: inputFilePath, projectId } = options || {};
+
+    if (!projectId) {
+      throw new Error('projectId is required');
+    }
+
+    let filePath = inputFilePath;
+    if (!filePath) {
+      const result = await dialog.showOpenDialog({
+        title: 'Import Connections Export ZIP',
+        filters: [{ name: 'Zip', extensions: ['zip'] }],
+        properties: ['openFile']
+      });
+      if (result.canceled) return { canceled: true };
+      filePath = result.filePaths[0];
+    }
+
+    return await importConnectionsJson({ filePath, projectId }, { db });
+  } catch (error) {
+    console.error('Error in handleImportConnections:', error);
+    throw error;
+  }
 }
