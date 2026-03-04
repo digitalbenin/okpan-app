@@ -66,7 +66,10 @@ ipcMain.handle('languages:list', handleListLanguages);
 ipcMain.handle('export-static-website', async (event, options) => {
   try {
     const { exportStaticWebsite } = await import('./services/websiteExportService.js');
-    return await exportStaticWebsite(options.projectId, options.outputPath, { db });
+    return await exportStaticWebsite(options.projectId, options.outputPath, {
+      db,
+      filters: options.filters
+    });
   } catch (error) {
     console.error('Error exporting static website:', error);
     throw error;

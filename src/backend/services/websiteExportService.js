@@ -1,7 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
+import { buildObjectSearchConditions } from '../handlers/exportHandlers.js';
 
 /**
  * Export website data to JSON file and build static site
@@ -11,7 +12,7 @@ import * as dbSchema from '../../db/schema.js';
  * @param {Object} options.db - Database instance
  * @returns {Promise<Object>} Export result
  */
-export async function exportStaticWebsite(projectId, outputPath, { db }) {
+export async function exportStaticWebsite(projectId, outputPath, { db, filters = {} }) {
   const rootDir = process.cwd();
   const websiteDir = path.join(rootDir, 'src', 'website');
   // Prebuilt SPA artifact for static exports (produced before app packaging)
@@ -20,7 +21,7 @@ export async function exportStaticWebsite(projectId, outputPath, { db }) {
   try {
     // Step 1: Export data to JSON structure
     console.log('[Website Export] Step 1/4: Exporting data...');
-    const data = await exportWebsiteData(projectId, db);
+    const data = await exportWebsiteData(projectId, db, filters);
     
     if (!data || !data.objects) {
       throw new Error('Failed to export data: data or data.objects is null/undefined');
@@ -133,14 +134,20 @@ async function createSpaShellRoutes(outputPath, data) {
  * @param {Object} db - Database instance
  * @returns {Promise<Object>} Unified data structure
  */
-async function exportWebsiteData(projectId, db) {
+async function exportWebsiteData(projectId, db, filters = {}) {
   try {
     console.log('[exportWebsiteData] Starting data export for project:', projectId);
     
     // Fetch all objects for this project
     console.log('[exportWebsiteData] Fetching objects...');
+    const effectiveFilters = {
+      ...(filters || {}),
+      project_id: projectId
+    };
+    const conditions = buildObjectSearchConditions(effectiveFilters);
+
     const objects = await db.select().from(dbSchema.objects)
-      .where(eq(dbSchema.objects.project_id, projectId))
+      .where(and(...conditions))
       .execute();
     console.log(`[exportWebsiteData] Found ${objects.length} objects`);
 
