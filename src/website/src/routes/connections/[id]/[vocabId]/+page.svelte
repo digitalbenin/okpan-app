@@ -192,9 +192,8 @@
         
         <div class="list-group list-group-flush">
             {#each paginatedObjects as obj}
-                <a href={isStaticExport ? `/${obj.id}/` : buildPathWithProjectId(`/${obj.id}`, projectId)} 
-                   class="list-group-item list-group-item-action p-3 d-flex align-items-center"
-                   data-sveltekit-reload={isStaticExport ? '' : null}
+                     <a href={isStaticExport ? `/${obj.id}` : buildPathWithProjectId(`/${obj.id}`, projectId)} 
+                         class="list-group-item list-group-item-action p-3 d-flex align-items-center"
                 >
                     <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;">
                         {#if obj.main_image}

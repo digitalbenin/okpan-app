@@ -3,9 +3,6 @@ import { resolveProjectId, setStoredProjectId } from '$lib/utils/projectContext.
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
-export const prerender = isStaticExport || undefined;
-export const csr = !isStaticExport;
-
 // Empty result template
 const emptyResult = {
     object: null, assets: [], objectOntologyFields: [], objectResearchFields: [],
@@ -13,34 +10,21 @@ const emptyResult = {
     vocabularies: [], queryParams: { projectId: null }
 };
 
-// Generate static pages for each object
-export async function entries() {
-    if (!isStaticExport) return [];
-    
-    try {
-        const fs = await import('fs/promises');
-        const path = await import('path');
-        const data = JSON.parse(await fs.readFile(path.join(process.cwd(), 'static', 'data.json'), 'utf-8'));
-        return data.objects.map(obj => ({ objId: obj.id }));
-    } catch (e) {
-        console.warn('[entries] Could not load data.json:', e.message);
-        return [];
-    }
-}
-
 /** @type {import('./$types').PageLoad} */
-export async function load({ params, url }) {
+export async function load({ params, url, fetch }) {
     const objId = params.objId;
-    
-    // Static export: client uses prerendered content (via data-sveltekit-reload links)
-    if (isStaticExport && browser) return;
-    
-    // Static export: build time - read from filesystem
+
     if (isStaticExport) {
+        if (!browser) {
+            return emptyResult;
+        }
+
         try {
-            const fs = await import('fs/promises');
-            const path = await import('path');
-            const data = JSON.parse(await fs.readFile(path.join(process.cwd(), 'static', 'data.json'), 'utf-8'));
+            const response = await fetch('/data.json');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch data.json: ${response.status}`);
+            }
+            const data = await response.json();
             const obj = data.objects?.find(o => o.id === objId);
             
             if (!obj) return emptyResult;
@@ -68,7 +52,7 @@ export async function load({ params, url }) {
                 settings: data.settings ? { title: data.settings.title } : {}
             };
         } catch (e) {
-            console.warn('[objId load] Could not read data.json:', e.message);
+            console.warn('[objId load] Could not load data.json:', e.message);
             return emptyResult;
         }
     }
