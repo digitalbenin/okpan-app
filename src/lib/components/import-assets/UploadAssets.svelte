@@ -1,37 +1,40 @@
 <script>
-  import BaseButton from "$lib/components/base/BaseButton.svelte";
   import TablePreview from "./TablePreview.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
-  import { onMount, onDestroy } from "svelte";
+  import { getMediaType } from "$lib/utils/media.js";
   const wizard = getImportAssetsWizardContext();
   const { t } = getTranslationStore();
 
-  let files = $state([]);
-  let filesSelected = $state([]);
+  let files = $state(wizard.selectedFiles || []);
+  let filesSelected = $state(wizard.selectedFilePaths || []);
   let importErrors = $state([]);
-  let isImporting = $state(false);
-  let importProgressPercent = $state(0);
-  let importProgressText = $state("");
 
-  onMount(() => {
-    if (window.api && window.api.onImportProgress) {
-      window.api.onImportProgress((_event, data) => {
-        if (data.status === "start") {
-          importProgressPercent = 0;
-          importProgressText = `0 / ${data.total}`;
-        } else if (data.status === "progress") {
-          importProgressPercent = data.percent;
-          importProgressText = `${data.processed} / ${data.total}`;
-        }
-      });
-    }
-  });
+  function buildPendingAssets(selectedPaths) {
+    const byPath = new Map((files || []).map((file) => [file.path, file]));
+    return (selectedPaths || []).map((filePath) => {
+      const file = byPath.get(filePath);
+      const mediaType = getMediaType(file?.name || filePath);
+      return {
+        id: `tmp:${filePath}`,
+        filename: file?.name || filePath.split(/[/\\]/).pop(),
+        type: mediaType,
+        path: filePath,
+        formats: mediaType === 'image'
+          ? { original: filePath, sm: filePath, md: filePath }
+          : { original: filePath },
+        _sourcePath: filePath,
+      };
+    });
+  }
 
-  onDestroy(() => {
-    if (window.api && window.api.removeImportProgressListeners) {
-      window.api.removeImportProgressListeners();
-    }
+  $effect(() => {
+    wizard.selectedFiles = files;
+    wizard.selectedFilePaths = filesSelected;
+    wizard.assets = buildPendingAssets(filesSelected);
+    wizard.mapping = [];
+    wizard.nextEnabled = filesSelected.length > 0;
+    wizard.hasPersistedAssets = false;
   });
 
   async function choose(isDirectory) {
@@ -42,110 +45,12 @@
     console.log("Dialog result", result);
     if (result.canceled) return;
     wizard.assets = [];
+    wizard.mapping = [];
+    wizard.hasPersistedAssets = false;
     importErrors = [];
     files = result.files;
     filesSelected = result.files.map((f) => f.path);
   }
-
-  async function importNow() {
-    if (isImporting) return;
-    isImporting = true;
-    const payload = {
-      path: $state.snapshot(filesSelected),
-      isDirectory: false,
-      projectId: wizard.projectId,
-      institutionId: wizard.institutionId,
-    };
-
-    console.log("Importing with payload", payload);
-
-    try {
-      const { errors, createdAssets } = await window.api.importAssets(payload);
-      importErrors = errors?.length ? errors : [];
-
-      wizard.assets = createdAssets ? createdAssets : [];
-      // wizard.assets = fakeAssets;
-      if (wizard.assets.length) {
-        wizard.nextEnabled = true;
-      }
-    } catch (error) {
-      console.error("Import assets failed", error);
-      importErrors = [error?.message || "Unknown error"];
-    } finally {
-      isImporting = false;
-    }
-  }
-
-  const fakeAssets = [
-    {
-      id: "49666163-3fd0-49e4-8d05-8d57c15c9a82",
-      created_at: "2025-09-12T08:34:01.000Z",
-      updated_at: "2025-09-12T08:34:01.000Z",
-      filename: "img_raf602.jpg",
-      path: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/img_raf602_6aee54a2.avif",
-      type: "image",
-      formats: {
-        sm: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/img_raf602_6aee54a2_sm.avif",
-        md: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/img_raf602_6aee54a2_md.avif",
-        original:
-          "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/img_raf602_6aee54a2.avif",
-      },
-      properties: null,
-      institution_id: "f0142078-d5b2-4ab3-98d0-3f489e3f0b08",
-      project_id: "3e4cc3fb-11ee-4d0a-a999-df28a465fc28",
-    },
-    {
-      id: "13507e4d-8de4-4739-a589-bec1250af127",
-      created_at: "2025-09-12T08:34:01.000Z",
-      updated_at: "2025-09-12T08:34:01.000Z",
-      filename: "raf 603.jpg",
-      path: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf 603_4a38448b.avif",
-      type: "image",
-      formats: {
-        sm: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf 603_4a38448b_sm.avif",
-        md: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf 603_4a38448b_md.avif",
-        original:
-          "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf 603_4a38448b.avif",
-      },
-      properties: null,
-      institution_id: "f0142078-d5b2-4ab3-98d0-3f489e3f0b08",
-      project_id: "3e4cc3fb-11ee-4d0a-a999-df28a465fc28",
-    },
-    {
-      id: "dfdf2957-6a07-48ab-9909-a94039c8291a",
-      created_at: "2025-09-12T08:34:04.000Z",
-      updated_at: "2025-09-12T08:34:04.000Z",
-      filename: "raf_602.jpg",
-      path: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf_602_0683a0a1.avif",
-      type: "image",
-      formats: {
-        sm: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf_602_0683a0a1_sm.avif",
-        md: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf_602_0683a0a1_md.avif",
-        original:
-          "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/raf_602_0683a0a1.avif",
-      },
-      properties: null,
-      institution_id: "f0142078-d5b2-4ab3-98d0-3f489e3f0b08",
-      project_id: "3e4cc3fb-11ee-4d0a-a999-df28a465fc28",
-    },
-    {
-      id: "8ee165fd-2577-4ba9-9d4b-ed55b0b74792",
-      created_at: "2025-09-12T08:34:05.000Z",
-      updated_at: "2025-09-12T08:34:05.000Z",
-      filename: "3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688.jpg",
-      path: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688_6a434aa9.avif",
-      type: "image",
-      formats: {
-        sm: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688_6a434aa9_sm.avif",
-        md: "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688_6a434aa9_md.avif",
-        original:
-          "src/assets/project_assets/3e4cc3fb-11ee-4d0a-a999-df28a465fc28/3ddd7a3816a828b19cf2af9312d4a392ec87ba5a-5792x8688_6a434aa9.avif",
-      },
-      properties: null,
-      institution_id: "f0142078-d5b2-4ab3-98d0-3f489e3f0b08",
-      project_id: "3e4cc3fb-11ee-4d0a-a999-df28a465fc28",
-    },
-  ];
 </script>
 
 <div class="container-fluid pt-3 h-100 d-flex flex-column">
@@ -204,66 +109,13 @@
       </div>
       <div class="row bg-white border-top py-2 position-sticky bottom-0 z-3 mt-2">
         <div class="col-12 d-flex align-items-center justify-content-end gap-3">
-          {#if wizard.assets.length}
-            <div class="text-success d-flex align-items-center gap-2 me-3">
-              <i class="bi bi-check-circle-fill fs-5"></i>
-              <span class="fw-bold fs-6">
-                {wizard.assets.length}
-                {wizard.assets.length === 1
-                  ? t("import.asset-created", {
-                      fallback: "asset imported correctly",
-                    })
-                  : t("import.assets-created", {
-                      fallback: "assets imported correctly",
-                    })}
-              </span>
-            </div>
-          {:else if isImporting}
-            <div class="flex-grow-1">
-              <div
-                class="progress"
-                role="progressbar"
-                aria-label="Import progress"
-                aria-valuenow={importProgressPercent}
-                aria-valuemin="0"
-                aria-valuemax="100"
-                style="height: 10px;"
-              >
-                <div
-                  class="progress-bar"
-                  style="width: {importProgressPercent}%"
-                ></div>
-              </div>
-              <div class="text-end fs-7 text-muted mt-1">
-                {importProgressText}
-              </div>
-            </div>
-          {:else}
+          {#if files.length}
             <span>
               {filesSelected.length}
               {filesSelected.length === 1
                 ? t("import.file-selected", { fallback: "file selected" })
                 : t("import.files", { fallback: "files selected" })}
             </span>
-          {/if}
-          
-          {#if !wizard.assets.length}
-            <button
-              class=" btn btn-success btn-sm d-flex align-items-center gap-2"
-              disabled={filesSelected.length === 0 || isImporting}
-              onclick={importNow}
-            >
-              {#if isImporting}
-                <span
-                  class="spinner-border spinner-border-sm"
-                  role="status"
-                  aria-hidden="true"
-                ></span>
-                <span>{t("import.importing", { fallback: "Importing..." })}</span>
-              {:else}
-                <span>{t("import.import", { fallback: "Import" })}</span>
-              {/if}
-            </button>
           {/if}
         </div>
       </div>

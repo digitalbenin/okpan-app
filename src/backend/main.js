@@ -28,7 +28,7 @@ import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.j
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { eq, sql, isNull } from 'drizzle-orm';
-import { handleExportProject } from './handlers/exportHandlers.js';
+import { handleExportProject, handleExportConnections, handleImportConnections } from './handlers/exportHandlers.js';
 import { handleListLanguages } from './handlers/languagesHandlers.js';
 import { handleCreateBackup, handleSelectBackupFile, handleCheckBackupFile, handleRestoreBackup } from './handlers/backupHandler.js';
 
@@ -70,7 +70,13 @@ ipcMain.handle('languages:list', handleListLanguages);
 ipcMain.handle('export-static-website', async (event, options) => {
   try {
     const { exportStaticWebsite } = await import('./services/websiteExportService.js');
-    return await exportStaticWebsite(options.projectId, options.outputPath, { db });
+    return await exportStaticWebsite(options.projectId, options.outputPath, {
+      db,
+      filters: options.filters,
+      appPath: app.getAppPath(),
+      resourcesPath: process.resourcesPath,
+      isPackaged: app.isPackaged
+    });
   } catch (error) {
     console.error('Error exporting static website:', error);
     throw error;
@@ -80,6 +86,14 @@ ipcMain.handle('export-static-website', async (event, options) => {
 // New generic export channel supports { format: 'sql' | 'json', ... }
 ipcMain.handle('export-project', (event, options) =>
   handleExportProject(event, options, { db })
+);
+
+ipcMain.handle('export-connections', (event, options) =>
+  handleExportConnections(event, options, { db })
+);
+
+ipcMain.handle('import-connections', (event, options) =>
+  handleImportConnections(event, options, { db })
 );
 
 // Backup handlers

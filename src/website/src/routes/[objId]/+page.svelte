@@ -3,9 +3,7 @@
 	import ObjectResearchData from '$lib/components/ObjectResearchData.svelte';
 	import ObjectResearchDataStatic from '$lib/components/ObjectResearchDataStatic.svelte';
 	import ObjectInstitutionData from '$lib/components/ObjectInstitutionData.svelte';
-	// Use static version for export (vanilla JS + CDN), dynamic for preview
 	import ObjectImages from '$lib/components/ObjectImages.svelte';
-	import ObjectImagesStatic from '$lib/components/ObjectImagesStatic.svelte';
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -76,11 +74,7 @@
 </div>
 <div class="row mb-2">
 	<div class="col-md-6">
-		{#if isStaticExport}
-			<ObjectImagesStatic {assets} />
-		{:else}
-			<ObjectImages {assets} />
-		{/if}
+		<ObjectImages {assets} />
 	</div>
 	<div class="col-md-6">
 		{#if isStaticExport}

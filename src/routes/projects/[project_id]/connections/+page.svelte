@@ -1,11 +1,15 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { addToast } from "$lib/components/base/BaseToast.svelte";
   import { goto, invalidateAll } from "$app/navigation";
-    import AddConnectionTypeModal from "$lib/components/research_fields/AddConnectionTypeModal.svelte";
+  import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
+  import AddConnectionTypeModal from "$lib/components/research_fields/AddConnectionTypeModal.svelte";
 
   const { data } = $props();
   const { t } = getTranslationStore();
   const { languages } = data;
+  let isImporting = $state(false);
+  const hasConnectionTypes = $derived((data?.researchFields?.length || 0) > 0);
 
   // Helper for status text
   function getStatusText(field) {
@@ -13,6 +17,41 @@
       return t("common.published", { fallback: "Published" });
     }
     return t("common.not-published", { fallback: "Not published" });
+  }
+
+  async function handleExportConnections() {
+    if (!window?.api?.exportConnections || !data?.project?.id) return;
+    if (!hasConnectionTypes) return;
+    try {
+      const result = await window.api.exportConnections({ projectId: data.project.id });
+      if (result && !result.canceled) {
+        addToast({
+          data: {
+            type: "success",
+            title: t("common.export", { fallback: "Export" }),
+            description: t("common.export-success", { fallback: "Connections exported successfully." })
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error exporting connections:', error);
+    }
+  }
+
+  async function handleImportConnections() {
+    if (!window?.api?.importConnections || !data?.project?.id) return;
+    if (isImporting) return;
+    isImporting = true;
+    try {
+      const result = await window.api.importConnections({ projectId: data.project.id });
+      if (result && !result.canceled && result.success) {
+        await invalidateAll();
+      }
+    } catch (error) {
+      console.error('Error importing connections:', error);
+    } finally {
+      isImporting = false;
+    }
   }
 </script>
 
@@ -26,7 +65,42 @@
       </h2>
     </div>
     <div class="col-auto">
-            <AddConnectionTypeModal projectId={data.project.id} languages={languages} />
+      <div class="d-flex align-items-center gap-2">
+        {#if isImporting}
+          <div class="d-flex align-items-center text-muted small me-1">
+            <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+            {t("common.importing", { fallback: "Importing..." })}
+          </div>
+        {/if}
+        
+        <AddConnectionTypeModal projectId={data.project.id} languages={languages} />
+        <BaseDropdownMenu
+          align="end"
+          side="bottom"
+          sideOffset={4}
+          alignOffset={0}
+          contentProps={{ style: "right: 0; left: auto;" }}
+          triggerClass="btn btn-light border d-flex align-items-center"
+        >
+          {#snippet trigger()}
+            <i class="bi bi-three-dots"></i>
+          {/snippet}
+          {#snippet children({ close })}
+            <button class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2" disabled={!hasConnectionTypes} onclick={() => { handleExportConnections(); close(); }}>
+              <i class="bi bi-download"></i>
+              {t("common.export", { fallback: "Export" })}
+            </button>
+            <button class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2" disabled={isImporting} onclick={() => { handleImportConnections(); close(); }}>
+              {#if isImporting}
+                <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+              {:else}
+                <i class="bi bi-upload"></i>
+              {/if}
+              {t("common.import", { fallback: "Import" })}
+            </button>
+          {/snippet}
+        </BaseDropdownMenu>
+      </div>
     </div>
   </div>
 

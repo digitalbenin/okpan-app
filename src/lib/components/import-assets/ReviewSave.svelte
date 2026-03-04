@@ -7,6 +7,7 @@
   import { bulkLinkAssetsToObjects } from "$lib/stores/AssetsUtils.js";
   import { goto } from "$app/navigation";
   import TableMatchPreview from "./TableMatchPreview.svelte";
+  import { onMount, onDestroy } from "svelte";
 
   // import { parseData } from "$lib/utils/import.js";
 
@@ -16,9 +17,81 @@
   const saveFetcher = createFetcher(bulkLinkAssetsToObjects);
 
   let open = $state(false);
+  let isImporting = $state(false);
+  let importProgressPercent = $state(0);
+  let importProgressText = $state("");
+  let importErrors = $state([]);
+
+  onMount(() => {
+    if (window.api && window.api.onImportProgress) {
+      window.api.onImportProgress((_event, data) => {
+        if (!isImporting) return;
+        if (data.status === "start") {
+          importProgressPercent = 0;
+          importProgressText = `0 / ${data.total}`;
+        } else if (data.status === "progress") {
+          importProgressPercent = data.percent;
+          importProgressText = `${data.processed} / ${data.total}`;
+        } else if (data.status === "complete") {
+          importProgressPercent = 100;
+        }
+      });
+    }
+  });
+
+  onDestroy(() => {
+    if (window.api && window.api.removeImportProgressListeners) {
+      window.api.removeImportProgressListeners();
+    }
+  });
+
+  function mapTempIdsToCreatedAssets(createdAssets, stagedAssets) {
+    const sourcePathToAsset = new Map(
+      (createdAssets || []).map((asset) => [asset?._sourcePath, asset]).filter(([key]) => Boolean(key))
+    );
+
+    const tempAssetsById = new Map((stagedAssets || []).map((asset) => [asset.id, asset]));
+
+    return (wizard.mapping || [])
+      .map((entry) => {
+        const tempAsset = tempAssetsById.get(entry.asset_id);
+        const sourcePath = tempAsset?._sourcePath;
+        const created = sourcePath ? sourcePathToAsset.get(sourcePath) : null;
+        if (!created?.id) return null;
+        return {
+          ...entry,
+          asset_id: created.id,
+        };
+      })
+      .filter(Boolean);
+  }
+
   const handleSave = async function () {
     try {
-      const saveParams = $state.snapshot(wizard.mapping);
+      importErrors = [];
+      isImporting = true;
+      importProgressPercent = 0;
+      importProgressText = "";
+
+      const payload = {
+        path: $state.snapshot(wizard.selectedFilePaths || []),
+        isDirectory: false,
+        projectId: wizard.projectId,
+        institutionId: wizard.institutionId,
+      };
+
+      const { errors, createdAssets } = await window.api.importAssets(payload);
+      importErrors = errors?.length ? errors : [];
+
+      const importedAssets = createdAssets ? createdAssets : [];
+      const stagedAssets = $state.snapshot(wizard.assets || []);
+      const remapped = mapTempIdsToCreatedAssets(importedAssets, stagedAssets);
+
+      wizard.assets = importedAssets;
+      wizard.hasPersistedAssets = importedAssets.length > 0;
+      wizard.mapping = remapped;
+
+      const saveParams = $state.snapshot(remapped);
 
       const response = await saveFetcher.fetch(
         saveParams
@@ -36,6 +109,8 @@
     } catch (error) {
       console.error("Error linking assets:", error);
       // Handle error appropriately, e.g., show a notification
+    } finally {
+      isImporting = false;
     }
   };
 
@@ -128,6 +203,32 @@
       </button> -->
       {#if saveFetcher.isLoading}
         <div>loading</div>
+      {/if}
+      {#if isImporting}
+        <div class="mt-2 w-100" style="max-width: 320px;">
+          <div
+            class="progress"
+            role="progressbar"
+            aria-label="Import progress"
+            aria-valuenow={importProgressPercent}
+            aria-valuemin="0"
+            aria-valuemax="100"
+            style="height: 10px;"
+          >
+            <div class="progress-bar" style="width: {importProgressPercent}%"></div>
+          </div>
+          <div class="text-end fs-7 text-muted mt-1">{importProgressText}</div>
+        </div>
+      {/if}
+      {#if importErrors.length}
+        <div class="alert alert-danger mt-2 mb-0">
+          <h4>{t("import.errors-occurred", { fallback: "Some errors occurred" })}</h4>
+          <ul>
+            {#each importErrors as err}
+              <li>{typeof err === 'string' ? err : (err?.message || err?.error || 'Unknown error')}</li>
+            {/each}
+          </ul>
+        </div>
       {/if}
     </div>
   </div>

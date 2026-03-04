@@ -1,9 +1,24 @@
-import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
-import { app } from 'electron';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
+import { buildObjectSearchConditions } from '../handlers/exportHandlers.js';
+
+function resolveApplicationRoot({ appPath, resourcesPath, isPackaged }) {
+  if (!isPackaged) {
+    return process.cwd();
+  }
+
+  if (appPath) {
+    return appPath;
+  }
+
+  if (resourcesPath) {
+    return path.join(resourcesPath, 'app');
+  }
+
+  throw new Error('Unable to resolve packaged application root path');
+}
 
 /**
  * Export website data to JSON file and build static site
@@ -13,61 +28,24 @@ import * as dbSchema from '../../db/schema.js';
  * @param {Object} options.db - Database instance
  * @returns {Promise<Object>} Export result
  */
-export async function exportStaticWebsite(projectId, outputPath, { db }) {
-  const rootDir = app.getAppPath();
-  // If packaged, we are running from resources/app (or similar)
-  // We need to find the 'website' folder which we copied to resources/website
-  const isPackaged = app.isPackaged;
-  // If packaged, process.resourcesPath points to the resources folder.
-  // If dev, process.cwd() is project root.
-  
-  let websiteDir;
-  if (isPackaged) {
-      // In production, extraResource moves 'src/website' to 'resources/website'
-      // (It takes the basename of the source path)
-      websiteDir = path.join(process.resourcesPath, 'website');
-  } else {
-      websiteDir = path.join(process.cwd(), 'src', 'website');
-  }
-
-  console.log(`[Website Export] isPackaged: ${isPackaged}`);
-  console.log(`[Website Export] websiteDir: ${websiteDir}`);
-  
-  try {
-      await fs.access(websiteDir);
-      const pkgPath = path.join(websiteDir, 'package.json');
-      try {
-          await fs.access(pkgPath);
-          console.log(`[Website Export] Found package.json at ${pkgPath}`);
-      } catch {
-          console.error(`[Website Export] ERROR: No package.json found at ${pkgPath}`);
-      }
-  } catch {
-      console.error(`[Website Export] ERROR: websiteDir does not exist: ${websiteDir}`);
-  }
-
-  const staticDir = path.join(websiteDir, 'static');
-  // Use build-export folder for static exports (separate from preview build folder)
-  const buildDir = path.join(websiteDir, 'build-export');
-  // data.json is written to static temporarily for the build, then cleaned up
-  const dataJsonPath = path.join(staticDir, 'data.json');
-  // site.json contains only project/settings for sidebar (small file, loaded client-side)
-  const siteJsonPath = path.join(staticDir, 'site.json');
+export async function exportStaticWebsite(
+  projectId,
+  outputPath,
+  { db, filters = {}, appPath = null, resourcesPath = null, isPackaged = false }
+) {
+  const appRoot = resolveApplicationRoot({ appPath, resourcesPath, isPackaged });
+  const buildDir = path.join(appRoot, 'src', 'website', 'build-export');
 
   try {
-    // Step 1: Export data to JSON in website/static folder (temporary, for build)
+    // Step 1: Export data to JSON structure
     console.log('[Website Export] Step 1/4: Exporting data...');
-    const data = await exportWebsiteData(projectId, db);
+    const data = await exportWebsiteData(projectId, db, filters);
     
     if (!data || !data.objects) {
       throw new Error('Failed to export data: data or data.objects is null/undefined');
     }
-    
-    await fs.mkdir(staticDir, { recursive: true });
-    await fs.writeFile(dataJsonPath, JSON.stringify(data, null, 2), 'utf-8');
-    console.log(`[Website Export] Exported ${data.objects.length} objects to data.json`);
-    
-    // Also write site.json with just project/settings and connection types (small file, loaded client-side)
+
+    // Build lightweight site.json for sidebar
     const siteData = {
       project: data.project || {},
       settings: data.settings || {},
@@ -80,82 +58,34 @@ export async function exportStaticWebsite(projectId, outputPath, { db }) {
           count: (data.vocabularies || []).filter(v => v.field_id === field.id).length
         }))
     };
-    await fs.writeFile(siteJsonPath, JSON.stringify(siteData, null, 2), 'utf-8');
-    console.log('[Website Export] Exported site.json for sidebar');
 
-    // Step 2: Build static site
-    console.log('[Website Export] Step 2/4: Building static site...');
-    console.log('[Website Export] This may take a few minutes...');
-    
-    const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-
-    await new Promise((resolve, reject) => {
-      const buildProcess = spawn(npmCommand, ['run', 'build', '--', '--mode', 'production'], {
-        cwd: websiteDir,
-        env: {
-          ...process.env,
-          STATIC_EXPORT: 'true',
-          NODE_ENV: 'production' // ensure SvelteKit writes production bootstrap (no __sveltekit_dev)
-        },
-        shell: true
-      });
-
-      let errorOutput = '';
-
-      buildProcess.stdout.on('data', (data) => {
-        // Log build progress without flooding console
-        const output = data.toString().trim();
-        if (output && !output.match(/^\s*$/)) {
-          console.log('[Build]', output);
-        }
-      });
-
-      buildProcess.stderr.on('data', (data) => {
-        const output = data.toString().trim();
-        if (output && !output.match(/^\s*$/)) {
-          errorOutput += output + '\n';
-          console.error('[Build Error]', output);
-        }
-      });
-
-      buildProcess.on('close', (code) => {
-        if (code === 0) {
-          console.log('[Website Export] Build completed successfully');
-          resolve();
-        } else {
-          reject(new Error(`Build process exited with code ${code}${errorOutput ? ':\n' + errorOutput : ''}`))
-        }
-      });
-
-      buildProcess.on('error', (error) => {
-        reject(new Error(`Failed to start build process: ${error.message}`));
-      });
-    });
-
-    // Clean up temporary data.json from static folder (it's now in build-export)
+    // Step 2: Validate prebuilt static website artifact exists
+    console.log('[Website Export] Step 2/4: Validating prebuilt website artifact...');
     try {
-      await fs.unlink(dataJsonPath);
-      console.log('[Website Export] Cleaned up temporary data.json from static folder');
-    } catch (err) {
-      // Ignore if file doesn't exist
-    }
-    
-    // Clean up temporary site.json from static folder (it's now in build-export)
-    try {
-      await fs.unlink(siteJsonPath);
-      console.log('[Website Export] Cleaned up temporary site.json from static folder');
-    } catch (err) {
-      // Ignore if file doesn't exist
+      await fs.access(buildDir);
+    } catch {
+      throw new Error(
+        `Prebuilt website artifact not found at ${buildDir}`
+      );
     }
 
-    // Step 3: Copy build output to destination
-    console.log('[Website Export] Step 3/4: Copying to output location...');
+    // Step 3: Copy prebuilt website to destination
+    console.log('[Website Export] Step 3/4: Copying prebuilt website to output location...');
     await fs.mkdir(outputPath, { recursive: true });
     await fs.cp(buildDir, outputPath, { recursive: true });
 
+    // Ensure direct refresh/deep-link works on static hosts without rewrite rules
+    await createSpaShellRoutes(outputPath, data);
+
+    // Write export data into output root
+    await fs.writeFile(path.join(outputPath, 'data.json'), JSON.stringify(data, null, 2), 'utf-8');
+    await fs.writeFile(path.join(outputPath, 'site.json'), JSON.stringify(siteData, null, 2), 'utf-8');
+    console.log(`[Website Export] Exported ${data.objects.length} objects to data.json`);
+    console.log('[Website Export] Exported site.json for sidebar');
+
     // Step 4: Copy project assets folder
     console.log('[Website Export] Step 4/4: Copying assets...');
-    const projectAssetsSource = path.join(rootDir, 'src', 'assets', 'project_assets', projectId);
+    const projectAssetsSource = path.join(appRoot, 'src', 'assets', 'project_assets', projectId);
     const projectAssetsDest = path.join(outputPath, 'assets', projectId);
     
     try {
@@ -164,7 +94,9 @@ export async function exportStaticWebsite(projectId, outputPath, { db }) {
       await fs.cp(projectAssetsSource, projectAssetsDest, { recursive: true });
       console.log(`[Website Export] Assets copied to ${projectAssetsDest}`);
     } catch (err) {
-      console.warn(`[Website Export] No assets folder found at ${projectAssetsSource}, skipping asset copy`);
+      console.warn(
+        `[Website Export] No assets folder found at ${projectAssetsSource}, skipping asset copy`
+      );
     }
 
     console.log(`[Website Export] Website exported to ${outputPath}`);
@@ -180,20 +112,62 @@ export async function exportStaticWebsite(projectId, outputPath, { db }) {
     throw new Error(`Website export failed: ${error.message}`);
   }
 }
+
+async function createSpaShellRoutes(outputPath, data) {
+  const indexPath = path.join(outputPath, 'index.html');
+  const indexHtml = await fs.readFile(indexPath, 'utf-8');
+
+  const routes = new Set(['about', 'connections']);
+
+  for (const obj of data.objects || []) {
+    if (obj?.id) {
+      routes.add(encodeURIComponent(obj.id));
+    }
+  }
+
+  const vocabularyFields = (data.research_fields || []).filter((field) => field?.type === 'vocabulary');
+  for (const field of vocabularyFields) {
+    if (!field?.id) continue;
+    const encodedFieldId = encodeURIComponent(field.id);
+    routes.add(`connections/${encodedFieldId}`);
+
+    const fieldVocabularies = (data.vocabularies || []).filter((v) => v.field_id === field.id);
+    for (const vocabulary of fieldVocabularies) {
+      if (!vocabulary?.id) continue;
+      routes.add(`connections/${encodedFieldId}/${encodeURIComponent(vocabulary.id)}`);
+    }
+  }
+
+  await Promise.all(
+    [...routes].map(async (routePath) => {
+      const routeDir = path.join(outputPath, ...routePath.split('/'));
+      await fs.mkdir(routeDir, { recursive: true });
+      await fs.writeFile(path.join(routeDir, 'index.html'), indexHtml, 'utf-8');
+    })
+  );
+
+  console.log(`[Website Export] Generated ${routes.size} SPA route shell files for direct refresh support`);
+}
 /**
  * Export all website data to unified JSON structure
  * @param {string} projectId - Project ID
  * @param {Object} db - Database instance
  * @returns {Promise<Object>} Unified data structure
  */
-async function exportWebsiteData(projectId, db) {
+async function exportWebsiteData(projectId, db, filters = {}) {
   try {
     console.log('[exportWebsiteData] Starting data export for project:', projectId);
     
     // Fetch all objects for this project
     console.log('[exportWebsiteData] Fetching objects...');
+    const effectiveFilters = {
+      ...(filters || {}),
+      project_id: projectId
+    };
+    const conditions = buildObjectSearchConditions(effectiveFilters);
+
     const objects = await db.select().from(dbSchema.objects)
-      .where(eq(dbSchema.objects.project_id, projectId))
+      .where(and(...conditions))
       .execute();
     console.log(`[exportWebsiteData] Found ${objects.length} objects`);
 

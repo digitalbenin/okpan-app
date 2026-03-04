@@ -243,6 +243,13 @@ export default {
                 'website SPA build'
             );
 
+            // Copy prebuilt static-export website artifact used by runtime website export
+            await copyPathIfExists(
+                path.join(process.cwd(), 'src', 'website', 'build-export'),
+                path.join(buildPath, 'src', 'website', 'build-export'),
+                'website static export build'
+            );
+
             // Copy the development SQLite database into the packaged app
             await copyPathIfExists(
                 path.join(process.cwd(), 'src', 'db', 'local.db'),
