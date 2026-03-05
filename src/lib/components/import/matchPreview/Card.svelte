@@ -12,7 +12,7 @@
     mappedField,
     matchingSuggestion,
     matchingSuggestionsLoading,
-    included = $bindable(true),
+    included = $bindable(),
     i,
     tot,
   } = $props();
@@ -88,15 +88,38 @@
       ) {
         return;
       }
+
+      const hasPrimaryForHeader = wizard.mapping.some(
+        (entry) =>
+          entry?.headerField === field &&
+          (entry?.primary === 1 || entry?.primary === true)
+      );
+
+      const existingEntry = wizard.mapping.find(
+        (entry) => entry?.headerField === field
+      );
+
       const entry = {
         headerField: field,
         mappedField: fieldMatched?.id,
-        primary: false,
+        primary: hasPrimaryForHeader ? 1 : 0,
       };
 
       if (included) {
+        const existingMappedField = existingEntry?.mappedField ?? null;
+        const nextMappedField = entry.mappedField ?? null;
+        const existingPrimary = existingEntry?.primary === 1 || existingEntry?.primary === true ? 1 : 0;
+
+        if (existingEntry && existingMappedField === nextMappedField && existingPrimary === entry.primary) {
+          return;
+        }
+
         wizard.addMappingEntry(entry);
       } else {
+        if (!existingEntry) {
+          return;
+        }
+
         wizard.removeMappingEntry(entry);
       }
     },

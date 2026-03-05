@@ -23,7 +23,7 @@
       </p>
     </div>
   </div>
-  {#if wizard.file.format === "csv" || wizard.file.format === "tsv" || wizard.file.format === "xlsx"}
+  {#if wizard.file.format === "csv" || wizard.file.format === "tsv" || wizard.file.format === "xlsx" || wizard.file.tabularized}
     <Dsv data={wizard.data} />
   {:else if wizard.file.format === "json" || wizard.file.format === "xml"}
     <Json data={wizard.data} />

@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { XMLParser } from 'fast-xml-parser';
 import { setCurrentProjectId, getCurrentProjectId, clearCurrentProjectId } from '../services/projectCache.js';
+import { applyImportPreset } from '../services/importPresets/index.js';
 
 /**
  * Handler for ping requests
@@ -157,18 +158,29 @@ export const handleStructuredDataImport = async (event, options = {}) => {
     };
 
     try {
-        const result = await dialog.showOpenDialog(dialogOptions);
+        const hasProvidedFilePath = Boolean(options.filePath);
+        let filePaths = [];
 
-        if (result.canceled || !result.filePaths?.length) {
-            return { success: false, canceled: true, data: null };
+        if (hasProvidedFilePath) {
+            filePaths = [options.filePath];
+        } else {
+            const result = await dialog.showOpenDialog(dialogOptions);
+
+            if (result.canceled || !result.filePaths?.length) {
+                return { success: false, canceled: true, data: null };
+            }
+
+            filePaths = result.filePaths;
         }
 
-        const filePaths = result.filePaths;
         const parsedFiles = [];
 
         for (const filePath of filePaths) {
             try {
-                const parsedData = await parseStructuredFile(filePath, options.separator);
+                const parsedData = await parseStructuredFile(filePath, {
+                    separator: options.separator,
+                    selectedPreset: options.selectedPreset
+                });
                 parsedFiles.push({
                     filePath,
                     fileName: filePath.split(/[/\\]/).pop(),
@@ -207,21 +219,24 @@ export const handleStructuredDataImport = async (event, options = {}) => {
 /**
  * Parse a structured data file based on its extension
  * @param {string} filePath - Path to the file
- * @param {string} separator - Custom separator for CSV/TSV files
+ * @param {Object} options - Parse options
+ * @param {string} options.separator - Custom separator for CSV/TSV files
+ * @param {string} options.selectedPreset - Optional preset id to force
  * @returns {Promise<Object>} Parsed data with format info
  */
-async function parseStructuredFile(filePath, separator) {
+async function parseStructuredFile(filePath, options = {}) {
+    const { separator, selectedPreset } = options;
     const extension = filePath.split('.').pop().toLowerCase();
     const fileContent = await fs.readFile(filePath, 'utf-8');
 
     switch (extension) {
         case 'json':
-            return {
+            return applyImportPreset({
                 success: true,
                 format: 'json',
                 data: JSON.parse(fileContent),
                 error: null
-            };
+            }, { selectedPreset });
 
         case 'csv':
             const csvData = parse(fileContent, {
@@ -231,12 +246,12 @@ async function parseStructuredFile(filePath, separator) {
                 delimiter: separator || ',',
                 relax_column_count: true
             });
-            return {
+            return applyImportPreset({
                 success: true,
                 format: 'csv',
                 data: csvData,
                 error: null
-            };
+            }, { selectedPreset });
 
         case 'tsv':
             const tsvData = parse(fileContent, {
@@ -246,12 +261,12 @@ async function parseStructuredFile(filePath, separator) {
                 delimiter: separator || '\t',
                 relax_column_count: true
             });
-            return {
+            return applyImportPreset({
                 success: true,
                 format: 'tsv',
                 data: tsvData,
                 error: null
-            };
+            }, { selectedPreset });
 
         case 'xlsx':
         case 'xls':
@@ -278,14 +293,14 @@ async function parseStructuredFile(filePath, separator) {
                 // Convert to JSON
                 const excelData = XLSX.utils.sheet_to_json(sheet);
 
-                return {
+                return applyImportPreset({
                     success: true,
                     format: extension,
                     multiPage: false,
                     data: excelData,
                     error: null,
                     sheets: workbook.SheetNames
-                };
+                }, { selectedPreset });
             }
 
         case 'xml':
@@ -297,12 +312,12 @@ async function parseStructuredFile(filePath, separator) {
                 const parser = new XMLParser(options);
                 const parsedContent = parser.parse(fileContent);
 
-                return {
+                return applyImportPreset({
                     success: true,
                     format: 'xml',
                     data: parsedContent,
                     error: null
-                };
+                }, { selectedPreset });
             } catch (error) {
                 throw new Error(`XML parsing error: ${error.message}`);
             }

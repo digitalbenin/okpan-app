@@ -20,9 +20,15 @@
   });
 
   const mappedField = $derived.by(() => {
-    return wizard.reusedTemplate?.mapping?.filter(
+    const templateMappings = wizard.reusedTemplate?.mapping?.filter(
       (m) => m.headerField === node.pathString
-    );
+    ) || [];
+
+    if (templateMappings.length) {
+      return templateMappings;
+    }
+
+    return wizard.mapping?.filter((m) => m.headerField === node.pathString) || [];
   });
 
   const values = $derived.by(() => {

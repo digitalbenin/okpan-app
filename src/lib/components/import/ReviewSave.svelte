@@ -41,7 +41,11 @@
   wizard.save = handleSave;
 
   const finalData = $derived(
-    parseData(wizard.data, wizard.mapping, wizard.file.format)
+    parseData(
+      wizard.data,
+      wizard.mapping,
+      wizard.file?.tabularized ? "csv" : wizard.file.format
+    )
   );
   function closeAndHome() {
     open = false;

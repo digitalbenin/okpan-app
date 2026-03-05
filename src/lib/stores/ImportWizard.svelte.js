@@ -19,6 +19,10 @@ export function createImportWizardContext(params) {
     let file = $state();
     let mapping = $state([])
     let data = $state([])
+    let detectedPreset = $state(null);
+    let availablePresets = $state([]);
+    let parserWarnings = $state([]);
+    let prefilledMapping = $state([]);
     let useMatchingSuggestions = $state(false);
     let reusedTemplate = $state();
     let useMatchingTemplate = $state(false);
@@ -58,6 +62,18 @@ export function createImportWizardContext(params) {
 
         get data() { return data; },
         set data(value) { data = value; },
+
+        get detectedPreset() { return detectedPreset; },
+        set detectedPreset(value) { detectedPreset = value; },
+
+        get availablePresets() { return availablePresets; },
+        set availablePresets(value) { availablePresets = value; },
+
+        get parserWarnings() { return parserWarnings; },
+        set parserWarnings(value) { parserWarnings = value; },
+
+        get prefilledMapping() { return prefilledMapping; },
+        set prefilledMapping(value) { prefilledMapping = value; },
 
         get useMatchingSuggestions() { return useMatchingSuggestions; },
         set useMatchingSuggestions(value) { useMatchingSuggestions = value; },
@@ -126,6 +142,12 @@ export function createImportWizardContext(params) {
         reset() {
             currentStep = 1;
             importCompleted = false;
+            mapping = [];
+            data = [];
+            detectedPreset = null;
+            availablePresets = [];
+            parserWarnings = [];
+            prefilledMapping = [];
             // formData = {};
             // isValid = false;
             // errors = [];
