@@ -136,7 +136,12 @@ async function setupSignalingForProject(projectId) {
 
   const [sendRequest, receiveRequest] = room.makeAction('peerRequest');
   const [sendSignal,  receiveSignal]  = room.makeAction('peerSignal');
-  signalingActions.set(projectId, { sendRequest, sendSignal });
+
+  // seederPeers: `${infoHash}:${requesterId}` → SimplePeer (initiator side)
+  // Needed so incoming signals from the downloader can be routed back to the
+  // correct initiator peer to complete the WebRTC handshake.
+  const seederPeers = new Map();
+  signalingActions.set(projectId, { sendRequest, sendSignal, seederPeers });
 
   receiveRequest(async ({ infoHash }, requesterId) => {
     const client  = await getWtClient();
@@ -147,18 +152,30 @@ async function setupSignalingForProject(projectId) {
     try { peer = new SimplePeer({ initiator: true, trickle: true }); }
     catch (err) { console.error('[AssetTorrent] seeder SimplePeer failed:', err?.message); return; }
 
+    const key = `${infoHash}:${requesterId}`;
+    seederPeers.set(key, peer);
     peer.on('signal', (signal) => sendSignal({ infoHash, signal }, [requesterId]));
-    peer.on('error',  (err)    => console.warn(`[AssetTorrent] seeder peer error ${infoHash}:`, err?.message));
+    peer.on('error',  (err)    => { console.warn(`[AssetTorrent] seeder peer error ${infoHash}:`, err?.message); seederPeers.delete(key); });
+    peer.on('close',  ()       => seederPeers.delete(key));
     try {
       torrent.addPeer(peer);
       console.log(`[AssetTorrent] [Signaling] Seeder injected peer for ${infoHash}`);
     } catch (err) {
       console.warn('[AssetTorrent] seeder torrent.addPeer failed:', err?.message);
       peer.destroy();
+      seederPeers.delete(key);
     }
   });
 
   receiveSignal(({ infoHash, signal }, senderId) => {
+    // Path A: signal is from a downloader back to the seeder's initiator peer
+    const seederPeer = seederPeers.get(`${infoHash}:${senderId}`);
+    if (seederPeer) {
+      try { seederPeer.signal(signal); }
+      catch (err) { console.warn(`[AssetTorrent] seeder peer.signal error ${infoHash}:`, err?.message); }
+      return;
+    }
+    // Path B: signal is from the seeder to the downloader's non-initiator peer
     const entry = pendingPeerSignals.get(infoHash);
     if (!entry) return;
     if (!entry.seederId) {
@@ -509,6 +526,8 @@ export function stopProjectTorrents(projectId) {
   if (!projectId) return;
   const iv = reconcileIntervals.get(projectId); if (iv) { clearInterval(iv); reconcileIntervals.delete(projectId); }
   const dv = reconcileDebounce.get(projectId);  if (dv) { clearTimeout(dv);  reconcileDebounce.delete(projectId); }
+  const sig = signalingActions.get(projectId);
+  if (sig) { for (const p of sig.seederPeers.values()) try { p.destroy(); } catch (_) {} signalingActions.delete(projectId); }
   downloadQueues.delete(projectId);
   activeDownloads.delete(projectId);
   reconcileRunning.delete(projectId);
@@ -517,8 +536,10 @@ export function stopProjectTorrents(projectId) {
 export function destroyTorrentManager() {
   for (const t of reconcileIntervals.values()) clearInterval(t);
   for (const t of reconcileDebounce.values())  clearTimeout(t);
+  for (const sig of signalingActions.values()) for (const p of sig.seederPeers.values()) try { p.destroy(); } catch (_) {}
   reconcileIntervals.clear();
   reconcileDebounce.clear();
+  signalingActions.clear();
   activeDownloads.clear();
   downloadQueues.clear();
   reconcileRunning.clear();
