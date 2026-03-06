@@ -161,6 +161,10 @@ async function setupSignalingForProject(projectId) {
     catch (err) { console.error('[AssetTorrent] seeder SimplePeer failed:', err?.message); return; }
 
     const key = `${infoHash}:${requesterId}`;
+    // Destroy any stale peer for this key before replacing — prevents old
+    // signal listeners from flooding the downloader with duplicate offers.
+    const stalePeer = seederPeers.get(key);
+    if (stalePeer) { try { stalePeer.destroy(); } catch (_) {} seederPeers.delete(key); }
     seederPeers.set(key, peer);
     peer.on('signal', (signal) => sendSignal({ infoHash, signal }, [requesterId]));
     peer.on('connect', () => console.log(`[AssetTorrent] [Signaling] Seeder WebRTC connected ${infoHash}`));
@@ -180,8 +184,15 @@ async function setupSignalingForProject(projectId) {
     // Path A: signal is from a downloader back to the seeder's initiator peer
     const seederPeer = seederPeers.get(`${infoHash}:${senderId}`);
     if (seederPeer) {
-      console.log(`[AssetTorrent] [Signaling] Seeder received back-signal for ${infoHash} type=${signal?.type || 'candidate'}`);
-      try { seederPeer.signal(signal); }
+      // The node-datachannel WebRTC polyfill incorrectly labels the non-initiator's
+      // answer SDP as type='offer' instead of type='answer'.  If the seeder's
+      // initiator peer receives type='offer' it triggers re-negotiation (creates
+      // a new offer), causing an infinite signaling loop.  Correct the type here.
+      const corrected = (signal?.type === 'offer' && signal.sdp)
+        ? { ...signal, type: 'answer' }
+        : signal;
+      console.log(`[AssetTorrent] [Signaling] Seeder received back-signal for ${infoHash} type=${signal?.type || 'candidate'} (corrected=${corrected?.type || 'candidate'})`);
+      try { seederPeer.signal(corrected); }
       catch (err) { console.warn(`[AssetTorrent] seeder peer.signal error ${infoHash}:`, err?.message); }
       return;
     }
@@ -297,6 +308,10 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
           catch (err) { console.warn(`[AssetTorrent] downloader SimplePeer failed ${infoHash}:`, err?.message); }
 
           if (sigPeer) {
+            // Clean up any stale sigPeer for this infoHash from a previous attempt.
+            const staleEntry = pendingPeerSignals.get(infoHash);
+            if (staleEntry) { try { staleEntry.peer.destroy(); } catch (_) {} pendingPeerSignals.delete(infoHash); }
+
             sigPeer.on('signal', (s) => {
               const entry = pendingPeerSignals.get(infoHash);
               if (entry?.seederId) {
