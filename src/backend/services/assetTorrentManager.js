@@ -325,88 +325,92 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, assetP
       settle({ success: false, reason: 'timeout' });
     }, DOWNLOAD_TIMEOUT_MS);
 
-    try {
-      // Re-use existing torrent if already tracked by infoHash
-      let torrent = client.get(infoHash);
-      if (!torrent) {
-        torrent = client.add(magnetURI, { path: destDir });
-      }
-
-      if (!torrent) {
-        throw new Error('WebTorrent client.add returned null');
-      }
-
-      torrent.on('download', () => {
-        const progress =
-          torrent.length > 0 ? Math.round((torrent.downloaded / torrent.length) * 100) : 0;
-        // Update progress in DB at most every ~2 seconds to reduce write pressure
-        upsertLocalState(assetId, isGeneric, { download_progress: progress }).catch(() => {});
-        emitSyncProgress(assetId, isGeneric, 'downloading', progress);
-      });
-
-      torrent.on('done', async () => {
-        console.log(`[AssetTorrent] Download done: assetId=${assetId} infoHash=${infoHash}`);
-        active.delete(assetId);
-
-        try {
-          // Verify the file landed where we expect
-          if (!fs.existsSync(expectedFilePath)) {
-            // WebTorrent may use subdirectory for multi-file torrents; try to locate the file
-            const possible = torrent.files?.[0]?.path;
-            console.warn(
-              `[AssetTorrent] Expected file not found at ${expectedFilePath}. ` +
-              `WebTorrent reported: ${possible}`
-            );
-            if (!possible || !fs.existsSync(possible)) {
-              throw new Error(`Downloaded file not found at expected path: ${expectedFilePath}`);
-            }
-          }
-
-          // Optional SHA-256 integrity check
-          const stateRow = await getLocalState(assetId, isGeneric);
-          // We'll check against the hash stored in the assets table when reconciling
-          // (stateRow doesn't have sha256 — it's on the asset row itself)
-          console.log(`[AssetTorrent] File verified at: ${expectedFilePath}`);
-
-          await upsertLocalState(assetId, isGeneric, {
-            sync_status: 'seeding', // transition straight to seeding
-            sync_error: null,
-            last_success_at: Date.now(),
-            download_progress: 100,
-            retry_count: 0
-          });
-          emitSyncProgress(assetId, isGeneric, 'seeding', 100);
-          seededHashes.add(torrent.infoHash);
-
-          console.log(
-            `[AssetTorrent] Asset ${assetId} now seeding (was downloaded). path=${expectedFilePath}`
-          );
-
-        } catch (postErr) {
-          console.error(`[AssetTorrent] Post-download error for ${assetId}:`, postErr?.message);
-          await handleDownloadError({ projectId, assetId, isGeneric, errCode: classifyError(postErr) });
+    (async () => {
+      try {
+        // Re-use existing torrent if already tracked by infoHash.
+        // In WebTorrent 2.x, client.get() returns a Promise.
+        let torrent = await client.get(infoHash);
+        if (!torrent) {
+          // client.add returns a Torrent synchronously
+          torrent = client.add(magnetURI, { path: destDir });
         }
 
-        drainQueue(projectId);
-        settle({ success: true, path: expectedFilePath });
-      });
+        if (!torrent) {
+          throw new Error('WebTorrent client.add returned null');
+        }
 
-      torrent.on('error', async (err) => {
-        console.error(`[AssetTorrent] Torrent error for assetId=${assetId}:`, err?.message || err);
+        torrent.on('download', () => {
+          const progress =
+            torrent.length > 0 ? Math.round((torrent.downloaded / torrent.length) * 100) : 0;
+          // Update progress in DB at most every ~2 seconds to reduce write pressure
+          upsertLocalState(assetId, isGeneric, { download_progress: progress }).catch(() => {});
+          emitSyncProgress(assetId, isGeneric, 'downloading', progress);
+        });
+
+        torrent.on('done', async () => {
+          console.log(`[AssetTorrent] Download done: assetId=${assetId} infoHash=${infoHash}`);
+          active.delete(assetId);
+
+          try {
+            // Verify the file landed where we expect
+            if (!fs.existsSync(expectedFilePath)) {
+              // WebTorrent may use subdirectory for multi-file torrents; try to locate the file
+              const possible = torrent.files?.[0]?.path;
+              console.warn(
+                `[AssetTorrent] Expected file not found at ${expectedFilePath}. ` +
+                `WebTorrent reported: ${possible}`
+              );
+              if (!possible || !fs.existsSync(possible)) {
+                throw new Error(`Downloaded file not found at expected path: ${expectedFilePath}`);
+              }
+            }
+
+            // Optional SHA-256 integrity check
+            const stateRow = await getLocalState(assetId, isGeneric);
+            // We'll check against the hash stored in the assets table when reconciling
+            // (stateRow doesn't have sha256 — it's on the asset row itself)
+            console.log(`[AssetTorrent] File verified at: ${expectedFilePath}`);
+
+            await upsertLocalState(assetId, isGeneric, {
+              sync_status: 'seeding', // transition straight to seeding
+              sync_error: null,
+              last_success_at: Date.now(),
+              download_progress: 100,
+              retry_count: 0
+            });
+            emitSyncProgress(assetId, isGeneric, 'seeding', 100);
+            seededHashes.add(torrent.infoHash);
+
+            console.log(
+              `[AssetTorrent] Asset ${assetId} now seeding (was downloaded). path=${expectedFilePath}`
+            );
+
+          } catch (postErr) {
+            console.error(`[AssetTorrent] Post-download error for ${assetId}:`, postErr?.message);
+            await handleDownloadError({ projectId, assetId, isGeneric, errCode: classifyError(postErr) });
+          }
+
+          drainQueue(projectId);
+          settle({ success: true, path: expectedFilePath });
+        });
+
+        torrent.on('error', async (err) => {
+          console.error(`[AssetTorrent] Torrent error for assetId=${assetId}:`, err?.message || err);
+          active.delete(assetId);
+          const errCode = classifyError(err);
+          await handleDownloadError({ projectId, assetId, isGeneric, errCode });
+          drainQueue(projectId);
+          settle({ success: false, reason: errCode });
+        });
+
+      } catch (setupErr) {
+        console.error(`[AssetTorrent] downloadAsset setup error for ${assetId}:`, setupErr?.message);
         active.delete(assetId);
-        const errCode = classifyError(err);
-        await handleDownloadError({ projectId, assetId, isGeneric, errCode });
+        handleDownloadError({ projectId, assetId, isGeneric, errCode: classifyError(setupErr) }).catch(() => {});
         drainQueue(projectId);
-        settle({ success: false, reason: errCode });
-      });
-
-    } catch (setupErr) {
-      console.error(`[AssetTorrent] downloadAsset setup error for ${assetId}:`, setupErr?.message);
-      active.delete(assetId);
-      handleDownloadError({ projectId, assetId, isGeneric, errCode: classifyError(setupErr) }).catch(() => {});
-      drainQueue(projectId);
-      settle({ success: false, reason: setupErr?.message });
-    }
+        settle({ success: false, reason: setupErr?.message });
+      }
+    })();
   });
 }
 

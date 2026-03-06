@@ -41,6 +41,17 @@ import {
   scheduleAssetReconcile
 } from './services/assetTorrentManager.js';
 
+// Suppress normal network socket timeouts (often caused by WebTorrent tracker
+// requests) from showing disruptive system error dialogs in Electron.
+process.on('uncaughtException', (error) => {
+  if (error?.code === 'ETIMEDOUT' || error?.code === 'ECONNREFUSED' || error?.code === 'ECONNRESET') {
+    console.warn('[Network] Suppressed uncaught socket error:', error.message);
+    return;
+  }
+  console.error('Uncaught Exception:', error);
+  // Optionally, re-throw or handle fatal errors appropriately here
+});
+
 app.disableHardwareAcceleration()
 
 // Create GraphQL schema
