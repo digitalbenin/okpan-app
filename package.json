@@ -57,6 +57,7 @@
   "dependencies": {
     "@internationalized/date": "^3.8.2",
     "@opentf/obj-diff": "^0.12.0",
+    "@roamhq/wrtc": "^0.9.1",
     "@tanstack/svelte-form": "^1.18.0",
     "@tanstack/table-core": "^8.21.2",
     "@winstonfassett/y-webrtc-trystero": "^0.1.0-beta.3",
@@ -76,7 +77,7 @@
     "graphql": "^16.10.0",
     "graphql-tools": "^9.0.13",
     "melt": "^0.30.1",
-    "node-datachannel": "^0.30.0",
+    "node-datachannel": "^0.32.1",
     "openseadragon": "^5.0.1",
     "runed": "^0.30.0",
     "sharp": "^0.33.5",
@@ -94,6 +95,7 @@
     "zod": "^3.24.2"
   },
   "resolutions": {
+    "node-datachannel": "0.32.1",
     "graphql": "16.10.0"
   }
 }
