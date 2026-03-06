@@ -21,6 +21,14 @@ const RECONCILE_INTERVAL_MS = 90_000;
 const RECONCILE_DEBOUNCE_MS = 600;
 const BACKOFF_SEQUENCE_MS = [5_000, 15_000, 30_000, 60_000, 120_000];
 
+const WEBRTC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' },
+  ],
+};
+
 let _WebTorrentModule = null;
 let _wtClient = null;
 let _webContents = null;
@@ -149,7 +157,7 @@ async function setupSignalingForProject(projectId) {
     if (!torrent) return;
 
     let peer;
-    try { peer = new SimplePeer({ initiator: true, trickle: true }); }
+    try { peer = new SimplePeer({ initiator: true, trickle: true, config: WEBRTC_CONFIG }); }
     catch (err) { console.error('[AssetTorrent] seeder SimplePeer failed:', err?.message); return; }
 
     const key = `${infoHash}:${requesterId}`;
@@ -283,7 +291,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
         const sig = signalingActions.get(projectId);
         if (sig) {
           let sigPeer;
-          try { sigPeer = new SimplePeer({ initiator: false, trickle: true }); }
+            try { sigPeer = new SimplePeer({ initiator: false, trickle: true, config: WEBRTC_CONFIG }); }
           catch (err) { console.warn(`[AssetTorrent] downloader SimplePeer failed ${infoHash}:`, err?.message); }
 
           if (sigPeer) {

@@ -41,6 +41,14 @@ import {
   scheduleAssetReconcile
 } from './services/assetTorrentManager.js';
 
+// Suppress noisy Trystero relay-failure logs (relay redundancy is expected;
+// the protocol still works via other relays).
+const _origWarn = console.warn.bind(console);
+console.warn = (...args) => {
+  if (typeof args[0] === 'string' && args[0].startsWith('Trystero: relay failure')) return;
+  _origWarn(...args);
+};
+
 // Suppress normal network socket timeouts (often caused by WebTorrent tracker
 // requests) from showing disruptive system error dialogs in Electron.
 process.on('uncaughtException', (error) => {
