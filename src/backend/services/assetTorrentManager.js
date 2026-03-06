@@ -202,11 +202,13 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
   console.log(`[AssetTorrent] seedAsset called: assetId=${assetId} file=${filePath}`);
 
   const announceList = [
-    'wss://tracker.btsync.xyz',
     'wss://tracker.openwebtorrent.com',
+    'wss://tracker.webtorrent.dev',
+    'wss://tracker.btorrent.xyz',
+    'wss://tracker.files.fm:7073/announce',
     'udp://tracker.opentrackr.org:1337/announce',
-    'udp://tracker.internetwarriors.net:1337/announce',
-    'udp://tracker.coppersurfer.tk:6969/announce',
+    'udp://open.stealth.si:80/announce',
+    'udp://tracker.torrent.eu.org:451/announce',
     'udp://open.demonii.com:1337/announce'
   ];
 
@@ -311,10 +313,14 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, assetP
   emitSyncProgress(assetId, isGeneric, 'downloading', 0);
 
   const TRACKERS = [
-    'wss://tracker.btsync.xyz',
+    'wss://tracker.files.fm:7073/announce',
     'wss://tracker.openwebtorrent.com',
+    'wss://tracker.webtorrent.dev',
+    'wss://tracker.btorrent.xyz',
     'udp://tracker.opentrackr.org:1337/announce',
-    'udp://tracker.internetwarriors.net:1337/announce'
+    'udp://open.stealth.si:80/announce',
+    'udp://tracker.torrent.eu.org:451/announce',
+    'udp://open.demonii.com:1337/announce'
   ].map(tr => `&tr=${encodeURIComponent(tr)}`).join('');
 
   const magnetURI = `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(safeName)}${TRACKERS}`;
