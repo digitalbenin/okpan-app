@@ -34,10 +34,10 @@ function safeGetMap(doc, name) {
 // Stores { provider, awareness, onUpdate }
 const providers = new Map()
 
-// Ensure Node/Electron main has WebRTC & WebSocket globals
-if (typeof globalThis.RTCPeerConnection === 'undefined') {
-  globalThis.RTCPeerConnection = RTCPeerConnection
-}
+// Ensure Node/Electron main has WebSocket globals for Trystero matchmaking.
+// WE NO LONGER POLLUTE globalThis.RTCPeerConnection because doing so tricks WebTorrent
+// into detecting WebRTC and crashing `node-datachannel`'s delicate C++ N-API lifecycle!
+// Trystero receives RTCPeerConnection explicitly via `joinRoom` anyway.
 if (typeof globalThis.WebSocket === 'undefined') {
   globalThis.WebSocket = WebSocket
 }

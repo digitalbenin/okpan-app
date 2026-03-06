@@ -16,7 +16,6 @@
  * after initial write so there is no conflicting update storm possible.
  */
 
-import WebTorrent from 'webtorrent';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -37,6 +36,7 @@ const BACKOFF_SEQUENCE_MS = [5_000, 15_000, 30_000, 60_000, 120_000];
 // ─── Module-level state ───────────────────────────────────────────────────────
 
 /** Singleton WebTorrent client */
+let _WebTorrentModule = null;
 let _wtClient = null;
 
 /** Active download assetIds per project: Map<projectId, Set<assetId>> */
@@ -62,10 +62,16 @@ let _webContents = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getWtClient() {
+async function getWtClient() {
+  if (!_WebTorrentModule) {
+    console.log('[AssetTorrent] Dynamically importing WebTorrent...');
+    const wtImport = await import('webtorrent');
+    _WebTorrentModule = wtImport.default || wtImport;
+  }
+
   if (!_wtClient || _wtClient.destroyed) {
     console.log('[AssetTorrent] Creating WebTorrent client');
-    _wtClient = new WebTorrent();
+    _wtClient = new _WebTorrentModule();
     _wtClient.on('error', (err) => {
       console.error('[AssetTorrent] WebTorrent client error:', err?.message || err);
     });
@@ -189,7 +195,7 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
     return null;
   }
 
-  const client = getWtClient();
+  const client = await getWtClient();
   const name = sanitizeName(path.basename(filePath));
   const absPath = path.resolve(filePath);
 
@@ -245,7 +251,7 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
 // ─── Downloading ─────────────────────────────────────────────────────────────
 
 async function downloadAsset({ projectId, assetId, infoHash, torrentName, assetPath, isGeneric }) {
-  const client = getWtClient();
+  const client = await getWtClient();
   const safeName = sanitizeName(torrentName);
 
   // Derive download destination to match the synced assets.path structure.
