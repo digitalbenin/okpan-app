@@ -293,6 +293,8 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, assetP
     return { success: true, path: expectedFilePath };
   }
 
+  const active = getOrSet(activeDownloads, projectId, () => new Set());
+
   console.log(
     `[AssetTorrent] Starting download: assetId=${assetId} infoHash=${infoHash} ` +
     `destDir=${destDir} torrentName=${safeName}`
@@ -307,10 +309,10 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, assetP
   emitSyncProgress(assetId, isGeneric, 'downloading', 0);
 
   const TRACKERS = [
+    'wss://tracker.btsync.xyz',
+    'wss://tracker.openwebtorrent.com',
     'udp://tracker.opentrackr.org:1337/announce',
-    'udp://tracker.internetwarriors.net:1337/announce',
-    'udp://open.demonii.com:1337/announce',
-    'udp://tracker.coppersurfer.tk:6969/announce'
+    'udp://tracker.internetwarriors.net:1337/announce'
   ].map(tr => `&tr=${encodeURIComponent(tr)}`).join('');
 
   const magnetURI = `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(safeName)}${TRACKERS}`;
@@ -328,6 +330,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, assetP
     const timeoutHandle = setTimeout(async () => {
       console.warn(`[AssetTorrent] Download timeout for assetId=${assetId} infoHash=${infoHash}`);
       active.delete(assetId);
+      drainQueue(projectId);
       await handleDownloadError({ projectId, assetId, isGeneric, errCode: 'TIMEOUT' });
       settle({ success: false, reason: 'timeout' });
     }, DOWNLOAD_TIMEOUT_MS);
