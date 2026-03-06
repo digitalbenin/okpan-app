@@ -2,6 +2,16 @@
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	const { objectResearchFields = [], researchFields = [], vocabularies = [] } = $props();
 
+	let selectedVocabulary = $state(null);
+
+	function openVocab(vocabulary) {
+		selectedVocabulary = vocabulary;
+	}
+
+	function closeModal() {
+		selectedVocabulary = null;
+	}
+
 	// Build lookup maps
 	const researchById = new Map((researchFields || []).map(rf => [String(rf.id), rf]));
 	const vocabById = new Map((vocabularies || []).map(v => [String(v.id), v]));
@@ -44,83 +54,9 @@
 			.sort((a, b) => (orderIndex.get(String(a.field_id)) ?? 0) - (orderIndex.get(String(b.field_id)) ?? 0));
 	});
 
-	// Serialize vocabulary data for vanilla JS
-	const vocabDataJson = $derived(JSON.stringify(
-		(vocabularies || []).map(v => ({
-			id: v.id,
-			name: v.name,
-			description: v.description,
-			image: v.main_asset_path ? getAssetUrl({ asset_path: v.main_asset_path }) : null
-		}))
-	));
 </script>
 
-<svelte:head>
-{@html `<script>
-(function() {
-	function initResearchModals() {
-		document.querySelectorAll('.research-container').forEach(function(container) {
-			if (container.dataset.init) return;
-			container.dataset.init = 'true';
-			
-			var vocabs = [];
-			try { vocabs = JSON.parse(container.dataset.vocabs || '[]'); } catch(e) {}
-			var vocabMap = {};
-			vocabs.forEach(function(v) { vocabMap[v.id] = v; });
-			
-			var modal = container.querySelector('.vocab-modal');
-			var backdrop = container.querySelector('.vocab-backdrop');
-			var modalTitle = container.querySelector('.vocab-modal-title');
-			var modalBody = container.querySelector('.vocab-modal-body');
-			
-			function openModal(vocabId) {
-				var v = vocabMap[vocabId];
-				if (!v || !modal) return;
-				
-				modalTitle.textContent = v.name || '';
-				var html = '';
-				if (v.image) {
-					html += '<img src="' + v.image + '" alt="' + (v.name || '') + '" class="img-fluid mb-2" />';
-				}
-				html += '<p>' + (v.description || '<span class="text-muted">No description available.</span>') + '</p>';
-				modalBody.innerHTML = html;
-				
-				modal.classList.add('show');
-				modal.style.display = 'block';
-				backdrop.style.display = 'block';
-				document.body.classList.add('modal-open');
-			}
-			
-			function closeModal() {
-				if (!modal) return;
-				modal.classList.remove('show');
-				modal.style.display = 'none';
-				backdrop.style.display = 'none';
-				document.body.classList.remove('modal-open');
-			}
-			
-			container.querySelectorAll('.vocab-btn').forEach(function(btn) {
-				btn.onclick = function() { openModal(btn.dataset.vocabId); };
-			});
-			
-			// Bind ALL close buttons
-			container.querySelectorAll('.vocab-modal-close').forEach(function(btn) {
-				btn.onclick = closeModal;
-			});
-			if (backdrop) backdrop.onclick = closeModal;
-		});
-	}
-	
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', initResearchModals);
-	} else {
-		initResearchModals();
-	}
-})();
-</script>`}
-</svelte:head>
-
-<div class="research-container" data-vocabs={vocabDataJson}>
+<div class="research-container">
 {#if grouped.length > 0}
 	<div class="d-flex flex-column border-top">
 		{#each grouped as group (group.field_id)}
@@ -135,7 +71,13 @@
 					{:else}
 						{#each group.values as v, i}
 							{#if i > 0}, {/if}
-							<button type="button" class="vocab-btn btn btn-link text-dark p-0" data-vocab-id={v.id}>{v.name}</button>
+							<button
+								type="button"
+								class="btn btn-link text-dark p-0"
+								onclick={() => openVocab(v)}
+							>
+								{v.name}
+							</button>
 						{/each}
 					{/if}
 				</div>
@@ -146,20 +88,41 @@
 	<p class="text-muted">No research fields available.</p>
 {/if}
 
-<!-- Modal -->
-<div class="modal fade vocab-modal" tabindex="-1" role="dialog" aria-modal="true" style="display: none;">
-	<div class="modal-dialog modal-dialog-centered" role="document">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title vocab-modal-title"></h5>
-				<button type="button" class="btn-close vocab-modal-close" aria-label="Close"></button>
-			</div>
-			<div class="modal-body vocab-modal-body"></div>
-			<div class="modal-footer">
-				<button type="button" class="btn btn-secondary vocab-modal-close">Close</button>
+{#if selectedVocabulary}
+	<div
+		class="modal fade show d-block"
+		style="background-color: rgba(0,0,0,0.5);"
+		role="dialog"
+		aria-modal="true"
+		tabindex="0"
+		onclick={(event) => event.target === event.currentTarget && closeModal()}
+		onkeydown={(event) => event.key === 'Escape' && closeModal()}
+	>
+		<div class="modal-dialog modal-dialog-centered" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">{selectedVocabulary.name}</h5>
+					<button type="button" class="btn-close" aria-label="Close" onclick={closeModal}></button>
+				</div>
+				<div class="modal-body">
+					{#if selectedVocabulary.main_asset_path}
+						<img
+							src={getAssetUrl({ asset_path: selectedVocabulary.main_asset_path })}
+							alt={selectedVocabulary.name}
+							class="img-fluid mb-2"
+						/>
+					{/if}
+					{#if selectedVocabulary.description}
+						<p>{selectedVocabulary.description}</p>
+					{:else}
+						<p class="text-muted">No description available.</p>
+					{/if}
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" onclick={closeModal}>Close</button>
+				</div>
 			</div>
 		</div>
 	</div>
-</div>
-<div class="modal-backdrop fade show vocab-backdrop" style="display: none;"></div>
+{/if}
 </div>
