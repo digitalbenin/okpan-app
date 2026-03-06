@@ -28,7 +28,7 @@ import { eq, and, isNotNull, inArray, sql } from 'drizzle-orm';
 const ASSET_BASE_PATH = './src/assets/project_assets';
 const MAX_CONCURRENT_DOWNLOADS_PER_PROJECT = 3;
 const MAX_RETRIES = 5;
-const DOWNLOAD_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const DOWNLOAD_TIMEOUT_MS = 60 * 1000; // 60 seconds
 const RECONCILE_INTERVAL_MS = 90_000;       // 90 seconds anti-entropy loop
 const RECONCILE_DEBOUNCE_MS = 600;          // debounce rapid ingestion events
 const BACKOFF_SEQUENCE_MS = [5_000, 15_000, 30_000, 60_000, 120_000];
@@ -202,6 +202,8 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
   console.log(`[AssetTorrent] seedAsset called: assetId=${assetId} file=${filePath}`);
 
   const announceList = [
+    'wss://tracker.btsync.xyz',
+    'wss://tracker.openwebtorrent.com',
     'udp://tracker.opentrackr.org:1337/announce',
     'udp://tracker.internetwarriors.net:1337/announce',
     'udp://tracker.coppersurfer.tk:6969/announce',
@@ -337,17 +339,36 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, assetP
 
     (async () => {
       try {
-        // Re-use existing torrent if already tracked by infoHash.
-        // In WebTorrent 2.x, client.get() returns a Promise.
-        let torrent = await client.get(infoHash);
-        if (!torrent) {
-          // client.add returns a Torrent synchronously
-          torrent = client.add(magnetURI, { path: destDir });
+        // If a previous attempt left a stale torrent in the client, remove it first.
+        // Reusing a stuck torrent causes new listeners to pile up with no events ever firing.
+        const existing = await client.get(infoHash);
+        if (existing) {
+          console.log(`[AssetTorrent] Removing stale torrent before retry: assetId=${assetId} infoHash=${infoHash}`);
+          await new Promise((res) => client.remove(infoHash, { destroyStore: false }, res));
         }
+
+        // client.add returns a Torrent synchronously
+        const torrent = client.add(magnetURI, { path: destDir });
 
         if (!torrent) {
           throw new Error('WebTorrent client.add returned null');
         }
+
+        torrent.on('warning', (warn) => {
+          console.warn(`[AssetTorrent] Torrent warning assetId=${assetId}:`, warn?.message || warn);
+        });
+
+        torrent.on('wire', (wire) => {
+          console.log(`[AssetTorrent] Peer connected assetId=${assetId} peer=${wire.remoteAddress}:${wire.remotePort}`);
+        });
+
+        torrent.on('noPeers', (announceType) => {
+          console.warn(`[AssetTorrent] No peers found assetId=${assetId} announceType=${announceType}`);
+        });
+
+        torrent.on('ready', () => {
+          console.log(`[AssetTorrent] Torrent ready (metadata resolved) assetId=${assetId} peers=${torrent.numPeers} length=${torrent.length}`);
+        });
 
         torrent.on('download', () => {
           const progress =
