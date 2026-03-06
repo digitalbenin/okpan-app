@@ -286,13 +286,6 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, assetP
     return { success: true, path: expectedFilePath };
   }
 
-  const active = getOrSet(activeDownloads, projectId, () => new Set());
-  if (active.has(assetId)) {
-    console.log(`[AssetTorrent] Download already active for ${assetId}, skipping`);
-    return { success: false, reason: 'already_active' };
-  }
-
-  active.add(assetId);
   console.log(
     `[AssetTorrent] Starting download: assetId=${assetId} infoHash=${infoHash} ` +
     `destDir=${destDir} torrentName=${safeName}`
@@ -306,7 +299,15 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, assetP
   });
   emitSyncProgress(assetId, isGeneric, 'downloading', 0);
 
-  const magnetURI = `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(safeName)}`;
+  const TRACKERS = [
+    'wss://tracker.btorrent.xyz',
+    'wss://tracker.openwebtorrent.com',
+    'udp://tracker.opentrackr.org:1337/announce',
+    'udp://open.demonii.com:1337/announce',
+    'udp://tracker.coppersurfer.tk:6969/announce'
+  ].map(tr => `&tr=${encodeURIComponent(tr)}`).join('');
+
+  const magnetURI = `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(safeName)}${TRACKERS}`;
 
   return new Promise((resolve) => {
     let settled = false;
@@ -457,9 +458,12 @@ function enqueueDownload(job) {
     console.log(
       `[AssetTorrent] Starting download immediately (active=${active.size}): assetId=${job.assetId}`
     );
-    downloadAsset(job).catch((err) =>
-      console.error('[AssetTorrent] Unexpected downloadAsset error:', err)
-    );
+    active.add(job.assetId); // Add immediately to prevent concurrent async bypass
+    downloadAsset(job).catch((err) => {
+      console.error('[AssetTorrent] Unexpected downloadAsset error:', err);
+      active.delete(job.assetId);
+      drainQueue(job.projectId);
+    });
   } else {
     console.log(
       `[AssetTorrent] Queued download (active=${active.size} queue=${queue.length}): assetId=${job.assetId}`
@@ -477,9 +481,12 @@ function drainQueue(projectId) {
     console.log(
       `[AssetTorrent] Draining queue: starting ${job.assetId} (remaining=${queue.length})`
     );
-    downloadAsset(job).catch((err) =>
-      console.error('[AssetTorrent] Queue drain downloadAsset error:', err)
-    );
+    active.add(job.assetId); // Add immediately
+    downloadAsset(job).catch((err) => {
+      console.error('[AssetTorrent] Queue drain downloadAsset error:', err);
+      active.delete(job.assetId);
+      drainQueue(projectId);
+    });
   }
 }
 
