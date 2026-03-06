@@ -163,6 +163,7 @@ async function setupSignalingForProject(projectId) {
     const key = `${infoHash}:${requesterId}`;
     seederPeers.set(key, peer);
     peer.on('signal', (signal) => sendSignal({ infoHash, signal }, [requesterId]));
+    peer.on('connect', () => console.log(`[AssetTorrent] [Signaling] Seeder WebRTC connected ${infoHash}`));
     peer.on('error',  (err)    => { console.warn(`[AssetTorrent] seeder peer error ${infoHash}:`, err?.message); seederPeers.delete(key); });
     peer.on('close',  ()       => seederPeers.delete(key));
     try {
@@ -179,6 +180,7 @@ async function setupSignalingForProject(projectId) {
     // Path A: signal is from a downloader back to the seeder's initiator peer
     const seederPeer = seederPeers.get(`${infoHash}:${senderId}`);
     if (seederPeer) {
+      console.log(`[AssetTorrent] [Signaling] Seeder received back-signal for ${infoHash} type=${signal?.type || 'candidate'}`);
       try { seederPeer.signal(signal); }
       catch (err) { console.warn(`[AssetTorrent] seeder peer.signal error ${infoHash}:`, err?.message); }
       return;
@@ -297,7 +299,12 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
           if (sigPeer) {
             sigPeer.on('signal', (s) => {
               const entry = pendingPeerSignals.get(infoHash);
-              if (entry?.seederId) sig.sendSignal({ infoHash, signal: s }, [entry.seederId]);
+              if (entry?.seederId) {
+                console.log(`[AssetTorrent] [Signaling] Downloader sending back-signal for ${infoHash} type=${s?.type || 'candidate'}`);
+                sig.sendSignal({ infoHash, signal: s }, [entry.seederId]);
+              } else {
+                console.warn(`[AssetTorrent] [Signaling] Downloader sigPeer signal fired but seederId not yet set for ${infoHash}`);
+              }
             });
             sigPeer.on('connect', () => {
               console.log(`[AssetTorrent] [Signaling] WebRTC connected, injecting peer for ${infoHash}`);
