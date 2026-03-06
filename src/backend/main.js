@@ -149,13 +149,16 @@ ipcMain.handle('set-current-project', async (event, projectId) => {
   } catch (err) {
     console.error('Failed to start P2P provider for project', projectId, err);
   }
-  // Start periodic P2P asset reconcile loop (triggers immediate first scan + 90s interval).
-  // This handles: startup reconciliation + periodic anti-entropy checks.
-  try {
-    startReconcileLoop(projectId);
-  } catch (err) {
-    console.error('Failed to start asset reconcile loop for project', projectId, err);
-  }
+  // Delay WebTorrent init by 5s so node_datachannel (Trystero/WebRTC) is fully
+  // settled before we create the WebTorrent client. Both touch low-level UDP/async
+  // callbacks and racing them crashes on macOS.
+  setTimeout(() => {
+    try {
+      startReconcileLoop(projectId);
+    } catch (err) {
+      console.error('Failed to start asset reconcile loop for project', projectId, err);
+    }
+  }, 5000);
   return { ...res, hydrated: true };
 });
 ipcMain.handle('get-current-project', handleGetCurrentProject);

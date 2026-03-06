@@ -65,12 +65,7 @@ let _webContents = null;
 function getWtClient() {
   if (!_wtClient || _wtClient.destroyed) {
     console.log('[AssetTorrent] Creating WebTorrent client');
-    _wtClient = new WebTorrent({
-      // Disable utp-native: its thread-safe callbacks crash Electron on macOS
-      // (ThreadSafeCallback::CancelException). TCP transport is sufficient for
-      // LAN / direct-peer transfers and works on all platforms in Electron.
-      utp: false,
-    });
+    _wtClient = new WebTorrent();
     _wtClient.on('error', (err) => {
       console.error('[AssetTorrent] WebTorrent client error:', err?.message || err);
     });
