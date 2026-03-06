@@ -140,7 +140,7 @@ async function setupSignalingForProject(projectId) {
 
   receiveRequest(async ({ infoHash }, requesterId) => {
     const client  = await getWtClient();
-    const torrent = client.get(infoHash);
+    const torrent = await client.get(infoHash);
     if (!torrent) return;
 
     let peer;
