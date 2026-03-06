@@ -71,7 +71,7 @@ async function getWtClient() {
 
   if (!_wtClient || _wtClient.destroyed) {
     console.log('[AssetTorrent] Creating WebTorrent client');
-    _wtClient = new _WebTorrentModule();
+    _wtClient = new _WebTorrentModule({ maxConns: 30 });
     _wtClient.on('error', (err) => {
       console.error('[AssetTorrent] WebTorrent client error:', err?.message || err);
     });
@@ -201,6 +201,13 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
 
   console.log(`[AssetTorrent] seedAsset called: assetId=${assetId} file=${filePath}`);
 
+  const announceList = [
+    'udp://tracker.opentrackr.org:1337/announce',
+    'udp://tracker.internetwarriors.net:1337/announce',
+    'udp://tracker.coppersurfer.tk:6969/announce',
+    'udp://open.demonii.com:1337/announce'
+  ];
+
   return new Promise((resolve) => {
     try {
       // Check if already seeding this file path
@@ -221,7 +228,7 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
         return;
       }
 
-      client.seed(filePath, { name }, (torrent) => {
+      client.seed(filePath, { name, announce: announceList }, (torrent) => {
         console.log(
           `[AssetTorrent] Seeding started: assetId=${assetId} infoHash=${torrent.infoHash} ` +
           `length=${torrent.length} pieceLength=${torrent.pieceLength}`
@@ -300,9 +307,8 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, assetP
   emitSyncProgress(assetId, isGeneric, 'downloading', 0);
 
   const TRACKERS = [
-    'wss://tracker.btorrent.xyz',
-    'wss://tracker.openwebtorrent.com',
     'udp://tracker.opentrackr.org:1337/announce',
+    'udp://tracker.internetwarriors.net:1337/announce',
     'udp://open.demonii.com:1337/announce',
     'udp://tracker.coppersurfer.tk:6969/announce'
   ].map(tr => `&tr=${encodeURIComponent(tr)}`).join('');
