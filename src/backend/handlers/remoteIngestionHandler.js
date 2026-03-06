@@ -394,6 +394,14 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   let deferredInserts = 0
   let deferredUpdates = 0
   let deferredDeletes = 0
+
+  console.log('[RemoteIngestion] Diff Tables:', [...new Set(inserts.map(i => i.table))])
+  const unmapped = [...new Set(inserts.map(i => i.table))].filter(t => !FK_ORDER.includes(t))
+  console.log('[RemoteIngestion] Unmapped Tables:', unmapped)
+  if (unmapped.length > 0) {
+    console.warn('[RemoteIngestion] IGNORING UNMAPPED TABLES! THESE WILL BE DEFERRED:', unmapped)
+  }
+
   // Multi-pass transaction to satisfy FKs: attempt in FK order repeatedly (max 3 passes)
   await db.transaction(async (tx) => {
     const remainingInserts = inserts.map(x => ({ ...x }))

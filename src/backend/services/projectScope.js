@@ -7,6 +7,7 @@ export const FK_ORDER = [
   'project',
   'languages',
   'texts',
+  'translations',
   'institutions',
   'objects',
   'templates',
