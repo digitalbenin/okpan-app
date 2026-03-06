@@ -184,12 +184,13 @@ async function setupSignalingForProject(projectId) {
     // Path A: signal is from a downloader back to the seeder's initiator peer
     const seederPeer = seederPeers.get(`${infoHash}:${senderId}`);
     if (seederPeer) {
-      // The node-datachannel WebRTC polyfill incorrectly labels the non-initiator's
-      // answer SDP as type='offer' instead of type='answer'.  If the seeder's
-      // initiator peer receives type='offer' it triggers re-negotiation (creates
-      // a new offer), causing an infinite signaling loop.  Correct the type here.
+      // The node-datachannel WebRTC polyfill has two bugs in the answer SDP it
+      // produces for the non-initiator peer:
+      //   1. type is incorrectly set to 'offer' instead of 'answer'
+      //   2. a=setup:actpass is illegal in an answer (must be active/passive)
+      // Both are corrected here before forwarding to the seeder's initiator peer.
       const corrected = (signal?.type === 'offer' && signal.sdp)
-        ? { ...signal, type: 'answer' }
+        ? { ...signal, type: 'answer', sdp: signal.sdp.replace(/a=setup:actpass/g, 'a=setup:active') }
         : signal;
       console.log(`[AssetTorrent] [Signaling] Seeder received back-signal for ${infoHash} type=${signal?.type || 'candidate'} (corrected=${corrected?.type || 'candidate'})`);
       try { seederPeer.signal(corrected); }

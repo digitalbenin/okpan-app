@@ -41,6 +41,11 @@ import {
   scheduleAssetReconcile
 } from './services/assetTorrentManager.js';
 
+// Trystero + WebTorrent open many concurrent sockets per project. Bump the
+// global EventEmitter listener cap to avoid spurious MaxListenersExceededWarnings.
+import EventEmitter from 'events';
+EventEmitter.defaultMaxListeners = 50;
+
 // Suppress noisy Trystero relay-failure logs (relay redundancy is expected;
 // the protocol still works via other relays).
 const _origWarn = console.warn.bind(console);
