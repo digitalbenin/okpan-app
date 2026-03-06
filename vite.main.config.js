@@ -23,7 +23,15 @@ export default defineConfig({
             'ws',
             'yjs',
             'trystero',
-            '@winstonfassett/y-webrtc-trystero'
+            '@winstonfassett/y-webrtc-trystero',
+            'webtorrent',
+            'bittorrent-dht',
+            'bittorrent-tracker',
+            'utp-native',
+            'fs-chunk-store',
+            'torrent-discovery',
+            'ut_metadata',
+            'ut_pex'
         ]
     },
     build: {
@@ -52,7 +60,17 @@ export default defineConfig({
                 'yjs',
                 '@winstonfassett/y-webrtc-trystero',
                 'trystero',
-                /^trystero.*/
+                /^trystero.*/,
+                'webtorrent',
+                /^webtorrent\/.*/,
+                'bittorrent-dht',
+                /^bittorrent-.*/,
+                'utp-native',
+                'fs-chunk-store',
+                'torrent-discovery',
+                'ut_metadata',
+                'ut_pex',
+                /^node:.*/ // all node: protocol builtins
             ],
             input: {
                 main: 'src/backend/main.js',
