@@ -4,6 +4,7 @@ import { eq, and, gt, desc, sql, inArray, or } from 'drizzle-orm';
 import { yjs_snapshots, yjs_updates, change_log, ingestion_state } from '../../db/schema.js';
 import * as schema from '../../db/schema.js';
 import { getProjectDoc, ensureTableMap } from './projectCache.js';
+import { scheduleAssetReconcile } from './assetTorrentManager.js';
 
 // Minimal compatibility: ensure parent table maps exist before applying updates
 const TABLES = [
@@ -339,6 +340,15 @@ export async function hydrateProjectFromDatabase(projectId) {
   if (loadedCount > 0) {
       await createProjectSnapshot(projectId);
       console.log('[Snapshot] Saved Migration Snapshot. Future loads will use History.');
+  }
+
+  // Trigger P2P asset reconcile after hydration so any asset rows now in the doc
+  // are checked against local disk and missing ones are queued for download.
+  try {
+    scheduleAssetReconcile(projectId);
+    console.log('[Snapshot] Scheduled P2P asset reconcile after hydration:', projectId);
+  } catch (err) {
+    console.warn('[Snapshot] scheduleAssetReconcile error after hydration:', err?.message);
   }
 
   return { applied: loadedCount, source: 'migration' };

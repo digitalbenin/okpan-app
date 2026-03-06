@@ -32,6 +32,14 @@ import { handleExportProject, handleExportConnections, handleImportConnections }
 import { handleListLanguages } from './handlers/languagesHandlers.js';
 // import { applyMigration } from '../db/scripts/applyMigration.js';
 import { handleCreateBackup, handleSelectBackupFile, handleCheckBackupFile, handleRestoreBackup } from './handlers/backupHandler.js';
+import {
+  startReconcileLoop,
+  stopProjectTorrents,
+  setMainWindowContents,
+  destroyTorrentManager,
+  getProjectSyncStatus,
+  scheduleAssetReconcile
+} from './services/assetTorrentManager.js';
 
 app.disableHardwareAcceleration()
 
@@ -140,6 +148,13 @@ ipcMain.handle('set-current-project', async (event, projectId) => {
     await startP2PForProject(projectId, { onDataChange: notifyFrontend });
   } catch (err) {
     console.error('Failed to start P2P provider for project', projectId, err);
+  }
+  // Start periodic P2P asset reconcile loop (triggers immediate first scan + 90s interval).
+  // This handles: startup reconciliation + periodic anti-entropy checks.
+  try {
+    startReconcileLoop(projectId);
+  } catch (err) {
+    console.error('Failed to start asset reconcile loop for project', projectId, err);
   }
   return { ...res, hydrated: true };
 });
@@ -299,6 +314,34 @@ ipcMain.handle('snapshot-hydrate', async (event, projectId) => {
   }
 });
 
+// Asset P2P sync status handler (for UI queries)
+ipcMain.handle('asset-sync-status', async (event, projectId) => {
+  try {
+    if (!projectId || typeof projectId !== 'string') {
+      throw new Error('asset-sync-status requires a valid projectId');
+    }
+    const status = await getProjectSyncStatus(projectId);
+    return { success: true, status };
+  } catch (error) {
+    console.error('Error in asset-sync-status:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Manual reconcile trigger (for refresh button or debug)
+ipcMain.handle('asset-sync-reconcile', async (event, projectId) => {
+  try {
+    if (!projectId || typeof projectId !== 'string') {
+      throw new Error('asset-sync-reconcile requires a valid projectId');
+    }
+    scheduleAssetReconcile(projectId);
+    return { success: true };
+  } catch (error) {
+    console.error('Error in asset-sync-reconcile:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Register protocol
 protocol.registerSchemesAsPrivileged([
   {
@@ -398,6 +441,9 @@ const createWindow = () => {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Register webContents so assetTorrentManager can emit IPC progress events to renderer
+  setMainWindowContents(mainWindow.webContents);
 };
 
 // Initialize app
@@ -454,6 +500,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Clean up WebTorrent client and reconcile loops before the process exits
+app.on('before-quit', () => {
+  try { destroyTorrentManager(); } catch (err) { console.warn('destroyTorrentManager error on quit:', err); }
 });
 
 app.on('activate', () => {

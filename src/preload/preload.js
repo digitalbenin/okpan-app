@@ -58,7 +58,16 @@ contextBridge.exposeInMainWorld('api', {
     openPreview: (projectId) => ipcRenderer.send('open-preview', projectId),
     
     // Website export
-    exportStaticWebsite: (options) => ipcRenderer.invoke('export-static-website', options)
+    exportStaticWebsite: (options) => ipcRenderer.invoke('export-static-website', options),
+
+    // Asset P2P sync
+    getAssetSyncStatus: (projectId) => ipcRenderer.invoke('asset-sync-status', projectId),
+    triggerAssetReconcile: (projectId) => ipcRenderer.invoke('asset-sync-reconcile', projectId),
+    onAssetSyncProgress: (callback) => {
+        const subscription = (event, ...args) => callback(...args);
+        ipcRenderer.on('asset-sync-progress', subscription);
+        return () => ipcRenderer.removeListener('asset-sync-progress', subscription);
+    }
 });
 
 

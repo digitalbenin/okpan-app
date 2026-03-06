@@ -1,13 +1,39 @@
 import * as fs from 'fs';
 import sharp from 'sharp';
+import crypto from 'crypto';
 import { db } from '../../db/init.js';
 import { assets, genericAssets } from '../../db/schema.js';
+import { eq } from 'drizzle-orm';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { seedAsset } from '../services/assetTorrentManager.js';
 
 const sm = 300
 const md = 1400
 const assetPath = "./src/assets/project_assets"
+
+// MIME type map for P2P torrent metadata
+const MIME_BY_EXT = {
+  '.avif': 'image/avif',
+  '.mp4':  'video/mp4',
+  '.webm': 'video/webm',
+  '.mov':  'video/quicktime',
+  '.mp3':  'audio/mpeg',
+  '.ogg':  'audio/ogg',
+};
+
+/**
+ * Compute SHA-256 hex of a file for integrity verification.
+ */
+async function computeFileSha256(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest('hex')));
+    stream.on('error', reject);
+  });
+}
 
 // Configuration object for file types and limits
 const assetConfig = {
@@ -137,6 +163,16 @@ const handleImportAssets = async (event, data) => {
                 const newAsset = await saveAssetToDb(asset, data.isGenericAsset);
                 createdAssets.push({ ...newAsset, _sourcePath: filePath });
                 importedFilePaths.push(filePath);
+                // Seed and persist torrent metadata NON-BLOCKING.
+                // The import response is returned immediately after the DB insert.
+                // If seeding completes before the app restarts, torrent_info_hash is
+                // written and Yjs propagates it to peers straight away.
+                // If the process exits first (e.g. seed script), the reconcile startup
+                // sweep (seedUnseededLocalAssets) will catch this row on next app launch
+                // because the file is on disk but torrent_info_hash IS NULL.
+                seedAndPersistTorrentMetadata(newAsset, data.isGenericAsset).catch((err) =>
+                    console.error('[assetHandlers] seedAndPersistTorrentMetadata error (non-fatal):', err?.message)
+                );
             }
         } catch (error) {
             console.error(`Error processing file ${filePath}:`, error);
@@ -263,6 +299,69 @@ const saveAssetToDb = async (assetData, isGeneric) => {
         institution_id: isGeneric ? undefined : (assetData.institution_id || null),
     }).returning();
     return newAsset;
+}
+
+/**
+ * After a DB row is saved, seed the original file via WebTorrent and
+ * write torrent metadata back to the same row so Yjs propagates it to peers.
+ * Failures are non-fatal: the asset row remains usable locally.
+ */
+async function seedAndPersistTorrentMetadata(newAsset, isGeneric) {
+    const filePath = newAsset.path;
+    if (!filePath || !fs.existsSync(filePath)) {
+        console.warn('[assetHandlers] seedAndPersistTorrentMetadata: file not found, skipping seed', filePath);
+        return;
+    }
+
+    let torrentMeta = null;
+    try {
+        torrentMeta = await seedAsset({
+            projectId: newAsset.project_id,
+            assetId: newAsset.id,
+            filePath,
+            isGeneric
+        });
+    } catch (err) {
+        console.error('[assetHandlers] seedAsset error, torrent metadata will not be stored:', err?.message);
+        return;
+    }
+
+    if (!torrentMeta?.infoHash) {
+        console.warn('[assetHandlers] seedAsset returned no infoHash for', newAsset.id);
+        return;
+    }
+
+    // Compute SHA-256 for integrity verification on downloaders
+    let sha256 = null;
+    try {
+        sha256 = await computeFileSha256(filePath);
+    } catch (err) {
+        console.warn('[assetHandlers] SHA-256 computation failed:', err?.message);
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const mime = MIME_BY_EXT[ext] || 'application/octet-stream';
+
+    const torrentFields = {
+        torrent_info_hash:   torrentMeta.infoHash,
+        torrent_name:        torrentMeta.name,
+        torrent_length:      torrentMeta.length,
+        torrent_piece_length: torrentMeta.pieceLength,
+        asset_content_mime:  mime,
+        asset_content_ext:   ext,
+        asset_content_sha256: sha256,
+    };
+
+    const table = isGeneric ? genericAssets : assets;
+    try {
+        await db.update(table).set(torrentFields).where(eq(table.id, newAsset.id)).execute();
+        console.log(
+            `[assetHandlers] Torrent metadata written to DB: assetId=${newAsset.id} ` +
+            `infoHash=${torrentMeta.infoHash} sha256=${sha256?.slice(0, 16)}...`
+        );
+    } catch (err) {
+        console.error('[assetHandlers] Failed to write torrent metadata to DB:', err?.message);
+    }
 }
 
 export { handleImportAssets, getProgress }

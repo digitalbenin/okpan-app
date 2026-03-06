@@ -8,6 +8,7 @@ import * as Y from 'yjs'
 import { getProjectDoc } from './projectCache.js'
 import { ingestRemoteUpdate } from '../handlers/remoteIngestionHandler.js'
 import { hydrateProjectFromDatabase } from './snapshotService.js'
+import { scheduleAssetReconcile, resetErroredAssets } from './assetTorrentManager.js'
 
 // Helper: count tables and rows in a Y.Doc's `tables` map
 function countDocTables(doc) {
@@ -92,6 +93,12 @@ export async function startP2PForProject(projectId, options = {}) {
   const onChange = ({ added = [], updated = [], removed = [] }) => {
     for (const clientId of added) {
       console.log('[P2P] Peer connected', { projectId, clientId })
+      // New peer appeared: reset any errored assets and re-reconcile.
+      // This handles the "after reconnect/network restoration" trigger point.
+      resetErroredAssets(projectId).catch((err) =>
+        console.warn('[P2P] resetErroredAssets error on peer connect:', err?.message)
+      );
+      scheduleAssetReconcile(projectId);
     }
     for (const clientId of updated) {
       console.log('[P2P] Peer updated', { projectId, clientId })

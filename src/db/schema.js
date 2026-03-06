@@ -1,4 +1,4 @@
-import { integer, text, blob, sqliteTable, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
+import { integer, real, text, blob, sqliteTable, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Common fields configuration for all tables
@@ -276,7 +276,15 @@ export const assets = sqliteTable('assets', {
     formats: text('formats', { mode: 'json' }),
     properties: text('properties', { mode: 'json' }),
     institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
-    project_id: text('project_id').references(() => project.id)
+    project_id: text('project_id').references(() => project.id),
+    // P2P torrent metadata — synced via Yjs to all peers
+    torrent_info_hash: text('torrent_info_hash'),
+    torrent_name: text('torrent_name'),
+    torrent_length: integer('torrent_length'),
+    torrent_piece_length: integer('torrent_piece_length'),
+    asset_content_mime: text('asset_content_mime'),
+    asset_content_ext: text('asset_content_ext'),
+    asset_content_sha256: text('asset_content_sha256')
 });
 
 // Assets relations
@@ -301,7 +309,15 @@ export const genericAssets = sqliteTable('generic_assets', {
     type: text('type'),
     formats: text('formats', { mode: 'json' }),
     properties: text('properties', { mode: 'json' }),
-    project_id: text('project_id').references(() => project.id) // No institution_id
+    project_id: text('project_id').references(() => project.id), // No institution_id
+    // P2P torrent metadata — synced via Yjs to all peers
+    torrent_info_hash: text('torrent_info_hash'),
+    torrent_name: text('torrent_name'),
+    torrent_length: integer('torrent_length'),
+    torrent_piece_length: integer('torrent_piece_length'),
+    asset_content_mime: text('asset_content_mime'),
+    asset_content_ext: text('asset_content_ext'),
+    asset_content_sha256: text('asset_content_sha256')
 });
 
 // GenericAssets relations
@@ -744,6 +760,31 @@ export const ingestion_state = sqliteTable('ingestion_state', {
     ...commonFields,
     project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }).unique(),
     last_processed_change_id: text('last_processed_change_id').references(() => change_log.id, { onDelete: 'set null' })
+});
+
+// ---------------------------------------------------------------------------
+// Asset P2P local state tables — NOT synced via Yjs. Machine-local only.
+// Tracks download/seed status, retries, and progress per asset.
+// ---------------------------------------------------------------------------
+
+export const asset_local_state = sqliteTable('asset_local_state', {
+    asset_id: text('asset_id').primaryKey().notNull().references(() => assets.id, { onDelete: 'cascade' }),
+    sync_status: text('sync_status').default('missing'), // missing|downloading|available|seeding|error
+    sync_error: text('sync_error'),
+    retry_count: integer('retry_count').notNull().default(0),
+    last_attempt_at: integer('last_attempt_at'),   // Unix ms
+    last_success_at: integer('last_success_at'),   // Unix ms
+    download_progress: real('download_progress').default(0) // 0-100
+});
+
+export const generic_asset_local_state = sqliteTable('generic_asset_local_state', {
+    generic_asset_id: text('generic_asset_id').primaryKey().notNull().references(() => genericAssets.id, { onDelete: 'cascade' }),
+    sync_status: text('sync_status').default('missing'),
+    sync_error: text('sync_error'),
+    retry_count: integer('retry_count').notNull().default(0),
+    last_attempt_at: integer('last_attempt_at'),
+    last_success_at: integer('last_success_at'),
+    download_progress: real('download_progress').default(0)
 });
 
 // Website Settings relations

@@ -5,6 +5,7 @@ import * as schema from '../../db/schema.js'
 import { eq } from 'drizzle-orm'
 import { getProjectDoc } from '../services/projectCache.js'
 import { FK_ORDER } from '../services/projectScope.js'
+import { scheduleAssetReconcile } from '../services/assetTorrentManager.js'
 
 // FK order centralized in projectScope.js
 
@@ -525,5 +526,21 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   } else {
     console.log('[RemoteIngestion] Committed', summary)
   }
+
+  // Trigger asset P2P reconcile if any asset rows were inserted/updated.
+  // This is debounced (600ms) and non-blocking — safe to call on every ingestion.
+  // Loop prevention: reconcile only schedules downloads; it never writes to
+  // assets/generic_assets (only to asset_local_state), so no Yjs update is produced.
+  const ASSET_TABLES = new Set(['assets', 'generic_assets']);
+  const hasAssetChanges =
+    inserts.some((r) => ASSET_TABLES.has(r.table)) ||
+    updates.some((r) => ASSET_TABLES.has(r.table));
+  if (hasAssetChanges) {
+    console.log('[RemoteIngestion] Asset rows changed, scheduling P2P reconcile for', projectId);
+    try { scheduleAssetReconcile(projectId); } catch (err) {
+      console.warn('[RemoteIngestion] scheduleAssetReconcile error:', err?.message);
+    }
+  }
+
   return { applied, ...summary, deferredInserts, deferredUpdates, deferredDeletes }
 }
