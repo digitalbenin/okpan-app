@@ -6,6 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import sharp from 'sharp';
 import { joinRoom } from 'trystero';
 import { RTCPeerConnection } from 'node-datachannel/polyfill';
 import SimplePeer from '@thaunknown/simple-peer';
@@ -151,6 +152,19 @@ async function setupSignalingForProject(projectId) {
   const seederPeers = new Map();
   signalingActions.set(projectId, { sendRequest, sendSignal, seederPeers });
 
+  // When a new peer joins the room, re-broadcast any pending download requests
+  // that haven't been answered yet.  This handles the case where the downloader
+  // started before the seeder was visible in the Trystero room (the initial
+  // broadcast at startup went to nobody; the seeder joined later).
+  room.onPeerJoin((peerId) => {
+    for (const [infoHash, entry] of pendingPeerSignals) {
+      if (!entry.seederId) {
+        console.log(`[AssetTorrent] [Signaling] New peer ${peerId} – re-sending request for ${infoHash}`);
+        sendRequest({ infoHash }, [peerId]);
+      }
+    }
+  });
+
   receiveRequest(async ({ infoHash }, requesterId) => {
     const client  = await getWtClient();
     const torrent = await client.get(infoHash);
@@ -254,6 +268,36 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
 }
 
 
+// After a torrent download: update the asset row's local path and, for AVIF
+// images, generate 300-px (sm) and 1400-px (md) variants.  Fully non-blocking.
+async function persistDownloadedAsset(assetId, isGeneric, originalPath) {
+  const ext   = path.extname(originalPath).toLowerCase();
+  const table = isGeneric ? genericAssets : assets;
+
+  if (ext === '.avif') {
+    const base   = originalPath.slice(0, -5); // strip ".avif"
+    const smPath = `${base}_sm.avif`;
+    const mdPath = `${base}_md.avif`;
+
+    if (!fs.existsSync(smPath) || !fs.existsSync(mdPath)) {
+      const img = sharp(originalPath);
+      await Promise.all([
+        img.clone().avif({ quality: 70, effort: 2 }).resize(300).toFile(smPath),
+        img.clone().avif({ quality: 70, effort: 2 }).resize(1400).toFile(mdPath),
+      ]);
+      console.log(`[AssetTorrent] Image variants generated for ${assetId}`);
+    }
+
+    await db.update(table).set({
+      path: originalPath,
+      formats: { original: originalPath, sm: smPath, md: mdPath },
+    }).where(eq(table.id, assetId)).execute();
+  } else {
+    // Video / audio: just update the local path so the frontend can find it.
+    await db.update(table).set({ path: originalPath }).where(eq(table.id, assetId)).execute();
+  }
+}
+
 async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGeneric }) {
   const client   = await getWtClient();
   const safeName = sanitizeName(torrentName);
@@ -266,6 +310,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
     await upsertLocalState(assetId, isGeneric, { sync_status: 'available', last_success_at: Date.now(), download_progress: 100, sync_error: null });
     emitSyncProgress(assetId, isGeneric, 'available', 100);
     if (!seededHashes.has(infoHash)) seedAsset({ projectId, assetId, filePath: expected, isGeneric }).catch(() => {});
+    persistDownloadedAsset(assetId, isGeneric, expected).catch(() => {});
     const active = getOrSet(activeDownloads, projectId, () => new Set());
     active.delete(assetId);
     drainQueue(projectId);
@@ -357,6 +402,10 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
             emitSyncProgress(assetId, isGeneric, 'seeding', 100);
             seededHashes.add(torrent.infoHash);
             console.log(`[AssetTorrent] Download done: assetId=${assetId} path=${expected}`);
+            // Update local path and (for images) generate sm/md variants — non-blocking.
+            persistDownloadedAsset(assetId, isGeneric, expected).catch((err) =>
+              console.warn(`[AssetTorrent] persistDownloadedAsset error ${assetId}:`, err?.message)
+            );
           } catch (err) {
             console.error(`[AssetTorrent] post-download error ${assetId}:`, err?.message);
             await handleDownloadError({ projectId, assetId, isGeneric, errCode: classifyError(err) });
