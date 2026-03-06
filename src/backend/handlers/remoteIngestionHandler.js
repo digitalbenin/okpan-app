@@ -11,18 +11,31 @@ import { scheduleAssetReconcile } from '../services/assetTorrentManager.js'
 
 function isFkError(err) {
   const code = err?.code ?? err?.rawCode
-  if (code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || code === 787) return true
+  if (code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || code === 787) {
+    console.warn('[RemoteIngestion] matched isFkError by code:', code, err?.message)
+    return true
+  }
   const msg = String(err?.message || '')
-  return /FOREIGN KEY constraint failed/i.test(msg)
+  if (/FOREIGN KEY constraint failed/i.test(msg)) {
+    console.warn('[RemoteIngestion] matched isFkError by msg:', msg)
+    return true
+  }
+  return false
 }
 
 function isChangeLogProjectIdNotNull(err) {
   const code = err?.code ?? err?.rawCode
   const msg = String(err?.message || '')
   if (code === 'SQLITE_CONSTRAINT_NOTNULL' || code === 1299) {
-    if (/change_log\.project_id/i.test(msg)) return true
+    if (/change_log\.project_id/i.test(msg)) {
+      console.warn('[RemoteIngestion] matched isChangeLogProjectIdNotNull by code:', code, msg)
+      return true
+    }
   }
-  if (/NOT NULL constraint failed: change_log\.project_id/i.test(msg)) return true
+  if (/NOT NULL constraint failed: change_log\.project_id/i.test(msg)) {
+    console.warn('[RemoteIngestion] matched isChangeLogProjectIdNotNull by msg:', msg)
+    return true
+  }
   return false
 }
 
@@ -451,7 +464,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
             progress = true
           } catch (err) {
             if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
-              console.warn('[RemoteIngestion] Insert deferred due to FK/ProjectId', { table: t, id: ins.id, err: err?.message })
+              console.warn(`[RemoteIngestion] Insert deferred due to FK/ProjectId on pass ${pass}`, { table: t, id: ins.id, err: err?.message, code: err?.code, rawCode: err?.rawCode })
               continue
             }
             throw err
@@ -484,7 +497,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
             progress = true
           } catch (err) {
             if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
-              console.warn('[RemoteIngestion] Update deferred due to FK/ProjectId', { table: t, id: up.id, err: err?.message })
+              console.warn(`[RemoteIngestion] Update deferred due to FK/ProjectId on pass ${pass}`, { table: t, id: up.id, err: err?.message, code: err?.code, rawCode: err?.rawCode })
               continue
             }
             throw err
