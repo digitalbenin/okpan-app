@@ -321,12 +321,12 @@ export async function hydrateProjectFromDatabase(projectId) {
           }
       }
 
-      // Vocabularies
-      const fieldIds = (await db.select({ id: schema.ontology_fields.id }).from(schema.ontology_fields).where(eq(schema.ontology_fields.project_id, projectId)).execute()).map(r => r.id);
-      const assetIds = (await db.select({ id: schema.assets.id }).from(schema.assets).where(eq(schema.assets.project_id, projectId)).execute()).map(r => r.id);
+      // Vocabularies: field_id → research_fields.id, main_asset_id → genericAssets.id
+      const rfIds = (await db.select({ id: schema.research_fields.id }).from(schema.research_fields).where(eq(schema.research_fields.project_id, projectId)).execute()).map(r => r.id);
+      const gaIds = (await db.select({ id: schema.genericAssets.id }).from(schema.genericAssets).where(eq(schema.genericAssets.project_id, projectId)).execute()).map(r => r.id);
       const conds = [];
-      if (fieldIds.length) conds.push(inArray(schema.vocabularies.field_id, fieldIds));
-      if (assetIds.length) conds.push(inArray(schema.vocabularies.main_asset_id, assetIds));
+      if (rfIds.length) conds.push(inArray(schema.vocabularies.field_id, rfIds));
+      if (gaIds.length) conds.push(inArray(schema.vocabularies.main_asset_id, gaIds));
       if (conds.length) {
           loadIntoDoc('vocabularies', await db.select().from(schema.vocabularies).where(or(...conds)).execute());
       }
