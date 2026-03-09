@@ -289,13 +289,12 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false } = 
   // Optional debug: enable by setting env P2P_DEBUG_COMPUTEDIFF=1
   try {
     if (true || process?.env?.P2P_DEBUG_COMPUTEDIFF === '1') {
-      console.log('[RemoteIngestion] Diff classification', {
+      console.dir({ msg: '[RemoteIngestion] Diff classification',
         diffs: diffs.length,
         inserts: inserts.length,
         updates: updates.length,
         deletes: deletes.length,
-        sample: diffs.slice(0, 100)
-      })
+        sample: diffs.slice(0, 20) }, { depth: null });
     }
   } catch (_) {}
 

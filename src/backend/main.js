@@ -23,7 +23,7 @@ import { suggestFieldMappings } from './handlers/importHandler.js';
 import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.js';
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
-import { getProjectDoc } from './services/projectCache.js';
+import { getProjectDoc, getCurrentProjectId } from './services/projectCache.js';
 import { startP2PForProject } from './services/p2pService.js';
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';

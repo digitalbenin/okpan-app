@@ -50,7 +50,7 @@ async function getWtClient() {
     _WebTorrentModule = m.default || m;
   }
   if (!_wtClient || _wtClient.destroyed) {
-    _wtClient = new _WebTorrentModule({ maxConns: 30 });
+    _wtClient = new _WebTorrentModule({ maxConns: 30, dht: false, lsd: false, tracker: false });
     _wtClient.on('error', (err) => console.error('[AssetTorrent] client error:', err?.message));
   }
   return _wtClient;
@@ -298,6 +298,13 @@ async function persistDownloadedAsset(assetId, isGeneric, originalPath) {
   }
 }
 
+function resolveDownloadedFilePath(expectedPath, torrent) {
+  if (expectedPath && fs.existsSync(expectedPath)) return expectedPath;
+
+  const fallback = torrent?.files?.find((file) => file?.path && fs.existsSync(file.path))?.path;
+  return fallback || null;
+}
+
 async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGeneric }) {
   const client   = await getWtClient();
   const safeName = sanitizeName(torrentName);
@@ -394,24 +401,27 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
           active.delete(assetId);
           pendingPeerSignals.delete(infoHash);
           try {
-            if (!fs.existsSync(expected)) {
-              const fallback = torrent.files?.[0]?.path;
-              if (!fallback || !fs.existsSync(fallback)) throw new Error(`File not found at ${expected}`);
+            const actualPath = resolveDownloadedFilePath(expected, torrent);
+            if (!actualPath) {
+              throw new Error(`Downloaded file not found for ${assetId}; expected ${expected}`);
             }
+
+            if (actualPath !== expected) {
+              console.warn(`[AssetTorrent] Download completed at fallback path for ${assetId}: ${actualPath}`);
+            }
+
+            await persistDownloadedAsset(assetId, isGeneric, actualPath);
             await upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, last_success_at: Date.now(), download_progress: 100, retry_count: 0 });
             emitSyncProgress(assetId, isGeneric, 'seeding', 100);
             seededHashes.add(torrent.infoHash);
-            console.log(`[AssetTorrent] Download done: assetId=${assetId} path=${expected}`);
-            // Update local path and (for images) generate sm/md variants — non-blocking.
-            persistDownloadedAsset(assetId, isGeneric, expected).catch((err) =>
-              console.warn(`[AssetTorrent] persistDownloadedAsset error ${assetId}:`, err?.message)
-            );
+            console.log(`[AssetTorrent] Download done: assetId=${assetId} path=${actualPath}`);
           } catch (err) {
             console.error(`[AssetTorrent] post-download error ${assetId}:`, err?.message);
             await handleDownloadError({ projectId, assetId, isGeneric, errCode: classifyError(err) });
           }
           drainQueue(projectId);
-          settle({ success: true, path: expected });
+          const finalPath = resolveDownloadedFilePath(expected, torrent) || expected;
+          settle({ success: fs.existsSync(finalPath), path: finalPath });
         });
 
         torrent.on('error', async (err) => {
