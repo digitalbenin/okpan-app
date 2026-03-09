@@ -79,6 +79,8 @@ export const setRowFields = (rowMap, fieldsObj) => {
      }
 
      if (isDifferent) {
+        rowMap.set(k, v);
+     }
   });
 };
 
