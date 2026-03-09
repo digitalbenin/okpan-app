@@ -1,5 +1,6 @@
 import * as Y from 'yjs'
 import { diff as deepDiff } from '@opentf/obj-diff'
+import crypto from 'crypto'
 import { db } from '../../db/init.js'
 import * as schema from '../../db/schema.js'
 import { eq } from 'drizzle-orm'
@@ -301,25 +302,31 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false } = 
   return { inserts, updates, deletes }
 }
 
-async function applyInsert(tableName, id, row) {
+async function applyInsert(dbOrTx, tableName, id, row) {
   const table = resolveTable(tableName)
   if (!table) return
   // Ensure id field present
   const values = { id, ...sanitizeRowForDb(row, { dropCreatedAt: true, tableName }) }
-  await db.insert(table).values(values).execute()
+  const updateValues = { ...values }
+  delete updateValues.id
+  if (Object.keys(updateValues).length > 0) {
+    await dbOrTx.insert(table).values(values).onConflictDoUpdate({ target: table.id, set: updateValues }).execute()
+  } else {
+    await dbOrTx.insert(table).values(values).onConflictDoNothing().execute()
+  }
 }
 
-async function applyUpdate(tableName, id, row) {
+async function applyUpdate(dbOrTx, tableName, id, row) {
   const table = resolveTable(tableName)
   if (!table) return
   const values = { ...sanitizeRowForDb(row, { dropCreatedAt: true, tableName }) }
-  await db.update(table).set(values).where(eq(table.id, id)).execute()
+  await dbOrTx.update(table).set(values).where(eq(table.id, id)).execute()
 }
 
-async function applyDelete(tableName, id) {
+async function applyDelete(dbOrTx, tableName, id) {
   const table = resolveTable(tableName)
   if (!table) return
-  await db.delete(table).where(eq(table.id, id)).execute()
+  await dbOrTx.delete(table).where(eq(table.id, id)).execute()
 }
 
 /**
@@ -464,12 +471,23 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
               continue
             }
             // Avoid aborting the transaction when rows already exist locally.
-            // If the PK (id) is already present, treat the insert as idempotent.
-            await tx
-              .insert(tableRef)
-              .values({ id: ins.id, ...payload })
-              .onConflictDoNothing({ target: tableRef.id })
-              .execute()
+            // If the PK (id) is already present, perform an upsert to respect newer modifications
+            // that occurred while offline or due to sync desync.
+            const insertValues = { id: ins.id, ...payload }
+            const updateValues = { ...payload }
+            if (Object.keys(updateValues).length > 0) {
+              await tx
+                .insert(tableRef)
+                .values(insertValues)
+                .onConflictDoUpdate({ target: tableRef.id, set: updateValues })
+                .execute()
+            } else {
+              await tx
+                .insert(tableRef)
+                .values(insertValues)
+                .onConflictDoNothing({ target: tableRef.id })
+                .execute()
+            }
             applied += 1
             remainingInserts.splice(i, 1)
             progress = true
@@ -542,6 +560,19 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     deferredInserts = remainingInserts.length
     deferredUpdates = remainingUpdates.length
     deferredDeletes = remainingDeletes.length
+
+    // Persist remote update bytes so app restarts can hydrate this exact vector natively
+    if (updateBytes && updateBytes.length > 0 && (inserts.length > 0 || updates.length > 0 || deletes.length > 0)) {
+      try {
+        await tx.insert(schema.yjs_updates).values({
+          id: crypto.randomUUID(),
+          project_id: projectId,
+          update_bytes: Buffer.from(updateBytes)
+        }).execute()
+      } catch (err) {
+        console.warn('[RemoteIngestion] Failed to store update_bytes', err?.message)
+      }
+    }
   })
 
   const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: options?.beforeDoc ? 'baseline-before-after' : 'shadow-before-after' }

@@ -57,8 +57,8 @@ console.warn = (...args) => {
 // Suppress normal network socket timeouts (often caused by WebTorrent tracker
 // requests) from showing disruptive system error dialogs in Electron.
 process.on('uncaughtException', (error) => {
-  if (error?.code === 'ETIMEDOUT' || error?.code === 'ECONNREFUSED' || error?.code === 'ECONNRESET') {
-    console.warn('[Network] Suppressed uncaught socket error:', error.message);
+  if (error?.code === 'ETIMEDOUT' || error?.code === 'ECONNREFUSED' || error?.code === 'ECONNRESET' || error?.code === 'ENOTFOUND') {
+    console.warn('[Network] Suppressed uncaught socket/DNS error:', error.message);
     return;
   }
   console.error('Uncaught Exception:', error);

@@ -955,6 +955,7 @@ END;
 -- institutions
 CREATE TRIGGER IF NOT EXISTS trg_institutions_change_log_insert
 AFTER INSERT ON institutions
+WHEN NEW.project_id IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -987,6 +988,7 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_institutions_change_log_update
 AFTER UPDATE ON institutions
+WHEN COALESCE(NEW.project_id, OLD.project_id) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -1393,6 +1395,7 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_institutions_change_log_delete
 AFTER DELETE ON institutions
+WHEN OLD.project_id IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
