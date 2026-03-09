@@ -13,6 +13,8 @@
 
   let dropdownOpen = $state(false);
   let showDeleteModal = $state(false);
+  let showSharingModal = $state(false);
+  let idCopied = $state(false);
   let confirmationText = $state("");
 
   const dropdownItems = $derived([
@@ -39,6 +41,14 @@
       icon: "pencil",
       onClick: () => {
         goto(`/projects/${project.id}/settings/general`);
+      },
+    },
+    {
+      label: t("project.get-sharing-id", { fallback: "Get project sharing ID" }),
+      icon: "share",
+      onClick: () => {
+        showSharingModal = true;
+        idCopied = false;
       },
     },
     {
@@ -74,6 +84,16 @@
     showDeleteModal = false;
     confirmationText = "";
   }
+
+  async function handleCopySharingId() {
+    try {
+      await navigator.clipboard.writeText(project.id);
+      idCopied = true;
+      setTimeout(() => { idCopied = false; }, 3000);
+    } catch (err) {
+      console.error("Failed to copy!", err);
+    }
+  }
 </script>
 
 <div
@@ -104,6 +124,41 @@
     <div class="pe-3">Username</div>
   </div>
 </div>
+
+<!-- Sharing ID modal -->
+{#if showSharingModal}
+  <BaseAlertDialog bind:open={showSharingModal}>
+    {#snippet title()}
+      {t("project.sharing-id", { fallback: "Project Sharing ID" })}
+    {/snippet}
+    {#snippet description()}
+      <p>
+        {t("project.sharing-id-description", {
+          fallback: "Share this ID with others so they can join your project sync session:"
+        })}
+      </p>
+      <div class="input-group mb-3">
+        <input type="text" class="form-control" value={project.id} readonly />
+        <button class="btn btn-outline-secondary" onclick={handleCopySharingId}>
+          <i class={`bi bi-${idCopied ? 'check2 text-success' : 'clipboard'}`}></i> 
+          {idCopied 
+            ? t("common.copied", { fallback: "Copied!" }) 
+            : t("common.copy", { fallback: "Copy" })}
+        </button>
+      </div>
+      {#if idCopied}
+        <p class="text-success small mb-0">
+          ID copied to your clipboard.
+        </p>
+      {/if}
+    {/snippet}
+    {#snippet footer()}
+      <button class="btn btn-secondary" onclick={() => (showSharingModal = false)}>
+        {t("common.close", { fallback: "Close" })}
+      </button>
+    {/snippet}
+  </BaseAlertDialog>
+{/if}
 
 <!-- Delete confirmation modal -->
 {#if showDeleteModal}
