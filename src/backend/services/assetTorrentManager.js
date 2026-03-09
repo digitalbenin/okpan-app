@@ -382,7 +382,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
         torrent.on('warning', (w) => console.warn(`[AssetTorrent] warning ${assetId}:`, w?.message || w));
         torrent.on('wire',    (w) => console.log(`[AssetTorrent] peer connected ${assetId}: ${w.remoteAddress}`));
-        torrent.on('noPeers', (t) => console.warn(`[AssetTorrent] no peers ${assetId} (${t})`));
+        // torrent.on('noPeers', (t) => console.warn(`[AssetTorrent] no peers ${assetId} (${t})`)); // Removed to prevent log spam when seeding
         torrent.on('ready',   ()  => console.log(`[AssetTorrent] metadata ready ${assetId} peers=${torrent.numPeers}`));
         torrent.on('download', () => {
           const pct = torrent.length > 0 ? Math.round((torrent.downloaded / torrent.length) * 100) : 0;
