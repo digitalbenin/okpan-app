@@ -25,7 +25,7 @@
       isSyncing = true;
       statusMessage = "Setting current project...";
 
-      const res = await window.electronAPI.setCurrentProject(projectId.trim());
+      const res = await window.api.setCurrentProject(projectId.trim());
       if (!res?.success) {
         throw new Error(res?.error || "Failed to set up project sync.");
       }
@@ -38,7 +38,7 @@
       const TIMEOUT_MS = 10000; // 10 seconds timeout
 
       while (Date.now() - startTime < TIMEOUT_MS) {
-        const peers = await window.electronAPI.getProjectPeers(projectId.trim());
+        const peers = await window.api.getProjectPeers(projectId.trim());
         if (peers > 0) {
           peersFound = true;
           break;
