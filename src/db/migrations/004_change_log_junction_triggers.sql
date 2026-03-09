@@ -5,6 +5,10 @@
 -- objects_assets
 CREATE TRIGGER IF NOT EXISTS trg_objects_assets_change_log_insert
 AFTER INSERT ON objects_assets
+WHEN COALESCE(
+  (SELECT project_id FROM objects WHERE id = NEW.object_id),
+  (SELECT project_id FROM assets WHERE id = NEW.asset_id)
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -32,6 +36,10 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_objects_assets_change_log_update
 AFTER UPDATE ON objects_assets
+WHEN COALESCE(
+  (SELECT project_id FROM objects WHERE id = COALESCE(NEW.object_id, OLD.object_id)),
+  (SELECT project_id FROM assets WHERE id = COALESCE(NEW.asset_id, OLD.asset_id))
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -66,6 +74,10 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_objects_assets_change_log_delete
 AFTER DELETE ON objects_assets
+WHEN COALESCE(
+  (SELECT project_id FROM objects WHERE id = OLD.object_id),
+  (SELECT project_id FROM assets WHERE id = OLD.asset_id)
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -94,6 +106,10 @@ END;
 -- assets_institutions
 CREATE TRIGGER IF NOT EXISTS trg_assets_institutions_change_log_insert
 AFTER INSERT ON assets_institutions
+WHEN COALESCE(
+  (SELECT project_id FROM institutions WHERE id = NEW.institution_id),
+  (SELECT project_id FROM assets WHERE id = NEW.asset_id)
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -121,6 +137,10 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_assets_institutions_change_log_update
 AFTER UPDATE ON assets_institutions
+WHEN COALESCE(
+  (SELECT project_id FROM institutions WHERE id = COALESCE(NEW.institution_id, OLD.institution_id)),
+  (SELECT project_id FROM assets WHERE id = COALESCE(NEW.asset_id, OLD.asset_id))
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -155,6 +175,10 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_assets_institutions_change_log_delete
 AFTER DELETE ON assets_institutions
+WHEN COALESCE(
+  (SELECT project_id FROM institutions WHERE id = OLD.institution_id),
+  (SELECT project_id FROM assets WHERE id = OLD.asset_id)
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -183,6 +207,10 @@ END;
 -- objects_research_fields
 CREATE TRIGGER IF NOT EXISTS trg_objects_research_fields_change_log_insert
 AFTER INSERT ON objects_research_fields
+WHEN COALESCE(
+  (SELECT project_id FROM objects WHERE id = NEW.object_id),
+  (SELECT project_id FROM research_fields WHERE id = NEW.field_id)
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -211,6 +239,10 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_objects_research_fields_change_log_update
 AFTER UPDATE ON objects_research_fields
+WHEN COALESCE(
+  (SELECT project_id FROM objects WHERE id = COALESCE(NEW.object_id, OLD.object_id)),
+  (SELECT project_id FROM research_fields WHERE id = COALESCE(NEW.field_id, OLD.field_id))
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -247,6 +279,10 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_objects_research_fields_change_log_delete
 AFTER DELETE ON objects_research_fields
+WHEN COALESCE(
+  (SELECT project_id FROM objects WHERE id = OLD.object_id),
+  (SELECT project_id FROM research_fields WHERE id = OLD.field_id)
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -276,6 +312,11 @@ END;
 -- objects_ontology_fields
 CREATE TRIGGER IF NOT EXISTS trg_objects_ontology_fields_change_log_insert
 AFTER INSERT ON objects_ontology_fields
+WHEN COALESCE(
+  (SELECT project_id FROM objects WHERE id = NEW.object_id),
+  (SELECT project_id FROM ontology_fields WHERE id = NEW.field_id),
+  (SELECT project_id FROM institutions WHERE id = (SELECT institution_id FROM datasources WHERE id = NEW.datasources_id))
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -308,6 +349,11 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_objects_ontology_fields_change_log_update
 AFTER UPDATE ON objects_ontology_fields
+WHEN COALESCE(
+  (SELECT project_id FROM objects WHERE id = COALESCE(NEW.object_id, OLD.object_id)),
+  (SELECT project_id FROM ontology_fields WHERE id = COALESCE(NEW.field_id, OLD.field_id)),
+  (SELECT project_id FROM institutions WHERE id = (SELECT institution_id FROM datasources WHERE id = COALESCE(NEW.datasources_id, OLD.datasources_id)))
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -351,6 +397,11 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_objects_ontology_fields_change_log_delete
 AFTER DELETE ON objects_ontology_fields
+WHEN COALESCE(
+  (SELECT project_id FROM objects WHERE id = OLD.object_id),
+  (SELECT project_id FROM ontology_fields WHERE id = OLD.field_id),
+  (SELECT project_id FROM institutions WHERE id = (SELECT institution_id FROM datasources WHERE id = OLD.datasources_id))
+) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -473,6 +524,7 @@ END;
 -- objects_datasources
 CREATE TRIGGER IF NOT EXISTS trg_objects_datasources_change_log_insert
 AFTER INSERT ON objects_datasources
+WHEN (SELECT project_id FROM objects WHERE id = NEW.object_id) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -497,6 +549,7 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_objects_datasources_change_log_update
 AFTER UPDATE ON objects_datasources
+WHEN (SELECT project_id FROM objects WHERE id = COALESCE(NEW.object_id, OLD.object_id)) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
@@ -528,6 +581,7 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS trg_objects_datasources_change_log_delete
 AFTER DELETE ON objects_datasources
+WHEN (SELECT project_id FROM objects WHERE id = OLD.object_id) IS NOT NULL
 BEGIN
   INSERT INTO change_log (id, project_id, table_name, op, row_id, client_id, origin, new_row, old_row)
   VALUES (
