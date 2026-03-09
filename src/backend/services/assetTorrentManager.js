@@ -228,6 +228,80 @@ function cleanupSignalingPeer(infoHash) {
   if (entry) { try { entry.peer.destroy(); } catch (_) {} pendingPeerSignals.delete(infoHash); }
 }
 
+function resolveCandidateAssetPaths(projectId, row) {
+  const safeName = sanitizeName(row.torrent_name || path.basename(row.path || 'asset.bin'));
+  const localPath = path.join(ASSET_BASE_PATH, projectId, safeName);
+  const candidates = [row.path, row.formats?.original, localPath]
+    .filter((value, index, arr) => typeof value === 'string' && value.length > 0 && arr.indexOf(value) === index);
+
+  return {
+    safeName,
+    localPath,
+    existingPath: candidates.find((candidate) => fs.existsSync(candidate)) || null,
+  };
+}
+
+async function repairAssetStateTable({ projectId, assetTable, stateTable, isGeneric }) {
+  const stateIdCol = isGeneric ? stateTable.generic_asset_id : stateTable.asset_id;
+  const assetRows = await db
+    .select({
+      id: assetTable.id,
+      path: assetTable.path,
+      formats: assetTable.formats,
+      torrent_info_hash: assetTable.torrent_info_hash,
+      torrent_name: assetTable.torrent_name,
+    })
+    .from(assetTable)
+    .where(and(eq(assetTable.project_id, projectId), isNotNull(assetTable.torrent_info_hash)))
+    .execute();
+
+  if (!assetRows.length) return { repaired: 0 };
+
+  const stateRows = await db.select().from(stateTable).where(inArray(stateIdCol, assetRows.map((row) => row.id))).execute();
+  const stateMap = new Map(stateRows.map((state) => [state[isGeneric ? 'generic_asset_id' : 'asset_id'], state]));
+  const active = getOrSet(activeDownloads, projectId, () => new Set());
+  let repaired = 0;
+
+  for (const row of assetRows) {
+    const state = stateMap.get(row.id);
+    if (!state) continue;
+
+    const status = state.sync_status ?? null;
+    const { existingPath } = resolveCandidateAssetPaths(projectId, row);
+    const hasFile = !!existingPath;
+
+    if ((status === 'seeding' || status === 'available') && !hasFile) {
+      await upsertLocalState(row.id, isGeneric, { sync_status: 'missing', sync_error: null, download_progress: 0 });
+      repaired += 1;
+      continue;
+    }
+
+    if (status === 'downloading' && !active.has(row.id) && !hasFile) {
+      await upsertLocalState(row.id, isGeneric, { sync_status: 'missing', sync_error: null, download_progress: 0 });
+      repaired += 1;
+    }
+  }
+
+  return { repaired };
+}
+
+async function repairProjectAssetStates(projectId) {
+  if (!projectId) return { repaired: 0 };
+
+  const results = await Promise.all([
+    repairAssetStateTable({ projectId, assetTable: assets, stateTable: asset_local_state, isGeneric: false }),
+    repairAssetStateTable({ projectId, assetTable: genericAssets, stateTable: generic_asset_local_state, isGeneric: true }),
+  ]);
+
+  const repaired = results.reduce((sum, result) => sum + (result?.repaired || 0), 0);
+  if (repaired > 0) {
+    console.warn(`[AssetTorrent] Repaired ${repaired} stale local asset sync state rows for project ${projectId}`);
+    scheduleAssetReconcile(projectId);
+  }
+
+  return { repaired };
+}
+
 
 export async function seedAsset({ projectId, assetId, filePath, isGeneric = false }) {
   if (!projectId || !assetId || !filePath) return null;
@@ -537,6 +611,7 @@ async function reconcileProject(projectId, specificAssetId = null) {
   reconcileRunning.add(projectId);
   console.log(`[AssetTorrent] Reconcile: project=${projectId}${specificAssetId ? ` asset=${specificAssetId}` : ''}`);
   try {
+    await repairProjectAssetStates(projectId);
     if (!specificAssetId) await seedUnseededLocalAssets(projectId);
     await reconcileTable({ projectId, isGeneric: false, specificAssetId });
     await reconcileTable({ projectId, isGeneric: true,  specificAssetId });
@@ -557,7 +632,7 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
     if (specificAssetId) conditions.push(eq(assetTable.id, specificAssetId));
 
     const assetRows = await db
-      .select({ id: assetTable.id, path: assetTable.path, torrent_info_hash: assetTable.torrent_info_hash, torrent_name: assetTable.torrent_name })
+      .select({ id: assetTable.id, path: assetTable.path, formats: assetTable.formats, torrent_info_hash: assetTable.torrent_info_hash, torrent_name: assetTable.torrent_name })
       .from(assetTable).where(and(...conditions)).execute();
 
     if (!assetRows.length) return;
@@ -568,11 +643,9 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
     for (const row of assetRows) {
       const state    = stateMap.get(row.id);
       const status   = state?.sync_status ?? null;
-      const safeName = sanitizeName(row.torrent_name || path.basename(row.path || 'asset.bin'));
-      const local    = path.join(ASSET_BASE_PATH, projectId, safeName);
-      const hasOrig  = row.path && fs.existsSync(row.path);
-      const hasFile  = hasOrig || fs.existsSync(local);
-      const filePath = hasOrig ? row.path : local;
+      const { safeName, existingPath } = resolveCandidateAssetPaths(projectId, row);
+      const hasFile  = !!existingPath;
+      const filePath = existingPath;
 
       if ((status === 'seeding' || status === 'available') && hasFile) {
         if (!seededHashes.has(row.torrent_info_hash))
@@ -657,6 +730,7 @@ export async function resetErroredAssets(projectId) {
 export async function getProjectSyncStatus(projectId) {
   if (!projectId) return null;
   try {
+    await repairProjectAssetStates(projectId);
     const assetRows = await db.select({ id: assets.id }).from(assets)
       .where(and(eq(assets.project_id, projectId), isNotNull(assets.torrent_info_hash))).execute();
     const gaRows = await db.select({ id: genericAssets.id }).from(genericAssets)
