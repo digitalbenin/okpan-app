@@ -287,13 +287,13 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false } = 
 
   // Optional debug: enable by setting env P2P_DEBUG_COMPUTEDIFF=1
   try {
-    if (process?.env?.P2P_DEBUG_COMPUTEDIFF === '1') {
+    if (true || process?.env?.P2P_DEBUG_COMPUTEDIFF === '1') {
       console.log('[RemoteIngestion] Diff classification', {
         diffs: diffs.length,
         inserts: inserts.length,
         updates: updates.length,
         deletes: deletes.length,
-        sample: diffs.slice(0, 5)
+        sample: diffs.slice(0, 100)
       })
     }
   } catch (_) {}
@@ -396,8 +396,10 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   let deferredUpdates = 0
   let deferredDeletes = 0
 
-  console.log('[RemoteIngestion] Diff Tables:', [...new Set(inserts.map(i => i.table))])
-  const unmapped = [...new Set(inserts.map(i => i.table))].filter(t => !FK_ORDER.includes(t))
+  console.log('[RemoteIngestion] Diff Tables (Inserts):', [...new Set(inserts.map(i => i.table))])
+  console.log('[RemoteIngestion] Diff Tables (Updates):', [...new Set(updates.map(i => i.table))])
+
+  const unmapped = [...new Set([...inserts.map(i => i.table), ...updates.map(i => i.table)])].filter(t => !FK_ORDER.includes(t))
   console.log('[RemoteIngestion] Unmapped Tables:', unmapped)
   if (unmapped.length > 0) {
     console.warn('[RemoteIngestion] IGNORING UNMAPPED TABLES! THESE WILL BE DEFERRED:', unmapped)
