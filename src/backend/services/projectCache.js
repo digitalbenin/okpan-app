@@ -61,15 +61,24 @@ export const ensureRowMap = (projectId, tableName, rowId) => {
  */
 export const setRowFields = (rowMap, fieldsObj) => {
   Object.entries(fieldsObj).forEach(([k, v]) => {
-     // Check if value is actually different to avoid unnecessary Yjs ops
-     // For objects/arrays, we might want deep equality, but strict equality is safer for primitives
-     // Yjs handles this internally too, but doing it here prevents "op" generation?
-     // Actually Yjs Map.set(k,v) generates an op even if value is same? 
-     // Yes: "Yjs sets are always updates". Even if value is same.
      const current = rowMap.get(k);
-     if (current !== v) { 
-        rowMap.set(k, v);
+     let isDifferent = current !== v;
+
+     // Fast path for primitives, but for objects/arrays/dates we use stringification or value comparison
+     if (isDifferent && current != null && v != null && typeof current === 'object' && typeof v === 'object') {
+       if (current instanceof Date && v instanceof Date) {
+         isDifferent = current.getTime() !== v.getTime();
+       } else {
+         try {
+           // Provide basic deep equality for JSON string/arrays
+           isDifferent = JSON.stringify(current) !== JSON.stringify(v);
+         } catch (e) {
+           isDifferent = true; // Fallback to updating if stringify fails
+         }
+       }
      }
+
+     if (isDifferent) {
   });
 };
 

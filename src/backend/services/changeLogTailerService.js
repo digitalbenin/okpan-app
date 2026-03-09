@@ -61,7 +61,7 @@ async function fetchNextChangeBatch(projectId, batchSize) {
       .where(eq(change_log.id, lastId))
       .limit(1)
       .execute();
-    lastRowid = lastRowidRows[0]?.rowid || 0;
+    lastRowid = Number(lastRowidRows[0]?.rowid || 0);
   }
 
   // Select only metadata columns to avoid materializing huge JSON strings
@@ -228,7 +228,16 @@ async function applyBatchToDoc(projectId, rows) {
       if (payload.created_at) delete payload.created_at;
       if (payload.updated_at) delete payload.updated_at;
       if (payload.initialized_at) delete payload.initialized_at;
-      
+
+      // Yjs network serialization degrades Date objects into empty {}.
+      // Convert them to numeric timestamps so they sync correctly across peers
+      // and allow strict equivalence checking.
+      for (const key of Object.keys(payload)) {
+        if (payload[key] instanceof Date) {
+          payload[key] = payload[key].getTime();
+        }
+      }
+
       ops.push({ kind: 'set', tableName, rowId, payload });
     } catch (err) {
       console.error('Tailer prep error:', err);
@@ -303,15 +312,23 @@ async function applyBatchToDoc(projectId, rows) {
   return { fromId, toId, changed };
 }
 
+let nullFetchCounter = 0;
 export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST_BATCH_SIZE) {
   if (!projectId) return false;
   if (tailerLocks.get(projectId)) return false;
   tailerLocks.set(projectId, true);
   try {
     const rows = await fetchNextChangeBatch(projectId, batchSize);
-    if (!rows || rows.length === 0) return false;
+    if (!rows || rows.length === 0) {
+      if (nullFetchCounter++ % 10 === 0) {
+        // console.log('[Tailer] Fetched 0 rows (throlling log)');
+      }
+      return false;
+    }
+    nullFetchCounter = 0;
+    console.log('[Tailer] Fetched batch', { projectId, foundCount: rows?.length || 0 });
     const res = await applyBatchToDoc(projectId, rows);
-    console.log('[Tailer] Applied batch', { projectId, fromId: res?.fromId, toId: res?.toId, changed: !!res?.changed });
+    console.log('[Tailer] Applied batch', { projectId, fromId: res?.fromId, toId: res?.toId, changed: !!res?.changed, rowCount: rows.length });
     return true;
   } catch (error) {
     console.error('Error ingesting change_log:', error);
@@ -321,11 +338,19 @@ export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST
   }
 }
 
-export function startChangeLogTailer({ intervalMs = DEFAULT_INGEST_INTERVAL_MS, batchSize = DEFAULT_INGEST_BATCH_SIZE } = {}) {
+let intervalCounter = 0;
+export function startChangeLogTailer({ intervalMs = 1000, batchSize = 200 } = {}) {
+  // Debug log to ensure the tailer actually started
+  console.log('[Tailer] Loop started');
   setInterval(async () => {
     try {
-      if (!hasCurrentProjectId()) return;
+      if (!hasCurrentProjectId()) {
+        if (intervalCounter++ % 10 === 0) console.log('[Tailer] Loop ticking: no project id');
+        return;
+      }
+      if (intervalCounter++ % 10 === 0) console.log('[Tailer] Loop ticking for project', getCurrentProjectId());
       const projectId = getCurrentProjectId();
+      
       let progressed = true;
       let safeGuard = 5;
       while (progressed && safeGuard > 0) {
