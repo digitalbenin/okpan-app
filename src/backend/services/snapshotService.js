@@ -29,7 +29,8 @@ const TABLES = [
   'assets_institutions',
   'objects_research_fields',
   'objects_ontology_fields',
-  'vocabularies_generic_assets'
+  'vocabularies_generic_assets',
+  'objects_datasources'
 ];
 
 function ensureParentTypes(doc) {
@@ -218,10 +219,6 @@ export async function hydrateProjectFromDatabase(projectId) {
 
   // 2. Validation
   const stats = countDocRows(doc);
-  if (stats.total > 0) {
-      console.log('[Snapshot] Hydrated successfully from History', { projectId, rows: stats.total });
-      return { applied: historyApplied, source: 'history' };
-  }
 
   // 3. Fallback / Migration Strategy
   // If History yielded 0 rows, check if SQLite has data.
@@ -235,6 +232,24 @@ export async function hydrateProjectFromDatabase(projectId) {
       const pCount = (await db.select({ c: sql`COUNT(*)` }).from(schema.project).where(eq(schema.project.id, projectId)).execute())[0].c;
       dbHasData = (pCount > 0);
   } catch {}
+
+  const processDocHasProject = doc.getMap('tables').get('project')?.size > 0;
+
+  if (stats.total > 0 && (!dbHasData || processDocHasProject)) {
+      console.log('[Snapshot] Hydrated successfully from History', { projectId, rows: stats.total });
+      return { applied: historyApplied, source: 'history' };
+  } else if (stats.total > 0 && dbHasData && !processDocHasProject) {
+      console.warn('[Snapshot] History was partially corrupted (missing project table). Forcing re-hydration from SQLite.', { projectId });
+      // Clear Y.Doc to trigger Deep Hydration
+      doc.getMap('tables').clear();
+      try {
+        await db.delete(schema.yjs_snapshots).where(eq(schema.yjs_snapshots.project_id, projectId)).execute();
+        await db.delete(schema.yjs_updates).where(eq(schema.yjs_updates.project_id, projectId)).execute();
+        await db.update(schema.ingestion_state).set({ last_processed_change_id: null }).where(eq(schema.ingestion_state.project_id, projectId)).execute();
+      } catch (err) {
+        console.warn('[Snapshot] Failed wiping corrupt history', err);
+      }
+  }
 
   if (!dbHasData) {
       // Empty DB, Empty Doc. Clean slate.

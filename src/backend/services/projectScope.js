@@ -20,6 +20,7 @@ export const FK_ORDER = [
   'vocabularies',
   'vocabularies_generic_assets',
   'objects_assets',
+  'objects_datasources',
   'assets_institutions',
   'objects_research_fields',
   'objects_ontology_fields',

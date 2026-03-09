@@ -152,6 +152,7 @@ const CONTEXT_REQUIREMENTS = {
   objects_ontology_fields: ['object_id', 'field_id', 'datasources_id'], // any
   vocabularies: ['field_id', 'main_asset_id'], // either
   vocabularies_generic_assets: ['generic_asset_id', 'vocabulary_id'], // either
+  objects_datasources: ['object_id', 'datasource_id', 'template_id'], // any
   object_display_fields: ['project_id'],
   settings: ['project_id'],
   website_settings: ['project_id']
