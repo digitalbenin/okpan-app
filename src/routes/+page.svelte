@@ -4,6 +4,7 @@
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
   import ProjectImport from "$lib/components/projects/ProjectImport.svelte";
+  import ProjectSync from "$lib/components/projects/ProjectSync.svelte";
   import { goto, invalidateAll } from "$app/navigation";
   import { page } from "$app/stores";
 
@@ -12,6 +13,7 @@
 
   let newProjectOpen = $state(false);
   let importProjectOpen = $state(false);
+  let syncProjectOpen = $state(false);
 
   // Watch for URL parameters to trigger modals
   $effect(() => {
@@ -45,6 +47,15 @@
           importProjectOpen = true;
         }, 100);
       }
+    },
+    {
+      label: t("project.sync-project", { fallback: "Sync project" }),
+      icon: "cloud-arrow-down",
+      onClick: () => {
+        setTimeout(() => {
+          syncProjectOpen = true;
+        }, 100);
+      }
     }
   ];
 
@@ -64,16 +75,31 @@
 
   async function handleImported({ projectId, metadata }) {
     importProjectOpen = false;
-    
+
     // Invalidate all data to refresh the projects list
     await invalidateAll();
-    
+
     if (!projectId) {
       console.warn('[Projects] Missing projectId in handleImported');
       return;
     }
-    
+
     // Navigate to the imported project
+    const path = `/projects/${projectId}`;
+    try {
+      await goto(path);
+    } catch (err) {
+      console.error('[Projects] Navigation failed', err);
+    }
+  }
+
+  async function handleSynced({ projectId }) {
+    syncProjectOpen = false;
+    
+    // Invalidate all data to refresh the projects list
+    await invalidateAll();
+
+    // Navigate to the synced project
     const path = `/projects/${projectId}`;
     try {
       await goto(path);
@@ -125,6 +151,17 @@
     {/snippet}
     {#snippet description()}
       <ProjectImport onImported={handleImported}></ProjectImport>
+    {/snippet}
+  </BaseAlertDialog>
+{/if}
+
+{#if syncProjectOpen}
+  <BaseAlertDialog bind:open={syncProjectOpen} size="lg">
+    {#snippet title()}
+      {t("project.sync-project", { fallback: "Sync project" })}
+    {/snippet}
+    {#snippet description()}
+      <ProjectSync onSynced={handleSynced}></ProjectSync>
     {/snippet}
   </BaseAlertDialog>
 {/if}

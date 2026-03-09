@@ -24,7 +24,7 @@ import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.j
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { getProjectDoc, getCurrentProjectId } from './services/projectCache.js';
-import { startP2PForProject } from './services/p2pService.js';
+import { startP2PForProject, getProjectPeersCount } from './services/p2pService.js';
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';
 import { eq, sql, isNull } from 'drizzle-orm';
@@ -187,6 +187,10 @@ ipcMain.handle('set-current-project', async (event, projectId) => {
 });
 ipcMain.handle('get-current-project', handleGetCurrentProject);
 ipcMain.handle('clear-current-project', handleClearCurrentProject);
+
+ipcMain.handle('get-project-peers', (event, projectId) => {
+  return getProjectPeersCount(projectId);
+});
 
 // Y.Doc inspection handler (returns plain JS object)
 ipcMain.handle('ydoc-dump', async (event, projectId) => {

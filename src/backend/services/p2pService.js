@@ -213,3 +213,13 @@ export async function stopP2PForProject(projectId) {
 export function getP2PProvider(projectId) {
   return providers.get(projectId)?.provider || null
 }
+
+/**
+ * Get the number of connected peers for a project.
+ */
+export function getProjectPeersCount(projectId) {
+  const entry = providers.get(projectId)
+  if (!entry || !entry.awareness) return 0;
+  // awareness.getStates() includes ourselves, so subtract 1
+  return Math.max(0, entry.awareness.getStates().size - 1);
+}

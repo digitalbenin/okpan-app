@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('api', {
     setCurrentProject: (projectId) => ipcRenderer.invoke('set-current-project', projectId),
     getCurrentProject: () => ipcRenderer.invoke('get-current-project'),
     clearCurrentProject: () => ipcRenderer.invoke('clear-current-project'),
+    getProjectPeers: (projectId) => ipcRenderer.invoke('get-project-peers', projectId),
 
     // Y.Doc inspection
     inspectYDoc: (projectId) => ipcRenderer.invoke('ydoc-dump', projectId),
