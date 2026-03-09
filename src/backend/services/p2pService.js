@@ -30,6 +30,18 @@ function safeGetMap(doc, name) {
     return tables.get(name);
 }
 
+function syncBaselineFromCanonical(projectId, baselineDoc, canonicalDoc) {
+  try {
+    const snapshot = Y.encodeStateAsUpdate(canonicalDoc)
+    Y.applyUpdate(baselineDoc, snapshot)
+    const baselineStats = countDocTables(baselineDoc)
+    const canonicalStats = countDocTables(canonicalDoc)
+    console.log('[P2P] Baseline synced from canonical', { projectId, baseline: baselineStats, canonical: canonicalStats })
+  } catch (err) {
+    console.warn('[P2P] Failed to sync baseline from canonical', { projectId, err: err?.message })
+  }
+}
+
 // Minimal P2P provider registry keyed by projectId
 // Stores { provider, awareness, onUpdate }
 const providers = new Map()
@@ -126,9 +138,10 @@ export async function startP2PForProject(projectId, options = {}) {
     try {
       // Ignore updates originating from DB tailer projections or local hydration/replay
       if (origin === 'ingestion' || origin === 'hydration' || origin === 'replay') {
+        syncBaselineFromCanonical(projectId, baselineDoc, doc)
         const baseStats = countDocTables(baselineDoc)
         const canonStats = countDocTables(doc)
-        console.log('[P2P] Ingestion update observed on canonical', { projectId, bytes: update?.length || 0, baseline: baseStats, canonical: canonStats })
+        console.log('[P2P] Local persisted update observed on canonical', { projectId, origin, bytes: update?.length || 0, baseline: baseStats, canonical: canonStats })
         return
       }
       const beforeBase = countDocTables(baselineDoc)
@@ -160,6 +173,8 @@ export async function startP2PForProject(projectId, options = {}) {
         if (options.onDataChange && typeof options.onDataChange === 'function') {
           options.onDataChange();
         }
+      } else {
+        syncBaselineFromCanonical(projectId, baselineDoc, doc)
       }
     } catch (err) {
       console.error('[P2P] Failed to persist Yjs update to SQLite', err)
