@@ -45,7 +45,8 @@
     <div class="d-flex flex-column h-100">
         <div class="mb-3 text-center">
             <BaseImage
-                src={getAssetImageUrl(asset, 'lg')}
+                asset={asset}
+                preferredFormat="lg"
                 alt={asset.filename || "Asset Preview"}
                 class="img-fluid rounded"
                 width={asset.width || 300}

@@ -275,10 +275,11 @@
                                 onkeydown={(e) => e.key === "Enter" && handleViewMedia(asset)}
                             >
                                 <BaseImage
-                                    src={asset?.path ? `media://${asset.path}` : null}
+                                    asset={asset}
+                                    preferredFormat="md"
                                     alt={asset?.filename || "Asset"}
                                     class="w-100 h-100"
-                                    style="object-fit: contain;"
+                                    objectFit="contain"
                                 />
                                 {#if getMediaType(asset) === "video"}
                                     <div class="position-absolute top-50 start-50 translate-middle fs-2 text-white" style="opacity: 0.8; pointer-events: none;">

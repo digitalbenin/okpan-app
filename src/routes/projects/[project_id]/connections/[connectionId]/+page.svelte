@@ -5,8 +5,8 @@
     import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
     import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import BaseImage from "$lib/components/base/BaseImage.svelte";
     import EditConnectionTypeModal from "$lib/components/research_fields/EditConnectionTypeModal.svelte";
-    import { getAssetImageUrl } from "$lib/utils/media.js";
     import { addVocabulary, deleteVocabulary, deleteResearchField, updateResearchField } from "$lib/stores/ResearchFieldsUtils.js";
     import { DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
 
@@ -236,7 +236,14 @@
                     <div class="card-body d-flex align-items-center p-3">
                         <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; flex-shrink: 0;">
                             {#if vocabulary.mainAsset}
-                                <img src={getAssetImageUrl(vocabulary.mainAsset, 'sm')} alt="" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover;" />
+                                <BaseImage
+                                    asset={vocabulary.mainAsset}
+                                    preferredFormat="sm"
+                                    alt={vocabulary.option?.content || "Connection image"}
+                                    class="rounded-circle w-100 h-100"
+                                    objectFit="cover"
+                                    compact={true}
+                                />
                             {:else}
                                 <i class="bi bi-image text-muted" style="font-size: 1.5rem;"></i>
                             {/if}

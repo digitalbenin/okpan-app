@@ -11,7 +11,7 @@
     import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
     import { linkAssetToObject, unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
     import { back } from "$lib/utils/navigation.js";
-    import { getAssetImageUrl, getObjectImageUrl } from "$lib/utils/media.js";
+    import { getObjectImageUrl } from "$lib/utils/media.js";
     import { z } from "zod";
 
     const { data } = $props();
@@ -41,8 +41,6 @@
             return typeof asset?.properties === "string" ? JSON.parse(asset.properties) : asset?.properties || {};
         } catch { return {}; }
     });
-    const imageSrc = $derived(getAssetImageUrl(asset, 'md', false));
-    
     // Current linked object IDs (reactive)
     const currentLinkedObjectIds = $derived.by(() => linkedObjects.map(oa => String(oa.object_id)).sort());
     const computeLinkedIdsSignature = (ids) => (ids && ids.length ? ids.join("::") : "");
@@ -256,10 +254,12 @@
         <div class="mb-4">
           {#if asset.type === "image"}
             <BaseImage
-              src={imageSrc ? `media://${imageSrc}` : null}
+              asset={asset}
+              preferredFormat="md"
               alt={asset.filename}
               class="w-100 rounded"
-              style="max-height: 500px; object-fit: contain; background-color: #f8f9fa;"
+              objectFit="contain"
+              style="max-height: 500px; background-color: #f8f9fa;"
             />
           {:else}
             <div class="w-100 d-flex flex-column align-items-center justify-content-center rounded bg-light text-muted border" style="height: 400px;">
@@ -312,11 +312,12 @@
             <div class="d-flex flex-column align-items-start gap-2 mb-3 p-2 border rounded">
               <div class="d-flex flex-row gap-2">
                 <BaseImage
-                  src={getObjectImageUrl(objectAsset.object, 'sm')}
+                  src={getObjectImageUrl(objectAsset.object, 'sm', false)}
                   alt={getObjectDisplayName(objectAsset.object)}
                   class="rounded"
                   style="width: 68px; height: 68px; object-fit: cover;"
-                  format="sm"
+                  objectFit="cover"
+                  compact={true}
                 />
 
                 <div class="d-flex flex-column">

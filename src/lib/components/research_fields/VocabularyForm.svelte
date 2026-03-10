@@ -3,7 +3,7 @@
     import { z } from "zod";
     import { createFieldValidator } from "$lib/stores/formValidationUtils.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { getMediaType, createMediaFilters, getAssetImageUrl } from "$lib/utils/media.js";
+    import { getMediaType, createMediaFilters } from "$lib/utils/media.js";
     import { goto } from "$app/navigation";
     import BasePagination from "$lib/components/base/BasePagination.svelte";
     import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
@@ -297,13 +297,15 @@
                                     <div class="list-group-item d-flex align-items-center gap-3">
                                         <div class="flex-shrink-0" style="width: 64px; height: 64px;">
                                             <BaseImage
-                                                src={getObjectThumb(obj) ? getAssetImageUrl(getObjectThumb(obj), 'sm') : null}
+                                                asset={getObjectThumb(obj)}
+                                                preferredFormat="sm"
                                                 alt={getObjectDisplayName(obj)}
                                                 width={64}
                                                 height={64}
                                                 class="rounded"
                                                 ratio="1/1"
                                                 objectFit="cover"
+                                                compact={true}
                                             />
                                         </div>
 

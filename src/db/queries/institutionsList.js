@@ -118,9 +118,15 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                 assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount'),
                 previewImages: sql`COALESCE(
                     (
-                        SELECT json_group_array(json(preview.formats))
+                        SELECT json_group_array(json(preview.asset_json))
                         FROM (
-                            SELECT a.formats
+                            SELECT json_object(
+                                'id', a.id,
+                                'path', a.path,
+                                'filename', a.filename,
+                                'type', a.type,
+                                'formats', json(a.formats)
+                            ) AS asset_json
                             FROM assets a
                             WHERE a.institution_id = ${dbSchema.institutions.id}
                               AND (LOWER(a.type) LIKE '%image%'
@@ -134,9 +140,15 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                         ) preview
                     ),
                     (
-                        SELECT json_group_array(json(preview.formats)) 
+                        SELECT json_group_array(json(preview.asset_json)) 
                         FROM (
-                            SELECT a.formats
+                            SELECT json_object(
+                                'id', a.id,
+                                'path', a.path,
+                                'filename', a.filename,
+                                'type', a.type,
+                                'formats', json(a.formats)
+                            ) AS asset_json
                             FROM (
                                 SELECT o.id, o.created_at
                                 FROM objects o
@@ -306,6 +318,18 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                 if (institution.previewImages && typeof institution.previewImages === 'string') {
                     try {
                         institution.previewImages = JSON.parse(institution.previewImages);
+                        institution.previewImages = institution.previewImages.map((image) => {
+                            if (!image || typeof image !== 'object') {
+                                return image;
+                            }
+
+                            // Backward compatibility for older query shape that returned only formats.
+                            if (!('formats' in image) && !('id' in image) && !('path' in image)) {
+                                return { formats: image };
+                            }
+
+                            return image;
+                        });
                     } catch (e) {
                         console.error(`Error parsing preview images for institution ${institution.id}:`, e);
                         institution.previewImages = [];

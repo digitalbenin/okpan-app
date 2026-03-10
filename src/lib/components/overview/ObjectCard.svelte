@@ -1,7 +1,7 @@
 <script>
-  import { getAssetImageUrl } from "$lib/utils/media.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
+  import BaseImage from "$lib/components/base/BaseImage.svelte";
   const { object } = $props();
   const institution = $derived(object.institution?.name.content);
   const title = $derived.by(
@@ -19,9 +19,11 @@
     class="img-wrapper bg-light rounded overflow-hidden flex-grow-0 flex-shrink-0"
   >
     {#if image}
-      <img
-        class="object-fit-contain w-100 h-100"
-        src={getAssetImageUrl(image, 'sm')}
+      <BaseImage
+        class="w-100 h-100"
+        objectFit="contain"
+        asset={image}
+        preferredFormat="sm"
         alt={title || "Object Image"}
       />
     {:else}

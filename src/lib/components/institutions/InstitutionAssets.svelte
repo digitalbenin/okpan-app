@@ -247,10 +247,10 @@
             label: null,
             sortable: false,
             accessor: (value) => {
-              const src = value.formats?.sm || null;
               const id = value.id;
               return {
-                src,
+                asset: value,
+                preferredFormat: "sm",
                 id,
               };
             },
