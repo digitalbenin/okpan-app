@@ -9,6 +9,7 @@ import { getProjectDoc } from './projectCache.js'
 import { ingestRemoteUpdate } from '../handlers/remoteIngestionHandler.js'
 import { hydrateProjectFromDatabase } from './snapshotService.js'
 import { scheduleAssetReconcile, resetErroredAssets } from './assetTorrentManager.js'
+import { getGlobalProfile } from '../../db/init.js'
 
 // Helper: count tables and rows in a Y.Doc's `tables` map
 function countDocTables(doc) {
@@ -45,6 +46,63 @@ function syncBaselineFromCanonical(projectId, baselineDoc, canonicalDoc) {
 // Minimal P2P provider registry keyed by projectId
 // Stores { provider, awareness, onUpdate }
 const providers = new Map()
+let presenceNotifier = null
+
+function normalizeUsername(username) {
+  if (typeof username !== 'string') return null
+  const trimmed = username.trim()
+  return trimmed || null
+}
+
+function buildLocalPresenceState(doc, projectId, username) {
+  return {
+    clientId: doc.clientID,
+    projectId,
+    role: 'backend-main',
+    heartbeat: Date.now(),
+    username: normalizeUsername(username)
+  }
+}
+
+function applyLocalPresenceState(projectId, entry, username) {
+  const doc = getProjectDoc(projectId)
+  entry.awareness.setLocalState(buildLocalPresenceState(doc, projectId, username))
+}
+
+function listRemotePeers(projectId) {
+  const entry = providers.get(projectId)
+  if (!entry?.awareness) return []
+
+  const peers = []
+  const localClientId = getProjectDoc(projectId)?.clientID
+
+  entry.awareness.getStates().forEach((state, awarenessClientId) => {
+    const stateProjectId = state?.projectId || projectId
+    const clientId = state?.clientId ?? awarenessClientId
+    const username = normalizeUsername(state?.username)
+
+    if (stateProjectId !== projectId || clientId === localClientId || !username) {
+      return
+    }
+
+    peers.push({
+      clientId: String(clientId),
+      username
+    })
+  })
+
+  peers.sort((left, right) => left.username.localeCompare(right.username))
+  return peers
+}
+
+function emitProjectPresence(projectId) {
+  if (!presenceNotifier) return
+  presenceNotifier(projectId, getProjectPresence(projectId))
+}
+
+export function setPresenceNotifier(notifier) {
+  presenceNotifier = notifier
+}
 
 // Ensure Node/Electron main has WebSocket globals for Trystero matchmaking.
 // WE NO LONGER POLLUTE globalThis.RTCPeerConnection because doing so tricks WebTorrent
@@ -63,7 +121,10 @@ if (typeof globalThis.WebSocket === 'undefined') {
  */
 export async function startP2PForProject(projectId, options = {}) {
   if (!projectId) return null
-  if (providers.has(projectId)) return providers.get(projectId).provider
+  if (providers.has(projectId)) {
+    emitProjectPresence(projectId)
+    return providers.get(projectId).provider
+  }
 
   // Canonical local projection (driven by DB ingestion)
   const doc = getProjectDoc(projectId)
@@ -94,12 +155,8 @@ export async function startP2PForProject(projectId, options = {}) {
   }
 
   // Set initial local presence and enable 5s heartbeat for debug visibility
-  awareness.setLocalState({
-    clientId: doc.clientID,
-    projectId,
-    role: 'backend-main',
-    heartbeat: Date.now()
-  })
+  const globalProfile = await getGlobalProfile()
+  awareness.setLocalState(buildLocalPresenceState(doc, projectId, globalProfile?.username))
 
   // Log peer connect/disconnect via awareness change events
   const onChange = ({ added = [], updated = [], removed = [] }) => {
@@ -118,6 +175,7 @@ export async function startP2PForProject(projectId, options = {}) {
     for (const clientId of removed) {
       console.log('[P2P] Peer disconnected', { projectId, clientId })
     }
+    emitProjectPresence(projectId)
   }
   awareness.on('change', onChange)
 
@@ -183,6 +241,7 @@ export async function startP2PForProject(projectId, options = {}) {
   doc.on('update', onDocUpdatePersist)
 
   providers.set(projectId, { provider, awareness, onChange, onDocUpdatePersist, baselineDoc })
+  emitProjectPresence(projectId)
   return provider
 }
 
@@ -205,6 +264,7 @@ export async function stopP2PForProject(projectId) {
     console.error('[P2P] stopP2PForProject error', err)
   }
   providers.delete(projectId)
+  emitProjectPresence(projectId)
 }
 
 /**
@@ -218,8 +278,22 @@ export function getP2PProvider(projectId) {
  * Get the number of connected peers for a project.
  */
 export function getProjectPeersCount(projectId) {
-  const entry = providers.get(projectId)
-  if (!entry || !entry.awareness) return 0;
-  // awareness.getStates() includes ourselves, so subtract 1
-  return Math.max(0, entry.awareness.getStates().size - 1);
+  return getProjectPresence(projectId).count
+}
+
+export function getProjectPresence(projectId) {
+  const peers = listRemotePeers(projectId)
+  return {
+    peers,
+    count: peers.length
+  }
+}
+
+export async function refreshAllProjectPresence() {
+  const globalProfile = await getGlobalProfile()
+
+  for (const [projectId, entry] of providers.entries()) {
+    applyLocalPresenceState(projectId, entry, globalProfile?.username)
+    emitProjectPresence(projectId)
+  }
 }

@@ -4,18 +4,53 @@
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
   import { page } from "$app/state";
   import { goto, invalidateAll } from "$app/navigation";
   import { deleteProject } from "$lib/stores/ProjectsUtils.js";
+  import { onMount } from "svelte";
 
   const { t } = getTranslationStore();
   const project = $derived(page.data.project);
+  const userPresenceStore = getUserPresenceStore();
+  const userPresenceState = userPresenceStore.state;
+  const currentUsername = $derived(userPresenceState.username || "Anonymous");
+  const connectedPeers = $derived(userPresenceState.peers || []);
 
   let dropdownOpen = $state(false);
   let showDeleteModal = $state(false);
   let showSharingModal = $state(false);
   let idCopied = $state(false);
   let confirmationText = $state("");
+
+  onMount(() => {
+    void userPresenceStore.initialize();
+  });
+
+  function getInitial(username) {
+    return username?.trim()?.charAt(0)?.toUpperCase() || "?";
+  }
+
+  function getAvatarStyle(username) {
+    let hash = 0;
+
+    for (const char of username || "") {
+      hash = ((hash << 5) - hash) + char.charCodeAt(0);
+      hash |= 0;
+    }
+
+    const hue = Math.abs(hash) % 360;
+    return `background: hsl(${hue} 68% 45%); color: white;`;
+  }
+
+  $effect(() => {
+    if (!project?.id) {
+      void userPresenceStore.setCurrentProject(null);
+      return;
+    }
+
+    void userPresenceStore.setCurrentProject(project.id);
+  });
 
   const dropdownItems = $derived([
     {
@@ -121,7 +156,23 @@
   </div>
 
   <div class="col text-end">
-    <div class="pe-3">Username</div>
+    <div class="pe-3 d-flex justify-content-end align-items-center gap-2 flex-wrap">
+      <span class="fw-semibold text-truncate current-username">{currentUsername}</span>
+      {#if connectedPeers.length > 0}
+        <div class="d-flex align-items-center gap-1">
+          {#each connectedPeers as peer (peer.clientId)}
+            <div
+              class="peer-avatar"
+              style={getAvatarStyle(peer.username)}
+              title={peer.username}
+              aria-label={peer.username}
+            >
+              {getInitial(peer.username)}
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
   </div>
 </div>
 
@@ -159,6 +210,24 @@
     {/snippet}
   </BaseAlertDialog>
 {/if}
+
+<style>
+  .current-username {
+    max-width: 180px;
+  }
+
+  .peer-avatar {
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  }
+</style>
 
 <!-- Delete confirmation modal -->
 {#if showDeleteModal}

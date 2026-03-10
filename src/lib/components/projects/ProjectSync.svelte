@@ -9,6 +9,34 @@
   let isSyncing = $state(false);
   let statusMessage = $state("");
 
+  async function waitForPeerPresence(targetProjectId) {
+    const initialPresence = await window.api.getProjectPresence(targetProjectId);
+    if ((initialPresence?.count || 0) > 0) {
+      return true;
+    }
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const timeoutId = setTimeout(() => finish(false), 10000);
+      const removeListener = window.api.onProjectPresenceChanged(({ projectId: changedProjectId, presence }) => {
+        if (changedProjectId === targetProjectId && (presence?.count || 0) > 0) {
+          finish(true);
+        }
+      });
+
+      function finish(result) {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        clearTimeout(timeoutId);
+        removeListener?.();
+        resolve(result);
+      }
+    });
+  }
+
   async function handleSyncProject() {
     if (!projectId.trim()) {
       addToast({
@@ -32,19 +60,7 @@
 
       statusMessage = "Connecting... waiting for peers...";
 
-      // Poll for peers
-      let peersFound = false;
-      const startTime = Date.now();
-      const TIMEOUT_MS = 10000; // 10 seconds timeout
-
-      while (Date.now() - startTime < TIMEOUT_MS) {
-        const peers = await window.api.getProjectPeers(projectId.trim());
-        if (peers > 0) {
-          peersFound = true;
-          break;
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      const peersFound = await waitForPeerPresence(projectId.trim());
 
       if (peersFound) {
         statusMessage = "Connected!";

@@ -7,6 +7,41 @@ import { dirname } from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
 
+const USERNAME_ADJECTIVES = [
+    'Amber',
+    'Bright',
+    'Calm',
+    'Clever',
+    'Golden',
+    'Merry',
+    'Quiet',
+    'Silver',
+    'Swift',
+    'Wild'
+];
+
+const USERNAME_NOUNS = [
+    'Badger',
+    'Falcon',
+    'Fox',
+    'Heron',
+    'Otter',
+    'Panda',
+    'Robin',
+    'Seal',
+    'Wolf',
+    'Wren'
+];
+
+function pickRandom(items) {
+    return items[Math.floor(Math.random() * items.length)];
+}
+
+export function generateRandomUsername() {
+    const suffix = Math.floor(100 + Math.random() * 900);
+    return `${pickRandom(USERNAME_ADJECTIVES)}${pickRandom(USERNAME_NOUNS)}${suffix}`;
+}
+
 // Get the database path from env
 const dbPath = process.env.DB_FILE_NAME || 'src/db/local.db';
 
@@ -50,14 +85,60 @@ const initializeGlobalSettings = async () => {
     }
 };
 
+async function getGlobalSettingsRow() {
+    const settings = await db.select().from(globalSettings).where(eq(globalSettings.id, 1)).limit(1);
+
+    if (settings.length > 0) {
+        return settings[0];
+    }
+
+    await initializeGlobalSettings();
+
+    const initializedSettings = await db.select().from(globalSettings).where(eq(globalSettings.id, 1)).limit(1);
+    return initializedSettings[0] || null;
+}
+
 // Helper function to get client ID
 export const getClientId = async () => {
     try {
-        const settings = await db.select().from(globalSettings).where(eq(globalSettings.id, 1)).limit(1);
-        return settings[0]?.client_id || null;
+        const settings = await getGlobalSettingsRow();
+        return settings?.client_id || null;
     } catch (error) {
         console.error('Error getting client_id:', error);
         return null;
+    }
+};
+
+export const getGlobalProfile = async () => {
+    try {
+        const settings = await getGlobalSettingsRow();
+        return {
+            clientId: settings?.client_id || null,
+            username: settings?.username || null
+        };
+    } catch (error) {
+        console.error('Error getting global profile:', error);
+        return {
+            clientId: null,
+            username: null
+        };
+    }
+};
+
+export const updateGlobalUsername = async (username) => {
+    try {
+        const normalizedUsername = typeof username === 'string' ? username.trim() : '';
+        const nextUsername = normalizedUsername || generateRandomUsername();
+
+        await initializeGlobalSettings();
+        await db.update(globalSettings)
+            .set({ username: nextUsername })
+            .where(eq(globalSettings.id, 1));
+
+        return getGlobalProfile();
+    } catch (error) {
+        console.error('Error updating global username:', error);
+        throw error;
     }
 };
 

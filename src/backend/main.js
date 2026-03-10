@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Import database and schema
-import { db } from '../db/init.js';
+import { db, getGlobalProfile, updateGlobalUsername } from '../db/init.js';
 import { createGraphQLSchema } from '../db/graphqlDefs.js';
 
 // Import handlers
@@ -24,7 +24,7 @@ import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.j
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { getProjectDoc, getCurrentProjectId } from './services/projectCache.js';
-import { startP2PForProject, getProjectPeersCount } from './services/p2pService.js';
+import { startP2PForProject, getProjectPeersCount, getProjectPresence, setPresenceNotifier, refreshAllProjectPresence } from './services/p2pService.js';
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';
 import { eq, sql, isNull } from 'drizzle-orm';
@@ -67,6 +67,17 @@ process.on('uncaughtException', (error) => {
 
 app.disableHardwareAcceleration()
 
+function sendToAllWindows(channel, payload) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (window.isDestroyed() || window.webContents.isDestroyed()) continue;
+    window.webContents.send(channel, payload);
+  }
+}
+
+setPresenceNotifier((projectId, presence) => {
+  sendToAllWindows('project-presence-changed', { projectId, presence });
+});
+
 // Create GraphQL schema
 const { schema, resolvers } = createGraphQLSchema(db);
 
@@ -98,6 +109,15 @@ ipcMain.handle('open-file-dialog', handleFileDialog);
 ipcMain.handle('import-structured-data', handleStructuredDataImport);
 ipcMain.handle('excel-sheet-selection', handleExcelSheetSelection);
 ipcMain.handle('languages:list', handleListLanguages);
+ipcMain.handle('global-profile:get', async () => {
+  return getGlobalProfile();
+});
+ipcMain.handle('global-profile:update', async (event, username) => {
+  const profile = await updateGlobalUsername(username);
+  await refreshAllProjectPresence();
+  sendToAllWindows('global-profile-changed', profile);
+  return profile;
+});
 
 // Static website export
 ipcMain.handle('export-static-website', async (event, options) => {
@@ -170,6 +190,14 @@ ipcMain.handle('set-current-project', async (event, projectId) => {
       }
     };
     await startP2PForProject(projectId, { onDataChange: notifyFrontend });
+    try {
+      event.sender.send('project-presence-changed', {
+        projectId,
+        presence: getProjectPresence(projectId)
+      });
+    } catch (presenceError) {
+      console.warn('Failed to notify frontend of project presence', presenceError);
+    }
   } catch (err) {
     console.error('Failed to start P2P provider for project', projectId, err);
   }
@@ -190,6 +218,9 @@ ipcMain.handle('clear-current-project', handleClearCurrentProject);
 
 ipcMain.handle('get-project-peers', (event, projectId) => {
   return getProjectPeersCount(projectId);
+});
+ipcMain.handle('project-presence:get', (event, projectId) => {
+  return getProjectPresence(projectId);
 });
 
 // Y.Doc inspection handler (returns plain JS object)

@@ -40,6 +40,9 @@ contextBridge.exposeInMainWorld('api', {
     getCurrentProject: () => ipcRenderer.invoke('get-current-project'),
     clearCurrentProject: () => ipcRenderer.invoke('clear-current-project'),
     getProjectPeers: (projectId) => ipcRenderer.invoke('get-project-peers', projectId),
+    getProjectPresence: (projectId) => ipcRenderer.invoke('project-presence:get', projectId),
+    getGlobalProfile: () => ipcRenderer.invoke('global-profile:get'),
+    updateGlobalUsername: (username) => ipcRenderer.invoke('global-profile:update', username),
 
     // Y.Doc inspection
     inspectYDoc: (projectId) => ipcRenderer.invoke('ydoc-dump', projectId),
@@ -53,6 +56,16 @@ contextBridge.exposeInMainWorld('api', {
         const subscription = (event, ...args) => callback(...args);
         ipcRenderer.on('data-changed', subscription);
         return () => ipcRenderer.removeListener('data-changed', subscription);
+    },
+    onGlobalProfileChanged: (callback) => {
+        const subscription = (event, ...args) => callback(...args);
+        ipcRenderer.on('global-profile-changed', subscription);
+        return () => ipcRenderer.removeListener('global-profile-changed', subscription);
+    },
+    onProjectPresenceChanged: (callback) => {
+        const subscription = (event, ...args) => callback(...args);
+        ipcRenderer.on('project-presence-changed', subscription);
+        return () => ipcRenderer.removeListener('project-presence-changed', subscription);
     },
     onImportProgress: (callback) => ipcRenderer.on('import-assets-progress', callback),
     removeImportProgressListeners: () => ipcRenderer.removeAllListeners('import-assets-progress'),
