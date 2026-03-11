@@ -2,6 +2,8 @@
  * Unified search interface that works in both preview mode (DB) and static export mode (JSON)
  */
 
+import { resolveSitePath } from '$lib/utils/sitePaths.js';
+
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
 // Cache for static data (loaded once from data.json)
@@ -15,7 +17,7 @@ async function getStaticData(customFetch = fetch) {
   if (staticDataCache) return staticDataCache;
   
   try {
-    const response = await customFetch('/data.json');
+    const response = await customFetch(resolveSitePath('data.json'));
     if (!response.ok) throw new Error(`Failed to load data.json: ${response.statusText}`);
     staticDataCache = await response.json();
     return staticDataCache;

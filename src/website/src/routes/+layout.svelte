@@ -4,6 +4,7 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Topbar from '$lib/components/Topbar.svelte';
 	import { onMount } from 'svelte';
+	import { resolveSitePath } from '$lib/utils/sitePaths.js';
 
 	let { children, data } = $props();
 	
@@ -14,7 +15,7 @@
 	onMount(async () => {
 		if (data?.needsClientLoad) {
 			try {
-				const response = await fetch('/site.json');
+				const response = await fetch(resolveSitePath('site.json'));
 				const json = await response.json();
 				project = json.project || {};
 				settings = json.settings || {};

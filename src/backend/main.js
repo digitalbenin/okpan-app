@@ -28,7 +28,13 @@ import { startP2PForProject, getProjectPeersCount, getProjectPresence, setPresen
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';
 import { eq, sql, isNull } from 'drizzle-orm';
-import { handleExportProject, handleExportConnections, handleImportConnections } from './handlers/exportHandlers.js';
+import {
+  handleExportProject,
+  handleExportConnections,
+  handleImportConnections,
+  handleExportConnectionTypeCsv,
+  handleImportConnectionTypeCsv
+} from './handlers/exportHandlers.js';
 import { handleListLanguages } from './handlers/languagesHandlers.js';
 // import { applyMigration } from '../db/scripts/applyMigration.js';
 import { handleCreateBackup, handleSelectBackupFile, handleCheckBackupFile, handleRestoreBackup } from './handlers/backupHandler.js';
@@ -125,7 +131,8 @@ ipcMain.handle('export-static-website', async (event, options) => {
     const { exportStaticWebsite } = await import('./services/websiteExportService.js');
     return await exportStaticWebsite(options.projectId, options.outputPath, {
       db,
-      filters: options.filters
+      filters: options.filters,
+      basePath: options.basePath
     });
   } catch (error) {
     console.error('Error exporting static website:', error);
@@ -144,6 +151,14 @@ ipcMain.handle('export-connections', (event, options) =>
 
 ipcMain.handle('import-connections', (event, options) =>
   handleImportConnections(event, options, { db })
+);
+
+ipcMain.handle('export-connection-type-csv', (event, options) =>
+  handleExportConnectionTypeCsv(event, options, { db })
+);
+
+ipcMain.handle('import-connection-type-csv', (event, options) =>
+  handleImportConnectionTypeCsv(event, options, { db })
 );
 
 // Backup handlers

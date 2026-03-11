@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { resolveSitePath } from '$lib/utils/sitePaths.js';
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -12,7 +13,7 @@ export async function loadAllData(customFetch = fetch) {
   // Static export mode: load from data.json
   if (isStaticExport) {
     if (!cachedData) {
-      const response = await customFetch('/data.json');
+      const response = await customFetch(resolveSitePath('data.json'));
       if (!response.ok) {
         throw new Error(`Failed to load data.json: ${response.statusText}`);
       }

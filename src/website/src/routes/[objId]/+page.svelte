@@ -4,6 +4,7 @@
 	import ObjectResearchDataStatic from '$lib/components/ObjectResearchDataStatic.svelte';
 	import ObjectInstitutionData from '$lib/components/ObjectInstitutionData.svelte';
 	import ObjectImages from '$lib/components/ObjectImages.svelte';
+	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -29,7 +30,7 @@
 
 	// SEO: Get first asset image for social media preview
 	const firstAsset = $derived(assets?.[0]);
-	const ogImage = $derived(firstAsset ? `/assets/${data?.object?.project_id}/${firstAsset.asset_path}` : null);
+	const ogImage = $derived(firstAsset ? getAssetUrl({ asset_path: `project_assets/${data?.object?.project_id}/${firstAsset.asset_path}` }) : null);
 	
 	// SEO: Build description from object data
 	const pageDescription = $derived.by(() => {
@@ -69,7 +70,7 @@
 
 <div class="row p-3">
 	<div class="col-12">
-		<ObjectHeader {title} {institution} projectId={data?.queryParams?.projectId} />
+		<ObjectHeader {title} {institution} projectId={data?.queryParams?.projectId} backHref={data?.queryParams?.backHref} />
 	</div>
 </div>
 <div class="row mb-2">

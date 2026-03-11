@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
+	import { resolveSitePath, resolveStaticHref } from '$lib/utils/sitePaths.js';
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	let { data } = $props();
@@ -12,7 +13,7 @@
 	onMount(async () => {
 		if (isStaticExport && data?.needsClientLoad) {
 			try {
-				const response = await fetch('/site.json');
+				const response = await fetch(resolveSitePath('site.json'));
 				const json = await response.json();
 				connectionTypes = json.connection_types || [];
 			} catch (error) {
@@ -33,7 +34,7 @@
 		{#if connectionTypes.length > 0}
 			<div class="d-flex flex-column gap-3">
 				{#each connectionTypes as type}
-					<a href={isStaticExport ? `/connections/${type.id}` : buildPathWithProjectId(`/connections/${type.id}`, projectId)} class="text-decoration-none text-dark">
+					<a href={isStaticExport ? resolveStaticHref(`connections/${type.id}`) : buildPathWithProjectId(`/connections/${type.id}`, projectId)} class="text-decoration-none text-dark">
 						<div class="card border rounded p-3 hover-shadow">
 							<h3 class="fs-4 mb-0 fw-normal">
 								{type.name}

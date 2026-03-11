@@ -1,6 +1,7 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { goto, invalidate, invalidateAll } from "$app/navigation";
+    import { addToast } from "$lib/components/base/BaseToast.svelte";
     import BasePagination from "$lib/components/base/BasePagination.svelte";
     import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
     import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
@@ -25,6 +26,7 @@
         deleteType: { open: false, loading: false },
         edit: { open: false, loading: false, config: { ...DEFAULT_FIELDS_CONFIG }, info: {} }
     });
+    let isExportingCsv = $state(false);
 
     // Derived values
     let vocabularies = $derived(data.researchField?.vocabularies || []);
@@ -130,6 +132,38 @@
         }
     }
 
+    async function handleExportCsv() {
+        if (!window?.api?.exportConnectionTypeCsv || !data?.project?.id || !data?.researchField?.id) return;
+        if (isExportingCsv) return;
+        isExportingCsv = true;
+        try {
+            const result = await window.api.exportConnectionTypeCsv({
+                projectId: data.project.id,
+                connectionTypeId: data.researchField.id
+            });
+            if (result && !result.canceled) {
+                addToast({
+                    data: {
+                        type: "success",
+                        title: t("common.export", { fallback: "Export" }),
+                        description: t("common.export-success", { fallback: "Connections exported successfully." })
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error exporting connection type CSV:', error);
+            addToast({
+                data: {
+                    type: "danger",
+                    title: t("common.export", { fallback: "Export" }),
+                    description: error?.message || t("common.something-went-wrong", { fallback: "Something went wrong." })
+                }
+            });
+        } finally {
+            isExportingCsv = false;
+        }
+    }
+
 </script>
 
 <div class="container-fluid h-100 bg-light d-flex flex-column">
@@ -175,6 +209,22 @@
                         <i class="bi bi-three-dots-vertical"></i>
                     {/snippet}
                     {#snippet children({ close })}
+                        <button
+                            type="button"
+                            class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2"
+                            disabled={isExportingCsv}
+                            onclick={() => {
+                                handleExportCsv();
+                                close();
+                            }}
+                        >
+                            {#if isExportingCsv}
+                                <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+                            {:else}
+                                <i class="bi bi-download"></i>
+                            {/if}
+                            {t("common.export", { fallback: "Export" })}
+                        </button>
                         <button
                             type="button"
                             class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2 text-danger"
