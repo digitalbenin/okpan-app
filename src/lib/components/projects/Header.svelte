@@ -63,7 +63,7 @@
   ]);
 
   const isDeleteEnabled = $derived(
-    confirmationText.trim() === project.title.content.trim()
+    confirmationText.trim() === (project.title?.content || "").trim()
   );
 
   async function handleDeleteConfirm() {
@@ -112,7 +112,7 @@
       alignOffset={0}
     >
       {#snippet trigger()}
-        {project.title.content}
+        {project.title?.content || "Connecting/Downloading Project..."}
         <i class="bi bi-chevron-{dropdownOpen ? 'up' : 'down'}"></i>
       {/snippet}
     </BaseDropdownMenu>
@@ -175,15 +175,15 @@
           fallback: "Are you sure you want to delete this project? This action cannot be undone." 
         })}
       </p>
-      <p class="fw-bold">{project.title.content}</p>
+      <p class="fw-bold">{project.title?.content || "Connecting/Downloading Project..."}</p>
       <p class="mb-2">
-        {t("project.delete-type-name", { 
-          fallback: "To confirm, please type the project name below:" 
+        {t("project.delete-type-name", {
+          fallback: "To confirm, please type the project name below:"
         })}
       </p>
       <BaseInput
         bind:value={confirmationText}
-        placeholder={project.title.content}
+        placeholder={project.title?.content || "Connecting/Downloading Project..."}
       />
     {/snippet}
     {#snippet footer()}

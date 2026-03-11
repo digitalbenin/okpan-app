@@ -25,7 +25,7 @@
   ]);
 
   const isDeleteEnabled = $derived(
-    confirmationText.trim() === project.title.content.trim()
+    confirmationText.trim() === (project.title?.content || "Connecting...").trim()
   );
 
   async function handleDeleteConfirm() {
@@ -56,11 +56,21 @@
 
     <div class="d-flex flex-column">
       <a href="/projects/{project.id}">
-        {project.title.content}
+        {project.title?.content || "Connecting/Downloading Project..."}
       </a>
-      <p class="fs-7 mb-0">
-        {t("project.created-on", { fallback: "Created on" })}
-        {formatDate(+project.created_at, translationState.currentLocale)}
+      <p class="fs-7 mb-0 text-muted d-flex align-items-center gap-2">
+        <span class="d-inline-flex align-items-center">
+          {#if project.is_shared}
+            <i class="bi bi-people-fill me-1"></i> {t("project.shared", { fallback: "Shared" })}
+          {:else}
+            <i class="bi bi-lock-fill me-1"></i> {t("project.private", { fallback: "Private" })}
+          {/if}
+        </span>
+        <span>&bull;</span>
+        <span>
+          {t("project.created-on", { fallback: "Created on" })}
+          {project.created_at ? formatDate(+project.created_at, translationState.currentLocale) : '...'}
+        </span>
       </p>
     </div>
   </div>
@@ -114,15 +124,15 @@
           fallback: "Are you sure you want to delete this project? This action cannot be undone." 
         })}
       </p>
-      <p class="fw-bold">{project.title.content}</p>
+      <p class="fw-bold">{project.title?.content || "Connecting..."}</p>
       <p class="mb-2">
-        {t("project.delete-type-name", { 
-          fallback: "To confirm, please type the project name below:" 
+        {t("project.delete-type-name", {
+          fallback: "To confirm, please type the project name below:"
         })}
       </p>
       <BaseInput
         bind:value={confirmationText}
-        placeholder={project.title.content}
+        placeholder={project.title?.content || "Connecting..."}
       />
     {/snippet}
     {#snippet footer()}
