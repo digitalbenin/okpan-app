@@ -1,18 +1,21 @@
 import { browser } from '$app/environment';
 import { resolveProjectId, setStoredProjectId } from '$lib/utils/projectContext.js';
+import { resolveSitePath } from '$lib/utils/sitePaths.js';
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
+const sameId = (left, right) => String(left) === String(right);
 
 // Empty result template
 const emptyResult = {
     object: null, assets: [], objectOntologyFields: [], objectResearchFields: [],
     datasources: [], institution: null, ontology_fields: [], research_fields: [],
-    vocabularies: [], queryParams: { projectId: null }
+    vocabularies: [], queryParams: { projectId: null, backHref: null }
 };
 
 /** @type {import('./$types').PageLoad} */
 export async function load({ params, url, fetch }) {
     const objId = params.objId;
+    const backHref = url.searchParams.get('back') || null;
 
     if (isStaticExport) {
         if (!browser) {
@@ -20,12 +23,12 @@ export async function load({ params, url, fetch }) {
         }
 
         try {
-            const response = await fetch('/data.json');
+            const response = await fetch(resolveSitePath('data.json'));
             if (!response.ok) {
                 throw new Error(`Failed to fetch data.json: ${response.status}`);
             }
             const data = await response.json();
-            const obj = data.objects?.find(o => o.id === objId);
+            const obj = data.objects?.find(o => sameId(o.id, objId));
             
             if (!obj) return emptyResult;
             
@@ -38,7 +41,7 @@ export async function load({ params, url, fetch }) {
             };
             
             return {
-                queryParams: { projectId: obj.project_id },
+                queryParams: { projectId: obj.project_id, backHref },
                 object: { id: obj.id, name: obj.name, project_id: obj.project_id, institution_id: obj.institution_id },
                 assets: (obj.assets || []).map(a => ({ asset_path: a.asset_path, asset_formats: a.asset_formats, asset_type: a.asset_type, order: a.order })),
                 objectOntologyFields: (obj.objectOntologyFields || []).map(f => ({ id: f.id, field_id: f.field_id, value: f.value, primary: f.primary, datasources_id: f.datasources_id, label: f.label })),
@@ -71,5 +74,5 @@ export async function load({ params, url, fetch }) {
         setStoredProjectId(resolvedProjectId);
     }
 
-    return { queryParams: { projectId: resolvedProjectId }, ...result };
+    return { queryParams: { projectId: resolvedProjectId, backHref }, ...result };
 }

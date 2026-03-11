@@ -74,7 +74,8 @@ ipcMain.handle('export-static-website', async (event, options) => {
     const { exportStaticWebsite } = await import('./services/websiteExportService.js');
     return await exportStaticWebsite(options.projectId, options.outputPath, {
       db,
-      filters: options.filters
+      filters: options.filters,
+      basePath: options.basePath
     });
   } catch (error) {
     console.error('Error exporting static website:', error);

@@ -1,6 +1,7 @@
 <script>
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
+    import { resolveStaticHref } from '$lib/utils/sitePaths.js';
     
     let { data } = $props();
     let researchField = $derived(data.researchField);
@@ -11,7 +12,7 @@
 
 <div class="py-4">
     <div class="mb-4">
-        <a href={isStaticExport ? '/connections' : buildPathWithProjectId('/connections', projectId)} class="text-secondary text-decoration-none small mb-2 d-inline-block">Connections</a>
+        <a href={isStaticExport ? resolveStaticHref('connections') : buildPathWithProjectId('/connections', projectId)} class="text-secondary text-decoration-none small mb-2 d-inline-block">Connections</a>
         <h1 class="fw-bold mb-3">{researchField?.name || 'Unknown'}</h1>
         
         {#if researchField?.description}
@@ -21,7 +22,7 @@
 
     <div class="d-flex flex-column gap-3">
         {#each vocabularies as item}
-            <a href={isStaticExport ? `/connections/${researchField.id}/${item.id}` : buildPathWithProjectId(`/connections/${researchField.id}/${item.id}`, projectId)} class="text-decoration-none text-dark">
+            <a href={isStaticExport ? resolveStaticHref(`connections/${researchField.id}/${item.id}`) : buildPathWithProjectId(`/connections/${researchField.id}/${item.id}`, projectId)} class="text-decoration-none text-dark">
                 <div class="card border rounded-3 p-2 hover-shadow">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0 me-2">

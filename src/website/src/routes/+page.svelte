@@ -7,6 +7,8 @@
 	import AdvancedFilters from '$lib/components/AdvancedFilters.svelte';
 	import { searchObjects } from '$lib/utils/search.js';
 	import { page } from '$app/stores';
+	import { getAssetUrl } from '$lib/utils/imgUtils.js';
+	import { resolveSitePath } from '$lib/utils/sitePaths.js';
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -15,14 +17,14 @@
 	// SEO data
 	const siteTitle = $derived(data?.settings?.title || data?.project?.name || 'Database Collection');
 	const siteDescription = $derived(data?.settings?.description || data?.project?.description || 'Explore our digital collection');
-	const siteLogo = $derived(data?.settings?.logo_asset_path ? `/assets/${data.settings.logo_asset_path}` : null);
+	const siteLogo = $derived(data?.settings?.logo_asset_path ? getAssetUrl({ asset_path: data.settings.logo_asset_path }) : null);
 
 	let searchTerm = $state(data.queryParams.q);
 	let advancedFilters = $state({});
 	let searchResult = $state(data.searchResult);
 	let resCount = $derived(searchResult?.totalCount || 0);
 	let currentPage = $state(data.queryParams.page || 1);
-	let pageSize = $state(data.queryParams.pageSize || (searchResult?.pageSize ?? 25));
+	let pageSize = $state(data.queryParams.pageSize || (data.searchResult?.pageSize ?? 25));
 	const pageCount = $derived.by(() => {
 		const total = searchResult?.totalCount || 0;
 		return Math.max(1, Math.ceil(total / (pageSize || 1)));
@@ -42,7 +44,7 @@
 	onMount(async () => {
 		if (isStaticExport && data.needsClientLoad) {
 			try {
-				const response = await fetch('/data.json');
+				const response = await fetch(resolveSitePath('data.json'));
 				const jsonData = await response.json();
 				
 				// Store reference data

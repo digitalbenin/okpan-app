@@ -1,7 +1,9 @@
 import { browser } from '$app/environment';
 import { resolveProjectId } from '$lib/utils/projectContext.js';
+import { resolveSitePath } from '$lib/utils/sitePaths.js';
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
+const sameId = (left, right) => String(left) === String(right);
 
 /** @type {import('./$types').PageLoad} */
 export async function load({ params, url, fetch }) {
@@ -15,13 +17,13 @@ export async function load({ params, url, fetch }) {
         
         // Client-side: fetch data.json
         try {
-            const res = await fetch('/data.json');
+            const res = await fetch(resolveSitePath('data.json'));
             if (!res.ok) {
                 throw new Error(`Failed to fetch data.json: ${res.status}`);
             }
             const data = await res.json();
-            const researchField = data.research_fields?.find(f => f.id === connectionId);
-            const vocabularies = data.vocabularies?.filter(v => v.field_id === connectionId) || [];
+            const researchField = data.research_fields?.find(f => sameId(f.id, connectionId));
+            const vocabularies = data.vocabularies?.filter(v => sameId(v.field_id, connectionId)) || [];
 
             return {
                 researchField,
@@ -51,10 +53,10 @@ export async function load({ params, url, fetch }) {
     // Fetch all and filter, or fetch specific? dbUtils has fetchResearchFields(db, projectId)
     // We can filter the result.
     const allFields = fetchResearchFields(db, projectId);
-    const researchField = allFields.find(f => f.id === connectionId);
+    const researchField = allFields.find(f => sameId(f.id, connectionId));
     
     const allVocabs = fetchVocabularies(db, projectId);
-    const vocabularies = allVocabs.filter(v => v.field_id === connectionId);
+    const vocabularies = allVocabs.filter(v => sameId(v.field_id, connectionId));
 
     return {
         researchField,

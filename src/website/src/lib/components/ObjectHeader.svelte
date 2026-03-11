@@ -1,13 +1,15 @@
 <script>
+	import { resolveStaticHref } from '$lib/utils/sitePaths.js';
+
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
-	const { institution, title, projectId } = $props();
-	// In static export mode, don't add project_id query param
-	const backHref = (!isStaticExport && projectId) ? `/?project_id=${projectId}` : '/';
+	const { institution, title, projectId, backHref = null } = $props();
+	const fallbackHref = isStaticExport ? resolveStaticHref('') : (projectId ? `/?project_id=${projectId}` : '/');
+	const resolvedBackHref = backHref || fallbackHref;
 </script>
 
 <div class="object-header">
 	<a
-		href={backHref}
+		href={resolvedBackHref}
 		class="d-block text-decoration-none text-secondary text-opacity-75 mb-2"
 	>
 		<i class="bi bi-chevron-left"></i>

@@ -2,6 +2,7 @@
     import { page } from '$app/stores';
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
+    import { resolveStaticHref } from '$lib/utils/sitePaths.js';
     import logoWip from '../../assets/logo_wip.png';
     let { project, settings, activeProjectId = null } = $props();
     
@@ -31,9 +32,9 @@
 
     const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
-    const archiveHref = $derived.by(() => isStaticExport ? '/' : buildPathWithProjectId('/', activeProjectId));
-    const connectionsHref = $derived.by(() => isStaticExport ? '/connections' : buildPathWithProjectId('/connections', activeProjectId));
-    const aboutHref = $derived.by(() => isStaticExport ? '/about' : buildPathWithProjectId('/about', activeProjectId));
+    const archiveHref = $derived.by(() => isStaticExport ? resolveStaticHref('') : buildPathWithProjectId('/', activeProjectId));
+    const connectionsHref = $derived.by(() => isStaticExport ? resolveStaticHref('connections') : buildPathWithProjectId('/connections', activeProjectId));
+    const aboutHref = $derived.by(() => isStaticExport ? resolveStaticHref('about') : buildPathWithProjectId('/about', activeProjectId));
 
     function toggle() {
         isExpanded = !isExpanded;
