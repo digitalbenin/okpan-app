@@ -235,20 +235,13 @@ export async function hydrateProjectFromDatabase(projectId) {
 
   const processDocHasProject = doc.getMap('tables').get('project')?.size > 0;
 
-  if (stats.total > 0 && (!dbHasData || processDocHasProject)) {
-      console.log('[Snapshot] Hydrated successfully from History', { projectId, rows: stats.total });
-      return { applied: historyApplied, source: 'history' };
-  } else if (stats.total > 0 && dbHasData && !processDocHasProject) {
-      console.warn('[Snapshot] History was partially corrupted (missing project table). Forcing re-hydration from SQLite.', { projectId });
-      // Clear Y.Doc to trigger Deep Hydration
-      doc.getMap('tables').clear();
-      try {
-        await db.delete(schema.yjs_snapshots).where(eq(schema.yjs_snapshots.project_id, projectId)).execute();
-        await db.delete(schema.yjs_updates).where(eq(schema.yjs_updates.project_id, projectId)).execute();
-        await db.update(schema.ingestion_state).set({ last_processed_change_id: null }).where(eq(schema.ingestion_state.project_id, projectId)).execute();
-      } catch (err) {
-        console.warn('[Snapshot] Failed wiping corrupt history', err);
+  if (stats.total > 0) {
+      if (dbHasData && !processDocHasProject) {
+          console.warn('[Snapshot] History was partially incomplete (missing project table) but preserving existing CRDT history to prevent vector clock resets.', { projectId });
+      } else {
+          console.log('[Snapshot] Hydrated successfully from History', { projectId, rows: stats.total });
       }
+      return { applied: historyApplied, source: 'history' };
   }
 
   if (!dbHasData) {

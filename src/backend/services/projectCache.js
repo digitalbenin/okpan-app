@@ -3,6 +3,21 @@ import * as Y from 'yjs';
 
 // Y.Doc registry keyed by projectId (map-first schema)
 const projectDocs = new Map();
+let globalClientIdNumber = undefined;
+
+export const setGlobalClientIdNumber = (idStr) => {
+  if (!idStr) return;
+  let hash = 0;
+  for (let i = 0; i < idStr.length; i++) {
+      hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
+      hash |= 0; // Convert to 32bit integer
+  }
+  globalClientIdNumber = Math.abs(hash);
+  // Re-apply to any currently existing docs to stabilize them immediately
+  for (const doc of projectDocs.values()) {
+    doc.clientID = globalClientIdNumber;
+  }
+};
 
 /**
  * Get or create the Y.Doc for a project.
@@ -10,7 +25,9 @@ const projectDocs = new Map();
 export const getProjectDoc = (projectId) => {
   let doc = projectDocs.get(projectId);
   if (!doc) {
-    doc = new Y.Doc({ guid: `project:${projectId}` });
+    const opts = { guid: `project:${projectId}` };
+    if (globalClientIdNumber !== undefined) opts.clientID = globalClientIdNumber;
+    doc = new Y.Doc(opts);
     projectDocs.set(projectId, doc);
   }
   return doc;

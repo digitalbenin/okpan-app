@@ -63,6 +63,8 @@ const client = createClient({
 // Create Drizzle instance with schema
 const db = drizzle(client, { schema });
 
+import { setGlobalClientIdNumber } from '../backend/services/projectCache.js';
+
 // Initialize global settings (singleton)
 const initializeGlobalSettings = async () => {
     try {
@@ -71,14 +73,17 @@ const initializeGlobalSettings = async () => {
 
         if (existing.length === 0) {
             // Create the singleton row with UUID
+            const newClientId = randomUUID();
             await db.insert(globalSettings).values({
                 id: 1, // Enforce singleton
-                client_id: randomUUID(),
+                client_id: newClientId,
                 app_version: process.env.npm_package_version || '1.0.0'
             });
             console.log('Global settings initialized with new client_id');
+            setGlobalClientIdNumber(newClientId);
         } else {
             console.log('Global settings already exist, client_id:', existing[0].client_id);
+            setGlobalClientIdNumber(existing[0].client_id);
         }
     } catch (error) {
         console.error('Error initializing global settings:', error);

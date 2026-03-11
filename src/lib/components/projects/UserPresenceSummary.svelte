@@ -14,9 +14,24 @@
   );
 
   let peersDropdownOpen = $state(false);
+  let isOnline = $state(true);
 
   onMount(() => {
     void userPresenceStore.initialize();
+    
+    if (typeof window !== "undefined") {
+      isOnline = navigator.onLine;
+      const handleOnline = () => isOnline = true;
+      const handleOffline = () => isOnline = false;
+      
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+      
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+      };
+    }
   });
 
   function getInitial(username) {
@@ -59,7 +74,13 @@
     >
       {getInitial(currentUsername)}
     </div>
-    <span class="fw-semibold text-truncate" style="max-width: 180px;">{currentUsername}</span>
+    <div class="d-flex flex-column align-items-start text-start">
+      <span class="fw-semibold text-truncate" style="max-width: 180px; lh-sm">{currentUsername}</span>
+      <div class="d-flex align-items-center gap-1" style="font-size: 0.7rem;">
+        <span class={`rounded-circle bg-${isOnline ? 'success' : 'danger'}`} style="width: 6px; height: 6px; display: inline-block;"></span>
+        <span class="text-white">{isOnline ? 'Online' : 'Offline'}</span>
+      </div>
+    </div>
   </div>
 
   {#if connectedPeers.length > 0}

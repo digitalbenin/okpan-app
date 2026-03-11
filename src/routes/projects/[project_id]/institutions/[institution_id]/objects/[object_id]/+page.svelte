@@ -95,6 +95,15 @@
   // Name field state and change tracking
   let objectName = $state(data.object.name || "");
   let nameHasChanges = false;
+  
+  // Tie local state to incoming remote changes so stale values don't overwrite on blur/save
+  $effect(() => {
+    if (!nameHasChanges && objectName !== (data.object.name || "")) {
+      objectName = data.object.name || "";
+      form.setFieldValue("name", objectName);
+    }
+  });
+
   function handleNameInput(event) {
     const val = event?.target?.value ?? "";
     onNameValueChange(val);
@@ -120,6 +129,13 @@
   let selectedInstitutionId = $state(data.object.institution_id || null);
   let institutionHasChanges = false;
   const institutionItems = data.institutions || [];
+
+  // Re-sync on remote invalidation to prevent stale overwrite
+  $effect(() => {
+    if (!institutionHasChanges && selectedInstitutionId !== (data.object.institution_id || null)) {
+      selectedInstitutionId = data.object.institution_id || null;
+    }
+  });
 
   function onInstitutionValueChange(val) {
     selectedInstitutionId = val;
