@@ -10,6 +10,10 @@
   let isSyncing = $state(false);
   let statusMessage = $state("");
 
+  function getNormalizedProjectId() {
+    return projectId.trim();
+  }
+
   async function waitForPeerPresence(targetProjectId) {
     const initialPresence = await window.api.getProjectPresence(targetProjectId);
     if ((initialPresence?.count || 0) > 0) {
@@ -52,26 +56,27 @@
 
     try {
       isSyncing = true;
+      const normalizedProjectId = getNormalizedProjectId();
       statusMessage = "Setting current project...";
 
-      const joinRes = await window.api.joinP2PProject(projectId.trim(), password || null);
+      const joinRes = await window.api.joinP2PProject(normalizedProjectId, password || null);
       if (!joinRes?.success) {
         throw new Error(joinRes?.error || "Failed to initialize project sync connection.");
       }
 
-      const res = await window.api.setCurrentProject(projectId.trim());
+      const res = await window.api.setCurrentProject(normalizedProjectId);
       if (!res?.success) {
         throw new Error(res?.error || "Failed to set up project sync.");
       }
 
       statusMessage = "Connecting... waiting for peers...";
 
-      const peersFound = await waitForPeerPresence(projectId.trim());
+      const peersFound = await waitForPeerPresence(normalizedProjectId);
 
       if (peersFound) {
         statusMessage = "Connected!";
         if (typeof onSynced === "function") {
-          onSynced({ projectId: projectId.trim() });
+          onSynced({ projectId: normalizedProjectId });
         }
       } else {
         // Did not find peers in time

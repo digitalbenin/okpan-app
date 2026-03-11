@@ -42,6 +42,10 @@ const DEFAULT_INGEST_INTERVAL_MS = 1000;
 
 const tailerLocks = new Map(); // projectId → boolean
 
+function isSkeletonProjectRow(row) {
+  return !!row && !row.title_id && !row.description_id
+}
+
 async function fetchNextChangeBatch(projectId, batchSize) {
   const stateRows = await db
     .select()
@@ -89,7 +93,11 @@ async function loadRowPayload(tableName, rowId) {
     switch (tableName) {
       case 'project': {
         const res = await db.select().from(project).where(eq(project.id, rowId)).limit(1).execute();
-        return res[0] || null;
+        const row = res[0] || null;
+        if (isSkeletonProjectRow(row)) {
+          return null;
+        }
+        return row;
       }
       case 'settings': {
         const res = await db.select().from(settings).where(eq(settings.id, rowId)).limit(1).execute();

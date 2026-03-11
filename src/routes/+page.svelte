@@ -95,17 +95,9 @@
 
   async function handleSynced({ projectId }) {
     syncProjectOpen = false;
-    
+
     // Invalidate all data to refresh the projects list
     await invalidateAll();
-
-    // Navigate to the synced project
-    const path = `/projects/${projectId}`;
-    try {
-      await goto(path);
-    } catch (err) {
-      console.error('[Projects] Navigation failed', err);
-    }
   }
 
   function handleNewProject() {

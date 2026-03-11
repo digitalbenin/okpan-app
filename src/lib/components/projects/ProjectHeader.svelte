@@ -58,8 +58,8 @@
       projectLanguages.forEach((lang) => {
         // Set default values from current content
         if (lang.is_default) {
-          editTitle[lang.code] = currentProject.title.content;
-          editDescription[lang.code] = currentProject.description.content;
+          editTitle[lang.code] = currentProject.title?.content || "";
+          editDescription[lang.code] = currentProject.description?.content || "";
           // Set default active tab
           activeLanguageCode = lang.code;
         } else {
@@ -272,7 +272,7 @@
     />
     <h6 class="m-0">
       <a class="text-decoration-none text-dark" href="/projects/{project.id}">
-        {project.title.content}</a
+        {project.title?.content || "Connecting..."}</a
       >
     </h6>
   </div>

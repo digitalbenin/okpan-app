@@ -40,6 +40,10 @@ function ensureParentTypes(doc) {
   }
 }
 
+function isSkeletonProjectRow(row) {
+  return !!row && !row.title_id && !row.description_id
+}
+
 function countDocRows(doc) {
   try {
     const tables = doc.getMap('tables');
@@ -280,7 +284,7 @@ export async function hydrateProjectFromDatabase(projectId) {
   try {
       // Project
       const projectRows = await db.select().from(schema.project).where(eq(schema.project.id, projectId)).execute();
-      loadIntoDoc('project', projectRows);
+      loadIntoDoc('project', projectRows.filter((row) => !isSkeletonProjectRow(row)));
 
       // Core Tables
       const directProjectTables = [

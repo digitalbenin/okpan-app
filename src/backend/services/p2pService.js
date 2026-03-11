@@ -49,7 +49,20 @@ function syncBaselineFromCanonical(projectId, baselineDoc, canonicalDoc) {
 // Minimal P2P provider registry keyed by projectId
 // Stores { provider, awareness, onUpdate }
 const providers = new Map()
+const pendingProjectPasswords = new Map()
 let presenceNotifier = null
+
+export function setPendingProjectPassword(projectId, password) {
+  if (!projectId) return
+
+  const normalizedPassword = typeof password === 'string' ? password.trim() : ''
+  if (!normalizedPassword) {
+    pendingProjectPasswords.delete(projectId)
+    return
+  }
+
+  pendingProjectPasswords.set(projectId, normalizedPassword)
+}
 
 function normalizeUsername(username) {
   if (typeof username !== 'string') return null
@@ -191,6 +204,10 @@ export async function startP2PForProject(projectId, options = {}) {
     }
   } catch (err) {
     console.warn('[P2P] Failed to get project password', err);
+  }
+
+  if (!password) {
+    password = pendingProjectPasswords.get(projectId)
   }
 
   const trysteroRoom = joinRoom({

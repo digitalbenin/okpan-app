@@ -24,7 +24,7 @@ import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.j
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { getProjectDoc, getCurrentProjectId } from './services/projectCache.js';
-import { startP2PForProject, getProjectPeersCount, getProjectPresence, setPresenceNotifier, refreshAllProjectPresence } from './services/p2pService.js';
+import { startP2PForProject, stopP2PForProject, getProjectPeersCount, getProjectPresence, setPresenceNotifier, refreshAllProjectPresence, setPendingProjectPassword } from './services/p2pService.js';
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';
 import { eq, sql, isNull } from 'drizzle-orm';
@@ -140,22 +140,9 @@ ipcMain.handle('project:set-password', async (event, { projectId, password }) =>
 
 ipcMain.handle('project:join-p2p', async (event, { projectId, password }) => {
   try {
-    const { eq } = await import('drizzle-orm');
-    const { project } = await import('../db/schema.js');
-    
-    // Upsert project with ID and optional password so P2P sync can begin
-    const existing = await db.select().from(project).where(eq(project.id, projectId)).limit(1);
-    
-    if (existing.length === 0) {
-      await db.insert(project).values({
-        id: projectId,
-        password: password || null,
-      }).execute();
-    } else if (password !== undefined) {
-      // Update password if project already existed locally but password was provided
-      await db.update(project).set({ password }).where(eq(project.id, projectId)).execute();
-    }
-    
+    setPendingProjectPassword(projectId, password || null);
+    await stopP2PForProject(projectId);
+
     return { success: true, projectId };
   } catch (err) {
     console.error('[P2P] Failed to join P2P project:', err);

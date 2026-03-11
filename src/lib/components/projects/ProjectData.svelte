@@ -78,18 +78,18 @@
                     defaultLangCode = defaultLang;
 
                     // Set default language content
-                    titleContent[defaultLang] = projData.title.content || "";
+                    titleContent[defaultLang] = projData.title?.content || "";
                     descriptionContent[defaultLang] =
-                        projData.description.content || "";
+                        projData.description?.content || "";
 
                     // Set translations
-                    if (projData.title.translations) {
+                    if (projData.title?.translations) {
                         projData.title.translations.forEach((t) => {
                             titleContent[t.language_code] = t.content || "";
                         });
                     }
 
-                    if (projData.description.translations) {
+                    if (projData.description?.translations) {
                         projData.description.translations.forEach((t) => {
                             descriptionContent[t.language_code] =
                                 t.content || "";

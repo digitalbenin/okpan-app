@@ -119,7 +119,7 @@
 </script>
 
 <div class="sidebar h-100 border-end overflow-y-auto p-3">
-  <h5>{page.data.project.title.content}</h5>
+  <h5>{page.data.project.title?.content || "Connecting..."}</h5>
   <SidebarMenu items={projectLinks} pathname={page.url.pathname} />
   <h5>Actions</h5>
   <SidebarMenu items={actionsLinks} pathname={page.url.pathname} />
