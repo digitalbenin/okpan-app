@@ -125,6 +125,44 @@ ipcMain.handle('global-profile:update', async (event, username) => {
   return profile;
 });
 
+// P2P Sharing Settings & Joining
+ipcMain.handle('project:set-password', async (event, { projectId, password }) => {
+  try {
+    const { eq } = await import('drizzle-orm');
+    const { project } = await import('../db/schema.js');
+    await db.update(project).set({ password }).where(eq(project.id, projectId)).execute();
+    return { success: true };
+  } catch (err) {
+    console.error('[P2P] Failed to set password:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('project:join-p2p', async (event, { projectId, password }) => {
+  try {
+    const { eq } = await import('drizzle-orm');
+    const { project } = await import('../db/schema.js');
+    
+    // Upsert project with ID and optional password so P2P sync can begin
+    const existing = await db.select().from(project).where(eq(project.id, projectId)).limit(1);
+    
+    if (existing.length === 0) {
+      await db.insert(project).values({
+        id: projectId,
+        password: password || null,
+      }).execute();
+    } else if (password !== undefined) {
+      // Update password if project already existed locally but password was provided
+      await db.update(project).set({ password }).where(eq(project.id, projectId)).execute();
+    }
+    
+    return { success: true, projectId };
+  } catch (err) {
+    console.error('[P2P] Failed to join P2P project:', err);
+    return { success: false, error: err.message };
+  }
+});
+
 // Static website export
 ipcMain.handle('export-static-website', async (event, options) => {
   try {

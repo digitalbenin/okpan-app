@@ -49,6 +49,10 @@ contextBridge.exposeInMainWorld('api', {
     // Y.Doc inspection
     inspectYDoc: (projectId) => ipcRenderer.invoke('ydoc-dump', projectId),
 
+    // Project Sharing & Joining
+    setProjectPassword: (projectId, password) => ipcRenderer.invoke('project:set-password', { projectId, password }),
+    joinP2PProject: (projectId, password) => ipcRenderer.invoke('project:join-p2p', { projectId, password }),
+
     // Snapshot management
     createSnapshot: (projectId) => ipcRenderer.invoke('snapshot-create', projectId),
     hydrateFromSnapshot: (projectId) => ipcRenderer.invoke('snapshot-hydrate', projectId),

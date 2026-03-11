@@ -122,7 +122,9 @@
   </div>
 
   <div class="col text-end">
-    <UserPresenceSummary projectId={project?.id} />
+    {#if project?.is_shared === 1 || project?.is_shared === true}
+      <UserPresenceSummary projectId={project?.id} />
+    {/if}
   </div>
 </div>
 

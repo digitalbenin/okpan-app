@@ -74,10 +74,10 @@
     >
       {getInitial(currentUsername)}
     </div>
-    <div class="d-flex flex-column align-items-start text-start">
+    <div class="d-flex flex-column align-items-start text-start gap-0">
       <span class="fw-semibold text-truncate" style="max-width: 180px; lh-sm">{currentUsername}</span>
-      <div class="d-flex align-items-center gap-1" style="font-size: 0.7rem;">
-        <span class={`rounded-circle bg-${isOnline ? 'success' : 'danger'}`} style="width: 6px; height: 6px; display: inline-block;"></span>
+      <div class="d-flex align-items-center gap-2" style="font-size: 0.7rem;">
+        <span class="border rounded-circle {isOnline ? 'bg-success border-success-subtle' : 'bg-danger border-danger-subtle'}" style="width: 10px; height: 10px; display: inline-block;"></span>
         <span class="text-white">{isOnline ? 'Online' : 'Offline'}</span>
       </div>
     </div>
@@ -154,8 +154,8 @@
   }
 
   .presence-avatar {
-    width: 1.9rem;
-    height: 1.9rem;
+    width: 2.2rem;
+    height: 2.2rem;
     font-size: 0.8rem;
   }
 

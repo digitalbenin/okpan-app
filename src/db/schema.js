@@ -117,6 +117,7 @@ export const project = sqliteTable('project', {
     description_id: text('description_id').references(() => texts.id),
     exports: text('exports', { mode: 'json' }),
     password: text('password'),
+    is_shared: integer('is_shared').notNull().default(0), // 0=Private, 1=Shared
     created_app_version: text('created_app_version')
 });
 

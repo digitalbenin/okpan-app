@@ -20,7 +20,7 @@
 
   // Validate type
   const validatedType = $derived.by(() => {
-    if (!["text", "number"].includes(type)) {
+    if (!["text", "number", "password"].includes(type)) {
       console.warn(`Invalid input type: ${type}. Defaulting to "text"`);
       return "text";
     }

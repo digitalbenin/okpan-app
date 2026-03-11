@@ -85,9 +85,18 @@ export const createProject = async (project) => {
     const description = project.description ?? "";
     const languageCode = project.defaultLanguage.code;
     const languageName = project.defaultLanguage.name || project.defaultLanguage.code;
+    const isShared = project.isShared ? 1 : 0;
+    const password = project.password || null;
 
     // Use the registered single-step mutation in queries/projects.js
-    const response = await executeQuery('projects', 'create', { title, description, languageCode, languageName });
+    const response = await executeQuery('projects', 'create', { 
+        title, 
+        description, 
+        languageCode, 
+        languageName,
+        isShared,
+        password 
+    });
 
     const result = response?.result;
     const projectId = result?.project?.id || result?.id || null;

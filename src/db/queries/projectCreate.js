@@ -31,10 +31,12 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
             { name: 'title', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String) },
             { name: 'description', type: drizzleResult.schema._typeMap.String },
             { name: 'languageCode', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String) },
-            { name: 'languageName', type: drizzleResult.schema._typeMap.String }
+            { name: 'languageName', type: drizzleResult.schema._typeMap.String },
+            { name: 'isShared', type: drizzleResult.schema._typeMap.Int },
+            { name: 'password', type: drizzleResult.schema._typeMap.String }
         ],
         resolve: async (source, args, context) => {
-            const { title, description, languageCode } = args;
+            const { title, description, languageCode, isShared, password } = args;
             const languageName = args.languageName || args.languageCode;
 
             // Init
@@ -51,8 +53,12 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                         .limit(1);
                     const appVersion = settingsRow?.app_version || process.env.npm_package_version || 'dev';
 
-                    const [projectInserted] = await tx.insert(dbSchema.project)
-                        .values({ created_app_version: appVersion })
+const [projectInserted] = await tx.insert(dbSchema.project)
+                        .values({
+                            created_app_version: appVersion,
+                            is_shared: isShared || 0,
+                            password: password || null
+                        })
                         .returning();
                     
 

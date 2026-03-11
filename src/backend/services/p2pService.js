@@ -5,6 +5,9 @@ import { RTCPeerConnection } from 'node-datachannel/polyfill'
 import WebSocket from 'ws'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
 import * as Y from 'yjs'
+import { eq } from 'drizzle-orm'
+import { db } from '../../db/init.js'
+import { project } from '../../db/schema.js'
 import { getProjectDoc } from './projectCache.js'
 import { ingestRemoteUpdate } from '../handlers/remoteIngestionHandler.js'
 import { hydrateProjectFromDatabase } from './snapshotService.js'
@@ -179,8 +182,20 @@ export async function startP2PForProject(projectId, options = {}) {
   }
   awareness.on('change', onChange)
 
+  // Run db query to get project password
+  let password = undefined;
+  try {
+    const projRecord = await db.select({ password: project.password }).from(project).where(eq(project.id, projectId)).limit(1);
+    if (projRecord.length > 0 && projRecord[0].password) {
+      password = projRecord[0].password;
+    }
+  } catch (err) {
+    console.warn('[P2P] Failed to get project password', err);
+  }
+
   const trysteroRoom = joinRoom({
     appId,
+    password,
     rtcPolyfill: RTCPeerConnection,
   }, roomId)
 

@@ -8,19 +8,25 @@ export const projectsOperations = {
       title: "Title of the project",
       description: "Description of the project",
       languageCode: "Language code for the default language",
-      languageName: "Language name for the default language"
+      languageName: "Language name for the default language",
+      isShared: "Whether the project is shared or private (1 or 0)",
+      password: "Password for the project, if shared"
     },
     query: `mutation CreateProjectWithDefaults(
   $title: String!
   $description: String
   $languageCode: String!
   $languageName: String
+  $isShared: Int
+  $password: String
 ) {
   result:createProjectWithDefaults(
     title: $title,
     description: $description,
     languageCode: $languageCode,
-    languageName: $languageName
+    languageName: $languageName,
+    isShared: $isShared,
+    password: $password
   ) {
     project { id title_id description_id }
     defaultLanguage { id code name is_default }
@@ -160,6 +166,7 @@ export const projectsOperations = {
     updated_at
     title_id
     description_id
+    is_shared
     title {
       id
       content
@@ -211,6 +218,7 @@ export const projectsOperations = {
     updated_at
     title_id
     description_id
+    is_shared
     title {
       id
       content

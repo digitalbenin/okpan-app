@@ -6,6 +6,7 @@
   const { onSynced } = $props();
 
   let projectId = $state("");
+  let password = $state("");
   let isSyncing = $state(false);
   let statusMessage = $state("");
 
@@ -53,6 +54,11 @@
       isSyncing = true;
       statusMessage = "Setting current project...";
 
+      const joinRes = await window.api.joinP2PProject(projectId.trim(), password || null);
+      if (!joinRes?.success) {
+        throw new Error(joinRes?.error || "Failed to initialize project sync connection.");
+      }
+
       const res = await window.api.setCurrentProject(projectId.trim());
       if (!res?.success) {
         throw new Error(res?.error || "Failed to set up project sync.");
@@ -73,7 +79,7 @@
         addToast({
           data: {
             title: "Timeout",
-            description: "No project found, or no user working on it.",
+            description: "No project found, wrong password, or no users are currently online.",
             type: "warning",
           }
         });
@@ -101,6 +107,16 @@
     <BaseInput
       bind:value={projectId}
       placeholder="Enter Project ID to sync"
+      disabled={isSyncing}
+    />
+  </div>
+
+  <div class="mb-3">
+    <p class="form-label">Password (Optional)</p>
+    <BaseInput
+      type="password"
+      bind:value={password}
+      placeholder="Enter project password if required"
       disabled={isSyncing}
     />
   </div>
