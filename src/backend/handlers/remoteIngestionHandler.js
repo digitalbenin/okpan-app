@@ -201,7 +201,12 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false, exp
   const inserts = []
   const updates = []
   const deletes = []
-    const rescues = []
+  const rescues = []
+
+  const insertKeys = new Set()
+  const updateKeys = new Set()
+  const deleteKeys = new Set()
+
   const getBeforeRows = (table) => (beforeTables?.[table] || {})
   const getAfterRows = (table) => (afterTables?.[table] || {})
   const toSegs = (p) => {
