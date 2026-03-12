@@ -28,6 +28,8 @@
     confirmationText.trim() === (project.title?.content || "Connecting...").trim()
   );
 
+  const isSharedProject = $derived(project?.is_shared === 1 || project?.is_shared === true);
+
   async function handleDeleteConfirm() {
     if (!isDeleteEnabled) return;
     try {
@@ -124,6 +126,13 @@
           fallback: "Are you sure you want to delete this project? This action cannot be undone." 
         })}
       </p>
+      {#if isSharedProject}
+        <p class="text-warning-emphasis">
+          {t("project.delete-shared-warning", {
+            fallback: "Deleting a shared project removes it only from this computer. Other people will keep seeing it and can continue working on their copy."
+          })}
+        </p>
+      {/if}
       <p class="fw-bold">{project.title?.content || "Connecting..."}</p>
       <p class="mb-2">
         {t("project.delete-type-name", {

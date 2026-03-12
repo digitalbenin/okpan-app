@@ -3,6 +3,8 @@ import path from 'path';
 import { eq, inArray, or } from 'drizzle-orm';
 import { GraphQLBoolean, GraphQLInt, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema.js';
+import { stopP2PForProject } from '../../backend/services/p2pService.js';
+import { clearCurrentProjectId, disposeProjectDoc, getCurrentProjectId } from '../../backend/services/projectCache.js';
 
 const normalizeIdList = (values) => {
     if (!Array.isArray(values)) return [];
@@ -78,6 +80,7 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
             const projectRow = await db
                 .select({
                     id: dbSchema.project.id,
+                    is_shared: dbSchema.project.is_shared,
                     title_id: dbSchema.project.title_id,
                     description_id: dbSchema.project.description_id
                 })
@@ -94,6 +97,24 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                     assetFolderErrors: [`Project ${projectId} not found`],
                     counts: {}
                 };
+            }
+
+            const isSharedProject = projectRow[0]?.is_shared === 1 || projectRow[0]?.is_shared === true;
+
+            // Shared project deletion must stay local.
+            // Stop transport/tailer linkage first so the local cascade cannot be projected back into Yjs and propagated.
+            if (isSharedProject) {
+                try {
+                    await stopP2PForProject(projectId);
+                } catch (error) {
+                    console.warn('[DELETE CASCADE] Failed to stop P2P before deleting shared project:', error);
+                }
+
+                if (getCurrentProjectId() === projectId) {
+                    clearCurrentProjectId();
+                }
+
+                disposeProjectDoc(projectId);
             }
 
             const institutions = await db
