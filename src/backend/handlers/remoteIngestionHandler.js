@@ -420,7 +420,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
       after: afterStats
     })
   } catch (_) {}
-  const { inserts, updates, deletes } = computeDiff(beforeTables, afterTables, {
+  const { inserts, updates, deletes, rescues } = computeDiff(beforeTables, afterTables, {
     allowTableDeletes: options?.allowTableDeletes === true,
     explicitDeletes
   })
