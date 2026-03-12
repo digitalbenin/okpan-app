@@ -299,7 +299,11 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
         references: [project.id]
     }),
     assetsInstitutions: many(assets_institutions),
-    objectsAssets: many(objects_assets)
+    objectsAssets: many(objects_assets),
+    localState: one(asset_local_state, {
+        fields: [assets.id],
+        references: [asset_local_state.asset_id]
+    })
 }));
 
 // GenericAssets table - for assets not linked to institutions, but to projects and other entities like vocabularies
@@ -330,7 +334,11 @@ export const genericAssetsRelations = relations(genericAssets, ({ one, many }) =
     // This allows querying from a genericAsset to all vocabularies where it is the main_asset_id
     vocabulariesAsMain: many(vocabularies),
     // This allows querying from a genericAsset to all vocabularies through the junction table
-    vocabulariesGenericAssets: many(vocabularies_generic_assets)
+    vocabulariesGenericAssets: many(vocabularies_generic_assets),
+    localState: one(generic_asset_local_state, {
+        fields: [genericAssets.id],
+        references: [generic_asset_local_state.generic_asset_id]
+    })
 }));
 
 // Objects table
@@ -805,6 +813,20 @@ export const websiteSettingsRelations = relations(websiteSettings, ({ one }) => 
     }),
     logo: one(genericAssets, {
         fields: [websiteSettings.logo_id],
+        references: [genericAssets.id]
+    })
+}));
+
+export const assetLocalStateRelations = relations(asset_local_state, ({ one }) => ({
+    asset: one(assets, {
+        fields: [asset_local_state.asset_id],
+        references: [assets.id]
+    })
+}));
+
+export const genericAssetLocalStateRelations = relations(generic_asset_local_state, ({ one }) => ({
+    genericAsset: one(genericAssets, {
+        fields: [generic_asset_local_state.generic_asset_id],
         references: [genericAssets.id]
     })
 }));

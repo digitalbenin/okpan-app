@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
+  import { getAssetSyncStore } from "$lib/stores/AssetSyncStore.svelte.js";
 
   let { projectId = null } = $props();
 
@@ -13,12 +14,22 @@
     connectedPeers.length === 1 ? "1 connected user" : `${connectedPeers.length} connected users`
   );
 
+  const syncStore = getAssetSyncStore();
+  const syncState = syncStore.state;
+  const isDownloadingAssets = $derived(
+    Object.values(syncState.assets || {}).some(a => a.status === 'downloading')
+  );
+
   let peersDropdownOpen = $state(false);
   let isOnline = $state(true);
+  let isDataSyncing = $state(false);
 
   onMount(() => {
     void userPresenceStore.initialize();
     
+    let unsubscribeDataChanged = () => {};
+    let syncTimeout = null;
+
     if (typeof window !== "undefined") {
       isOnline = navigator.onLine;
       const handleOnline = () => isOnline = true;
@@ -26,10 +37,22 @@
       
       window.addEventListener("online", handleOnline);
       window.addEventListener("offline", handleOffline);
+
+      if (window.api?.onDataChanged) {
+        unsubscribeDataChanged = window.api.onDataChanged(() => {
+          isDataSyncing = true;
+          if (syncTimeout) clearTimeout(syncTimeout);
+          syncTimeout = setTimeout(() => {
+             isDataSyncing = false;
+          }, 5000);
+        });
+      }
       
       return () => {
         window.removeEventListener("online", handleOnline);
         window.removeEventListener("offline", handleOffline);
+        unsubscribeDataChanged();
+        if (syncTimeout) clearTimeout(syncTimeout);
       };
     }
   });
@@ -62,24 +85,26 @@
 
     void userPresenceStore.setCurrentProject(projectId);
   });
+
+  const syncIcon = $derived(
+    !isOnline ? "bi-cloud-slash" :
+    isDataSyncing ? "bi-cloud-arrow-up" :
+    isDownloadingAssets ? "bi-cloud-download" :
+    "bi-cloud-check"
+  );
 </script>
 
 <div class="pe-3 d-flex justify-content-end align-items-center gap-2 flex-wrap position-relative">
   <div class="d-flex align-items-center gap-2 mw-100 justify-content-end">
     <div
-      class="presence-avatar d-inline-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0 presence-avatar-own"
-      style={getAvatarStyle(currentUsername)}
-      title={currentUsername}
-      aria-label={currentUsername}
+      class="presence-avatar d-inline-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0 presence-avatar-own fs-5"
+      style="background: var(--bs-dark-bg-subtle, #212529); color: var(--bs-body-color, #fff); border: 1px solid var(--bs-border-color-translucent, #495057);"
+      title={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
     >
-      {getInitial(currentUsername)}
+      <i class="bi {syncIcon} {!isOnline ? 'text-danger' : isDataSyncing ? 'text-primary' : isDownloadingAssets ? 'text-warning' : 'text-success'} fs-6"></i>
     </div>
-    <div class="d-flex flex-column align-items-start text-start gap-0">
+    <div class="d-flex flex-column align-items-start text-start gap-0 justify-content-center">
       <span class="fw-semibold text-truncate" style="max-width: 180px; lh-sm">{currentUsername}</span>
-      <div class="d-flex align-items-center gap-2" style="font-size: 0.7rem;">
-        <span class="border rounded-circle {isOnline ? 'bg-success border-success-subtle' : 'bg-danger border-danger-subtle'}" style="width: 10px; height: 10px; display: inline-block;"></span>
-        <span class="text-white">{isOnline ? 'Online' : 'Offline'}</span>
-      </div>
     </div>
   </div>
 
