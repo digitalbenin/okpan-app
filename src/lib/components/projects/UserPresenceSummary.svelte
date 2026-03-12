@@ -119,7 +119,7 @@
     >
       {#snippet trigger()}
         <div
-          class="sync-status-trigger d-inline-flex align-items-center justify-content-center flex-shrink-0 cursor-pointer rounded-circle"
+          class="sync-status-trigger d-inline-flex align-items-center justify-content-center flex-shrink-0 cursor-pointer"
           title={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
           aria-label={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
         >
@@ -255,14 +255,16 @@
   .sync-status-trigger {
     width: 2.2rem;
     height: 2.2rem;
-    border: 2px solid rgba(255, 255, 255, 0.92);
-    background: rgba(255, 255, 255, 0.04);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    background: transparent;
+    border: none;
   }
 
   .sync-status-icon {
-    font-size: 1.05rem;
+    font-size: 1.8rem;
     line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .sync-status-menu-divider {

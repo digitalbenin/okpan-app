@@ -24,7 +24,7 @@ import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.j
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { getProjectDoc, getCurrentProjectId } from './services/projectCache.js';
-import { startP2PForProject, stopP2PForProject, getProjectPeersCount, getProjectPresence, setPresenceNotifier, refreshAllProjectPresence, setPendingProjectPassword } from './services/p2pService.js';
+import { startP2PForProject, stopP2PForProject, getP2PProvider, getProjectPeersCount, getProjectPresence, setPresenceNotifier, refreshAllProjectPresence, setPendingProjectPassword } from './services/p2pService.js';
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';
 import { eq, sql, isNull } from 'drizzle-orm';
@@ -207,10 +207,12 @@ ipcMain.handle('set-current-project', async (event, projectId) => {
     return res;
   }
   // Hydrate from latest snapshot before starting tailer
-  try {
-    await hydrateProjectFromLatestSnapshot(projectId);
-  } catch (err) {
-    console.error('Hydration failed for project', projectId, err);
+  if (!getP2PProvider(projectId)) {
+    try {
+      await hydrateProjectFromLatestSnapshot(projectId);
+    } catch (err) {
+      console.error('Hydration failed for project', projectId, err);
+    }
   }
   // Start tailer once, after hydration
   if (!tailerStarted) {
@@ -408,7 +410,14 @@ ipcMain.handle('snapshot-hydrate', async (event, projectId) => {
     if (!projectId || typeof projectId !== 'string') {
       throw new Error('snapshot-hydrate requires a valid projectId');
     }
+    const wasRunning = !!getP2PProvider(projectId);
+    if (wasRunning) {
+      await stopP2PForProject(projectId);
+    }
     const result = await hydrateProjectFromLatestSnapshot(projectId);
+    if (wasRunning) {
+      await startP2PForProject(projectId);
+    }
     return { success: true, result };
   } catch (error) {
     console.error('Error in snapshot-hydrate:', error);

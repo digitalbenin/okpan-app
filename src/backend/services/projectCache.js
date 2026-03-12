@@ -34,6 +34,15 @@ export const getProjectDoc = (projectId) => {
 };
 
 /**
+ * Replace the in-memory Y.Doc for a project with a fresh empty instance.
+ * Useful before snapshot/history hydration so deleted rows do not linger.
+ */
+export const replaceProjectDoc = (projectId) => {
+  disposeProjectDoc(projectId);
+  return getProjectDoc(projectId);
+};
+
+/**
  * Dispose and remove the Y.Doc for a project.
  */
 export const disposeProjectDoc = (projectId) => {

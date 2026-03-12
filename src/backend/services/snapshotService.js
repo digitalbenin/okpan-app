@@ -3,7 +3,7 @@ import { db } from '../../db/init.js';
 import { eq, and, gt, desc, sql, inArray, or } from 'drizzle-orm';
 import { yjs_snapshots, yjs_updates, change_log, ingestion_state } from '../../db/schema.js';
 import * as schema from '../../db/schema.js';
-import { getProjectDoc, ensureTableMap } from './projectCache.js';
+import { getProjectDoc, ensureTableMap, replaceProjectDoc } from './projectCache.js';
 import { scheduleAssetReconcile } from './assetTorrentManager.js';
 
 // Minimal compatibility: ensure parent table maps exist before applying updates
@@ -109,7 +109,7 @@ export async function loadLatestSnapshot(projectId) {
 
 export async function applySnapshotToDoc(projectId, snapshotRow) {
   if (!snapshotRow) return false;
-  const doc = getProjectDoc(projectId);
+  const doc = replaceProjectDoc(projectId);
   const bytes = snapshotRow.snapshot_bytes;
   const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   if (!u8 || u8.length === 0) return false;
@@ -142,7 +142,7 @@ export async function replayUpdatesAfterSnapshot(projectId, snapshotRow) {
 }
 
 async function replayAllUpdates(projectId) {
-  const doc = getProjectDoc(projectId);
+  const doc = replaceProjectDoc(projectId);
   const updates = await db
     .select({ update_bytes: yjs_updates.update_bytes, to_id: yjs_updates.to_change_id, created_at: yjs_updates.created_at, id: yjs_updates.id })
     .from(yjs_updates)
@@ -208,8 +208,6 @@ export async function hydrateProjectFromLatestSnapshot(projectId) {
 
 export async function hydrateProjectFromDatabase(projectId) {
   if (!projectId) return { applied: 0 };
-  const doc = getProjectDoc(projectId);
-  const tables = doc.getMap('tables');
 
   // 1. Snapshot / History Strategy (Primary)
   // We prefer loading this because it preserves Vector Clocks and Deletions.
@@ -220,6 +218,9 @@ export async function hydrateProjectFromDatabase(projectId) {
   } catch (err) {
       console.warn('[Snapshot] Failed to load history', err);
   }
+
+  const doc = getProjectDoc(projectId);
+  const tables = doc.getMap('tables');
 
   // 2. Validation
   const stats = countDocRows(doc);

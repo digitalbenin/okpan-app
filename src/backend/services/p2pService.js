@@ -142,15 +142,15 @@ export async function startP2PForProject(projectId, options = {}) {
     return providers.get(projectId).provider
   }
 
-  // Canonical local projection (driven by DB ingestion)
-  const doc = getProjectDoc(projectId)
-
   // Ensure Doc is hydrated from DB before starting P2P to prevent "empty doc" diffs
   try {
     await hydrateProjectFromDatabase(projectId)
   } catch (err) {
     console.warn('[P2P] Initial hydration failed', err)
   }
+
+  // Canonical local projection (driven by DB ingestion)
+  const doc = getProjectDoc(projectId)
 
   const roomId = `project-${projectId}`
   const appId = process.env.TRYSTERO_APP_ID || 'db-conn-tool'

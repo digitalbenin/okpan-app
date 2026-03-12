@@ -194,7 +194,7 @@ function tablesStats(tablesJson) {
 }
 
 
-function computeDiff(beforeTables, afterTables, { allowTableDeletes = false } = {}) {
+function computeDiff(beforeTables, afterTables, { allowTableDeletes = false, explicitDeletes = null } = {}) {
   const diffs = deepDiff(beforeTables || {}, afterTables || {}) || []
 
   const inserts = []
@@ -282,6 +282,12 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false } = 
     if (row !== undefined) updates.push({ table, id, row })
   }
   for (const k of deleteKeys) {
+    if (explicitDeletes && !explicitDeletes.has(k)) {
+      console.warn(`[RemoteIngestion] PROTECTED row ${k} from accidental deletion (due to map replacement)!`)
+      // Optional: we can push this to an explicit "rescues" queue, but simply ignoring the delete 
+      // preserves the row in SQLite so the user can manually recover it or sync it back next save.
+      continue
+    }
     const [table, id] = k.split('#')
     deletes.push({ table, id })
   }
@@ -350,6 +356,24 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   const beforeTables = jsonTables(shadow)
   const beforeStats = tablesStats(beforeTables)
 
+  const explicitDeletes = new Set();
+  try {
+    const sTables = shadow.getMap('tables')
+    if (sTables) {
+      for (const [tName, map] of sTables.entries()) {
+        if (map instanceof Y.Map) {
+          map.observe(event => {
+            for (const [key, change] of event.changes.keys.entries()) {
+              if (change.action === 'delete') {
+                explicitDeletes.add(`${tName}#${key}`);
+              }
+            }
+          })
+        }
+      }
+    }
+  } catch (_) {}
+
   // Apply inbound remote update to the same shadow and capture AFTER tables
   try {
     Y.applyUpdate(shadow, updateBytes)
@@ -394,7 +418,8 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     })
   } catch (_) {}
   const { inserts, updates, deletes } = computeDiff(beforeTables, afterTables, {
-    allowTableDeletes: options?.allowTableDeletes === true
+    allowTableDeletes: options?.allowTableDeletes === true,
+    explicitDeletes
   })
 
   let applied = 0
