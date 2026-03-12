@@ -8,6 +8,7 @@ export function getAssetSyncStore() {
     if (storeInstance) return storeInstance;
 
     const { error: logError } = getLogStore();
+    let unsubscribeSyncProgress = null;
 
     const syncState = $state({
         assets: {}, // key: assetId => value: { status, progress, error, isGeneric }
@@ -17,39 +18,37 @@ export function getAssetSyncStore() {
 
     const init = async (projectId) => {
         if (!projectId) return;
-        
+
         syncState.isLoading = true;
         try {
             // Fetch initial local state using Drizzle GraphQL auto-generated queries
             const queryDef = assetsOperations.getLocalStates;
 
             const data = await performQuery(queryDef, { projectId });
-            
+
+            syncState.assets = {};
+
             // Populate state
             if (data?.assets) {
                 for (const a of data.assets) {
                     const ls = a.localState;
-                    if (ls) {
-                        syncState.assets[a.id] = {
-                            status: ls.sync_status,
-                            progress: ls.download_progress,
-                            error: ls.sync_error,
-                            isGeneric: false
-                        };
-                    }
+                    syncState.assets[a.id] = {
+                        status: ls?.sync_status || 'missing',
+                        progress: ls?.download_progress ?? 0,
+                        error: ls?.sync_error ?? null,
+                        isGeneric: false
+                    };
                 }
             }
             if (data?.genericAssets) {
                 for (const g of data.genericAssets) {
                     const ls = g.localState;
-                    if (ls) {
-                        syncState.assets[g.id] = {
-                            status: ls.sync_status,
-                            progress: ls.download_progress,
-                            error: ls.sync_error,
-                            isGeneric: true
-                        };
-                    }
+                    syncState.assets[g.id] = {
+                        status: ls?.sync_status || 'missing',
+                        progress: ls?.download_progress ?? 0,
+                        error: ls?.sync_error ?? null,
+                        isGeneric: true
+                    };
                 }
             }
             syncState.isInitialized = true;
@@ -61,13 +60,18 @@ export function getAssetSyncStore() {
         }
 
         // Listen for IPC events triggered by backend torrent manager loops
-        if (window.api?.onAssetSyncProgress) {
-            window.api.onAssetSyncProgress((payload) => {
+        if (!unsubscribeSyncProgress && window.api?.onAssetSyncProgress) {
+            unsubscribeSyncProgress = window.api.onAssetSyncProgress((payload) => {
                 const { assetId, isGeneric, status, progress, error } = payload;
                 if (!syncState.assets[assetId]) {
-                    syncState.assets[assetId] = { isGeneric };
+                    syncState.assets[assetId] = {
+                        status: 'missing',
+                        progress: 0,
+                        error: null,
+                        isGeneric
+                    };
                 }
-                
+
                 if (status !== undefined) syncState.assets[assetId].status = status;
                 if (progress !== undefined) syncState.assets[assetId].progress = progress;
                 if (error !== undefined) syncState.assets[assetId].error = error;

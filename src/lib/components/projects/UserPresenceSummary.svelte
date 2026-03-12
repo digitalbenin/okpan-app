@@ -21,8 +21,19 @@
   );
 
   let peersDropdownOpen = $state(false);
+  let syncDropdownOpen = $state(false);
   let isOnline = $state(true);
   let isDataSyncing = $state(false);
+
+  const missingAssetsCount = $derived(
+    Object.values(syncState.assets || {}).filter(a => a.status === 'missing').length
+  );
+  const downloadingAssetsCount = $derived(
+    Object.values(syncState.assets || {}).filter(a => a.status === 'downloading').length
+  );
+  const presentAssetsCount = $derived(
+    Object.values(syncState.assets || {}).filter(a => a.status === 'available' || a.status === 'seeding').length
+  );
 
   onMount(() => {
     void userPresenceStore.initialize();
@@ -84,6 +95,7 @@
     }
 
     void userPresenceStore.setCurrentProject(projectId);
+    void syncStore.init(projectId);
   });
 
   const syncIcon = $derived(
@@ -96,14 +108,49 @@
 
 <div class="pe-3 d-flex justify-content-end align-items-center gap-2 flex-wrap position-relative">
   <div class="d-flex align-items-center gap-2 mw-100 justify-content-end">
-    <div
-      class="presence-avatar d-inline-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0 presence-avatar-own fs-5"
-      style="background: var(--bs-dark-bg-subtle, #212529); color: var(--bs-body-color, #fff); border: 1px solid var(--bs-border-color-translucent, #495057);"
-      title={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
+    <BaseDropdownMenu
+      bind:open={syncDropdownOpen}
+      triggerClass="btn btn-sm sync-dropdown-trigger p-0 m-0 border-0"
+      contentProps={{ style: "right: 0; left: auto; min-width: 260px; background: #fff; border: 1px solid rgba(15, 23, 42, 0.12); color: #111827; border-radius: 0.85rem; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);" }}
+      side="bottom"
+      align="end"
+      sideOffset={8}
+      alignOffset={0}
     >
-      <i class="bi {syncIcon} {!isOnline ? 'text-danger' : isDataSyncing ? 'text-primary' : isDownloadingAssets ? 'text-warning' : 'text-success'} fs-6"></i>
-    </div>
-    <div class="d-flex flex-column align-items-start text-start gap-0 justify-content-center">
+      {#snippet trigger()}
+        <div
+          class="sync-status-trigger d-inline-flex align-items-center justify-content-center flex-shrink-0 cursor-pointer rounded-circle"
+          title={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
+          aria-label={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
+        >
+          <i class="bi {syncIcon} sync-status-icon text-white"></i>
+        </div>
+      {/snippet}
+
+      {#snippet children()}
+        <div class="d-flex flex-column gap-2 p-3 sync-status-menu text-dark">
+          <div class="fw-medium mb-2 pb-2 border-bottom sync-status-menu-divider">
+            Sync Status: {!isOnline ? 'Offline' : isDataSyncing ? 'Synchronizing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Up to Date'}
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="d-inline-flex align-items-center gap-2"><i class="bi bi-cloud-check"></i> Present Assets</span>
+            <span class="sync-status-count rounded-pill">{presentAssetsCount}</span>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="d-inline-flex align-items-center gap-2"><i class="bi bi-cloud-download"></i> Downloading</span>
+            <span class="sync-status-count rounded-pill">{downloadingAssetsCount}</span>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="d-inline-flex align-items-center gap-2"><i class="bi bi-cloud-slash"></i> Missing Assets</span>
+            <span class="sync-status-count rounded-pill">{missingAssetsCount}</span>
+          </div>
+        </div>
+      {/snippet}
+    </BaseDropdownMenu>
+    <div class="d-flex flex-column align-items-start text-start gap-0 justify-content-center ms-1">
       <span class="fw-semibold text-truncate" style="max-width: 180px; lh-sm">{currentUsername}</span>
     </div>
   </div>
@@ -160,7 +207,8 @@
 </div>
 
 <style>
-  :global(.peer-stack-trigger) {
+  :global(.peer-stack-trigger),
+  :global(.sync-dropdown-trigger) {
     border: 0;
     background: transparent;
     padding: 0;
@@ -172,10 +220,14 @@
   :global(.peer-stack-trigger:hover),
   :global(.peer-stack-trigger:focus),
   :global(.peer-stack-trigger:active),
-  :global(.peer-stack-trigger:focus-visible) {
-    border: 0;
+  :global(.peer-stack-trigger:focus-visible),
+  :global(.sync-dropdown-trigger:hover),
+  :global(.sync-dropdown-trigger:focus),
+  :global(.sync-dropdown-trigger:active),
+  :global(.sync-dropdown-trigger:focus-visible) {
     background: transparent;
     box-shadow: none;
+    outline: none;
   }
 
   .presence-avatar {
@@ -198,5 +250,31 @@
     height: 1.7rem;
     font-size: 0.75rem;
     box-shadow: none;
+  }
+
+  .sync-status-trigger {
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .sync-status-icon {
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+
+  .sync-status-menu-divider {
+    border-color: rgba(15, 23, 42, 0.12) !important;
+  }
+
+  .sync-status-count {
+    min-width: 2.25rem;
+    padding: 0.15rem 0.55rem;
+    text-align: center;
+    color: #111827;
+    background: rgba(15, 23, 42, 0.06);
+    border: 1px solid rgba(15, 23, 42, 0.12);
   }
 </style>
