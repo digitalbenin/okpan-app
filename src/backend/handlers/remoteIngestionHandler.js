@@ -201,12 +201,7 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false, exp
   const inserts = []
   const updates = []
   const deletes = []
-
-  const insertKeys = new Set()
-  const updateKeys = new Set()
-  const deleteKeys = new Set()
-
-  const makeKey = (table, id) => `${table}#${id}`
+    const rescues = []
   const getBeforeRows = (table) => (beforeTables?.[table] || {})
   const getAfterRows = (table) => (afterTables?.[table] || {})
   const toSegs = (p) => {
@@ -285,9 +280,10 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false, exp
   for (const k of deleteKeys) {
     if (explicitDeletes && !explicitDeletes.has(k)) {
       console.warn(`[RemoteIngestion] PROTECTED row ${k} from accidental deletion (due to map replacement)!`)
-      // Optional: we can push this to an explicit "rescues" queue, but simply ignoring the delete 
-      // preserves the row in SQLite so the user can manually recover it or sync it back next save.
-      continue
+      const [t, i] = k.split('#');
+        const row = getBeforeRows(t)[i];
+        if (row) rescues.push({ table: t, id: i, row });
+        continue
     }
     const [table, id] = k.split('#')
     deletes.push({ table, id })
@@ -305,7 +301,7 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false, exp
     }
   } catch (_) {}
 
-  return { inserts, updates, deletes }
+  return { inserts, updates, deletes, rescues }
 }
 
 async function applyInsert(dbOrTx, tableName, id, row) {
@@ -619,6 +615,30 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     console.log('[RemoteIngestion] Asset rows changed, scheduling P2P reconcile for', projectId);
     try { scheduleAssetReconcile(projectId); } catch (err) {
       console.warn('[RemoteIngestion] scheduleAssetReconcile error:', err?.message);
+    }
+  }
+
+  if (rescues && rescues.length > 0) {
+    console.warn('[RemoteIngestion] Recovering orphaned rows due to Yjs map replacement...', rescues.length);
+    try {
+      const canonical = getProjectDoc(projectId);
+      canonical.transact(() => {
+        for (const r of rescues) {
+           const tablesMap = canonical.getMap('tables');
+           if (!tablesMap.get(r.table)) tablesMap.set(r.table, new Y.Map());
+           const tableMap = tablesMap.get(r.table);
+           if (!tableMap.has(r.id)) {
+              const rowMap = new Y.Map();
+              for (const [k, v] of Object.entries(r.row || {})) {
+                rowMap.set(k, v);
+              }
+              tableMap.set(r.id, rowMap);
+              console.warn('[RemoteIngestion] Rescued orphaned row into Yjs:', r.table, r.id);
+           }
+        }
+      }, 'ingestion');
+    } catch (e) {
+      console.error('[RemoteIngestion] Rescue map replacement fail', e);
     }
   }
 

@@ -1,6 +1,7 @@
 import * as Y from 'yjs';
 import { db } from '../../db/init.js';
 import { eq, and, or, gt, sql } from 'drizzle-orm';
+import { FK_ORDER } from './projectScope.js';
 import {
   change_log,
   yjs_updates,
@@ -261,6 +262,15 @@ async function applyBatchToDoc(projectId, rows) {
 
   doc.transact(() => {
     try {
+      for (const op of ops) {
+        if (op.tableName === 'project' && op.kind === 'set') {
+           const tables = doc.getMap('tables');
+           for (const t of FK_ORDER) {
+             if (!tables.get(t)) tables.set(t, new Y.Map());
+           }
+        }
+      }
+
       for (const op of ops) {
         if (op.kind === 'delete') {
           deleteRow(projectId, op.tableName, op.rowId);
