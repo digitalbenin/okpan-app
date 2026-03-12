@@ -181,6 +181,27 @@ export const deleteResearchField = async (fieldId) => {
     }
 
     try {
+        // Collect all generic asset IDs first, before the cascading deletion wipes the links
+        let uniqueGenericAssetIds = [];
+        try {
+            const vocabRes = await executeQuery('research_fields', 'getVocabulariesByFieldId', { fieldId });
+            const vocabularies = vocabRes?.vocabularies || [];
+
+            const genericAssetIds = [];
+            for (const vocab of vocabularies) {
+                if (vocab.main_asset_id) genericAssetIds.push(vocab.main_asset_id);
+                if (vocab.vocabulariesGenericAssets?.length > 0) {
+                    for (const vga of vocab.vocabulariesGenericAssets) {
+                        if (vga.generic_asset_id) genericAssetIds.push(vga.generic_asset_id);
+                    }
+                }
+            }
+
+            uniqueGenericAssetIds = [...new Set(genericAssetIds)];
+        } catch (e) {
+            console.error("Failed to gather associated generic assets before research field deletion:", e);
+        }
+
         const result = await executeQuery('research_fields', 'delete', { fieldId });
 
         if (!result) {
@@ -188,6 +209,18 @@ export const deleteResearchField = async (fieldId) => {
         }
         if (result.error) {
             return { result: null, error: result.error?.message || result.error || "Failed to delete research field: GraphQL error" };
+        }
+
+        // Now that the research field (and its vocabularies) are deleted, we can safely delete the generic assets
+        // without triggering FOREIGN KEY constraint errors from vocabularies.main_asset_id
+        if (uniqueGenericAssetIds.length > 0) {
+            try {
+                for (const assetId of uniqueGenericAssetIds) {
+                    await executeQuery('genericAssets', 'delete', { assetId });
+                }
+            } catch (e) {
+                console.error("Failed to delete orphaned generic assets:", e);
+            }
         }
 
         invalidate("app:research-fields");
@@ -303,10 +336,53 @@ export const deleteVocabulary = async (vocabularyId) => {
     if (!vocabularyId) {
         return { result: null, error: "Missing Vocabulary ID" };
     }
+
+    // First gather generic assets associated with the vocabulary so we can delete them AFTER
+    // the vocabulary is deleted (to avoid FOREIGN KEY constraint failures).
+    let uniqueGenericAssetIds = [];
+    try {
+        const vocabResponse = await executeQuery('research_fields', 'getVocabularyById', { vocabularyId });
+        const vocabulary = vocabResponse?.vocabularies?.[0];
+        
+        if (vocabulary) {
+            const genericAssetIds = [];
+            
+            if (vocabulary.main_asset_id) {
+                genericAssetIds.push(vocabulary.main_asset_id);
+            }
+            
+            if (vocabulary.vocabulariesGenericAssets?.length > 0) {
+                for (const vga of vocabulary.vocabulariesGenericAssets) {
+                    if (vga.generic_asset_id) {
+                        genericAssetIds.push(vga.generic_asset_id);
+                    }
+                }
+            }
+            
+            // Deduplicate ids
+            uniqueGenericAssetIds = [...new Set(genericAssetIds)];
+        }
+    } catch (e) {
+        console.error("Failed to gather associated generic assets before vocabulary deletion:", e);
+    }
+
+    // Delete the vocabulary itself first (this cascades to vocabularies_generic_assets but leaves genericAssets orphaned)
     const result = await executeQuery('research_fields', 'deleteVocabulary', { vocabularyId });
     if (result?.error) {
         return { result: null, error: result.error };
     }
+
+    // Now safely delete the generic assets from the DB
+    if (uniqueGenericAssetIds.length > 0) {
+        try {
+            for (const assetId of uniqueGenericAssetIds) {
+                await executeQuery('genericAssets', 'delete', { assetId });
+            }
+        } catch (e) {
+            console.error("Failed to delete orphaned generic assets after vocabulary deletion:", e);
+        }
+    }
+
     invalidate("app:research-fields");
     return { result: result.result || result, error: null };
 };

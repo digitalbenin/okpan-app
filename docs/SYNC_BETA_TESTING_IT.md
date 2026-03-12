@@ -44,7 +44,7 @@ Tutti i test dovrebbero essere eseguiti idealmente con almeno due istanze dell'a
 *   [ ] **Creazione Concorrente Pura (Test ANTI-CASCADING WIPE - "Mysteriously Disappearing Data"):**
     1. Creare o entrare in un progetto *completamente vuoto*, senza alcuna DataSource o Institution esistente.
     2. Peer A e Peer B vanno offline.
-    3. **Azione critica:** Peer A crea la sua prima Data Source. Peer B crea la *sua* prima Data Source, diversa. (Oppure Istituzioni separate).
+    3. **Azione critica:** Peer A crea la sua prima Institution. Peer B crea la *sua* prima Institution, diversa. Opzionalmente creare anche entità legate all'istituzione (ad es. un datasource).
     4. Tornare online contemporaneamente.
     5. *Risultato Atteso:* Entrambe le tuple devono apparire e coesistere nei database e sulle UI di ambo i peer. **Nessun oggetto deve scomparire misteriosamente nel vuoto.**
 
