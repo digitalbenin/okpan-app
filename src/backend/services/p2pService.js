@@ -223,11 +223,15 @@ export async function startP2PForProject(projectId, options = {}) {
     trysteroRoom  // Use pre-configured room (server-side)
   })
 
+  // Strict sequential queue to prevent concurrent baselineDoc diffing races
+  let updateQueue = Promise.resolve()
+
   // Persist non-ingestion updates to SQLite via remote ingestion pipeline
-  const onDocUpdatePersist = async (update, origin) => {
-    try {
-      // Ignore updates originating from DB tailer projections or local hydration/replay
-      if (origin === 'ingestion' || origin === 'hydration' || origin === 'replay') {
+  const onDocUpdatePersist = (update, origin) => {
+    updateQueue = updateQueue.then(async () => {
+      try {
+        // Ignore updates originating from DB tailer projections or local hydration/replay
+        if (origin === 'ingestion' || origin === 'hydration' || origin === 'replay') {
         syncBaselineFromCanonical(projectId, baselineDoc, doc)
         const baseStats = countDocTables(baselineDoc)
         const canonStats = countDocTables(doc)
@@ -266,9 +270,12 @@ export async function startP2PForProject(projectId, options = {}) {
       } else {
         syncBaselineFromCanonical(projectId, baselineDoc, doc)
       }
-    } catch (err) {
-      console.error('[P2P] Failed to persist Yjs update to SQLite', err)
-    }
+      } catch (err) {
+        console.error('[P2P] Failed to persist Yjs update to SQLite', err)
+      }
+    }).catch(err => {
+      console.error('[P2P] Update queue failed', err)
+    })
   }
   doc.on('update', onDocUpdatePersist)
 

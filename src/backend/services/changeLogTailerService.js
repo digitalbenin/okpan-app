@@ -157,7 +157,14 @@ async function loadRowPayload(tableName, rowId) {
       }
       case 'datasources': {
         const res = await db.select().from(datasources).where(eq(datasources.id, rowId)).limit(1).execute();
-        return res[0] || null;
+        const payload = res[0] || null;
+        if (payload && payload.import_id) {
+          // P2P HOTFIX: The `imports` table is completely skipped from Y.Doc sync to avoid huge payloads.
+          // Therefore, `import_id` on datasources creates unresolvable foreign-key constraints on remote peers.
+          // Strip it before it enters the Y.Doc CRDT to prevent sync halting and accidental remote nullification.
+          delete payload.import_id;
+        }
+        return payload;
       }
       case 'imports': {
         // Skip heavy imports payloads entirely during hydration

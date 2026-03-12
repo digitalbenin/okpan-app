@@ -97,7 +97,8 @@ function sanitizeRowForDb(row, { dropCreatedAt = true, tableName } = {}) {
       // else omit so DEFAULT / $onUpdateFn applies
       continue
     }
-    // Avoid setting nulls on NOT NULL columns for specific tables
+    if (tableName === 'datasources' && k === 'import_id') { continue; }
+      // Avoid setting nulls on NOT NULL columns for specific tables
     const notNullCols = NOT_NULL_FIELDS[tableName] || []
     if ((v === null || v === undefined) && notNullCols.includes(k)) {
       // drop null assignment to satisfy NOT NULL constraints
@@ -533,7 +534,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
             // If this table requires certain fields to exist on insert, and payload has them,
             // perform an upsert to ensure the row is created if missing.
             const canUpsertInsert = hasRequiredForInsert(t, payload)
-            if (canUpsertInsert && INSERT_REQUIRED_FIELDS[t]) {
+            if (canUpsertInsert) {
               await tx
                 .insert(tableRef)
                 .values({ id: up.id, ...payload })
