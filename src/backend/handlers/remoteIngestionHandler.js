@@ -207,6 +207,7 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false, exp
   const updateKeys = new Set()
   const deleteKeys = new Set()
 
+  const makeKey = (table, id) => `${table}#${id}`
   const getBeforeRows = (table) => (beforeTables?.[table] || {})
   const getAfterRows = (table) => (afterTables?.[table] || {})
   const toSegs = (p) => {
