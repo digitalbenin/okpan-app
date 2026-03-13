@@ -1,4 +1,6 @@
 <script>
+    import BaseVideo from "$lib/components/base/BaseVideo.svelte";
+
     let {
         asset,
         size = 200,
@@ -42,14 +44,24 @@
 
     <!-- Video Preview (Square) -->
     <div
-        class="bg-light rounded overflow-hidden d-flex align-items-center justify-content-center position-relative w-100 h-100"
+        class="bg-light rounded overflow-hidden d-flex align-items-center justify-content-center position-relative w-100 h-100 custom-video-container"
         style="cursor: pointer;"
         role="button"
         tabindex="0"
         onclick={handleClick}
         onkeydown={(e) => e.key === "Enter" && handleClick()}
     >
-        <i class="bi bi-camera-video text-muted" style="font-size: 2rem;"></i>
+        {#if asset?.path}
+            <BaseVideo
+                {asset}
+                controls={false}
+                class="w-100 h-100 object-fit-cover"
+                style="pointer-events: none;"
+                compact={true}
+            />
+        {:else}
+            <i class="bi bi-camera-video text-muted" style="font-size: 2rem;"></i>
+        {/if}
 
         <!-- Play Button Overlay -->
         <div
