@@ -149,7 +149,21 @@ ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
     return { success: false, error: err.message };
   }
 });
-
+  ipcMain.handle('project-suspend-p2p', async (event, projectId) => {
+    try {
+      if (!projectId) return { success: false, error: 'No projectId provided' };
+      
+      const wasRunning = !!getP2PProvider(projectId);
+      if (wasRunning) {
+        stopProjectTorrents(projectId);
+        await stopP2PForProject(projectId);
+      }
+      return { success: true };
+    } catch (err) {
+      console.error('[P2P] Failed to suspend P2P project:', err);
+      return { success: false, error: err.message };
+    }
+  });
 ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
   try {
     if (!projectId) return { success: false, error: 'No projectId provided' };

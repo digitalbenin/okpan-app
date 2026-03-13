@@ -10,18 +10,38 @@
   // (selection context moved into objects route layout)
 
   onMount(() => {
+    let reconnectTimeout;
     const handleOnline = () => {
-      console.log("Network online, reconnecting P2P...");
+      console.log("Network online, scheduling P2P reconnect...");
       const projectId = page.params.project_id;
       if (projectId) {
-        window.api.reconnectP2PProject(projectId).catch(err => {
-          console.warn('Failed to reconnect P2P:', err);
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = setTimeout(() => {
+          console.log("Executing delayed P2P reconnect...");
+          window.api.reconnectP2PProject(projectId).catch(err => {
+            console.warn('Failed to reconnect P2P:', err);
+          });
+        }, 2000);
+      }
+    };
+    
+    const handleOffline = () => {
+      console.log("Network offline, suspending P2P...");
+      const projectId = page.params.project_id;
+      if (projectId) {
+        clearTimeout(reconnectTimeout);
+        window.api.suspendP2PProject(projectId).catch(err => {
+          console.warn('Failed to suspend P2P:', err);
         });
       }
     };
+
     window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     return () => {
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearTimeout(reconnectTimeout);
     };
   });
 

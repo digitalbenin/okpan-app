@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld('api', {
     // Project Sharing & Joining
     setProjectPassword: (projectId, password) => ipcRenderer.invoke('project-set-password', { projectId, password }),
     joinP2PProject: (projectId, password) => ipcRenderer.invoke('project-join-p2p', { projectId, password }),
+    suspendP2PProject: (projectId) => ipcRenderer.invoke('project-suspend-p2p', projectId),
     reconnectP2PProject: (projectId) => ipcRenderer.invoke('project-reconnect-p2p', projectId),
 
     // Snapshot management
