@@ -279,7 +279,7 @@ export async function startP2PForProject(projectId, options = {}) {
   }
   doc.on('update', onDocUpdatePersist)
 
-  providers.set(projectId, { provider, awareness, onChange, onDocUpdatePersist, baselineDoc })
+  providers.set(projectId, { provider, awareness, onChange, onDocUpdatePersist, baselineDoc, trysteroRoom })
   emitProjectPresence(projectId)
   return provider
 }
@@ -294,6 +294,13 @@ export async function stopP2PForProject(projectId) {
     // Remove awareness listener & heartbeat
     try { entry.awareness?.off('change', entry.onChange) } catch (err) { console.warn('[P2P] Failed to remove awareness change listener', err) }
     try { getProjectDoc(projectId)?.off('update', entry.onDocUpdatePersist) } catch (err) { console.warn('[P2P] Failed to remove canonical doc persistence handler', err) }
+    
+    try {
+      if (entry.trysteroRoom && typeof entry.trysteroRoom.leave === 'function') {
+        entry.trysteroRoom.leave()
+      }
+    } catch (err) { console.warn('[P2P] Failed to leave trystero room', err) }
+
     // Baseline doc is local-only; rely on GC
 
     const provider = entry.provider
