@@ -166,6 +166,7 @@
 
 </script>
 
+{#if !data.missingEntity && data.researchField}
 <div class="container-fluid h-100 bg-light d-flex flex-column">
     <!-- Header Section -->
     <div class="pt-3 pb-3 border-bottom mb-3">
@@ -415,6 +416,7 @@
     onSave={handleSaveEdit}
     t={t}
 />
+{/if}
 
 <style>
     /* Add any specific overrides here if bootstrap utilities aren't enough */

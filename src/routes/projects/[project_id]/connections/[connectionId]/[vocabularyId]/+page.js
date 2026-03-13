@@ -2,6 +2,10 @@ import { browser } from '$app/environment';
 import { getResearchFieldById, fetchLinkedObjectsByVocabularyOption } from '$lib/stores/ResearchFieldsUtils.js';
 import { error } from '@sveltejs/kit';
 
+function isNotFoundError(value) {
+    return /not found/i.test(String(value || ''));
+}
+
 /** @type {import('./$types').PageLoad} */
 export async function load({ params, parent, url }) {
     if (!browser) return {};
@@ -22,19 +26,49 @@ export async function load({ params, parent, url }) {
     const { result: researchField, error: fetchError } = await getResearchFieldById(connectionId);
     
     if (fetchError) {
+        if (isNotFoundError(fetchError)) {
+            return {
+                ...parentData,
+                researchField: null,
+                vocabulary: null,
+                linkedObjects: [],
+                linkedObjectsTotalCount: 0,
+                linkedObjectsPage,
+                linkedObjectsPageSize,
+                missingEntity: 'connection'
+            };
+        }
         console.error("Error loading connection type:", fetchError);
         throw error(500, fetchError);
     }
     
     if (!researchField) {
-        throw error(404, 'Connection type not found');
+        return {
+            ...parentData,
+            researchField: null,
+            vocabulary: null,
+            linkedObjects: [],
+            linkedObjectsTotalCount: 0,
+            linkedObjectsPage,
+            linkedObjectsPageSize,
+            missingEntity: 'connection'
+        };
     }
     
     // Find the specific vocabulary
     const vocabulary = researchField.vocabularies?.find(v => v.id === vocabularyId);
     
     if (!vocabulary) {
-        throw error(404, 'Connection (Vocabulary) not found');
+        return {
+            ...parentData,
+            researchField,
+            vocabulary: null,
+            linkedObjects: [],
+            linkedObjectsTotalCount: 0,
+            linkedObjectsPage,
+            linkedObjectsPageSize,
+            missingEntity: 'connection'
+        };
     }
 
     // Fetch objects linked to this vocabulary option
