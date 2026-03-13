@@ -2,6 +2,7 @@
   import { onMount, onDestroy, setContext } from "svelte";
   import Header from "$lib/components/projects/Header.svelte";
   import Sidebar from "$lib/components/projects/Sidebar.svelte";
+  import DeletedEntityRedirectGuard from "$lib/components/navigation/DeletedEntityRedirectGuard.svelte";
   import { page } from "$app/state";
   import { afterNavigate } from "$app/navigation";
 
@@ -66,6 +67,7 @@
 </script>
 
 <div class="d-flex flex-column vh-100">
+  <DeletedEntityRedirectGuard />
   <div class="flex-grow-0 flex-shrink-0">
     <Header />
   </div>
