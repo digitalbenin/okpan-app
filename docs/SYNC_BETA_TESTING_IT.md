@@ -4,6 +4,15 @@ Questo documento contiene un piano di test esaustivo per verificare la robustezz
 
 Tutti i test dovrebbero essere eseguiti idealmente con almeno due istanze dell'applicazione (es. su due PC diversi, o due macchine virtuali) denominate **Peer A** e **Peer B**.
 
+###  Setup dell'applicazione
+
+- clonare il repository e posizionarsi sul branch `feature-sync`
+- installare le dipendenze con `yarn sintall`
+- se è presente un database da un'installazione precedente, cancellarlo con il comando `rm src/db/local.db`
+- reiniziare il database con `yarn db:push`
+- creare le tabelle per la ricerca e i trigger per la sync con `yarn db:search-setup`
+- avviare l'applicazione con `yarn start`
+
 ---
 
 ## 1. Connettività Base e Real-Time (Scenario Principale)
