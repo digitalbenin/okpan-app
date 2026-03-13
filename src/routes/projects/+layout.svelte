@@ -1,5 +1,5 @@
 <script>
-  import { onDestroy, setContext } from "svelte";
+  import { onMount, onDestroy, setContext } from "svelte";
   import Header from "$lib/components/projects/Header.svelte";
   import Sidebar from "$lib/components/projects/Sidebar.svelte";
   import { page } from "$app/state";
@@ -8,6 +8,22 @@
   const { children } = $props();
 
   // (selection context moved into objects route layout)
+
+  onMount(() => {
+    const handleOnline = () => {
+      console.log("Network online, reconnecting P2P...");
+      const projectId = page.params.project_id;
+      if (projectId) {
+        window.api.reconnectP2PProject(projectId).catch(err => {
+          console.warn('Failed to reconnect P2P:', err);
+        });
+      }
+    };
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  });
 
   // Clear project cache when leaving the projects section
   onDestroy(() => {

@@ -126,7 +126,7 @@ ipcMain.handle('global-profile:update', async (event, username) => {
 });
 
 // P2P Sharing Settings & Joining
-ipcMain.handle('project:set-password', async (event, { projectId, password }) => {
+ipcMain.handle('project-set-password', async (event, { projectId, password }) => {
   try {
     const { eq } = await import('drizzle-orm');
     const { project } = await import('../db/schema.js');
@@ -138,7 +138,7 @@ ipcMain.handle('project:set-password', async (event, { projectId, password }) =>
   }
 });
 
-ipcMain.handle('project:join-p2p', async (event, { projectId, password }) => {
+ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
   try {
     setPendingProjectPassword(projectId, password || null);
     await stopP2PForProject(projectId);
@@ -146,6 +146,43 @@ ipcMain.handle('project:join-p2p', async (event, { projectId, password }) => {
     return { success: true, projectId };
   } catch (err) {
     console.error('[P2P] Failed to join P2P project:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
+  try {
+    if (!projectId) return { success: false, error: 'No projectId provided' };
+    
+    const wasRunning = !!getP2PProvider(projectId);
+    if (wasRunning) {
+      stopProjectTorrents(projectId);
+      await stopP2PForProject(projectId);
+    }
+    
+    const notifyFrontend = () => {
+      if (event && event.sender && !event.sender.isDestroyed()) {
+        try {
+           event.sender.send('data-changed', { projectId, origin: 'p2p' });
+        } catch (e) {
+           console.warn('Failed to notify frontend of data change', e);
+        }
+      }
+    };
+    
+    await startP2PForProject(projectId, { onDataChange: notifyFrontend });
+    
+    setTimeout(() => {
+      try {
+        startReconcileLoop(projectId);
+      } catch (err) {
+        console.error('Failed to restart asset reconcile loop out of reconnect', err);
+      }
+    }, 5000);
+
+    return { success: true };
+  } catch (err) {
+    console.error('[P2P] Failed to reconnect P2P project:', err);
     return { success: false, error: err.message };
   }
 });

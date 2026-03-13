@@ -5,6 +5,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import { XMLParser } from 'fast-xml-parser';
 import { setCurrentProjectId, getCurrentProjectId, clearCurrentProjectId } from '../services/projectCache.js';
+import { stopP2PForProject } from '../services/p2pService.js';
+import { stopProjectTorrents } from '../services/assetTorrentManager.js';
 
 /**
  * Handler for ping requests
@@ -417,8 +419,13 @@ export const handleExcelSheetSelection = async (event, options) => {
  * @param {Event} event - The IPC event
  * @returns {Object} Success response
  */
-export const handleClearCurrentProject = (event) => {
+export const handleClearCurrentProject = async (event) => {
     try {
+        const currentProjectId = getCurrentProjectId();
+        if (currentProjectId) {
+            stopProjectTorrents(currentProjectId);
+            await stopP2PForProject(currentProjectId);
+        }
         clearCurrentProjectId();
         return { success: true };
     } catch (error) {

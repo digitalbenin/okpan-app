@@ -523,6 +523,14 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
               console.warn(`[RemoteIngestion] Insert deferred due to FK/ProjectId on pass ${pass}`, { table: t, id: ins.id, err: err?.message, code: err?.code, rawCode: err?.rawCode })
               continue
             }
+            if ((err?.code === 'SQLITE_CONSTRAINT_UNIQUE' || err?.message?.includes('UNIQUE constraint failed')) && !err?.message?.includes('PRIMARY KEY')) {
+              console.warn(`[RemoteIngestion] Ignored duplicate insert due to secondary UNIQUE constraint on pass ${pass}`, { table: t, id: ins.id, err: err?.message })
+              // Mark as applied so we don't abort transaction or defer this perpetually
+              applied += 1
+              remainingInserts.splice(i, 1)
+              progress = true
+              continue
+            }
             throw err
           }
         }
@@ -554,6 +562,13 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
           } catch (err) {
             if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
               console.warn(`[RemoteIngestion] Update deferred due to FK/ProjectId on pass ${pass}`, { table: t, id: up.id, err: err?.message, code: err?.code, rawCode: err?.rawCode })
+              continue
+            }
+            if ((err?.code === 'SQLITE_CONSTRAINT_UNIQUE' || err?.message?.includes('UNIQUE constraint failed')) && !err?.message?.includes('PRIMARY KEY')) {
+              console.warn(`[RemoteIngestion] Ignored duplicate update due to secondary UNIQUE constraint on pass ${pass}`, { table: t, id: up.id, err: err?.message })
+              applied += 1
+              remainingUpdates.splice(i, 1)
+              progress = true
               continue
             }
             throw err
