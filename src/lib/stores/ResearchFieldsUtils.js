@@ -83,6 +83,31 @@ export const getResearchFieldById = async (fieldId) => {
     return { result: researchFieldsResult[0], error: null };
 };
 
+export const getVocabularyById = async (vocabularyId) => {
+    if (!vocabularyId) {
+        return { result: null, error: "Missing vocabularyId" };
+    }
+
+    const response = await executeQuery('research_fields', 'getVocabularyById', {
+        vocabularyId,
+    });
+
+    if (!response) {
+        return { result: null, error: "Failed to fetch vocabulary: No response" };
+    }
+    if (response.error) {
+        return { result: null, error: response.error?.message || response.error || "Failed to fetch vocabulary: GraphQL error" };
+    }
+
+    const vocabulariesResult = response.vocabularies;
+
+    if (!vocabulariesResult || !Array.isArray(vocabulariesResult)) {
+        return { result: null, error: "Failed to fetch vocabulary: Invalid result structure" };
+    }
+
+    return { result: vocabulariesResult[0], error: null };
+};
+
 // Create a new research field (initial implementation, may need translation handling)
 export const createResearchField = async (fieldData) => {
     // Set default values for new boolean fields if not provided

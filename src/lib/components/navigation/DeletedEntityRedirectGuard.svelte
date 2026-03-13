@@ -6,7 +6,7 @@
   import { getInstitution } from "$lib/stores/InstitutionsUtils.js";
   import { getObjectById } from "$lib/stores/ObjectsUtils.js";
   import { getAssetById } from "$lib/stores/AssetsUtils.js";
-  import { getResearchFieldById } from "$lib/stores/ResearchFieldsUtils.js";
+  import { getResearchFieldById, getVocabularyById } from "$lib/stores/ResearchFieldsUtils.js";
 
   const ENTITY_LABELS = {
     institution: "institution",
@@ -35,7 +35,7 @@
 
   function getRouteChecks() {
     const checks = [];
-    const { institution_id, object_id, asset_id, connectionId } = page.params;
+    const { institution_id, object_id, asset_id, connectionId, vocabularyId } = page.params;
 
     if (institution_id) {
       checks.push({ type: "institution", id: institution_id });
@@ -48,6 +48,9 @@
     }
     if (connectionId) {
       checks.push({ type: "connection", id: connectionId });
+    }
+    if (vocabularyId) {
+      checks.push({ type: "connection-vocabulary", id: vocabularyId });
     }
 
     return checks;
@@ -85,6 +88,13 @@
           }
           return Boolean(response?.result?.id);
         }
+        case "connection-vocabulary": {
+          const response = await getVocabularyById(check.id);
+          if (response?.error && !/not found/i.test(String(response.error))) {
+            return true;
+          }
+          return Boolean(response?.result?.id);
+        }
         default:
           return true;
       }
@@ -116,7 +126,7 @@
         return;
       }
       if (!exists) {
-        deletedEntityType = check.type;
+        deletedEntityType = check.type === "connection-vocabulary" ? "connection" : check.type;
         lastHandledPath = currentPath;
         showDialog = true;
         return;
@@ -162,6 +172,7 @@
     page.params.object_id;
     page.params.asset_id;
     page.params.connectionId;
+    page.params.vocabularyId;
     void verifyActiveRoute();
   });
 
