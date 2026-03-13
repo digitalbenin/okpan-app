@@ -496,7 +496,8 @@ export const objects_research_fields = sqliteTable('objects_research_fields', {
     objectIdx: index('idx_objects_research_fields_object_id').on(table.object_id),
     fieldIdx: index('idx_objects_research_fields_field_id').on(table.field_id),
     vocabularyIdx: index('idx_objects_research_fields_vocabulary_id').on(table.vocabulary_id),
-    objectFieldIdx: index('idx_objects_research_fields_object_field').on(table.object_id, table.field_id)
+    objectFieldIdx: index('idx_objects_research_fields_object_field').on(table.object_id, table.field_id),
+    objectFieldVocabularyUnique: uniqueIndex('objects_research_fields_object_field_vocabulary_unique').on(table.object_id, table.field_id, table.vocabulary_id)
 }));
 
 // Objects Research Fields relations
