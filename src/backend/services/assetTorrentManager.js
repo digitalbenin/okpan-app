@@ -245,6 +245,9 @@ async function setupSignalingForProject(projectId) {
     if (!entry.seederId) {
       entry.seederId = senderId;
       console.log(`[AssetTorrent] [Signaling] Seeder ${senderId} answered ${infoHash}`);
+    } else if (entry.seederId !== senderId) {
+      console.log(`[AssetTorrent] [Signaling] Ignoring signal from unexpected seeder ${senderId} for ${infoHash}; locked to ${entry.seederId}`);
+      return;
     }
     try { entry.peer.signal(signal); }
     catch (err) { console.warn(`[AssetTorrent] peer.signal error ${infoHash}:`, err?.message); }
