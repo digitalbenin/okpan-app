@@ -40,8 +40,9 @@ const reconcileIntervals= new Map(); // projectId â†’ Timeout
 const reconcileDebounce = new Map(); // projectId â†’ Timeout
 const reconcileRunning  = new Set();
 const seededHashes      = new Set();
-const signalingActions  = new Map(); // projectId â†’ { sendRequest, sendSignal }
-const pendingPeerSignals= new Map(); // infoHash  â†’ { peer, seederId }
+const projectSeededHashes = new Map(); // projectId â†’ Set<infoHash>
+const signalingActions  = new Map(); // projectId â†’ { room, sendRequest, sendSignal, seederPeers }
+const pendingPeerSignals= new Map(); // `${projectId}:${infoHash}` â†’ { projectId, peer, seederId }
 
 
 async function getWtClient() {
@@ -59,6 +60,31 @@ async function getWtClient() {
 function getOrSet(map, key, factory) {
   if (!map.has(key)) map.set(key, factory());
   return map.get(key);
+}
+
+function getPendingPeerSignalKey(projectId, infoHash) {
+  return `${projectId}:${infoHash}`;
+}
+
+function recordSeededHash(projectId, infoHash) {
+  if (!projectId || !infoHash) return;
+  seededHashes.add(infoHash);
+  getOrSet(projectSeededHashes, projectId, () => new Set()).add(infoHash);
+}
+
+function clearProjectPendingSignals(projectId) {
+  for (const [key, entry] of pendingPeerSignals) {
+    if (entry?.projectId !== projectId) continue;
+    try { entry.peer?.destroy(); } catch (_) {}
+    pendingPeerSignals.delete(key);
+  }
+}
+
+function clearProjectSeededHashes(projectId) {
+  const hashes = projectSeededHashes.get(projectId);
+  if (!hashes) return;
+  for (const infoHash of hashes) seededHashes.delete(infoHash);
+  projectSeededHashes.delete(projectId);
 }
 
 function sanitizeName(name) {
@@ -150,15 +176,17 @@ async function setupSignalingForProject(projectId) {
   // Needed so incoming signals from the downloader can be routed back to the
   // correct initiator peer to complete the WebRTC handshake.
   const seederPeers = new Map();
-  signalingActions.set(projectId, { sendRequest, sendSignal, seederPeers });
+  signalingActions.set(projectId, { room, sendRequest, sendSignal, seederPeers });
 
   // When a new peer joins the room, re-broadcast any pending download requests
   // that haven't been answered yet.  This handles the case where the downloader
   // started before the seeder was visible in the Trystero room (the initial
   // broadcast at startup went to nobody; the seeder joined later).
   room.onPeerJoin((peerId) => {
-    for (const [infoHash, entry] of pendingPeerSignals) {
-      if (!entry.seederId) {
+    for (const [key, entry] of pendingPeerSignals) {
+      if (entry?.projectId !== projectId || entry.seederId) continue;
+      const [, infoHash] = key.split(':', 2);
+      if (infoHash) {
         console.log(`[AssetTorrent] [Signaling] New peer ${peerId} – re-sending request for ${infoHash}`);
         sendRequest({ infoHash }, [peerId]);
       }
@@ -212,7 +240,7 @@ async function setupSignalingForProject(projectId) {
       return;
     }
     // Path B: signal is from the seeder to the downloader's non-initiator peer
-    const entry = pendingPeerSignals.get(infoHash);
+    const entry = pendingPeerSignals.get(getPendingPeerSignalKey(projectId, infoHash));
     if (!entry) return;
     if (!entry.seederId) {
       entry.seederId = senderId;
@@ -223,9 +251,10 @@ async function setupSignalingForProject(projectId) {
   });
 }
 
-function cleanupSignalingPeer(infoHash) {
-  const entry = pendingPeerSignals.get(infoHash);
-  if (entry) { try { entry.peer.destroy(); } catch (_) {} pendingPeerSignals.delete(infoHash); }
+function cleanupSignalingPeer(projectId, infoHash) {
+  const key = getPendingPeerSignalKey(projectId, infoHash);
+  const entry = pendingPeerSignals.get(key);
+  if (entry) { try { entry.peer.destroy(); } catch (_) {} pendingPeerSignals.delete(key); }
 }
 
 function resolveCandidateAssetPaths(projectId, row) {
@@ -318,7 +347,7 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
     try {
       const existing = client.torrents.find((t) => t.files?.some((f) => path.resolve(f.path) === absPath));
       if (existing) {
-        seededHashes.add(existing.infoHash);
+        recordSeededHash(projectId, existing.infoHash);
         setupSignalingForProject(projectId).catch(() => {});
         upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null }).catch(() => {});
         emitSyncProgress(assetId, isGeneric, 'seeding', 100);
@@ -328,7 +357,7 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
 
       client.seed(filePath, { name }, (torrent) => {
         console.log(`[AssetTorrent] Seeding: assetId=${assetId} infoHash=${torrent.infoHash}`);
-        seededHashes.add(torrent.infoHash);
+        recordSeededHash(projectId, torrent.infoHash);
         setupSignalingForProject(projectId).catch(() => {});
         upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, last_success_at: Date.now(), download_progress: 100 }).catch(() => {});
         emitSyncProgress(assetId, isGeneric, 'seeding', 100);
@@ -412,7 +441,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
     const timer = setTimeout(async () => {
       active.delete(assetId);
-      cleanupSignalingPeer(infoHash);
+      cleanupSignalingPeer(projectId, infoHash);
       drainQueue(projectId);
       await handleDownloadError({ projectId, assetId, isGeneric, errCode: 'TIMEOUT' });
       settle({ success: false, reason: 'timeout' });
@@ -436,11 +465,12 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
           if (sigPeer) {
             // Clean up any stale sigPeer for this infoHash from a previous attempt.
-            const staleEntry = pendingPeerSignals.get(infoHash);
-            if (staleEntry) { try { staleEntry.peer.destroy(); } catch (_) {} pendingPeerSignals.delete(infoHash); }
+            const key = getPendingPeerSignalKey(projectId, infoHash);
+            const staleEntry = pendingPeerSignals.get(key);
+            if (staleEntry) { try { staleEntry.peer.destroy(); } catch (_) {} pendingPeerSignals.delete(key); }
 
             sigPeer.on('signal', (s) => {
-              const entry = pendingPeerSignals.get(infoHash);
+              const entry = pendingPeerSignals.get(key);
               if (entry?.seederId) {
                 console.log(`[AssetTorrent] [Signaling] Downloader sending back-signal for ${infoHash} type=${s?.type || 'candidate'}`);
                 sig.sendSignal({ infoHash, signal: s }, [entry.seederId]);
@@ -455,7 +485,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
             });
             sigPeer.on('error', (err) => console.warn(`[AssetTorrent] downloader peer error ${infoHash}:`, err?.message));
 
-            pendingPeerSignals.set(infoHash, { peer: sigPeer, seederId: null });
+            pendingPeerSignals.set(key, { projectId, peer: sigPeer, seederId: null });
             console.log(`[AssetTorrent] [Signaling] Broadcasting peerRequest for ${infoHash}`);
             sig.sendRequest({ infoHash });
           }
@@ -473,7 +503,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
         torrent.on('done', async () => {
           active.delete(assetId);
-          pendingPeerSignals.delete(infoHash);
+          cleanupSignalingPeer(projectId, infoHash);
           try {
             const actualPath = resolveDownloadedFilePath(expected, torrent);
             if (!actualPath) {
@@ -487,7 +517,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
             await persistDownloadedAsset(assetId, isGeneric, actualPath);
             await upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, last_success_at: Date.now(), download_progress: 100, retry_count: 0 });
             emitSyncProgress(assetId, isGeneric, 'seeding', 100);
-            seededHashes.add(torrent.infoHash);
+            recordSeededHash(projectId, torrent.infoHash);
             console.log(`[AssetTorrent] Download done: assetId=${assetId} path=${actualPath}`);
           } catch (err) {
             console.error(`[AssetTorrent] post-download error ${assetId}:`, err?.message);
@@ -500,7 +530,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
         torrent.on('error', async (err) => {
           active.delete(assetId);
-          pendingPeerSignals.delete(infoHash);
+          cleanupSignalingPeer(projectId, infoHash);
           console.error(`[AssetTorrent] torrent error ${assetId}:`, err?.message);
           await handleDownloadError({ projectId, assetId, isGeneric, errCode: classifyError(err) });
           drainQueue(projectId);
@@ -509,7 +539,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
       } catch (err) {
         active.delete(assetId);
-        pendingPeerSignals.delete(infoHash);
+        cleanupSignalingPeer(projectId, infoHash);
         console.error(`[AssetTorrent] download setup error ${assetId}:`, err?.message);
         handleDownloadError({ projectId, assetId, isGeneric, errCode: classifyError(err) }).catch(() => {});
         drainQueue(projectId);
@@ -690,7 +720,13 @@ export function stopProjectTorrents(projectId) {
   const iv = reconcileIntervals.get(projectId); if (iv) { clearInterval(iv); reconcileIntervals.delete(projectId); }
   const dv = reconcileDebounce.get(projectId);  if (dv) { clearTimeout(dv);  reconcileDebounce.delete(projectId); }
   const sig = signalingActions.get(projectId);
-  if (sig) { for (const p of sig.seederPeers.values()) try { p.destroy(); } catch (_) {} signalingActions.delete(projectId); }
+  if (sig) {
+    for (const p of sig.seederPeers.values()) try { p.destroy(); } catch (_) {}
+    try { sig.room?.leave?.(); } catch (err) { console.warn('[AssetTorrent] signaling room leave failed:', err?.message); }
+    signalingActions.delete(projectId);
+  }
+  clearProjectPendingSignals(projectId);
+  clearProjectSeededHashes(projectId);
   downloadQueues.delete(projectId);
   activeDownloads.delete(projectId);
   reconcileRunning.delete(projectId);
@@ -699,13 +735,19 @@ export function stopProjectTorrents(projectId) {
 export function destroyTorrentManager() {
   for (const t of reconcileIntervals.values()) clearInterval(t);
   for (const t of reconcileDebounce.values())  clearTimeout(t);
-  for (const sig of signalingActions.values()) for (const p of sig.seederPeers.values()) try { p.destroy(); } catch (_) {}
+  for (const sig of signalingActions.values()) {
+    for (const p of sig.seederPeers.values()) try { p.destroy(); } catch (_) {}
+    try { sig.room?.leave?.(); } catch (err) { console.warn('[AssetTorrent] signaling room leave failed:', err?.message); }
+  }
+  for (const entry of pendingPeerSignals.values()) try { entry.peer?.destroy(); } catch (_) {}
   reconcileIntervals.clear();
   reconcileDebounce.clear();
   signalingActions.clear();
   activeDownloads.clear();
   downloadQueues.clear();
   reconcileRunning.clear();
+  pendingPeerSignals.clear();
+  projectSeededHashes.clear();
   seededHashes.clear();
   if (_wtClient && !_wtClient.destroyed) {
     _wtClient.destroy(() => console.log('[AssetTorrent] WebTorrent client destroyed'));
