@@ -1,5 +1,5 @@
 <script>
-    import { onDestroy, untrack } from 'svelte';
+    import { onDestroy } from 'svelte';
     import { addImageProtocolPrefix } from '$lib/utils/media.js';
 
     let {
@@ -20,8 +20,11 @@
 
     let error = $state(false);
     let isDownloading = $state(false);
+    let isMissing = $state(false);
     let retryKey = $state(0);
     let unsubscribeProgress = null;
+
+    const smallPlaceholder = $derived(compact);
 
     const resolvedAssetId = $derived(asset?.id || assetId);
 
@@ -43,18 +46,22 @@
 
     const onError = (event) => {
         error = true;
+        isMissing = true;
         
         if (resolvedAssetId && window.api?.onAssetSyncProgress && !unsubscribeProgress) {
-            isDownloading = true; 
+            isDownloading = true;
+            isMissing = false;
             
             unsubscribeProgress = window.api.onAssetSyncProgress((data) => {
                 if (data.assetId !== resolvedAssetId) return;
 
                 if (data.status === 'downloading') {
                     isDownloading = true;
+                    isMissing = false;
                 } else if (data.status === 'seeding' || data.status === 'available') {
                     isDownloading = false;
                     error = false;
+                    isMissing = false;
                     retryKey = Date.now(); 
                     cleanupSubscription();
 
@@ -64,7 +71,8 @@
                         }, 100);
                     }
                 } else if (data.status === 'error' || data.status === 'missing') {
-                    isDownloading = false; 
+                    isDownloading = false;
+                    isMissing = true;
                 }
             });
         }
@@ -81,12 +89,12 @@
         class={`${customClass} bg-light d-flex align-items-center justify-content-center overflow-hidden rounded`}
         style={`min-height: 54px; ${customStyle}`}
     >
-        <div class="d-flex flex-row align-items-center justify-content-center gap-2 px-3">
-            <div class={`spinner-border spinner-border-sm text-secondary`} role="status">
+        <div class="d-flex flex-column align-items-center justify-content-center gap-2 w-100 px-4 text-center">
+            <div class={`spinner-border text-secondary ${smallPlaceholder ? 'spinner-border-sm' : ''}`} role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            {#if !compact}
-                <small class="text-secondary opacity-75">Connecting to peers...</small>
+            {#if !smallPlaceholder}
+                <small class="text-secondary opacity-75 mt-1">Connecting to peers...</small>
             {/if}
         </div>
     </div>
@@ -95,10 +103,10 @@
         class={`${customClass} bg-light d-flex align-items-center justify-content-center overflow-hidden rounded`}
         style={`min-height: 54px; ${customStyle}`}
     >
-        <div class="d-flex flex-row align-items-center justify-content-center gap-2 opacity-50 px-3">
-            <i class={`bi bi-exclamation-circle`}></i>
-            {#if !compact}
-                <span class="small">Error loading audio</span>
+        <div class="d-flex flex-column align-items-center justify-content-center gap-2 opacity-50 text-center px-3">
+            <i class={`bi bi-exclamation-circle ${smallPlaceholder ? '' : 'fs-4'}`}></i>
+            {#if !smallPlaceholder}
+                <span class="small">{isMissing ? 'Missing audio' : 'Error loading audio'}</span>
             {/if}
         </div>
     </div>

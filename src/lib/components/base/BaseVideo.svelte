@@ -18,6 +18,7 @@
 
     let error = $state(false);
     let isDownloading = $state(false);
+    let isMissing = $state(false);
     let retryKey = $state(0);
     let unsubscribeProgress = null;
 
@@ -45,18 +46,22 @@
 
     const onError = (event) => {
         error = true;
+        isMissing = true;
         
         if (resolvedAssetId && window.api?.onAssetSyncProgress && !unsubscribeProgress) {
-            isDownloading = true; 
+            isDownloading = true;
+            isMissing = false;
             
             unsubscribeProgress = window.api.onAssetSyncProgress((data) => {
                 if (data.assetId !== resolvedAssetId) return;
 
                 if (data.status === 'downloading') {
                     isDownloading = true;
+                    isMissing = false;
                 } else if (data.status === 'seeding' || data.status === 'available') {
                     isDownloading = false;
                     error = false;
+                    isMissing = false;
                     retryKey = Date.now(); 
                     cleanupSubscription();
 
@@ -67,7 +72,8 @@
                         }, 100);
                     }
                 } else if (data.status === 'error' || data.status === 'missing') {
-                    isDownloading = false; 
+                    isDownloading = false;
+                    isMissing = true;
                 }
             });
         }
@@ -157,12 +163,12 @@
         <div class="d-flex flex-column align-items-center justify-content-center gap-2 opacity-50 text-center">
             <i class={`bi bi-exclamation-circle ${smallPlaceholder ? 'fs-3' : 'fs-1'}`}></i>
             {#if !smallPlaceholder}
-                <span class="fs-6">Error loading video</span>
+                <span class="fs-6">{isMissing ? 'Missing video' : 'Error loading video'}</span>
             {/if}
         </div>
     </div>
 {:else if videoSource}
-    <!-- svelte-ignore a11y-media-has-caption -->
+    <!-- svelte-ignore a11y_media_has_caption -->
     <video
         bind:this={videoElement}
         src={videoSource}

@@ -193,6 +193,12 @@ async function setupSignalingForProject(projectId) {
     }
   });
 
+  room.onPeerLeave((peerId) => {
+    resetPendingSeederForPeer(projectId, peerId).catch((err) => {
+      console.warn('[AssetTorrent] failed to reset pending seeder on leave:', err?.message);
+    });
+  });
+
   receiveRequest(async ({ infoHash }, requesterId) => {
     const client  = await getWtClient();
     const torrent = await client.get(infoHash);
@@ -258,6 +264,76 @@ function cleanupSignalingPeer(projectId, infoHash) {
   const key = getPendingPeerSignalKey(projectId, infoHash);
   const entry = pendingPeerSignals.get(key);
   if (entry) { try { entry.peer.destroy(); } catch (_) {} pendingPeerSignals.delete(key); }
+}
+
+function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
+  if (!sig || !torrent) return false;
+
+  let sigPeer;
+  try { sigPeer = new SimplePeer({ initiator: false, trickle: true, config: WEBRTC_CONFIG }); }
+  catch (err) {
+    console.warn(`[AssetTorrent] downloader SimplePeer failed ${infoHash}:`, err?.message);
+    return false;
+  }
+
+  const key = getPendingPeerSignalKey(projectId, infoHash);
+  const staleEntry = pendingPeerSignals.get(key);
+  if (staleEntry) {
+    try { staleEntry.peer.destroy(); } catch (_) {}
+    pendingPeerSignals.delete(key);
+  }
+
+  sigPeer.on('signal', (signal) => {
+    const entry = pendingPeerSignals.get(key);
+    if (entry?.seederId) {
+      console.log(`[AssetTorrent] [Signaling] Downloader sending back-signal for ${infoHash} type=${signal?.type || 'candidate'}`);
+      sig.sendSignal({ infoHash, signal }, [entry.seederId]);
+    } else {
+      console.warn(`[AssetTorrent] [Signaling] Downloader sigPeer signal fired but seederId not yet set for ${infoHash}`);
+    }
+  });
+
+  sigPeer.on('connect', () => {
+    console.log(`[AssetTorrent] [Signaling] WebRTC connected, injecting peer for ${infoHash}`);
+    try { torrent.addPeer(sigPeer); }
+    catch (err) { console.warn('[AssetTorrent] downloader torrent.addPeer failed:', err?.message); }
+  });
+
+  sigPeer.on('error', (err) => console.warn(`[AssetTorrent] downloader peer error ${infoHash}:`, err?.message));
+  sigPeer.on('close', () => {
+    const entry = pendingPeerSignals.get(key);
+    if (entry?.peer === sigPeer && !torrent.done) {
+      console.warn(`[AssetTorrent] [Signaling] Downloader peer closed for ${infoHash}; awaiting a fresh seeder response`);
+      entry.seederId = null;
+    }
+  });
+
+  pendingPeerSignals.set(key, { projectId, peer: sigPeer, seederId: null });
+  console.log(`[AssetTorrent] [Signaling] Broadcasting peerRequest for ${infoHash}`);
+  sig.sendRequest({ infoHash });
+  return true;
+}
+
+async function resetPendingSeederForPeer(projectId, peerId) {
+  if (!projectId || !peerId) return;
+
+  const client = await getWtClient();
+  const sig = signalingActions.get(projectId);
+  if (!sig) return;
+
+  for (const [key, entry] of pendingPeerSignals) {
+    if (entry?.projectId !== projectId || entry.seederId !== peerId) continue;
+
+    const [, infoHash] = key.split(':', 2);
+    const torrent = await client.get(infoHash);
+    if (!torrent || torrent.done) {
+      cleanupSignalingPeer(projectId, infoHash);
+      continue;
+    }
+
+    console.warn(`[AssetTorrent] [Signaling] Seeder ${peerId} left during ${infoHash}; rebuilding downloader peer`);
+    createDownloaderSignalPeer({ projectId, infoHash, torrent, sig });
+  }
 }
 
 function resolveCandidateAssetPaths(projectId, row) {
@@ -462,36 +538,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
         await setupSignalingForProject(projectId);
         const sig = signalingActions.get(projectId);
         if (sig) {
-          let sigPeer;
-            try { sigPeer = new SimplePeer({ initiator: false, trickle: true, config: WEBRTC_CONFIG }); }
-          catch (err) { console.warn(`[AssetTorrent] downloader SimplePeer failed ${infoHash}:`, err?.message); }
-
-          if (sigPeer) {
-            // Clean up any stale sigPeer for this infoHash from a previous attempt.
-            const key = getPendingPeerSignalKey(projectId, infoHash);
-            const staleEntry = pendingPeerSignals.get(key);
-            if (staleEntry) { try { staleEntry.peer.destroy(); } catch (_) {} pendingPeerSignals.delete(key); }
-
-            sigPeer.on('signal', (s) => {
-              const entry = pendingPeerSignals.get(key);
-              if (entry?.seederId) {
-                console.log(`[AssetTorrent] [Signaling] Downloader sending back-signal for ${infoHash} type=${s?.type || 'candidate'}`);
-                sig.sendSignal({ infoHash, signal: s }, [entry.seederId]);
-              } else {
-                console.warn(`[AssetTorrent] [Signaling] Downloader sigPeer signal fired but seederId not yet set for ${infoHash}`);
-              }
-            });
-            sigPeer.on('connect', () => {
-              console.log(`[AssetTorrent] [Signaling] WebRTC connected, injecting peer for ${infoHash}`);
-              try { torrent.addPeer(sigPeer); }
-              catch (err) { console.warn('[AssetTorrent] downloader torrent.addPeer failed:', err?.message); }
-            });
-            sigPeer.on('error', (err) => console.warn(`[AssetTorrent] downloader peer error ${infoHash}:`, err?.message));
-
-            pendingPeerSignals.set(key, { projectId, peer: sigPeer, seederId: null });
-            console.log(`[AssetTorrent] [Signaling] Broadcasting peerRequest for ${infoHash}`);
-            sig.sendRequest({ infoHash });
-          }
+          createDownloaderSignalPeer({ projectId, infoHash, torrent, sig });
         }
 
         torrent.on('warning', (w) => console.warn(`[AssetTorrent] warning ${assetId}:`, w?.message || w));
