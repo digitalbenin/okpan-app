@@ -165,27 +165,40 @@ ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
     }
   });
 ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
-  try {
-    if (!projectId) return { success: false, error: 'No projectId provided' };
-
-    const res = handleSetCurrentProject(event, projectId);
-    if (!res?.success) {
-      return res;
-    }
-    
-    const wasRunning = !!getP2PProvider(projectId);
-    if (wasRunning) {
-      stopProjectTorrents(projectId);
-      await stopP2PForProject(projectId);
-    }
-
-    await bootstrapProjectRuntime(event, projectId, { hydrateSnapshot: true });
-
-    return { success: true };
-  } catch (err) {
-    console.error('[P2P] Failed to reconnect P2P project:', err);
-    return { success: false, error: err.message };
+  if (reconnectP2PJobs.has(projectId)) {
+    return reconnectP2PJobs.get(projectId);
   }
+
+  const reconnectJob = (async () => {
+    try {
+      if (!projectId) return { success: false, error: 'No projectId provided' };
+
+      const res = handleSetCurrentProject(event, projectId);
+      if (!res?.success) {
+        return res;
+      }
+      
+      const wasRunning = !!getP2PProvider(projectId);
+      if (wasRunning) {
+        stopProjectTorrents(projectId);
+        await stopP2PForProject(projectId);
+      }
+
+      // Reconnect happens for an already-open project. Rehydrating from snapshot here
+      // just replays the full bootstrap and can loop asset reseeding.
+      await bootstrapProjectRuntime(event, projectId, { hydrateSnapshot: false });
+
+      return { success: true };
+    } catch (err) {
+      console.error('[P2P] Failed to reconnect P2P project:', err);
+      return { success: false, error: err.message };
+    } finally {
+      reconnectP2PJobs.delete(projectId);
+    }
+  })();
+
+  reconnectP2PJobs.set(projectId, reconnectJob);
+  return reconnectJob;
 });
 
 // Static website export
@@ -238,6 +251,7 @@ ipcMain.handle('backup-restore', (event, options) =>
 
 // Project cache handlers
 let tailerStarted = false;
+const reconnectP2PJobs = new Map();
 
 async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = false } = {}) {
   if (!projectId) {

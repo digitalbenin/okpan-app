@@ -411,7 +411,7 @@ async function repairProjectAssetStates(projectId) {
 }
 
 
-export async function seedAsset({ projectId, assetId, filePath, isGeneric = false }) {
+export async function seedAsset({ projectId, assetId, filePath, isGeneric = false, expectedInfoHash = null }) {
   if (!projectId || !assetId || !filePath) return null;
   if (!fs.existsSync(filePath)) {
     console.warn(`[AssetTorrent] seedAsset: file not found: ${filePath}`);
@@ -424,7 +424,8 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
 
   return new Promise((resolve) => {
     try {
-      const existing = client.torrents.find((t) => t.files?.some((f) => path.resolve(f.path) === absPath));
+      const existing = (expectedInfoHash && client.torrents.find((torrent) => torrent.infoHash === expectedInfoHash))
+        || client.torrents.find((torrent) => torrent.files?.some((file) => path.resolve(file.path) === absPath));
       if (existing) {
         recordSeededHash(projectId, existing.infoHash);
         setupSignalingForProject(projectId).catch(() => {});
@@ -498,7 +499,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
   if (fs.existsSync(expected)) {
     await upsertLocalState(assetId, isGeneric, { sync_status: 'available', last_success_at: Date.now(), download_progress: 100, sync_error: null });
     emitSyncProgress(assetId, isGeneric, 'available', 100);
-    if (!seededHashes.has(infoHash)) seedAsset({ projectId, assetId, filePath: expected, isGeneric }).catch(() => {});
+    if (!seededHashes.has(infoHash)) seedAsset({ projectId, assetId, filePath: expected, isGeneric, expectedInfoHash: infoHash }).catch(() => {});
     persistDownloadedAsset(assetId, isGeneric, expected).catch(() => {});
     const active = getOrSet(activeDownloads, projectId, () => new Set());
     active.delete(assetId);
@@ -729,11 +730,11 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
 
       if ((status === 'seeding' || status === 'available') && hasFile) {
         if (!seededHashes.has(row.torrent_info_hash))
-          seedAsset({ projectId, assetId: row.id, filePath, isGeneric }).catch(() => {});
+          seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash }).catch(() => {});
         continue;
       }
       if (hasFile && (status === null || status === 'missing')) {
-        seedAsset({ projectId, assetId: row.id, filePath, isGeneric }).catch(() => {});
+        seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash }).catch(() => {});
         continue;
       }
       if ((status === 'seeding' || status === 'available') && !hasFile) {
