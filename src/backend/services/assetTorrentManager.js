@@ -92,6 +92,21 @@ function sanitizeName(name) {
   return path.basename(name).replace(/[^\w.\-]/g, '_') || 'asset.bin';
 }
 
+function hasCompleteLocalFile(filePath, expectedLength = null) {
+  if (!filePath || !fs.existsSync(filePath)) return false;
+
+  const numericLength = Number(expectedLength);
+  if (!Number.isFinite(numericLength) || numericLength <= 0) {
+    return true;
+  }
+
+  try {
+    return fs.statSync(filePath).size === numericLength;
+  } catch {
+    return false;
+  }
+}
+
 function classifyError(err) {
   const msg = String(err?.message || err || '').toLowerCase();
   if (/no peers|could not find|swarm/i.test(msg)) return 'NO_PEERS';
@@ -342,10 +357,23 @@ function resolveCandidateAssetPaths(projectId, row) {
   const candidates = [row.path, row.formats?.original, localPath]
     .filter((value, index, arr) => typeof value === 'string' && value.length > 0 && arr.indexOf(value) === index);
 
+  let existingPath = null;
+  let incompletePath = null;
+
+  for (const candidate of candidates) {
+    if (!fs.existsSync(candidate)) continue;
+    if (hasCompleteLocalFile(candidate, row.torrent_length)) {
+      existingPath = candidate;
+      break;
+    }
+    if (!incompletePath) incompletePath = candidate;
+  }
+
   return {
     safeName,
     localPath,
-    existingPath: candidates.find((candidate) => fs.existsSync(candidate)) || null,
+    existingPath,
+    incompletePath,
   };
 }
 
@@ -358,6 +386,7 @@ async function repairAssetStateTable({ projectId, assetTable, stateTable, isGene
       formats: assetTable.formats,
       torrent_info_hash: assetTable.torrent_info_hash,
       torrent_name: assetTable.torrent_name,
+      torrent_length: assetTable.torrent_length,
     })
     .from(assetTable)
     .where(and(eq(assetTable.project_id, projectId), isNotNull(assetTable.torrent_info_hash)))
@@ -387,6 +416,12 @@ async function repairAssetStateTable({ projectId, assetTable, stateTable, isGene
     if (status === 'downloading' && !active.has(row.id) && !hasFile) {
       await upsertLocalState(row.id, isGeneric, { sync_status: 'missing', sync_error: null, download_progress: 0 });
       repaired += 1;
+      continue;
+    }
+
+    if (hasFile && (status === 'seeding' || status === 'available') && (state.download_progress ?? 0) < 100) {
+      await upsertLocalState(row.id, isGeneric, { sync_status: status, sync_error: null, download_progress: 100 });
+      repaired += 1;
     }
   }
 
@@ -411,9 +446,9 @@ async function repairProjectAssetStates(projectId) {
 }
 
 
-export async function seedAsset({ projectId, assetId, filePath, isGeneric = false, expectedInfoHash = null }) {
+export async function seedAsset({ projectId, assetId, filePath, isGeneric = false, expectedInfoHash = null, expectedLength = null }) {
   if (!projectId || !assetId || !filePath) return null;
-  if (!fs.existsSync(filePath)) {
+  if (!hasCompleteLocalFile(filePath, expectedLength)) {
     console.warn(`[AssetTorrent] seedAsset: file not found: ${filePath}`);
     return null;
   }
@@ -423,18 +458,7 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
   const absPath = path.resolve(filePath);
 
   return new Promise((resolve) => {
-    try {
-      const existing = (expectedInfoHash && client.torrents.find((torrent) => torrent.infoHash === expectedInfoHash))
-        || client.torrents.find((torrent) => torrent.files?.some((file) => path.resolve(file.path) === absPath));
-      if (existing) {
-        recordSeededHash(projectId, existing.infoHash);
-        setupSignalingForProject(projectId).catch(() => {});
-        upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null }).catch(() => {});
-        emitSyncProgress(assetId, isGeneric, 'seeding', 100);
-        resolve({ infoHash: existing.infoHash, name: existing.name, length: existing.length, pieceLength: existing.pieceLength });
-        return;
-      }
-
+    const beginSeed = () => {
       client.seed(filePath, { name }, (torrent) => {
         console.log(`[AssetTorrent] Seeding: assetId=${assetId} infoHash=${torrent.infoHash}`);
         recordSeededHash(projectId, torrent.infoHash);
@@ -443,6 +467,26 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
         emitSyncProgress(assetId, isGeneric, 'seeding', 100);
         resolve({ infoHash: torrent.infoHash, name: torrent.name, length: torrent.length, pieceLength: torrent.pieceLength });
       });
+    };
+
+    try {
+      const existing = (expectedInfoHash && client.torrents.find((torrent) => torrent.infoHash === expectedInfoHash))
+        || client.torrents.find((torrent) => torrent.files?.some((file) => path.resolve(file.path) === absPath));
+      if (existing?.done && hasCompleteLocalFile(filePath, expectedLength)) {
+        recordSeededHash(projectId, existing.infoHash);
+        setupSignalingForProject(projectId).catch(() => {});
+        upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, download_progress: 100 }).catch(() => {});
+        emitSyncProgress(assetId, isGeneric, 'seeding', 100);
+        resolve({ infoHash: existing.infoHash, name: existing.name, length: existing.length, pieceLength: existing.pieceLength });
+        return;
+      }
+
+      if (existing) {
+        client.remove(existing.infoHash, { destroyStore: false }, () => beginSeed());
+        return;
+      }
+
+      beginSeed();
     } catch (err) {
       console.error(`[AssetTorrent] seedAsset error for ${assetId}:`, err);
       resolve(null);
@@ -488,7 +532,7 @@ function resolveDownloadedFilePath(expectedPath, torrent) {
   return fallback || null;
 }
 
-async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGeneric }) {
+async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGeneric, expectedLength = null }) {
   const client   = await getWtClient();
   const safeName = sanitizeName(torrentName);
   const destDir  = path.join(ASSET_BASE_PATH, projectId);
@@ -496,10 +540,10 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
   fs.mkdirSync(destDir, { recursive: true });
 
-  if (fs.existsSync(expected)) {
+  if (hasCompleteLocalFile(expected, expectedLength)) {
     await upsertLocalState(assetId, isGeneric, { sync_status: 'available', last_success_at: Date.now(), download_progress: 100, sync_error: null });
     emitSyncProgress(assetId, isGeneric, 'available', 100);
-    if (!seededHashes.has(infoHash)) seedAsset({ projectId, assetId, filePath: expected, isGeneric, expectedInfoHash: infoHash }).catch(() => {});
+    if (!seededHashes.has(infoHash)) seedAsset({ projectId, assetId, filePath: expected, isGeneric, expectedInfoHash: infoHash, expectedLength }).catch(() => {});
     persistDownloadedAsset(assetId, isGeneric, expected).catch(() => {});
     const active = getOrSet(activeDownloads, projectId, () => new Set());
     active.delete(assetId);
@@ -713,7 +757,7 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
     if (specificAssetId) conditions.push(eq(assetTable.id, specificAssetId));
 
     const assetRows = await db
-      .select({ id: assetTable.id, path: assetTable.path, formats: assetTable.formats, torrent_info_hash: assetTable.torrent_info_hash, torrent_name: assetTable.torrent_name })
+      .select({ id: assetTable.id, path: assetTable.path, formats: assetTable.formats, torrent_info_hash: assetTable.torrent_info_hash, torrent_name: assetTable.torrent_name, torrent_length: assetTable.torrent_length })
       .from(assetTable).where(and(...conditions)).execute();
 
     if (!assetRows.length) return;
@@ -724,17 +768,26 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
     for (const row of assetRows) {
       const state    = stateMap.get(row.id);
       const status   = state?.sync_status ?? null;
-      const { safeName, existingPath } = resolveCandidateAssetPaths(projectId, row);
+      const { safeName, existingPath, incompletePath } = resolveCandidateAssetPaths(projectId, row);
       const hasFile  = !!existingPath;
       const filePath = existingPath;
 
+      if (!hasFile && incompletePath) {
+        console.warn(`[AssetTorrent] Incomplete local asset detected for ${row.id}; forcing retry state`);
+        await upsertLocalState(row.id, isGeneric, { sync_status: 'missing', download_progress: 0, sync_error: null });
+      }
+
+      if (hasFile && (status === 'seeding' || status === 'available') && (state?.download_progress ?? 0) < 100) {
+        await upsertLocalState(row.id, isGeneric, { sync_status: status, download_progress: 100, sync_error: null });
+      }
+
       if ((status === 'seeding' || status === 'available') && hasFile) {
         if (!seededHashes.has(row.torrent_info_hash))
-          seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash }).catch(() => {});
+          seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash, expectedLength: row.torrent_length }).catch(() => {});
         continue;
       }
       if (hasFile && (status === null || status === 'missing')) {
-        seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash }).catch(() => {});
+        seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash, expectedLength: row.torrent_length }).catch(() => {});
         continue;
       }
       if ((status === 'seeding' || status === 'available') && !hasFile) {
@@ -748,7 +801,7 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
       }
       if (status === 'error' && (state?.retry_count ?? 0) >= MAX_RETRIES) continue;
 
-      enqueueDownload({ projectId, assetId: row.id, infoHash: row.torrent_info_hash, torrentName: row.torrent_name || safeName, isGeneric });
+      enqueueDownload({ projectId, assetId: row.id, infoHash: row.torrent_info_hash, torrentName: row.torrent_name || safeName, isGeneric, expectedLength: row.torrent_length });
     }
   } catch (err) {
     console.error('[AssetTorrent] reconcileTable error:', err?.message);
