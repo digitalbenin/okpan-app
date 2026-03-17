@@ -1,4 +1,5 @@
 <script>
+    import { page } from '$app/state';
     import { onDestroy } from 'svelte';
     import { parseAssetFormats, addImageProtocolPrefix } from '$lib/utils/media.js';
 
@@ -17,6 +18,7 @@
         objectPosition = "center",
         loading = "lazy",
         assetId = null, // Added for optimistic loading pattern
+        projectId = null,
         compact = false // Force compact mode for placeholders
     } = $props();
 
@@ -25,8 +27,12 @@
     let retryKey = $state(0);
     let unsubscribeProgress = null;
     let fallbackLevel = $state(0); // 0: Preferred, 1: Original asset
+    let requestedRecoveryKey = $state(null);
 
     const resolvedAssetId = $derived(asset?.id || assetId);
+    const resolvedProjectId = $derived(
+        projectId || asset?.project_id || page.params?.project_id || page.url?.searchParams?.get('project_id') || null
+    );
 
     // Dynamically retrieve the image URL with fallback to the local Original Path
     const activeSrc = $derived.by(() => {
@@ -60,6 +66,21 @@
         }
     };
 
+    const requestRecovery = async () => {
+        const recoveryKey = resolvedProjectId && resolvedAssetId ? `${resolvedProjectId}:${resolvedAssetId}` : null;
+        if (!recoveryKey || requestedRecoveryKey === recoveryKey || !window.api?.triggerAssetReconcile) {
+            return;
+        }
+
+        requestedRecoveryKey = recoveryKey;
+
+        try {
+            await window.api.triggerAssetReconcile(resolvedProjectId, resolvedAssetId);
+        } catch (err) {
+            console.error('[BaseImage] Failed to request asset reconcile:', err);
+        }
+    };
+
     const onError = (event) => {
         // Fallback Step 1: If preferred format threw 404, we immediately try the original file on disk
         if (fallbackLevel === 0 && asset && asset.path) {
@@ -69,6 +90,7 @@
 
         // Fallback Step 2: Everything failed. Asset not physically available.
         error = true;
+        requestRecovery();
         
         // Optimistic Loading Fallback
         // Only subscribe to backend IPC if the initial load failed and we have an tracking ID.
@@ -85,6 +107,7 @@
                     isDownloading = false;
                     error = false;
                     fallbackLevel = 0; // Reset fallback so it can potentially grab fully-completed formats
+                    requestedRecoveryKey = null;
                     retryKey = Date.now(); // Cache-bust to force reload
                     cleanupSubscription();
                 } else if (data.status === 'error' || data.status === 'missing') {

@@ -1,4 +1,5 @@
 <script>
+    import { page } from '$app/state';
     import { onDestroy } from 'svelte';
     import { addImageProtocolPrefix } from '$lib/utils/media.js';
 
@@ -10,6 +11,7 @@
         controls = true,
         preload = "metadata",
         assetId = null,
+        projectId = null,
         compact = false,
         element = $bindable(null),
         ontimeupdate = null,
@@ -23,10 +25,14 @@
     let isMissing = $state(false);
     let retryKey = $state(0);
     let unsubscribeProgress = null;
+    let requestedRecoveryKey = $state(null);
 
     const smallPlaceholder = $derived(compact);
 
     const resolvedAssetId = $derived(asset?.id || assetId);
+    const resolvedProjectId = $derived(
+        projectId || asset?.project_id || page.params?.project_id || page.url?.searchParams?.get('project_id') || null
+    );
 
     const activeSrc = $derived.by(() => {
         if (asset && asset.path) {
@@ -44,9 +50,25 @@
         }
     };
 
+    const requestRecovery = async () => {
+        const recoveryKey = resolvedProjectId && resolvedAssetId ? `${resolvedProjectId}:${resolvedAssetId}` : null;
+        if (!recoveryKey || requestedRecoveryKey === recoveryKey || !window.api?.triggerAssetReconcile) {
+            return;
+        }
+
+        requestedRecoveryKey = recoveryKey;
+
+        try {
+            await window.api.triggerAssetReconcile(resolvedProjectId, resolvedAssetId);
+        } catch (err) {
+            console.error('[BaseAudio] Failed to request asset reconcile:', err);
+        }
+    };
+
     const onError = (event) => {
         error = true;
         isMissing = true;
+        requestRecovery();
         
         if (resolvedAssetId && window.api?.onAssetSyncProgress && !unsubscribeProgress) {
             isDownloading = true;
@@ -62,6 +84,7 @@
                     isDownloading = false;
                     error = false;
                     isMissing = false;
+                    requestedRecoveryKey = null;
                     retryKey = Date.now(); 
                     cleanupSubscription();
 

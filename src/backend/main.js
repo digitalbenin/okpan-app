@@ -499,13 +499,15 @@ ipcMain.handle('asset-sync-status', async (event, projectId) => {
   }
 });
 
-// Manual reconcile trigger (for refresh button or debug)
-ipcMain.handle('asset-sync-reconcile', async (event, projectId) => {
+// Manual reconcile trigger (for refresh button, debug, or targeted renderer recovery)
+ipcMain.handle('asset-sync-reconcile', async (event, payload) => {
   try {
+    const projectId = typeof payload === 'string' ? payload : payload?.projectId;
+    const assetId = typeof payload === 'string' ? null : payload?.assetId ?? null;
     if (!projectId || typeof projectId !== 'string') {
       throw new Error('asset-sync-reconcile requires a valid projectId');
     }
-    scheduleAssetReconcile(projectId);
+    scheduleAssetReconcile(projectId, assetId);
     return { success: true };
   } catch (error) {
     console.error('Error in asset-sync-reconcile:', error);

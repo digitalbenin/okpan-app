@@ -1,4 +1,5 @@
 <script>
+    import { page } from '$app/state';
     import { onDestroy } from 'svelte';
     import { addImageProtocolPrefix } from '$lib/utils/media.js';
 
@@ -19,8 +20,10 @@
     let isMissing = $state(false);
     let retryKey = $state(0);
     let unsubscribeProgress = null;
+    let requestedRecoveryKey = $state(null);
 
     const resolvedAssetId = $derived(asset?.id || null);
+    const resolvedProjectId = $derived(asset?.project_id || page.params?.project_id || page.url?.searchParams?.get('project_id') || null);
     const audioSource = $derived.by(() => {
         if (!asset?.path) return null;
         const baseSrc = addImageProtocolPrefix(asset.path);
@@ -35,6 +38,21 @@
             unsubscribeProgress = null;
         }
     };
+
+    async function requestRecovery() {
+        const recoveryKey = resolvedProjectId && resolvedAssetId ? `${resolvedProjectId}:${resolvedAssetId}` : null;
+        if (!recoveryKey || requestedRecoveryKey === recoveryKey || !window.api?.triggerAssetReconcile) {
+            return;
+        }
+
+        requestedRecoveryKey = recoveryKey;
+
+        try {
+            await window.api.triggerAssetReconcile(resolvedProjectId, resolvedAssetId);
+        } catch (err) {
+            console.error('[AudioPreview] Failed to request asset reconcile:', err);
+        }
+    }
 
     function togglePlay(e) {
         if (e) {
@@ -87,6 +105,7 @@
         isPlaying = false;
         isLoaded = false;
         isMissing = true;
+        requestRecovery();
 
         if (resolvedAssetId && window.api?.onAssetSyncProgress && !unsubscribeProgress) {
             isDownloading = true;
@@ -101,6 +120,7 @@
                 } else if (data.status === 'seeding' || data.status === 'available') {
                     isDownloading = false;
                     isMissing = false;
+                    requestedRecoveryKey = null;
                     retryKey = Date.now();
                     cleanupSubscription();
 

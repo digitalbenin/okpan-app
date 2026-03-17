@@ -84,7 +84,10 @@ contextBridge.exposeInMainWorld('api', {
 
     // Asset P2P sync
     getAssetSyncStatus: (projectId) => ipcRenderer.invoke('asset-sync-status', projectId),
-    triggerAssetReconcile: (projectId) => ipcRenderer.invoke('asset-sync-reconcile', projectId),
+    triggerAssetReconcile: (projectId, assetId = null) => ipcRenderer.invoke(
+        'asset-sync-reconcile',
+        assetId ? { projectId, assetId } : projectId
+    ),
     onAssetSyncProgress: (callback) => {
         const subscription = (event, ...args) => callback(...args);
         ipcRenderer.on('asset-sync-progress', subscription);
