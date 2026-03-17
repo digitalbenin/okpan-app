@@ -118,9 +118,9 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             const queryStart = performance.now();
             const timings = {};
             const logTiming = (label, start) => {
-                const elapsed = ((performance.now() - start) / 1000).toFixed(3);
-                timings[label] = elapsed;
-                console.log(`[objectSearch] ${label}: ${elapsed}s`);
+                //const elapsed = ((performance.now() - start) / 1000).toFixed(3);
+                //timings[label] = elapsed;
+                //console.log(`[objectSearch] ${label}: ${elapsed}s`);
             };
 
             // Parse research field filters and clean up double-quoted strings
@@ -463,7 +463,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
 
             // Process all vocabulary fields in PARALLEL using Promise.all
             const vocabFacetsStart = performance.now();
-            console.log(`[objectSearch] Processing ${vocabularyFields.length} vocabulary fields for facets...`);
+            //console.log(`[objectSearch] Processing ${vocabularyFields.length} vocabulary fields for facets...`);
             const vocabularyFacetPromises = vocabularyFields.map(async (field) => {
                 const fieldStart = performance.now();
                 // Get ALL vocabulary options for this research field
@@ -499,7 +499,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
                 }
 
                 const vocabularyCounts = await vocabularyCountQuery.execute();
-                console.log(`[objectSearch]   - Vocab field ${field.name}: ${((performance.now() - fieldStart) / 1000).toFixed(3)}s`);
+                //console.log(`[objectSearch]   - Vocab field ${field.name}: ${((performance.now() - fieldStart) / 1000).toFixed(3)}s`);
 
                 // Create a map for quick lookup
                 const vocabCountMap = new Map(vocabularyCounts.map(vc => [vc.vocabulary_id, vc.count]));
@@ -625,7 +625,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             });
             logTiming('5. JSON processing', processStart);
             logTiming('=== TOTAL QUERY TIME ===', queryStart);
-            console.log('[objectSearch] Timings summary:', timings);
+            //console.log('[objectSearch] Timings summary:', timings);
 
             return {
                 items: processedItems,

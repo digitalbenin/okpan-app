@@ -143,10 +143,12 @@ export async function startP2PForProject(projectId, options = {}) {
   }
 
   // Ensure Doc is hydrated from DB before starting P2P to prevent "empty doc" diffs
-  try {
-    await hydrateProjectFromDatabase(projectId)
-  } catch (err) {
-    console.warn('[P2P] Initial hydration failed', err)
+  if (!options.skipHydration) {
+    try {
+      await hydrateProjectFromDatabase(projectId)
+    } catch (err) {
+      console.warn('[P2P] Initial hydration failed', err)
+    }
   }
 
   // Canonical local projection (driven by DB ingestion)
@@ -292,7 +294,14 @@ export async function stopP2PForProject(projectId) {
   if (!entry) return
   try {
     // Remove awareness listener & heartbeat
-    try { entry.awareness?.off('change', entry.onChange) } catch (err) { console.warn('[P2P] Failed to remove awareness change listener', err) }
+    try { 
+      if (entry.awareness) {
+        entry.awareness.off('change', entry.onChange)
+        if (typeof entry.awareness.destroy === 'function') {
+          entry.awareness.destroy()
+        }
+      }
+    } catch (err) { console.warn('[P2P] Failed to remove awareness listener', err) }
     try { getProjectDoc(projectId)?.off('update', entry.onDocUpdatePersist) } catch (err) { console.warn('[P2P] Failed to remove canonical doc persistence handler', err) }
     
     try {

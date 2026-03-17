@@ -26,7 +26,7 @@ import { ontology_fields, texts } from '../db/schema.js';
 import { getProjectDoc, getCurrentProjectId } from './services/projectCache.js';
 import { startP2PForProject, stopP2PForProject, getP2PProvider, getProjectPeersCount, getProjectPresence, setPresenceNotifier, refreshAllProjectPresence, setPendingProjectPassword } from './services/p2pService.js';
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
-import { createProjectSnapshot, hydrateProjectFromLatestSnapshot } from './services/snapshotService.js';
+import { createProjectSnapshot, hydrateProjectFromLatestSnapshot, hydrateProjectFromDatabase } from './services/snapshotService.js';
 import { eq, sql, isNull } from 'drizzle-orm';
 import {
   handleExportProject,
@@ -260,7 +260,7 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
 
   if (hydrateSnapshot && !getP2PProvider(projectId)) {
     try {
-      await hydrateProjectFromLatestSnapshot(projectId);
+      await hydrateProjectFromDatabase(projectId);
     } catch (err) {
       console.error('Hydration failed for project', projectId, err);
     }
@@ -282,7 +282,10 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
       }
     };
 
-    await startP2PForProject(projectId, { onDataChange: notifyFrontend });
+    await startP2PForProject(projectId, { 
+      onDataChange: notifyFrontend,
+      skipHydration: true // Already handled by hydrateSnapshot logic above
+    });
     try {
       event.sender.send('project-presence-changed', {
         projectId,
@@ -476,7 +479,7 @@ ipcMain.handle('snapshot-hydrate', async (event, projectId) => {
     }
     const result = await hydrateProjectFromLatestSnapshot(projectId);
     if (wasRunning) {
-      await startP2PForProject(projectId);
+      await startP2PForProject(projectId, { skipHydration: true });
     }
     return { success: true, result };
   } catch (error) {
