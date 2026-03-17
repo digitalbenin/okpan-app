@@ -167,32 +167,19 @@ ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
 ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
   try {
     if (!projectId) return { success: false, error: 'No projectId provided' };
+
+    const res = handleSetCurrentProject(event, projectId);
+    if (!res?.success) {
+      return res;
+    }
     
     const wasRunning = !!getP2PProvider(projectId);
     if (wasRunning) {
       stopProjectTorrents(projectId);
       await stopP2PForProject(projectId);
     }
-    
-    const notifyFrontend = () => {
-      if (event && event.sender && !event.sender.isDestroyed()) {
-        try {
-           event.sender.send('data-changed', { projectId, origin: 'p2p' });
-        } catch (e) {
-           console.warn('Failed to notify frontend of data change', e);
-        }
-      }
-    };
-    
-    await startP2PForProject(projectId, { onDataChange: notifyFrontend });
-    
-    setTimeout(() => {
-      try {
-        startReconcileLoop(projectId);
-      } catch (err) {
-        console.error('Failed to restart asset reconcile loop out of reconnect', err);
-      }
-    }, 5000);
+
+    await bootstrapProjectRuntime(event, projectId, { hydrateSnapshot: true });
 
     return { success: true };
   } catch (err) {
@@ -251,37 +238,36 @@ ipcMain.handle('backup-restore', (event, options) =>
 
 // Project cache handlers
 let tailerStarted = false;
-ipcMain.handle('set-current-project', async (event, projectId) => {
-  // Set project in cache using existing handler
-  const res = handleSetCurrentProject(event, projectId);
-  if (!res?.success) {
-    return res;
+
+async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = false } = {}) {
+  if (!projectId) {
+    return { success: false, error: 'No projectId provided' };
   }
-  // Hydrate from latest snapshot before starting tailer
-  if (!getP2PProvider(projectId)) {
+
+  if (hydrateSnapshot && !getP2PProvider(projectId)) {
     try {
       await hydrateProjectFromLatestSnapshot(projectId);
     } catch (err) {
       console.error('Hydration failed for project', projectId, err);
     }
   }
-  // Start tailer once, after hydration
+
   if (!tailerStarted) {
     startChangeLogTailer();
     tailerStarted = true;
   }
-  // Start P2P provider for this project (Trystero + Yjs)
+
   try {
     const notifyFrontend = () => {
-      // Notify the renderer that data has changed so it can invalidate queries
       if (event && event.sender && !event.sender.isDestroyed()) {
         try {
-           event.sender.send('data-changed', { projectId, origin: 'p2p' });
+          event.sender.send('data-changed', { projectId, origin: 'p2p' });
         } catch (e) {
-           console.warn('Failed to notify frontend of data change', e);
+          console.warn('Failed to notify frontend of data change', e);
         }
       }
     };
+
     await startP2PForProject(projectId, { onDataChange: notifyFrontend });
     try {
       event.sender.send('project-presence-changed', {
@@ -294,9 +280,7 @@ ipcMain.handle('set-current-project', async (event, projectId) => {
   } catch (err) {
     console.error('Failed to start P2P provider for project', projectId, err);
   }
-  // Delay WebTorrent init by 5s so node_datachannel (Trystero/WebRTC) is fully
-  // settled before we create the WebTorrent client. Both touch low-level UDP/async
-  // callbacks and racing them crashes on macOS.
+
   setTimeout(() => {
     try {
       startReconcileLoop(projectId);
@@ -304,6 +288,17 @@ ipcMain.handle('set-current-project', async (event, projectId) => {
       console.error('Failed to start asset reconcile loop for project', projectId, err);
     }
   }, 5000);
+
+  return { success: true };
+}
+
+ipcMain.handle('set-current-project', async (event, projectId) => {
+  // Set project in cache using existing handler
+  const res = handleSetCurrentProject(event, projectId);
+  if (!res?.success) {
+    return res;
+  }
+  await bootstrapProjectRuntime(event, projectId, { hydrateSnapshot: true });
   return { ...res, hydrated: true };
 });
 ipcMain.handle('get-current-project', handleGetCurrentProject);

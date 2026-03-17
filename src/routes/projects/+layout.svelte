@@ -12,6 +12,7 @@
 
   onMount(() => {
     let reconnectTimeout;
+
     const handleOnline = () => {
       console.log("Network online, scheduling P2P reconnect...");
       const projectId = page.params.project_id;
