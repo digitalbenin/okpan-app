@@ -108,6 +108,17 @@ export const getVocabularyById = async (vocabularyId) => {
     return { result: vocabulariesResult[0], error: null };
 };
 
+async function deleteGenericAssetById(assetId) {
+    if (!assetId) {
+        return;
+    }
+
+    const response = await executeQuery('genericAssets', 'delete', { assetId });
+    if (response?.error) {
+        throw new Error(response.error?.message || response.error || 'Failed to delete generic asset');
+    }
+}
+
 // Create a new research field (initial implementation, may need translation handling)
 export const createResearchField = async (fieldData) => {
     // Set default values for new boolean fields if not provided
@@ -262,6 +273,14 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
         return { result: null, error: "Missing Vocabulary ID" };
     }
 
+    let previousMainAssetId = null;
+    try {
+        const previousVocabulary = await getVocabularyById(vocabularyId);
+        previousMainAssetId = previousVocabulary?.result?.main_asset_id || null;
+    } catch (error) {
+        console.warn('Failed to load previous vocabulary before update:', error);
+    }
+
 
 
     // Prepare all parameters for the multi-step mutation
@@ -297,19 +316,40 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
         return { result: null, error: result.error };
     }
 
+    const nextMainAssetId = updatedData.mainAsset || null;
+    if (previousMainAssetId && previousMainAssetId !== nextMainAssetId) {
+        try {
+            await deleteGenericAssetById(previousMainAssetId);
+        } catch (error) {
+            console.error('Failed to delete removed main vocabulary asset:', error);
+        }
+    }
+
 
     invalidate("app:research-fields");
     return { result: result.result, error: null };
 };
 
 export const updateVocabularyAssets = async (vocabularyId, assetIds) => {
+    let previousAssetIds = [];
+    try {
+        const previousVocabulary = await getVocabularyById(vocabularyId);
+        previousAssetIds = (previousVocabulary?.result?.vocabulariesGenericAssets || [])
+            .map((link) => link.generic_asset_id)
+            .filter(Boolean);
+    } catch (error) {
+        console.warn('Failed to load previous vocabulary assets before update:', error);
+    }
+
+    const nextAssetIds = Array.isArray(assetIds) ? assetIds.filter(Boolean) : [];
+
     // 1. Unlink all existing assets
     const deleteResult = await executeQuery('vocabulary_assets', 'delete', { vocabularyId });
     if (deleteResult.error) return { error: deleteResult.error };
 
     // 2. Link new assets if any
-    if (assetIds && assetIds.length > 0) {
-        const values = assetIds.map((assetId, index) => ({
+    if (nextAssetIds.length > 0) {
+        const values = nextAssetIds.map((assetId, index) => ({
             vocabulary_id: vocabularyId,
             generic_asset_id: assetId,
             order: index
@@ -317,7 +357,15 @@ export const updateVocabularyAssets = async (vocabularyId, assetIds) => {
         
         const insertResult = await executeQuery('vocabulary_assets', 'create', { values });
         if (insertResult.error) return { error: insertResult.error };
-        return { result: insertResult.result, error: null };
+    }
+
+    const removedAssetIds = previousAssetIds.filter((assetId) => !nextAssetIds.includes(assetId));
+    for (const assetId of removedAssetIds) {
+        try {
+            await deleteGenericAssetById(assetId);
+        } catch (error) {
+            console.error('Failed to delete removed vocabulary asset:', error);
+        }
     }
 
     return { result: true, error: null };

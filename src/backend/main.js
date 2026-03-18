@@ -168,6 +168,7 @@ ipcMain.handle('project-set-password', async (event, { projectId, password }) =>
     const { eq } = await import('drizzle-orm');
     const { project } = await import('../db/schema.js');
     await db.update(project).set({ password }).where(eq(project.id, projectId)).execute();
+    setPendingProjectPassword(projectId, password || null);
     return { success: true };
   } catch (err) {
     console.error('[P2P] Failed to set password:', err);
@@ -205,38 +206,65 @@ ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
     }
   });
 ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
-  if (reconnectP2PJobs.has(projectId)) {
-    console.log('[P2P] reconnect request deduped', { projectId });
-    return reconnectP2PJobs.get(projectId);
+  const normalizedProjectId = typeof projectId === 'string' ? projectId : projectId?.projectId;
+  const passwordOverride = typeof projectId === 'string' ? undefined : projectId?.password;
+
+  if (reconnectP2PJobs.has(normalizedProjectId)) {
+    console.log('[P2P] reconnect request deduped', { projectId: normalizedProjectId });
+    return reconnectP2PJobs.get(normalizedProjectId);
   }
 
   const reconnectJob = (async () => {
     try {
-      if (!projectId) return { success: false, error: 'No projectId provided' };
-      console.log('[P2P] reconnect requested', { projectId, hadProvider: !!getP2PProvider(projectId) });
-      clearDelayedReconcileStart(projectId);
+      if (!normalizedProjectId) return { success: false, error: 'No projectId provided' };
+      console.log('[P2P] reconnect requested', {
+        projectId: normalizedProjectId,
+        hadProvider: !!getP2PProvider(normalizedProjectId),
+        hasPasswordOverride: passwordOverride !== undefined,
+      });
+      clearDelayedReconcileStart(normalizedProjectId);
 
-      const res = handleSetCurrentProject(event, projectId);
-      if (!res?.success) {
-        console.warn('[P2P] reconnect aborted: failed to set current project', { projectId, error: res?.error });
-        return res;
+      if (passwordOverride !== undefined) {
+        setPendingProjectPassword(normalizedProjectId, passwordOverride || null);
       }
-      
-      const wasRunning = !!getP2PProvider(projectId);
-      await stopProjectTorrents(projectId);
+
+      const wasRunning = !!getP2PProvider(normalizedProjectId);
+      await stopProjectTorrents(normalizedProjectId);
       if (wasRunning) {
-        await stopP2PForProject(projectId);
+        await stopP2PForProject(normalizedProjectId);
       }
 
-      // Reconnect happens for an already-open project. Rehydrating from snapshot here
-      // just replays the full bootstrap and can loop asset reseeding.
-      await bootstrapProjectRuntime(event, projectId, { hydrateSnapshot: false });
+      const notifyFrontend = () => {
+        if (event?.sender && !event.sender.isDestroyed()) {
+          try {
+            event.sender.send('data-changed', { projectId: normalizedProjectId, origin: 'p2p' });
+          } catch (notifyError) {
+            console.warn('Failed to notify frontend of data change', notifyError);
+          }
+        }
+      };
+
+      await startP2PForProject(normalizedProjectId, {
+        onDataChange: notifyFrontend,
+        skipHydration: true,
+      });
+
+      try {
+        event?.sender?.send('project-presence-changed', {
+          projectId: normalizedProjectId,
+          presence: getProjectPresence(normalizedProjectId)
+        });
+      } catch (presenceError) {
+        console.warn('Failed to notify frontend of project presence', presenceError);
+      }
+
+      scheduleDelayedReconcileStart(normalizedProjectId);
 
       console.log('[P2P] reconnect completed', {
-        projectId,
+        projectId: normalizedProjectId,
         hadProvider: wasRunning,
-        hasProvider: !!getP2PProvider(projectId),
-        peers: getProjectPeersCount(projectId)
+        hasProvider: !!getP2PProvider(normalizedProjectId),
+        peers: getProjectPeersCount(normalizedProjectId)
       });
 
       return { success: true };
@@ -244,11 +272,11 @@ ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
       console.error('[P2P] Failed to reconnect P2P project:', err);
       return { success: false, error: err.message };
     } finally {
-      reconnectP2PJobs.delete(projectId);
+      reconnectP2PJobs.delete(normalizedProjectId);
     }
   })();
 
-  reconnectP2PJobs.set(projectId, reconnectJob);
+  reconnectP2PJobs.set(normalizedProjectId, reconnectJob);
   return reconnectJob;
 });
 

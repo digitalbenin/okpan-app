@@ -122,10 +122,14 @@ export const genericAssetsOperations = {
             assetId: "ID of the generic asset to delete"
         },
         query: `mutation DeleteGenericAsset($assetId: String!) {
-  deleteFromGenericAssets(where: { id: { eq: $assetId } }) {
+  result: deleteGenericAssetCascade(assetId: $assetId) {
     id
     filename
     path
+    fileErrors {
+      path
+      error
+    }
   }
 }`
     }

@@ -54,7 +54,10 @@ contextBridge.exposeInMainWorld('api', {
     setProjectPassword: (projectId, password) => ipcRenderer.invoke('project-set-password', { projectId, password }),
     joinP2PProject: (projectId, password) => ipcRenderer.invoke('project-join-p2p', { projectId, password }),
     suspendP2PProject: (projectId) => ipcRenderer.invoke('project-suspend-p2p', projectId),
-    reconnectP2PProject: (projectId) => ipcRenderer.invoke('project-reconnect-p2p', projectId),
+    reconnectP2PProject: (projectId, password) => ipcRenderer.invoke(
+        'project-reconnect-p2p',
+        password === undefined ? projectId : { projectId, password }
+    ),
 
     // Snapshot management
     createSnapshot: (projectId) => ipcRenderer.invoke('snapshot-create', projectId),

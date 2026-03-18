@@ -5,8 +5,10 @@
   import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
   import ProjectImport from "$lib/components/projects/ProjectImport.svelte";
   import ProjectSync from "$lib/components/projects/ProjectSync.svelte";
-  import { goto, invalidateAll } from "$app/navigation";
+  import { goto, invalidate, invalidateAll } from "$app/navigation";
   import { page } from "$app/stores";
+  import { addToast } from "$lib/components/base/BaseToast.svelte";
+  import { getProjects } from "$lib/stores/ProjectsUtils.js";
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -14,6 +16,11 @@
   let newProjectOpen = $state(false);
   let importProjectOpen = $state(false);
   let syncProjectOpen = $state(false);
+  let projects = $state(data.projects || []);
+
+  $effect(() => {
+    projects = data.projects || [];
+  });
 
   // Watch for URL parameters to trigger modals
   $effect(() => {
@@ -94,10 +101,30 @@
   }
 
   async function handleSynced({ projectId }) {
-    syncProjectOpen = false;
+    const timeoutAt = Date.now() + 15000;
 
-    // Invalidate all data to refresh the projects list
-    await invalidateAll();
+    while (Date.now() < timeoutAt) {
+      await invalidate("app:projects");
+      const refreshedProjects = await getProjects();
+      projects = refreshedProjects || [];
+
+      if (projects.some((project) => project.id === projectId)) {
+        syncProjectOpen = false;
+        return true;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    addToast({
+      data: {
+        title: "Project sync",
+        description: "Project found on the network, but it is still initializing locally.",
+        type: "warning",
+      },
+    });
+
+    return false;
   }
 
   function handleNewProject() {
@@ -113,7 +140,7 @@
       <h2>{t("common.projects", { fallback: "Projects" })}</h2>
       
       <ProjectsList 
-        projects={data.projects} 
+        {projects}
         onNewProject={handleNewProject}
         {dropdownItems}
       />

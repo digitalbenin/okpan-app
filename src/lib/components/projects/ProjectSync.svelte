@@ -57,7 +57,7 @@
     try {
       isSyncing = true;
       const normalizedProjectId = getNormalizedProjectId();
-      statusMessage = "Setting current project...";
+      statusMessage = "Looking for peers";
 
       const joinRes = await window.api.joinP2PProject(normalizedProjectId, password || null);
       if (!joinRes?.success) {
@@ -69,14 +69,15 @@
         throw new Error(res?.error || "Failed to set up project sync.");
       }
 
-      statusMessage = "Connecting... waiting for peers...";
-
       const peersFound = await waitForPeerPresence(normalizedProjectId);
 
       if (peersFound) {
-        statusMessage = "Connected!";
+        statusMessage = "Initializing project";
         if (typeof onSynced === "function") {
-          onSynced({ projectId: normalizedProjectId });
+          const synced = await onSynced({ projectId: normalizedProjectId });
+          if (synced === false) {
+            return;
+          }
         }
       } else {
         // Did not find peers in time

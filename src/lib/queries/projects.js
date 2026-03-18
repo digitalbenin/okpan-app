@@ -167,6 +167,7 @@ export const projectsOperations = {
     title_id
     description_id
     is_shared
+    password
     title {
       id
       content

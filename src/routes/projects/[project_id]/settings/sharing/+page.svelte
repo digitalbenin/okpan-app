@@ -118,10 +118,10 @@
     passwordDialogOpen = true;
   }
 
-  async function syncSharingRuntime(shared) {
+  async function syncSharingRuntime(shared, passwordOverride = undefined) {
     try {
       if (shared) {
-        await window.api.reconnectP2PProject(project.id);
+        await window.api.reconnectP2PProject(project.id, passwordOverride);
         return;
       }
 
@@ -155,7 +155,7 @@
     projectPassword = nextPassword || "";
     usePassword = !!nextPassword;
     if (isSharedProject) {
-      await syncSharingRuntime(true);
+      await syncSharingRuntime(true, nextPassword || null);
     }
   }
 
@@ -278,6 +278,16 @@
       isSavingPassword = false;
     }
   }
+
+  $effect(() => {
+    if (isSavingSharing || isSavingPassword) {
+      return;
+    }
+
+    isSharedProject = project?.is_shared === 1 || project?.is_shared === true;
+    projectPassword = project?.password || "";
+    usePassword = !!project?.password;
+  });
 </script>
 
 <div class="container-fluid">

@@ -61,8 +61,8 @@
         {institution.country.content}
       </p>
     {/if}
-    <div class="mt-auto d-flex fs-7">
-      <div class="col">
+    <div class="mt-auto d-flex flex-column fs-7 gap-1">
+      <div>
         {institution.objectsCount}
         {#if institution.objectsCount < 2}
           {t("common.object", { fallback: "object" })}
@@ -70,12 +70,12 @@
           {t("common.objects", { fallback: "objects" })}
         {/if}
       </div>
-      <div class="col">
+      <div>
         {institution.assetsCount}
         {#if institution.assetsCount < 2}
-          {t("common.asset", { fallback: "asset" })}
+          {t("common.asset", { fallback: "media" })}
         {:else}
-          {t("common.assets", { fallback: "assets" })}
+          {t("common.assets", { fallback: "media" })}
         {/if}
       </div>
     </div>

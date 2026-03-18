@@ -182,10 +182,14 @@ export const assetsOperations = {
       assetId: "ID of the asset to delete"
     },
     query: `mutation DeleteAsset($assetId: String!) {
-  deleteFromAssets(where: { id: { eq: $assetId } }) {
+  result: deleteAssetCascade(assetId: $assetId) {
     id
     filename
     path
+    fileErrors {
+      path
+      error
+    }
   }
 }`
   },
