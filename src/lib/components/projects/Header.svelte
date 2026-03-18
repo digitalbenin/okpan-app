@@ -144,21 +144,21 @@
       </p>
       <div class="input-group mb-3">
         <input type="text" class="form-control" value={project.id} readonly />
-        <button class="btn btn-outline-secondary" onclick={handleCopySharingId}>
-          <i class={`bi bi-${idCopied ? 'check2 text-success' : 'clipboard'}`}></i> 
+        <button class="btn btn-primary" onclick={handleCopySharingId}>
+          <i class={`pe-2 bi bi-${idCopied ? 'check2' : 'clipboard'}`}></i> 
           {idCopied 
             ? t("common.copied", { fallback: "Copied!" }) 
             : t("common.copy", { fallback: "Copy" })}
         </button>
       </div>
-      {#if idCopied}
+      <!--{#if idCopied}
         <p class="text-success small mb-0">
           ID copied to your clipboard.
         </p>
-      {/if}
+      {/if}-->
     {/snippet}
     {#snippet footer()}
-      <button class="btn btn-secondary" onclick={() => (showSharingModal = false)}>
+      <button class="btn btn-primary" onclick={() => (showSharingModal = false)}>
         {t("common.close", { fallback: "Close" })}
       </button>
     {/snippet}
