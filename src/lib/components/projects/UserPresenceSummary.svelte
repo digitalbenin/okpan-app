@@ -11,6 +11,8 @@
   const userPresenceState = userPresenceStore.state;
   const currentUsername = $derived(userPresenceState.username || "Anonymous");
   const connectedPeers = $derived(userPresenceState.peers || []);
+  const visibleConnectedPeers = $derived(connectedPeers.slice(0, 3));
+  const hiddenConnectedPeersCount = $derived(Math.max(connectedPeers.length - 3, 0));
   const connectedPeersLabel = $derived(
     connectedPeers.length === 1 ? "1 connected user" : `${connectedPeers.length} connected users`
   );
@@ -117,7 +119,7 @@
   <div class="d-flex align-items-center gap-2 mw-100 justify-content-end">
     <BaseDropdownMenu
       bind:open={syncDropdownOpen}
-      triggerClass="btn btn-sm sync-dropdown-trigger p-0 m-0 border-0"
+      triggerClass="d-inline-flex align-items-center p-0 m-0 border-0 bg-transparent shadow-none"
       contentProps={{ style: "right: 0; left: auto; min-width: 260px; background: #fff; border: 1px solid rgba(15, 23, 42, 0.12); color: #111827; border-radius: 0.85rem; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);" }}
       side="bottom"
       align="end"
@@ -126,11 +128,12 @@
     >
       {#snippet trigger()}
         <div
-          class="sync-status-trigger d-inline-flex align-items-center justify-content-center flex-shrink-0 cursor-pointer"
+          class="d-inline-flex align-items-center justify-content-center flex-shrink-0 cursor-pointer bg-transparent border-0"
+          style="width: 2.2rem; height: 2.2rem;"
           title={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
           aria-label={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
         >
-          <i class="bi {syncIcon} sync-status-icon text-white"></i>
+          <i class="bi {syncIcon} text-white d-flex align-items-center justify-content-center lh-1" style="font-size: 1.8rem;"></i>
         </div>
       {/snippet}
 
@@ -181,7 +184,7 @@
 
     <BaseDropdownMenu
       bind:open={peersDropdownOpen}
-      triggerClass="btn btn-sm peer-stack-trigger"
+      triggerClass="d-inline-flex align-items-center p-0 border-0 bg-transparent shadow-none"
       contentProps={{ style: "right: 0; left: auto; min-width: 220px;" }}
       side="bottom"
       align="end"
@@ -194,15 +197,24 @@
           title={connectedPeersLabel}
           aria-label={connectedPeersLabel}
         >
-          {#each connectedPeers as peer, index (peer.clientId)}
+          {#each visibleConnectedPeers as peer, index (peer.clientId)}
             <div
-              class="presence-avatar d-inline-flex align-items-center justify-content-center rounded-circle fw-bold presence-avatar-peer"
-              style={`${getAvatarStyle(peer.username)}; ${getPeerStackStyle(index)}`}
+              class="d-inline-flex align-items-center justify-content-center rounded-circle fw-bold position-relative shadow-none text-white"
+              style={`width: 2.2rem; height: 2.2rem; font-size: 0.8rem; ${getAvatarStyle(peer.username)}; ${getPeerStackStyle(index)}`}
               aria-hidden="true"
             >
               {getInitial(peer.username)}
             </div>
           {/each}
+          {#if hiddenConnectedPeersCount > 0}
+            <div
+              class="d-inline-flex align-items-center justify-content-center rounded-circle fw-semibold position-relative shadow-none text-white border border-white border-opacity-25 bg-white bg-opacity-25 small lh-1"
+              style={`width: 2.2rem; height: 2.2rem; ${getPeerStackStyle(visibleConnectedPeers.length)}`}
+              aria-hidden="true"
+            >
+              +{hiddenConnectedPeersCount}
+            </div>
+          {/if}
         </div>
       {/snippet}
 
@@ -212,8 +224,8 @@
           {#each connectedPeers as peer (peer.clientId)}
             <div class="d-flex align-items-center gap-2 px-1 py-1">
               <div
-                class="presence-avatar d-inline-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0 presence-avatar-peer-overlay"
-                style={getAvatarStyle(peer.username)}
+                class="d-inline-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0 shadow-none text-white"
+                style={`width: 1.7rem; height: 1.7rem; font-size: 0.75rem; ${getAvatarStyle(peer.username)}`}
                 aria-hidden="true"
               >
                 {getInitial(peer.username)}
@@ -227,73 +239,3 @@
   {/if}
 </div>
 
-<style>
-  :global(.peer-stack-trigger),
-  :global(.sync-dropdown-trigger) {
-    border: 0;
-    background: transparent;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    box-shadow: none;
-  }
-
-  :global(.peer-stack-trigger:hover),
-  :global(.peer-stack-trigger:focus),
-  :global(.peer-stack-trigger:active),
-  :global(.peer-stack-trigger:focus-visible),
-  :global(.sync-dropdown-trigger:hover),
-  :global(.sync-dropdown-trigger:focus),
-  :global(.sync-dropdown-trigger:active),
-  :global(.sync-dropdown-trigger:focus-visible) {
-    background: transparent;
-    box-shadow: none;
-    outline: none;
-  }
-
-  .presence-avatar {
-    width: 2.2rem;
-    height: 2.2rem;
-    font-size: 0.8rem;
-  }
-
-  .presence-avatar-own {
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-  }
-
-  .presence-avatar-peer {
-    position: relative;
-    box-shadow: none;
-  }
-
-  .presence-avatar-peer-overlay {
-    width: 1.7rem;
-    height: 1.7rem;
-    font-size: 0.75rem;
-    box-shadow: none;
-  }
-
-  .sync-status-trigger {
-    width: 2.2rem;
-    height: 2.2rem;
-    background: transparent;
-    border: none;
-  }
-
-  .sync-status-icon {
-    font-size: 1.8rem;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .sync-status-count {
-    min-width: 2.25rem;
-    padding: 0.15rem 0.55rem;
-    text-align: center;
-    color: #111827;
-    background: rgba(15, 23, 42, 0.06);
-    border: 1px solid rgba(15, 23, 42, 0.12);
-  }
-</style>
