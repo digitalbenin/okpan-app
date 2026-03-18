@@ -33,7 +33,7 @@
             {id}
             bind:checked={value}
             {disabled}
-            on:change={handleChange}
+            onchange={handleChange}
         />
     </div>
     {#if label && labelPosition === "right"}

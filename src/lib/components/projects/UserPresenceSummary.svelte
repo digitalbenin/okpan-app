@@ -135,25 +135,39 @@
       {/snippet}
 
       {#snippet children()}
-        <div class="d-flex flex-column gap-2 p-3 sync-status-menu text-dark">
-          <div class="fw-medium mb-2 pb-2 border-bottom sync-status-menu-divider">
+        <div class="d-flex flex-column gap-2 pt-3 px-2 sync-status-menu text-dark">
+          <div class="fw-bold mb-2 pb-2 border-bottom sync-status-menu-divider">
             Sync Status: {!isOnline ? 'Offline' : isDataSyncing ? 'Synchronizing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Up to Date'}
           </div>
 
           <div class="d-flex align-items-center justify-content-between">
-            <span class="d-inline-flex align-items-center gap-2"><i class="bi bi-cloud-check"></i> Present Assets</span>
+            <span class="d-inline-flex align-items-center gap-2"><i class="bi bi-images"></i> Project Assets</span>
             <span class="sync-status-count rounded-pill">{presentAssetsCount}</span>
           </div>
 
           <div class="d-flex align-items-center justify-content-between">
-            <span class="d-inline-flex align-items-center gap-2"><i class="bi bi-cloud-download"></i> Downloading</span>
+            <span class="d-inline-flex align-items-center gap-2"><i class="bi bi-arrow-down-circle"></i> Downloading</span>
             <span class="sync-status-count rounded-pill">{downloadingAssetsCount}</span>
           </div>
 
           <div class="d-flex align-items-center justify-content-between">
-            <span class="d-inline-flex align-items-center gap-2"><i class="bi bi-cloud-slash"></i> Missing Assets</span>
+            <span class="d-inline-flex align-items-center gap-2"><i class="bi bi-exclamation-triangle"></i> Missing Assets</span>
             <span class="sync-status-count rounded-pill">{missingAssetsCount}</span>
           </div>
+
+          <div class="border-top pt-2 mt-0">
+            <a
+              class="btn btn-link text-primary-subtle btn-sm text-decoration-none p-0 d-inline-flex align-items-center gap-2"
+              href={`/projects/${projectId}/settings/recovery-snapshots`}
+              onclick={() => {
+                syncDropdownOpen = false;
+              }}
+            >
+              <i class="bi bi-clock-history"></i>
+              <span>Recovery snapshots</span>
+            </a>
+          </div>
+
         </div>
       {/snippet}
     </BaseDropdownMenu>
@@ -272,10 +286,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .sync-status-menu-divider {
-    border-color: rgba(15, 23, 42, 0.12) !important;
   }
 
   .sync-status-count {

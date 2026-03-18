@@ -138,12 +138,12 @@ if (typeof globalThis.WebSocket === 'undefined') {
 export async function startP2PForProject(projectId, options = {}) {
   if (!projectId) return null
   if (providers.has(projectId)) {
-    console.log('[P2P] start skipped: provider already exists', { projectId })
+    //console.log('[P2P] start skipped: provider already exists', { projectId })
     emitProjectPresence(projectId)
     return providers.get(projectId).provider
   }
 
-  console.log('[P2P] start requested', { projectId })
+  //console.log('[P2P] start requested', { projectId })
 
   // Ensure Doc is hydrated from DB before starting P2P to prevent "empty doc" diffs
   if (!options.skipHydration) {

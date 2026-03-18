@@ -59,6 +59,9 @@ contextBridge.exposeInMainWorld('api', {
     // Snapshot management
     createSnapshot: (projectId) => ipcRenderer.invoke('snapshot-create', projectId),
     hydrateFromSnapshot: (projectId) => ipcRenderer.invoke('snapshot-hydrate', projectId),
+    listRecoverySnapshots: (projectId) => ipcRenderer.invoke('recovery-snapshots-list', projectId),
+    createRecoverySnapshot: (projectId, reason = null) => ipcRenderer.invoke('recovery-snapshots-create', { projectId, reason }),
+    restoreRecoverySnapshot: (projectId, snapshotId) => ipcRenderer.invoke('recovery-snapshots-restore', { projectId, snapshotId }),
 
     // Listeners for backend events
     onDataChanged: (callback) => {

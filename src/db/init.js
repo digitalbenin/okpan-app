@@ -150,4 +150,4 @@ export const updateGlobalUsername = async (username) => {
 // Initialize on startup
 initializeGlobalSettings();
 
-export { db };
+export { db, client, dbPath };

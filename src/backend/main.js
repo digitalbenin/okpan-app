@@ -22,11 +22,12 @@ import { suggestObjectMatches } from './handlers/assetMappingHandler.js';
 import { suggestFieldMappings } from './handlers/importHandler.js';
 import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.js';
 import { embeddingService } from './services/embeddingService.js';
-import { ontology_fields, texts } from '../db/schema.js';
+import { ontology_fields, project, texts } from '../db/schema.js';
 import { getProjectDoc, getCurrentProjectId } from './services/projectCache.js';
 import { startP2PForProject, stopP2PForProject, getP2PProvider, getProjectPeersCount, getProjectPresence, setPresenceNotifier, refreshAllProjectPresence, setPendingProjectPassword } from './services/p2pService.js';
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot, hydrateProjectFromDatabase } from './services/snapshotService.js';
+import { createRecoverySnapshot, listRecoverySnapshots, prepareSessionOpenRecoverySnapshot, restoreRecoverySnapshot } from './services/recoverySnapshotService.js';
 import { eq, sql, isNull } from 'drizzle-orm';
 import {
   handleExportProject,
@@ -78,6 +79,8 @@ let currentNetworkStatus = {
   source: 'startup',
   ts: Date.now()
 };
+const openedProjectsThisSession = new Set();
+const sessionOpenSnapshotJobs = new Map();
 
 function sendToAllWindows(channel, payload) {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -328,7 +331,46 @@ function scheduleDelayedReconcileStart(projectId) {
   delayedReconcileStarts.set(projectId, timer);
 }
 
-async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = false } = {}) {
+async function ensureSessionOpenRecoverySnapshot(projectId) {
+  if (!projectId || openedProjectsThisSession.has(projectId)) {
+    return null;
+  }
+
+  const projectRow = await db.select({ is_shared: project.is_shared }).from(project).where(eq(project.id, projectId)).limit(1).execute();
+  const isSharedProject = projectRow[0]?.is_shared === 1 || projectRow[0]?.is_shared === true;
+
+  if (!isSharedProject) {
+    openedProjectsThisSession.add(projectId);
+    return null;
+  }
+
+  if (sessionOpenSnapshotJobs.has(projectId)) {
+    return sessionOpenSnapshotJobs.get(projectId);
+  }
+
+  const job = (async () => {
+    try {
+      const prepared = await prepareSessionOpenRecoverySnapshot(projectId, {
+        trigger: 'session-open',
+        reason: 'Automatic recovery snapshot captured before the first sync after opening this project in a new app session.',
+        isAutomatic: true,
+      });
+      openedProjectsThisSession.add(projectId);
+      prepared?.packagingJob?.catch(() => {});
+      return prepared;
+    } catch (error) {
+      console.warn('[RecoverySnapshot] Failed to prepare session-open snapshot', { projectId, error: error?.message });
+      return null;
+    } finally {
+      sessionOpenSnapshotJobs.delete(projectId);
+    }
+  })();
+
+  sessionOpenSnapshotJobs.set(projectId, job);
+  return job;
+}
+
+async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = false, captureSessionSnapshot = false } = {}) {
   if (!projectId) {
     return { success: false, error: 'No projectId provided' };
   }
@@ -344,6 +386,10 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
   if (!tailerStarted) {
     startChangeLogTailer();
     tailerStarted = true;
+  }
+
+  if (captureSessionSnapshot) {
+    await ensureSessionOpenRecoverySnapshot(projectId);
   }
 
   try {
@@ -384,7 +430,7 @@ ipcMain.handle('set-current-project', async (event, projectId) => {
   if (!res?.success) {
     return res;
   }
-  await bootstrapProjectRuntime(event, projectId, { hydrateSnapshot: true });
+  await bootstrapProjectRuntime(event, projectId, { hydrateSnapshot: true, captureSessionSnapshot: true });
   return { ...res, hydrated: true };
 });
 ipcMain.handle('get-current-project', handleGetCurrentProject);
@@ -553,6 +599,79 @@ ipcMain.handle('snapshot-hydrate', async (event, projectId) => {
     return { success: true, result };
   } catch (error) {
     console.error('Error in snapshot-hydrate:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('recovery-snapshots-list', async (_event, projectId) => {
+  try {
+    if (!projectId || typeof projectId !== 'string') {
+      throw new Error('recovery-snapshots-list requires a valid projectId');
+    }
+
+    const snapshots = await listRecoverySnapshots(projectId, { limit: 10 });
+    return { success: true, snapshots };
+  } catch (error) {
+    console.error('Error in recovery-snapshots-list:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('recovery-snapshots-create', async (_event, payload) => {
+  try {
+    const projectId = typeof payload === 'string' ? payload : payload?.projectId;
+    const reason = typeof payload === 'string' ? null : payload?.reason ?? null;
+    if (!projectId || typeof projectId !== 'string') {
+      throw new Error('recovery-snapshots-create requires a valid projectId');
+    }
+
+    const snapshot = await createRecoverySnapshot(projectId, {
+      trigger: 'manual',
+      reason,
+      isAutomatic: false,
+    });
+
+    return { success: true, snapshot };
+  } catch (error) {
+    console.error('Error in recovery-snapshots-create:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('recovery-snapshots-restore', async (event, payload) => {
+  try {
+    const projectId = payload?.projectId;
+    const snapshotId = payload?.snapshotId;
+    if (!projectId || typeof projectId !== 'string') {
+      throw new Error('recovery-snapshots-restore requires a valid projectId');
+    }
+    if (!snapshotId || typeof snapshotId !== 'string') {
+      throw new Error('recovery-snapshots-restore requires a valid snapshotId');
+    }
+
+    clearDelayedReconcileStart(projectId);
+    const hadProvider = !!getP2PProvider(projectId);
+
+    await stopProjectTorrents(projectId);
+    if (hadProvider) {
+      await stopP2PForProject(projectId);
+    }
+
+    const result = await restoreRecoverySnapshot(projectId, snapshotId);
+
+    if (hadProvider) {
+      await startP2PForProject(projectId, { skipHydration: true });
+    }
+
+    scheduleDelayedReconcileStart(projectId);
+
+    if (event?.sender && !event.sender.isDestroyed()) {
+      event.sender.send('data-changed', { projectId, origin: 'recovery-snapshot-restore' });
+    }
+
+    return { success: true, result };
+  } catch (error) {
+    console.error('Error in recovery-snapshots-restore:', error);
     return { success: false, error: error.message };
   }
 });
