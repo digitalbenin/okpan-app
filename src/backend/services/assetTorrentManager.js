@@ -1,4 +1,4 @@
-﻿// Manages WebTorrent seeding/downloading for asset P2P sync.
+// Manages WebTorrent seeding/downloading for asset P2P sync.
 // Local-state tables (asset_local_state / generic_asset_local_state) are never
 // Yjs-synced, preventing write-back loops. Torrent metadata on assets/generic_assets
 // is written once by the seeder and is immutable after that.
@@ -34,15 +34,17 @@ let _WebTorrentModule = null;
 let _wtClient = null;
 let _webContents = null;
 
-const activeDownloads   = new Map(); // projectId â†’ Set<assetId>
-const downloadQueues    = new Map(); // projectId â†’ DownloadJob[]
-const reconcileIntervals= new Map(); // projectId â†’ Timeout
-const reconcileDebounce = new Map(); // projectId â†’ Timeout
+const activeDownloads   = new Map(); // projectId → Set<assetId>
+const downloadQueues    = new Map(); // projectId → DownloadJob[]
+const downloadAbortFuncs= new Map(); // projectId ? Map<assetId, abortFn>
+const stoppedProjects   = new Set(); // projects being torn down -- blocks new work
+const reconcileIntervals= new Map(); // projectId → Timeout
+const reconcileDebounce = new Map(); // projectId → Timeout
 const reconcileRunning  = new Set();
 const seededHashes      = new Set();
-const projectSeededHashes = new Map(); // projectId â†’ Set<infoHash>
-const signalingActions  = new Map(); // projectId â†’ { room, sendRequest, sendSignal, seederPeers }
-const pendingPeerSignals= new Map(); // `${projectId}:${infoHash}` â†’ { projectId, peer, seederId }
+const projectSeededHashes = new Map(); // projectId → Set<infoHash>
+const signalingActions  = new Map(); // projectId → { room, sendRequest, sendSignal, seederPeers }
+const pendingPeerSignals= new Map(); // `${projectId}:${infoHash}` → { projectId, peer, seederId }
 
 
 async function getWtClient() {
@@ -166,7 +168,7 @@ async function getLocalState(assetId, isGeneric) {
 }
 
 // Joins a dedicated room per project (`project-assets-{projectId}`) and sets up
-// two actions: peerRequest (downloader â†’ all) and peerSignal (SDP/ICE relay).
+// two actions: peerRequest (downloader → all) and peerSignal (SDP/ICE relay).
 // Seeder: responds to peerRequest by creating an initiator SimplePeer and
 // injecting it into the live torrent via torrent.addPeer().
 // Downloader: creates a non-initiator SimplePeer, registers it in
@@ -187,7 +189,7 @@ async function setupSignalingForProject(projectId) {
   const [sendRequest, receiveRequest] = room.makeAction('peerRequest');
   const [sendSignal,  receiveSignal]  = room.makeAction('peerSignal');
 
-  // seederPeers: `${infoHash}:${requesterId}` → SimplePeer (initiator side)
+  // seederPeers: `${infoHash}:${requesterId}` ? SimplePeer (initiator side)
   // Needed so incoming signals from the downloader can be routed back to the
   // correct initiator peer to complete the WebRTC handshake.
   const seederPeers = new Map();
@@ -202,7 +204,7 @@ async function setupSignalingForProject(projectId) {
       if (entry?.projectId !== projectId || entry.seederId) continue;
       const [, infoHash] = key.split(':', 2);
       if (infoHash) {
-        console.log(`[AssetTorrent] [Signaling] New peer ${peerId} – re-sending request for ${infoHash}`);
+        console.log(`[AssetTorrent] [Signaling] New peer ${peerId} � re-sending request for ${infoHash}`);
         sendRequest({ infoHash }, [peerId]);
       }
     }
@@ -224,7 +226,7 @@ async function setupSignalingForProject(projectId) {
     catch (err) { console.error('[AssetTorrent] seeder SimplePeer failed:', err?.message); return; }
 
     const key = `${infoHash}:${requesterId}`;
-    // Destroy any stale peer for this key before replacing — prevents old
+    // Destroy any stale peer for this key before replacing � prevents old
     // signal listeners from flooding the downloader with duplicate offers.
     const stalePeer = seederPeers.get(key);
     if (stalePeer) { try { stalePeer.destroy(); } catch (_) {} seederPeers.delete(key); }
@@ -448,6 +450,7 @@ async function repairProjectAssetStates(projectId) {
 
 export async function seedAsset({ projectId, assetId, filePath, isGeneric = false, expectedInfoHash = null, expectedLength = null }) {
   if (!projectId || !assetId || !filePath) return null;
+  if (stoppedProjects.has(projectId)) return null;
   if (!hasCompleteLocalFile(filePath, expectedLength)) {
     console.warn(`[AssetTorrent] seedAsset: file not found: ${filePath}`);
     return null;
@@ -561,15 +564,27 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
   return new Promise((resolve) => {
     let settled = false;
-    const settle = (r) => { if (settled) return; settled = true; clearTimeout(timer); resolve(r); };
+    const cleanupAbort = () => downloadAbortFuncs.get(projectId)?.delete(assetId);
+    const settle = (r) => { if (settled) return; settled = true; clearTimeout(timer); cleanupAbort(); resolve(r); };
 
-    const timer = setTimeout(async () => {
+    const abortDownload = async () => {
+      active.delete(assetId);
+      cleanupSignalingPeer(projectId, infoHash);
+      const staleT = await client.get(infoHash);
+      if (staleT) await new Promise((res) => client.remove(infoHash, { destroyStore: false }, res));
+      settle({ success: false, reason: 'aborted' });
+    };
+    getOrSet(downloadAbortFuncs, projectId, () => new Map()).set(assetId, abortDownload);
+
+    const timeoutFn = async () => {
       active.delete(assetId);
       cleanupSignalingPeer(projectId, infoHash);
       drainQueue(projectId);
       await handleDownloadError({ projectId, assetId, isGeneric, errCode: 'TIMEOUT' });
       settle({ success: false, reason: 'timeout' });
-    }, DOWNLOAD_TIMEOUT_MS);
+    };
+    let timer = setTimeout(timeoutFn, DOWNLOAD_TIMEOUT_MS);
+    const resetTimer = () => { clearTimeout(timer); timer = setTimeout(timeoutFn, DOWNLOAD_TIMEOUT_MS); };
 
     (async () => {
       try {
@@ -591,6 +606,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
         // torrent.on('noPeers', (t) => console.warn(`[AssetTorrent] no peers ${assetId} (${t})`)); // Removed to prevent log spam when seeding
         torrent.on('ready',   ()  => console.log(`[AssetTorrent] metadata ready ${assetId} peers=${torrent.numPeers}`));
         torrent.on('download', () => {
+          resetTimer();
           const pct = torrent.length > 0 ? Math.round((torrent.downloaded / torrent.length) * 100) : 0;
           upsertLocalState(assetId, isGeneric, { download_progress: pct }).catch(() => {});
           emitSyncProgress(assetId, isGeneric, 'downloading', pct);
@@ -657,6 +673,7 @@ async function handleDownloadError({ projectId, assetId, isGeneric, errCode }) {
 
 
 function enqueueDownload(job) {
+  if (stoppedProjects.has(job.projectId)) return;
   const active = getOrSet(activeDownloads, job.projectId, () => new Set());
   const queue  = getOrSet(downloadQueues,  job.projectId, () => []);
   if (active.has(job.assetId) || queue.some((q) => q.assetId === job.assetId)) return;
@@ -669,6 +686,7 @@ function enqueueDownload(job) {
 }
 
 function drainQueue(projectId) {
+  if (stoppedProjects.has(projectId)) return;
   const active = getOrSet(activeDownloads, projectId, () => new Set());
   const queue  = getOrSet(downloadQueues,  projectId, () => []);
   while (active.size < MAX_CONCURRENT_DOWNLOADS_PER_PROJECT && queue.length > 0) {
@@ -732,7 +750,7 @@ export function scheduleAssetReconcile(projectId, assetId = null) {
 }
 
 async function reconcileProject(projectId, specificAssetId = null) {
-  if (reconcileRunning.has(projectId)) return;
+  if (reconcileRunning.has(projectId) || stoppedProjects.has(projectId)) return;
   reconcileRunning.add(projectId);
   console.log(`[AssetTorrent] Reconcile: project=${projectId}${specificAssetId ? ` asset=${specificAssetId}` : ''}`);
   try {
@@ -811,6 +829,8 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
 
 export function startReconcileLoop(projectId) {
   if (!projectId || reconcileIntervals.has(projectId)) return;
+  stoppedProjects.delete(projectId);
+  resetErroredAssets(projectId).catch((err) => console.warn('[AssetTorrent] resetErroredAssets on start:', err?.message));
   scheduleAssetReconcile(projectId);
   const interval = setInterval(
     () => reconcileProject(projectId).catch((err) => console.error('[AssetTorrent] periodic reconcile error:', err)),
@@ -819,8 +839,14 @@ export function startReconcileLoop(projectId) {
   reconcileIntervals.set(projectId, interval);
 }
 
-export function stopProjectTorrents(projectId) {
+export async function stopProjectTorrents(projectId) {
   if (!projectId) return;
+  stoppedProjects.add(projectId);
+  const abortMap = downloadAbortFuncs.get(projectId);
+  if (abortMap) {
+    await Promise.all([...abortMap.values()].map((fn) => fn().catch(() => {})));
+    downloadAbortFuncs.delete(projectId);
+  }
   const iv = reconcileIntervals.get(projectId); if (iv) { clearInterval(iv); reconcileIntervals.delete(projectId); }
   const dv = reconcileDebounce.get(projectId);  if (dv) { clearTimeout(dv);  reconcileDebounce.delete(projectId); }
   const sig = signalingActions.get(projectId);
@@ -849,6 +875,8 @@ export function destroyTorrentManager() {
   signalingActions.clear();
   activeDownloads.clear();
   downloadQueues.clear();
+  downloadAbortFuncs.clear();
+  stoppedProjects.clear();
   reconcileRunning.clear();
   pendingPeerSignals.clear();
   projectSeededHashes.clear();

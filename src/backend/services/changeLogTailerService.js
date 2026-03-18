@@ -363,17 +363,14 @@ export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST
   }
 }
 
-let intervalCounter = 0;
+//let intervalCounter = 0;
 export function startChangeLogTailer({ intervalMs = 1000, batchSize = 200 } = {}) {
   // Debug log to ensure the tailer actually started
   console.log('[Tailer] Loop started');
   setInterval(async () => {
     try {
-      if (!hasCurrentProjectId()) {
-        if (intervalCounter++ % 10 === 0) console.log('[Tailer] Loop ticking: no project id');
-        return;
-      }
-      if (intervalCounter++ % 10 === 0) console.log('[Tailer] Loop ticking for project', getCurrentProjectId());
+      if (!hasCurrentProjectId()) return;
+      //if (intervalCounter++ % 10 === 0) console.log('[Tailer] Loop ticking for project', getCurrentProjectId());
       const projectId = getCurrentProjectId();
       
       let progressed = true;

@@ -155,7 +155,7 @@ ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
       
       const wasRunning = !!getP2PProvider(projectId);
       if (wasRunning) {
-        stopProjectTorrents(projectId);
+        await stopProjectTorrents(projectId);
         await stopP2PForProject(projectId);
       }
       return { success: true };
@@ -180,7 +180,7 @@ ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
       
       const wasRunning = !!getP2PProvider(projectId);
       if (wasRunning) {
-        stopProjectTorrents(projectId);
+        await stopProjectTorrents(projectId);
         await stopP2PForProject(projectId);
       }
 

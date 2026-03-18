@@ -21,7 +21,8 @@
 
   // Initialize Melt UI tabs
   const tabs = new Tabs({
-    value: activeLanguageCode,
+    // svelte-ignore state_referenced_locally
+        value: activeLanguageCode,
     onValueChange: (value) => {
       activeLanguageCode = value;
     },

@@ -423,7 +423,7 @@ export const handleClearCurrentProject = async (event) => {
     try {
         const currentProjectId = getCurrentProjectId();
         if (currentProjectId) {
-            stopProjectTorrents(currentProjectId);
+            await stopProjectTorrents(currentProjectId);
             await stopP2PForProject(currentProjectId);
         }
         clearCurrentProjectId();

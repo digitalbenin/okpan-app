@@ -167,7 +167,6 @@ export async function startP2PForProject(projectId, options = {}) {
     Y.applyUpdate(baselineDoc, initialSnapshot)
     const baseStats = countDocTables(baselineDoc)
     const canonStats = countDocTables(doc)
-    console.log('[P2P] Baseline seeded', { projectId, baseline: baseStats, canonical: canonStats })
   } catch (err) {
     console.warn('[P2P] Failed to seed baseline doc from canonical', err)
   }
@@ -188,7 +187,7 @@ export async function startP2PForProject(projectId, options = {}) {
       scheduleAssetReconcile(projectId);
     }
     for (const clientId of updated) {
-      console.log('[P2P] Peer updated', { projectId, clientId })
+      // heartbeat — no log
     }
     for (const clientId of removed) {
       console.log('[P2P] Peer disconnected', { projectId, clientId })
@@ -235,20 +234,16 @@ export async function startP2PForProject(projectId, options = {}) {
         // Ignore updates originating from DB tailer projections or local hydration/replay
         if (origin === 'ingestion' || origin === 'hydration' || origin === 'replay') {
         syncBaselineFromCanonical(projectId, baselineDoc, doc)
-        const baseStats = countDocTables(baselineDoc)
-        const canonStats = countDocTables(doc)
-        console.log('[P2P] Local persisted update observed on canonical', { projectId, origin, bytes: update?.length || 0, baseline: baseStats, canonical: canonStats })
         return
       }
       const beforeBase = countDocTables(baselineDoc)
       const beforeCanon = countDocTables(doc)
-      console.log('[P2P] Doc update observed', { projectId, origin, bytes: update?.length || 0, baselineBefore: beforeBase, canonicalBefore: beforeCanon })
       // Persist using baseline BEFORE snapshot to avoid zero-diff after local integration
       const res = await ingestRemoteUpdate(projectId, update, { beforeDoc: baselineDoc })
       if (res?.applied || res?.inserts || res?.updates || res?.deletes) {
         console.log('[P2P] Persisted Yjs update to SQLite', { projectId, origin, bytes: update?.length || 0, ...res })
         // Advance baseline to reflect the newly persisted update.
-        // If the update bytes don't change baseline structurally, resync baseline to canonical.
+
         try {
           const beforeBase = countDocTables(baselineDoc)
           Y.applyUpdate(baselineDoc, update)
@@ -260,7 +255,6 @@ export async function startP2PForProject(projectId, options = {}) {
             Y.applyUpdate(baselineDoc, snapshot)
             afterBase = countDocTables(baselineDoc)
           }
-          console.log('[P2P] Baseline advanced', { projectId, baselineAfter: afterBase, canonicalAfter: afterCanon })
         } catch (advErr) {
           console.warn('[P2P] Failed to advance baseline doc', advErr)
         }
