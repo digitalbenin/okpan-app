@@ -8,6 +8,7 @@ import { eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 
 const sqlEscape = (val) => String(val).replace(/'/g, "''");
+const WINDOWS_FS_RETRY_OPTIONS = { maxRetries: 10, retryDelay: 200 };
 
 const convertProjectReplaceToUpsert = (statement) => {
   const match = statement.match(/^INSERT OR REPLACE INTO\s+project\s*\(([^)]+)\)\s*VALUES\s*\((.*)\)$/i);
@@ -387,6 +388,14 @@ const generateSchemaDDL = () => {
 
 async function ensureDir(dirPath) {
   await fsPromises.mkdir(dirPath, { recursive: true });
+}
+
+async function removePathIfExists(targetPath, options = {}) {
+  await fsPromises.rm(targetPath, {
+    force: true,
+    recursive: options.recursive === true,
+    ...WINDOWS_FS_RETRY_OPTIONS,
+  });
 }
 
 async function copyFileIfExists(src, dest) {
@@ -884,7 +893,15 @@ export async function restoreProjectBackup(options, { db }) {
       const assetsDestDir = path.join(process.cwd(), 'src', 'assets', 'project_assets', project_id);
       
       if (strategy === 'overwrite' && fs.existsSync(assetsDestDir)) {
-        await fsPromises.rm(assetsDestDir, { recursive: true, force: true });
+        try {
+          await removePathIfExists(assetsDestDir, { recursive: true });
+        } catch (error) {
+          console.warn('[BACKUP RESTORE] Failed to fully clear existing project assets before overwrite', {
+            project_id,
+            assetsDestDir,
+            error: error?.message,
+          });
+        }
       }
       
       await ensureDir(assetsDestDir);

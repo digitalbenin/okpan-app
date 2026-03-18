@@ -14,6 +14,7 @@ import { ingestOnceForProject } from './changeLogTailerService.js';
 
 const SNAPSHOT_ROOT_DIR = 'project-recovery-snapshots';
 const DEFAULT_SNAPSHOT_LIMIT = 10;
+const WINDOWS_FS_RETRY_OPTIONS = { maxRetries: 10, retryDelay: 200 };
 const snapshotLocks = new Map();
 
 function getSnapshotsBaseDir() {
@@ -150,7 +151,11 @@ async function deleteWhereIn(tx, table, column, ids) {
 
 async function deleteProjectAssetsFolder(projectId) {
   const projectAssetsFolder = path.join(process.cwd(), 'src', 'assets', 'project_assets', projectId);
-  await fsPromises.rm(projectAssetsFolder, { recursive: true, force: true });
+  await fsPromises.rm(projectAssetsFolder, {
+    recursive: true,
+    force: true,
+    ...WINDOWS_FS_RETRY_OPTIONS,
+  });
 }
 
 async function deleteProjectStateForRestore(projectId) {
@@ -398,7 +403,14 @@ async function deleteProjectStateForRestore(projectId) {
 
   });
 
-  await deleteProjectAssetsFolder(projectId);
+  try {
+    await deleteProjectAssetsFolder(projectId);
+  } catch (error) {
+    console.warn('[RecoverySnapshot] Failed to fully clear project assets before restore', {
+      projectId,
+      error: error?.message,
+    });
+  }
 
   return { deleted: true };
 }
