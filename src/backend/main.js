@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron';
 import started from 'electron-squirrel-startup';
 import 'dotenv/config';
 import path from 'path';
@@ -73,11 +73,34 @@ process.on('uncaughtException', (error) => {
 
 app.disableHardwareAcceleration()
 
+let currentNetworkStatus = {
+  online: true,
+  source: 'startup',
+  ts: Date.now()
+};
+
 function sendToAllWindows(channel, payload) {
   for (const window of BrowserWindow.getAllWindows()) {
     if (window.isDestroyed() || window.webContents.isDestroyed()) continue;
     window.webContents.send(channel, payload);
   }
+}
+
+function broadcastNetworkStatus(online, source = 'electron') {
+  const nextStatus = {
+    online: !!online,
+    source,
+    ts: Date.now()
+  };
+
+  if (currentNetworkStatus.online === nextStatus.online && currentNetworkStatus.source === nextStatus.source) {
+    console.log('[Network] status unchanged', nextStatus);
+    return;
+  }
+
+  currentNetworkStatus = nextStatus;
+  console.log('[Network] status changed', currentNetworkStatus);
+  sendToAllWindows('network-status-changed', currentNetworkStatus);
 }
 
 setPresenceNotifier((projectId, presence) => {
@@ -99,6 +122,17 @@ ipcMain.handle('get-system-info', () => ({
   platform: process.platform,
   isDev: !!MAIN_WINDOW_VITE_DEV_SERVER_URL
 }));
+ipcMain.handle('network-status:get', () => {
+  const netOnline = app.isReady() ? net.isOnline() : null;
+  console.log('[Network] network-status:get', {
+    cached: currentNetworkStatus,
+    netOnline
+  });
+  return {
+    ...currentNetworkStatus,
+    netOnline
+  };
+});
 ipcMain.handle('execute-graphql', (event, params) =>
   handleGraphQL(event, params, { schema, resolvers, db })
 );
@@ -141,6 +175,8 @@ ipcMain.handle('project-set-password', async (event, { projectId, password }) =>
 ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
   try {
     setPendingProjectPassword(projectId, password || null);
+    clearDelayedReconcileStart(projectId);
+    await stopProjectTorrents(projectId);
     await stopP2PForProject(projectId);
 
     return { success: true, projectId };
@@ -152,10 +188,11 @@ ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
   ipcMain.handle('project-suspend-p2p', async (event, projectId) => {
     try {
       if (!projectId) return { success: false, error: 'No projectId provided' };
+      clearDelayedReconcileStart(projectId);
+      await stopProjectTorrents(projectId);
       
       const wasRunning = !!getP2PProvider(projectId);
       if (wasRunning) {
-        await stopProjectTorrents(projectId);
         await stopP2PForProject(projectId);
       }
       return { success: true };
@@ -166,27 +203,38 @@ ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
   });
 ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
   if (reconnectP2PJobs.has(projectId)) {
+    console.log('[P2P] reconnect request deduped', { projectId });
     return reconnectP2PJobs.get(projectId);
   }
 
   const reconnectJob = (async () => {
     try {
       if (!projectId) return { success: false, error: 'No projectId provided' };
+      console.log('[P2P] reconnect requested', { projectId, hadProvider: !!getP2PProvider(projectId) });
+      clearDelayedReconcileStart(projectId);
 
       const res = handleSetCurrentProject(event, projectId);
       if (!res?.success) {
+        console.warn('[P2P] reconnect aborted: failed to set current project', { projectId, error: res?.error });
         return res;
       }
       
       const wasRunning = !!getP2PProvider(projectId);
+      await stopProjectTorrents(projectId);
       if (wasRunning) {
-        await stopProjectTorrents(projectId);
         await stopP2PForProject(projectId);
       }
 
       // Reconnect happens for an already-open project. Rehydrating from snapshot here
       // just replays the full bootstrap and can loop asset reseeding.
       await bootstrapProjectRuntime(event, projectId, { hydrateSnapshot: false });
+
+      console.log('[P2P] reconnect completed', {
+        projectId,
+        hadProvider: wasRunning,
+        hasProvider: !!getP2PProvider(projectId),
+        peers: getProjectPeersCount(projectId)
+      });
 
       return { success: true };
     } catch (err) {
@@ -252,6 +300,33 @@ ipcMain.handle('backup-restore', (event, options) =>
 // Project cache handlers
 let tailerStarted = false;
 const reconnectP2PJobs = new Map();
+const delayedReconcileStarts = new Map();
+
+function clearDelayedReconcileStart(projectId) {
+  const timer = delayedReconcileStarts.get(projectId);
+  if (timer) {
+    clearTimeout(timer);
+    delayedReconcileStarts.delete(projectId);
+  }
+}
+
+function scheduleDelayedReconcileStart(projectId) {
+  if (!projectId) {
+    return;
+  }
+
+  clearDelayedReconcileStart(projectId);
+  const timer = setTimeout(() => {
+    delayedReconcileStarts.delete(projectId);
+    try {
+      startReconcileLoop(projectId);
+    } catch (err) {
+      console.error('Failed to start asset reconcile loop for project', projectId, err);
+    }
+  }, 5000);
+
+  delayedReconcileStarts.set(projectId, timer);
+}
 
 async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = false } = {}) {
   if (!projectId) {
@@ -298,13 +373,7 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
     console.error('Failed to start P2P provider for project', projectId, err);
   }
 
-  setTimeout(() => {
-    try {
-      startReconcileLoop(projectId);
-    } catch (err) {
-      console.error('Failed to start asset reconcile loop for project', projectId, err);
-    }
-  }, 5000);
+  scheduleDelayedReconcileStart(projectId);
 
   return { success: true };
 }
@@ -617,6 +686,25 @@ const createWindow = () => {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.webContents.openDevTools();
   }
+
+  mainWindow.webContents.on('online-status-changed', (_event, online) => {
+    broadcastNetworkStatus(online, 'electron-webcontents');
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript('navigator.onLine', true)
+      .then((online) => {
+        currentNetworkStatus = {
+          online: !!online,
+          source: 'electron-initial',
+          ts: Date.now()
+        };
+        sendToAllWindows('network-status-changed', currentNetworkStatus);
+      })
+      .catch((err) => {
+        console.warn('Failed to read initial navigator.onLine state:', err?.message || err);
+      });
+  });
 
   // Register webContents so assetTorrentManager can emit IPC progress events to renderer
   setMainWindowContents(mainWindow.webContents);

@@ -138,9 +138,12 @@ if (typeof globalThis.WebSocket === 'undefined') {
 export async function startP2PForProject(projectId, options = {}) {
   if (!projectId) return null
   if (providers.has(projectId)) {
+    console.log('[P2P] start skipped: provider already exists', { projectId })
     emitProjectPresence(projectId)
     return providers.get(projectId).provider
   }
+
+  console.log('[P2P] start requested', { projectId })
 
   // Ensure Doc is hydrated from DB before starting P2P to prevent "empty doc" diffs
   if (!options.skipHydration) {
@@ -217,11 +220,38 @@ export async function startP2PForProject(projectId, options = {}) {
     rtcPolyfill: RTCPeerConnection,
   }, roomId)
 
+  trysteroRoom.onPeerJoin((peerId) => {
+    console.log('[P2P] room peer joined', { projectId, peerId })
+  })
+  trysteroRoom.onPeerLeave((peerId) => {
+    console.log('[P2P] room peer left', { projectId, peerId })
+  })
+
   // Initialize provider with canonical doc (no explicit connect)
   const provider = new TrysteroProvider(roomId, doc, {
     appId,        // Required: Your Trystero app ID
     awareness,    // Awareness protocol
     trysteroRoom  // Use pre-configured room (server-side)
+  })
+
+  provider.on('status', ({ connected }) => {
+    console.log('[P2P] provider status', { projectId, connected })
+  })
+  provider.on('synced', ({ synced }) => {
+    console.log('[P2P] provider synced', { projectId, synced })
+  })
+  provider.on('peers', ({ added = [], removed = [], trysteroPeers = [], bcPeers = [] }) => {
+    if (added.length === 0 && removed.length === 0) return
+    console.log('[P2P] provider peers', {
+      projectId,
+      added,
+      removed,
+      trysteroCount: trysteroPeers.length,
+      bcCount: bcPeers.length
+    })
+  })
+  provider.on('destroy', () => {
+    console.log('[P2P] provider destroyed', { projectId })
   })
 
   // Strict sequential queue to prevent concurrent baselineDoc diffing races
@@ -276,6 +306,7 @@ export async function startP2PForProject(projectId, options = {}) {
   doc.on('update', onDocUpdatePersist)
 
   providers.set(projectId, { provider, awareness, onChange, onDocUpdatePersist, baselineDoc, trysteroRoom })
+  console.log('[P2P] provider ready', { projectId, roomId })
   emitProjectPresence(projectId)
   return provider
 }
@@ -285,30 +316,31 @@ export async function startP2PForProject(projectId, options = {}) {
  */
 export async function stopP2PForProject(projectId) {
   const entry = providers.get(projectId)
+  console.log('[P2P] stop requested', { projectId, hasEntry: !!entry })
   if (!entry) return
   try {
-    // Remove awareness listener & heartbeat
-    try { 
-      if (entry.awareness) {
-        entry.awareness.off('change', entry.onChange)
-        if (typeof entry.awareness.destroy === 'function') {
-          entry.awareness.destroy()
-        }
-      }
+    try {
+      entry.awareness?.off('change', entry.onChange)
     } catch (err) { console.warn('[P2P] Failed to remove awareness listener', err) }
     try { getProjectDoc(projectId)?.off('update', entry.onDocUpdatePersist) } catch (err) { console.warn('[P2P] Failed to remove canonical doc persistence handler', err) }
-    
+
+    const provider = entry.provider
+    if (typeof provider.destroy === 'function') await provider.destroy()
+    else if (typeof provider.disconnect === 'function') await provider.disconnect()
+
     try {
       if (entry.trysteroRoom && typeof entry.trysteroRoom.leave === 'function') {
         entry.trysteroRoom.leave()
       }
     } catch (err) { console.warn('[P2P] Failed to leave trystero room', err) }
 
-    // Baseline doc is local-only; rely on GC
+    try {
+      if (typeof entry.awareness?.destroy === 'function') {
+        entry.awareness.destroy()
+      }
+    } catch (err) { console.warn('[P2P] Failed to destroy awareness', err) }
 
-    const provider = entry.provider
-    if (typeof provider.destroy === 'function') await provider.destroy()
-    else if (typeof provider.disconnect === 'function') await provider.disconnect()
+    // Baseline doc is local-only; rely on GC
   } catch (err) {
     console.error('[P2P] stopP2PForProject error', err)
   }

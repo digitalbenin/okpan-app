@@ -3,6 +3,7 @@
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
   import { getAssetSyncStore } from "$lib/stores/AssetSyncStore.svelte.js";
+  import { getNetworkStatusStore } from "$lib/stores/NetworkStatusStore.svelte.js";
 
   let { projectId = null } = $props();
 
@@ -16,13 +17,14 @@
 
   const syncStore = getAssetSyncStore();
   const syncState = syncStore.state;
+  const networkStatusStore = getNetworkStatusStore();
+  const networkStatusState = networkStatusStore.state;
   const isDownloadingAssets = $derived(
     Object.values(syncState.assets || {}).some(a => a.status === 'downloading')
   );
 
   let peersDropdownOpen = $state(false);
   let syncDropdownOpen = $state(false);
-  let isOnline = $state(true);
   let isDataSyncing = $state(false);
 
   const missingAssetsCount = $derived(
@@ -34,21 +36,16 @@
   const presentAssetsCount = $derived(
     Object.values(syncState.assets || {}).filter(a => a.status === 'available' || a.status === 'seeding').length
   );
+  const isOnline = $derived(networkStatusState.online);
 
   onMount(() => {
     void userPresenceStore.initialize();
+    void networkStatusStore.initialize();
     
     let unsubscribeDataChanged = () => {};
     let syncTimeout = null;
 
     if (typeof window !== "undefined") {
-      isOnline = navigator.onLine;
-      const handleOnline = () => isOnline = true;
-      const handleOffline = () => isOnline = false;
-      
-      window.addEventListener("online", handleOnline);
-      window.addEventListener("offline", handleOffline);
-
       if (window.api?.onDataChanged) {
         unsubscribeDataChanged = window.api.onDataChanged(() => {
           isDataSyncing = true;
@@ -60,8 +57,6 @@
       }
       
       return () => {
-        window.removeEventListener("online", handleOnline);
-        window.removeEventListener("offline", handleOffline);
         unsubscribeDataChanged();
         if (syncTimeout) clearTimeout(syncTimeout);
       };
@@ -104,6 +99,18 @@
     isDownloadingAssets ? "bi-cloud-download" :
     "bi-cloud-check"
   );
+
+  $effect(() => {
+    console.log('[UserPresenceSummary] icon state', {
+      projectId,
+      isOnline,
+      networkSource: networkStatusState.source,
+      lastChangedAt: networkStatusState.lastChangedAt,
+      syncIcon,
+      isDataSyncing,
+      isDownloadingAssets
+    });
+  });
 </script>
 
 <div class="pe-3 d-flex justify-content-end align-items-center gap-2 flex-wrap position-relative">

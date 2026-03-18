@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('api', {
     setCurrentProject: (projectId) => ipcRenderer.invoke('set-current-project', projectId),
     getCurrentProject: () => ipcRenderer.invoke('get-current-project'),
     clearCurrentProject: () => ipcRenderer.invoke('clear-current-project'),
+    getNetworkStatus: () => ipcRenderer.invoke('network-status:get'),
     getProjectPeers: (projectId) => ipcRenderer.invoke('get-project-peers', projectId),
     getProjectPresence: (projectId) => ipcRenderer.invoke('project-presence:get', projectId),
     getGlobalProfile: () => ipcRenderer.invoke('global-profile:get'),
@@ -74,6 +75,11 @@ contextBridge.exposeInMainWorld('api', {
         const subscription = (event, ...args) => callback(...args);
         ipcRenderer.on('project-presence-changed', subscription);
         return () => ipcRenderer.removeListener('project-presence-changed', subscription);
+    },
+    onNetworkStatusChanged: (callback) => {
+        const subscription = (event, ...args) => callback(...args);
+        ipcRenderer.on('network-status-changed', subscription);
+        return () => ipcRenderer.removeListener('network-status-changed', subscription);
     },
     onImportProgress: (callback) => ipcRenderer.on('import-assets-progress', callback),
     removeImportProgressListeners: () => ipcRenderer.removeAllListeners('import-assets-progress'),

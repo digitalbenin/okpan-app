@@ -351,9 +351,9 @@ export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST
       return false;
     }
     nullFetchCounter = 0;
-    console.log('[Tailer] Fetched batch', { projectId, foundCount: rows?.length || 0 });
+    //console.log('[Tailer] Fetched batch', { projectId, foundCount: rows?.length || 0 });
     const res = await applyBatchToDoc(projectId, rows);
-    console.log('[Tailer] Applied batch', { projectId, fromId: res?.fromId, toId: res?.toId, changed: !!res?.changed, rowCount: rows.length });
+    //console.log('[Tailer] Applied batch', { projectId, fromId: res?.fromId, toId: res?.toId, changed: !!res?.changed, rowCount: rows.length });
     return true;
   } catch (error) {
     console.error('Error ingesting change_log:', error);
@@ -366,7 +366,7 @@ export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST
 //let intervalCounter = 0;
 export function startChangeLogTailer({ intervalMs = 1000, batchSize = 200 } = {}) {
   // Debug log to ensure the tailer actually started
-  console.log('[Tailer] Loop started');
+  //console.log('[Tailer] Loop started');
   setInterval(async () => {
     try {
       if (!hasCurrentProjectId()) return;
