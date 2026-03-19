@@ -5,6 +5,7 @@
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import UserPresenceSummary from "$lib/components/projects/UserPresenceSummary.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { isSharedProject as getIsSharedProject } from "$lib/utils/projectSharing.js";
   import { page } from "$app/state";
   import { goto, invalidateAll } from "$app/navigation";
   import { deleteProject } from "$lib/stores/ProjectsUtils.js";
@@ -66,7 +67,7 @@
     confirmationText.trim() === (project.title?.content || "").trim()
   );
 
-  const isSharedProject = $derived(project?.is_shared === 1 || project?.is_shared === true);
+  const isSharedProject = $derived(getIsSharedProject(project));
 
   async function handleDeleteConfirm() {
     if (!isDeleteEnabled) return;
@@ -124,7 +125,7 @@
   </div>
 
   <div class="col text-end">
-    {#if project?.is_shared === 1 || project?.is_shared === true}
+    {#if isSharedProject}
       <UserPresenceSummary projectId={project?.id} />
     {/if}
   </div>

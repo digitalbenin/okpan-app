@@ -5,6 +5,7 @@
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { deleteProject } from "$lib/stores/ProjectsUtils.js";
+  import { isSharedProject as getIsSharedProject } from "$lib/utils/projectSharing";
 
   const { project } = $props();
   const { t, translationState } = getTranslationStore();
@@ -28,7 +29,7 @@
     confirmationText.trim() === (project.title?.content || "Connecting...").trim()
   );
 
-  const isSharedProject = $derived(project?.is_shared === 1 || project?.is_shared === true);
+  const isSharedProject = $derived(getIsSharedProject(project));
 
   async function handleDeleteConfirm() {
     if (!isDeleteEnabled) return;
@@ -62,7 +63,7 @@
       </a>
       <p class="fs-7 mb-0 text-muted d-flex align-items-center gap-2">
         <span class="d-inline-flex align-items-center">
-          {#if project.is_shared}
+          {#if isSharedProject}
             <i class="bi bi-people-fill me-1"></i> {t("project.shared", { fallback: "Shared" })}
           {:else}
             <i class="bi bi-lock-fill me-1"></i> {t("project.private", { fallback: "Private" })}

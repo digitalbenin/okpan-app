@@ -5,6 +5,7 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
   import { updateProjectSharingSettings } from "$lib/stores/ProjectsUtils.js";
+  import { isSharedProject as getIsSharedProject } from "$lib/utils/projectSharing.js";
 
   const { t } = getTranslationStore();
   const { data } = $props();
@@ -22,7 +23,7 @@
   let showNewPassword = $state(false);
   let passwordDialogOpen = $state(false);
   let passwordDialogMode = $state("create");
-  let isSharedProject = $state(data.project?.is_shared === 1 || data.project?.is_shared === true);
+  let isSharedProject = $state(getIsSharedProject(data.project));
   let usePassword = $state(!!data.project?.password);
   let projectPassword = $state(data.project?.password || "");
   let currentPasswordInput = $state("");
@@ -284,7 +285,7 @@
       return;
     }
 
-    isSharedProject = project?.is_shared === 1 || project?.is_shared === true;
+    isSharedProject = getIsSharedProject(project);
     projectPassword = project?.password || "";
     usePassword = !!project?.password;
   });

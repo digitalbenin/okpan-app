@@ -56,35 +56,64 @@
         requiredFields: new Set(["option"])
     });
 
-    // Validated form store
-    const form = createForm(() => ({
-        defaultValues: {
-            option: "",
-            description: "",
-            externalLink: "",
-            ...initialValues
-        },
-        onSubmit: async ({ value }) => {
-            const otherAssetIds = [...assetsByType.image, ...assetsByType.video, ...assetsByType.audio].map(a => a.id);
-            await onSubmit(value, mainAsset?.id || null, otherAssetIds);
-        },
-        validatorAdapter: (schema) => (value) => {
-            const result = schema.safeParse(value);
-            return result.success ? null : result.error.errors.map(e => e.message).join(", ");
-        }
-    }));
+    const buildDefaultValues = (values = {}) => ({
+        option: "",
+        description: "",
+        externalLink: "",
+        ...values
+    });
 
+    const getInitialOtherAssets = (values = {}) =>
+        values.otherAssets || values.vocabulariesGenericAssets?.map((vga) => vga.genericAsset) || [];
+
+    const buildAssetsByType = (assets) => ({
+        image: assets.filter((asset) => getMediaType(asset) === "image").map((asset, index) => ({ ...asset, id: asset.id || `img-${index}` })),
+        video: assets.filter((asset) => getMediaType(asset) === "video").map((asset, index) => ({ ...asset, id: asset.id || `vid-${index}` })),
+        audio: assets.filter((asset) => getMediaType(asset) === "audio").map((asset, index) => ({ ...asset, id: asset.id || `aud-${index}` })),
+    });
+
+    const defaultValues = $derived.by(() => buildDefaultValues(initialValues));
+
+    // Validated form store
+    let form = $state(null);
+    let lastDefaultsSignature = $state("");
     const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
+    const formReady = $derived(Boolean(form));
 
     // Media State - consolidated asset management
-    const initialOtherAssets = initialValues.otherAssets || initialValues.vocabulariesGenericAssets?.map(vga => vga.genericAsset) || [];
-    let mainAsset = $state(initialValues.mainAsset || null);
-    let assetsByType = $state({
-        image: initialOtherAssets.filter(a => getMediaType(a) === 'image').map((a, i) => ({ ...a, id: a.id || `img-${i}` })),
-        video: initialOtherAssets.filter(a => getMediaType(a) === 'video').map((a, i) => ({ ...a, id: a.id || `vid-${i}` })),
-        audio: initialOtherAssets.filter(a => getMediaType(a) === 'audio').map((a, i) => ({ ...a, id: a.id || `aud-${i}` }))
-    });
+    let mainAsset = $state(null);
+    let assetsByType = $state(buildAssetsByType([]));
     const flipDurationMs = 200;
+
+    $effect(() => {
+        const values = defaultValues;
+        const signature = JSON.stringify(values);
+
+        if (!form) {
+            mainAsset = values.mainAsset || null;
+            assetsByType = buildAssetsByType(getInitialOtherAssets(values));
+            form = createForm(() => ({
+                defaultValues: values,
+                onSubmit: async ({ value }) => {
+                    const otherAssetIds = [...assetsByType.image, ...assetsByType.video, ...assetsByType.audio].map((asset) => asset.id);
+                    await onSubmit(value, mainAsset?.id || null, otherAssetIds);
+                },
+                validatorAdapter: (schema) => (value) => {
+                    const result = schema.safeParse(value);
+                    return result.success ? null : result.error.errors.map((error) => error.message).join(", ");
+                }
+            }));
+            lastDefaultsSignature = signature;
+            return;
+        }
+
+        if (signature !== lastDefaultsSignature) {
+            form.reset(values);
+            mainAsset = values.mainAsset || null;
+            assetsByType = buildAssetsByType(getInitialOtherAssets(values));
+            lastDefaultsSignature = signature;
+        }
+    });
 
     // Unified asset handlers
     const handleAddAsset = async (type) => {
@@ -210,7 +239,7 @@
     onsubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        form.handleSubmit();
+        form?.handleSubmit();
     }}
 >
 <PageActionFooter containerClass="bg-light" contentClass="d-flex flex-column" rightButtons={rightActionButtons} leftButtons={leftActionButtons} formStore={formStore}>
@@ -232,19 +261,21 @@
             <div class="col-12 col-xl-8">
                 <div class="card shadow-sm mb-4">
                      <div class="card-body p-0">
-                         <AutoForm 
-                            {form} 
-                                     {createFieldValidator}
-                            languages={data.languages}
-                            translatableFields={["option", visibleFields.description ? "description" : null].filter(Boolean)}
-                            {validator}
-                            hiddenFields={autoFormHiddenFields}
-                            uiSchema={{
-                                description: { type: "textarea", colSize: 12 },
-                                externalLink: { colSize: 12, label: t("common.external-link", { fallback: "External link" }) },
-                                option: { label: t("common.name", { fallback: "Name" }) }
-                            }}
-                        />
+                         {#if formReady}
+                             <AutoForm 
+                                {form} 
+                                {createFieldValidator}
+                                languages={data.languages}
+                                translatableFields={["option", visibleFields.description ? "description" : null].filter(Boolean)}
+                                {validator}
+                                hiddenFields={autoFormHiddenFields}
+                                uiSchema={{
+                                    description: { type: "textarea", colSize: 12 },
+                                    externalLink: { colSize: 12, label: t("common.external-link", { fallback: "External link" }) },
+                                    option: { label: t("common.name", { fallback: "Name" }) }
+                                }}
+                            />
+                         {/if}
                      </div>
                 </div>
 

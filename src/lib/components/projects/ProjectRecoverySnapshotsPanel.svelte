@@ -242,10 +242,9 @@
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap pt-3 pb-2 mb-3">
         <div>
           <h1 class="h2 mb-2">Recovery snapshots</h1>
-           <p class="mb-0">
-          Automatic snapshots keep the 10 most recent entries. Manual snapshots are always kept until you remove them.
-        </p>
-         
+          <p class="mb-0">
+            Automatic snapshots are captured before the first sync after opening a project in each app session. Automatic snapshots keep the 10 most recent entries. Manual snapshots are always kept until you remove them.
+          </p>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import * as dbSchema from '../schema.js';
 import { stopP2PForProject } from '../../backend/services/p2pService.js';
 import { clearCurrentProjectId, disposeProjectDoc, getCurrentProjectId } from '../../backend/services/projectCache.js';
 import { deleteProjectRecoverySnapshots } from '../../backend/services/recoverySnapshotService.js';
+import { isSharedProject } from '../../lib/utils/projectSharing.js';
 
 const normalizeIdList = (values) => {
     if (!Array.isArray(values)) return [];
@@ -104,11 +105,11 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                 };
             }
 
-            const isSharedProject = projectRow[0]?.is_shared === 1 || projectRow[0]?.is_shared === true;
+            const sharedProject = isSharedProject(projectRow[0]);
 
             // Shared project deletion must stay local.
             // Stop transport/tailer linkage first so the local cascade cannot be projected back into Yjs and propagated.
-            if (isSharedProject) {
+            if (sharedProject) {
                 try {
                     await stopP2PForProject(projectId);
                 } catch (error) {

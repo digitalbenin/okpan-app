@@ -47,6 +47,7 @@ import {
   getProjectSyncStatus,
   scheduleAssetReconcile
 } from './services/assetTorrentManager.js';
+import { isSharedProject } from '../lib/utils/projectSharing.js';
 
 // Trystero + WebTorrent open many concurrent sockets per project. Bump the
 // global EventEmitter listener cap to avoid spurious MaxListenersExceededWarnings.
@@ -217,8 +218,10 @@ ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
   const reconnectJob = (async () => {
     try {
       if (!normalizedProjectId) return { success: false, error: 'No projectId provided' };
+      const sharedProject = await isProjectShared(normalizedProjectId);
       console.log('[P2P] reconnect requested', {
         projectId: normalizedProjectId,
+        sharedProject,
         hadProvider: !!getP2PProvider(normalizedProjectId),
         hasPasswordOverride: passwordOverride !== undefined,
       });
@@ -232,6 +235,10 @@ ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
       await stopProjectTorrents(normalizedProjectId);
       if (wasRunning) {
         await stopP2PForProject(normalizedProjectId);
+      }
+
+      if (!sharedProject) {
+        return { success: true, skipped: true, reason: 'project-is-private' };
       }
 
       const notifyFrontend = () => {
@@ -359,16 +366,23 @@ function scheduleDelayedReconcileStart(projectId) {
   delayedReconcileStarts.set(projectId, timer);
 }
 
-async function ensureSessionOpenRecoverySnapshot(projectId) {
-  if (!projectId || openedProjectsThisSession.has(projectId)) {
-    return null;
+async function isProjectShared(projectId) {
+  if (!projectId) {
+    return false;
   }
 
-  const projectRow = await db.select({ is_shared: project.is_shared }).from(project).where(eq(project.id, projectId)).limit(1).execute();
-  const isSharedProject = projectRow[0]?.is_shared === 1 || projectRow[0]?.is_shared === true;
+  const rows = await db
+    .select({ is_shared: project.is_shared })
+    .from(project)
+    .where(eq(project.id, projectId))
+    .limit(1)
+    .execute();
 
-  if (!isSharedProject) {
-    openedProjectsThisSession.add(projectId);
+  return isSharedProject(rows[0]);
+}
+
+async function ensureSessionOpenRecoverySnapshot(projectId) {
+  if (!projectId || openedProjectsThisSession.has(projectId)) {
     return null;
   }
 
@@ -403,6 +417,8 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
     return { success: false, error: 'No projectId provided' };
   }
 
+  const sharedProject = await isProjectShared(projectId);
+
   if (hydrateSnapshot && !getP2PProvider(projectId)) {
     try {
       await hydrateProjectFromDatabase(projectId);
@@ -418,6 +434,21 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
 
   if (captureSessionSnapshot) {
     await ensureSessionOpenRecoverySnapshot(projectId);
+  }
+
+  if (!sharedProject) {
+    clearDelayedReconcileStart(projectId);
+
+    if (getP2PProvider(projectId)) {
+      try {
+        await stopProjectTorrents(projectId);
+        await stopP2PForProject(projectId);
+      } catch (err) {
+        console.warn('Failed to stop P2P for private project', projectId, err);
+      }
+    }
+
+    return { success: true, shared: false };
   }
 
   try {

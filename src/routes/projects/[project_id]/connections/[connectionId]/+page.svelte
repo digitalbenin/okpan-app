@@ -6,7 +6,7 @@
     import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
     import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
-    import BaseImage from "$lib/components/base/BaseImage.svelte";
+    import ConnectionVocabularyChip from "$lib/components/research_fields/ConnectionVocabularyChip.svelte";
     import EditConnectionTypeModal from "$lib/components/research_fields/EditConnectionTypeModal.svelte";
     import { addVocabulary, deleteVocabulary, deleteResearchField, updateResearchField } from "$lib/stores/ResearchFieldsUtils.js";
     import { DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
@@ -283,54 +283,16 @@
     <div class="row g-3">
         {#each paginatedVocabularies as vocabulary (vocabulary.id)}
             <div class="col-md-6 col-lg-4 col-xl-3">
-                <button type="button" class="card h-100 shadow-sm w-100 border-0 p-0 text-start" onclick={() => goToDetail(vocabulary.id)} style="cursor: pointer; background: white;">
-                    <div class="card-body d-flex align-items-center p-3">
-                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; flex-shrink: 0;">
-                            {#if vocabulary.mainAsset}
-                                <BaseImage
-                                    asset={vocabulary.mainAsset}
-                                    preferredFormat="sm"
-                                    alt={vocabulary.option?.content || "Connection image"}
-                                    class="rounded-circle w-100 h-100"
-                                    objectFit="cover"
-                                    compact={true}
-                                />
-                            {:else}
-                                <i class="bi bi-image text-muted" style="font-size: 1.5rem;"></i>
-                            {/if}
-                        </div>
-                        <div class="flex-grow-1 overflow-hidden">
-                             <p class="card-title mb-0 text-truncate" title={vocabulary.option?.content}>   
-                                {vocabulary.option?.content || t("common.untitled", {fallback: "Untitled"})} 
-                             </p>
-                        </div>
-
-                         <div role="presentation" onclick={(e) => e.stopPropagation()}>
-                             <BaseDropdownMenu
-                                align="end"
-                                side="bottom"
-                                sideOffset={4}
-                                alignOffset={0}
-                                contentProps={{ style: "right: 0; left: auto;" }}
-                                triggerClass="btn btn-link text-muted p-0"
-                            >
-                                {#snippet trigger()}
-                                    <i class="bi bi-three-dots-vertical"></i>
-                                {/snippet}
-                                {#snippet children({ close })}
-                                    <button class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2" onclick={() => { handleDuplicate(vocabulary); close(); }}>
-                                        <i class="bi bi-files"></i>
-                                        {t("common.duplicate", {fallback: "Duplicate"})}
-                                    </button>
-                                    <button class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2 text-danger" onclick={() => { openDeleteModal(vocabulary); close(); }}>
-                                        <i class="bi bi-trash"></i>
-                                        {t("common.delete", {fallback: "Delete"})}
-                                    </button>
-                                {/snippet}
-                            </BaseDropdownMenu>
-                         </div>
-                    </div>
-                </button>
+                <ConnectionVocabularyChip
+                    {vocabulary}
+                    onOpen={goToDetail}
+                    onDuplicate={handleDuplicate}
+                    onDelete={openDeleteModal}
+                    untitledLabel={t("common.untitled", { fallback: "Untitled" })}
+                    duplicateLabel={t("common.duplicate", { fallback: "Duplicate" })}
+                    deleteLabel={t("common.delete", { fallback: "Delete" })}
+                    imageAltFallback="Connection image"
+                />
             </div>
         {/each}
         {#if filteredVocabularies.length === 0}
