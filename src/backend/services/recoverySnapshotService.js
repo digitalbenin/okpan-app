@@ -11,10 +11,11 @@ import { db, dbPath } from '../../db/init.js';
 import * as dbSchema from '../../db/schema.js';
 import { createProjectBackup, restoreProjectBackup } from './backupService.js';
 import { ingestOnceForProject } from './changeLogTailerService.js';
+import { hydrateProjectFromDatabase } from './snapshotService.js';
+import { removePathRobust, WINDOWS_FS_RETRY_OPTIONS } from './fsUtils.js';
 
 const SNAPSHOT_ROOT_DIR = 'project-recovery-snapshots';
 const DEFAULT_SNAPSHOT_LIMIT = 10;
-const WINDOWS_FS_RETRY_OPTIONS = { maxRetries: 10, retryDelay: 200 };
 const snapshotLocks = new Map();
 
 function getSnapshotsBaseDir() {
@@ -177,11 +178,7 @@ async function deleteWhereIn(tx, table, column, ids) {
 
 async function deleteProjectAssetsFolder(projectId) {
   const projectAssetsFolder = path.join(process.cwd(), 'src', 'assets', 'project_assets', projectId);
-  await fsPromises.rm(projectAssetsFolder, {
-    recursive: true,
-    force: true,
-    ...WINDOWS_FS_RETRY_OPTIONS,
-  });
+  await removePathRobust(projectAssetsFolder, { recursive: true });
 }
 
 async function deleteProjectStateForRestore(projectId) {
@@ -429,14 +426,7 @@ async function deleteProjectStateForRestore(projectId) {
 
   });
 
-  try {
-    await deleteProjectAssetsFolder(projectId);
-  } catch (error) {
-    console.warn('[RecoverySnapshot] Failed to fully clear project assets before restore', {
-      projectId,
-      error: error?.message,
-    });
-  }
+  await deleteProjectAssetsFolder(projectId);
 
   return { deleted: true };
 }
@@ -610,11 +600,13 @@ export async function restoreRecoverySnapshot(projectId, snapshotId) {
     );
 
     const flushResult = await flushProjectTailer(projectId);
+    const hydrationResult = await hydrateProjectFromDatabase(projectId);
 
     return {
       snapshot: toPublicManifest(manifest),
       restoreResult,
       flushResult,
+      hydrationResult,
     };
   });
 }

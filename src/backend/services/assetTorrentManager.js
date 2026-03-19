@@ -89,6 +89,63 @@ function clearProjectSeededHashes(projectId) {
   projectSeededHashes.delete(projectId);
 }
 
+async function collectProjectTorrentHashes(projectId) {
+  const hashes = new Set(projectSeededHashes.get(projectId) || []);
+
+  try {
+    const [assetRows, genericRows] = await Promise.all([
+      db.select({ infoHash: assets.torrent_info_hash })
+        .from(assets)
+        .where(and(eq(assets.project_id, projectId), isNotNull(assets.torrent_info_hash)))
+        .execute(),
+      db.select({ infoHash: genericAssets.torrent_info_hash })
+        .from(genericAssets)
+        .where(and(eq(genericAssets.project_id, projectId), isNotNull(genericAssets.torrent_info_hash)))
+        .execute(),
+    ]);
+
+    for (const row of [...assetRows, ...genericRows]) {
+      if (row?.infoHash) hashes.add(row.infoHash);
+    }
+  } catch (err) {
+    console.warn('[AssetTorrent] Failed to collect project torrent hashes:', err?.message);
+  }
+
+  return hashes;
+}
+
+function isTorrentWithinProjectDir(projectId, torrent) {
+  const projectDir = path.resolve(ASSET_BASE_PATH, projectId);
+  return torrent?.files?.some((file) => {
+    const resolvedPath = path.resolve(file.path);
+    return resolvedPath === projectDir || resolvedPath.startsWith(`${projectDir}${path.sep}`);
+  }) || false;
+}
+
+async function removeProjectClientTorrents(projectId) {
+  if (!_wtClient || _wtClient.destroyed) return;
+
+  const hashes = await collectProjectTorrentHashes(projectId);
+  const matchingTorrents = _wtClient.torrents.filter((torrent) => {
+    return hashes.has(torrent.infoHash) || isTorrentWithinProjectDir(projectId, torrent);
+  });
+
+  await Promise.allSettled(matchingTorrents.map((torrent) => {
+    return new Promise((resolve) => {
+      try {
+        _wtClient.remove(torrent.infoHash, { destroyStore: false }, () => resolve());
+      } catch (error) {
+        console.warn('[AssetTorrent] Failed to remove project torrent before restore:', {
+          projectId,
+          infoHash: torrent?.infoHash,
+          error: error?.message,
+        });
+        resolve();
+      }
+    });
+  }));
+}
+
 function sanitizeName(name) {
   if (!name || typeof name !== 'string') return 'asset.bin';
   return path.basename(name).replace(/[^\w.\-]/g, '_') || 'asset.bin';
@@ -855,6 +912,7 @@ export async function stopProjectTorrents(projectId) {
     try { sig.room?.leave?.(); } catch (err) { console.warn('[AssetTorrent] signaling room leave failed:', err?.message); }
     signalingActions.delete(projectId);
   }
+  await removeProjectClientTorrents(projectId);
   clearProjectPendingSignals(projectId);
   clearProjectSeededHashes(projectId);
   downloadQueues.delete(projectId);
