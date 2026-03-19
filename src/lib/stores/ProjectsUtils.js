@@ -217,6 +217,7 @@ export const deleteProject = async (projectId) => {
         success: result?.deleted || false,
         projectId: result?.projectId,
         assetsFolderRemoved: result?.assetsFolderRemoved,
+        snapshotsFolderRemoved: result?.snapshotsFolderRemoved,
         counts: result?.counts
     };
 };

@@ -128,7 +128,9 @@ export const projectsOperations = {
     projectId
     deleted
     assetsFolderRemoved
+    snapshotsFolderRemoved
     assetFolderErrors
+    snapshotFolderErrors
     counts {
       actions
       websiteSettings

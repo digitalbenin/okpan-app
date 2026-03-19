@@ -188,7 +188,7 @@
     <div class="row">
       <div class="col-md-6 col-sm-12">
         <h2 class="mt-3">{i18n.settings}</h2>
-        <p class="text-muted">{i18n.settingsDesc}</p>
+        <p>{i18n.settingsDesc}</p>
       </div>
     </div>
 
@@ -200,7 +200,7 @@
         </div>
 
         <!-- Content Fields -->
-        <div class="pt-3">
+        <div class="">
           <div class="mb-3">
             <p class="form-label">{i18n.title}</p>
             <input class="form-control" type="text" value={editTitle[currentLangCode] ?? ""} 

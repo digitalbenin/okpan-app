@@ -294,13 +294,12 @@
   <div class="row">
     <div class="col-12 col-xl-10">
       <div class="pt-3 pb-2 mb-4">
-        <div class="text-muted small mb-1">{t("menu.settings", { fallback: "Settings" })}</div>
         <h2 class="mt-0 mb-2">
           {t("settings.sharing", { fallback: "Sharing" })}
         </h2>
-        <p class="text-muted mb-0" style="max-width: 46rem;">
+        <p class=" mb-0" style="max-width: 46rem;">
           {t("settings.sharing_description", {
-            fallback: "This is a multi-user project. Share the link below with anyone you want to invite.",
+            fallback: "Here you can configure sharing settings for your project. Multi usrer projects can be accessed by multiple collaborators simultaneously and are required for real-time collaboration features. Private projects are only accessible on this device and do not support real-time collaboration.",
           })}
         </p>
       </div>
@@ -405,7 +404,7 @@
       </div>
 
       <div class="mt-4">
-        <h6>{t("settings.project_file", { fallback: "Project file" })}</h6>
+        <h5>{t("settings.project_file", { fallback: "Share by project file" })}</h5>
         
         <div class="mt-3">
           <BaseButton

@@ -158,6 +158,7 @@
             <span class="sync-status-count rounded-pill">{missingAssetsCount}</span>
           </div>
 
+        <!--
           <div class="border-top pt-2 mt-0">
             <a
               class="btn btn-link text-primary-subtle btn-sm text-decoration-none p-0 d-inline-flex align-items-center gap-2"
@@ -170,6 +171,7 @@
               <span>Recovery snapshots</span>
             </a>
           </div>
+        -->
 
         </div>
       {/snippet}

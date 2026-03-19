@@ -5,6 +5,7 @@ import { GraphQLBoolean, GraphQLInt, GraphQLList, GraphQLNonNull, GraphQLObjectT
 import * as dbSchema from '../schema.js';
 import { stopP2PForProject } from '../../backend/services/p2pService.js';
 import { clearCurrentProjectId, disposeProjectDoc, getCurrentProjectId } from '../../backend/services/projectCache.js';
+import { deleteProjectRecoverySnapshots } from '../../backend/services/recoverySnapshotService.js';
 
 const normalizeIdList = (values) => {
     if (!Array.isArray(values)) return [];
@@ -53,7 +54,9 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
             projectId: { type: GraphQLString },
             deleted: { type: GraphQLBoolean },
             assetsFolderRemoved: { type: GraphQLBoolean },
+            snapshotsFolderRemoved: { type: GraphQLBoolean },
             assetFolderErrors: { type: new GraphQLList(GraphQLString) },
+            snapshotFolderErrors: { type: new GraphQLList(GraphQLString) },
             counts: { type: ProjectDeleteCascadeCounts }
         })
     });
@@ -94,7 +97,9 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                     projectId,
                     deleted: false,
                     assetsFolderRemoved: false,
+                    snapshotsFolderRemoved: false,
                     assetFolderErrors: [`Project ${projectId} not found`],
+                    snapshotFolderErrors: [],
                     counts: {}
                 };
             }
@@ -458,7 +463,9 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
             });
 
             const assetFolderErrors = [];
+            const snapshotFolderErrors = [];
             let assetsFolderRemoved = false;
+            let snapshotsFolderRemoved = false;
             const projectAssetsFolder = path.join(process.cwd(), 'src', 'assets', 'project_assets', projectId);
 
             try {
@@ -468,11 +475,20 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                 assetFolderErrors.push(error?.message || 'Failed to remove project assets folder');
             }
 
+            try {
+                await deleteProjectRecoverySnapshots(projectId);
+                snapshotsFolderRemoved = true;
+            } catch (error) {
+                snapshotFolderErrors.push(error?.message || 'Failed to remove project recovery snapshots folder');
+            }
+
             return {
                 projectId,
                 deleted: counts.project > 0,
                 assetsFolderRemoved,
+                snapshotsFolderRemoved,
                 assetFolderErrors,
+                snapshotFolderErrors,
                 counts
             };
         }

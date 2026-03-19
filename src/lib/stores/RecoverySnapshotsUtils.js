@@ -53,3 +53,23 @@ export const restoreProjectRecoverySnapshot = async (projectId, snapshotId) => {
 
     return result;
 };
+
+export const deleteProjectRecoverySnapshot = async (projectId, snapshotId) => {
+    if (!projectId) {
+        return { success: false, error: "Project ID is required" };
+    }
+
+    if (!snapshotId) {
+        return { success: false, error: "Snapshot ID is required" };
+    }
+
+    const result = await window.api.deleteRecoverySnapshot(projectId, snapshotId);
+    if (!result?.success) {
+        return {
+            success: false,
+            error: result?.error || "Failed to delete recovery snapshot."
+        };
+    }
+
+    return result;
+};

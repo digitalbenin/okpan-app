@@ -1,9 +1,12 @@
 <script>
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
+  import RecoverySnapshotSection from "$lib/components/projects/RecoverySnapshotSection.svelte";
   import {
     createProjectRecoverySnapshot,
+    deleteProjectRecoverySnapshot,
     getRecoverySnapshots,
     restoreProjectRecoverySnapshot,
   } from "$lib/stores/RecoverySnapshotsUtils.js";
@@ -13,16 +16,17 @@
   let snapshots = $state([]);
   let isLoading = $state(false);
   let isCreating = $state(false);
+  let createDialogOpen = $state(false);
+  let createSnapshotReason = $state("");
   let restoringSnapshotId = $state(null);
+  let deletingSnapshotId = $state(null);
   let restoreDialogOpen = $state(false);
   let selectedSnapshot = $state(null);
+  let deleteDialogOpen = $state(false);
+  let snapshotPendingDeletion = $state(null);
 
-  const automaticSnapshots = $derived(
-    snapshots.filter((snapshot) => getTriggerLabel(snapshot.trigger) === "Automatic")
-  );
-  const manualSnapshots = $derived(
-    snapshots.filter((snapshot) => getTriggerLabel(snapshot.trigger) === "Manual")
-  );
+  const automaticSnapshots = $derived(snapshots.filter((snapshot) => snapshot.trigger !== "manual"));
+  const manualSnapshots = $derived(snapshots.filter((snapshot) => snapshot.trigger === "manual"));
 
   function formatDate(value) {
     if (!value) return "Unknown date";
@@ -33,17 +37,6 @@
       }).format(new Date(value));
     } catch {
       return value;
-    }
-  }
-
-  function getTriggerLabel(trigger) {
-    switch (trigger) {
-      case "session-open":
-        return "Automatic";
-      case "manual":
-        return "Manual";
-      default:
-        return "Automatic";
     }
   }
 
@@ -74,6 +67,14 @@
     }
   }
 
+  function openCreateDialog() {
+    if (!projectId || isCreating || restoringSnapshotId) {
+      return;
+    }
+
+    createDialogOpen = true;
+  }
+
   async function handleCreateSnapshot() {
     if (!projectId || isCreating || restoringSnapshotId) {
       return;
@@ -81,10 +82,9 @@
 
     try {
       isCreating = true;
-      const result = await createProjectRecoverySnapshot(
-        projectId,
-        "Manual recovery snapshot created from project settings.",
-      );
+      createDialogOpen = false;
+      const reason = createSnapshotReason.trim();
+      const result = await createProjectRecoverySnapshot(projectId, reason || null);
       if (!result?.success) {
         throw new Error(result?.error || "Failed to create recovery snapshot.");
       }
@@ -113,7 +113,7 @@
   }
 
   function openRestoreDialog(snapshot) {
-    if (!snapshot?.id || restoringSnapshotId || isCreating) {
+    if (!snapshot?.id || restoringSnapshotId || deletingSnapshotId || isCreating) {
       return;
     }
 
@@ -121,8 +121,17 @@
     restoreDialogOpen = true;
   }
 
+  function openDeleteDialog(snapshot) {
+    if (!snapshot?.id || restoringSnapshotId || deletingSnapshotId || isCreating) {
+      return;
+    }
+
+    snapshotPendingDeletion = snapshot;
+    deleteDialogOpen = true;
+  }
+
   async function handleRestoreSnapshot() {
-    if (!projectId || !selectedSnapshot?.id || restoringSnapshotId) {
+    if (!projectId || !selectedSnapshot?.id || restoringSnapshotId || deletingSnapshotId) {
       return;
     }
 
@@ -159,6 +168,44 @@
     }
   }
 
+  async function handleDeleteSnapshot() {
+    if (!projectId || !snapshotPendingDeletion?.id || deletingSnapshotId || restoringSnapshotId) {
+      return;
+    }
+
+    try {
+      const snapshotId = snapshotPendingDeletion.id;
+      deletingSnapshotId = snapshotId;
+      deleteDialogOpen = false;
+
+      const result = await deleteProjectRecoverySnapshot(projectId, snapshotId);
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to delete recovery snapshot.");
+      }
+
+      addToast({
+        data: {
+          title: "Recovery snapshot deleted",
+          description: "The selected rollback point has been removed.",
+          type: "success",
+        },
+      });
+
+      await loadSnapshots();
+    } catch (error) {
+      console.error("Failed to delete recovery snapshot:", error);
+      addToast({
+        data: {
+          title: "Recovery snapshots",
+          description: error.message,
+          type: "error",
+        },
+      });
+    } finally {
+      deletingSnapshotId = null;
+    }
+  }
+
   $effect(() => {
     void projectId;
 
@@ -175,6 +222,18 @@
       selectedSnapshot = null;
     }
   });
+
+  $effect(() => {
+    if (!deleteDialogOpen && !deletingSnapshotId) {
+      snapshotPendingDeletion = null;
+    }
+  });
+
+  $effect(() => {
+    if (!createDialogOpen && !isCreating) {
+      createSnapshotReason = "";
+    }
+  });
 </script>
 
 <div class="container-fluid pb-4">
@@ -183,25 +242,11 @@
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap pt-3 pb-2 mb-3">
         <div>
           <h1 class="h2 mb-2">Recovery snapshots</h1>
-          <p class="text-muted mb-0 mw-100" style="max-width: 52rem;">
-            Automatic snapshots are captured before the first sync of a shared project in each app session. You can also create manual snapshots here.
-          </p>
-        </div>
-
-        <BaseButton
-          text={isCreating ? "Creating..." : "Create snapshot"}
-          icon="camera"
-          class="btn btn-primary"
-          disabled={!projectId || isCreating || !!restoringSnapshotId}
-          onClick={handleCreateSnapshot}
-        />
-      </div>
-
-      <div class="rounded-2 p-3 mb-4">
-        <div class="fw-semibold mb-1">Recovery snapshots</div>
-        <p class="mb-0 text-secondary small">
-          Automatic snapshots keep the 10 most recent entries. Manual snapshots are always kept until you remove them in a future cleanup flow.
+           <p class="mb-0">
+          Automatic snapshots keep the 10 most recent entries. Manual snapshots are always kept until you remove them.
         </p>
+         
+        </div>
       </div>
 
       {#if restoringSnapshotId}
@@ -219,92 +264,125 @@
           <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
           <span>Loading recovery snapshots...</span>
         </div>
-      {:else if snapshots.length === 0}
-        <div class="rounded-4 p-4 text-center text-secondary border border-2 bg-body-tertiary">
-          No recovery snapshots are available for this project yet.
-        </div>
       {:else}
         <div class="d-flex flex-column gap-3">
           <div class="row g-4 align-items-start">
-            <div class="col-12 col-lg-6">
-              <div class="fw-semibold mb-2">Automatic</div>
-              {#if automaticSnapshots.length === 0}
-                <div class="small text-secondary">No automatic snapshots yet.</div>
-              {:else}
-                <div class="d-flex flex-column gap-3">
-                  {#each automaticSnapshots as snapshot (snapshot.id)}
-                    <div class="rounded-2 p-3 p-md-4 d-flex justify-content-between gap-3 flex-wrap align-items-start border bg-white">
-                      <div class="d-flex flex-column gap-2 flex-grow-1">
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                          <span class="fw-semibold">{formatDate(snapshot.createdAt)}</span>
-                          <span class="badge rounded-pill text-uppercase text-success-emphasis bg-success-subtle">Automatic</span>
-                        </div>
+            <RecoverySnapshotSection
+              title="Automatic"
+              snapshots={automaticSnapshots}
+              emptyText="No automatic snapshots yet."
+              {formatDate}
+              {restoringSnapshotId}
+              {deletingSnapshotId}
+              {isCreating}
+              onRestore={openRestoreDialog}
+              onDelete={openDeleteDialog}
+            />
 
-                        {#if snapshot.metadata?.counts}
-                          <div class="small text-secondary d-flex gap-3 flex-wrap">
-                            <span>{snapshot.metadata.counts.objects || 0} objects</span>
-                            <span>{snapshot.metadata.counts.institutions || 0} institutions</span>
-                            <span>{snapshot.metadata.counts.assets || 0} assets</span>
-                            <span>{snapshot.metadata.counts.languages || 0} languages</span>
-                          </div>
-                        {/if}
-                      </div>
-
-                      <BaseButton
-                        text={restoringSnapshotId === snapshot.id ? "Restoring..." : "Restore"}
-                        icon={restoringSnapshotId === snapshot.id ? "arrow-repeat" : "arrow-counterclockwise"}
-                        class="btn btn-outline-danger btn-sm"
-                        disabled={!!restoringSnapshotId || isCreating}
-                        onClick={() => openRestoreDialog(snapshot)}
-                      />
-                    </div>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-
-            <div class="col-12 col-lg-6">
-              <div class="fw-semibold mb-2">Manual</div>
-              {#if manualSnapshots.length === 0}
-                <div class="small text-secondary">No manual snapshots yet.</div>
-              {:else}
-                <div class="d-flex flex-column gap-3">
-                  {#each manualSnapshots as snapshot (snapshot.id)}
-                    <div class="rounded-2 p-3 p-md-4 d-flex justify-content-between gap-3 flex-wrap align-items-start border bg-white">
-                      <div class="d-flex flex-column gap-2 flex-grow-1">
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                          <span class="fw-semibold">{formatDate(snapshot.createdAt)}</span>
-                          <span class="badge rounded-pill text-uppercase text-success-emphasis bg-success-subtle">Manual</span>
-                        </div>
-
-                        {#if snapshot.metadata?.counts}
-                          <div class="small text-secondary d-flex gap-3 flex-wrap">
-                            <span>{snapshot.metadata.counts.objects || 0} objects</span>
-                            <span>{snapshot.metadata.counts.institutions || 0} institutions</span>
-                            <span>{snapshot.metadata.counts.assets || 0} assets</span>
-                            <span>{snapshot.metadata.counts.languages || 0} languages</span>
-                          </div>
-                        {/if}
-                      </div>
-
-                      <BaseButton
-                        text={restoringSnapshotId === snapshot.id ? "Restoring..." : "Restore"}
-                        icon={restoringSnapshotId === snapshot.id ? "arrow-repeat" : "arrow-counterclockwise"}
-                        class="btn btn-outline-danger btn-sm"
-                        disabled={!!restoringSnapshotId || isCreating}
-                        onClick={() => openRestoreDialog(snapshot)}
-                      />
-                    </div>
-                  {/each}
-                </div>
-              {/if}
-            </div>
+            <RecoverySnapshotSection
+              title="Manual"
+              snapshots={manualSnapshots}
+              emptyText="No manual snapshots yet."
+              {formatDate}
+              {restoringSnapshotId}
+              {deletingSnapshotId}
+              {isCreating}
+              showReason={true}
+              onRestore={openRestoreDialog}
+              onDelete={openDeleteDialog}
+              headerActionText="Create snapshot"
+              headerActionIcon="camera"
+              headerActionLoading={isCreating}
+              headerActionDisabled={!projectId || isCreating || !!restoringSnapshotId || !!deletingSnapshotId}
+              onHeaderAction={openCreateDialog}
+            />
           </div>
         </div>
       {/if}
     </div>
   </div>
 </div>
+
+<BaseAlertDialog bind:open={createDialogOpen} size="md">
+  {#snippet title()}
+    Create recovery snapshot
+  {/snippet}
+
+  {#snippet description()}
+    Add an optional description for this manual snapshot.
+  {/snippet}
+
+  {#snippet children()}
+    <div class="d-flex flex-column gap-2">
+      <BaseTextArea
+        bind:value={createSnapshotReason}
+        rows={4}
+        maxLength={500}
+        placeholder="What makes this snapshot worth keeping?"
+        disabled={isCreating}
+      />
+      
+    </div>
+  {/snippet}
+
+  {#snippet footer()}
+    <BaseButton
+      text="Cancel"
+      class="btn btn-outline-secondary"
+      disabled={isCreating}
+      onClick={() => {
+        createDialogOpen = false;
+      }}
+    />
+    <BaseButton
+      text="Create snapshot"
+      icon="camera"
+      loading={isCreating}
+      class="btn btn-primary"
+      disabled={!projectId || isCreating || !!restoringSnapshotId}
+      onClick={handleCreateSnapshot}
+    />
+  {/snippet}
+</BaseAlertDialog>
+
+<BaseAlertDialog bind:open={deleteDialogOpen} size="md">
+  {#snippet title()}
+    Delete recovery snapshot
+  {/snippet}
+
+  {#snippet description()}
+    {#if snapshotPendingDeletion}
+      Delete the snapshot from {formatDate(snapshotPendingDeletion.createdAt)}?
+    {:else}
+      Delete the selected recovery snapshot?
+    {/if}
+  {/snippet}
+
+  {#snippet children()}
+    <p class="mb-0 text-secondary small">
+      This permanently removes the stored rollback point and cannot be undone.
+    </p>
+  {/snippet}
+
+  {#snippet footer()}
+    <BaseButton
+      text="Cancel"
+      class="btn btn-outline-secondary"
+      disabled={!!deletingSnapshotId}
+      onClick={() => {
+        deleteDialogOpen = false;
+      }}
+    />
+    <BaseButton
+      text="Delete snapshot"
+      icon="trash"
+      loading={!!deletingSnapshotId}
+      class="btn btn-danger"
+      disabled={!snapshotPendingDeletion || !!deletingSnapshotId || !!restoringSnapshotId}
+      onClick={handleDeleteSnapshot}
+    />
+  {/snippet}
+</BaseAlertDialog>
 
 <BaseAlertDialog bind:open={restoreDialogOpen} size="md">
   {#snippet title()}

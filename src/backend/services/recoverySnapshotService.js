@@ -65,6 +65,19 @@ async function ensureProjectSnapshotDir(projectId) {
   await fsPromises.mkdir(getProjectSnapshotDir(projectId), { recursive: true });
 }
 
+async function removeSnapshotFiles(projectId, snapshotId) {
+  await Promise.allSettled([
+    fsPromises.rm(getSnapshotArchivePath(projectId, snapshotId), {
+      force: true,
+      ...WINDOWS_FS_RETRY_OPTIONS,
+    }),
+    fsPromises.rm(getSnapshotManifestPath(projectId, snapshotId), {
+      force: true,
+      ...WINDOWS_FS_RETRY_OPTIONS,
+    }),
+  ]);
+}
+
 async function readManifest(filePath) {
   const raw = await fsPromises.readFile(filePath, 'utf-8');
   return JSON.parse(raw);
@@ -120,11 +133,24 @@ async function pruneProjectSnapshots(projectId, keepCount = DEFAULT_SNAPSHOT_LIM
   const stale = automaticSnapshots.slice(Math.max(keepCount, 0));
 
   for (const entry of stale) {
-    await Promise.allSettled([
-      fsPromises.rm(entry.filePath, { force: true }),
-      fsPromises.rm(entry.manifestPath, { force: true }),
-    ]);
+    await removeSnapshotFiles(projectId, entry.id);
   }
+}
+
+export async function deleteProjectRecoverySnapshots(projectId) {
+  if (!projectId || typeof projectId !== 'string') {
+    throw new Error('deleteProjectRecoverySnapshots requires a valid projectId');
+  }
+
+  return withProjectLock(projectId, async () => {
+    await fsPromises.rm(getProjectSnapshotDir(projectId), {
+      recursive: true,
+      force: true,
+      ...WINDOWS_FS_RETRY_OPTIONS,
+    });
+
+    return { deleted: true };
+  });
 }
 
 function normalizeIdList(values) {
@@ -589,6 +615,36 @@ export async function restoreRecoverySnapshot(projectId, snapshotId) {
       snapshot: toPublicManifest(manifest),
       restoreResult,
       flushResult,
+    };
+  });
+}
+
+export async function deleteRecoverySnapshot(projectId, snapshotId) {
+  if (!projectId || typeof projectId !== 'string') {
+    throw new Error('deleteRecoverySnapshot requires a valid projectId');
+  }
+  if (!snapshotId || typeof snapshotId !== 'string') {
+    throw new Error('deleteRecoverySnapshot requires a valid snapshotId');
+  }
+
+  return withProjectLock(projectId, async () => {
+    const manifestPath = getSnapshotManifestPath(projectId, snapshotId);
+    const archivePath = getSnapshotArchivePath(projectId, snapshotId);
+
+    if (!fs.existsSync(manifestPath) || !fs.existsSync(archivePath)) {
+      throw new Error('Requested recovery snapshot was not found');
+    }
+
+    const manifest = await readManifest(manifestPath);
+    if (manifest.projectId !== projectId) {
+      throw new Error('Snapshot does not belong to the requested project');
+    }
+
+    await removeSnapshotFiles(projectId, snapshotId);
+
+    return {
+      deleted: true,
+      snapshot: toPublicManifest(manifest),
     };
   });
 }

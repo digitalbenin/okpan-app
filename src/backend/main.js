@@ -27,7 +27,7 @@ import { getProjectDoc, getCurrentProjectId } from './services/projectCache.js';
 import { startP2PForProject, stopP2PForProject, getP2PProvider, getProjectPeersCount, getProjectPresence, setPresenceNotifier, refreshAllProjectPresence, setPendingProjectPassword } from './services/p2pService.js';
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot, hydrateProjectFromDatabase } from './services/snapshotService.js';
-import { createRecoverySnapshot, listRecoverySnapshots, prepareSessionOpenRecoverySnapshot, restoreRecoverySnapshot } from './services/recoverySnapshotService.js';
+import { createRecoverySnapshot, deleteRecoverySnapshot, listRecoverySnapshots, prepareSessionOpenRecoverySnapshot, restoreRecoverySnapshot } from './services/recoverySnapshotService.js';
 import { eq, sql, isNull } from 'drizzle-orm';
 import {
   handleExportProject,
@@ -700,6 +700,25 @@ ipcMain.handle('recovery-snapshots-restore', async (event, payload) => {
     return { success: true, result };
   } catch (error) {
     console.error('Error in recovery-snapshots-restore:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('recovery-snapshots-delete', async (_event, payload) => {
+  try {
+    const projectId = payload?.projectId;
+    const snapshotId = payload?.snapshotId;
+    if (!projectId || typeof projectId !== 'string') {
+      throw new Error('recovery-snapshots-delete requires a valid projectId');
+    }
+    if (!snapshotId || typeof snapshotId !== 'string') {
+      throw new Error('recovery-snapshots-delete requires a valid snapshotId');
+    }
+
+    const result = await deleteRecoverySnapshot(projectId, snapshotId);
+    return { success: true, result };
+  } catch (error) {
+    console.error('Error in recovery-snapshots-delete:', error);
     return { success: false, error: error.message };
   }
 });
