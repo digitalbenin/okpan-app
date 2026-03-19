@@ -234,6 +234,11 @@ export async function startP2PForProject(projectId, options = {}) {
     trysteroRoom  // Use pre-configured room (server-side)
   })
 
+  // Re-announce local awareness after the provider has attached its listeners.
+  // This avoids losing presence on reconnect paths where the initial pre-provider
+  // state assignment is never propagated to already-online peers.
+  applyLocalPresenceState(projectId, { awareness }, globalProfile?.username)
+
   provider.on('status', ({ connected }) => {
     console.log('[P2P] provider status', { projectId, connected })
   })

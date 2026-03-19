@@ -23,11 +23,11 @@
       }),
     },
     {
-      label: t("commo.assets", { fallback: "Assets" }),
+      label: t("common.assets", { fallback: "Institution Media" }),
       value: data.project.assetsCount,
       percentage: data.project.linkedAssetsCount,
       labelPercentage: t("common.assets-percentage", {
-        fallback: "of assets linked to objects",
+        fallback: "of media linked to objects",
       }),
     },
     {
