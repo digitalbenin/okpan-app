@@ -58,6 +58,9 @@ export const projectsOperations = {
     id
     title_id
     description_id
+    title {
+      original_language_id
+    }
   }
 }`,
         useVariables: ["projectId"]
@@ -80,6 +83,47 @@ export const projectsOperations = {
         skipIf: { variableName: "title", isUndefined: true }
       },
       {
+        name: "createDescription",
+        query: `mutation CreateProjectDescription($description: String!, $languageId: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $description
+        context: "project.description"
+        original_language_id: $languageId
+      }
+    ]
+  ) {
+    id
+    content
+    original_language_id
+  }
+}`,
+        useVariables: ["description"],
+        mapVariables: {
+          languageId: { from: "getProject", path: "project.0.title.original_language_id" }
+        },
+        skipIf: { variableName: "description", isEmpty: true },
+        onlyIf: { from: "getProject", path: "project.0.description_id", isNull: true }
+      },
+      {
+        name: "linkDescription",
+        query: `mutation LinkProjectDescription($projectId: String!, $descriptionId: String!) {
+  updateProject(
+    set: { description_id: $descriptionId }
+    where: { id: { eq: $projectId } }
+  ) {
+    id
+    description_id
+  }
+}`,
+        useVariables: ["projectId"],
+        mapVariables: {
+          descriptionId: { from: "createDescription", path: "insertIntoTexts.0.id" }
+        },
+        skipIf: { variableName: "descriptionId", isUndefined: true }
+      },
+      {
         name: "updateDescription",
         query: `mutation UpdateProjectDescription($descriptionId: String!, $description: String!) {
   updateTexts(
@@ -94,7 +138,7 @@ export const projectsOperations = {
         mapVariables: {
           descriptionId: { from: "getProject", path: "project.0.description_id" }
         },
-        skipIf: { variableName: "description", isUndefined: true }
+        skipIf: { variableName: "descriptionId", isEmpty: true }
       },
       // === TRANSLATION PROCESSING STEPS ===
       {
@@ -107,7 +151,10 @@ export const projectsOperations = {
       {
         name: "processDescriptionTranslations",
         processTranslations: {
-          textIdPath: "getProject.project.0.description_id",
+          textIdPaths: [
+            "createDescription.insertIntoTexts.0.id",
+            "getProject.project.0.description_id"
+          ],
           translationsParam: "descriptionTranslations"
         }
       }

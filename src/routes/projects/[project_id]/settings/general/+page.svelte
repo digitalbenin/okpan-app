@@ -21,6 +21,7 @@
   let initialTitleSnapshot = $state({});
   let initialDescriptionSnapshot = $state({});
   let pristineVersion = $state(0);
+  let lastIncomingSignature = $state("");
 
   // Language selector
   let activeLanguageCode = $state("default");
@@ -78,26 +79,76 @@
     pristineVersion += 1;
   };
 
-  function initValues() {
-    if (!project || !languages?.length) return;
+  function buildEditState() {
+    if (!project || !languages?.length) {
+      return { titleValues: {}, descriptionValues: {} };
+    }
+
     const titleTranslations = getTranslations(project.title);
     const descTranslations = getTranslations(project.description);
+    const titleValues = {};
+    const descriptionValues = {};
 
     for (const lang of languages) {
       if (lang.is_default) {
-        editTitle[lang.code] = project?.title?.content || "";
-        editDescription[lang.code] = project?.description?.content || "";
+        titleValues[lang.code] = project?.title?.content || "";
+        descriptionValues[lang.code] = project?.description?.content || "";
       } else {
         const tTitle = titleTranslations.find((t) => (t.language?.code || t.language_code) === lang.code);
         const tDesc = descTranslations.find((t) => (t.language?.code || t.language_code) === lang.code);
-        editTitle[lang.code] = tTitle?.content || "";
-        editDescription[lang.code] = tDesc?.content || "";
+        titleValues[lang.code] = tTitle?.content || "";
+        descriptionValues[lang.code] = tDesc?.content || "";
       }
     }
 
+    return { titleValues, descriptionValues };
+  }
+
+  const getIncomingSignature = () => {
+    if (!project || !languages?.length) return "";
+
+    return JSON.stringify({
+      projectId: project.id,
+      title: project.title?.content || "",
+      description: project.description?.content || "",
+      languages: languages.map((lang) => ({
+        id: lang.id,
+        code: lang.code,
+        is_default: lang.is_default,
+      })),
+      titleTranslations: getTranslations(project.title).map((translation) => ({
+        id: translation.id || null,
+        language_code: translation.language?.code || translation.language_code || null,
+        content: translation.content || "",
+      })),
+      descriptionTranslations: getTranslations(project.description).map((translation) => ({
+        id: translation.id || null,
+        language_code: translation.language?.code || translation.language_code || null,
+        content: translation.content || "",
+      })),
+    });
+  };
+
+  function initValues() {
+    const { titleValues, descriptionValues } = buildEditState();
+    editTitle = titleValues;
+    editDescription = descriptionValues;
     syncSnapshots();
   }
-  initValues();
+
+  $effect(() => {
+    if (!project || !languages?.length) {
+      return;
+    }
+
+    const incomingSignature = getIncomingSignature();
+    if (!incomingSignature || incomingSignature === lastIncomingSignature) {
+      return;
+    }
+
+    lastIncomingSignature = incomingSignature;
+    initValues();
+  });
 
   async function removeLanguage(lang) {
     if (!lang || lang.is_default) return;
@@ -179,7 +230,7 @@
       text: isSaving ? i18n.saving : i18n.confirm,
       class: "btn btn-success",
       type: "submit",
-      disabled: isSaving || !defaultLanguage,
+      disabled: isSaving || !defaultLanguage || !hasUnsavedChanges,
     },
   ]);
 </script>
