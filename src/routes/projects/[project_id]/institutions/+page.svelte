@@ -70,7 +70,7 @@
   ]);
 </script>
 
-<div class="container-fluid h-100 bg-light">
+<div class="container-fluid bg-light" style="min-height: 100%;">
   <div class="row pt-3 pb-3 border-bottom mb-4 align-items-center">
     <div class="col">
       <h2 class="m-0 d-flex align-items-center gap-2">
