@@ -664,6 +664,18 @@ export const institutionsOperations = {
         useVariables: ["id"]
       },
       {
+        name: "deleteNameTranslations",
+        query: `mutation DeleteInstitutionNameTranslations($nameId: String!) {
+  deleteFromTranslations(where: { text_id: { eq: $nameId } }) {
+    id
+  }
+}`,
+        mapVariables: {
+          nameId: { from: "getInstitution", path: "institutions.0.name_id" }
+        },
+        skipIf: { variableName: "nameId", isUndefined: true }
+      },
+      {
         name: "deleteNameText",
         query: `mutation DeleteInstitutionNameText($nameId: String!) {
   deleteFromTexts(where: { id: { eq: $nameId } }) {
@@ -674,6 +686,18 @@ export const institutionsOperations = {
           nameId: { from: "getInstitution", path: "institutions.0.name_id" }
         },
         skipIf: { variableName: "nameId", isUndefined: true }
+      },
+      {
+        name: "deleteDescriptionTranslations",
+        query: `mutation DeleteInstitutionDescriptionTranslations($descriptionId: String!) {
+  deleteFromTranslations(where: { text_id: { eq: $descriptionId } }) {
+    id
+  }
+}`,
+        mapVariables: {
+          descriptionId: { from: "getInstitution", path: "institutions.0.description_id" }
+        },
+        skipIf: { variableName: "descriptionId", isUndefined: true }
       },
       {
         name: "deleteDescriptionText",
@@ -688,6 +712,18 @@ export const institutionsOperations = {
         skipIf: { variableName: "descriptionId", isUndefined: true }
       },
       {
+        name: "deleteCountryTranslations",
+        query: `mutation DeleteInstitutionCountryTranslations($countryId: String!) {
+  deleteFromTranslations(where: { text_id: { eq: $countryId } }) {
+    id
+  }
+}`,
+        mapVariables: {
+          countryId: { from: "getInstitution", path: "institutions.0.country_id" }
+        },
+        skipIf: { variableName: "countryId", isUndefined: true }
+      },
+      {
         name: "deleteCountryText",
         query: `mutation DeleteInstitutionCountryText($countryId: String!) {
   deleteFromTexts(where: { id: { eq: $countryId } }) {
@@ -698,6 +734,18 @@ export const institutionsOperations = {
           countryId: { from: "getInstitution", path: "institutions.0.country_id" }
         },
         skipIf: { variableName: "countryId", isUndefined: true }
+      },
+      {
+        name: "deleteLocationTranslations",
+        query: `mutation DeleteInstitutionLocationTranslations($locationId: String!) {
+  deleteFromTranslations(where: { text_id: { eq: $locationId } }) {
+    id
+  }
+}`,
+        mapVariables: {
+          locationId: { from: "getInstitution", path: "institutions.0.location_id" }
+        },
+        skipIf: { variableName: "locationId", isUndefined: true }
       },
       {
         name: "deleteLocationText",

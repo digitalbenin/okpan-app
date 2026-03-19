@@ -630,6 +630,18 @@ export const datasourcesOperations = {
         useVariables: ["datasourceId"]
       },
       {
+        name: "deleteNameTranslations",
+        query: `mutation DeleteDatasourceNameTranslations($nameId: String!) {
+  deleteFromTranslations(where: { text_id: { eq: $nameId } }) {
+    id
+  }
+}`,
+        mapVariables: {
+          nameId: { from: "getDatasource", path: "datasources.0.name_id", skipIfUndefined: true }
+        },
+        skipIf: { variableName: "nameId", isUndefined: true }
+      },
+      {
         name: "deleteNameText",
         query: `mutation DeleteDatasourceNameText($nameId: String!) {
   deleteFromTexts(where: { id: { eq: $nameId } }) {
@@ -642,6 +654,18 @@ export const datasourcesOperations = {
         skipIf: { variableName: "nameId", isUndefined: true }
       },
       {
+        name: "deleteMethodTranslations",
+        query: `mutation DeleteDatasourceMethodTranslations($methodId: String!) {
+  deleteFromTranslations(where: { text_id: { eq: $methodId } }) {
+    id
+  }
+}`,
+        mapVariables: {
+          methodId: { from: "getDatasource", path: "datasources.0.method_id", skipIfUndefined: true }
+        },
+        skipIf: { variableName: "methodId", isUndefined: true }
+      },
+      {
         name: "deleteMethodText",
         query: `mutation DeleteDatasourceMethodText($methodId: String!) {
   deleteFromTexts(where: { id: { eq: $methodId } }) {
@@ -652,6 +676,18 @@ export const datasourcesOperations = {
           methodId: { from: "getDatasource", path: "datasources.0.method_id", skipIfUndefined: true }
         },
         skipIf: { variableName: "methodId", isUndefined: true }
+      },
+      {
+        name: "deleteNotesTranslations",
+        query: `mutation DeleteDatasourceNotesTranslations($notesId: String!) {
+  deleteFromTranslations(where: { text_id: { eq: $notesId } }) {
+    id
+  }
+}`,
+        mapVariables: {
+          notesId: { from: "getDatasource", path: "datasources.0.notes_id", skipIfUndefined: true }
+        },
+        skipIf: { variableName: "notesId", isUndefined: true }
       },
       {
         name: "deleteNotesText",
