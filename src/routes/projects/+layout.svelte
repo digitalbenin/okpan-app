@@ -11,6 +11,7 @@
   const networkStatusStore = getNetworkStatusStore();
   const networkStatusState = networkStatusStore.state;
   let lastHandledOnline = $state(null);
+  let lastHandledNetworkChangeAt = $state(null);
   let reconnectTimeout = null;
   let reconnectRunId = 0;
   let reconnectAttemptCount = 0;
@@ -96,8 +97,26 @@
       return;
     }
 
+    const currentChangeAt = networkStatusState.lastChangedAt;
     if (lastHandledOnline === null) {
       lastHandledOnline = networkStatusState.online;
+      lastHandledNetworkChangeAt = currentChangeAt;
+      return;
+    }
+
+    if (lastHandledNetworkChangeAt === currentChangeAt) {
+      return;
+    }
+
+    lastHandledNetworkChangeAt = currentChangeAt;
+
+    if (networkStatusState.source === 'electron-resume') {
+      lastHandledOnline = networkStatusState.online;
+
+      if (projectId && networkStatusState.online) {
+        scheduleReconnect(projectId);
+      }
+
       return;
     }
 
