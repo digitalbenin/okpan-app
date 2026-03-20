@@ -1,6 +1,6 @@
 import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
 // Use Trystero Torrent (WebTorrent) strategy for matchmaking
-import { joinRoom } from 'trystero'
+import { joinRoom, getRelaySockets } from 'trystero'
 import { RTCPeerConnection } from 'node-datachannel/polyfill'
 import WebSocket from 'ws'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
@@ -52,6 +52,7 @@ const providers = new Map()
 const pendingProjectPasswords = new Map()
 let presenceNotifier = null
 const LOCAL_PRESENCE_HEARTBEAT_MS = 10000
+const WEBSOCKET_READY_STATE_LABELS = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']
 
 export function setPendingProjectPassword(projectId, password) {
   if (!projectId) return
@@ -89,6 +90,22 @@ function applyLocalPresenceState(projectId, entry, username) {
 function reannounceLocalPresence(projectId, entry) {
   applyLocalPresenceState(projectId, entry, entry.localUsername)
   emitProjectPresence(projectId)
+}
+
+function summarizeRelaySockets() {
+  return Object.entries(getRelaySockets()).map(([url, socket]) => ({
+    url,
+    readyState: WEBSOCKET_READY_STATE_LABELS[socket?.readyState] || socket?.readyState || 'unknown'
+  }))
+}
+
+function logRelayState(projectId, context, details = {}) {
+  console.log('[P2P] relay state', {
+    projectId,
+    context,
+    relays: summarizeRelaySockets(),
+    ...details
+  })
 }
 
 function listRemotePeers(projectId) {
@@ -226,11 +243,19 @@ export async function startP2PForProject(projectId, options = {}) {
     rtcPolyfill: RTCPeerConnection,
   }, roomId)
 
+  logRelayState(projectId, 'room-created', {
+    roomId,
+    appId,
+    hasPassword: !!password
+  })
+
   trysteroRoom.onPeerJoin((peerId) => {
     console.log('[P2P] room peer joined', { projectId, peerId })
+    logRelayState(projectId, 'peer-join', { peerId })
   })
   trysteroRoom.onPeerLeave((peerId) => {
     console.log('[P2P] room peer left', { projectId, peerId })
+    logRelayState(projectId, 'peer-leave', { peerId })
   })
 
   // Initialize provider with canonical doc (no explicit connect)
@@ -258,6 +283,7 @@ export async function startP2PForProject(projectId, options = {}) {
 
   provider.on('status', ({ connected }) => {
     console.log('[P2P] provider status', { projectId, connected })
+    logRelayState(projectId, 'provider-status', { connected })
     if (connected) {
       reannounceLocalPresence(projectId, entry)
     }

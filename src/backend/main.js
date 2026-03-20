@@ -93,6 +93,7 @@ let connectivityProbeRunning = false;
 let consecutiveConnectivityProbeFailures = 0;
 const openedProjectsThisSession = new Set();
 const sessionOpenSnapshotJobs = new Map();
+const pendingProjectJoins = new Set();
 
 function sendToAllWindows(channel, payload) {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -273,6 +274,7 @@ ipcMain.handle('project-set-password', async (event, { projectId, password }) =>
 
 ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
   try {
+    pendingProjectJoins.add(projectId);
     setPendingProjectPassword(projectId, password || null);
     clearDelayedReconcileStart(projectId);
     await stopProjectTorrents(projectId);
@@ -512,6 +514,7 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
   }
 
   const sharedProject = await isProjectShared(projectId);
+  const isPendingRemoteJoin = pendingProjectJoins.has(projectId);
 
   if (hydrateSnapshot && !getP2PProvider(projectId)) {
     try {
@@ -530,7 +533,7 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
     await ensureSessionOpenRecoverySnapshot(projectId);
   }
 
-  if (!sharedProject) {
+  if (!sharedProject && !isPendingRemoteJoin) {
     clearDelayedReconcileStart(projectId);
 
     if (getP2PProvider(projectId)) {
@@ -560,6 +563,9 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
       onDataChange: notifyFrontend,
       skipHydration: true // Already handled by hydrateSnapshot logic above
     });
+    if (sharedProject) {
+      pendingProjectJoins.delete(projectId);
+    }
     try {
       event.sender.send('project-presence-changed', {
         projectId,
@@ -1011,7 +1017,7 @@ app.whenReady().then(() => {
     broadcastNetworkStatus(true, 'electron-resume');
   });
 
-  startConnectivityProbe();
+  // startConnectivityProbe();
 
   // Register media protocol handler
   protocol.registerFileProtocol('media', (request, callback) => {

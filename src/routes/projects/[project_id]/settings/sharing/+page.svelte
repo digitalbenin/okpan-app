@@ -143,8 +143,8 @@
     }
 
     isSharedProject = nextIsShared;
+    await syncSharingRuntime(nextIsShared, nextPassword);
     await invalidateAll();
-    await syncSharingRuntime(nextIsShared);
   }
 
   async function persistProjectPassword(nextPassword) {
@@ -212,6 +212,7 @@
       isSavingPassword = true;
       await persistProjectPassword(null);
       resetPasswordModal();
+      await invalidateAll();
       addToast({
         data: {
           title: "Password removed",
