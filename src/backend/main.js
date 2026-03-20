@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, protocol, net, powerMonitor } from 'electron';
 import started from 'electron-squirrel-startup';
 import 'dotenv/config';
 import path from 'path';
@@ -909,6 +909,14 @@ const createWindow = () => {
 
 // Initialize app
 app.whenReady().then(() => {
+  powerMonitor.on('suspend', () => {
+    broadcastNetworkStatus(false, 'electron-suspend');
+  });
+
+  powerMonitor.on('resume', () => {
+    broadcastNetworkStatus(true, 'electron-resume');
+  });
+
   // Register media protocol handler
   protocol.registerFileProtocol('media', (request, callback) => {
     try {
