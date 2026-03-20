@@ -4,10 +4,15 @@ import 'dotenv/config';
 import path from 'path';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
+import { lookup as dnsLookup } from 'dns/promises';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const CONNECTIVITY_PROBE_HOSTS = (process.env.CONNECTIVITY_PROBE_HOSTS || 'cloudflare.com,google.com,microsoft.com')
+  .split(',')
+  .map((host) => host.trim())
+  .filter(Boolean);
 
 // Import database and schema
 import { db, getGlobalProfile, updateGlobalUsername } from '../db/init.js';
@@ -80,6 +85,12 @@ let currentNetworkStatus = {
   source: 'startup',
   ts: Date.now()
 };
+const CONNECTIVITY_PROBE_INTERVAL_MS = 10000;
+const CONNECTIVITY_PROBE_TIMEOUT_MS = 3000;
+const CONNECTIVITY_PROBE_FAILURE_THRESHOLD = 2;
+let connectivityProbeTimer = null;
+let connectivityProbeRunning = false;
+let consecutiveConnectivityProbeFailures = 0;
 const openedProjectsThisSession = new Set();
 const sessionOpenSnapshotJobs = new Map();
 
@@ -105,6 +116,89 @@ function broadcastNetworkStatus(online, source = 'electron') {
   currentNetworkStatus = nextStatus;
   console.log('[Network] status changed', currentNetworkStatus);
   sendToAllWindows('network-status-changed', currentNetworkStatus);
+}
+
+function withTimeout(promise, timeoutMs, label) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
+async function probeConnectivity() {
+  if (!net.isOnline()) {
+    return false;
+  }
+
+  await Promise.any(
+    CONNECTIVITY_PROBE_HOSTS.map((host) =>
+      withTimeout(dnsLookup(host), CONNECTIVITY_PROBE_TIMEOUT_MS, `dns:${host}`)
+    )
+  );
+
+  return true;
+}
+
+async function runConnectivityProbe() {
+  if (connectivityProbeRunning) {
+    return;
+  }
+
+  connectivityProbeRunning = true;
+
+  try {
+    const online = await probeConnectivity();
+
+    consecutiveConnectivityProbeFailures = 0;
+    if (!currentNetworkStatus.online) {
+      broadcastNetworkStatus(online, 'connectivity-probe');
+    }
+  } catch (error) {
+    consecutiveConnectivityProbeFailures += 1;
+    console.log('[Network] connectivity probe failed', {
+      consecutiveFailures: consecutiveConnectivityProbeFailures,
+      message: error?.message || error
+    });
+
+    if (currentNetworkStatus.online && consecutiveConnectivityProbeFailures >= CONNECTIVITY_PROBE_FAILURE_THRESHOLD) {
+      broadcastNetworkStatus(false, 'connectivity-probe');
+    }
+  } finally {
+    connectivityProbeRunning = false;
+  }
+}
+
+function startConnectivityProbe() {
+  if (connectivityProbeTimer) {
+    return;
+  }
+
+  void runConnectivityProbe();
+  connectivityProbeTimer = setInterval(() => {
+    void runConnectivityProbe();
+  }, CONNECTIVITY_PROBE_INTERVAL_MS);
+}
+
+function stopConnectivityProbe() {
+  if (!connectivityProbeTimer) {
+    return;
+  }
+
+  clearInterval(connectivityProbeTimer);
+  connectivityProbeTimer = null;
+  connectivityProbeRunning = false;
+  consecutiveConnectivityProbeFailures = 0;
 }
 
 setPresenceNotifier((projectId, presence) => {
@@ -917,6 +1011,8 @@ app.whenReady().then(() => {
     broadcastNetworkStatus(true, 'electron-resume');
   });
 
+  startConnectivityProbe();
+
   // Register media protocol handler
   protocol.registerFileProtocol('media', (request, callback) => {
     try {
@@ -973,6 +1069,7 @@ app.on('window-all-closed', () => {
 
 // Clean up WebTorrent client and reconcile loops before the process exits
 app.on('before-quit', () => {
+  stopConnectivityProbe();
   try { destroyTorrentManager(); } catch (err) { console.warn('destroyTorrentManager error on quit:', err); }
 });
 

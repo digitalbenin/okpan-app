@@ -51,6 +51,7 @@ function syncBaselineFromCanonical(projectId, baselineDoc, canonicalDoc) {
 const providers = new Map()
 const pendingProjectPasswords = new Map()
 let presenceNotifier = null
+const LOCAL_PRESENCE_HEARTBEAT_MS = 10000
 
 export function setPendingProjectPassword(projectId, password) {
   if (!projectId) return
@@ -83,6 +84,11 @@ function buildLocalPresenceState(doc, projectId, username) {
 function applyLocalPresenceState(projectId, entry, username) {
   const doc = getProjectDoc(projectId)
   entry.awareness.setLocalState(buildLocalPresenceState(doc, projectId, username))
+}
+
+function reannounceLocalPresence(projectId, entry) {
+  applyLocalPresenceState(projectId, entry, entry.localUsername)
+  emitProjectPresence(projectId)
 }
 
 function listRemotePeers(projectId) {
@@ -174,7 +180,7 @@ export async function startP2PForProject(projectId, options = {}) {
     console.warn('[P2P] Failed to seed baseline doc from canonical', err)
   }
 
-  // Set initial local presence and enable 5s heartbeat for debug visibility
+  // Set initial local presence and keep it fresh so peers re-see us after reconnects.
   const globalProfile = await getGlobalProfile()
   awareness.setLocalState(buildLocalPresenceState(doc, projectId, globalProfile?.username))
 
@@ -234,13 +240,27 @@ export async function startP2PForProject(projectId, options = {}) {
     trysteroRoom  // Use pre-configured room (server-side)
   })
 
+  const entry = {
+    provider,
+    awareness,
+    onChange,
+    onDocUpdatePersist: null,
+    baselineDoc,
+    trysteroRoom,
+    localUsername: globalProfile?.username,
+    presenceHeartbeat: null,
+  }
+
   // Re-announce local awareness after the provider has attached its listeners.
   // This avoids losing presence on reconnect paths where the initial pre-provider
   // state assignment is never propagated to already-online peers.
-  applyLocalPresenceState(projectId, { awareness }, globalProfile?.username)
+  reannounceLocalPresence(projectId, entry)
 
   provider.on('status', ({ connected }) => {
     console.log('[P2P] provider status', { projectId, connected })
+    if (connected) {
+      reannounceLocalPresence(projectId, entry)
+    }
   })
   provider.on('synced', ({ synced }) => {
     console.log('[P2P] provider synced', { projectId, synced })
@@ -309,8 +329,13 @@ export async function startP2PForProject(projectId, options = {}) {
     })
   }
   doc.on('update', onDocUpdatePersist)
+  entry.onDocUpdatePersist = onDocUpdatePersist
 
-  providers.set(projectId, { provider, awareness, onChange, onDocUpdatePersist, baselineDoc, trysteroRoom })
+  entry.presenceHeartbeat = setInterval(() => {
+    reannounceLocalPresence(projectId, entry)
+  }, LOCAL_PRESENCE_HEARTBEAT_MS)
+
+  providers.set(projectId, entry)
   console.log('[P2P] provider ready', { projectId, roomId })
   emitProjectPresence(projectId)
   return provider
@@ -327,6 +352,9 @@ export async function stopP2PForProject(projectId) {
     try {
       entry.awareness?.off('change', entry.onChange)
     } catch (err) { console.warn('[P2P] Failed to remove awareness listener', err) }
+    try {
+      if (entry.presenceHeartbeat) clearInterval(entry.presenceHeartbeat)
+    } catch (err) { console.warn('[P2P] Failed to clear presence heartbeat', err) }
     try { getProjectDoc(projectId)?.off('update', entry.onDocUpdatePersist) } catch (err) { console.warn('[P2P] Failed to remove canonical doc persistence handler', err) }
 
     const provider = entry.provider
@@ -379,7 +407,8 @@ export async function refreshAllProjectPresence() {
   const globalProfile = await getGlobalProfile()
 
   for (const [projectId, entry] of providers.entries()) {
-    applyLocalPresenceState(projectId, entry, globalProfile?.username)
+    entry.localUsername = globalProfile?.username
+    reannounceLocalPresence(projectId, entry)
     emitProjectPresence(projectId)
   }
 }
