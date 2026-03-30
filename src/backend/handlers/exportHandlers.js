@@ -6,6 +6,17 @@ import { exportProjectSql } from '../services/exportSqlService.js';
 import { exportProjectCsv } from '../services/exportCsvService.js';
 import { exportConnectionsJson } from '../services/exportConnectionsJsonService.js';
 import { importConnectionsJson } from '../services/importConnectionsJsonService.js';
+import { exportConnectionTypeCsv } from '../services/exportConnectionTypeCsvService.js';
+import { importConnectionTypeCsv } from '../services/importConnectionTypeCsvService.js';
+
+function sanitizeFilenamePart(value, fallback = 'connection-type') {
+  const normalized = String(value || '')
+    .trim()
+    .replace(/[<>:"/\\|?*]+/g, '-')
+    .replace(/\s+/g, ' ')
+    .replace(/^\.+|\.+$/g, '');
+  return normalized || fallback;
+}
 
 export function buildCounts({
   objects = [],
@@ -197,6 +208,93 @@ export async function handleImportConnections(event, options, { db }) {
     return await importConnectionsJson({ filePath, projectId }, { db });
   } catch (error) {
     console.error('Error in handleImportConnections:', error);
+    throw error;
+  }
+}
+
+export async function handleExportConnectionTypeCsv(event, options, { db }) {
+  try {
+    const {
+      filePath: inputFilePath,
+      projectId,
+      connectionTypeId
+    } = options || {};
+
+    if (!projectId) {
+      throw new Error('projectId is required');
+    }
+    if (!connectionTypeId) {
+      throw new Error('connectionTypeId is required');
+    }
+
+    const [connectionType] = await db
+      .select({
+        id: dbSchema.research_fields.id,
+        name: dbSchema.texts.content
+      })
+      .from(dbSchema.research_fields)
+      .leftJoin(dbSchema.texts, eq(dbSchema.texts.id, dbSchema.research_fields.name_id))
+      .where(and(
+        eq(dbSchema.research_fields.id, connectionTypeId),
+        eq(dbSchema.research_fields.project_id, projectId)
+      ))
+      .execute();
+
+    if (!connectionType) {
+      throw new Error('Connection type not found');
+    }
+
+    let filePath = inputFilePath;
+    if (!filePath) {
+      const result = await dialog.showSaveDialog({
+        title: 'Save Connection Type CSV Export',
+        defaultPath: `${sanitizeFilenamePart(connectionType.name)}.csv`,
+        filters: [{ name: 'CSV', extensions: ['csv'] }]
+      });
+      if (result.canceled) return { canceled: true };
+      filePath = result.filePath;
+    }
+
+    const csvPath = filePath && typeof filePath === 'string' && filePath.toLowerCase().endsWith('.csv')
+      ? filePath
+      : `${filePath}.csv`;
+
+    return await exportConnectionTypeCsv({ filePath: csvPath, projectId, connectionTypeId }, { db });
+  } catch (error) {
+    console.error('Error in handleExportConnectionTypeCsv:', error);
+    throw error;
+  }
+}
+
+export async function handleImportConnectionTypeCsv(event, options, { db }) {
+  try {
+    const {
+      filePath: inputFilePath,
+      projectId,
+      connectionTypeName
+    } = options || {};
+
+    if (!projectId) {
+      throw new Error('projectId is required');
+    }
+    if (!connectionTypeName) {
+      throw new Error('connectionTypeName is required');
+    }
+
+    let filePath = inputFilePath;
+    if (!filePath) {
+      const result = await dialog.showOpenDialog({
+        title: 'Import Connection Type CSV',
+        filters: [{ name: 'CSV', extensions: ['csv'] }],
+        properties: ['openFile']
+      });
+      if (result.canceled) return { canceled: true };
+      filePath = result.filePaths[0];
+    }
+
+    return await importConnectionTypeCsv({ filePath, projectId, connectionTypeName }, { db });
+  } catch (error) {
+    console.error('Error in handleImportConnectionTypeCsv:', error);
     throw error;
   }
 }

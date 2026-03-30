@@ -28,7 +28,13 @@ import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.j
 import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, texts } from '../db/schema.js';
 import { eq, sql, isNull } from 'drizzle-orm';
-import { handleExportProject, handleExportConnections, handleImportConnections } from './handlers/exportHandlers.js';
+import {
+  handleExportProject,
+  handleExportConnections,
+  handleImportConnections,
+  handleExportConnectionTypeCsv,
+  handleImportConnectionTypeCsv
+} from './handlers/exportHandlers.js';
 import { handleListLanguages } from './handlers/languagesHandlers.js';
 import { handleCreateBackup, handleSelectBackupFile, handleCheckBackupFile, handleRestoreBackup } from './handlers/backupHandler.js';
 
@@ -75,7 +81,8 @@ ipcMain.handle('export-static-website', async (event, options) => {
       filters: options.filters,
       appPath: app.getAppPath(),
       resourcesPath: process.resourcesPath,
-      isPackaged: app.isPackaged
+      isPackaged: app.isPackaged,
+      basePath: options.basePath
     });
   } catch (error) {
     console.error('Error exporting static website:', error);
@@ -94,6 +101,14 @@ ipcMain.handle('export-connections', (event, options) =>
 
 ipcMain.handle('import-connections', (event, options) =>
   handleImportConnections(event, options, { db })
+);
+
+ipcMain.handle('export-connection-type-csv', (event, options) =>
+  handleExportConnectionTypeCsv(event, options, { db })
+);
+
+ipcMain.handle('import-connection-type-csv', (event, options) =>
+  handleImportConnectionTypeCsv(event, options, { db })
 );
 
 // Backup handlers

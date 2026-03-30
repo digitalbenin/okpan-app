@@ -3,6 +3,8 @@
  * Uses data loaded from data.json (provided by layout)
  */
 
+import { resolveSitePath } from '$lib/utils/sitePaths.js';
+
 /**
  * Search objects from pre-loaded data
  * @param {Object} options
@@ -28,7 +30,7 @@ export async function searchObjectsStatic({
   
   if (!objects.length && typeof fetch !== 'undefined') {
     try {
-      const response = await fetch('/data.json');
+      const response = await fetch(resolveSitePath('data.json'));
       if (response.ok) {
         const jsonData = await response.json();
         objects = jsonData.objects || [];

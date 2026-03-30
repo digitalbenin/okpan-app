@@ -1,5 +1,6 @@
 <script>
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
+	import { resolveStaticHref } from '$lib/utils/sitePaths.js';
 	import { fly } from 'svelte/transition';
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
@@ -91,6 +92,14 @@
 		}
 		return null;
 	}
+
+	function getObjectHref() {
+		if (!isStaticExport) {
+			return `/${object.id}?project_id=${object.project_id}`;
+		}
+
+		return `${resolveStaticHref(`${object.id}`)}?back=`;
+	}
 </script>
 
 <div class="card h-100 border-secondary-subtle rounded-3 p-2">
@@ -143,7 +152,7 @@
         <h5 class="card-title mb-3">
             <a
                 class="text-dark text-decoration-none"
-				href={isStaticExport ? `/${object.id}` : `/${object.id}?project_id=${object.project_id}`}>{getObjectDisplayName()}</a
+				href={getObjectHref()}>{getObjectDisplayName()}</a
             >
 		</h5>		<p class="card-text mb-2">
 			<small class="text-muted">Designation</small><br />

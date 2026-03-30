@@ -3,6 +3,7 @@
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
+    import { resolveStaticHref } from '$lib/utils/sitePaths.js';
 
     const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -11,6 +12,10 @@
     let vocabulary = $derived(data.vocabulary);
     let allObjects = $derived(data.connectedObjects || []);
     const projectId = $derived(data?.queryParams?.projectId || data?.activeProjectId || null);
+    const staticObjectBackHref = $derived.by(() => {
+        if (!researchField?.id || !vocabulary?.id) return 'connections';
+        return `connections/${researchField.id}/${vocabulary.id}`;
+    });
     
     // Pagination
     let currentPage = $state(1);
@@ -67,7 +72,7 @@
     <!-- Breadcrumb / Header -->
     <div class="mb-4">
         {#if researchField}
-            <a href={isStaticExport ? `/connections/${researchField.id}` : buildPathWithProjectId(`/connections/${researchField.id}`, projectId)} class="text-secondary text-decoration-none small mb-2 d-inline-block">
+            <a href={isStaticExport ? resolveStaticHref(`connections/${researchField.id}`) : buildPathWithProjectId(`/connections/${researchField.id}`, projectId)} class="text-secondary text-decoration-none small mb-2 d-inline-block">
                 {researchField.name}
             </a>
         {/if}
@@ -192,7 +197,7 @@
         
         <div class="list-group list-group-flush">
             {#each paginatedObjects as obj}
-                     <a href={isStaticExport ? `/${obj.id}` : buildPathWithProjectId(`/${obj.id}`, projectId)} 
+                     <a href={isStaticExport ? `${resolveStaticHref(`${obj.id}`)}?back=${encodeURIComponent(staticObjectBackHref)}` : buildPathWithProjectId(`/${obj.id}`, projectId)} 
                          class="list-group-item list-group-item-action p-3 d-flex align-items-center"
                 >
                     <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;">

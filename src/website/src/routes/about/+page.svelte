@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
+	import { resolveSitePath } from '$lib/utils/sitePaths.js';
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	let { data } = $props();
@@ -16,7 +17,7 @@
 	onMount(async () => {
 		if (isStaticExport && data?.needsClientLoad) {
 			try {
-				const response = await fetch('/site.json');
+				const response = await fetch(resolveSitePath('site.json'));
 				const json = await response.json();
 				project = json.project || {};
 				settings = json.settings || {};
