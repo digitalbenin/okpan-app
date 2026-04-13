@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -6,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const websiteDir = path.join(rootDir, 'src', 'website');
+const buildExportDir = path.join(websiteDir, 'build-export');
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
@@ -33,3 +35,5 @@ await new Promise((resolve, reject) => {
     reject(new Error(`Website static build failed with exit code ${code}`));
   });
 });
+
+

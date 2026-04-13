@@ -1,5 +1,7 @@
 // Asset URL handling for both Electron (media://) and static export (relative paths)
 
+import { resolveSitePath } from '$lib/utils/sitePaths.js';
+
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
 /**
@@ -22,10 +24,10 @@ export function getAssetUrl(asset) {
     // Extract the project-relative part: project_assets/{projectId}/...
     const match = normalizedPath.match(/project_assets\/(.+)$/);
     if (match) {
-      return `/assets/${match[1]}`;
+      return resolveSitePath(`assets/${match[1]}`);
     }
     // Fallback: just use the filename
-    return `/assets/${normalizedPath.split('/').pop()}`;
+    return resolveSitePath(`assets/${normalizedPath.split('/').pop()}`);
   }
   
   // Electron preview mode: use media:// protocol

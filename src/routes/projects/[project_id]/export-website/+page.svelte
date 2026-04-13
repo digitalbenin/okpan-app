@@ -22,6 +22,8 @@
 	let exportPath = $state('');
 	let exportResultDialogOpen = $state(false);
 
+	let basePathInput = $state('');
+
 	let selectedStatus = $state('all');
 	let selectedInstitutions = $state([]);
 	let connectionFilters = $state([]);
@@ -296,6 +298,9 @@
 </script>
 
 <PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons}>
+	
+	
+
 	<div class="row mb-4">
 		<div class="col-12">
 			<h1 class="h3 mb-0">
@@ -347,6 +352,17 @@
 			</div>
 
 			<div class="mb-4">
+
+				<div class="baspath-section mb-4">
+				<h5 class="card-title mb-3">Hosting Subdirectory (optional)</h5>
+					<p class="text-muted small">If hosting on a sub-path (e.g., GitHub Pages <code>https://user.github.io/my-site</code>), enter <code>/my-site</code>. Leave empty if hosting at the root domain.</p>
+					<div class="input-group">
+						<span class="input-group-text" id="basepath-addon">Base path</span>
+						<input type="text" class="form-control" placeholder="/" aria-label="Base Path" aria-describedby="basepath-addon" bind:value={basePathInput}>
+					</div>
+				</div>
+
+
 				<h5 class="h5 mb-3">Filter content</h5>
 
 				<StatusFilter

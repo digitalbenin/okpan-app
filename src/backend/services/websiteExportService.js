@@ -12,7 +12,11 @@ import { buildObjectSearchConditions } from '../handlers/exportHandlers.js';
  * @param {Object} options.db - Database instance
  * @returns {Promise<Object>} Export result
  */
-export async function exportStaticWebsite(projectId, outputPath, { db, filters = {} }) {
+export async function exportStaticWebsite(projectId, outputPath, { db, filters = {}, basePath = '' }) {
+  if (basePath && !basePath.startsWith('/')) {
+    basePath = '/' + basePath;
+  }
+  basePath = basePath.replace(/\/$/, '');
   const rootDir = process.cwd();
   const websiteDir = path.join(rootDir, 'src', 'website');
   // Prebuilt SPA artifact for static exports (produced before app packaging)
@@ -56,14 +60,15 @@ export async function exportStaticWebsite(projectId, outputPath, { db, filters =
     await fs.mkdir(outputPath, { recursive: true });
     await fs.cp(buildDir, outputPath, { recursive: true });
 
-    // Ensure direct refresh/deep-link works on static hosts without rewrite rules
-    await createSpaShellRoutes(outputPath, data);
-
     // Write export data into output root
     await fs.writeFile(path.join(outputPath, 'data.json'), JSON.stringify(data, null, 2), 'utf-8');
     await fs.writeFile(path.join(outputPath, 'site.json'), JSON.stringify(siteData, null, 2), 'utf-8');
     console.log(`[Website Export] Exported ${data.objects.length} objects to data.json`);
     console.log('[Website Export] Exported site.json for sidebar');
+
+    // Ensure direct refresh/deep-link works on static hosts without rewrite rules.
+    // This runs after writing the exported data so route generation can rely on the final export payload.
+    await createSpaShellRoutes(outputPath, data, basePath);
 
     // Step 4: Copy project assets folder
     console.log('[Website Export] Step 4/4: Copying assets...');
@@ -93,40 +98,77 @@ export async function exportStaticWebsite(projectId, outputPath, { db, filters =
   }
 }
 
-async function createSpaShellRoutes(outputPath, data) {
+function generateHtmlForRoute(indexHtml, basePath, routePath) {
+  let prefix;
+  let dynamicBaseScript = '';
+
+  if (basePath) {
+    prefix = basePath + '/';
+    dynamicBaseScript = JSON.stringify(basePath);
+  } else {
+    // Relative logic
+    const depth = routePath === '' ? 0 : routePath.split('/').length;
+    prefix = depth === 0 ? './' : '../'.repeat(depth);
+    
+    dynamicBaseScript = `(function(){
+      let p = window.location.pathname;
+      if (p.endsWith('/index.html')) p = p.slice(0, -11);
+      if (p.endsWith('/')) p = p.slice(0, -1);
+      let r = ${JSON.stringify('/' + routePath)};
+      if (r.endsWith('/')) r = r.slice(0, -1);
+      if (r === '') return p;
+      if (p.endsWith(r)) return p.slice(0, p.length - r.length);
+      return '';
+    })()`;
+  }
+
+  // Inject a dynamic base script to window.__SITE_BASE_PATH__ for runtime path resolution,
+  // rewrite root-relative paths for assets/imports to use the calculated prefix,
+  // and appropriately set the base path in SvelteKit's client-side router config.
+  return indexHtml
+    .replace(/<head>/i, '<head>\n\t\t<script>window.__SITE_BASE_PATH__=' + dynamicBaseScript + ';</script>')
+    .replace(/href="\//g, 'href="' + prefix)
+    .replace(/src="\//g, 'src="' + prefix)
+    .replace(/import\("\//g, 'import("' + prefix)
+    .replace(/base:\s*(""|'')/g, 'base: ' + dynamicBaseScript);
+}
+
+async function createSpaShellRoutes(outputPath, data, basePath = "") {
   const indexPath = path.join(outputPath, 'index.html');
-  const indexHtml = await fs.readFile(indexPath, 'utf-8');
+  const originalIndexHtml = await fs.readFile(indexPath, 'utf-8');
+
+  // Root index.html
+  const rootIndexHtml = generateHtmlForRoute(originalIndexHtml, basePath, "");
+  await fs.writeFile(indexPath, rootIndexHtml, 'utf-8');
 
   const routes = new Set(['about', 'connections']);
 
   for (const obj of data.objects || []) {
-    if (obj?.id) {
-      routes.add(encodeURIComponent(obj.id));
-    }
+    if (obj?.id) routes.add(encodeURIComponent(obj.id));
   }
 
-  const vocabularyFields = (data.research_fields || []).filter((field) => field?.type === 'vocabulary');
-  for (const field of vocabularyFields) {
+  const connectionTypes = data.connection_types || [];
+  for (const field of connectionTypes) {
     if (!field?.id) continue;
     const encodedFieldId = encodeURIComponent(field.id);
     routes.add(`connections/${encodedFieldId}`);
-
-    const fieldVocabularies = (data.vocabularies || []).filter((v) => v.field_id === field.id);
+    
+    const fieldVocabularies = (data.vocabularies || []).filter((v) => String(v.field_id) === String(field.id));
     for (const vocabulary of fieldVocabularies) {
       if (!vocabulary?.id) continue;
       routes.add(`connections/${encodedFieldId}/${encodeURIComponent(vocabulary.id)}`);
     }
   }
 
-  await Promise.all(
-    [...routes].map(async (routePath) => {
-      const routeDir = path.join(outputPath, ...routePath.split('/'));
-      await fs.mkdir(routeDir, { recursive: true });
-      await fs.writeFile(path.join(routeDir, 'index.html'), indexHtml, 'utf-8');
-    })
-  );
+  for (const routePath of routes) {
+    const routeDir = path.join(outputPath, ...routePath.split('/'));
+    await fs.mkdir(routeDir, { recursive: true });
+    
+    const routeHtml = generateHtmlForRoute(originalIndexHtml, basePath, routePath);
+    await fs.writeFile(path.join(routeDir, 'index.html'), routeHtml, 'utf-8');
+  }
 
-  console.log(`[Website Export] Generated ${routes.size} SPA route shell files for direct refresh support`);
+  console.log(`[Website Export] Generated ${routes.size} SPA route shell files`);
 }
 /**
  * Export all website data to unified JSON structure

@@ -1,7 +1,9 @@
 import { browser } from '$app/environment';
 import { resolveProjectId } from '$lib/utils/projectContext.js';
+import { resolveSitePath } from '$lib/utils/sitePaths.js';
 
 const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
+const sameId = (left, right) => String(left) === String(right);
 
 /** @type {import('./$types').PageLoad} */
 export async function load({ params, url, fetch }) {
@@ -14,16 +16,16 @@ export async function load({ params, url, fetch }) {
         }
         
         try {
-            const res = await fetch('/data.json');
+            const res = await fetch(resolveSitePath('data.json'));
             if (!res.ok) {
                 throw new Error(`Failed to fetch data.json: ${res.status}`);
             }
             const data = await res.json();
-            const researchField = data.research_fields?.find(f => f.id === connectionId);
-            const vocabulary = data.vocabularies?.find(v => v.id === vocabId);
+            const researchField = data.research_fields?.find(f => sameId(f.id, connectionId));
+            const vocabulary = data.vocabularies?.find(v => sameId(v.id, vocabId));
             
             const connectedObjects = (data.objects || []).filter(obj => 
-                (obj.objectResearchFields || []).some(orf => orf.vocabulary_id === vocabId)
+                (obj.objectResearchFields || []).some(orf => sameId(orf.vocabulary_id, vocabId))
             ).map(obj => ({
                 id: obj.id,
                 name: obj.name,
@@ -57,7 +59,7 @@ export async function load({ params, url, fetch }) {
     const projectId = resolveProjectId(url);
     
     const allFields = fetchResearchFields(db, projectId);
-    const researchField = allFields.find(f => f.id === connectionId);
+    const researchField = allFields.find(f => sameId(f.id, connectionId));
     
     const vocabulary = fetchVocabularyDetails(db, vocabId);
     
