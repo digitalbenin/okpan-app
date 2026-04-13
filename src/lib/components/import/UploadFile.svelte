@@ -1,4 +1,5 @@
 <script>
+  import { page as pageData } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import { selectParseFile } from "$lib/stores/ImportUtils.js";
@@ -22,6 +23,28 @@
     wizard.reusedTemplate = null;
   }
 
+  function normalizeFieldName(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function resolveOntologyFieldId(mappedFieldName) {
+    if (!mappedFieldName) return null;
+
+    const ontologyFields = pageData.data?.ontologyFields?.result || pageData.data?.ontologyFields || [];
+    const match = ontologyFields.find(
+      (field) => normalizeFieldName(field?.name?.content || field?.name) === normalizeFieldName(mappedFieldName),
+    );
+
+    return match?.id || null;
+  }
+
+  function normalizePrefilledMapping(prefilledMapping) {
+    return (prefilledMapping || []).map((entry) => ({
+      ...entry,
+      mappedField: entry?.mappedField || resolveOntologyFieldId(entry?.mappedFieldName),
+    }));
+  }
+
   function applyParsedResponse(response) {
     if (!response) return;
 
@@ -29,7 +52,7 @@
     wizard.detectedPreset = response.preset || null;
     wizard.availablePresets = response.availablePresets || [];
     wizard.parserWarnings = response.parserWarnings || [];
-    wizard.prefilledMapping = response.prefilledMapping || [];
+    wizard.prefilledMapping = normalizePrefilledMapping(response.prefilledMapping);
     selectedPresetId = response.preset?.id || "";
 
     if (wizard.prefilledMapping.length > 0) {

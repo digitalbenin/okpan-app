@@ -9,6 +9,35 @@
   const { t } = getTranslationStore();
 
   let page = $state(1);
+
+  function toDisplayValues(value) {
+    if (Array.isArray(value)) {
+      return value
+        .flat(Infinity)
+        .filter((entry) => entry !== undefined && entry !== null && String(entry).trim() !== "")
+        .map((entry) => String(entry).trim());
+    }
+
+    if (value === undefined || value === null || String(value).trim() === "") {
+      return [];
+    }
+
+    return [String(value).trim()];
+  }
+
+  function toHtmlValue(value) {
+    const displayValues = toDisplayValues(value);
+    if (!displayValues.length) {
+      return `<i>${t("common.null", { fallback: "null" })}</i>`;
+    }
+
+    return displayValues.join("<br/>");
+  }
+
+  function toPrimaryLabel(value) {
+    return toDisplayValues(value)[0] || "";
+  }
+
   const columns = $derived.by(() => {
     return [
       {
@@ -45,27 +74,10 @@
       const ontologyLabel = mappedFields.length
         ? mappedFields.map((id) => getOntologyLabel(id)).filter(Boolean).join(", ")
         : null;
-      let outputValue;
-      if (value) {
-        const splittedValue = String(value).split("|");
-        if (splittedValue.length) {
-          outputValue = splittedValue
-            .map((v) =>
-              v.trim()
-                ? v.trim()
-                : `<i>${t("common.null", { fallback: "null" })}</i>`,
-            )
-            .join("<br/>");
-        } else {
-          outputValue = value;
-        }
-      } else {
-        outputValue = `<i>${t("common.null", { fallback: "null" })}</i>`;
-      }
       return {
         "mapped-field": ontologyLabel,
         "institution-field": key,
-        value: outputValue,
+        value: toHtmlValue(value),
       };
     });
   });
@@ -87,7 +99,7 @@
 <div class="d-flex justify-content-between align-items-center mb-2">
   <div>
     {t("common.object-identifier", { fallback: "Object Identifier" })}:
-    <span class="fw-bold">{data[page - 1][primaryField]}</span>
+    <span class="fw-bold">{toPrimaryLabel(data[page - 1][primaryField])}</span>
   </div>
   <BasePagination bind:page pageSize={1} count={data.length} size="sm"
   ></BasePagination>

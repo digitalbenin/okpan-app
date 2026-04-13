@@ -732,6 +732,25 @@ export function parseData(data, mapping, format) {
   return output;
 }
 
+function normalizeImportedLeafValue(value) {
+  if (Array.isArray(value)) {
+    const normalized = value
+      .flat(Infinity)
+      .map((entry) => normalizeImportedLeafValue(entry))
+      .flat(Infinity)
+      .filter((entry) => entry !== null && entry !== undefined && String(entry).trim() !== "");
+
+    if (!normalized.length) return null;
+    return normalized.length === 1 ? normalized[0] : normalized;
+  }
+
+  if (value === null || value === undefined) return null;
+  if (typeof value === "object") return safeStringify(value);
+
+  const normalized = String(value).trim();
+  return normalized === "" ? null : normalized;
+}
+
 function getNestedValue(obj, path) {
   return path.reduce((current, key, index, array) => {
     const type = getType(current);
@@ -740,26 +759,22 @@ function getNestedValue(obj, path) {
       next = current[key];
     } else if (type === "array") {
       if (current.length === 0) {
-        next = null; // If no mapping, return the array as is
+        next = [];
       }
       const types = current.map((d) => getType(d));
       if (types.every((t) => t === "object")) {
         next = current.map((d) => d[key]);
       } else {
-        next = current.join("|");
+        next = current;
       }
     } else {
-      // If the value is not an object or array, return it directly
       next = current;
     }
-    const nextType = getType(next);
-    if (nextType === "array" && index === array.length - 1) {
-      if (next.length === 0) {
-        next = null; // If no mapping, return the array as is
-      } else {
-        next = next.join("|");
-      }
+
+    if (index === array.length - 1) {
+      return normalizeImportedLeafValue(next);
     }
+
     return next;
   }, obj);
 }

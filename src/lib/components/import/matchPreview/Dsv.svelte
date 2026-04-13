@@ -13,6 +13,17 @@
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
 
+  function toPreviewValues(value) {
+    if (Array.isArray(value)) {
+      return value.flat(Infinity).flatMap((entry) => toPreviewValues(entry));
+    }
+
+    if (value === undefined || value === null) return [];
+
+    const normalized = String(value).trim();
+    return normalized ? [normalized] : [];
+  }
+
   const fields = $derived(Object.keys(data[0]));
 
   // Per-field inclusion tracking (all included by default)
@@ -107,7 +118,7 @@
       </div>
     </div>
     {#each fields as field, i}
-      {@const values = [...new Set(data.map((s) => s[field]))]}
+      {@const values = [...new Set(data.flatMap((row) => toPreviewValues(row[field])))]}
       {@const matchingSuggestion = matchingSuggestions.current.find(
         (s) => s.csvField === field
       )}

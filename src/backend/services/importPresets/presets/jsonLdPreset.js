@@ -1,8 +1,8 @@
-const uniqueStrings = (values) => {
-  return [...new Set(values.filter((value) => value !== null && value !== undefined && String(value).trim() !== '').map(String))];
-};
-
-const joinValues = (values) => uniqueStrings(values).join('|');
+import {
+  appendValue,
+  buildPrefilledMapping,
+  finalizeRow
+} from '../shared/presetUtils.js';
 
 const isJsonLdShape = (data) => {
   if (!data) return false;
@@ -32,17 +32,6 @@ const extractNodes = (data) => {
   }
 
   return [data];
-};
-
-const appendValue = (target, key, value) => {
-  if (!key) return;
-  if (value === undefined || value === null || value === '') return;
-
-  if (!target[key]) {
-    target[key] = [];
-  }
-
-  target[key].push(value);
 };
 
 const collectLabels = (value, parentKey = null, target = {}) => {
@@ -89,34 +78,6 @@ const collectLabels = (value, parentKey = null, target = {}) => {
   return target;
 };
 
-const finalizeRow = (bucketRow) => {
-  const row = {};
-
-  Object.entries(bucketRow).forEach(([key, values]) => {
-    if (!Array.isArray(values) || !values.length) {
-      row[key] = null;
-      return;
-    }
-
-    row[key] = joinValues(values);
-  });
-
-  return row;
-};
-
-const buildPrefilledMapping = (rows) => {
-  const headers = [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  if (!headers.length) return [];
-
-  const primaryHeader = headers.includes('definition') ? 'definition' : headers[0];
-
-  return headers.map((header) => ({
-    headerField: header,
-    mappedField: null,
-    primary: header === primaryHeader ? 1 : 0
-  }));
-};
-
 const jsonLdPreset = {
   id: 'json-ld',
   label: 'JSON-LD',
@@ -147,7 +108,7 @@ const jsonLdPreset = {
     return {
       data: rows,
       tabularized: true,
-      prefilledMapping: buildPrefilledMapping(rows),
+      prefilledMapping: buildPrefilledMapping(rows, ['definition']),
       warnings: ['Labels-only projection applied: kept _label values by parent key and dropped ids.']
     };
   }

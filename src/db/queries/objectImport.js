@@ -7,6 +7,16 @@ const coercePrimary01 = (val) => {
     return val === true || val === 1 || val === '1' || val === 'true' ? 1 : 0;
 };
 
+const normalizeImportedValues = (value) => {
+    const source = Array.isArray(value) ? value.flat(Infinity) : [value];
+
+    return source
+        .filter((entry) => entry !== undefined && entry !== null && String(entry).trim() !== '')
+        .map((entry) => String(entry).trim());
+};
+
+const getPrimaryValue = (value) => normalizeImportedValues(value)[0] || null;
+
 const normalizeTemplateMapping = (mapping) => {
     if (!Array.isArray(mapping)) return [];
     const expanded = [];
@@ -186,8 +196,9 @@ export const createObjectImportMutation = (db, drizzleResult) => {
                             for (const m of normalizedMapping) {
                                 if (m && m.primary === 1 && m.headerField) {
                                     const v = dataRow[m.headerField];
-                                    if (v !== undefined && v !== null && String(v).trim() !== '') {
-                                        primaryValue = String(v);
+                                    const normalizedPrimaryValue = getPrimaryValue(v);
+                                    if (normalizedPrimaryValue) {
+                                        primaryValue = normalizedPrimaryValue;
                                         break;
                                     }
                                 }
@@ -224,31 +235,29 @@ export const createObjectImportMutation = (db, drizzleResult) => {
                                     continue;
                                 }
 
-                                const value = dataRow[fieldMapping.headerField];
-                                // Skip if no value in the data
-                                if (value === undefined || value === null || value === '') {
+                                const values = normalizeImportedValues(dataRow[fieldMapping.headerField]);
+                                if (!values.length) {
                                     continue;
                                 }
 
-                                // Create the object-ontology field association
-                                // If mappedField is null, field_id will be null (unmapped field)
-                                const mappedFieldId = fieldMapping.mappedField;
-                                const associationData = {
-                                    object_id: objectResult.id,
-                                    field_id: mappedFieldId || null, // Allow null field_id for unmapped fields
-                                    datasources_id: datasourceId,
-                                    value: String(value), // Convert to string
-                                    primary: fieldMapping.primary === 1 ? 1 : 0,
-                                    label: fieldMapping.headerField, // Use header field name as label
-                                    default_description: null
-                                };
+                                for (const value of values) {
+                                    const mappedFieldId = fieldMapping.mappedField;
+                                    const associationData = {
+                                        object_id: objectResult.id,
+                                        field_id: mappedFieldId || null,
+                                        datasources_id: datasourceId,
+                                        value,
+                                        primary: fieldMapping.primary === 1 ? 1 : 0,
+                                        label: fieldMapping.headerField,
+                                        default_description: null
+                                    };
 
-                                const [ontologyFieldResult] = await tx.insert(dbSchema.objects_ontology_fields)
-                                    .values(associationData)
-                                    .returning();
+                                    const [ontologyFieldResult] = await tx.insert(dbSchema.objects_ontology_fields)
+                                        .values(associationData)
+                                        .returning();
 
-                                // Use the returned ontology field data directly
-                                createdOntologyFields.push(ontologyFieldResult);
+                                    createdOntologyFields.push(ontologyFieldResult);
+                                }
                             }
 
                         } catch (objectError) {
@@ -409,8 +418,9 @@ export const createObjectImportUsingTemplateMutation = (db, drizzleResult) => {
                             for (const m of normalizedMapping) {
                                 if (m && m.primary === 1 && m.headerField) {
                                     const v = dataRow[m.headerField];
-                                    if (v !== undefined && v !== null && String(v).trim() !== '') {
-                                        primaryValue = String(v);
+                                    const normalizedPrimaryValue = getPrimaryValue(v);
+                                    if (normalizedPrimaryValue) {
+                                        primaryValue = normalizedPrimaryValue;
                                         break;
                                     }
                                 }
@@ -444,26 +454,28 @@ export const createObjectImportUsingTemplateMutation = (db, drizzleResult) => {
                                     continue;
                                 }
 
-                                const value = dataRow[fieldMapping.headerField];
-                                if (value === undefined || value === null || value === '') {
+                                const values = normalizeImportedValues(dataRow[fieldMapping.headerField]);
+                                if (!values.length) {
                                     continue;
                                 }
 
-                                const associationData = {
-                                    object_id: objectResult.id,
-                                    field_id: fieldMapping.mappedField || null,
-                                    datasources_id: datasourceId,
-                                    value: String(value),
-                                    primary: fieldMapping.primary === 1 ? 1 : 0,
-                                    label: fieldMapping.headerField,
-                                    default_description: null
-                                };
+                                for (const value of values) {
+                                    const associationData = {
+                                        object_id: objectResult.id,
+                                        field_id: fieldMapping.mappedField || null,
+                                        datasources_id: datasourceId,
+                                        value,
+                                        primary: fieldMapping.primary === 1 ? 1 : 0,
+                                        label: fieldMapping.headerField,
+                                        default_description: null
+                                    };
 
-                                const [ontologyFieldResult] = await tx.insert(dbSchema.objects_ontology_fields)
-                                    .values(associationData)
-                                    .returning();
+                                    const [ontologyFieldResult] = await tx.insert(dbSchema.objects_ontology_fields)
+                                        .values(associationData)
+                                        .returning();
 
-                                createdOntologyFields.push(ontologyFieldResult);
+                                    createdOntologyFields.push(ontologyFieldResult);
+                                }
                             }
 
                         } catch (objectError) {

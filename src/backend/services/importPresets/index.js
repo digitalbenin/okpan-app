@@ -1,6 +1,8 @@
 import jsonLdPreset from './presets/jsonLdPreset.js';
+import lidoPreset from './presets/lido/lidoPreset.js';
 
 const PRESETS = [
+  lidoPreset,
   jsonLdPreset
 ];
 
