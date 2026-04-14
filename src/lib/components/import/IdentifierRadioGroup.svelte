@@ -14,11 +14,11 @@
 
   const headerOptions = $derived.by(() => {
     const groups = new Map();
-    for (const entry of wizard.mapping || []) {
+    for (const entry of wizard.activeMapping || []) {
       const headerField = entry?.headerField;
       if (!headerField) continue;
       if (!groups.has(headerField)) {
-        const firstMapped = (wizard.mapping || []).find(
+        const firstMapped = (wizard.activeMapping || []).find(
           (e) => e?.headerField === headerField && e?.mappedField
         )?.mappedField;
         const ontologyField = ontologyFields.result.find((f) => f.id === firstMapped);
@@ -37,11 +37,11 @@
   });
 
   const defaultSelectedHeaderField = $derived.by(() => {
-    const primary = wizard.mapping.find((f) => f.primary)?.headerField;
+    const primary = wizard.activeMapping.find((f) => f.primary)?.headerField;
     if (primary) return primary;
     const objectIdFieldId = id;
     if (!objectIdFieldId) return null;
-    return wizard.mapping.find((f) => f.mappedField === objectIdFieldId)
+    return wizard.activeMapping.find((f) => f.mappedField === objectIdFieldId)
       ?.headerField;
   });
 

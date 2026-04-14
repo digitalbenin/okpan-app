@@ -83,7 +83,7 @@
   });
 
   const primaryField = $derived.by(() => {
-    return mapping.find((m) => m.primary)?.headerField || "";
+    return (mapping || []).find((m) => m.primary)?.headerField || "";
   });
 
   function getOntologyLabel(id) {

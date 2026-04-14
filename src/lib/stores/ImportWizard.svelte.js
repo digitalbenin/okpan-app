@@ -2,6 +2,16 @@ import { getContext, setContext } from 'svelte';
 
 const IMPORT_WIZARD_KEY = 'importWizard';
 
+function normalizeMappingEntry(entry, defaults = {}) {
+    return {
+        ...defaults,
+        ...(entry || {}),
+        included: entry?.included ?? defaults.included ?? true,
+        mappingSource: entry?.mappingSource ?? defaults.mappingSource ?? null,
+        primary: entry?.primary ? 1 : 0,
+    };
+}
+
 export function createImportWizardContext(params) {
     let steps = $state([
         { id: 1, t: 'give-datasource-name', fallback: 'Give Data Source Name' },
@@ -60,6 +70,10 @@ export function createImportWizardContext(params) {
         get mapping() { return mapping; },
         set mapping(value) { mapping = value; },
 
+        get activeMapping() {
+            return mapping.filter((entry) => entry?.included !== false);
+        },
+
         get data() { return data; },
         set data(value) { data = value; },
 
@@ -87,7 +101,10 @@ export function createImportWizardContext(params) {
         get reusedTemplate() { return reusedTemplate; },
         set reusedTemplate(value) {
             if (value?.mapping) {
-                mapping = value.mapping;
+                mapping = value.mapping.map((entry) => normalizeMappingEntry(entry, {
+                    included: true,
+                    mappingSource: 'template',
+                }));
             }
             reusedTemplate = value;
         },
@@ -104,10 +121,17 @@ export function createImportWizardContext(params) {
         // Helper methods
         addMappingEntry(entry) {
             const existingIndex = mapping.findIndex(e => e.headerField === entry.headerField);
+            const normalizedEntry = normalizeMappingEntry(entry, {
+                included: true,
+                mappingSource: 'manual',
+            });
             if (existingIndex !== -1) {
-                mapping[existingIndex] = entry;
+                mapping[existingIndex] = {
+                    ...mapping[existingIndex],
+                    ...normalizedEntry,
+                };
             } else {
-                mapping = [...mapping, entry];
+                mapping = [...mapping, normalizedEntry];
             }
         },
         removeMappingEntry(entry) {
@@ -116,7 +140,7 @@ export function createImportWizardContext(params) {
         setPrimaryHeaderField(headerField) {
             const primaryHeaderField = headerField || null;
             mapping = mapping.map((entry) => {
-                const nextPrimary = primaryHeaderField && entry?.headerField === primaryHeaderField ? 1 : 0;
+                const nextPrimary = primaryHeaderField && entry?.included !== false && entry?.headerField === primaryHeaderField ? 1 : 0;
                 return { ...entry, primary: nextPrimary };
             });
         },
@@ -148,6 +172,9 @@ export function createImportWizardContext(params) {
             availablePresets = [];
             parserWarnings = [];
             prefilledMapping = [];
+            reusedTemplate = undefined;
+            useMatchingTemplate = false;
+            useMatchingSuggestions = false;
             // formData = {};
             // isValid = false;
             // errors = [];

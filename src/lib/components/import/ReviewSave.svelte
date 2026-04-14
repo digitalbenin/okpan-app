@@ -14,13 +14,14 @@
   let open = $state(false);
 
   const saveFetcher = createFetcher(importObjectsAndTemplate);
+  const activeMapping = $derived(wizard.activeMapping);
 
   const handleSave = async function () {
     wizard.saving = true;
     try {
       const saveParams = {
         data: $state.snapshot(finalData),
-        mapping: $state.snapshot(wizard.mapping),
+        mapping: $state.snapshot(activeMapping),
         datasourceId: $state.snapshot(wizard.datasourceId),
         sourceFileName: wizard.file?.fileName || null,
       };
@@ -43,7 +44,7 @@
   const finalData = $derived(
     parseData(
       wizard.data,
-      wizard.mapping,
+      activeMapping,
       wizard.file?.tabularized ? "csv" : wizard.file.format
     )
   );
@@ -83,14 +84,14 @@
         })}
       </div>
       <div>
-        {wizard.mapping.length}
+        {activeMapping.length}
         {t("import.fields-will-be-imported", {
           fallback: "fields will be imported",
         })}
         {t("common.and", {
           fallback: "and",
         })}
-        {wizard.mapping.filter((m) => m.mappedField).length}
+        {activeMapping.filter((m) => m.mappedField).length}
         {t("import.fields-are-mapped", {
           fallback: "fields are mapped",
         })}.
@@ -100,7 +101,7 @@
           fallback: "Object identifier field is set to",
         })}
         <span class="fw-bold"
-          >{wizard.mapping.find((m) => m.primary)?.headerField || ""}</span
+          >{activeMapping.find((m) => m.primary)?.headerField || ""}</span
         >
       </div>
       <!-- <button class="btn btn-success btn-lg mt-3" onclick={handleSave}>
@@ -112,7 +113,7 @@
   </div>
   <div class="row">
     <div class="col-12">
-      <ItemsPreview data={finalData} mapping={wizard.mapping} />
+      <ItemsPreview data={finalData} mapping={activeMapping} />
     </div>
   </div>
 </div>

@@ -42,6 +42,8 @@
     return (prefilledMapping || []).map((entry) => ({
       ...entry,
       mappedField: entry?.mappedField || resolveOntologyFieldId(entry?.mappedFieldName),
+      included: entry?.included ?? true,
+      mappingSource: entry?.mappingSource || "auto",
     }));
   }
 

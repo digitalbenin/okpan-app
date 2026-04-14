@@ -759,6 +759,7 @@ export function getTranslationStore() {
         if (otherParams && Object.keys(otherParams).length > 0) {
             Object.keys(otherParams).forEach(param => {
                 text = text.replace(new RegExp(`{{${param}}}`, 'g'), otherParams[param]);
+                text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), otherParams[param]);
             });
         }
 

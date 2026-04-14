@@ -56,7 +56,8 @@
         name: f.name.content,
         id: f.id,
         description: f.description.content,
-        suggestion: suggestions.some((ss) => ss.ontologyFieldId === f.id),
+        suggestion: false,
+        source: "manual",
       }))[0];
     open = false;
   }

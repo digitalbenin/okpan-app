@@ -30,8 +30,9 @@
   let fieldInclusion = $state({});
   $effect(() => {
     for (const field of fields) {
-      if (!(field in fieldInclusion)) {
-        fieldInclusion[field] = true;
+      const existingEntry = wizard.mapping.find((entry) => entry?.headerField === field);
+      if (!(field in fieldInclusion) || existingEntry) {
+        fieldInclusion[field] = existingEntry?.included ?? true;
       }
     }
   });
@@ -75,7 +76,7 @@
   );
 
   watch(
-    () => wizard.mapping,
+    () => wizard.activeMapping,
     (mapping) => {
       wizard.nextEnabled = mapping.length > 0;
     }

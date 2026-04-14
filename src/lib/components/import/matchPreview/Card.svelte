@@ -31,15 +31,22 @@
 
   const mappedFieldMatches = $derived.by(() => {
     if (!mappedFieldIds.length) return [];
+    const mappingEntries = Array.isArray(mappedField) ? mappedField : [mappedField].filter(Boolean);
     return mappedFieldIds
-      .map((id) => page.data.ontologyFields.result.find((f) => f.id === id))
+      .map((id, index) => {
+        const ontologyField = page.data.ontologyFields.result.find((f) => f.id === id);
+        const entry = mappingEntries[index];
+        return ontologyField
+          ? {
+              name: ontologyField.name.content,
+              id: ontologyField.id,
+              description: ontologyField.description.content,
+              suggestion: entry?.mappingSource === "auto",
+              source: entry?.mappingSource || "manual",
+            }
+          : null;
+      })
       .filter(Boolean)
-      .map((ontologyField) => ({
-        name: ontologyField.name.content,
-        id: ontologyField.id,
-        description: ontologyField.description.content,
-        suggestion: false,
-      }));
   });
 
   let fieldMatched = $derived.by(() => {
@@ -62,6 +69,7 @@
         id: matchingSuggestion.suggestions[0].ontologyFieldId,
         description: matchingSuggestion.suggestions[0].ontologyFieldDescription,
         suggestion: true,
+        source: "auto",
       };
     }
   });
@@ -103,25 +111,27 @@
         headerField: field,
         mappedField: fieldMatched?.id,
         primary: hasPrimaryForHeader ? 1 : 0,
+        included: included !== false,
+        mappingSource: fieldMatched?.source || (fieldMatched?.suggestion ? "auto" : existingEntry?.mappingSource || "manual"),
       };
 
-      if (included) {
-        const existingMappedField = existingEntry?.mappedField ?? null;
-        const nextMappedField = entry.mappedField ?? null;
-        const existingPrimary = existingEntry?.primary === 1 || existingEntry?.primary === true ? 1 : 0;
+      const existingMappedField = existingEntry?.mappedField ?? null;
+      const nextMappedField = entry.mappedField ?? null;
+      const existingPrimary = existingEntry?.primary === 1 || existingEntry?.primary === true ? 1 : 0;
+      const existingIncluded = existingEntry?.included !== false;
+      const existingSource = existingEntry?.mappingSource || null;
 
-        if (existingEntry && existingMappedField === nextMappedField && existingPrimary === entry.primary) {
-          return;
-        }
-
-        wizard.addMappingEntry(entry);
-      } else {
-        if (!existingEntry) {
-          return;
-        }
-
-        wizard.removeMappingEntry(entry);
+      if (
+        existingEntry
+        && existingMappedField === nextMappedField
+        && existingPrimary === entry.primary
+        && existingIncluded === entry.included
+        && existingSource === entry.mappingSource
+      ) {
+        return;
       }
+
+      wizard.addMappingEntry(existingEntry ? { ...existingEntry, ...entry } : entry);
     },
     { lazy: true }
   );

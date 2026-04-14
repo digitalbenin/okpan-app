@@ -24,7 +24,6 @@
         class="btn btn-success"
         onclick={() => {
           wizard.reusedTemplate = $state.snapshot(template);
-          wizard.mapping = $state.snapshot(template.mapping);
           wizard.useMatchingTemplate = true;
         }}
       >

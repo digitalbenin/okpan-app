@@ -17,7 +17,7 @@
         class="d-flex align-items-center bg-white rounded-2 text-capitalize border-0"
         {...(({ type, ...rest }) => rest)(props)}
       >
-        {#if field.suggestion}
+        {#if field.suggestion || field.source === "auto" || field.mappingSource === "auto"}
           <div
             class="d-flex align-items-center justify-content-center border-0 rounded-start bg-primary px-1 me-2"
           >
