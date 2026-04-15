@@ -44,7 +44,7 @@ const reconcileRunning  = new Set();
 const seededHashes      = new Set();
 const projectSeededHashes = new Map(); // projectId → Set<infoHash>
 const signalingActions  = new Map(); // projectId → { room, sendRequest, sendSignal, seederPeers }
-const pendingPeerSignals= new Map(); // `${projectId}:${infoHash}` → { projectId, peer, seederId }
+const pendingPeerSignals= new Map(); // `${projectId}:${infoHash}:${attemptId}` → { key, projectId, infoHash, attemptId, peer, seederId, createdAt }
 
 
 async function getWtClient() {
@@ -64,8 +64,78 @@ function getOrSet(map, key, factory) {
   return map.get(key);
 }
 
-function getPendingPeerSignalKey(projectId, infoHash) {
-  return `${projectId}:${infoHash}`;
+function normalizeAttemptId(attemptId) {
+  return typeof attemptId === 'string' && attemptId.length > 0 ? attemptId : null;
+}
+
+function getPendingPeerSignalKey(projectId, infoHash, attemptId) {
+  return `${projectId}:${infoHash}:${attemptId}`;
+}
+
+function getSeederPeerKey(infoHash, requesterId, attemptId) {
+  return `${infoHash}:${requesterId}:${attemptId}`;
+}
+
+function destroyPeer(peer) {
+  try { peer?.destroy(); } catch (_) {}
+}
+
+function removePendingPeerSignalEntry(key, { destroy = true } = {}) {
+  const entry = pendingPeerSignals.get(key);
+  if (!entry) return null;
+  if (destroy) destroyPeer(entry.peer);
+  pendingPeerSignals.delete(key);
+  return entry;
+}
+
+function clearPendingPeerSignalsForAsset(projectId, infoHash, keepAttemptId = null) {
+  for (const [key, entry] of pendingPeerSignals) {
+    if (entry?.projectId !== projectId || entry?.infoHash !== infoHash) continue;
+    if (keepAttemptId && entry.attemptId === keepAttemptId) continue;
+    removePendingPeerSignalEntry(key);
+  }
+}
+
+function findPendingPeerSignalEntry(projectId, infoHash, attemptId = null, senderId = null) {
+  const normalizedAttemptId = normalizeAttemptId(attemptId);
+  if (normalizedAttemptId) {
+    return pendingPeerSignals.get(getPendingPeerSignalKey(projectId, infoHash, normalizedAttemptId)) || null;
+  }
+
+  let latestEntry = null;
+  for (const entry of pendingPeerSignals.values()) {
+    if (entry?.projectId !== projectId || entry?.infoHash !== infoHash) continue;
+    if (senderId && entry.seederId && entry.seederId !== senderId) continue;
+    if (!latestEntry || (entry.createdAt ?? 0) > (latestEntry.createdAt ?? 0)) {
+      latestEntry = entry;
+    }
+  }
+  return latestEntry;
+}
+
+function clearSeederPeersForRequest(seederPeers, infoHash, requesterId, keepAttemptId = null) {
+  for (const [key, entry] of seederPeers) {
+    if (entry?.infoHash !== infoHash || entry?.requesterId !== requesterId) continue;
+    if (keepAttemptId && entry.attemptId === keepAttemptId) continue;
+    destroyPeer(entry.peer);
+    seederPeers.delete(key);
+  }
+}
+
+function findSeederPeerEntry(seederPeers, infoHash, requesterId, attemptId = null) {
+  const normalizedAttemptId = normalizeAttemptId(attemptId);
+  if (normalizedAttemptId) {
+    return seederPeers.get(getSeederPeerKey(infoHash, requesterId, normalizedAttemptId)) || null;
+  }
+
+  let latestEntry = null;
+  for (const entry of seederPeers.values()) {
+    if (entry?.infoHash !== infoHash || entry?.requesterId !== requesterId) continue;
+    if (!latestEntry || (entry.createdAt ?? 0) > (latestEntry.createdAt ?? 0)) {
+      latestEntry = entry;
+    }
+  }
+  return latestEntry;
 }
 
 function recordSeededHash(projectId, infoHash) {
@@ -77,8 +147,7 @@ function recordSeededHash(projectId, infoHash) {
 function clearProjectPendingSignals(projectId) {
   for (const [key, entry] of pendingPeerSignals) {
     if (entry?.projectId !== projectId) continue;
-    try { entry.peer?.destroy(); } catch (_) {}
-    pendingPeerSignals.delete(key);
+    removePendingPeerSignalEntry(key);
   }
 }
 
@@ -246,7 +315,7 @@ async function setupSignalingForProject(projectId) {
   const [sendRequest, receiveRequest] = room.makeAction('peerRequest');
   const [sendSignal,  receiveSignal]  = room.makeAction('peerSignal');
 
-  // seederPeers: `${infoHash}:${requesterId}` ? SimplePeer (initiator side)
+  // seederPeers: `${infoHash}:${requesterId}:${attemptId}` ? { peer, ... }
   // Needed so incoming signals from the downloader can be routed back to the
   // correct initiator peer to complete the WebRTC handshake.
   const seederPeers = new Map();
@@ -257,12 +326,11 @@ async function setupSignalingForProject(projectId) {
   // started before the seeder was visible in the Trystero room (the initial
   // broadcast at startup went to nobody; the seeder joined later).
   room.onPeerJoin((peerId) => {
-    for (const [key, entry] of pendingPeerSignals) {
+    for (const entry of pendingPeerSignals.values()) {
       if (entry?.projectId !== projectId || entry.seederId) continue;
-      const [, infoHash] = key.split(':', 2);
-      if (infoHash) {
+      if (entry.infoHash) {
         //console.log(`[AssetTorrent] [Signaling] New peer ${peerId} � re-sending request for ${infoHash}`);
-        sendRequest({ infoHash }, [peerId]);
+        sendRequest({ infoHash: entry.infoHash, attemptId: entry.attemptId }, [peerId]);
       }
     }
   });
@@ -273,22 +341,29 @@ async function setupSignalingForProject(projectId) {
     });
   });
 
-  receiveRequest(async ({ infoHash }, requesterId) => {
+  receiveRequest(async ({ infoHash, attemptId }, requesterId) => {
     const client  = await getWtClient();
     const torrent = await client.get(infoHash);
     if (!torrent) return;
+
+    const normalizedAttemptId = normalizeAttemptId(attemptId) || `legacy-${requesterId}`;
 
     let peer;
     try { peer = new SimplePeer({ initiator: true, trickle: true, config: WEBRTC_CONFIG }); }
     catch (err) { console.error('[AssetTorrent] seeder SimplePeer failed:', err?.message); return; }
 
-    const key = `${infoHash}:${requesterId}`;
-    // Destroy any stale peer for this key before replacing � prevents old
-    // signal listeners from flooding the downloader with duplicate offers.
-    const stalePeer = seederPeers.get(key);
-    if (stalePeer) { try { stalePeer.destroy(); } catch (_) {} seederPeers.delete(key); }
-    seederPeers.set(key, peer);
-    peer.on('signal', (signal) => sendSignal({ infoHash, signal }, [requesterId]));
+    const key = getSeederPeerKey(infoHash, requesterId, normalizedAttemptId);
+    // Destroy any stale peer for this requester/infoHash before replacing it.
+    clearSeederPeersForRequest(seederPeers, infoHash, requesterId, normalizedAttemptId);
+    seederPeers.set(key, {
+      key,
+      infoHash,
+      requesterId,
+      attemptId: normalizedAttemptId,
+      createdAt: Date.now(),
+      peer,
+    });
+    peer.on('signal', (signal) => sendSignal({ infoHash, attemptId: normalizedAttemptId, signal }, [requesterId]));
     //peer.on('connect', () => console.log(`[AssetTorrent] [Signaling] Seeder WebRTC connected ${infoHash}`));
     peer.on('error',  (err)    => { console.warn(`[AssetTorrent] seeder peer error ${infoHash}:`, err?.message); seederPeers.delete(key); });
     peer.on('close',  ()       => seederPeers.delete(key));
@@ -302,10 +377,10 @@ async function setupSignalingForProject(projectId) {
     }
   });
 
-  receiveSignal(({ infoHash, signal }, senderId) => {
+  receiveSignal(({ infoHash, attemptId, signal }, senderId) => {
     // Path A: signal is from a downloader back to the seeder's initiator peer
-    const seederPeer = seederPeers.get(`${infoHash}:${senderId}`);
-    if (seederPeer) {
+    const seederEntry = findSeederPeerEntry(seederPeers, infoHash, senderId, attemptId);
+    if (seederEntry?.peer) {
       // The node-datachannel WebRTC polyfill has two bugs in the answer SDP it
       // produces for the non-initiator peer:
       //   1. type is incorrectly set to 'offer' instead of 'answer'
@@ -315,12 +390,12 @@ async function setupSignalingForProject(projectId) {
         ? { ...signal, type: 'answer', sdp: signal.sdp.replace(/a=setup:actpass/g, 'a=setup:active') }
         : signal;
       //console.log(`[AssetTorrent] [Signaling] Seeder received back-signal for ${infoHash} type=${signal?.type || 'candidate'} (corrected=${corrected?.type || 'candidate'})`);
-      try { seederPeer.signal(corrected); }
+      try { seederEntry.peer.signal(corrected); }
       catch (err) { console.warn(`[AssetTorrent] seeder peer.signal error ${infoHash}:`, err?.message); }
       return;
     }
     // Path B: signal is from the seeder to the downloader's non-initiator peer
-    const entry = pendingPeerSignals.get(getPendingPeerSignalKey(projectId, infoHash));
+    const entry = findPendingPeerSignalEntry(projectId, infoHash, attemptId, senderId);
     if (!entry) return;
     if (!entry.seederId) {
       entry.seederId = senderId;
@@ -334,14 +409,19 @@ async function setupSignalingForProject(projectId) {
   });
 }
 
-function cleanupSignalingPeer(projectId, infoHash) {
-  const key = getPendingPeerSignalKey(projectId, infoHash);
-  const entry = pendingPeerSignals.get(key);
-  if (entry) { try { entry.peer.destroy(); } catch (_) {} pendingPeerSignals.delete(key); }
+function cleanupSignalingPeer(projectId, infoHash, attemptId = null) {
+  const normalizedAttemptId = normalizeAttemptId(attemptId);
+  if (normalizedAttemptId) {
+    removePendingPeerSignalEntry(getPendingPeerSignalKey(projectId, infoHash, normalizedAttemptId));
+    return;
+  }
+  clearPendingPeerSignalsForAsset(projectId, infoHash);
 }
 
 function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
   if (!sig || !torrent) return false;
+
+  const attemptId = crypto.randomUUID();
 
   let sigPeer;
   try { sigPeer = new SimplePeer({ initiator: false, trickle: true, config: WEBRTC_CONFIG }); }
@@ -350,18 +430,24 @@ function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
     return false;
   }
 
-  const key = getPendingPeerSignalKey(projectId, infoHash);
-  const staleEntry = pendingPeerSignals.get(key);
-  if (staleEntry) {
-    try { staleEntry.peer.destroy(); } catch (_) {}
-    pendingPeerSignals.delete(key);
-  }
+  clearPendingPeerSignalsForAsset(projectId, infoHash);
+
+  const key = getPendingPeerSignalKey(projectId, infoHash, attemptId);
+  const entry = {
+    key,
+    projectId,
+    infoHash,
+    attemptId,
+    peer: sigPeer,
+    seederId: null,
+    createdAt: Date.now(),
+  };
 
   sigPeer.on('signal', (signal) => {
-    const entry = pendingPeerSignals.get(key);
-    if (entry?.seederId) {
+    const currentEntry = pendingPeerSignals.get(key);
+    if (currentEntry?.seederId) {
       //console.log(`[AssetTorrent] [Signaling] Downloader sending back-signal for ${infoHash} type=${signal?.type || 'candidate'}`);
-      sig.sendSignal({ infoHash, signal }, [entry.seederId]);
+      sig.sendSignal({ infoHash, attemptId, signal }, [currentEntry.seederId]);
     } else {
       console.warn(`[AssetTorrent] [Signaling] Downloader sigPeer signal fired but seederId not yet set for ${infoHash}`);
     }
@@ -375,16 +461,16 @@ function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
 
   sigPeer.on('error', (err) => console.warn(`[AssetTorrent] downloader peer error ${infoHash}:`, err?.message));
   sigPeer.on('close', () => {
-    const entry = pendingPeerSignals.get(key);
-    if (entry?.peer === sigPeer && !torrent.done) {
+    const currentEntry = pendingPeerSignals.get(key);
+    if (currentEntry?.peer === sigPeer && !torrent.done) {
       console.warn(`[AssetTorrent] [Signaling] Downloader peer closed for ${infoHash}; awaiting a fresh seeder response`);
-      entry.seederId = null;
+      currentEntry.seederId = null;
     }
   });
 
-  pendingPeerSignals.set(key, { projectId, peer: sigPeer, seederId: null });
+  pendingPeerSignals.set(key, entry);
   //console.log(`[AssetTorrent] [Signaling] Broadcasting peerRequest for ${infoHash}`);
-  sig.sendRequest({ infoHash });
+  sig.sendRequest({ infoHash, attemptId });
   return true;
 }
 
@@ -395,18 +481,17 @@ async function resetPendingSeederForPeer(projectId, peerId) {
   const sig = signalingActions.get(projectId);
   if (!sig) return;
 
-  for (const [key, entry] of pendingPeerSignals) {
+  for (const entry of pendingPeerSignals.values()) {
     if (entry?.projectId !== projectId || entry.seederId !== peerId) continue;
 
-    const [, infoHash] = key.split(':', 2);
-    const torrent = await client.get(infoHash);
+    const torrent = await client.get(entry.infoHash);
     if (!torrent || torrent.done) {
-      cleanupSignalingPeer(projectId, infoHash);
+      cleanupSignalingPeer(projectId, entry.infoHash, entry.attemptId);
       continue;
     }
 
-    console.warn(`[AssetTorrent] [Signaling] Seeder ${peerId} left during ${infoHash}; rebuilding downloader peer`);
-    createDownloaderSignalPeer({ projectId, infoHash, torrent, sig });
+    console.warn(`[AssetTorrent] [Signaling] Seeder ${peerId} left during ${entry.infoHash}; rebuilding downloader peer`);
+    createDownloaderSignalPeer({ projectId, infoHash: entry.infoHash, torrent, sig });
   }
 }
 
@@ -908,7 +993,7 @@ export async function stopProjectTorrents(projectId) {
   const dv = reconcileDebounce.get(projectId);  if (dv) { clearTimeout(dv);  reconcileDebounce.delete(projectId); }
   const sig = signalingActions.get(projectId);
   if (sig) {
-    for (const p of sig.seederPeers.values()) try { p.destroy(); } catch (_) {}
+    for (const entry of sig.seederPeers.values()) destroyPeer(entry?.peer);
     try { sig.room?.leave?.(); } catch (err) { console.warn('[AssetTorrent] signaling room leave failed:', err?.message); }
     signalingActions.delete(projectId);
   }
@@ -924,10 +1009,10 @@ export function destroyTorrentManager() {
   for (const t of reconcileIntervals.values()) clearInterval(t);
   for (const t of reconcileDebounce.values())  clearTimeout(t);
   for (const sig of signalingActions.values()) {
-    for (const p of sig.seederPeers.values()) try { p.destroy(); } catch (_) {}
+    for (const entry of sig.seederPeers.values()) destroyPeer(entry?.peer);
     try { sig.room?.leave?.(); } catch (err) { console.warn('[AssetTorrent] signaling room leave failed:', err?.message); }
   }
-  for (const entry of pendingPeerSignals.values()) try { entry.peer?.destroy(); } catch (_) {}
+  for (const entry of pendingPeerSignals.values()) destroyPeer(entry?.peer);
   reconcileIntervals.clear();
   reconcileDebounce.clear();
   signalingActions.clear();

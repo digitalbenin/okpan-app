@@ -1043,10 +1043,13 @@ app.whenReady().then(() => {
       // pathname starts with / so we remove it
       const pathname = decodeURIComponent(url.pathname).replace(/^\//, '');
       const buildDir = path.join(process.cwd(), 'src', 'website', 'build');
+      const spaShellPath = fs.existsSync(path.join(buildDir, 'index.html'))
+        ? path.join(buildDir, 'index.html')
+        : path.join(buildDir, '200.html');
 
       let filePath;
-      if (!pathname || pathname === '' || pathname === 'index.html') {
-        filePath = path.join(buildDir, 'index.html');
+      if (!pathname || pathname === '' || pathname === 'index.html' || pathname === '200.html') {
+        filePath = spaShellPath;
       } else {
         filePath = path.join(buildDir, pathname);
       }
@@ -1054,8 +1057,8 @@ app.whenReady().then(() => {
       if (fs.existsSync(filePath)) {
         callback({ path: filePath });
       } else {
-        // Fallback to 200.html for client-side routing
-        callback({ path: path.join(buildDir, 'index.html') });
+        // Fallback to the SPA shell for client-side routing.
+        callback({ path: spaShellPath });
       }
     } catch (error) {
       console.error('Website protocol error:', error);
