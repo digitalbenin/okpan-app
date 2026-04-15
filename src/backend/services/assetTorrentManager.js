@@ -383,6 +383,9 @@ async function setupSignalingForProject(projectId) {
     let peer;
     try { peer = new SimplePeer({ initiator: true, trickle: true, config: WEBRTC_CONFIG }); }
     catch (err) { console.error('[AssetTorrent] seeder SimplePeer failed:', err?.message); return; }
+    // Assign .id so WebTorrent's _peers Map can track this peer properly
+    // (SimplePeer only exposes ._id privately; conn.id would be undefined).
+    peer.id = `seed-${infoHash}-${normalizedAttemptId}`;
 
     const key = getSeederPeerKey(infoHash, requesterId, normalizedAttemptId);
     // Destroy any stale peer for this requester/infoHash before replacing it.
@@ -461,6 +464,10 @@ function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
     console.warn(`[AssetTorrent] downloader SimplePeer failed ${infoHash}:`, err?.message);
     return false;
   }
+  // SimplePeer exposes ._id (private) but not .id.  WebTorrent keys its
+  // _peers Map on conn.id, which remains undefined and breaks duplicate
+  // detection.  Assign a stable .id so addPeer() bookkeeping works.
+  sigPeer.id = `dl-${infoHash}-${attemptId}`;
 
   clearPendingPeerSignalsForAsset(projectId, infoHash);
 
@@ -485,7 +492,11 @@ function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
     }
   });
 
-  sigPeer.on('connect', () => {
+  // @thaunknown/simple-peer emits 'connect' TWICE inside _maybeReady()
+  // (lines 723 and 748 of lite.js).  Use .once() so the second emission
+  // does not call addPeer() again — which would try to re-pipe the same
+  // stream and throw "Can only pipe to one destination" from streamx.
+  sigPeer.once('connect', () => {
     //console.log(`[AssetTorrent] [Signaling] WebRTC connected, injecting peer for ${infoHash}`);
     try { torrent.addPeer(sigPeer); }
     catch (err) { console.warn('[AssetTorrent] downloader torrent.addPeer failed:', err?.message); }
