@@ -40,7 +40,7 @@ function syncBaselineFromCanonical(projectId, baselineDoc, canonicalDoc) {
     Y.applyUpdate(baselineDoc, snapshot)
     const baselineStats = countDocTables(baselineDoc)
     const canonicalStats = countDocTables(canonicalDoc)
-    console.log('[P2P] Baseline synced from canonical', { projectId, baseline: baselineStats, canonical: canonicalStats })
+    //console.log('[P2P] Baseline synced from canonical', { projectId, baseline: baselineStats, canonical: canonicalStats })
   } catch (err) {
     console.warn('[P2P] Failed to sync baseline from canonical', { projectId, err: err?.message })
   }

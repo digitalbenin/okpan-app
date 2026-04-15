@@ -215,9 +215,55 @@ async function removeProjectClientTorrents(projectId) {
   }));
 }
 
-function sanitizeName(name) {
+const WINDOWS_RESERVED_BASENAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
+
+function getTorrentMetadataName(name) {
   if (!name || typeof name !== 'string') return 'asset.bin';
-  return path.basename(name).replace(/[^\w.\-]/g, '_') || 'asset.bin';
+  return path.basename(name) || 'asset.bin';
+}
+
+function sanitizeName(name) {
+  let base = getTorrentMetadataName(name)
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+    .replace(/[. ]+$/g, '');
+
+  if (!base) base = 'asset.bin';
+
+  if (WINDOWS_RESERVED_BASENAME.test(base)) {
+    const ext = path.extname(base);
+    const stem = path.basename(base, ext) || 'asset';
+    base = `${stem}_${ext}`;
+  }
+
+  return base;
+}
+
+function isReadableTorrentStore(torrent) {
+  if (!torrent?.store) return Promise.resolve(false);
+  if (!Number.isFinite(torrent.length) || torrent.length <= 0) return Promise.resolve(true);
+
+  const length = Math.max(1, Math.min(torrent.pieceLength || torrent.length, torrent.length));
+  return new Promise((resolve) => {
+    try {
+      torrent.store.get(0, { offset: 0, length }, (err) => {
+        resolve(!err);
+      });
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+async function persistTorrentMetadataForAsset(assetId, isGeneric, meta) {
+  if (!meta?.infoHash) return;
+
+  const table = isGeneric ? genericAssets : assets;
+  await db.update(table).set({
+    torrent_info_hash: meta.infoHash,
+    torrent_name: meta.name,
+    torrent_length: meta.length,
+    torrent_piece_length: meta.pieceLength,
+  }).where(eq(table.id, assetId)).execute();
 }
 
 function hasCompleteLocalFile(filePath, expectedLength = null) {
@@ -376,11 +422,7 @@ async function setupSignalingForProject(projectId) {
   receiveRequest(async ({ infoHash, attemptId }, requesterId) => {
     const client  = await getWtClient();
     const torrent = await client.get(infoHash);
-    if (!torrent) {
-      console.warn(`[AssetTorrent] [DIAG] Seeder: no torrent for infoHash=${infoHash} (request from ${requesterId})`);
-      return;
-    }
-    console.log(`[AssetTorrent] [DIAG] Seeder: got request for ${infoHash} from ${requesterId}, torrent.done=${torrent.done} numPeers=${torrent.numPeers} files=${torrent.files?.length}`);
+    if (!torrent) return;
 
     const normalizedAttemptId = normalizeAttemptId(attemptId) || `legacy-${requesterId}`;
 
@@ -403,36 +445,10 @@ async function setupSignalingForProject(projectId) {
       peer,
     });
     peer.on('signal', (signal) => sendSignal({ infoHash, attemptId: normalizedAttemptId, signal }, [requesterId]));
-    peer.on('connect', () => {
-      console.log(`[AssetTorrent] [DIAG] Seeder peer CONNECTED ${infoHash} for ${requesterId}`);
-      // Log wire state of the torrent after the seeder peer connects
-      setTimeout(() => {
-        if (peer.destroyed || torrent.destroyed) return;
-        const wires = torrent.wires || [];
-        console.log(`[AssetTorrent] [DIAG] Seeder torrent state for ${infoHash}: numPeers=${torrent.numPeers} wires=${wires.length} done=${torrent.done} pieces=${torrent.pieces?.length} store=${!!torrent.store}`);
-        for (const w of wires) {
-          console.log(`[AssetTorrent] [DIAG]   Seeder wire: addr=${w.remoteAddress} amChoking=${w.amChoking} peerInterested=${w.peerInterested} uploaded=${w.uploaded} requests=${w.requests?.length ?? 0} peerRequests=${w.peerRequests?.length ?? 0}`);
-        }
-        // Test store read — can we actually read piece 0?
-        if (torrent.store) {
-          try {
-            torrent.store.get(0, (err, buf) => {
-              if (err) console.error(`[AssetTorrent] [DIAG] Seeder STORE READ FAILED for ${infoHash} piece 0:`, err?.message);
-              else console.log(`[AssetTorrent] [DIAG] Seeder STORE READ OK for ${infoHash} piece 0: ${buf?.length} bytes`);
-            });
-          } catch (err) {
-            console.error(`[AssetTorrent] [DIAG] Seeder STORE READ THREW for ${infoHash}:`, err?.message);
-          }
-        } else {
-          console.warn(`[AssetTorrent] [DIAG] Seeder has NO STORE for ${infoHash}`);
-        }
-      }, 3000);
-    });
-    peer.on('error',  (err)    => { console.warn(`[AssetTorrent] seeder peer error ${infoHash} (${key}):`, err?.message); seederPeers.delete(key); });
-    peer.on('close',  ()       => { console.log(`[AssetTorrent] [DIAG] Seeder peer CLOSED ${infoHash} (${key})`); seederPeers.delete(key); });
+    peer.on('error',  (err)    => { console.warn(`[AssetTorrent] seeder peer error ${infoHash}:`, err?.message); seederPeers.delete(key); });
+    peer.on('close',  ()       => seederPeers.delete(key));
     try {
       torrent.addPeer(peer);
-      console.log(`[AssetTorrent] [DIAG] Seeder injected peer for ${infoHash}, peer.id=${peer.id}, torrent.numPeers=${torrent.numPeers}`);
     } catch (err) {
       console.warn('[AssetTorrent] seeder torrent.addPeer failed:', err?.message);
       peer.destroy();
@@ -525,10 +541,8 @@ function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
   // does not call addPeer() again — which would try to re-pipe the same
   // stream and throw "Can only pipe to one destination" from streamx.
   sigPeer.once('connect', () => {
-    console.log(`[AssetTorrent] [DIAG] Downloader: WebRTC connected for ${infoHash}, sigPeer.connected=${sigPeer.connected}, sigPeer._connected=${sigPeer._connected}`);
     try {
       torrent.addPeer(sigPeer);
-      console.log(`[AssetTorrent] [DIAG] Downloader: addPeer OK for ${infoHash}, peer.id=${sigPeer.id}, torrent.numPeers=${torrent.numPeers}`);
     }
     catch (err) { console.warn('[AssetTorrent] downloader torrent.addPeer failed:', err?.message); }
   });
@@ -673,7 +687,7 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
   }
 
   const client  = await getWtClient();
-  const name    = sanitizeName(path.basename(filePath));
+  const name    = getTorrentMetadataName(path.basename(filePath));
   const absPath = path.resolve(filePath);
 
   return new Promise((resolve) => {
@@ -688,28 +702,30 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
       });
     };
 
-    try {
-      const existing = (expectedInfoHash && client.torrents.find((torrent) => torrent.infoHash === expectedInfoHash))
-        || client.torrents.find((torrent) => torrent.files?.some((file) => path.resolve(file.path) === absPath));
-      if (existing?.done && hasCompleteLocalFile(filePath, expectedLength)) {
-        recordSeededHash(projectId, existing.infoHash);
-        setupSignalingForProject(projectId).catch(() => {});
-        upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, download_progress: 100 }).catch(() => {});
-        emitSyncProgress(assetId, isGeneric, 'seeding', 100);
-        resolve({ infoHash: existing.infoHash, name: existing.name, length: existing.length, pieceLength: existing.pieceLength });
-        return;
-      }
+    (async () => {
+      try {
+        const existing = (expectedInfoHash && client.torrents.find((torrent) => torrent.infoHash === expectedInfoHash))
+          || client.torrents.find((torrent) => torrent.files?.some((file) => path.resolve(file.path) === absPath));
+        if (existing?.done && hasCompleteLocalFile(filePath, expectedLength) && await isReadableTorrentStore(existing)) {
+          recordSeededHash(projectId, existing.infoHash);
+          setupSignalingForProject(projectId).catch(() => {});
+          upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, download_progress: 100 }).catch(() => {});
+          emitSyncProgress(assetId, isGeneric, 'seeding', 100);
+          resolve({ infoHash: existing.infoHash, name: existing.name, length: existing.length, pieceLength: existing.pieceLength });
+          return;
+        }
 
-      if (existing) {
-        client.remove(existing.infoHash, { destroyStore: false }, () => beginSeed());
-        return;
-      }
+        if (existing) {
+          client.remove(existing.infoHash, { destroyStore: false }, () => beginSeed());
+          return;
+        }
 
-      beginSeed();
-    } catch (err) {
-      console.error(`[AssetTorrent] seedAsset error for ${assetId}:`, err);
-      resolve(null);
-    }
+        beginSeed();
+      } catch (err) {
+        console.error(`[AssetTorrent] seedAsset error for ${assetId}:`, err);
+        resolve(null);
+      }
+    })();
   });
 }
 
@@ -793,7 +809,6 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
     getOrSet(downloadAbortFuncs, projectId, () => new Map()).set(assetId, abortDownload);
 
     const timeoutFn = async () => {
-      console.warn(`[AssetTorrent] [DIAG] TIMEOUT for ${assetId} infoHash=${infoHash}, torrent peers=${(await client.get(infoHash))?.numPeers ?? 'N/A'}, wires=${(await client.get(infoHash))?.wires?.length ?? 'N/A'}`);
       active.delete(assetId);
       cleanupSignalingPeer(projectId, infoHash);
       drainQueue(projectId);
@@ -819,60 +834,9 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
         }
 
         torrent.on('warning', (w) => console.warn(`[AssetTorrent] warning ${assetId}:`, w?.message || w));
-        torrent.on('wire',    (wire) => {
-          console.log(`[AssetTorrent] [DIAG] Wire connected ${assetId}: remoteAddr=${wire.remoteAddress} type=${wire.type} peerCount=${torrent.numPeers}`);
-          wire.on('choke',       () => console.log(`[AssetTorrent] [DIAG] Wire CHOKED by remote ${assetId}`));
-          wire.on('unchoke',     () => console.log(`[AssetTorrent] [DIAG] Wire UNCHOKED by remote ${assetId}`));
-          wire.on('interested',  () => console.log(`[AssetTorrent] [DIAG] Remote INTERESTED ${assetId}`));
-          wire.on('request',     () => console.log(`[AssetTorrent] [DIAG] Remote REQUESTING piece from us ${assetId}`));
-          wire.on('close',       () => console.log(`[AssetTorrent] [DIAG] Wire CLOSED ${assetId}`));
-          wire.on('end',         () => console.log(`[AssetTorrent] [DIAG] Wire ENDED ${assetId}`));
-          wire.on('finish',      () => console.log(`[AssetTorrent] [DIAG] Wire FINISHED ${assetId}`));
-          wire.on('error',       (e) => console.warn(`[AssetTorrent] [DIAG] Wire ERROR ${assetId}:`, e?.message));
-          wire.on('timeout',     () => console.warn(`[AssetTorrent] [DIAG] Wire TIMEOUT ${assetId}`));
-        });
         // torrent.on('noPeers', (t) => console.warn(`[AssetTorrent] no peers ${assetId} (${t})`)); // Removed to prevent log spam when seeding
-        torrent.on('ready', () => {
-          console.log(`[AssetTorrent] [DIAG] Metadata ready ${assetId} peers=${torrent.numPeers} length=${torrent.length} pieces=${torrent.pieces?.length}`);
-          // Delayed state check — diagnose stalled downloads
-          setTimeout(() => {
-            if (settled || torrent.destroyed) return;
-            const wires = torrent.wires || [];
-            const wireInfo = wires.map((w) => ({
-              addr: w.remoteAddress,
-              choked: w.peerChoking,
-              interested: w.amInterested,
-              downloaded: w.downloaded,
-              uploaded: w.uploaded,
-              requests: w.requests?.length ?? 0,
-              peerRequests: w.peerRequests?.length ?? 0,
-              type: w.type,
-            }));
-            console.warn(`[AssetTorrent] [DIAG] 5s state check ${assetId}: downloaded=${torrent.downloaded}/${torrent.length} progress=${torrent.progress} numPeers=${torrent.numPeers} selections=${torrent._selections?.length ?? 'N/A'} pieces=${torrent.pieces?.filter(Boolean)?.length ?? 0}/${torrent.pieces?.length ?? 0} wires=${JSON.stringify(wireInfo)}`);
-          }, 5000);
-          // 15s follow-up
-          setTimeout(() => {
-            if (settled || torrent.destroyed) return;
-            const wires = torrent.wires || [];
-            const wireInfo = wires.map((w) => ({
-              addr: w.remoteAddress,
-              choked: w.peerChoking,
-              interested: w.amInterested,
-              downloaded: w.downloaded,
-              uploaded: w.uploaded,
-              requests: w.requests?.length ?? 0,
-              peerRequests: w.peerRequests?.length ?? 0,
-            }));
-            console.warn(`[AssetTorrent] [DIAG] 15s state check ${assetId}: downloaded=${torrent.downloaded}/${torrent.length} progress=${torrent.progress} numPeers=${torrent.numPeers} wires=${JSON.stringify(wireInfo)}`);
-          }, 15000);
-        });
-        let firstDataLogged = false;
-        torrent.on('download', (bytes) => {
+        torrent.on('download', () => {
           resetTimer();
-          if (!firstDataLogged) {
-            firstDataLogged = true;
-            console.log(`[AssetTorrent] [DIAG] First data received ${assetId}: ${bytes} bytes, total=${torrent.downloaded}/${torrent.length}`);
-          }
           const pct = torrent.length > 0 ? Math.round((torrent.downloaded / torrent.length) * 100) : 0;
           upsertLocalState(assetId, isGeneric, { download_progress: pct }).catch(() => {});
           emitSyncProgress(assetId, isGeneric, 'downloading', pct);
@@ -881,7 +845,6 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
         torrent.on('done', async () => {
           active.delete(assetId);
           cleanupSignalingPeer(projectId, infoHash);
-          console.log(`[AssetTorrent] [DIAG] Download DONE: ${assetId} numPeers=${torrent.numPeers}`);
           try {
             const actualPath = resolveDownloadedFilePath(expected, torrent);
             if (!actualPath) {
@@ -944,7 +907,6 @@ function enqueueDownload(job) {
   const active = getOrSet(activeDownloads, job.projectId, () => new Set());
   const queue  = getOrSet(downloadQueues,  job.projectId, () => []);
   if (active.has(job.assetId) || queue.some((q) => q.assetId === job.assetId)) return;
-  console.log(`[AssetTorrent] [DIAG] Enqueue download: asset=${job.assetId} infoHash=${job.infoHash} active=${active.size}/${MAX_CONCURRENT_DOWNLOADS_PER_PROJECT} queued=${queue.length}`);
   if (active.size < MAX_CONCURRENT_DOWNLOADS_PER_PROJECT) {
     active.add(job.assetId);
     downloadAsset(job).catch((err) => { console.error('[AssetTorrent] downloadAsset error:', err); active.delete(job.assetId); drainQueue(job.projectId); });
@@ -1068,12 +1030,25 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
       }
 
       if ((status === 'seeding' || status === 'available') && hasFile) {
-        if (!seededHashes.has(row.torrent_info_hash))
-          seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash, expectedLength: row.torrent_length }).catch(() => {});
+        if (!seededHashes.has(row.torrent_info_hash)) {
+          seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash, expectedLength: row.torrent_length })
+            .then((meta) => {
+              if (meta?.infoHash && meta.infoHash !== row.torrent_info_hash) {
+                return persistTorrentMetadataForAsset(row.id, isGeneric, meta);
+              }
+            })
+            .catch(() => {});
+        }
         continue;
       }
       if (hasFile && (status === null || status === 'missing')) {
-        seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash, expectedLength: row.torrent_length }).catch(() => {});
+        seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash, expectedLength: row.torrent_length })
+          .then((meta) => {
+            if (meta?.infoHash && meta.infoHash !== row.torrent_info_hash) {
+              return persistTorrentMetadataForAsset(row.id, isGeneric, meta);
+            }
+          })
+          .catch(() => {});
         continue;
       }
       if ((status === 'seeding' || status === 'available') && !hasFile) {

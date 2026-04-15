@@ -44,7 +44,7 @@ const assetConfig = {
     },
     video: {
         formats: ["mp4", "webm", "mov"],
-        maxSize: 52428800, // 50MB
+        maxSize: 5242880000, // 50MB
         maxSizeLabel: "50MB"
     },
     audio: {
