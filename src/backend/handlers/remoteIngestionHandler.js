@@ -1,6 +1,8 @@
 import * as Y from 'yjs'
 import { diff as deepDiff } from '@opentf/obj-diff'
 import crypto from 'crypto'
+import { promises as fs } from 'fs'
+import path from 'path'
 import { db } from '../../db/init.js'
 import * as schema from '../../db/schema.js'
 import { eq } from 'drizzle-orm'
@@ -38,6 +40,42 @@ function isChangeLogProjectIdNotNull(err) {
     return true
   }
   return false
+}
+
+const ASSET_FILE_TABLES = new Set(['assets', 'generic_assets'])
+
+function normalizeFormats(value) {
+  if (!value) return {}
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return {}
+    }
+  }
+  if (typeof value === 'object') return value
+  return {}
+}
+
+function resolveFilePath(filePath) {
+  if (!filePath || typeof filePath !== 'string') return null
+  const trimmed = filePath.trim()
+  if (!trimmed) return null
+  return path.isAbsolute(trimmed) ? trimmed : path.join(process.cwd(), trimmed)
+}
+
+function collectAssetFilePaths(row) {
+  const files = new Set()
+  const mainPath = resolveFilePath(row?.path)
+  if (mainPath) files.add(mainPath)
+
+  const formats = normalizeFormats(row?.formats)
+  Object.values(formats).forEach((formatPath) => {
+    const resolved = resolveFilePath(formatPath)
+    if (resolved) files.add(resolved)
+  })
+
+  return [...files]
 }
 
 // Normalize timestamp-ish fields so Drizzle's timestamp_ms columns receive Date
@@ -331,9 +369,24 @@ async function applyUpdate(dbOrTx, tableName, id, row) {
   await dbOrTx.update(table).set(values).where(eq(table.id, id)).execute()
 }
 
-async function applyDelete(dbOrTx, tableName, id) {
+async function applyDelete(dbOrTx, tableName, id, pendingFileDeletes = []) {
   const table = resolveTable(tableName)
   if (!table) return
+
+  if (ASSET_FILE_TABLES.has(tableName)) {
+    const rows = await dbOrTx
+      .select({ id: table.id, path: table.path, formats: table.formats })
+      .from(table)
+      .where(eq(table.id, id))
+      .limit(1)
+      .execute()
+
+    const assetRow = rows[0]
+    if (assetRow) {
+      pendingFileDeletes.push({ assetId: assetRow.id, files: collectAssetFilePaths(assetRow) })
+    }
+  }
+
   await dbOrTx.delete(table).where(eq(table.id, id)).execute()
 }
 
@@ -347,6 +400,7 @@ async function applyDelete(dbOrTx, tableName, id) {
 export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   if (!projectId || !updateBytes) return { applied: 0 }
   const ASSET_TABLES = new Set(['assets', 'generic_assets'])
+  const pendingFileDeletes = []
   // Allow callers to provide a baseline doc representing the BEFORE state
   // This fixes zero-diff when the canonical doc has already integrated the update.
   const baseline = options?.beforeDoc || getProjectDoc(projectId)
@@ -591,7 +645,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
           const del = remainingDeletes[i]
           if (del.table !== t) continue
           try {
-            await tx.delete(tableRef).where(eq(tableRef.id, del.id)).execute()
+            await applyDelete(tx, t, del.id, pendingFileDeletes)
             applied += 1
             remainingDeletes.splice(i, 1)
             progress = true
@@ -626,6 +680,21 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
       }
     }
   })
+
+  for (const entry of pendingFileDeletes) {
+    for (const filePath of entry.files) {
+      try {
+        await fs.unlink(filePath)
+      } catch (err) {
+        if (err?.code === 'ENOENT') continue
+        console.warn('[RemoteIngestion] Failed to remove asset file after synced delete:', {
+          assetId: entry.assetId,
+          path: filePath,
+          error: err?.message
+        })
+      }
+    }
+  }
 
   const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: options?.beforeDoc ? 'baseline-before-after' : 'shadow-before-after' }
   if (deferredInserts || deferredUpdates || deferredDeletes) {
