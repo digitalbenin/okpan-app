@@ -403,9 +403,20 @@ async function setupSignalingForProject(projectId) {
       peer,
     });
     peer.on('signal', (signal) => sendSignal({ infoHash, attemptId: normalizedAttemptId, signal }, [requesterId]));
-    //peer.on('connect', () => console.log(`[AssetTorrent] [Signaling] Seeder WebRTC connected ${infoHash}`));
-    peer.on('error',  (err)    => { console.warn(`[AssetTorrent] seeder peer error ${infoHash}:`, err?.message); seederPeers.delete(key); });
-    peer.on('close',  ()       => seederPeers.delete(key));
+    peer.on('connect', () => {
+      console.log(`[AssetTorrent] [DIAG] Seeder peer CONNECTED ${infoHash} for ${requesterId}`);
+      // Log wire state of the torrent after the seeder peer connects
+      setTimeout(() => {
+        if (peer.destroyed || torrent.destroyed) return;
+        const wires = torrent.wires || [];
+        console.log(`[AssetTorrent] [DIAG] Seeder torrent state for ${infoHash}: numPeers=${torrent.numPeers} wires=${wires.length} done=${torrent.done}`);
+        for (const w of wires) {
+          console.log(`[AssetTorrent] [DIAG]   Seeder wire: addr=${w.remoteAddress} amChoking=${w.amChoking} peerInterested=${w.peerInterested} uploaded=${w.uploaded} requests=${w.requests?.length ?? 0}`);
+        }
+      }, 3000);
+    });
+    peer.on('error',  (err)    => { console.warn(`[AssetTorrent] seeder peer error ${infoHash} (${key}):`, err?.message); seederPeers.delete(key); });
+    peer.on('close',  ()       => { console.log(`[AssetTorrent] [DIAG] Seeder peer CLOSED ${infoHash} (${key})`); seederPeers.delete(key); });
     try {
       torrent.addPeer(peer);
       console.log(`[AssetTorrent] [DIAG] Seeder injected peer for ${infoHash}, peer.id=${peer.id}, torrent.numPeers=${torrent.numPeers}`);
@@ -795,11 +806,43 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
         }
 
         torrent.on('warning', (w) => console.warn(`[AssetTorrent] warning ${assetId}:`, w?.message || w));
-        torrent.on('wire',    (w) => console.log(`[AssetTorrent] [DIAG] Wire connected ${assetId}: remoteAddr=${w.remoteAddress} type=${w.type} peerCount=${torrent.numPeers}`));
+        torrent.on('wire',    (wire) => {
+          console.log(`[AssetTorrent] [DIAG] Wire connected ${assetId}: remoteAddr=${wire.remoteAddress} type=${wire.type} peerCount=${torrent.numPeers}`);
+          wire.on('choke',       () => console.log(`[AssetTorrent] [DIAG] Wire CHOKED by remote ${assetId}`));
+          wire.on('unchoke',     () => console.log(`[AssetTorrent] [DIAG] Wire UNCHOKED by remote ${assetId}`));
+          wire.on('interested',  () => console.log(`[AssetTorrent] [DIAG] Remote INTERESTED ${assetId}`));
+          wire.on('request',     () => console.log(`[AssetTorrent] [DIAG] Remote REQUESTING piece from us ${assetId}`));
+          wire.on('close',       () => console.log(`[AssetTorrent] [DIAG] Wire CLOSED ${assetId}`));
+          wire.on('end',         () => console.log(`[AssetTorrent] [DIAG] Wire ENDED ${assetId}`));
+          wire.on('finish',      () => console.log(`[AssetTorrent] [DIAG] Wire FINISHED ${assetId}`));
+          wire.on('error',       (e) => console.warn(`[AssetTorrent] [DIAG] Wire ERROR ${assetId}:`, e?.message));
+          wire.on('timeout',     () => console.warn(`[AssetTorrent] [DIAG] Wire TIMEOUT ${assetId}`));
+        });
         // torrent.on('noPeers', (t) => console.warn(`[AssetTorrent] no peers ${assetId} (${t})`)); // Removed to prevent log spam when seeding
-        torrent.on('ready',   ()  => console.log(`[AssetTorrent] [DIAG] Metadata ready ${assetId} peers=${torrent.numPeers} length=${torrent.length}`));
-        torrent.on('download', () => {
+        torrent.on('ready', () => {
+          console.log(`[AssetTorrent] [DIAG] Metadata ready ${assetId} peers=${torrent.numPeers} length=${torrent.length} pieces=${torrent.pieces?.length}`);
+          // Delayed state check — diagnose stalled downloads
+          setTimeout(() => {
+            if (settled || torrent.destroyed) return;
+            const wires = torrent.wires || [];
+            const wireInfo = wires.map((w) => ({
+              addr: w.remoteAddress,
+              choked: w.peerChoking,
+              interested: w.amInterested,
+              downloaded: w.downloaded,
+              uploaded: w.uploaded,
+              requests: w.requests?.length ?? 0,
+            }));
+            console.warn(`[AssetTorrent] [DIAG] 5s state check ${assetId}: downloaded=${torrent.downloaded}/${torrent.length} progress=${torrent.progress} numPeers=${torrent.numPeers} wires=${JSON.stringify(wireInfo)}`);
+          }, 5000);
+        });
+        let firstDataLogged = false;
+        torrent.on('download', (bytes) => {
           resetTimer();
+          if (!firstDataLogged) {
+            firstDataLogged = true;
+            console.log(`[AssetTorrent] [DIAG] First data received ${assetId}: ${bytes} bytes, total=${torrent.downloaded}/${torrent.length}`);
+          }
           const pct = torrent.length > 0 ? Math.round((torrent.downloaded / torrent.length) * 100) : 0;
           upsertLocalState(assetId, isGeneric, { download_progress: pct }).catch(() => {});
           emitSyncProgress(assetId, isGeneric, 'downloading', pct);

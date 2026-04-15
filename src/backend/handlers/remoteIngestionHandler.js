@@ -297,7 +297,7 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false, exp
 
   // Optional debug: enable by setting env P2P_DEBUG_COMPUTEDIFF=1
   try {
-    if (true || process?.env?.P2P_DEBUG_COMPUTEDIFF === '1') {
+    if (process?.env?.P2P_DEBUG_COMPUTEDIFF === '1') {
       console.dir({ msg: '[RemoteIngestion] Diff classification',
         diffs: diffs.length,
         inserts: inserts.length,

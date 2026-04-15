@@ -322,7 +322,7 @@ export async function startP2PForProject(projectId, options = {}) {
       // Persist using baseline BEFORE snapshot to avoid zero-diff after local integration
       const res = await ingestRemoteUpdate(projectId, update, { beforeDoc: baselineDoc })
       if (res?.applied || res?.inserts || res?.updates || res?.deletes) {
-        console.log('[P2P] Persisted Yjs update to SQLite', { projectId, origin, bytes: update?.length || 0, ...res })
+        //console.log('[P2P] Persisted Yjs update to SQLite', { projectId, origin, bytes: update?.length || 0, ...res })
         // Advance baseline to reflect the newly persisted update.
 
         try {
