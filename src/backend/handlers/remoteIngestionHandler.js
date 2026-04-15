@@ -13,12 +13,12 @@ import { scheduleAssetReconcile } from '../services/assetTorrentManager.js'
 function isFkError(err) {
   const code = err?.code ?? err?.rawCode
   if (code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || code === 787) {
-    console.warn('[RemoteIngestion] matched isFkError by code:', code, err?.message)
+    //console.warn('[RemoteIngestion] matched isFkError by code:', code, err?.message)
     return true
   }
   const msg = String(err?.message || '')
   if (/FOREIGN KEY constraint failed/i.test(msg)) {
-    console.warn('[RemoteIngestion] matched isFkError by msg:', msg)
+    //console.warn('[RemoteIngestion] matched isFkError by msg:', msg)
     return true
   }
   return false
@@ -29,12 +29,12 @@ function isChangeLogProjectIdNotNull(err) {
   const msg = String(err?.message || '')
   if (code === 'SQLITE_CONSTRAINT_NOTNULL' || code === 1299) {
     if (/change_log\.project_id/i.test(msg)) {
-      console.warn('[RemoteIngestion] matched isChangeLogProjectIdNotNull by code:', code, msg)
+      //console.warn('[RemoteIngestion] matched isChangeLogProjectIdNotNull by code:', code, msg)
       return true
     }
   }
   if (/NOT NULL constraint failed: change_log\.project_id/i.test(msg)) {
-    console.warn('[RemoteIngestion] matched isChangeLogProjectIdNotNull by msg:', msg)
+    //console.warn('[RemoteIngestion] matched isChangeLogProjectIdNotNull by msg:', msg)
     return true
   }
   return false
@@ -285,7 +285,7 @@ function computeDiff(beforeTables, afterTables, { allowTableDeletes = false, exp
   }
   for (const k of deleteKeys) {
     if (explicitDeletes && !explicitDeletes.has(k)) {
-      console.warn(`[RemoteIngestion] PROTECTED row ${k} from accidental deletion (due to map replacement)!`)
+      //console.warn('[RemoteIngestion] PROTECTED row ${k} from accidental deletion (due to map replacement)!`)
       const [t, i] = k.split('#');
         const row = getBeforeRows(t)[i];
         if (row) rescues.push({ table: t, id: i, row });
@@ -412,15 +412,15 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     }
   } catch (_) {}
 
-  try {
-    console.log('[RemoteIngestion] BEFORE/AFTER tables snapshot', {
-      projectId,
-      updateBytes: updateBytes?.length || 0,
-      source,
-      before: beforeStats,
-      after: afterStats
-    })
-  } catch (_) {}
+  // try {
+  //   console.log('[RemoteIngestion] BEFORE/AFTER tables snapshot', {
+  //     projectId,
+  //     updateBytes: updateBytes?.length || 0,
+  //     source,
+  //     before: beforeStats,
+  //     after: afterStats
+  //   })
+  // } catch (_) {}
   const { inserts, updates, deletes, rescues } = computeDiff(beforeTables, afterTables, {
     allowTableDeletes: options?.allowTableDeletes === true,
     explicitDeletes
@@ -435,13 +435,13 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   let deferredAssetUpdates = 0
   let deferredAssetDeletes = 0
 
-  console.log('[RemoteIngestion] Diff Tables (Inserts):', [...new Set(inserts.map(i => i.table))])
-  console.log('[RemoteIngestion] Diff Tables (Updates):', [...new Set(updates.map(i => i.table))])
+  //console.log('[RemoteIngestion] Diff Tables (Inserts):', [...new Set(inserts.map(i => i.table))])
+  //console.log('[RemoteIngestion] Diff Tables (Updates):', [...new Set(updates.map(i => i.table))])
 
   const unmapped = [...new Set([...inserts.map(i => i.table), ...updates.map(i => i.table)])].filter(t => !FK_ORDER.includes(t))
-  console.log('[RemoteIngestion] Unmapped Tables:', unmapped)
+  //console.log('[RemoteIngestion] Unmapped Tables:', unmapped)
   if (unmapped.length > 0) {
-    console.warn('[RemoteIngestion] IGNORING UNMAPPED TABLES! THESE WILL BE DEFERRED:', unmapped)
+    //console.warn('[RemoteIngestion] IGNORING UNMAPPED TABLES! THESE WILL BE DEFERRED:', unmapped)
   }
 
   // Multi-pass transaction to satisfy FKs: attempt in FK order repeatedly (max 3 passes)
@@ -461,7 +461,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     while (progress && pass < 3) {
       progress = false
       pass += 1
-      console.log('[RemoteIngestion] Commit pass start', { projectId, pass, remainingInserts: remainingInserts.length, remainingUpdates: remainingUpdates.length, remainingDeletes: remainingDeletes.length })
+      //console.log('[RemoteIngestion] Commit pass start', { projectId, pass, remainingInserts: remainingInserts.length, remainingUpdates: remainingUpdates.length, remainingDeletes: remainingDeletes.length })
 
       // Inserts and updates forward in FK order
       for (const t of FK_ORDER) {
@@ -494,12 +494,12 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
               }
             }
             if (!hasProjectContext(t, { id: ins.id, ...payload })) {
-              console.warn('[RemoteIngestion] Deferring insert lacking project context', { table: t, id: ins.id, requires: CONTEXT_REQUIREMENTS[t] })
+              //console.warn('[RemoteIngestion] Deferring insert lacking project context', { table: t, id: ins.id, requires: CONTEXT_REQUIREMENTS[t] })
               continue
             }
             // Enforce required fields for INSERT on specific tables (e.g., languages)
             if (!hasRequiredForInsert(t, payload)) {
-              console.warn('[RemoteIngestion] Deferring insert lacking required fields', { table: t, id: ins.id, required: INSERT_REQUIRED_FIELDS[t] })
+              //console.warn('[RemoteIngestion] Deferring insert lacking required fields', { table: t, id: ins.id, required: INSERT_REQUIRED_FIELDS[t] })
               continue
             }
             // Avoid aborting the transaction when rows already exist locally.
@@ -526,11 +526,11 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
             progress = true
           } catch (err) {
             if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
-              console.warn(`[RemoteIngestion] Insert deferred due to FK/ProjectId on pass ${pass}`, { table: t, id: ins.id, err: err?.message, code: err?.code, rawCode: err?.rawCode })
+              //console.warn(`[RemoteIngestion] Insert deferred due to FK/ProjectId on pass ${pass}`, { table: t, id: ins.id, err: err?.message, code: err?.code, rawCode: err?.rawCode })
               continue
             }
             if ((err?.code === 'SQLITE_CONSTRAINT_UNIQUE' || err?.message?.includes('UNIQUE constraint failed')) && !err?.message?.includes('PRIMARY KEY')) {
-              console.warn(`[RemoteIngestion] Ignored duplicate insert due to secondary UNIQUE constraint on pass ${pass}`, { table: t, id: ins.id, err: err?.message })
+              //console.warn(`[RemoteIngestion] Ignored duplicate insert due to secondary UNIQUE constraint on pass ${pass}`, { table: t, id: ins.id, err: err?.message })
               // Mark as applied so we don't abort transaction or defer this perpetually
               applied += 1
               remainingInserts.splice(i, 1)
@@ -568,11 +568,11 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
             progress = true
           } catch (err) {
             if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
-              console.warn(`[RemoteIngestion] Update deferred due to FK/ProjectId on pass ${pass}`, { table: t, id: up.id, err: err?.message, code: err?.code, rawCode: err?.rawCode })
+              //console.warn(`[RemoteIngestion] Update deferred due to FK/ProjectId on pass ${pass}`, { table: t, id: up.id, err: err?.message, code: err?.code, rawCode: err?.rawCode })
               continue
             }
             if ((err?.code === 'SQLITE_CONSTRAINT_UNIQUE' || err?.message?.includes('UNIQUE constraint failed')) && !err?.message?.includes('PRIMARY KEY')) {
-              console.warn(`[RemoteIngestion] Ignored duplicate update due to secondary UNIQUE constraint on pass ${pass}`, { table: t, id: up.id, err: err?.message })
+              //console.warn(`[RemoteIngestion] Ignored duplicate update due to secondary UNIQUE constraint on pass ${pass}`, { table: t, id: up.id, err: err?.message })
               applied += 1
               remainingUpdates.splice(i, 1)
               progress = true
@@ -597,7 +597,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
             progress = true
           } catch (err) {
             if (isFkError(err) || isChangeLogProjectIdNotNull(err)) {
-              console.warn('[RemoteIngestion] Delete deferred due to FK/ProjectId', { table: t, id: del.id, err: err?.message })
+              //console.warn('[RemoteIngestion] Delete deferred due to FK/ProjectId', { table: t, id: del.id, err: err?.message })
               continue
             }
             throw err
@@ -622,24 +622,24 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
           update_bytes: Buffer.from(updateBytes)
         }).execute()
       } catch (err) {
-        console.warn('[RemoteIngestion] Failed to store update_bytes', err?.message)
+        //console.warn('[RemoteIngestion] Failed to store update_bytes', err?.message)
       }
     }
   })
 
   const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: options?.beforeDoc ? 'baseline-before-after' : 'shadow-before-after' }
   if (deferredInserts || deferredUpdates || deferredDeletes) {
-    console.log('[RemoteIngestion] Committed with deferrals', {
-      ...summary,
-      deferredInserts,
-      deferredUpdates,
-      deferredDeletes,
-      deferredAssetInserts,
-      deferredAssetUpdates,
-      deferredAssetDeletes,
-    })
+    //console.log('[RemoteIngestion] Committed with deferrals', {
+    //  ...summary,
+    //  deferredInserts,
+    //  deferredUpdates,
+    //  deferredDeletes,
+    //  deferredAssetInserts,
+    //  deferredAssetUpdates,
+    //  deferredAssetDeletes,
+    //})
   } else {
-    console.log('[RemoteIngestion] Committed', summary)
+    //console.log('[RemoteIngestion] Committed', summary)
   }
 
   // Trigger asset P2P reconcile if any asset rows were inserted/updated.
@@ -651,22 +651,22 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     deferredAssetUpdates > 0 ||
     deferredAssetDeletes > 0
   if (committedAssetChanges > 0 && !hasDeferredAssetChanges) {
-    console.log('[RemoteIngestion] Asset rows changed, scheduling P2P reconcile for', projectId);
+    //console.log('[RemoteIngestion] Asset rows changed, scheduling P2P reconcile for', projectId);
     try { scheduleAssetReconcile(projectId); } catch (err) {
       console.warn('[RemoteIngestion] scheduleAssetReconcile error:', err?.message);
     }
   } else if (committedAssetChanges > 0 || hasDeferredAssetChanges) {
-    console.log('[RemoteIngestion] Asset reconcile skipped until asset-row ingestion is fully resolved', {
-      projectId,
-      committedAssetChanges,
-      deferredAssetInserts,
-      deferredAssetUpdates,
-      deferredAssetDeletes,
-    })
+    //console.log('[RemoteIngestion] Asset reconcile skipped until asset-row ingestion is fully resolved', {
+    //  projectId,
+    //  committedAssetChanges,
+    //  deferredAssetInserts,
+    //  deferredAssetUpdates,
+    //  deferredAssetDeletes,
+    //})
   }
 
   if (rescues && rescues.length > 0) {
-    console.warn('[RemoteIngestion] Recovering orphaned rows due to Yjs map replacement...', rescues.length);
+    //console.warn('[RemoteIngestion] Recovering orphaned rows due to Yjs map replacement...', rescues.length);
     try {
       const canonical = getProjectDoc(projectId);
       canonical.transact(() => {
@@ -680,7 +680,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
                 rowMap.set(k, v);
               }
               tableMap.set(r.id, rowMap);
-              console.warn('[RemoteIngestion] Rescued orphaned row into Yjs:', r.table, r.id);
+              //console.warn('[RemoteIngestion] Rescued orphaned row into Yjs:', r.table, r.id);
            }
         }
       }, 'ingestion');

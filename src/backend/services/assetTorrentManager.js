@@ -290,16 +290,16 @@ async function upsertLocalState(assetId, isGeneric, fields) {
 
   const presence = await queryAssetRowPresence(assetId, isGeneric);
   if (presence === 'other') {
-    console.warn(
-      `[AssetTorrent] upsertLocalState skipped for ${assetId}: parent row exists in ${isGeneric ? 'assets' : 'generic_assets'} ` +
-      `but write targeted ${isGeneric ? 'generic_asset_local_state' : 'asset_local_state'}`
-    );
+    //console.warn(
+    //  `[AssetTorrent] upsertLocalState skipped for ${assetId}: parent row exists in ${isGeneric ? 'assets' : 'generic_assets'} ` +
+    //  `but write targeted ${isGeneric ? 'generic_asset_local_state' : 'asset_local_state'}`
+    //);
     return false;
   }
   if (presence !== 'expected') {
-    console.warn(
-      `[AssetTorrent] upsertLocalState deferred for ${assetId}: parent row missing from ${isGeneric ? 'generic_assets' : 'assets'}`
-    );
+    //console.warn(
+    //  `[AssetTorrent] upsertLocalState deferred for ${assetId}: parent row missing from ${isGeneric ? 'generic_assets' : 'assets'}`
+    //);
     return false;
   }
 
@@ -376,7 +376,11 @@ async function setupSignalingForProject(projectId) {
   receiveRequest(async ({ infoHash, attemptId }, requesterId) => {
     const client  = await getWtClient();
     const torrent = await client.get(infoHash);
-    if (!torrent) return;
+    if (!torrent) {
+      console.warn(`[AssetTorrent] [DIAG] Seeder: no torrent for infoHash=${infoHash} (request from ${requesterId})`);
+      return;
+    }
+    console.log(`[AssetTorrent] [DIAG] Seeder: got request for ${infoHash} from ${requesterId}, torrent.done=${torrent.done} numPeers=${torrent.numPeers} files=${torrent.files?.length}`);
 
     const normalizedAttemptId = normalizeAttemptId(attemptId) || `legacy-${requesterId}`;
 
@@ -404,7 +408,7 @@ async function setupSignalingForProject(projectId) {
     peer.on('close',  ()       => seederPeers.delete(key));
     try {
       torrent.addPeer(peer);
-      console.log(`[AssetTorrent] [Signaling] Seeder injected peer for ${infoHash}`);
+      console.log(`[AssetTorrent] [DIAG] Seeder injected peer for ${infoHash}, peer.id=${peer.id}, torrent.numPeers=${torrent.numPeers}`);
     } catch (err) {
       console.warn('[AssetTorrent] seeder torrent.addPeer failed:', err?.message);
       peer.destroy();
@@ -497,8 +501,11 @@ function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
   // does not call addPeer() again — which would try to re-pipe the same
   // stream and throw "Can only pipe to one destination" from streamx.
   sigPeer.once('connect', () => {
-    //console.log(`[AssetTorrent] [Signaling] WebRTC connected, injecting peer for ${infoHash}`);
-    try { torrent.addPeer(sigPeer); }
+    console.log(`[AssetTorrent] [DIAG] Downloader: WebRTC connected for ${infoHash}, sigPeer.connected=${sigPeer.connected}, sigPeer._connected=${sigPeer._connected}`);
+    try {
+      torrent.addPeer(sigPeer);
+      console.log(`[AssetTorrent] [DIAG] Downloader: addPeer OK for ${infoHash}, peer.id=${sigPeer.id}, torrent.numPeers=${torrent.numPeers}`);
+    }
     catch (err) { console.warn('[AssetTorrent] downloader torrent.addPeer failed:', err?.message); }
   });
 
@@ -625,7 +632,7 @@ async function repairProjectAssetStates(projectId) {
 
   const repaired = results.reduce((sum, result) => sum + (result?.repaired || 0), 0);
   if (repaired > 0) {
-    console.warn(`[AssetTorrent] Repaired ${repaired} stale local asset sync state rows for project ${projectId}`);
+    //console.warn(`[AssetTorrent] Repaired ${repaired} stale local asset sync state rows for project ${projectId}`);
     scheduleAssetReconcile(projectId);
   }
 
@@ -762,6 +769,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
     getOrSet(downloadAbortFuncs, projectId, () => new Map()).set(assetId, abortDownload);
 
     const timeoutFn = async () => {
+      console.warn(`[AssetTorrent] [DIAG] TIMEOUT for ${assetId} infoHash=${infoHash}, torrent peers=${(await client.get(infoHash))?.numPeers ?? 'N/A'}, wires=${(await client.get(infoHash))?.wires?.length ?? 'N/A'}`);
       active.delete(assetId);
       cleanupSignalingPeer(projectId, infoHash);
       drainQueue(projectId);
@@ -787,9 +795,9 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
         }
 
         torrent.on('warning', (w) => console.warn(`[AssetTorrent] warning ${assetId}:`, w?.message || w));
-        //torrent.on('wire',    (w) => console.log(`[AssetTorrent] peer connected ${assetId}: ${w.remoteAddress}`));
+        torrent.on('wire',    (w) => console.log(`[AssetTorrent] [DIAG] Wire connected ${assetId}: remoteAddr=${w.remoteAddress} type=${w.type} peerCount=${torrent.numPeers}`));
         // torrent.on('noPeers', (t) => console.warn(`[AssetTorrent] no peers ${assetId} (${t})`)); // Removed to prevent log spam when seeding
-        //torrent.on('ready',   ()  => console.log(`[AssetTorrent] metadata ready ${assetId} peers=${torrent.numPeers}`));
+        torrent.on('ready',   ()  => console.log(`[AssetTorrent] [DIAG] Metadata ready ${assetId} peers=${torrent.numPeers} length=${torrent.length}`));
         torrent.on('download', () => {
           resetTimer();
           const pct = torrent.length > 0 ? Math.round((torrent.downloaded / torrent.length) * 100) : 0;
@@ -800,6 +808,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
         torrent.on('done', async () => {
           active.delete(assetId);
           cleanupSignalingPeer(projectId, infoHash);
+          console.log(`[AssetTorrent] [DIAG] Download DONE: ${assetId} numPeers=${torrent.numPeers}`);
           try {
             const actualPath = resolveDownloadedFilePath(expected, torrent);
             if (!actualPath) {
@@ -862,6 +871,7 @@ function enqueueDownload(job) {
   const active = getOrSet(activeDownloads, job.projectId, () => new Set());
   const queue  = getOrSet(downloadQueues,  job.projectId, () => []);
   if (active.has(job.assetId) || queue.some((q) => q.assetId === job.assetId)) return;
+  console.log(`[AssetTorrent] [DIAG] Enqueue download: asset=${job.assetId} infoHash=${job.infoHash} active=${active.size}/${MAX_CONCURRENT_DOWNLOADS_PER_PROJECT} queued=${queue.length}`);
   if (active.size < MAX_CONCURRENT_DOWNLOADS_PER_PROJECT) {
     active.add(job.assetId);
     downloadAsset(job).catch((err) => { console.error('[AssetTorrent] downloadAsset error:', err); active.delete(job.assetId); drainQueue(job.projectId); });
@@ -976,7 +986,7 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
       const filePath = existingPath;
 
       if (!hasFile && incompletePath) {
-        console.warn(`[AssetTorrent] Incomplete local asset detected for ${row.id}; forcing retry state`);
+        //console.warn(`[AssetTorrent] Incomplete local asset detected for ${row.id}; forcing retry state`);
         await upsertLocalState(row.id, isGeneric, { sync_status: 'missing', download_progress: 0, sync_error: null });
       }
 
