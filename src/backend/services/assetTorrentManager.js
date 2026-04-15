@@ -453,12 +453,6 @@ function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
     }
   });
 
-  sigPeer.on('connect', () => {
-    //console.log(`[AssetTorrent] [Signaling] WebRTC connected, injecting peer for ${infoHash}`);
-    try { torrent.addPeer(sigPeer); }
-    catch (err) { console.warn('[AssetTorrent] downloader torrent.addPeer failed:', err?.message); }
-  });
-
   sigPeer.on('error', (err) => console.warn(`[AssetTorrent] downloader peer error ${infoHash}:`, err?.message));
   sigPeer.on('close', () => {
     const currentEntry = pendingPeerSignals.get(key);
@@ -469,6 +463,13 @@ function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
   });
 
   pendingPeerSignals.set(key, entry);
+  try {
+    torrent.addPeer(sigPeer);
+  } catch (err) {
+    console.warn('[AssetTorrent] downloader torrent.addPeer failed:', err?.message);
+    removePendingPeerSignalEntry(key);
+    return false;
+  }
   //console.log(`[AssetTorrent] [Signaling] Broadcasting peerRequest for ${infoHash}`);
   sig.sendRequest({ infoHash, attemptId });
   return true;
