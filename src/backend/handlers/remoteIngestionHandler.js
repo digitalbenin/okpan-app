@@ -346,6 +346,7 @@ async function applyDelete(dbOrTx, tableName, id) {
  */
 export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   if (!projectId || !updateBytes) return { applied: 0 }
+  const ASSET_TABLES = new Set(['assets', 'generic_assets'])
   // Allow callers to provide a baseline doc representing the BEFORE state
   // This fixes zero-diff when the canonical doc has already integrated the update.
   const baseline = options?.beforeDoc || getProjectDoc(projectId)
@@ -429,6 +430,10 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   let deferredInserts = 0
   let deferredUpdates = 0
   let deferredDeletes = 0
+  let committedAssetChanges = 0
+  let deferredAssetInserts = 0
+  let deferredAssetUpdates = 0
+  let deferredAssetDeletes = 0
 
   console.log('[RemoteIngestion] Diff Tables (Inserts):', [...new Set(inserts.map(i => i.table))])
   console.log('[RemoteIngestion] Diff Tables (Updates):', [...new Set(updates.map(i => i.table))])
@@ -516,6 +521,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
                 .execute()
             }
             applied += 1
+            if (ASSET_TABLES.has(t)) committedAssetChanges += 1
             remainingInserts.splice(i, 1)
             progress = true
           } catch (err) {
@@ -557,6 +563,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
               }
             }
             applied += 1
+            if (ASSET_TABLES.has(t)) committedAssetChanges += 1
             remainingUpdates.splice(i, 1)
             progress = true
           } catch (err) {
@@ -602,6 +609,9 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     deferredInserts = remainingInserts.length
     deferredUpdates = remainingUpdates.length
     deferredDeletes = remainingDeletes.length
+    deferredAssetInserts = remainingInserts.filter((row) => ASSET_TABLES.has(row.table)).length
+    deferredAssetUpdates = remainingUpdates.filter((row) => ASSET_TABLES.has(row.table)).length
+    deferredAssetDeletes = remainingDeletes.filter((row) => ASSET_TABLES.has(row.table)).length
 
     // Persist remote update bytes so app restarts can hydrate this exact vector natively
     if (updateBytes && updateBytes.length > 0 && (inserts.length > 0 || updates.length > 0 || deletes.length > 0)) {
@@ -619,24 +629,40 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
 
   const summary = { projectId, inserts: inserts.length, updates: updates.length, deletes: deletes.length, diffSource: options?.beforeDoc ? 'baseline-before-after' : 'shadow-before-after' }
   if (deferredInserts || deferredUpdates || deferredDeletes) {
-    console.log('[RemoteIngestion] Committed with deferrals', { ...summary, deferredInserts, deferredUpdates, deferredDeletes })
+    console.log('[RemoteIngestion] Committed with deferrals', {
+      ...summary,
+      deferredInserts,
+      deferredUpdates,
+      deferredDeletes,
+      deferredAssetInserts,
+      deferredAssetUpdates,
+      deferredAssetDeletes,
+    })
   } else {
     console.log('[RemoteIngestion] Committed', summary)
   }
 
   // Trigger asset P2P reconcile if any asset rows were inserted/updated.
-  // This is debounced (600ms) and non-blocking — safe to call on every ingestion.
-  // Loop prevention: reconcile only schedules downloads; it never writes to
-  // assets/generic_assets (only to asset_local_state), so no Yjs update is produced.
-  const ASSET_TABLES = new Set(['assets', 'generic_assets']);
-  const hasAssetChanges =
-    inserts.some((r) => ASSET_TABLES.has(r.table)) ||
-    updates.some((r) => ASSET_TABLES.has(r.table));
-  if (hasAssetChanges) {
+  // Only do this after asset-table writes from this ingestion pass actually committed.
+  // If asset rows are still deferred, running reconcile can start downloads against
+  // state that is not yet materialized in SQLite.
+  const hasDeferredAssetChanges =
+    deferredAssetInserts > 0 ||
+    deferredAssetUpdates > 0 ||
+    deferredAssetDeletes > 0
+  if (committedAssetChanges > 0 && !hasDeferredAssetChanges) {
     console.log('[RemoteIngestion] Asset rows changed, scheduling P2P reconcile for', projectId);
     try { scheduleAssetReconcile(projectId); } catch (err) {
       console.warn('[RemoteIngestion] scheduleAssetReconcile error:', err?.message);
     }
+  } else if (committedAssetChanges > 0 || hasDeferredAssetChanges) {
+    console.log('[RemoteIngestion] Asset reconcile skipped until asset-row ingestion is fully resolved', {
+      projectId,
+      committedAssetChanges,
+      deferredAssetInserts,
+      deferredAssetUpdates,
+      deferredAssetDeletes,
+    })
   }
 
   if (rescues && rescues.length > 0) {
@@ -663,5 +689,15 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     }
   }
 
-  return { applied, ...summary, deferredInserts, deferredUpdates, deferredDeletes }
+  return {
+    applied,
+    ...summary,
+    deferredInserts,
+    deferredUpdates,
+    deferredDeletes,
+    committedAssetChanges,
+    deferredAssetInserts,
+    deferredAssetUpdates,
+    deferredAssetDeletes,
+  }
 }

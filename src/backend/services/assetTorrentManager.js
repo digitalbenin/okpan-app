@@ -257,6 +257,20 @@ async function computeSha256(filePath) {
   });
 }
 
+async function queryAssetRowPresence(assetId, isGeneric) {
+  const expectedTable = isGeneric ? genericAssets : assets;
+  const otherTable = isGeneric ? assets : genericAssets;
+
+  const [expectedRows, otherRows] = await Promise.all([
+    db.select({ id: expectedTable.id }).from(expectedTable).where(eq(expectedTable.id, assetId)).limit(1).execute(),
+    db.select({ id: otherTable.id }).from(otherTable).where(eq(otherTable.id, assetId)).limit(1).execute(),
+  ]);
+
+  if (expectedRows.length > 0) return 'expected';
+  if (otherRows.length > 0) return 'other';
+  return 'missing';
+}
+
 
 export function setMainWindowContents(webContents) {
   _webContents = webContents;
@@ -273,11 +287,29 @@ async function upsertLocalState(assetId, isGeneric, fields) {
   const table = isGeneric ? generic_asset_local_state : asset_local_state;
   const pkCol = isGeneric ? table.generic_asset_id : table.asset_id;
   const pkKey = isGeneric ? 'generic_asset_id' : 'asset_id';
+
+  const presence = await queryAssetRowPresence(assetId, isGeneric);
+  if (presence === 'other') {
+    console.warn(
+      `[AssetTorrent] upsertLocalState skipped for ${assetId}: parent row exists in ${isGeneric ? 'assets' : 'generic_assets'} ` +
+      `but write targeted ${isGeneric ? 'generic_asset_local_state' : 'asset_local_state'}`
+    );
+    return false;
+  }
+  if (presence !== 'expected') {
+    console.warn(
+      `[AssetTorrent] upsertLocalState deferred for ${assetId}: parent row missing from ${isGeneric ? 'generic_assets' : 'assets'}`
+    );
+    return false;
+  }
+
   try {
     await db.insert(table).values({ [pkKey]: assetId, ...fields })
       .onConflictDoUpdate({ target: pkCol, set: fields }).execute();
+    return true;
   } catch (err) {
     console.error(`[AssetTorrent] upsertLocalState failed for ${assetId}:`, err?.message);
+    return false;
   }
 }
 
