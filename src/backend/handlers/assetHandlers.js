@@ -161,18 +161,16 @@ const handleImportAssets = async (event, data) => {
 
             if (asset) {
                 const newAsset = await saveAssetToDb(asset, data.isGenericAsset);
-                createdAssets.push({ ...newAsset, _sourcePath: filePath });
                 importedFilePaths.push(filePath);
-                // Seed and persist torrent metadata NON-BLOCKING.
-                // The import response is returned immediately after the DB insert.
-                // If seeding completes before the app restarts, torrent_info_hash is
-                // written and Yjs propagates it to peers straight away.
-                // If the process exits first (e.g. seed script), the reconcile startup
-                // sweep (seedUnseededLocalAssets) will catch this row on next app launch
-                // because the file is on disk but torrent_info_hash IS NULL.
-                seedAndPersistTorrentMetadata(newAsset, data.isGenericAsset).catch((err) =>
-                    console.error('[assetHandlers] seedAndPersistTorrentMetadata error (non-fatal):', err?.message)
-                );
+                // Do not return a newly created asset to the UI until torrent metadata
+                // has been persisted. Otherwise users can link the asset immediately,
+                // while remote peers still see a synced asset row with no torrent
+                // metadata and therefore nothing to download.
+                const seededAsset = await seedAndPersistTorrentMetadata(newAsset, data.isGenericAsset).catch((err) => {
+                    console.error('[assetHandlers] seedAndPersistTorrentMetadata error (non-fatal):', err?.message);
+                    return newAsset;
+                });
+                createdAssets.push({ ...seededAsset, _sourcePath: filePath });
             }
         } catch (error) {
             console.error(`Error processing file ${filePath}:`, error);
@@ -310,7 +308,7 @@ async function seedAndPersistTorrentMetadata(newAsset, isGeneric) {
     const filePath = newAsset.path;
     if (!filePath || !fs.existsSync(filePath)) {
         console.warn('[assetHandlers] seedAndPersistTorrentMetadata: file not found, skipping seed', filePath);
-        return;
+        return newAsset;
     }
 
     let torrentMeta = null;
@@ -323,12 +321,12 @@ async function seedAndPersistTorrentMetadata(newAsset, isGeneric) {
         });
     } catch (err) {
         console.error('[assetHandlers] seedAsset error, torrent metadata will not be stored:', err?.message);
-        return;
+        return newAsset;
     }
 
     if (!torrentMeta?.infoHash) {
         console.warn('[assetHandlers] seedAsset returned no infoHash for', newAsset.id);
-        return;
+        return newAsset;
     }
 
     // Compute SHA-256 for integrity verification on downloaders
@@ -359,8 +357,10 @@ async function seedAndPersistTorrentMetadata(newAsset, isGeneric) {
             `[assetHandlers] Torrent metadata written to DB: assetId=${newAsset.id} ` +
             `infoHash=${torrentMeta.infoHash} sha256=${sha256?.slice(0, 16)}...`
         );
+        return { ...newAsset, ...torrentFields };
     } catch (err) {
         console.error('[assetHandlers] Failed to write torrent metadata to DB:', err?.message);
+        return newAsset;
     }
 }
 
