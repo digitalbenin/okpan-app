@@ -409,9 +409,22 @@ async function setupSignalingForProject(projectId) {
       setTimeout(() => {
         if (peer.destroyed || torrent.destroyed) return;
         const wires = torrent.wires || [];
-        console.log(`[AssetTorrent] [DIAG] Seeder torrent state for ${infoHash}: numPeers=${torrent.numPeers} wires=${wires.length} done=${torrent.done}`);
+        console.log(`[AssetTorrent] [DIAG] Seeder torrent state for ${infoHash}: numPeers=${torrent.numPeers} wires=${wires.length} done=${torrent.done} pieces=${torrent.pieces?.length} store=${!!torrent.store}`);
         for (const w of wires) {
-          console.log(`[AssetTorrent] [DIAG]   Seeder wire: addr=${w.remoteAddress} amChoking=${w.amChoking} peerInterested=${w.peerInterested} uploaded=${w.uploaded} requests=${w.requests?.length ?? 0}`);
+          console.log(`[AssetTorrent] [DIAG]   Seeder wire: addr=${w.remoteAddress} amChoking=${w.amChoking} peerInterested=${w.peerInterested} uploaded=${w.uploaded} requests=${w.requests?.length ?? 0} peerRequests=${w.peerRequests?.length ?? 0}`);
+        }
+        // Test store read — can we actually read piece 0?
+        if (torrent.store) {
+          try {
+            torrent.store.get(0, (err, buf) => {
+              if (err) console.error(`[AssetTorrent] [DIAG] Seeder STORE READ FAILED for ${infoHash} piece 0:`, err?.message);
+              else console.log(`[AssetTorrent] [DIAG] Seeder STORE READ OK for ${infoHash} piece 0: ${buf?.length} bytes`);
+            });
+          } catch (err) {
+            console.error(`[AssetTorrent] [DIAG] Seeder STORE READ THREW for ${infoHash}:`, err?.message);
+          }
+        } else {
+          console.warn(`[AssetTorrent] [DIAG] Seeder has NO STORE for ${infoHash}`);
         }
       }, 3000);
     });
@@ -832,9 +845,26 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
               downloaded: w.downloaded,
               uploaded: w.uploaded,
               requests: w.requests?.length ?? 0,
+              peerRequests: w.peerRequests?.length ?? 0,
+              type: w.type,
             }));
-            console.warn(`[AssetTorrent] [DIAG] 5s state check ${assetId}: downloaded=${torrent.downloaded}/${torrent.length} progress=${torrent.progress} numPeers=${torrent.numPeers} wires=${JSON.stringify(wireInfo)}`);
+            console.warn(`[AssetTorrent] [DIAG] 5s state check ${assetId}: downloaded=${torrent.downloaded}/${torrent.length} progress=${torrent.progress} numPeers=${torrent.numPeers} selections=${torrent._selections?.length ?? 'N/A'} pieces=${torrent.pieces?.filter(Boolean)?.length ?? 0}/${torrent.pieces?.length ?? 0} wires=${JSON.stringify(wireInfo)}`);
           }, 5000);
+          // 15s follow-up
+          setTimeout(() => {
+            if (settled || torrent.destroyed) return;
+            const wires = torrent.wires || [];
+            const wireInfo = wires.map((w) => ({
+              addr: w.remoteAddress,
+              choked: w.peerChoking,
+              interested: w.amInterested,
+              downloaded: w.downloaded,
+              uploaded: w.uploaded,
+              requests: w.requests?.length ?? 0,
+              peerRequests: w.peerRequests?.length ?? 0,
+            }));
+            console.warn(`[AssetTorrent] [DIAG] 15s state check ${assetId}: downloaded=${torrent.downloaded}/${torrent.length} progress=${torrent.progress} numPeers=${torrent.numPeers} wires=${JSON.stringify(wireInfo)}`);
+          }, 15000);
         });
         let firstDataLogged = false;
         torrent.on('download', (bytes) => {
