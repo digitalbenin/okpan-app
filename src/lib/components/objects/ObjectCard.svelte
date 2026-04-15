@@ -101,7 +101,7 @@
       checked={isSelected}
       onchange={handleCheckboxChange}
       onclick={(e) => e.stopPropagation()}
-      aria-label="Select object"
+      aria-label={t("objects.select-object", { fallback: "Select object" })}
     />
   </div>
   <div class="bg-light rounded ratio ratio-1x1 mb-3">
@@ -113,7 +113,7 @@
         >
           <button
             class="prev btn btn-sm btn-outline-dark rounded-circle aspect-ratio-1x1"
-            aria-label="previous image"><i class="bi bi-arrow-left"></i></button
+            aria-label={t("objects.previous-image", { fallback: "Previous image" })}><i class="bi bi-arrow-left"></i></button
           >
         </div>
         <div class="swiper w-100 h-100" {@attach attachSwiper}>
@@ -124,7 +124,7 @@
                   class="object-fit-contain w-100 h-100"
                   src={getAssetImageUrl(image.asset, 'md')}
                   loading="lazy"
-                  alt={image.asset.id || "Object Image"}
+                  alt={title}
                 />
               </div>
             {/each}
@@ -136,7 +136,7 @@
         >
           <button
             class="next btn btn-sm btn-outline-dark rounded-circle aspect-ratio-1x1"
-            aria-label="next image"><i class="bi bi-arrow-right"></i></button
+            aria-label={t("objects.next-image", { fallback: "Next image" })}><i class="bi bi-arrow-right"></i></button
           >
         </div>
       </div>

@@ -4,6 +4,7 @@
         value = $bindable([]),
         itemFields = [],
         addButtonText = "Add Item",
+        deleteButtonTitle = "",
         minItems = 0,
         maxItems = null,
         class: customClass = "",
@@ -138,7 +139,8 @@
                                     )}
                             >
                                 <option value=""
-                                    >Select {fieldConfig.label}...</option
+                                    >{fieldConfig.selectPlaceholder ||
+                                        `Select ${fieldConfig.label}...`}</option
                                 >
                                 {#each fieldConfig.options || [] as option}
                                     <option value={option.value}
@@ -196,6 +198,7 @@
                             class="btn btn-sm btn-outline-danger ms-1"
                             icon="trash"
                             text=""
+                            title={deleteButtonTitle}
                             onClick={() => removeItem(index)}
                         />
                     {:else}

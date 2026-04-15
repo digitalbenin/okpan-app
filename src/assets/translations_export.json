@@ -194,6 +194,1518 @@
     },
     {
       "locale": "en",
+      "namespace": "common",
+      "key": "confirm",
+      "value": "Confirm"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "confirm",
+      "value": "Conferma"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "delete",
+      "value": "Delete"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "delete",
+      "value": "Elimina"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "confirm-delete",
+      "value": "Confirm deletion"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "confirm-delete",
+      "value": "Conferma eliminazione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "deleting",
+      "value": "Deleting..."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "deleting",
+      "value": "Eliminazione..."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "confirm-and-delete",
+      "value": "Confirm and delete"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "confirm-and-delete",
+      "value": "Conferma ed elimina"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "website",
+      "value": "Website"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "website",
+      "value": "Sito web"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "institutions",
+      "value": "Institutions"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "institutions",
+      "value": "Istituzioni"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "objects",
+      "value": "Objects"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "objects",
+      "value": "Oggetti"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "assets",
+      "value": "Assets"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "assets",
+      "value": "Risorse"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "username",
+      "value": "Username"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "username",
+      "value": "Nome utente"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "name",
+      "value": "Name"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "name",
+      "value": "Nome"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "all-status",
+      "value": "All status"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "all-status",
+      "value": "Tutti gli stati"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "in-progress",
+      "value": "In progress"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "in-progress",
+      "value": "In corso"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "completed",
+      "value": "Completed"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "completed",
+      "value": "Completato"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "clear-selection",
+      "value": "Clear selection"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "clear-selection",
+      "value": "Cancella selezione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "delete-selected",
+      "value": "Delete selected"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "delete-selected",
+      "value": "Elimina selezionati"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "search",
+      "value": "Search"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "search",
+      "value": "Cerca"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "filter",
+      "value": "Filter"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "filter",
+      "value": "Filtro"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "clear-filters",
+      "value": "Clear filters"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "clear-filters",
+      "value": "Cancella filtri"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "grid-view",
+      "value": "Grid"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "grid-view",
+      "value": "Griglia"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "table-view",
+      "value": "Table"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "table-view",
+      "value": "Tabella"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "object",
+      "value": "Object"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "object",
+      "value": "Oggetto"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "institution",
+      "value": "Institution"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "institution",
+      "value": "Istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "no-value",
+      "value": "No value"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "no-value",
+      "value": "Nessun valore"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "select",
+      "value": "Select"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "select",
+      "value": "Seleziona"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "save",
+      "value": "Save"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "save",
+      "value": "Salva"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "no-results",
+      "value": "No results found"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "no-results",
+      "value": "Nessun risultato trovato"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "add",
+      "value": "Add"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "add",
+      "value": "Aggiungi"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "added",
+      "value": "Added"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "added",
+      "value": "Aggiunto"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "processing",
+      "value": "Processing..."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "processing",
+      "value": "Elaborazione..."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "object-id",
+      "value": "Object ID"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "object-id",
+      "value": "ID oggetto"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "or",
+      "value": "or"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "or",
+      "value": "o"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "content",
+      "value": "Content"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "content",
+      "value": "Contenuto"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "bulk-edit",
+      "value": "Bulk edit"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "bulk-edit",
+      "value": "Modifica multipla"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "selected-objects",
+      "value": "selected objects"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "selected-objects",
+      "value": "oggetti selezionati"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "new-value",
+      "value": "New value"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "new-value",
+      "value": "Nuovo valore"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "no-research-fields",
+      "value": "No research fields available."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "no-research-fields",
+      "value": "Nessun campo di ricerca disponibile."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "change-institution",
+      "value": "Change institution"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "change-institution",
+      "value": "Cambia istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "select-institution",
+      "value": "Select institution"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "select-institution",
+      "value": "Seleziona istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "upload-image",
+      "value": "Upload image"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "upload-image",
+      "value": "Carica immagine"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "not-mapped",
+      "value": "Not mapped"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "not-mapped",
+      "value": "Non mappato"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "unnamed-field",
+      "value": "Unnamed field"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "unnamed-field",
+      "value": "Campo senza nome"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "unnamed",
+      "value": "Unnamed"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "unnamed",
+      "value": "Senza nome"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "created-at",
+      "value": "Created at"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "created-at",
+      "value": "Creato il"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "updated-at",
+      "value": "Updated at"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "updated-at",
+      "value": "Aggiornato il"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "expand",
+      "value": "Expand"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "expand",
+      "value": "Espandi"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "collapse",
+      "value": "Collapse"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "collapse",
+      "value": "Comprimi"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "validation.value-required",
+      "value": "Value is required"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "validation.value-required",
+      "value": "Il valore è obbligatorio"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "validation.title-required",
+      "value": "Title is required"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "validation.title-required",
+      "value": "Il titolo è obbligatorio"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "you-are-about-to-delete",
+      "value": "You are about to delete"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "you-are-about-to-delete",
+      "value": "Stai per eliminare"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "operation-irreversible",
+      "value": "This operation is irreversible."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "operation-irreversible",
+      "value": "Questa operazione è irreversibile."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "errors-occurred",
+      "value": "Some errors occurred:"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "errors-occurred",
+      "value": "Si sono verificati alcuni errori:"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "object_name",
+      "value": "Object name"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "object_name",
+      "value": "Nome oggetto"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "object_name_required",
+      "value": "Object name is required"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "object_name_required",
+      "value": "Il nome dell'oggetto è obbligatorio"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "search-objects",
+      "value": "Search objects"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "search-objects",
+      "value": "Cerca oggetti"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "select-fields",
+      "value": "Select fields"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "select-fields",
+      "value": "Seleziona campi"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "view-as",
+      "value": "View as"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "view-as",
+      "value": "Visualizza come"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "edit-selected",
+      "value": "Edit selected"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "edit-selected",
+      "value": "Modifica selezionati"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "no-objects-found",
+      "value": "No objects found"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "no-objects-found",
+      "value": "Nessun oggetto trovato"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "object-information",
+      "value": "Object information"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "object-information",
+      "value": "Informazioni oggetto"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "select-object",
+      "value": "Select object"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "select-object",
+      "value": "Seleziona oggetto"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "previous-image",
+      "value": "Previous image"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "previous-image",
+      "value": "Immagine precedente"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "next-image",
+      "value": "Next image"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "next-image",
+      "value": "Immagine successiva"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "research_fields.title",
+      "value": "Research fields"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "research_fields.title",
+      "value": "Campi di ricerca"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "research_fields.no_fields",
+      "value": "No research fields found"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "research_fields.no_fields",
+      "value": "Nessun campo di ricerca trovato"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "research_fields.enter_value",
+      "value": "Write here..."
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "research_fields.enter_value",
+      "value": "Scrivi qui..."
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "research_fields.default_language_required",
+      "value": "Default language is required to create a new option."
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "research_fields.default_language_required",
+      "value": "La lingua predefinita è necessaria per creare una nuova opzione."
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "research_fields.no_vocabularies",
+      "value": "No vocabulary options available"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "research_fields.no_vocabularies",
+      "value": "Nessuna opzione di vocabolario disponibile"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.remove",
+      "value": "Remove connection"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.remove",
+      "value": "Rimuovi collegamento"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.add_new_connection",
+      "value": "Add new connection"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.add_new_connection",
+      "value": "Aggiungi nuovo collegamento"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.add_connection",
+      "value": "Add connection"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.add_connection",
+      "value": "Aggiungi collegamento"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.all_types",
+      "value": "All connection types"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.all_types",
+      "value": "Tutti i tipi di collegamento"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.select_specific_type",
+      "value": "Please select a specific connection type to create a new item."
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.select_specific_type",
+      "value": "Seleziona un tipo di collegamento specifico per creare un nuovo elemento."
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.connection_type",
+      "value": "Connection type"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.connection_type",
+      "value": "Tipo di collegamento"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.select_connection_type",
+      "value": "Select connection type"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.select_connection_type",
+      "value": "Seleziona tipo di collegamento"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.title_placeholder",
+      "value": "Connection title"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.title_placeholder",
+      "value": "Titolo del collegamento"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.external_link",
+      "value": "External link"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.external_link",
+      "value": "Link esterno"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.external_link_placeholder",
+      "value": "https://example.com"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.external_link_placeholder",
+      "value": "https://esempio.com"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.add_media_note",
+      "value": "NOTE: You can add media and other details later from the connections section."
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.add_media_note",
+      "value": "NOTA: Puoi aggiungere media e altri dettagli più tardi dalla sezione collegamenti."
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.create_connection",
+      "value": "Create connection"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.create_connection",
+      "value": "Crea collegamento"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "connections.create-option",
+      "value": "Create \"{{value}}\""
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "connections.create-option",
+      "value": "Crea \"{{value}}\""
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "linked_media.title",
+      "value": "Linked media"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "linked_media.title",
+      "value": "Media collegati"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "linked_media.add_media",
+      "value": "Add media"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "linked_media.add_media",
+      "value": "Aggiungi media"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "linked_media.no_media",
+      "value": "No media linked"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "linked_media.no_media",
+      "value": "Nessun media collegato"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "linked_media.select_media",
+      "value": "Select media"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "linked_media.select_media",
+      "value": "Seleziona media"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "linked_media.media_linked",
+      "value": "media linked"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "linked_media.media_linked",
+      "value": "media collegati"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "linked_media.select-institution-first",
+      "value": "Select an institution first"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "linked_media.select-institution-first",
+      "value": "Seleziona prima un'istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "linked_media.remove-media",
+      "value": "Remove media"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "linked_media.remove-media",
+      "value": "Rimuovi media"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "select-mapping-template",
+      "value": "Select mapping template"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "select-mapping-template",
+      "value": "Seleziona modello di mappatura"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "create-new-template",
+      "value": "Create new template"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "create-new-template",
+      "value": "Crea nuovo modello"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "institution-field",
+      "value": "Institution field"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "institution-field",
+      "value": "Campo istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "value",
+      "value": "Value"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "value",
+      "value": "Valore"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "primary-id",
+      "value": "Primary ID"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "primary-id",
+      "value": "ID primario"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "add-value-placeholder",
+      "value": "Add a value"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "add-value-placeholder",
+      "value": "Aggiungi un valore"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "institution_data.title",
+      "value": "Institution data"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "institution_data.title",
+      "value": "Dati istituzionali"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "institution_data.default-name",
+      "value": "Data source {{date}}"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "institution_data.default-name",
+      "value": "Fonte dati {{date}}"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "institution_data.scroll-left",
+      "value": "Scroll tabs left"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "institution_data.scroll-left",
+      "value": "Scorri le schede a sinistra"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "institution_data.scroll-right",
+      "value": "Scroll tabs right"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "institution_data.scroll-right",
+      "value": "Scorri le schede a destra"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "add-data-source",
+      "value": "Add data source"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "add-data-source",
+      "value": "Aggiungi fonte dati"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "no-institution-data-found",
+      "value": "No institution data found"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "no-institution-data-found",
+      "value": "Nessun dato istituzionale trovato"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "delete-datasource.title",
+      "value": "Delete data source"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "delete-datasource.title",
+      "value": "Elimina fonte dati"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "delete-datasource.confirm",
+      "value": "Are you sure you want to delete this data source?"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "delete-datasource.confirm",
+      "value": "Sei sicuro di voler eliminare questa fonte dati?"
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "delete-datasource.impact",
+      "value": "This will remove the mapping configuration stored for this object."
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "delete-datasource.impact",
+      "value": "Questa operazione rimuoverà la configurazione di mappatura salvata per questo oggetto."
+    },
+    {
+      "locale": "en",
+      "namespace": "objects",
+      "key": "edit-datasource",
+      "value": "Edit data source"
+    },
+    {
+      "locale": "it",
+      "namespace": "objects",
+      "key": "edit-datasource",
+      "value": "Modifica fonte dati"
+    },
+    {
+      "locale": "en",
+      "namespace": "header",
+      "key": "all-projects",
+      "value": "All projects"
+    },
+    {
+      "locale": "it",
+      "namespace": "header",
+      "key": "all-projects",
+      "value": "Tutti i progetti"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "new",
+      "value": "New project"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "new",
+      "value": "Nuovo progetto"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "edit-info",
+      "value": "Edit project info"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "edit-info",
+      "value": "Modifica informazioni progetto"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "delete-project",
+      "value": "Delete project"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "delete-project",
+      "value": "Elimina progetto"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "delete-confirmation",
+      "value": "Are you sure you want to delete this project? This action cannot be undone."
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "delete-confirmation",
+      "value": "Sei sicuro di voler eliminare questo progetto? Questa azione non può essere annullata."
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "delete-type-name",
+      "value": "To confirm, please type the project name below:"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "delete-type-name",
+      "value": "Per confermare, digita qui sotto il nome del progetto:"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "data-editor",
+      "value": "Data editor"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "data-editor",
+      "value": "Editor dati"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "data-explorer",
+      "value": "Website preview"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "data-explorer",
+      "value": "Anteprima sito web"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "overview",
+      "value": "Overview"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "overview",
+      "value": "Panoramica"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "add-institution",
+      "value": "Add Institution"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "add-institution",
+      "value": "Aggiungi istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "add-object",
+      "value": "Add Object"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "add-object",
+      "value": "Aggiungi oggetto"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "import-data",
+      "value": "Import Data"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "import-data",
+      "value": "Importa dati"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "import-assets",
+      "value": "Import Media"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "import-assets",
+      "value": "Importa media"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "export-data",
+      "value": "Export Data"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "export-data",
+      "value": "Esporta dati"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "website-settings",
+      "value": "Website Settings"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "website-settings",
+      "value": "Impostazioni sito web"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "export-website",
+      "value": "Export Website"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "export-website",
+      "value": "Esporta sito web"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "data-structure",
+      "value": "Data Structure"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "data-structure",
+      "value": "Struttura dati"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "default-fields",
+      "value": "Default Fields"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "default-fields",
+      "value": "Campi predefiniti"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "general",
+      "value": "General"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "general",
+      "value": "Generale"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "sharing",
+      "value": "Sharing"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "sharing",
+      "value": "Condivisione"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "other",
+      "value": "Other"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "other",
+      "value": "Altro"
+    },
+    {
+      "locale": "en",
+      "namespace": "menu",
+      "key": "preview",
+      "value": "Preview"
+    },
+    {
+      "locale": "it",
+      "namespace": "menu",
+      "key": "preview",
+      "value": "Anteprima"
+    },
+    {
+      "locale": "en",
       "namespace": "translations",
       "key": "error_fetch_languages",
       "value": "Failed to fetch languages: {0}"
@@ -587,6 +2099,1050 @@
       "namespace": "translations",
       "key": "add_namespace",
       "value": "Aggiungi namespace"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "remove",
+      "value": "Remove"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "remove",
+      "value": "Rimuovi"
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "connections",
+      "value": "Connections"
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "connections",
+      "value": "Connessioni"
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "select-connection",
+      "value": "Select connection..."
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "select-connection",
+      "value": "Seleziona connessione..."
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "select-options",
+      "value": "Select options..."
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "select-options",
+      "value": "Seleziona opzioni..."
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "no-options-available",
+      "value": "No options available"
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "no-options-available",
+      "value": "Nessuna opzione disponibile"
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "add-connection",
+      "value": "Add connection"
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "add-connection",
+      "value": "Aggiungi connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "institution",
+      "value": "Institution"
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "institution",
+      "value": "Istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "select-institutions",
+      "value": "Select institutions..."
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "select-institutions",
+      "value": "Seleziona istituzioni..."
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "research-fields-free-text",
+      "value": "Research fields (free text)"
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "research-fields-free-text",
+      "value": "Campi di ricerca (testo libero)"
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "select-research-field",
+      "value": "Select research field..."
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "select-research-field",
+      "value": "Seleziona campo di ricerca..."
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "enter-search-terms",
+      "value": "Enter search terms..."
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "enter-search-terms",
+      "value": "Inserisci termini di ricerca..."
+    },
+    {
+      "locale": "en",
+      "namespace": "export",
+      "key": "add-field",
+      "value": "Add field"
+    },
+    {
+      "locale": "it",
+      "namespace": "export",
+      "key": "add-field",
+      "value": "Aggiungi campo"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "label",
+      "value": "Label"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "label",
+      "value": "Etichetta"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "description",
+      "value": "Description"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "description",
+      "value": "Descrizione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "status",
+      "value": "Status"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "status",
+      "value": "Stato"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "institution-name",
+      "value": "Institution Name"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "institution-name",
+      "value": "Nome dell'istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "location",
+      "value": "Location"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "location",
+      "value": "Luogo"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "country",
+      "value": "Country"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "country",
+      "value": "Paese"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "links",
+      "value": "Links"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "links",
+      "value": "Collegamenti"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "url",
+      "value": "URL"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "url",
+      "value": "URL"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "add-link",
+      "value": "Add Link"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "add-link",
+      "value": "Aggiungi collegamento"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "remove-link",
+      "value": "Remove Link"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "remove-link",
+      "value": "Rimuovi collegamento"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "edit-institution",
+      "value": "Edit Institution"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "edit-institution",
+      "value": "Modifica istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "add-new-institution",
+      "value": "Add New Institution"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "add-new-institution",
+      "value": "Aggiungi nuova istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "add-new-institution-desc",
+      "value": "Please fill out the details below to add a new institution to your project."
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "add-new-institution-desc",
+      "value": "Compila i dettagli qui sotto per aggiungere una nuova istituzione al progetto."
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "confirm-delete-institution",
+      "value": "Are you sure you want to delete this institution? This action cannot be undone."
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "confirm-delete-institution",
+      "value": "Sei sicuro di voler eliminare questa istituzione? Questa azione non può essere annullata."
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "url-placeholder",
+      "value": "URL (e.g., https://example.com)"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "url-placeholder",
+      "value": "URL (es., https://example.com)"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "link-label-placeholder",
+      "value": "Link Label (e.g., Official Website)"
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "link-label-placeholder",
+      "value": "Etichetta del collegamento (es., sito ufficiale)"
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "enter-name-language",
+      "value": "Enter name in {{language}}..."
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "enter-name-language",
+      "value": "Inserisci il nome in {{language}}..."
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "enter-location-language",
+      "value": "Enter location in {{language}}..."
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "enter-location-language",
+      "value": "Inserisci il luogo in {{language}}..."
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "enter-description-language",
+      "value": "Enter description in {{language}}..."
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "enter-description-language",
+      "value": "Inserisci la descrizione in {{language}}..."
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "enter-country-language",
+      "value": "Enter country in {{language}}..."
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "enter-country-language",
+      "value": "Inserisci il paese in {{language}}..."
+    },
+    {
+      "locale": "en",
+      "namespace": "institutions",
+      "key": "no-project-languages",
+      "value": "No languages available. Please add languages to your project first."
+    },
+    {
+      "locale": "it",
+      "namespace": "institutions",
+      "key": "no-project-languages",
+      "value": "Nessuna lingua disponibile. Aggiungi prima le lingue al tuo progetto."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "reset",
+      "value": "Reset"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "reset",
+      "value": "Reimposta"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "remove-mapping",
+      "value": "Remove mapping"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "remove-mapping",
+      "value": "Rimuovi mappatura"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "add-mapped-field",
+      "value": "Add mapped field"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "add-mapped-field",
+      "value": "Aggiungi campo mappato"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "delete-row",
+      "value": "Delete row"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "delete-row",
+      "value": "Elimina riga"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "title",
+      "value": "Filters"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "title",
+      "value": "Filtri"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "close-filters",
+      "value": "Close filters"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "close-filters",
+      "value": "Chiudi filtri"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "filter-by-institution",
+      "value": "Filter by institution"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "filter-by-institution",
+      "value": "Filtra per istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "filter-by-field",
+      "value": "Filter by {{field}}"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "filter-by-field",
+      "value": "Filtra per {{field}}"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "institution",
+      "value": "Institution"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "institution",
+      "value": "Istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "connections",
+      "value": "Connections"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "connections",
+      "value": "Connessioni"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "research-fields",
+      "value": "Research fields"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "research-fields",
+      "value": "Campi di ricerca"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "institution-fields",
+      "value": "Institution fields"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "institution-fields",
+      "value": "Campi istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "add-institution-field-filter",
+      "value": "Add institution field filter"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "add-institution-field-filter",
+      "value": "Aggiungi filtro campo istituzione"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "edit-filter",
+      "value": "Edit filter"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "edit-filter",
+      "value": "Modifica filtro"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "remove-filter",
+      "value": "Remove filter"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "remove-filter",
+      "value": "Rimuovi filtro"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "search",
+      "value": "Search..."
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "search",
+      "value": "Cerca..."
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "no-items",
+      "value": "No items"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "no-items",
+      "value": "Nessun elemento"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "select-a-field",
+      "value": "Select a field"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "select-a-field",
+      "value": "Seleziona un campo"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "choose",
+      "value": "Choose..."
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "choose",
+      "value": "Scegli..."
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "enter-query",
+      "value": "Enter query"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "enter-query",
+      "value": "Inserisci query"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "type-to-search",
+      "value": "Type to search"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "type-to-search",
+      "value": "Digita per cercare"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "all",
+      "value": "All"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "all",
+      "value": "Tutti"
+    },
+    {
+      "locale": "en",
+      "namespace": "filters",
+      "key": "unknown-field",
+      "value": "Unknown field"
+    },
+    {
+      "locale": "it",
+      "namespace": "filters",
+      "key": "unknown-field",
+      "value": "Campo sconosciuto"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "remove-audio",
+      "value": "Remove audio"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "remove-audio",
+      "value": "Rimuovi audio"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "remove-video",
+      "value": "Remove video"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "remove-video",
+      "value": "Rimuovi video"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "remove-image",
+      "value": "Remove image"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "remove-image",
+      "value": "Rimuovi immagine"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "remove-file",
+      "value": "Remove file"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "remove-file",
+      "value": "Rimuovi file"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "play",
+      "value": "Play"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "play",
+      "value": "Riproduci"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "pause",
+      "value": "Pause"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "pause",
+      "value": "Pausa"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "seek-audio-position",
+      "value": "Seek audio position"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "seek-audio-position",
+      "value": "Cerca posizione audio"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "unknown-file-type",
+      "value": "Unknown file type"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "unknown-file-type",
+      "value": "Tipo di file sconosciuto"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "unknown-file",
+      "value": "Unknown file"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "unknown-file",
+      "value": "File sconosciuto"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "close-media-preview",
+      "value": "Close media preview"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "close-media-preview",
+      "value": "Chiudi anteprima media"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "view-file",
+      "value": "View {{file}}"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "view-file",
+      "value": "Visualizza {{file}}"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "zoom-in",
+      "value": "Zoom in"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "zoom-in",
+      "value": "Ingrandisci"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "zoom-out",
+      "value": "Zoom out"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "zoom-out",
+      "value": "Riduci"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "fullscreen",
+      "value": "Fullscreen"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "fullscreen",
+      "value": "Schermo intero"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "toggle-fullscreen",
+      "value": "Toggle fullscreen"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "toggle-fullscreen",
+      "value": "Attiva/disattiva schermo intero"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "video-preview",
+      "value": "Video preview"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "video-preview",
+      "value": "Anteprima video"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "browser-no-video",
+      "value": "Your browser does not support the video tag."
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "browser-no-video",
+      "value": "Il tuo browser non supporta il tag video."
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "preview-not-available",
+      "value": "Preview not available for this file type"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "preview-not-available",
+      "value": "Anteprima non disponibile per questo tipo di file"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "media-metadata",
+      "value": "Media metadata"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "media-metadata",
+      "value": "Metadati media"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "author",
+      "value": "Author"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "author",
+      "value": "Autore"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "copyright",
+      "value": "Copyright"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "copyright",
+      "value": "Copyright"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "no-metadata-available",
+      "value": "No metadata available"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "no-metadata-available",
+      "value": "Nessun metadato disponibile"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "drag-item",
+      "value": "Drag item"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "drag-item",
+      "value": "Trascina elemento"
+    },
+    {
+      "locale": "en",
+      "namespace": "media",
+      "key": "unnamed-file",
+      "value": "Unnamed file"
+    },
+    {
+      "locale": "it",
+      "namespace": "media",
+      "key": "unnamed-file",
+      "value": "File senza nome"
+    },
+    {
+      "locale": "en",
+      "namespace": "file-upload",
+      "key": "choose-image",
+      "value": "Choose image..."
+    },
+    {
+      "locale": "it",
+      "namespace": "file-upload",
+      "key": "choose-image",
+      "value": "Scegli immagine..."
+    },
+    {
+      "locale": "en",
+      "namespace": "file-upload",
+      "key": "select-image",
+      "value": "Select Image"
+    },
+    {
+      "locale": "it",
+      "namespace": "file-upload",
+      "key": "select-image",
+      "value": "Seleziona immagine"
+    },
+    {
+      "locale": "en",
+      "namespace": "file-upload",
+      "key": "images",
+      "value": "Images"
+    },
+    {
+      "locale": "it",
+      "namespace": "file-upload",
+      "key": "images",
+      "value": "Immagini"
+    },
+    {
+      "locale": "en",
+      "namespace": "file-upload",
+      "key": "all-files",
+      "value": "All Files"
+    },
+    {
+      "locale": "it",
+      "namespace": "file-upload",
+      "key": "all-files",
+      "value": "Tutti i file"
+    },
+    {
+      "locale": "en",
+      "namespace": "file-upload",
+      "key": "drag-file-here-or",
+      "value": "Drag a file here or"
+    },
+    {
+      "locale": "it",
+      "namespace": "file-upload",
+      "key": "drag-file-here-or",
+      "value": "Trascina qui un file oppure"
+    },
+    {
+      "locale": "en",
+      "namespace": "file-upload",
+      "key": "browse",
+      "value": "browse"
+    },
+    {
+      "locale": "it",
+      "namespace": "file-upload",
+      "key": "browse",
+      "value": "sfoglia"
+    },
+    {
+      "locale": "en",
+      "namespace": "file-upload",
+      "key": "file-from-your-computer",
+      "value": "a file from your computer"
+    },
+    {
+      "locale": "it",
+      "namespace": "file-upload",
+      "key": "file-from-your-computer",
+      "value": "un file dal tuo computer"
     }
   ],
   "languages": [

@@ -1,5 +1,6 @@
 <script>
     import { getMediaType } from "$lib/utils/media.js";
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import ImagePreview from "./ImagePreview.svelte";
     import VideoPreview from "./VideoPreview.svelte";
     import AudioPreview from "./AudioPreview.svelte";
@@ -16,6 +17,7 @@
 
     let modalOpen = $state(false);
     let modalAsset = $state(null);
+    const { t } = getTranslationStore();
 
     function handleMediaClick(clickedAsset) {
         modalAsset = clickedAsset;
@@ -68,7 +70,7 @@
                             style="font-size: 2rem;"
                         ></i>
                         <div class="mt-2 small text-muted">
-                            Unknown file type
+                            {t("media.unknown-file-type", { fallback: "Unknown file type" })}
                         </div>
                     </div>
                 </div>
@@ -79,7 +81,7 @@
                         <span class="text-truncate small"
                             >{asset?.filename ||
                                 asset?.name ||
-                                "Unknown file"}</span
+                                t("media.unknown-file", { fallback: "Unknown file" })}</span
                         >
                         {#if showRemoveButton}
                             <button
@@ -87,8 +89,8 @@
                                 class="btn btn-sm btn-outline-danger rounded-circle"
                                 style="width: 24px; height: 24px; padding: 0;"
                                 onclick={onRemove}
-                                title="Remove file"
-                                aria-label="Remove file"
+                                title={t("media.remove-file", { fallback: "Remove file" })}
+                                aria-label={t("media.remove-file", { fallback: "Remove file" })}
                             >
                                 <i class="bi bi-x" style="font-size: 12px;"></i>
                             </button>

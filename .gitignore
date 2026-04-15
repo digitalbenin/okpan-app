@@ -106,6 +106,7 @@ src/db/seed_data
 # Assets
 src/assets/project_assets/*
 src/assets/models/
+artic-dataset/
 
 .vscode
 .cursor

@@ -227,7 +227,7 @@
 <PageActionFooter rightButtons={rightActionButtons} {formStore}>
     <ObjectHeader
         institutionName={selectedInstitutionName}
-        title={t("objects.add_object", { fallback: "Add Object" })}
+        title={t("menu.add-object", { fallback: "Add Object" })}
         status="in progress"
         statusDisabled={true}
         showStatus={false}

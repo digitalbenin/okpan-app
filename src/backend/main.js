@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Import database and schema
-import { db } from '../db/init.js';
+import { db, getGlobalSettings, updateGlobalInterfaceLanguage } from '../db/init.js';
 import { createGraphQLSchema } from '../db/graphqlDefs.js';
 
 // Import handlers
@@ -67,6 +67,10 @@ ipcMain.handle('open-file-dialog', handleFileDialog);
 ipcMain.handle('import-structured-data', handleStructuredDataImport);
 ipcMain.handle('excel-sheet-selection', handleExcelSheetSelection);
 ipcMain.handle('languages:list', handleListLanguages);
+ipcMain.handle('global-settings:get', async () => getGlobalSettings());
+ipcMain.handle('global-settings:update-interface-language', async (event, locale) =>
+  updateGlobalInterfaceLanguage(locale)
+);
 
 // Static website export
 ipcMain.handle('export-static-website', async (event, options) => {

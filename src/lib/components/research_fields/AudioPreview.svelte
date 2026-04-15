@@ -1,4 +1,6 @@
 <script>
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+
     let {
         asset,
         size = 200,
@@ -8,6 +10,7 @@
     } = $props();
 
     let audioElement;
+    const { t } = getTranslationStore();
     let isPlaying = $state(false);
     let currentTime = $state(0);
     let duration = $state(0);
@@ -104,8 +107,8 @@
             class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle position-absolute d-flex align-items-center justify-content-center border-0 opacity-0-hover-100 transition-opacity"
             style="width: 22px; height: 22px; padding: 0; top: 5px; right: 5px; z-index: 10;"
             onclick={handleRemove}
-            title="Remove audio"
-            aria-label="Remove audio"
+            title={t("media.remove-audio", { fallback: "Remove audio" })}
+            aria-label={t("media.remove-audio", { fallback: "Remove audio" })}
         >
             <i class="bi bi-x-lg" style="font-size: 10px;"></i>
         </button>
@@ -127,7 +130,9 @@
                     onclick={togglePlay}
                     disabled={!isLoaded}
                     style="width: 20px; height: 20px;"
-                    aria-label={isPlaying ? "Pause" : "Play"}
+                    aria-label={isPlaying
+                        ? t("media.pause", { fallback: "Pause" })
+                        : t("media.play", { fallback: "Play" })}
                 >
                     {#if isPlaying}
                         <i
@@ -159,7 +164,7 @@
                 onkeydown={(e) => e.key === "Enter" && handleSeek(e)}
                 role="button"
                 tabindex="0"
-                aria-label="Seek audio position"
+                aria-label={t("media.seek-audio-position", { fallback: "Seek audio position" })}
             >
                 <div
                     class="bg-secondary rounded-pill h-100 transition-all"

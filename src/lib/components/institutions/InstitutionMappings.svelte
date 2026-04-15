@@ -474,7 +474,7 @@
                               class="btn btn-sm border-0 p-0"
                               onclick={() => removeMappedField(row.rowId, fieldId)}
                               disabled={!canEdit}
-                              aria-label="Remove mapping"
+                              aria-label={t("common.remove-mapping", { fallback: "Remove mapping" })}
                             >
                               <i class="bi bi-x"></i>
                             </button>
@@ -486,7 +486,7 @@
                           class="btn btn-secondary btn-sm rounded-circle d-inline-flex align-items-center justify-content-center p-0 px-1"
                           onclick={() => openPicker(row)}
                           disabled={!canEdit}
-                          aria-label="Add mapped field"
+                          aria-label={t("common.add-mapped-field", { fallback: "Add mapped field" })}
                         >
                           <i class="bi bi-plus"></i>
                         </button>
@@ -502,7 +502,7 @@
                                 class="btn btn-link text-danger p-0"
                                 onclick={() => removeRow(row.rowId)}
                                 disabled={true}
-                                aria-label="Delete row"
+                                aria-label={t("common.delete-row", { fallback: "Delete row" })}
                               >
                                 <i class="bi bi-dash-circle-fill"></i>
                               </button>
@@ -518,7 +518,7 @@
                           class="btn btn-link text-danger p-0"
                           onclick={() => removeRow(row.rowId)}
                           disabled={!canEdit}
-                          aria-label="Delete row"
+                          aria-label={t("common.delete-row", { fallback: "Delete row" })}
                         >
                           <i class="bi bi-dash-circle-fill"></i>
                         </button>

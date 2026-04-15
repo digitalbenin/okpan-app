@@ -30,8 +30,8 @@
       : (researchFields?.result || researchFields?.research_fields || [])
   );
 
-  const objectInformationLabel = t("common.object-information", { fallback: "Object Information" });
-  const researchFieldsLabel = t("common.research-fields", { fallback: "Research Fields" });
+  const objectInformationLabel = t("objects.object-information", { fallback: "Object information" });
+  const researchFieldsLabel = t("filters.research-fields", { fallback: "Research Fields" });
 
   const baseObjectFields = [
     {
@@ -141,13 +141,13 @@
   items={fieldsItems}
   placeholder={
     placeholder ||
-    t("common.card-options", {
-      fallback: "Card options",
+    t("objects.select-fields", {
+      fallback: "Select fields",
     })
   }
   triggerLabel={
     as === "button"
-      ? t("common.card-options", { fallback: "Card options" })
+      ? t("objects.select-fields", { fallback: "Select fields" })
       : undefined
   }
   type="multiple"

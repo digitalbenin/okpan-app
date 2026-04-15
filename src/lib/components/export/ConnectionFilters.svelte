@@ -1,11 +1,14 @@
 <script>
     import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     let {
         connectionFieldOptions = [],
         connectionFilters = $bindable([]),
         onChange = null,
     } = $props();
+
+    const { t } = getTranslationStore();
 
     function addConnectionFilter() {
         connectionFilters = [
@@ -40,7 +43,9 @@
 </script>
 
 <div class="filter-group mb-4">
-    <p class="filter-label fw-semibold mb-2 d-block">Connections</p>
+    <p class="filter-label fw-semibold mb-2 d-block">
+        {t("export.connections", { fallback: "Connections" })}
+    </p>
     {#each connectionFilters as filter, index}
         {@const selectedField = connectionFieldOptions.find(
             (o) => o.value === filter.fieldId,
@@ -52,7 +57,7 @@
                 <BaseSelect
                     items={connectionFieldOptions}
                     bind:value={filter.fieldId}
-                    placeholder="Select connection..."
+                    placeholder={t("export.select-connection", { fallback: "Select connection..." })}
                     type="single"
                     size="sm"
                     onValueChange={notify}
@@ -64,18 +69,21 @@
                         <BaseSelect
                             items={selectedField.vocabOptions}
                             bind:value={filter.vocabularyIds}
-                            placeholder="Select options..."
+                            placeholder={t("export.select-options", { fallback: "Select options..." })}
                             type="multiple"
                             size="sm"
                             onValueChange={notify}
                         />
                     </div>
                 {:else}
-                    <span class="text-muted" style="flex: 1 1 auto; min-width: 0;">No options available</span>
+                    <span class="text-muted" style="flex: 1 1 auto; min-width: 0;">
+                        {t("export.no-options-available", { fallback: "No options available" })}
+                    </span>
                 {/if}
                 <button
                     class="remove-filter bg-transparent border-0 text-danger cursor-pointer fs-5"
                     style="flex-shrink: 0;"
+                    aria-label={t("common.remove", { fallback: "Remove" })}
                     onclick={() => removeConnectionFilter(index)}
                 >
                     ×
@@ -88,6 +96,6 @@
         onclick={addConnectionFilter}
     >
         <i class="bi bi-plus-circle"></i>
-        Add connection
+        {t("export.add-connection", { fallback: "Add connection" })}
     </button>
 </div>

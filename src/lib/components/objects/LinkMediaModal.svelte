@@ -77,7 +77,7 @@
                 return;
             }
             const result = await window.api.openFileDialog({
-                title: "Select Image Files",
+                title: t("file-upload.select-image", { fallback: "Select Image" }),
                 properties: ["openFile", "multiSelections"],
             });
 
@@ -221,7 +221,7 @@
                             disabled={isUploading || !projectId || !institutionId}
                         >
                             <i class="bi bi-upload"></i>
-                            {t("common.upload_image", { fallback: "Upload image" })}
+                            {t("common.upload-image", { fallback: "Upload image" })}
                         </button>
                         {#if isUploading}
                             <span class="ms-2 text-muted small align-self-center">
@@ -234,12 +234,12 @@
                     {#if isLoading}
                         <div class="text-center py-4">
                             <div class="spinner-border" role="status">
-                                <span class="visually-hidden">Loading...</span>
+                                <span class="visually-hidden">{t("common.loading", { fallback: "Loading..." })}</span>
                             </div>
                         </div>
                     {:else if items.length === 0}
                         <div class="text-center py-5 text-muted">
-                            {t("common.no_results", {
+                            {t("common.no-results", {
                                 fallback: "No results found",
                             })}{search ? ` for "${search}"` : ""}
                         </div>
@@ -257,7 +257,7 @@
                                             src={asset?.path
                                                 ? `media://${asset.path}`
                                                 : null}
-                                            alt={asset?.filename || "Asset"}
+                                            alt={asset?.filename || t("media.unnamed-file", { fallback: "Unnamed file" })}
                                             width={64}
                                             height={64}
                                             class="rounded"

@@ -196,7 +196,7 @@
                 {#each allResearchFields as field}
                     <div>
                         <p class="mb-2">
-                            {field.name?.content || "Unnamed field"}
+                            {field.name?.content || t("common.unnamed-field", { fallback: "Unnamed field" })}
                         </p>
                         <textarea
                             class="form-control"

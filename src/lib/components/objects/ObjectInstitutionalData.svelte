@@ -150,7 +150,10 @@
     creating = true;
     
     const timestamp = Date.now();
-    const defaultName = `Data source ${epochToDate(timestamp, true)}`;
+    const defaultName = t("objects.institution_data.default-name", {
+      fallback: "Data source {{date}}",
+      date: epochToDate(timestamp, true),
+    });
     
     const { result, error } = await createDatasource({
       name: defaultName,
@@ -308,10 +311,10 @@
 
           {#if datasourcesArray.length > 1}
             <div class="d-flex border-start bg-white">
-                <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => scrollToTab('left')} aria-label="Scroll tabs left">
+              <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => scrollToTab('left')} aria-label={t("objects.institution_data.scroll-left", { fallback: "Scroll tabs left" })}>
                     <i class="bi bi-caret-left-fill"></i>
                 </button>
-                <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => scrollToTab('right')} aria-label="Scroll tabs right">
+              <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => scrollToTab('right')} aria-label={t("objects.institution_data.scroll-right", { fallback: "Scroll tabs right" })}>
                     <i class="bi bi-caret-right-fill"></i>
                 </button>
                 <div class="d-flex align-items-center">

@@ -1,8 +1,10 @@
 <script>
     import { onDestroy } from 'svelte';
     import { getMediaType, parseAssetFormats, addImageProtocolPrefix } from '$lib/utils/media.js';
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     
     let { asset = null, isOpen = false, onClose = null } = $props();
+    const { t } = getTranslationStore();
 
     let videoElement = $state(null);
     let viewerEl = $state(null);
@@ -176,14 +178,17 @@
                     class="btn position-absolute rounded-circle d-flex align-items-center justify-content-center"
                     style="top: -15px; right: -15px; z-index: 1051; width: 40px; height: 40px; background-color: #e91e63; border: none;"
                     onclick={handleClose}
-                    aria-label="Close media preview"
+                    aria-label={t("media.close-media-preview", { fallback: "Close media preview" })}
                 >
                     <i class="bi bi-x text-white" style="font-size: 24px; font-weight: bold;" aria-hidden="true"></i>
                 </button>
 
                 <div class="modal-body p-4">
                      <p id="media-modal-title" class="mb-3 fw-bold">
-                                View {asset.filename || asset.name || "Unknown file"}
+                                {t("media.view-file", {
+                                    fallback: "View {{file}}",
+                                    file: asset.filename || asset.name || t("media.unknown-file", { fallback: "Unknown file" }),
+                                })}
                             </p>
                     <div class="row g-4">
                         <!-- Left column: Image viewer -->
@@ -198,25 +203,25 @@
                                     <div class="position-absolute top-0 start-0 m-2 d-flex gap-2" style="z-index: 10;">
                                         <button
                                             class="btn btn-light btn-sm"
-                                            title="Zoom in"
+                                            title={t("media.zoom-in", { fallback: "Zoom in" })}
                                             onclick={zoomIn}
-                                            aria-label="Zoom in"
+                                            aria-label={t("media.zoom-in", { fallback: "Zoom in" })}
                                         >
                                             <i class="bi bi-zoom-in" aria-hidden="true"></i>
                                         </button>
                                         <button
                                             class="btn btn-light btn-sm"
-                                            title="Zoom out"
+                                            title={t("media.zoom-out", { fallback: "Zoom out" })}
                                             onclick={zoomOut}
-                                            aria-label="Zoom out"
+                                            aria-label={t("media.zoom-out", { fallback: "Zoom out" })}
                                         >
                                             <i class="bi bi-zoom-out" aria-hidden="true"></i>
                                         </button>
                                         <button
                                             class="btn btn-light btn-sm"
-                                            title="Fullscreen"
+                                            title={t("media.fullscreen", { fallback: "Fullscreen" })}
                                             onclick={toggleFullscreen}
-                                            aria-label="Toggle fullscreen"
+                                            aria-label={t("media.toggle-fullscreen", { fallback: "Toggle fullscreen" })}
                                         >
                                             <i class="bi bi-arrows-fullscreen" aria-hidden="true"></i>
                                         </button>
@@ -232,16 +237,16 @@
                                         class="w-100 h-100"
                                         style="object-fit: contain;"
                                         preload="metadata"
-                                        aria-label={asset.filename || asset.name || "Video preview"}
+                                        aria-label={asset.filename || asset.name || t("media.video-preview", { fallback: "Video preview" })}
                                     >
                                         <track kind="captions" />
-                                        Your browser does not support the video tag.
+                                        {t("media.browser-no-video", { fallback: "Your browser does not support the video tag." })}
                                     </video>
                                 {:else}
                                     <div class="w-100 h-100 d-flex align-items-center justify-content-center">
                                         <div class="text-center text-muted">
                                             <i class="bi bi-file-earmark" style="font-size: 48px;" aria-hidden="true"></i>
-                                            <p class="mt-2">Preview not available for this file type</p>
+                                            <p class="mt-2">{t("media.preview-not-available", { fallback: "Preview not available for this file type" })}</p>
                                         </div>
                                     </div>
                                 {/if}
@@ -250,7 +255,7 @@
 
                         <!-- Right column: Metadata -->
                         <div class="col-md-3">
-                            <h5 class="text-muted mb-3 border-bottom">Media metadata</h5>
+                            <h5 class="text-muted mb-3 border-bottom">{t("media.media-metadata", { fallback: "Media metadata" })}</h5>
 
                             {#if asset.description || asset.author || asset.copyright}
                                 <!-- Description -->
@@ -264,19 +269,19 @@
                                 <!-- Author/Copyright -->
                                 {#if asset.author}
                                     <div class="mb-3">
-                                        <div class="text-uppercase small fw-bold mb-1">Author/Bc</div>
+                                        <div class="text-uppercase small fw-bold mb-1">{t("media.author", { fallback: "Author" })}</div>
                                         <div class="text-muted small">{asset.author}</div>
                                     </div>
                                 {/if}
 
                                 {#if asset.copyright}
                                     <div class="mb-3">
-                                        <div class="text-uppercase small fw-bold mb-1">Copyright</div>
+                                        <div class="text-uppercase small fw-bold mb-1">{t("media.copyright", { fallback: "Copyright" })}</div>
                                         <div class="text-muted small">{asset.copyright}</div>
                                     </div>
                                 {/if}
                             {:else}
-                                <div class="text-muted small">No metadata available</div>
+                                <div class="text-muted small">{t("media.no-metadata-available", { fallback: "No metadata available" })}</div>
                             {/if}
                         </div>
                     </div>

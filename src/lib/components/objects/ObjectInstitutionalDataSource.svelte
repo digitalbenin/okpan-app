@@ -75,8 +75,8 @@
       }
       
       const ontologyField = ontologyFields.find(f => f.id === parsedItem.mappedField);
-      const institutionFieldName = parsedItem.headerField || `Unnamed Field ${index + 1}`;
-      const ontologyFieldName = ontologyField?.name?.content || "Not mapped";
+      const institutionFieldName = parsedItem.headerField || `${t("common.unnamed-field", { fallback: "Unnamed field" })} ${index + 1}`;
+      const ontologyFieldName = ontologyField?.name?.content || t("common.not-mapped", { fallback: "Not mapped" });
       
       return {
         institutionField: institutionFieldName,

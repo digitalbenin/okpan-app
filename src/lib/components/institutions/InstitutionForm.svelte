@@ -126,24 +126,50 @@
     languageId: { hidden: true },
     status: { hidden: true },
     links: {
-      label: t("common.links", { fallback: "Links" }),
+      label: t("institutions.links", { fallback: "Links" }),
       renderer: DynamicArrayField,
       rendererProps: {
         arrayFieldName: "links",
         itemFields: [
-          { name: "url", label: "URL", type: "text", placeholder: "https://example.com", required: false, colSize: 5 },
-          { name: "label", label: "Label", type: "text", placeholder: "Website, Online Catalogue, etc.", required: false, colSize: 5 },
+          {
+            name: "url",
+            label: t("institutions.url", { fallback: "URL" }),
+            type: "text",
+            placeholder: t("institutions.url-placeholder", {
+              fallback: "URL (e.g., https://example.com)",
+            }),
+            required: false,
+            colSize: 5,
+          },
+          {
+            name: "label",
+            label: t("common.label", { fallback: "Label" }),
+            type: "text",
+            placeholder: t("institutions.link-label-placeholder", {
+              fallback: "Link Label (e.g., Official Website)",
+            }),
+            required: false,
+            colSize: 5,
+          },
         ],
-        addButtonText: "Add Link",
+        addButtonText: t("institutions.add-link", { fallback: "Add Link" }),
+        deleteButtonTitle: t("institutions.remove-link", {
+          fallback: "Remove Link",
+        }),
         minItems: 0,
         maxItems: 10,
         deleteColSize: 2,
       },
     },
-    name: { label: t("common.institution-name", { fallback: "Institution Name" }), colSize: 7 },
+    name: {
+      label: t("institutions.institution-name", {
+        fallback: "Institution Name",
+      }),
+      colSize: 7,
+    },
     description: { type: "textarea", label: t("common.description", { fallback: "Description" }), colSize: 7 },
-    country: { label: t("common.country", { fallback: "Country" }) },
-    location: { label: t("common.location", { fallback: "Location" }) },
+    country: { label: t("institutions.country", { fallback: "Country" }) },
+    location: { label: t("institutions.location", { fallback: "Location" }) },
     website: { label: t("common.website", { fallback: "Website" }) },
   });
 
@@ -160,7 +186,7 @@
   const leftActionButtons = $derived(isEditMode
     ? [{
         id: "delete-institution",
-        text: t("common.delete", { fallback: "Delete institution" }),
+        text: t("common.delete", { fallback: "Delete" }),
         class: "btn btn-outline-danger",
         icon: "trash",
         onClick: openDeleteModal,
@@ -170,7 +196,7 @@
   const rightActionButtons = $derived([
     {
       id: "confirm-institution",
-      text: t("common.confirm", { fallback: "Save changes" }),
+      text: t("common.confirm", { fallback: "Confirm" }),
       class: "btn btn-success",
       type: "submit",
       disableOnError: true,
@@ -214,12 +240,12 @@
       <div class="col-12">
         <h1 class="h3 mb-0">
           {isEditMode
-            ? t("common.edit-institution", { fallback: "Edit Institution" })
-            : t("common.add-new-institution", { fallback: "Add New Institution" })}
+            ? t("institutions.edit-institution", { fallback: "Edit Institution" })
+            : t("institutions.add-new-institution", { fallback: "Add New Institution" })}
         </h1>
         {#if !isEditMode}
           <p class="text-muted mt-2 mb-0">
-            {t("common.add-new-institution-desc", {
+            {t("institutions.add-new-institution-desc", {
               fallback:
                 "Please fill out the details below to add a new institution to your project.",
             })}
@@ -257,7 +283,7 @@
 
     {#snippet body()}
       <p>
-        {t("common.confirm-delete-institution", {
+        {t("institutions.confirm-delete-institution", {
           fallback:
             "Are you sure you want to delete this institution? This action cannot be undone.",
         })}

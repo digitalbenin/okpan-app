@@ -117,7 +117,7 @@
 
     async function createNewVocabulary() {
         const optionText = searchQuery.trim();
-        if (!optionText) return creationError = t("common.validation.required", { fallback: "Value is required" });
+        if (!optionText) return creationError = t("common.validation.value-required", { fallback: "Value is required" });
         if (!defaultLanguageId) return creationError = t("objects.research_fields.default_language_required", { fallback: "Default language is required to create a new option." });
         if (selectedFieldId === "all" || !currentField?.id) return creationError = t("objects.connections.select_specific_type", { fallback: "Please select a specific connection type to create a new item." });
 
@@ -163,7 +163,7 @@
 
     async function handleCreateConnection() {
         if (!newConnectionTitle.trim()) {
-            creationError = t("common.validation.required", { fallback: "Title is required" });
+            creationError = t("common.validation.title-required", { fallback: "Title is required" });
             return;
         }
         if (!newConnectionType) {
@@ -263,11 +263,11 @@
                             bind:value={selectedFieldId}
                         >
                             <option value="all">
-                                {t("objects.connections.all_types", { fallback: "All connection type" })}
+                                {t("objects.connections.all_types", { fallback: "All connection types" })}
                             </option>
                             {#each vocabularyFields as vocabField}
                                 <option value={vocabField.id}>
-                                    {vocabField.name?.content || "Unnamed field"}
+                                    {vocabField.name?.content || t("common.unnamed-field", { fallback: "Unnamed field" })}
                                 </option>
                             {/each}
                         </select>
@@ -321,7 +321,7 @@
                             <div class="me-3">
                                 <BaseImage
                                     src={getAssetImageUrl(vocab.mainAsset, 'sm')}
-                                    alt={vocab.option?.content || "Vocabulary option"}
+                                    alt={vocab.option?.content || t("common.unnamed", { fallback: "Unnamed" })}
                                     width={48}
                                     height={48}
                                     class="rounded"
@@ -332,7 +332,7 @@
                             <!-- Vocabulary content -->
                             <div class="flex-grow-1">
                                 <div class="fw-medium">
-                                    {vocab.option?.content || "Unnamed option"}
+                                    {vocab.option?.content || t("common.unnamed", { fallback: "Unnamed" })}
                                 </div>
                                 <small class="text-muted">
                                     {vocab._fieldName}
@@ -345,7 +345,9 @@
                                     type="button"
                                     class="btn btn-sm btn-link text-decoration-none p-0"
                                     onclick={() => toggleDescription(vocab.id)}
-                                    aria-label={expandedDescriptions.has(vocab.id) ? "Collapse" : "Expand"}
+                                    aria-label={expandedDescriptions.has(vocab.id)
+                                        ? t("common.collapse", { fallback: "Collapse" })
+                                        : t("common.expand", { fallback: "Expand" })}
                                 >
                                     <i class="bi {expandedDescriptions.has(vocab.id) ? 'bi-dash-circle' : 'bi-info-circle'}"></i>
                                 </button>
@@ -365,12 +367,15 @@
                     <div class="text-center py-4 text-muted">
                         {#if searchQuery.trim()}
                             <div class="mb-2 ps-3 d-flex justify-content-start">
-                                {t("common.no_results", { fallback: "No results found" })}
+                                {t("common.no-results", { fallback: "No results found" })}
                             </div>
                             <BaseButton
                                 class="btn btn-link text-dark text-decoration-none"
                                 icon="plus-circle"
-                                text={`Create "${searchQuery.trim()}"`}
+                                text={t("objects.connections.create-option", {
+                                    fallback: 'Create "{{value}}"',
+                                    value: searchQuery.trim(),
+                                })}
                                 onClick={createNewVocabulary}
                                 disabled={!defaultLanguageId || isCreating || selectedFieldId === "all"}
                             />
@@ -408,7 +413,7 @@
                     </option>
                     {#each vocabularyFields as vocabField}
                         <option value={vocabField.id}>
-                            {vocabField.name?.content || "Unnamed field"}
+                            {vocabField.name?.content || t("common.unnamed-field", { fallback: "Unnamed field" })}
                         </option>
                     {/each}
                 </select>
@@ -416,14 +421,14 @@
 
             <div class="mb-3">
                 <label for="connection-title" class="form-label">
-                    {t("common.title", { fallback: "Title" })}
+                    {t("common.name", { fallback: "Name" })}
                     <span class="text-danger">*</span>
                 </label>
                 <input
                     id="connection-title"
                     type="text"
                     class="form-control"
-                    placeholder={t("objects.connections.title_placeholder", { fallback: "Title of the interview" })}
+                    placeholder={t("objects.connections.title_placeholder", { fallback: "Connection title" })}
                     bind:value={newConnectionTitle}
                 />
             </div>
@@ -449,7 +454,7 @@
                     id="connection-link"
                     type="text"
                     class="form-control"
-                    placeholder={t("objects.connections.title_placeholder", { fallback: "Title of the interview" })}
+                    placeholder={t("objects.connections.external_link_placeholder", { fallback: "https://example.com" })}
                     bind:value={newConnectionExternalLink}
                 />
             </div>
