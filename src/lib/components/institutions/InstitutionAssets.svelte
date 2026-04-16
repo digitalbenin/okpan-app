@@ -13,6 +13,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
   import { fly } from "svelte/transition";
+  import { watch } from "runed";
 
   let { institution, assets, params = $bindable() } = $props();
   const { t, translationState } = getTranslationStore();
@@ -57,21 +58,25 @@
     },
   ]);
 
-  // Display-level filtering to respect status while backend schema updates propagate
-  const filteredItems = $derived.by(() => {
-    const status = params?.aLinked;
-    if (status === "linked") {
-      return (assets.items || []).filter(
-        (a) => Array.isArray(a.objectsAssets) && a.objectsAssets.length > 0,
-      );
-    }
-    if (status === "not_linked") {
-      return (assets.items || []).filter(
-        (a) => !Array.isArray(a.objectsAssets) || a.objectsAssets.length === 0,
-      );
-    }
-    return assets.items || [];
-  });
+  const assetItems = $derived(assets.items || []);
+
+  watch(
+    () => params?.aLinked,
+    (nextValue, previousValue) => {
+      if (previousValue !== undefined && nextValue !== previousValue) {
+        params.aPage = 1;
+      }
+    },
+  );
+
+  watch(
+    () => params?.aSearch,
+    (nextValue, previousValue) => {
+      if (previousValue !== undefined && nextValue !== previousValue) {
+        params.aPage = 1;
+      }
+    },
+  );
 
   function clearSelection() {
     selectedAssets = [];
@@ -223,10 +228,10 @@
       >
     </div>
   </div>
-  {#if filteredItems.length > 0}
+  {#if assetItems.length > 0}
     {#if viewAs === "grid"}
       <div class="row">
-        {#each filteredItems as asset (asset.id)}
+        {#each assetItems as asset (asset.id)}
           <div class="col-3">
             <AssetCard {asset} view={params.view} bind:selected={selectedAssets}
             />
@@ -235,7 +240,7 @@
       </div>
     {:else if viewAs === "table"}
       <Table
-        items={filteredItems}
+        items={assetItems}
         columns={[
           {
             value: "image",
@@ -303,7 +308,7 @@
         bind:selected={selectedAssets}
       />
     {/if}
-  {:else if filteredItems.length === 0}
+  {:else if assetItems.length === 0}
     <div class="text-center text-black-50 fs-4 fst-italic mt-4">
       {t("common.no-assets-found")}
     </div>
