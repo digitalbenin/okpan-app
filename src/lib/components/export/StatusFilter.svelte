@@ -1,4 +1,6 @@
 <script>
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+
     let {
         selectedStatus = $bindable("all"),
         completedCount = 0,
@@ -6,11 +8,23 @@
         onChange = null,
     } = $props();
 
+    const { t } = getTranslationStore();
+
     const statusOptions = [
-        { value: "all", label: "All" },
-        { value: "completed", label: "Completed" },
-        { value: "in progress", label: "In progress" },
+        { value: "all" },
+        { value: "completed" },
+        { value: "in progress" },
     ];
+
+    function getStatusLabel(value) {
+        if (value === "all") {
+            return t("filters.all", { fallback: "All" });
+        }
+        if (value === "completed") {
+            return t("common.completed", { fallback: "Completed" });
+        }
+        return t("common.in-progress", { fallback: "In progress" });
+    }
 
     function countByStatus(value) {
         if (value === "all") return completedCount + inProgressCount;
@@ -32,7 +46,7 @@
 </script>
 
 <div class="filter-group mb-3">
-    <p class="filter-label fw-semibold mb-2 d-block">Status</p>
+    <p class="filter-label fw-semibold mb-2 d-block">{t("common.status", { fallback: "Status" })}</p>
     <div class="format-options d-flex gap-3">
         {#each statusOptions as status}
             <label
@@ -53,7 +67,7 @@
                     onchange={(e) =>
                         notify(e.currentTarget?.value ?? e.target?.value)}
                 />
-                <span class="format-label">{status.label}</span>
+                    <span class="format-label">{getStatusLabel(status.value)}</span>
                 {#if status.value === "all"}
                     <span
                         class="badge rounded {selectedStatus === status.value

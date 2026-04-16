@@ -81,7 +81,7 @@
     {/if}
   {/snippet}
   {#snippet description()}
-    {t("import.match-description", {
+    {t("import.change-matched-field", {
       fallback: "Change the matched field for",
     })} <span class="fw-bold">{field}</span>
   {/snippet}

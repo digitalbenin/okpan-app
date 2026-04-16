@@ -150,7 +150,7 @@
     if (!window?.api?.openFileDialog || !window?.api?.readFile || !data?.project?.id || isImportingCsv) return;
 
     const result = await window.api.openFileDialog({
-      title: 'Import Connection Type CSV',
+      title: t("project.import_connection_type_csv", { fallback: "Import connection type CSV" }),
       filters: [{ name: 'CSV', extensions: ['csv'] }],
       properties: ['openFile']
     });
@@ -167,7 +167,9 @@
         data: {
           type: "danger",
           title: t("common.import", { fallback: "Import" }),
-          description: 'Invalid CSV format for a connection type.'
+          description: t("common.invalid-connection-type-csv", {
+            fallback: "Invalid CSV format for a connection type.",
+          })
         }
       });
       return;
@@ -230,7 +232,11 @@
         data: {
           type: "danger",
           title: t("common.import", { fallback: "Import" }),
-          description: result?.error || 'Invalid CSV format for a connection type.'
+          description:
+            result?.error ||
+            t("common.invalid-connection-type-csv", {
+              fallback: "Invalid CSV format for a connection type.",
+            })
         }
       });
     } catch (error) {
@@ -239,7 +245,11 @@
         data: {
           type: "danger",
           title: t("common.import", { fallback: "Import" }),
-          description: error?.message || 'Invalid CSV format for a connection type.'
+          description:
+            error?.message ||
+            t("common.invalid-connection-type-csv", {
+              fallback: "Invalid CSV format for a connection type.",
+            })
         }
       });
     } finally {

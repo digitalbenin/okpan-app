@@ -818,6 +818,810 @@
     },
     {
       "locale": "en",
+      "namespace": "common",
+      "key": "none",
+      "value": "None"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "none",
+      "value": "Nessuno"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "untitled",
+      "value": "Untitled"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "untitled",
+      "value": "Senza titolo"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "add-connection-type",
+      "value": "Add connection type"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "add-connection-type",
+      "value": "Aggiungi tipo di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "published",
+      "value": "Published"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "published",
+      "value": "Pubblicato"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "not-published",
+      "value": "Not published"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "not-published",
+      "value": "Non pubblicato"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "published-on-website",
+      "value": "Published on the website"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "published-on-website",
+      "value": "Pubblicato sul sito web"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "not-published-on-website",
+      "value": "Not published on the website"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "not-published-on-website",
+      "value": "Non pubblicato sul sito web"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "invalid-connection-type-csv",
+      "value": "Invalid CSV format for a connection type."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "invalid-connection-type-csv",
+      "value": "Formato CSV non valido per un tipo di connessione."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "selected-file",
+      "value": "Selected file"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "selected-file",
+      "value": "File selezionato"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "connection-type-name",
+      "value": "Connection type name"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "connection-type-name",
+      "value": "Nome del tipo di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "map-csv-languages",
+      "value": "Map CSV languages"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "map-csv-languages",
+      "value": "Mappa le lingue del CSV"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "map-csv-languages-description",
+      "value": "This CSV uses different language columns than the current project. Choose which project language each CSV language should import into."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "map-csv-languages-description",
+      "value": "Questo CSV usa colonne lingua diverse da quelle del progetto corrente. Scegli in quale lingua del progetto importare ciascuna lingua del CSV."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "select-language",
+      "value": "Select language"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "select-language",
+      "value": "Seleziona lingua"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "unique-language-mapping",
+      "value": "Each CSV language must map to a different project language."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "unique-language-mapping",
+      "value": "Ogni lingua del CSV deve corrispondere a una lingua diversa del progetto."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "edit-connection-type",
+      "value": "Edit connection type"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "edit-connection-type",
+      "value": "Modifica tipo di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "no-connections-found",
+      "value": "No connections found."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "no-connections-found",
+      "value": "Nessuna connessione trovata."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "sort-by-name-desc",
+      "value": "Sort by name (Z-A)"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "sort-by-name-desc",
+      "value": "Ordina per nome (Z-A)"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "delete-connection",
+      "value": "Delete connection"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "delete-connection",
+      "value": "Elimina connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "delete-connection-confirmation",
+      "value": "Are you sure you want to delete this connection? This action cannot be undone."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "delete-connection-confirmation",
+      "value": "Sei sicuro di voler eliminare questa connessione? Questa azione non può essere annullata."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "delete-connection-type",
+      "value": "Delete connection type"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "delete-connection-type",
+      "value": "Elimina tipo di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "delete-connection-type-confirmation",
+      "value": "Are you sure you want to delete this connection type? This action cannot be undone."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "delete-connection-type-confirmation",
+      "value": "Sei sicuro di voler eliminare questo tipo di connessione? Questa azione non può essere annullata."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "external-link",
+      "value": "External link"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "external-link",
+      "value": "Link esterno"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "linked-objects",
+      "value": "Linked objects"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "linked-objects",
+      "value": "Oggetti collegati"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "no-linked-objects",
+      "value": "No linked objects"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "no-linked-objects",
+      "value": "Nessun oggetto collegato"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "thumbnail",
+      "value": "Thumbnail"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "thumbnail",
+      "value": "Miniatura"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "add-thumbnail",
+      "value": "Add thumbnail"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "add-thumbnail",
+      "value": "Aggiungi miniatura"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "no-thumbnail",
+      "value": "No thumbnail"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "no-thumbnail",
+      "value": "Nessuna miniatura"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "required",
+      "value": "Required"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "required",
+      "value": "Obbligatorio"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "close",
+      "value": "Close"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "close",
+      "value": "Chiudi"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "visibility",
+      "value": "Visibility on the website"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "visibility",
+      "value": "Visibilità sul sito web"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "something-went-wrong",
+      "value": "Something went wrong."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "something-went-wrong",
+      "value": "Qualcosa è andato storto."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "duplicate",
+      "value": "Duplicate"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "duplicate",
+      "value": "Duplica"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "show",
+      "value": "Show"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "show",
+      "value": "Mostra"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "create",
+      "value": "Create"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "create",
+      "value": "Crea"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "next",
+      "value": "Next"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "next",
+      "value": "Avanti"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "saving",
+      "value": "Saving..."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "saving",
+      "value": "Salvataggio..."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "audio",
+      "value": "Audio"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "audio",
+      "value": "Audio"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "audios",
+      "value": "Audios"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "audios",
+      "value": "Audio"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "videos",
+      "value": "Videos"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "videos",
+      "value": "Video"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "add-images",
+      "value": "Add images"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "add-images",
+      "value": "Aggiungi immagini"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "add-videos",
+      "value": "Add videos"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "add-videos",
+      "value": "Aggiungi video"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "add-audio",
+      "value": "Add audio"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "add-audio",
+      "value": "Aggiungi audio"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "drag-upload-images",
+      "value": "No images"
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "drag-upload-images",
+      "value": "Nessuna immagine"
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "no-videos",
+      "value": "No videos. Click to add."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "no-videos",
+      "value": "Nessun video. Fai clic per aggiungere."
+    },
+    {
+      "locale": "en",
+      "namespace": "common",
+      "key": "no-audio",
+      "value": "No audio. Click to add."
+    },
+    {
+      "locale": "it",
+      "namespace": "common",
+      "key": "no-audio",
+      "value": "Nessun audio. Fai clic per aggiungere."
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "connection-types",
+      "value": "Connection types"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "connection-types",
+      "value": "Tipi di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "import_connection_type_csv",
+      "value": "Import connection type CSV"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "import_connection_type_csv",
+      "value": "Importa CSV del tipo di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "add_connection_type",
+      "value": "Add a new connection type"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "add_connection_type",
+      "value": "Aggiungi un nuovo tipo di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "give_name_connection",
+      "value": "Give a name to the connection type"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "give_name_connection",
+      "value": "Dai un nome al tipo di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "define_fields_connection",
+      "value": "Define the fields you want to have for this connection type"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "define_fields_connection",
+      "value": "Definisci i campi che vuoi avere per questo tipo di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "choose_template",
+      "value": "Choose a template or make your own."
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "choose_template",
+      "value": "Scegli un modello o creane uno tuo."
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "edit_later_hint",
+      "value": "Don't worry, you can edit them later"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "edit_later_hint",
+      "value": "Non preoccuparti, potrai modificarli più tardi"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "edit_connection_type",
+      "value": "Edit connection type"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "edit_connection_type",
+      "value": "Modifica tipo di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "connection_type_information",
+      "value": "Connection type information"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "connection_type_information",
+      "value": "Informazioni sul tipo di connessione"
+    },
+    {
+      "locale": "en",
+      "namespace": "project",
+      "key": "data_fields",
+      "value": "Data fields"
+    },
+    {
+      "locale": "it",
+      "namespace": "project",
+      "key": "data_fields",
+      "value": "Campi dati"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.custom.label",
+      "value": "Custom"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.custom.label",
+      "value": "Personalizzato"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.custom.description",
+      "value": "Create a connection type from scratch"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.custom.description",
+      "value": "Crea un tipo di connessione da zero"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.indigenous_designation.label",
+      "value": "Indigenous designation"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.indigenous_designation.label",
+      "value": "Denominazione indigena"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.indigenous_designation.description",
+      "value": "Record indigenous names/terms"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.indigenous_designation.description",
+      "value": "Registra nomi e termini indigeni"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.iconography.label",
+      "value": "Iconography"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.iconography.label",
+      "value": "Iconografia"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.iconography.description",
+      "value": "Describe symbols and visual elements"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.iconography.description",
+      "value": "Descrivi simboli ed elementi visivi"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.place.label",
+      "value": "Place"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.place.label",
+      "value": "Luogo"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.place.description",
+      "value": "Geographic locations and sites"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.place.description",
+      "value": "Luoghi e siti geografici"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.oral_history.label",
+      "value": "Oral history"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.oral_history.label",
+      "value": "Storia orale"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.oral_history.description",
+      "value": "Recordings and transcripts"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.oral_history.description",
+      "value": "Registrazioni e trascrizioni"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.people.label",
+      "value": "People"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.people.label",
+      "value": "Persone"
+    },
+    {
+      "locale": "en",
+      "namespace": "connections",
+      "key": "template.people.description",
+      "value": "Individuals and groups"
+    },
+    {
+      "locale": "it",
+      "namespace": "connections",
+      "key": "template.people.description",
+      "value": "Individui e gruppi"
+    },
+    {
+      "locale": "en",
       "namespace": "objects",
       "key": "object_name",
       "value": "Object name"

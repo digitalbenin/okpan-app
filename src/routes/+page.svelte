@@ -138,7 +138,7 @@
     </div>
     <div class="col-3 vh-100 border-start">
       <h4>{t("common.resources", { fallback: "Resources and guides" })}</h4>
-      <h5 class="text-muted">Coming soon</h5>
+      <h5 class="text-muted">{t("common.coming-soon", { fallback: "Coming soon" })}</h5>
     </div>
   </div>
 </div>

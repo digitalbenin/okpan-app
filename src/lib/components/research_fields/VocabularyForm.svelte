@@ -28,7 +28,7 @@
         onSubmit, 
         onCancel,
         title = "",
-        submitLabel = "Save"
+        submitLabel = ""
     } = $props();
 
     const { t } = getTranslationStore();
@@ -128,7 +128,7 @@
     const rightActionButtons = $derived([
         {
             id: "save-vocabulary",
-            text: submitLabel,
+            text: resolvedSubmitLabel,
             class: "btn btn-success",
             type: "submit",
             disableOnError: true,
@@ -144,6 +144,8 @@
             type: "button"
         }
     ]);
+
+    const resolvedSubmitLabel = $derived(submitLabel || t("common.save", { fallback: "Save" }));
 
     const mediaSections = $derived([
         { type: 'image', icon: 'images', emptyIcon: 'images', size: 150, label: t("common.images", {fallback: "Images"}), addLabel: t("common.add-images", {fallback: "Add Images"}), emptyText: t("common.drag-upload-images", {fallback: "No images"}), visible: visibleFields.images },
@@ -178,7 +180,6 @@
         }
     };
 
-    // Sync pagination with props
     $effect(() => {
         loPage = linkedObjectsPage;
         loPageSize = linkedObjectsPageSize;
@@ -219,7 +220,7 @@
         <div class="d-flex align-items-center gap-2 mb-2 text-muted">
             <button type="button" class="btn btn-link p-0 text-decoration-none text-muted d-flex align-items-center" onclick={onCancel}>
                 <i class="bi bi-arrow-left me-1"></i>
-                {researchField?.name?.content || "Back"}
+                {researchField?.name?.content || t("nav.back", { fallback: "Back" })}
             </button>
         </div>
         <h2 class="m-0">{title}</h2>
@@ -375,7 +376,7 @@
                                     <AssetPreview asset={mainAsset} size={200} width="100%" showRemoveButton={true} onRemove={() => handleRemoveAsset(mainAsset, 'main')} />
                                 </div>
                                 <div class="text-muted small text-truncate mw-100 px-2" title={mainAsset?.filename || mainAsset?.name}>
-                                    {mainAsset?.filename || mainAsset?.name || "Untitled"}
+                                    {mainAsset?.filename || mainAsset?.name || t("common.untitled", { fallback: "Untitled" })}
                                 </div>
                             {:else}
                                 <div class="text-muted text-center py-5 m-0 bg-light rounded border border-dashed hover-bg-light-dark">

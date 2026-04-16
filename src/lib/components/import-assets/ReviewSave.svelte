@@ -202,14 +202,14 @@
         })}
       </button> -->
       {#if saveFetcher.isLoading}
-        <div>loading</div>
+        <div>{t("common.loading", { fallback: "Loading..." })}</div>
       {/if}
       {#if isImporting}
         <div class="mt-2 w-100" style="max-width: 320px;">
           <div
             class="progress"
             role="progressbar"
-            aria-label="Import progress"
+            aria-label={t("common.import-progress", { fallback: "Import progress" })}
             aria-valuenow={importProgressPercent}
             aria-valuemin="0"
             aria-valuemax="100"
@@ -222,7 +222,7 @@
       {/if}
       {#if importErrors.length}
         <div class="alert alert-danger mt-2 mb-0">
-          <h4>{t("import.errors-occurred", { fallback: "Some errors occurred" })}</h4>
+          <h4>{t("common.errors-occurred", { fallback: "Some errors occurred:" })}</h4>
           <ul>
             {#each importErrors as err}
               <li>{typeof err === 'string' ? err : (err?.message || err?.error || 'Unknown error')}</li>

@@ -33,7 +33,7 @@
     {t("import.cancel-import", { fallback: "Cancel Import" })}
   {/snippet}
   {#snippet trigger()}
-    {t("import.cancel", { fallback: "Cancel" })}
+    {t("common.cancel", { fallback: "Cancel" })}
   {/snippet}
   {#snippet description()}
     {t("import.cancel-import-description", {

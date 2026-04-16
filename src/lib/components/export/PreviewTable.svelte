@@ -1,6 +1,7 @@
 <script>
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BasePagination from "$lib/components/base/BasePagination.svelte";
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     let {
         objects = [],
@@ -10,6 +11,8 @@
         pageSize,
         count,
     } = $props();
+
+    const { t } = getTranslationStore();
 
     // Debug: watch page value directly
 
@@ -118,8 +121,8 @@
                     />
                 </th>
                 <th class="image-column" style="width: 60px;"></th>
-                <th class="id-column" style="width: 140px;">Object ID</th>
-                <th class="date-column" style="width: 140px;">Date modified</th>
+                <th class="id-column" style="width: 140px;">{t("common.object-id", { fallback: "Object ID" })}</th>
+                <th class="date-column" style="width: 140px;">{t("common.updated-at", { fallback: "Updated at" })}</th>
             </tr>
         </thead>
         <tbody>

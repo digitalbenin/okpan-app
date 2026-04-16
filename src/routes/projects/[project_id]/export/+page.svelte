@@ -1,5 +1,6 @@
 <script>
     import { page } from "$app/stores";
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     import { searchObjects } from "$lib/stores/ObjectsUtils.js";
     import { onMount } from "svelte";
@@ -11,6 +12,7 @@
     import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
 
     let { data } = $props();
+    const { t } = getTranslationStore();
 
     let projectId = $derived($page.params.project_id);
 
@@ -114,7 +116,9 @@
             return {
                 value: field.id,
                 label,
-                group: field?.project?.title?.content ?? "Connections",
+                group:
+                    field?.project?.title?.content ??
+                    t("export.connections", { fallback: "Connections" }),
                 vocabOptions: Array.isArray(field?.vocabularies)
                     ? field.vocabularies.map((v) => ({
                           value: v.id,
@@ -139,7 +143,11 @@
             return {
                 value: field.id,
                 label,
-                group: field?.project?.title?.content ?? "Research Fields",
+                group:
+                    field?.project?.title?.content ??
+                    t("filters.research-fields", {
+                        fallback: "Research fields",
+                    }),
             };
         });
     });
@@ -279,7 +287,12 @@
     }
 
     // Computed values
-    let exportSummary = $derived(`Objects matching filters: ${totalCount}`);
+    let exportSummary = $derived(
+        t("export.summary", {
+            fallback: "Objects matching filters: {{count}}",
+            count: totalCount,
+        }),
+    );
     // Dynamic status counts from facets
     let completedCount = $derived(
         facets?.statuses?.find((s) => (s.id ?? s.name) === "completed")
@@ -292,17 +305,21 @@
 
     const exportDisabledReason = $derived.by(() => {
         if (totalCount === 0) {
-            return "No objects match current filters";
+            return t("export.no-objects-match", {
+                fallback: "No objects match current filters",
+            });
         }
         if (totalCount - deselectedObjectIds.size <= 0) {
-            return "No objects selected";
+            return t("export.no-objects-selected", {
+                fallback: "No objects selected",
+            });
         }
         return "";
     });
 
     const rightActionButtons = $derived.by(() => [{
         id: "export-data",
-        text: "Export",
+        text: t("translations.export", { fallback: "Export" }),
         class: "btn btn-success",
         disabled: !!exportDisabledReason,
         onClick: handleExport,
@@ -316,13 +333,17 @@
     <div class="col-lg-8">
         <!-- Header -->
         <div class="mb-4">
-            <h1 class="h3 mb-0">Export</h1>
-            <p class="text-muted mt-2 mb-0">Choose the filters to export your dataset.</p>
+            <h1 class="h3 mb-0">{t("translations.export", { fallback: "Export" })}</h1>
+            <p class="text-muted mt-2 mb-0">
+                {t("export.page-description", {
+                    fallback: "Choose the filters to export your dataset.",
+                })}
+            </p>
         </div>
 
         <!-- Export Format Selection -->
         <div class="export-format-section mb-4">
-            <h5 class="h5 mb-2">Export as</h5>
+            <h5 class="h5 mb-2">{t("export.export-as", { fallback: "Export as" })}</h5>
             <div class="format-options d-flex gap-3">
                 {#each exportFormats as format}
                     <label
@@ -372,13 +393,13 @@
         <div class="assets-section mb-4">
             <label class="asset-option d-flex align-items-center gap-2">
                 <input type="checkbox" class="form-check-input" bind:checked={includeAssets} />
-                <span>Include media in the export</span>
+                <span>{t("export.include-media", { fallback: "Include media in the export" })}</span>
             </label>
         </div>
 
         <!-- Filter Content Section -->
         <div class="filter-section mb-4">
-            <h5 class="h5 mb-3">Filter content</h5>
+            <h5 class="h5 mb-3">{t("export.filter-content", { fallback: "Filter content" })}</h5>
 
             <!-- Status Filter -->
             <StatusFilter

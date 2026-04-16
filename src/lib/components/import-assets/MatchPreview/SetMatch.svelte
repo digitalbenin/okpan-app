@@ -95,7 +95,7 @@
     })}
   {/snippet}
   {#snippet description()}
-    {t("import.match-description", {
+    {t("import.change-linked-asset", {
       fallback: "Change the linked asset for",
     })} <span class="fw-bold">{asset.filename}</span>
     {#if tempMappedObjects.length > 0}

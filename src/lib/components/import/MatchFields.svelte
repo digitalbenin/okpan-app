@@ -16,7 +16,7 @@
         })}
       </h3>
       <p class="w-75">
-        {t("import.match-description", {
+        {t("import.match-fields-description", {
           fallback:
             "In this step, you’ll connect the data from your file (like titles, dates, authors, etc.) to our shared structure. This helps make the objects searchable and comparable across different institutions.",
         })}

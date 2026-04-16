@@ -126,7 +126,7 @@
   {#snippet description()}
     <p class="mb-2">
       <span class="fw-bold">{wizard.data.length}</span>
-      {t("import.match-description", {
+      {t("import.objects-imported-summary", {
         fallback: "objects imported correctly",
       })}
     </p>
