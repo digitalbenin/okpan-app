@@ -1,5 +1,7 @@
 <script>
+	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	let { objectOntologyFields = [], ontologyFields = [], datasources = [], institution } = $props();
+	const { t } = getWebsiteTranslationStore();
 
 	let mappedFields = $derived(
 		objectOntologyFields.map((e) => ({
@@ -11,7 +13,7 @@
 	let groupedFields = $derived(
 		mappedFields?.reduce((acc, item) => {
 			const dsId = item.datasources_id;
-			const label = item.label || 'Unknown source field';
+			const label = item.label || t('common.unknown-field');
 
 			if (!acc[dsId]) acc[dsId] = {};
 			if (!acc[dsId][label]) acc[dsId][label] = [];
@@ -26,7 +28,7 @@
 		return (
 			ds?.name?.content ||
 			ds?.name ||
-			(id === 'no-datasource' ? 'No Datasource' : 'Unknown datasource')
+			(id === 'no-datasource' ? t('common.no-datasource') : t('common.unknown-datasource'))
 		);
 	}
 
@@ -45,7 +47,7 @@
 	const getDisplayText = (fieldId, text) => {
 		if (!text) return '';
 		if (!shouldTruncate(text)) return text;
-		return isExpanded(fieldId) ? text : text.substring(0, 160) + '...';
+		return isExpanded(fieldId) ? text : text.substring(0, 160) + t('common.ellipsis');
 	};
 
 	// --------------- Institution box helpers ---------------
@@ -55,7 +57,7 @@
 		try {
 			const parsed = JSON.parse(raw);
 			if (Array.isArray(parsed)) {
-				res = parsed.map((l) => ({ url: l?.url ?? l, label: l?.label ?? l?.name ?? 'Link' }));
+				res = parsed.map((l) => ({ url: l?.url ?? l, label: l?.label ?? l?.name ?? t('common.link') }));
 			}
 		} catch (e) {
 			console.error('malformed links section');
@@ -73,7 +75,7 @@
 
 <div class="bg-white mb-2 px-2">
 	<div class="d-flex justify-content-between align-items-center mb-3">
-		<h3 class="mb-0">Institution data</h3>
+		<h3 class="mb-0">{t('institution.title')}</h3>
 	</div>
 
 	<div class="row g-4">
@@ -106,9 +108,9 @@
 									<table class="table table-sm">
 										<thead>
 											<tr>
-												<th style="width: 25%">Institution field</th>
-												<th style="width: 30%">Matched field</th>
-												<th style="width: 45%">Value</th>
+												<th style="width: 25%">{t('institution.field')}</th>
+												<th style="width: 30%">{t('institution.matched-field')}</th>
+												<th style="width: 45%">{t('institution.value')}</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -119,7 +121,7 @@
 														<div class="d-flex flex-wrap gap-1">
 															{#each fields as field}
 																<span class="badge bg-secondary-subtle text-secondary-emphasis">
-																	{field.name?.content || field.name || 'Unknown'}
+																	{field.name?.content || field.name || t('common.unknown')}
 																</span>
 															{/each}
 														</div>
@@ -133,11 +135,11 @@
 																	class="btn btn-link btn-sm p-0 ms-2 text-decoration-none"
 																	onclick={() => toggleExpanded(fields[0].id)}
 																>
-																	{isExpanded(fields[0].id) ? 'read less' : 'read more'}
+																	{isExpanded(fields[0].id) ? t('common.read-less') : t('common.read-more')}
 																</button>
 															{/if}
 														{:else}
-															<span class="text-muted fst-italic">Value field</span>
+															<span class="text-muted fst-italic">{t('institution.value-placeholder')}</span>
 														{/if}
 													</td>
 												</tr>
@@ -146,7 +148,7 @@
 									</table>
 								{:else}
 									<div class="text-center text-muted py-4">
-										No ontology fields for this datasource
+										{t('institution.no-fields-for-datasource')}
 									</div>
 								{/if}
 							{/if}
@@ -154,22 +156,22 @@
 					</div>
 					<div class="col-lg-4">
 						<aside class="card border border-secondary-subtle rounded-3 p-3 bg-light">
-							<h5 class="mb-3">About the institution</h5>
+							<h5 class="mb-3">{t('institution.about')}</h5>
 							<div class="mb-3">
-								<div class="label text-uppercase small fw-bold">Name</div>
-								<div>{institution?.name || '—'}</div>
+								<div class="label text-uppercase small fw-bold">{t('common.name')}</div>
+								<div>{institution?.name || t('common.none')}</div>
 							</div>
 							<div class="mb-3">
-								<div class="label text-uppercase small fw-bold">Country</div>
-								<div>{countryText || '—'}</div>
+								<div class="label text-uppercase small fw-bold">{t('common.country')}</div>
+								<div>{countryText || t('common.none')}</div>
 							</div>
 							<div class="mb-3">
-								<div class="label text-uppercase small fw-bold">Address</div>
-								<div>{addressText || '—'}</div>
+								<div class="label text-uppercase small fw-bold">{t('common.address')}</div>
+								<div>{addressText || t('common.none')}</div>
 							</div>
 							{#if linkItems.length > 0}
 								<div class="mb-3">
-									<div class="label text-uppercase small fw-bold">Links</div>
+									<div class="label text-uppercase small fw-bold">{t('common.links')}</div>
 									<ul class="list-unstyled mb-0">
 										{#each linkItems as l}
 											<li class="mb-1">
@@ -185,12 +187,12 @@
 								</div>
 							{:else if websiteUrl}
 								<div class="mb-2">
-									<div class="label text-uppercase text-muted small fw-semibold">Links</div>
+									<div class="label text-uppercase text-muted small fw-semibold">{t('common.links')}</div>
 									<a
 										class="link-primary"
 										href={websiteUrl}
 										target="_blank"
-										rel="noopener noreferrer">Website</a
+										rel="noopener noreferrer">{t('common.website')}</a
 									>
 								</div>
 							{/if}
@@ -200,7 +202,7 @@
 			{:else}
 				<div class="text-center text-muted py-4">
 					<i class="bi bi-database fs-1 opacity-50"></i>
-					<div class="mt-2">No institution data found for this object</div>
+					<div class="mt-2">{t('institution.no-data-for-object')}</div>
 				</div>
 			{/if}
 		</div>
@@ -209,8 +211,7 @@
 
 <style>
 	/* Keep nav-underline styling consistent */
-	.nav-underline .nav-link.active,
-	.nav-underline .show > .nav-link {
+	.nav-underline .nav-link.active {
 		font-weight: 400 !important;
 	}
 	.label {

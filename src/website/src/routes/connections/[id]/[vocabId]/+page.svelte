@@ -2,8 +2,10 @@
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
+    import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
     import { resolveStaticHref } from '$lib/utils/sitePaths.js';
+    const { t } = getWebsiteTranslationStore();
 
     const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -77,7 +79,7 @@
             </a>
         {/if}
         
-        <h1 class="fw-bold mb-3">{vocabulary?.name || 'Unknown Item'}</h1>
+        <h1 class="fw-bold mb-3">{vocabulary?.name || t('common.unknown-item')}</h1>
 
         {#if vocabulary?.description}
             <p class="text-muted mb-3">{vocabulary.description}</p>
@@ -85,7 +87,7 @@
 
         {#if vocabulary?.external_link}
             <p class="mb-3">
-                <span class="text-muted me-1">Link:</span>
+                <span class="text-muted me-1">{t('common.link')}:</span>
                 <a href={vocabulary.external_link} target="_blank" rel="noopener noreferrer" class="text-decoration-underline text-dark">
                     {vocabulary.external_link}
                 </a>
@@ -98,23 +100,23 @@
     <!-- Videos -->
     {#if videos.length > 0}
         <div class="mb-5">
-            <h6 class="fw-bold mb-3"><i class="bi bi-play-btn me-2"></i>Videos</h6>
+            <h6 class="fw-bold mb-3"><i class="bi bi-play-btn me-2"></i>{t('media.videos')}</h6>
             <div class="card border-0 bg-light rounded-3 overflow-hidden position-relative" style="height: 400px;">
                 <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-black">
                     {#key videos[videoIndex].path}
                         <video controls class="d-block mw-100 mh-100">
                             <source src={getAssetUrl({ asset_path: videos[videoIndex].path })} type="video/mp4">
                             <track kind="captions" />
-                            Your browser does not support the video tag.
+                            {t('media.browser-no-video')}
                         </video>
                     {/key}
                 </div>
                 
                 {#if videos.length > 1}
-                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute start-0 top-50 translate-middle-y ms-2 rounded-circle" onclick={prevVideo} aria-label="Previous">
+                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute start-0 top-50 translate-middle-y ms-2 rounded-circle" onclick={prevVideo} aria-label={t('media.previous')}>
                         <i class="bi bi-chevron-left text-white"></i>
                     </button>
-                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute end-0 top-50 translate-middle-y me-2 rounded-circle" onclick={nextVideo} aria-label="Next">
+                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute end-0 top-50 translate-middle-y me-2 rounded-circle" onclick={nextVideo} aria-label={t('media.next')}>
                         <i class="bi bi-chevron-right text-white"></i>
                     </button>
                     
@@ -124,7 +126,7 @@
                                 class="btn p-0 rounded-circle border-0 {i === videoIndex ? 'bg-white' : 'bg-white bg-opacity-50'}"
                                 style="width: 8px; height: 8px; transition: all 0.2s;"
                                 onclick={() => videoIndex = i}
-                                aria-label="Go to video {i+1}"
+                                aria-label={t('media.go-to-video', { count: i + 1 })}
                             ></button>
                         {/each}
                     </div>
@@ -136,7 +138,7 @@
     <!-- Images -->
     {#if images.length > 0}
         <div class="mb-5">
-            <h6 class="fw-bold  mb-3"><i class="bi bi-images me-2"></i>Images</h6>
+            <h6 class="fw-bold  mb-3"><i class="bi bi-images me-2"></i>{t('media.images')}</h6>
             <div class="card border-0 bg-light rounded-3 overflow-hidden position-relative" style="height: 400px;">
                 <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-secondary bg-opacity-10">
                      <img 
@@ -147,10 +149,10 @@
                 </div>
                 
                 {#if images.length > 1}
-                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute start-0 top-50 translate-middle-y ms-2 rounded-circle" onclick={prevImage} aria-label="Previous">
+                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute start-0 top-50 translate-middle-y ms-2 rounded-circle" onclick={prevImage} aria-label={t('media.previous')}>
                         <i class="bi bi-chevron-left text-white"></i>
                     </button>
-                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute end-0 top-50 translate-middle-y me-2 rounded-circle" onclick={nextImage} aria-label="Next">
+                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute end-0 top-50 translate-middle-y me-2 rounded-circle" onclick={nextImage} aria-label={t('media.next')}>
                         <i class="bi bi-chevron-right text-white"></i>
                     </button>
                     
@@ -160,7 +162,7 @@
                                 class="btn p-0 rounded-circle border-0 {i === imageIndex ? 'bg-white' : 'bg-white bg-opacity-50'}"
                                 style="width: 8px; height: 8px; transition: all 0.2s;"
                                 onclick={() => imageIndex = i}
-                                aria-label="Go to image {i+1}"
+                                aria-label={t('media.go-to-image', { count: i + 1 })}
                             ></button>
                         {/each}
                     </div>
@@ -172,14 +174,14 @@
     <!-- Audio -->
     {#if audio.length > 0}
         <div class="mb-5">
-            <h6 class="fw-bold  mb-3"><i class="bi bi-volume-up me-2"></i>Audio</h6>
+            <h6 class="fw-bold  mb-3"><i class="bi bi-volume-up me-2"></i>{t('media.audio')}</h6>
             <div class="d-flex flex-column gap-3">
                 {#each audio as aud}
                     <div class="card border-0 bg-light p-3 rounded-pill">
                         <div class="d-flex align-items-center gap-3">
                             <audio controls class="flex-grow-1" style="height: 32px;">
                                 <source src={getAssetUrl({ asset_path: aud.path })} type="audio/mpeg">
-                                Your browser does not support the audio element.
+                                {t('media.browser-no-audio')}
                             </audio>
                         </div>
                     </div>
@@ -191,8 +193,8 @@
     <!-- Linked Objects -->
     <div class="card border rounded-3 mt-5">
         <div class="card-header bg-white border-bottom p-3">
-            <h6 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>Linked objects</h6>
-            <small class="text-muted">{allObjects.length} objects</small>
+            <h6 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>{t('object.linked-objects')}</h6>
+            <small class="text-muted">{t('object.objects-count', { count: allObjects.length })}</small>
         </div>
         
         <div class="list-group list-group-flush">
@@ -216,7 +218,7 @@
             {/each}
             
             {#if allObjects.length === 0}
-                <div class="p-4 text-center text-muted">No objects linked.</div>
+                <div class="p-4 text-center text-muted">{t('object.no-objects-linked')}</div>
             {/if}
         </div>
 
@@ -225,7 +227,7 @@
                 <nav>
                     <ul class="pagination pagination-sm mb-0">
                         <li class="page-item {currentPage === 1 ? 'disabled' : ''}">
-                            <button class="page-link text-dark" onclick={() => goToPage(currentPage - 1)} aria-label="Previous page">
+                            <button class="page-link text-dark" onclick={() => goToPage(currentPage - 1)} aria-label={t('pagination.previous-page')}>
                                 <i class="bi bi-chevron-left"></i>
                             </button>
                         </li>
@@ -239,7 +241,7 @@
                         {/each}
 
                         <li class="page-item {currentPage === totalPages ? 'disabled' : ''}">
-                            <button class="page-link text-dark" onclick={() => goToPage(currentPage + 1)} aria-label="Next page">
+                            <button class="page-link text-dark" onclick={() => goToPage(currentPage + 1)} aria-label={t('pagination.next-page')}>
                                 <i class="bi bi-chevron-right"></i>
                             </button>
                         </li>

@@ -1,6 +1,8 @@
 <script>
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
+	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	const { objectResearchFields = [], researchFields = [], vocabularies = [] } = $props();
+	const { t } = getWebsiteTranslationStore();
 
 	let selectedVocabulary = $state(null);
 
@@ -63,14 +65,14 @@
 			<div class="d-flex align-items-start border-bottom py-2 px-1">
 				<div class="col-3 text-break">
 					<span class="badge bg-secondary-subtle text-dark">{group.fieldName}</span>
-					<i class="bi bi-info-circle ms-1 text-muted" title={group.description || 'No description'}></i>
+					<i class="bi bi-info-circle ms-1 text-muted" title={group.description || t('common.no-description-available')}></i>
 				</div>
 				<div class="col-9 text-break">
 					{#if group.type !== 'vocabulary'}
-						{group.values.join(', ')}
+						{group.values.join(t('common.list-separator'))}
 					{:else}
 						{#each group.values as v, i}
-							{#if i > 0}, {/if}
+							{#if i > 0}{t('common.list-separator')}{/if}
 							<button
 								type="button"
 								class="btn btn-link text-dark p-0"
@@ -85,7 +87,7 @@
 		{/each}
 	</div>
 {:else}
-	<p class="text-muted">No research fields available.</p>
+	<p class="text-muted">{t('research.no-fields')}</p>
 {/if}
 
 {#if selectedVocabulary}
@@ -102,7 +104,7 @@
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title">{selectedVocabulary.name}</h5>
-					<button type="button" class="btn-close" aria-label="Close" onclick={closeModal}></button>
+					<button type="button" class="btn-close" aria-label={t('common.close')} onclick={closeModal}></button>
 				</div>
 				<div class="modal-body">
 					{#if selectedVocabulary.main_asset_path}
@@ -115,11 +117,11 @@
 					{#if selectedVocabulary.description}
 						<p>{selectedVocabulary.description}</p>
 					{:else}
-						<p class="text-muted">No description available.</p>
+						<p class="text-muted">{t('common.no-description-available')}</p>
 					{/if}
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" onclick={closeModal}>Close</button>
+					<button type="button" class="btn btn-secondary" onclick={closeModal}>{t('common.close')}</button>
 				</div>
 			</div>
 		</div>

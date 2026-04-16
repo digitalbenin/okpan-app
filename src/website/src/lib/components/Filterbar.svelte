@@ -1,4 +1,5 @@
 <script>
+	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	let {
 		value,
 		onInput,
@@ -13,6 +14,7 @@
 		onRemoveTextFilter,
 		onClearAllAdvancedFilters
 	} = $props();
+	const { t } = getWebsiteTranslationStore();
 </script>
 
 <div class="row">
@@ -25,23 +27,15 @@
 				type="search"
 				class="form-control ps-5 border-0"
 				style="min-width: 200px"
-				placeholder="Search..."
+				placeholder={t('filters.search-placeholder')}
 				{value}
 				oninput={onInput}
 			/>
 		</div>
 		<div class="d-flex flex-row gap-3">
-			<!--<div class="ms-2 d-flex align-items-center">
-				<span class="pe-2 text-nowrap">Sort by</span>
-				<select class="form-select border-0 outline-0">
-					<option selected>Sort by...</option>
-					<option value="1">Name</option>
-					<option value="2">Date</option>
-				</select>
-			</div> -->
 			<div class="ms-2">
 				<button class="btn btn-link text-dark text-decoration-none" onclick={onFiltersClick}>
-					Filters
+					{t('filters.title')}
 					<i class="bi bi-filter"></i>
 				</button>
 			</div>
@@ -51,7 +45,7 @@
 <div class="row">
 	<div class="my-3 d-flex justify-content-between align-items-center">
 		<div class="d-flex align-items-center gap-3 text-nowrap">
-			<span>{resCount} results</span>
+			<span>{t('filters.results', { count: resCount })}</span>
 		</div>
 		<div class="d-flex align-items-center justify-content-end flex-wrap gap-1">
 			{#if hasActiveFilters}
@@ -61,7 +55,7 @@
 						<button
 							type="button"
 							class="btn btn-link btn-sm text-white text-decoration-none ms-2 p-0"
-							aria-label="Remove filter"
+							aria-label={t('filters.remove-filter')}
 							onclick={() => onRemoveInstitution?.(chip.id)}
 						>
 							<i class="bi bi-x"></i>
@@ -75,7 +69,7 @@
 						<button
 							type="button"
 							class="btn btn-link btn-sm text-white text-decoration-none ms-2 p-0"
-							aria-label="Remove filter"
+							aria-label={t('filters.remove-filter')}
 							onclick={() => onRemoveVocabulary?.(chip.fieldId, chip.vocabId)}
 						>
 							<i class="bi bi-x"></i>
@@ -89,7 +83,7 @@
 						<button
 							type="button"
 							class="btn btn-link btn-sm text-white text-decoration-none ms-2 p-0"
-							aria-label="Remove filter"
+							aria-label={t('filters.remove-filter')}
 							onclick={() => onRemoveTextFilter?.(chip.key)}
 						>
 							<i class="bi bi-x"></i>
@@ -102,7 +96,7 @@
 					class="btn btn-link p-0 ms-2 text-dark"
 					onclick={onClearAllAdvancedFilters}
 				>
-					Clear all
+					{t('filters.clear-all')}
 				</button>
 			{/if}
 		</div>

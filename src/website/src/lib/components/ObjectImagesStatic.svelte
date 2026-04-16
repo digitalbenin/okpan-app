@@ -1,6 +1,8 @@
 <script>
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
+	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	const { assets = [] } = $props();
+	const { t } = getWebsiteTranslationStore();
 
 	// Filter valid assets and sort by order
 	const items = $derived.by(() => 
@@ -51,22 +53,22 @@
 		<div class="position-absolute top-0 start-0 m-2 d-flex gap-2 z-2">
 			<button
 				class="btn btn-light btn-sm osd-zoom-in"
-				title="Zoom in"
-				aria-label="Zoom in"
+				title={t('media.zoom-in')}
+				aria-label={t('media.zoom-in')}
 			>
 				<i class="bi bi-zoom-in"></i>
 			</button>
 			<button
 				class="btn btn-light btn-sm osd-zoom-out"
-				title="Zoom out"
-				aria-label="Zoom out"
+				title={t('media.zoom-out')}
+				aria-label={t('media.zoom-out')}
 			>
 				<i class="bi bi-zoom-out"></i>
 			</button>
 			<button
 				class="btn btn-light btn-sm osd-fullscreen"
-				title="Open in modal"
-				aria-label="Open fullscreen"
+				title={t('media.open-modal')}
+				aria-label={t('media.open-fullscreen')}
 			>
 				<i class="bi bi-arrows-fullscreen"></i>
 			</button>
@@ -77,7 +79,7 @@
 			<div class="osd-viewer w-100 h-100"></div>
 		{:else}
 			<div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted bg-light">
-				No image available
+				{t('media.no-image-available')}
 			</div>
 		{/if}
 	</div>
@@ -91,7 +93,7 @@
 						type="button"
 						class="osd-thumb p-0 border-0 bg-transparent flex-shrink-0"
 						data-index={i}
-						aria-label={`Select image ${i + 1}`}
+						aria-label={t('media.select-image', { count: i + 1 })}
 					>
 						<div
 							class="rounded bg-white border thumb-container"
@@ -102,7 +104,7 @@
 							<div class="w-100 h-100 d-flex align-items-center justify-content-center overflow-hidden bg-light">
 								<img
 									src={getFormatUrl(a, 'sm')}
-									alt={`image ${i + 1}`}
+									alt={t('media.image-number', { count: i + 1 })}
 									style="width: 100%; height: 100%; object-fit: contain;"
 								/>
 							</div>
@@ -118,16 +120,16 @@
 		<div class="modal-dialog modal-xl modal-dialog-centered" role="document">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title">Image preview</h5>
-					<button type="button" class="btn-close osd-modal-close" aria-label="Close"></button>
+					<h5 class="modal-title">{t('media.image-preview')}</h5>
+					<button type="button" class="btn-close osd-modal-close" aria-label={t('common.close')}></button>
 				</div>
 				<div class="modal-body p-0">
 					<div class="position-relative" style="height: 80vh;">
 						<div class="position-absolute top-0 start-0 m-2 d-flex gap-2 z-2">
-							<button class="btn btn-light btn-sm osd-modal-zoom-in" title="Zoom in" aria-label="Zoom in">
+							<button class="btn btn-light btn-sm osd-modal-zoom-in" title={t('media.zoom-in')} aria-label={t('media.zoom-in')}>
 								<i class="bi bi-zoom-in"></i>
 							</button>
-							<button class="btn btn-light btn-sm osd-modal-zoom-out" title="Zoom out" aria-label="Zoom out">
+							<button class="btn btn-light btn-sm osd-modal-zoom-out" title={t('media.zoom-out')} aria-label={t('media.zoom-out')}>
 								<i class="bi bi-zoom-out"></i>
 							</button>
 						</div>

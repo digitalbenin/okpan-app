@@ -1,0 +1,144 @@
+{
+  "code": "it",
+  "name": "Italiano",
+  "translations": {
+    "nav": {
+      "archive": "Archivio",
+      "connections": "Connessioni",
+      "about": "Informazioni",
+      "toggle-menu": "Apri menu",
+      "collapse-menu": "Comprimi menu",
+      "expand-menu": "Espandi menu",
+      "language": "Lingua"
+    },
+    "site": {
+      "untitled-project": "Progetto senza titolo",
+      "default-title": "Collezione del database",
+      "default-description": "Esplora la nostra collezione digitale"
+    },
+    "page": {
+      "archive": {
+        "loading": "Caricamento collezione..."
+      },
+      "connections": {
+        "loading": "Caricamento connessioni...",
+        "empty": "Nessun tipo di connessione definito.",
+        "no-items": "Nessun elemento trovato."
+      },
+      "about": {
+        "loading": "Caricamento informazioni...",
+        "empty": "Nessuna descrizione disponibile."
+      }
+    },
+    "filters": {
+      "search-placeholder": "Cerca...",
+      "title": "Filtri",
+      "results": "{{count}} risultati",
+      "remove-filter": "Rimuovi filtro",
+      "clear-all": "Cancella tutto",
+      "institutions": "Istituzioni",
+      "connections": "Connessioni",
+      "research-fields": "Campi di ricerca",
+      "active-text-searches": "Ricerche testuali attive",
+      "add-text-search": "Aggiungi ricerca testuale",
+      "search-field": "Campo di ricerca",
+      "field": "Campo",
+      "choose-field": "Scegli un campo",
+      "search-text": "Testo da cercare",
+      "search-text-placeholder": "Scrivi qui...",
+      "reset": "Reimposta",
+      "all": "Tutti",
+      "close": "Chiudi filtri",
+      "remove-text-filter": "Rimuovi filtro testuale",
+      "edit-text-filter": "Modifica filtro testuale",
+      "info": "Informazioni",
+      "institution-chip": "Istituzione: {{name}}",
+      "field-fallback": "Campo",
+      "vocabulary-thumbnail": "Miniatura vocabolario",
+      "vocabulary-image": "Immagine vocabolario"
+    },
+    "pagination": {
+      "label": "Paginazione",
+      "previous": "Prec",
+      "next": "Succ",
+      "page": "Pagina {{count}}",
+      "previous-page": "Pagina precedente",
+      "next-page": "Pagina successiva"
+    },
+    "common": {
+      "loading": "Caricamento...",
+      "close": "Chiudi",
+      "back": "Indietro",
+      "no-description-available": "Nessuna descrizione disponibile.",
+      "unknown": "Sconosciuto",
+      "unknown-item": "Voce sconosciuta",
+      "unknown-field": "Campo sconosciuto",
+      "unknown-datasource": "Datasource sconosciuto",
+      "no-datasource": "Nessun datasource",
+      "unknown-institution": "Istituzione sconosciuta",
+      "name": "Nome",
+      "country": "Paese",
+      "address": "Indirizzo",
+      "links": "Collegamenti",
+      "website": "Sito web",
+      "link": "Link",
+      "value": "Valore",
+      "read-more": "leggi di piu",
+      "read-less": "leggi meno",
+      "list-separator": ", ",
+      "meta-separator": " - ",
+      "ellipsis": "...",
+      "quote-open": "\u201c",
+      "quote-close": "\u201d",
+      "untitled": "Senza titolo",
+      "none": "-"
+    },
+    "object": {
+      "designation": "Denominazione",
+      "institution": "Istituzione",
+      "no-title": "Nessun titolo",
+      "no-type": "Nessun tipo",
+      "details": "Dettagli oggetto",
+      "linked-objects": "Oggetti collegati",
+      "objects-count": "{{count}} oggetti",
+      "objects-connected": "{{count}} oggetti collegati",
+      "no-objects-linked": "Nessun oggetto collegato.",
+      "external-link": "Link",
+      "no-image": "Nessuna immagine"
+    },
+    "institution": {
+      "title": "Dati istituzione",
+      "field": "Campo istituzione",
+      "matched-field": "Campo associato",
+      "value": "Valore",
+      "value-placeholder": "Campo valore",
+      "no-fields-for-datasource": "Nessun campo ontologico per questo datasource",
+      "about": "Informazioni sull'istituzione",
+      "no-data-for-object": "Nessun dato istituzionale trovato per questo oggetto"
+    },
+    "research": {
+      "no-fields": "Nessun campo di ricerca disponibile."
+    },
+    "media": {
+      "zoom-in": "Ingrandisci",
+      "zoom-out": "Riduci",
+      "open-modal": "Apri in finestra",
+      "open-fullscreen": "Apri a schermo intero",
+      "no-image-available": "Nessuna immagine disponibile",
+      "select-image": "Seleziona immagine {{count}}",
+      "image-number": "immagine {{count}}",
+      "image-preview": "Anteprima immagine",
+      "videos": "Video",
+      "images": "Immagini",
+      "audio": "Audio",
+      "browser-no-video": "Il browser non supporta il tag video.",
+      "browser-no-audio": "Il browser non supporta l'elemento audio.",
+      "previous-image": "Immagine precedente",
+      "next-image": "Immagine successiva",
+      "previous": "Precedente",
+      "next": "Successivo",
+      "go-to-video": "Vai al video {{count}}",
+      "go-to-image": "Vai all'immagine {{count}}"
+    }
+  }
+}
