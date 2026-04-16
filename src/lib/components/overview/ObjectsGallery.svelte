@@ -3,8 +3,17 @@
   import ObjectCardEmpty from "./ObjectCardEmpty.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
-  const { t } = getTranslationStore();
+  const { t, translationState } = getTranslationStore();
   const { objects, title, url } = $props();
+
+  const i18n = $derived.by(() => {
+    translationState.isInitialized;
+    translationState.currentLocale;
+
+    return {
+      viewAll: t("common.view-all", { fallback: "View all" }),
+    };
+  });
 </script>
 
 <div>
@@ -12,7 +21,7 @@
     <div>{title}</div>
     <div>
       <a class="btn btn-sm btn-light" href={url}
-        >{t("common.view-all", { fallback: "View all" })}</a
+        >{i18n.viewAll}</a
       >
     </div>
   </div>

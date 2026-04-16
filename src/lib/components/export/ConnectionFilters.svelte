@@ -44,7 +44,7 @@
 
 <div class="filter-group mb-4">
     <p class="filter-label fw-semibold mb-2 d-block">
-        {t("export.connections", { fallback: "Connections" })}
+        {t("common.connections", { fallback: "Connections" })}
     </p>
     {#each connectionFilters as filter, index}
         {@const selectedField = connectionFieldOptions.find(

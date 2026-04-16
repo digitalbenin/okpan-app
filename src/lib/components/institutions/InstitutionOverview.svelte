@@ -44,11 +44,11 @@
       <div class="d-flex align-items-center justify-content-between" style="overflow: visible;">
         <button
           class="btn btn-link text-decoration-none px-0"
-          aria-label={t("common.institutions", { fallback: "Institutions" })}
+          aria-label={t("common.institutions")}
           onclick={handleBack}
         >
           <i class="bi bi-arrow-left"></i>
-          {t("common.institutions", { fallback: "Institutions" })}
+          {t("common.institutions")}
         </button>
 
         <div class="d-flex align-items-center gap-2" style="overflow: visible;">
@@ -60,9 +60,7 @@
           <BaseButton
             class="btn btn-outline-secondary btn border-0"
             onClick={handleEdit}
-            text={t("common.edit-info", {
-              fallback: "Edit info",
-            })}
+            text={t("common.edit-info")}
             icon="pencil"
           ></BaseButton>
         </div>
@@ -95,7 +93,7 @@
                 target="_blank"
                 rel="noreferrer"
               >
-                {institution.links[0].label || t("common.website", { fallback: "Website" })}
+                {institution.links[0].label || t("common.website")}
               </a>
             {/if}
           </div>

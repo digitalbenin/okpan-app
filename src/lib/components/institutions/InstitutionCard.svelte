@@ -29,7 +29,7 @@
           <img
             class="object-fit-cover w-100 h-100"
             src={addImageProtocolPrefix(institution.previewImages[0].sm)}
-            alt={institution.name.content || "Institution Image"}
+            alt={institution.name.content || t("common.institution")}
           />
         </div>
         {#if institution.previewImages.length > 2}
@@ -39,7 +39,7 @@
                 <img
                   class="object-fit-cover w-100 h-100"
                   src={addImageProtocolPrefix(image.sm)}
-                  alt={institution.name.content || "Institution Image"}
+                  alt={institution.name.content || t("common.institution")}
                 />
               </div>
             {/each}
@@ -59,18 +59,14 @@
       <div class="col">
         {institution.objectsCount}
         {#if institution.objectsCount < 2}
-          {t("common.object", { fallback: "object" })}
+          {t("common.object")}
         {:else}
-          {t("common.objects", { fallback: "objects" })}
+          {t("common.objects")}
         {/if}
       </div>
       <div class="col">
         {institution.assetsCount}
-        {#if institution.assetsCount < 2}
-          {t("common.asset", { fallback: "media" })}
-        {:else}
-          {t("common.assets", { fallback: "media" })}
-        {/if}
+        {t("common.media")}
       </div>
     </div>
   </div>

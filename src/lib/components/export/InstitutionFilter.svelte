@@ -23,7 +23,7 @@
 
 <div class="filter-group mb-4">
     <p class="filter-label fw-semibold mb-2 d-block">
-        {t("export.institution", { fallback: "Institution" })}
+        {t("common.institution", { fallback: "Institution" })}
     </p>
     <div class="institution-selection d-flex flex-column gap-2">
         <BaseSelect

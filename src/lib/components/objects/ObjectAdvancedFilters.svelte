@@ -285,7 +285,7 @@
                 onclick={() => showDetail({ type: "institutions", id: "institutions" })}
                 aria-label={t("filters.filter-by-institution", { fallback: "Filter by institution" })}
               >
-                <div class="fw-semibold">{t("filters.institution", { fallback: "Institution" })}</div>
+                <div class="fw-semibold">{t("common.institution", { fallback: "Institution" })}</div>
                 <div class="d-flex align-items-center gap-2">
                   <span class="text-muted ps-3">{getSelectionLabel(advancedFilters?.institutions, institutions)}</span>
                   <i class="bi bi-chevron-right"></i>
@@ -294,7 +294,7 @@
             {/if}
 
               {#if connectionResearchFields.length > 0}
-          <div class="mt-3 px-3 pt-3 text-muted">{t("filters.connections", { fallback: "Connections" })}</div>
+          <div class="mt-3 px-3 pt-3 text-muted">{t("common.connections", { fallback: "Connections" })}</div>
 
           {#each connectionResearchFields as field (field.id)}
             <button

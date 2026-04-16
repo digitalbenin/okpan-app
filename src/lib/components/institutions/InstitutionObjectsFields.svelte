@@ -30,19 +30,19 @@
       : (researchFields?.result || researchFields?.research_fields || [])
   );
 
-  const objectInformationLabel = t("objects.object-information", { fallback: "Object information" });
-  const researchFieldsLabel = t("filters.research-fields", { fallback: "Research Fields" });
+  const objectInformationLabel = t("objects.object-information");
+  const researchFieldsLabel = t("filters.research-fields");
 
   const baseObjectFields = [
     {
       value: "created_at",
-      label: t("common.created-at", { fallback: "Created At" }),
+      label: t("common.created-at"),
       group: objectInformationLabel,
       groupType: "propertyName",
     },
     {
       value: "updated_at",
-      label: t("common.updated-at", { fallback: "Updated At" }),
+      label: t("common.updated-at"),
       group: objectInformationLabel,
       groupType: "propertyName",
     },
@@ -140,15 +140,10 @@
   bind:value={fieldsSelected}
   items={fieldsItems}
   placeholder={
-    placeholder ||
-    t("objects.select-fields", {
-      fallback: "Select fields",
-    })
+    placeholder || t("objects.select-fields")
   }
   triggerLabel={
-    as === "button"
-      ? t("objects.select-fields", { fallback: "Select fields" })
-      : undefined
+    as === "button" ? t("objects.select-fields") : undefined
   }
   type="multiple"
   as={as}

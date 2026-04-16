@@ -15,7 +15,6 @@
   import { fly } from "svelte/transition";
 
   let { institution, assets, params = $bindable() } = $props();
-
   const { t, translationState } = getTranslationStore();
 
   let viewAs = $state("grid");
@@ -27,34 +26,34 @@
   let linkAssetId = $state(null);
 
   const viewAsOptions = $derived([
-    { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
-    { value: "table", label: t("common.table-view", { fallback: "Table" }) },
+    { value: "grid", label: t("common.grid-view") },
+    { value: "table", label: t("common.table-view") },
   ]);
 
   const orderBy = $derived([
     // { value: "name", label: t("common.name", { fallback: "Name" }) },
     {
       value: "created_at",
-      label: t("common.created-at", { fallback: "Created At" }),
+      label: t("common.created-at"),
     },
     {
       value: "updated_at",
-      label: t("common.updated-at", { fallback: "Updated At" }),
+      label: t("common.updated-at"),
     },
   ]);
 
   const statuses = $derived([
     {
       value: "all",
-      label: t("common.all", { fallback: "All" }),
+      label: t("common.all"),
     },
     {
       value: "linked",
-      label: t("common.linked", { fallback: "Linked" }),
+      label: t("common.linked"),
     },
     {
       value: "not_linked",
-      label: t("common.not_linked", { fallback: "Not Linked" }),
+      label: t("common.not-linked"),
     },
   ]);
 
@@ -141,9 +140,7 @@
             onclick={clearSelection}
           >
             <span>
-              {t("common.clear-selection", {
-                fallback: "Clear selection",
-              })}
+              {t("common.clear-selection")}
             </span>
             <i class="bi bi-x-circle"></i>
           </button>
@@ -154,7 +151,7 @@
             onclick={openLinkModal}
           >
             <span>
-              {t("common.link-to-object", { fallback: "Link to object" })}
+              {t("common.link-to-object")}
             </span>
             <i class="bi bi-link-45deg"></i>
           </button>
@@ -165,7 +162,7 @@
             onclick={openBulkEdit}
           >
             <span>
-              {t("common.edit-metadata", { fallback: "Edit metadata" })}
+              {t("common.edit-metadata")}
             </span>
             <i class="bi bi-pencil-square"></i>
           </button>
@@ -176,9 +173,7 @@
             onclick={openDeleteModal}
           >
             <span>
-              {t("common.delete", {
-                fallback: "Delete",
-              })}
+              {t("common.delete")}
             </span>
             <i class="bi bi-trash"></i>
           </button>
@@ -188,7 +183,7 @@
     <div class="col-4">
       <BaseInput
         icon="search"
-        placeholder={t("common.search", { fallback: "Search" })}
+        placeholder={t("common.search")}
         size="sm"
         bind:value={params.aSearch}
       />
@@ -204,18 +199,18 @@
 
       <div class="d-flex align-items-center gap-2">
         <div class="col-auto fs-7">
-          {t("common.status", { fallback: "Status" })}
+          {t("common.status")}
         </div>
         <BaseSelect
           items={statuses}
           bind:value={params.aLinked}
           size="sm"
-          placeholder={t("common.all", { fallback: "All" })}
+          placeholder={t("common.all")}
         ></BaseSelect>
       </div>
       <div class="d-flex align-items-center gap-2">
         <div class="col-auto fs-7">
-          {t("common.view-as", { fallback: "View as" })}
+          {t("common.view-as")}
         </div>
         <BaseSelect items={viewAsOptions} bind:value={viewAs} size="sm"
         ></BaseSelect>
@@ -224,7 +219,7 @@
         class="btn btn-primary btn-sm"
         href="/projects/{institution.project_id}/import-assets/steps?institution_id={institution.id}"
         ><i class="bi bi-plus-lg"></i>
-        {t("common.add-asset", { fallback: "Add asset" })}</a
+        {t("menu.import-assets")}</a
       >
     </div>
   </div>
@@ -261,7 +256,7 @@
           },
           {
             value: "filename",
-            label: t("common.filename", { fallback: "File name" }),
+            label: t("common.filename"),
             sortable: true,
             accessor: (value) => {
               const text = value.filename;
@@ -279,21 +274,21 @@
           },
           {
             value: "created_at",
-            label: t("common.created-at", { fallback: "Created At" }),
+            label: t("common.created-at"),
             sortable: true,
             render: (value) =>
               formatDate(+value, translationState.currentLocale, true),
           },
           {
             value: "updated_at",
-            label: t("common.updated-at", { fallback: "Updated At" }),
+            label: t("common.updated-at"),
             sortable: true,
             render: (value) =>
               formatDate(+value, translationState.currentLocale, true),
           },
           {
             value: "linked",
-            label: t("common.linked", { fallback: "Linked" }),
+            label: t("common.linked"),
             sortable: false,
             accessor: (value) =>
               value.objectsAssets && value.objectsAssets.length > 0,
@@ -310,7 +305,7 @@
     {/if}
   {:else if filteredItems.length === 0}
     <div class="text-center text-black-50 fs-4 fst-italic mt-4">
-      {t("common.no-assets-found", { fallback: "No assets found." })}
+      {t("common.no-assets-found")}
     </div>
   {/if}
 

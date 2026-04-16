@@ -30,7 +30,7 @@
       exact: true,
     },
      {
-      label: t("filters.connections", { fallback: "Connections" }),
+      label: t("common.connections", { fallback: "Connections" }),
       url: `/projects/${page.data.project.id}/connections`,
       icon: "share-fill",
       exact: true,

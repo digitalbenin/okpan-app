@@ -13,9 +13,30 @@
   let showDeleteModal = $state(false);
   let confirmationText = $state("");
 
+  const i18n = $derived.by(() => {
+    translationState.isInitialized;
+    translationState.currentLocale;
+
+    return {
+      delete: t("common.delete", { fallback: "Delete" }),
+      createdOn: t("project.created-on", { fallback: "Created on" }),
+      items: t("common.items", { fallback: "Items" }),
+      assets: t("common.assets", { fallback: "Assets" }),
+      collections: t("project.collections", { fallback: "Collections" }),
+      deleteProject: t("project.delete-project", { fallback: "Delete Project" }),
+      deleteConfirmation: t("project.delete-confirmation", {
+        fallback: "Are you sure you want to delete this project? This action cannot be undone.",
+      }),
+      deleteTypeName: t("project.delete-type-name", {
+        fallback: "To confirm, please type the project name below:",
+      }),
+      cancel: t("common.cancel", { fallback: "Cancel" }),
+    };
+  });
+
   const dropdownItems = $derived([
     {
-      label: t("common.delete", { fallback: "Delete" }),
+      label: i18n.delete,
       icon: "trash",
       onClick: () => {
         showDeleteModal = true;
@@ -59,25 +80,25 @@
         {project.title.content}
       </a>
       <p class="fs-7 mb-0">
-        {t("project.created-on", { fallback: "Created on" })}
+        {i18n.createdOn}
         {formatDate(+project.created_at, translationState.currentLocale)}
       </p>
     </div>
   </div>
   <div class="d-flex w-50">
     <div class="col">
-      <div class="fs-7">{t("project.items", { fallback: "Items" })}</div>
+      <div class="fs-7">{i18n.items}</div>
       <div class="fs-5">{project.objectsCount}</div>
     </div>
     <div class="col">
       <div class="fs-7">
-        {t("project.assets", { fallback: "Assets" })}
+        {i18n.assets}
       </div>
       <div class="fs-5">{project.assetsCount}</div>
     </div>
     <div class="col">
       <div class="fs-7">
-        {t("project.collections", { fallback: "Collections" })}
+        {i18n.collections}
       </div>
       <div class="fs-5">{project.institutionsCount}</div>
     </div>
@@ -106,19 +127,15 @@
 {#if showDeleteModal}
   <BaseAlertDialog bind:open={showDeleteModal}>
     {#snippet title()}
-      {t("project.delete-project", { fallback: "Delete Project" })}
+      {i18n.deleteProject}
     {/snippet}
     {#snippet description()}
       <p>
-        {t("project.delete-confirmation", { 
-          fallback: "Are you sure you want to delete this project? This action cannot be undone." 
-        })}
+        {i18n.deleteConfirmation}
       </p>
       <p class="fw-bold">{project.title.content}</p>
       <p class="mb-2">
-        {t("project.delete-type-name", { 
-          fallback: "To confirm, please type the project name below:" 
-        })}
+        {i18n.deleteTypeName}
       </p>
       <BaseInput
         bind:value={confirmationText}
@@ -127,14 +144,14 @@
     {/snippet}
     {#snippet footer()}
       <button class="btn btn-secondary" onclick={handleDeleteCancel}>
-        {t("common.cancel", { fallback: "Cancel" })}
+        {i18n.cancel}
       </button>
       <button 
         class="btn btn-danger" 
         onclick={handleDeleteConfirm}
         disabled={!isDeleteEnabled}
       >
-        {t("common.delete", { fallback: "Delete" })}
+        {i18n.delete}
       </button>
     {/snippet}
   </BaseAlertDialog>

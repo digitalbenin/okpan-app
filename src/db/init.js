@@ -10,7 +10,6 @@ import { randomUUID } from 'crypto';
 const GLOBAL_SETTINGS_ID = 1;
 const DEFAULT_INTERFACE_LANGUAGE_CODE = 'en';
 const INTERFACE_TRANSLATIONS_DIR = join(process.cwd(), 'src', 'assets', 'interface-translations');
-const LEGACY_INTERFACE_TRANSLATIONS_FILE = join(process.cwd(), 'src', 'assets', 'translations_export.json');
 
 const parseJsonFile = (filePath) => {
     const fileContent = fs.readFileSync(filePath, 'utf-8').replace(/^\uFEFF/, '');
@@ -55,100 +54,56 @@ const ensureGlobalSettingsSchema = async () => {
 };
 
 const getBundledInterfaceTranslations = () => {
-    const getBundledInterfaceTranslationsFromDirectory = () => {
-        if (!fs.existsSync(INTERFACE_TRANSLATIONS_DIR)) {
-            return null;
-        }
-
-        const entries = fs.readdirSync(INTERFACE_TRANSLATIONS_DIR, { withFileTypes: true });
-        const localeFiles = entries.filter((entry) => entry.isFile() && extname(entry.name).toLowerCase() === '.json');
-
-        const languages = [];
-        const languageCodes = new Set();
-        const translations = [];
-
-        for (const entry of localeFiles) {
-            const filePath = join(INTERFACE_TRANSLATIONS_DIR, entry.name);
-            const rawFile = parseJsonFile(filePath);
-            const locale = rawFile?.code?.trim()?.toLowerCase()
-                || entry.name.slice(0, -extname(entry.name).length).trim().toLowerCase();
-            if (!locale) continue;
-
-            const fileTranslations = Array.isArray(rawFile?.translations)
-                ? rawFile.translations
-                : Array.isArray(rawFile)
-                    ? rawFile
-                    : [];
-
-            if (!languageCodes.has(locale)) {
-                languages.push({
-                    code: locale,
-                    name: rawFile?.name?.trim() || locale
-                });
-                languageCodes.add(locale);
-            }
-
-            for (const translation of fileTranslations) {
-                if (!translation?.namespace || !translation?.key || translation?.value === undefined || translation?.value === null) {
-                    continue;
-                }
-
-                translations.push({
-                    locale,
-                    namespace: translation.namespace,
-                    key: translation.key,
-                    value: translation.value
-                });
-            }
-        }
-
-        return { languages, translations };
-    };
-
-    const splitTranslations = getBundledInterfaceTranslationsFromDirectory();
-    if (splitTranslations) {
-        return splitTranslations;
-    }
-
-    try {
-        const parsed = parseJsonFile(LEGACY_INTERFACE_TRANSLATIONS_FILE);
-
-        const translations = Array.isArray(parsed.translations) ? parsed.translations : [];
-        const languageMap = new Map();
-
-        if (Array.isArray(parsed.languages)) {
-            for (const language of parsed.languages) {
-                const normalizedCode = language?.code?.trim()?.toLowerCase();
-                if (!normalizedCode || languageMap.has(normalizedCode)) continue;
-
-                languageMap.set(normalizedCode, {
-                    code: normalizedCode,
-                    name: language?.name?.trim() || normalizedCode
-                });
-            }
-        }
-
-        for (const translation of translations) {
-            const normalizedCode = translation?.locale?.trim()?.toLowerCase();
-            if (!normalizedCode || languageMap.has(normalizedCode)) continue;
-
-            languageMap.set(normalizedCode, {
-                code: normalizedCode,
-                name: normalizedCode
-            });
-        }
-
-        return {
-            languages: Array.from(languageMap.values()),
-            translations
-        };
-    } catch (error) {
-        console.error('Error loading bundled interface translations:', error);
+    if (!fs.existsSync(INTERFACE_TRANSLATIONS_DIR)) {
         return {
             languages: [],
             translations: []
         };
     }
+
+    const entries = fs.readdirSync(INTERFACE_TRANSLATIONS_DIR, { withFileTypes: true });
+    const localeFiles = entries.filter((entry) => entry.isFile() && extname(entry.name).toLowerCase() === '.json');
+
+    const languages = [];
+    const languageCodes = new Set();
+    const translations = [];
+
+    for (const entry of localeFiles) {
+        const filePath = join(INTERFACE_TRANSLATIONS_DIR, entry.name);
+        const rawFile = parseJsonFile(filePath);
+        const locale = rawFile?.code?.trim()?.toLowerCase()
+            || entry.name.slice(0, -extname(entry.name).length).trim().toLowerCase();
+        if (!locale) continue;
+
+        const fileTranslations = Array.isArray(rawFile?.translations)
+            ? rawFile.translations
+            : Array.isArray(rawFile)
+                ? rawFile
+                : [];
+
+        if (!languageCodes.has(locale)) {
+            languages.push({
+                code: locale,
+                name: rawFile?.name?.trim() || locale
+            });
+            languageCodes.add(locale);
+        }
+
+        for (const translation of fileTranslations) {
+            if (!translation?.namespace || !translation?.key || translation?.value === undefined || translation?.value === null) {
+                continue;
+            }
+
+            translations.push({
+                locale,
+                namespace: translation.namespace,
+                key: translation.key,
+                value: translation.value
+            });
+        }
+    }
+
+    return { languages, translations };
 };
 
 const ensureDefaultInterfaceTranslations = async () => {

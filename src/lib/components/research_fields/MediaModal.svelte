@@ -276,7 +276,7 @@
 
                                 {#if asset.copyright}
                                     <div class="mb-3">
-                                        <div class="text-uppercase small fw-bold mb-1">{t("media.copyright", { fallback: "Copyright" })}</div>
+                                        <div class="text-uppercase small fw-bold mb-1">{t("common.copyright", { fallback: "Copyright" })}</div>
                                         <div class="text-muted small">{asset.copyright}</div>
                                     </div>
                                 {/if}

@@ -39,9 +39,9 @@
     }
   });
 
-  const dropdownItems = [
+  const dropdownItems = $derived([
     {
-      label: t("project.new", { fallback: "New project" }),
+      label: t("project.new"),
       icon: "plus-circle",
       onClick: () => {
         setTimeout(() => {
@@ -50,7 +50,7 @@
       }
     },
     {
-      label: t("project.import-from-file", { fallback: "Import from file" }),
+      label: t("project.import-from-file"),
       icon: "file-earmark-arrow-up",
       onClick: () => {
         setTimeout(() => {
@@ -58,7 +58,7 @@
         }, 100);
       }
     }
-  ];
+  ]);
 
   async function handleCreated({ projectId }) {
     newProjectOpen = false;

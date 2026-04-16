@@ -13,8 +13,10 @@
   import IndeterminateCheckbox from "$lib/components/table/IntermediateCheckbox.svelte";
   import { deleteInstitution } from "$lib/stores/InstitutionsUtils.js";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   let { institutions, count } = $props();
+  const { t } = getTranslationStore();
 
   const params = queryParameters();
 
@@ -66,27 +68,27 @@
     }),
     colHelp.accessor((row) => row.name.content + " - " + row.country.content, {
       id: "name",
-      header: "Name",
+      header: t("common.name"),
       cell: ({ cell, row }) =>
         renderComponent(TableLink, {
           text: cell.getValue(),
           row: row.original,
         }),
     }),
-    colHelp.accessor("objectsCount", { header: "Objects" }),
-    colHelp.accessor("assetsCount", { header: "Assets" }),
+    colHelp.accessor("objectsCount", { header: t("common.objects") }),
+    colHelp.accessor("assetsCount", { header: t("common.assets") }),
     colHelp.accessor("status", {
-      header: "Status",
+      header: t("common.status"),
       cell: ({ cell }) => {
         const status = cell.getValue();
         if (status === "in progress") {
           return renderComponent(BaseBadge, {
-            text: "In progress",
+            text: t("common.in-progress"),
             class: "bg-warning text-dark",
           });
         } else if (status === "completed") {
           return renderComponent(BaseBadge, {
-            text: "Completed",
+            text: t("common.completed"),
             class: "bg-success",
           });
         }
@@ -98,7 +100,7 @@
       header: null, // No header for this column
       cell: ({ row }) => {
         return renderComponent(BaseButton, {
-          text: "Delete",
+          text: t("common.delete"),
           icon: "trash",
           class: "btn btn-danger btn-sm",
           onClick: async () => {
@@ -268,7 +270,7 @@
   <nav aria-label="pagination">
     <ul class="pagination pagination-sm">
       <li class="page-item" class:disabled={!table.getCanPreviousPage()}>
-        <button class="page-link" onclick={() => previousPage()}>Prev</button>
+        <button class="page-link" onclick={() => previousPage()}>{t("common.previous-page")}</button>
       </li>
       {#each Array.from({ length: Math.ceil(count / paginationState.pageSize) }, (_, i) => i) as pageIndex}
         <li
@@ -289,7 +291,7 @@
           class="page-link"
           onclick={() => {
             nextPage();
-          }}>Next</button
+          }}>{t("common.next-page")}</button
         >
       </li>
     </ul>
@@ -299,25 +301,22 @@
 <!-- Delete Confirmation Modal -->
 <BaseModal bind:isOpen={showDeleteModal}>
   {#snippet header()}
-    Confirm Deletion
+    {t("common.confirm-delete")}
   {/snippet}
 
   {#snippet body()}
-    <p>Are you sure you want to delete this institution?</p>
-    <p>
-      All related data (objects, assets, datasources, etc.) will also be
-      permanently deleted.
-    </p>
+    <p>{t("institutions.confirm-delete-institution")}</p>
+    <p>{t("institutions.delete-related-data-warning")}</p>
   {/snippet}
 
   {#snippet actions()}
     <BaseButton
-      text="Cancel"
+      text={t("common.cancel")}
       class="btn btn-secondary"
       onClick={() => (showDeleteModal = false)}
     />
     <BaseButton
-      text="Delete"
+      text={t("common.delete")}
       class="btn btn-danger"
       onClick={handleConfirmDelete}
     />

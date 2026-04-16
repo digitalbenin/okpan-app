@@ -89,12 +89,12 @@
   formStore={formStore}
   leftButtons={[
     {
-      text: t("common.back", { fallback: "Back" }),
+      text: t("common.back"),
       class: "btn btn-outline-secondary",
       onClick: back,
     },
       {
-      text: t("common.delete", { fallback: "Delete datasource" }),
+      text: t("common.delete"),
       class: "btn btn-outline-danger",
       icon: "trash",
       disabled: deleting,
@@ -104,7 +104,7 @@
   rightButtons={[
   
     {
-      text: t("common.save", { fallback: "Save" }),
+      text: t("common.save"),
       class: "btn btn-primary",
       onClick: () => form.handleSubmit(),
       disableOnError: true,
@@ -117,7 +117,7 @@
         <div class="d-flex align-items-center justify-content-between mt-4" style="overflow: visible;">
           <button
             class="btn btn-link text-decoration-none px-0"
-            aria-label={t("common.back", { fallback: "Back" })}
+            aria-label={t("common.back")}
             onclick={back}
           >
             <i class="bi bi-arrow-left"></i>
@@ -127,8 +127,7 @@
 
         <div class="mt-2">
           <h1 class="mb-1">
-            {datasource?.name?.content ||
-              t("common.unnamed", { fallback: "Unnamed" })}
+            {datasource?.name?.content || t("common.unnamed")}
           </h1>
         </div>
       </div>
@@ -153,14 +152,14 @@
       <!-- Right column: imported objects list -->
       <div class="col-12 col-lg-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
-          <h2 class="h5 mb-0">{t("common.imported-objects", { fallback: "Imported objects" })} ({totalCount})</h2>
+          <h2 class="h5 mb-0">{t("common.imported-objects")} ({totalCount})</h2>
         </div>
 
         <div class="list-group rounded-3">
           {#if isLoadingObjects}
-            <div class="text-center py-4 text-muted">{t("common.loading", { fallback: "Loading..." })}</div>
+            <div class="text-center py-4 text-muted">{t("common.loading")}</div>
           {:else if objects.length === 0}
-            <div class="text-center py-4 text-muted">{t("common.no-results", { fallback: "No results" })}</div>
+            <div class="text-center py-4 text-muted">{t("common.no-results")}</div>
           {:else}
             {#each objects as obj}
               <div class="list-group-item list-group-item-action py-2">
@@ -186,17 +185,17 @@
 </PageActionFooter>
 
 {#if showDeleteModal}
-  {#snippet header()}{t("common.confirm-delete", { fallback: "Confirm Deletion" })}{/snippet}
+  {#snippet header()}{t("common.confirm-delete")}{/snippet}
 
   {#snippet body()}
-    <p>{t("common.confirm-delete-datasource", { fallback: "Are you sure you want to delete this datasource? This will also remove all linked ontology fields from objects." })}</p>
-    <p class="text-danger">{t("common.operation-irreversible", { fallback: "This operation is irreversible." })}</p>
+    <p>{t("common.confirm-delete-datasource")}</p>
+    <p class="text-danger">{t("common.operation-irreversible")}</p>
   {/snippet}
 
   {#snippet actions()}
     <div class="d-flex justify-content-end gap-2">
-      <BaseButton class="btn btn-secondary" text={t("common.cancel", { fallback: "Cancel" })} onClick={cancelDelete} disabled={deleting} />
-      <BaseButton class="btn btn-danger" icon="trash" text={deleting ? t("common.deleting", { fallback: "Deleting..." }) : t("common.confirm-delete", { fallback: "Confirm delete" })} onClick={handleDelete} disabled={deleting} />
+      <BaseButton class="btn btn-secondary" text={t("common.cancel")} onClick={cancelDelete} disabled={deleting} />
+      <BaseButton class="btn btn-danger" icon="trash" text={deleting ? t("common.deleting") : t("common.confirm-delete")} onClick={handleDelete} disabled={deleting} />
     </div>
   {/snippet}
 

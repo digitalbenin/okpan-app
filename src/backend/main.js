@@ -6,6 +6,9 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { fileURLToPath } from 'url';
 
+const MIN_WINDOW_WIDTH = 800;
+const MIN_WINDOW_HEIGHT = 600;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -79,7 +82,8 @@ ipcMain.handle('export-static-website', async (event, options) => {
     return await exportStaticWebsite(options.projectId, options.outputPath, {
       db,
       filters: options.filters,
-      basePath: options.basePath
+      basePath: options.basePath,
+      locale: options.locale
     });
   } catch (error) {
     console.error('Error exporting static website:', error);
@@ -210,10 +214,12 @@ ipcMain.handle('read-file', async (event, filePath) => {
   }
 });
 
-ipcMain.on('open-preview', (event, projectId) => {
+ipcMain.on('open-preview', async (event, projectId) => {
   const previewWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    minWidth: MIN_WINDOW_WIDTH,
+    minHeight: MIN_WINDOW_HEIGHT,
     webPreferences: {
       preload: path.join(import.meta.dirname, 'preload.js'),
       nodeIntegration: false,
@@ -221,8 +227,15 @@ ipcMain.on('open-preview', (event, projectId) => {
     },
   });
 
-  // Se stai usando il dev server:
-  previewWindow.loadURL(`http://localhost:5174?project_id=${projectId}`);
+  const globalSettings = await getGlobalSettings();
+  const previewUrl = new URL('http://localhost:5174');
+  previewUrl.searchParams.set('project_id', projectId);
+
+  if (globalSettings?.interfaceLanguage) {
+    previewUrl.searchParams.set('interface_language', globalSettings.interfaceLanguage);
+  }
+
+  previewWindow.loadURL(previewUrl.toString());
 });
 
 // Register protocol
@@ -292,6 +305,8 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 1080,
+    minWidth: MIN_WINDOW_WIDTH,
+    minHeight: MIN_WINDOW_HEIGHT,
     icon: path.join(import.meta.dirname, '../assets/logo_wip.png'),
     webPreferences: {
       preload: path.join(import.meta.dirname, 'preload.js'),

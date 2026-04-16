@@ -119,7 +119,7 @@
   let templates = $state(mappingTemplates || []);
   let selectedTemplateId = $state(null);
 
-  const EMPTY_FIELD_LABEL = "(Field)";
+  const EMPTY_FIELD_LABEL = t("common.institution-field");
 
   let templateTitle = $state("");
   let rows = $state([]);
@@ -369,7 +369,7 @@
         disabled={creating || !projectId || !institutionId}
       >
       <i class="bi bi-plus"></i>
-        {t("common.add-template", { fallback: "Add template" })}
+        {t("common.add-template")}
       </button>
     </div>
   </div>
@@ -378,13 +378,13 @@
     <!-- Left: template list -->
     <div class="col-2">
       <div class="text-muted mb-2">
-        {t("common.mapping-templates", { fallback: "Mapping templates" })}
+        {t("common.mapping-templates")}
       </div>
 
       <div class="list-group">
         {#if templates.length === 0}
           <div class="list-group-item text-muted fst-italic">
-            {t("common.no-templates", { fallback: "No templates" })}
+            {t("common.no-templates")}
           </div>
         {:else}
           {#each templates as tpl, idx (tpl.id)}
@@ -407,20 +407,16 @@
         <div class="card-body">
           <div class="mb-4">
             <h5 class="mb-3">
-              {t("common.template-info", { fallback: "Template info" })}
+              {t("common.template-info")}
             </h5>
 
             <label class="form-label text-muted" for="template-title">
-              {t("common.data-mapping-title", {
-                fallback: "Data mapping title",
-              })}
+              {t("common.data-mapping-title")}
             </label>
             <input
               id="template-title"
               class="form-control"
-              placeholder={t("common.template-title-placeholder", {
-                fallback: "Template 1",
-              })}
+              placeholder={t("common.template-title-placeholder")}
               bind:value={templateTitle}
               disabled={!canEdit}
             />
@@ -428,15 +424,15 @@
 
           <div>
             <h5 class="mb-3">
-              {t("common.template-mapping", { fallback: "Template mapping" })}
+              {t("common.template-mapping")}
             </h5>
 
             <table class="table table-sm align-middle">
               <thead>
                 <tr>
-                  <th style="width: 60px;">Id</th>
-                  <th>Institution field</th>
-                  <th>Project field</th>
+                  <th style="width: 60px;">{t("common.id")}</th>
+                  <th>{t("common.institution-field")}</th>
+                  <th>{t("common.project-field")}</th>
                   <th style="width: 36px;"></th>
                 </tr>
               </thead>
@@ -474,7 +470,7 @@
                               class="btn btn-sm border-0 p-0"
                               onclick={() => removeMappedField(row.rowId, fieldId)}
                               disabled={!canEdit}
-                              aria-label={t("common.remove-mapping", { fallback: "Remove mapping" })}
+                              aria-label={t("common.remove-mapping")}
                             >
                               <i class="bi bi-x"></i>
                             </button>
@@ -486,7 +482,7 @@
                           class="btn btn-secondary btn-sm rounded-circle d-inline-flex align-items-center justify-content-center p-0 px-1"
                           onclick={() => openPicker(row)}
                           disabled={!canEdit}
-                          aria-label={t("common.add-mapped-field", { fallback: "Add mapped field" })}
+                          aria-label={t("common.add-mapped-field")}
                         >
                           <i class="bi bi-plus"></i>
                         </button>
@@ -502,15 +498,13 @@
                                 class="btn btn-link text-danger p-0"
                                 onclick={() => removeRow(row.rowId)}
                                 disabled={true}
-                                aria-label={t("common.delete-row", { fallback: "Delete row" })}
+                                aria-label={t("common.delete-row")}
                               >
                                 <i class="bi bi-dash-circle-fill"></i>
                               </button>
                             </div>
                           {/snippet}
-                          {t("common.object-id-field-cannot-be-deleted", {
-                            fallback: "Cannot delete: mapped to Object ID field"
-                          })}
+                          {t("common.object-id-field-cannot-be-deleted")}
                         </BaseTooltip>
                       {:else}
                         <button
@@ -518,7 +512,7 @@
                           class="btn btn-link text-danger p-0"
                           onclick={() => removeRow(row.rowId)}
                           disabled={!canEdit}
-                          aria-label={t("common.delete-row", { fallback: "Delete row" })}
+                          aria-label={t("common.delete-row")}
                         >
                           <i class="bi bi-dash-circle-fill"></i>
                         </button>
@@ -536,7 +530,7 @@
                       disabled={!canEdit}
                     >
                       <i class="bi bi-plus-circle me-1"></i>
-                      {t("common.add-field", { fallback: "Add field" })}
+                      {t("export.add-field")}
                     </button>
                   </td>
                 </tr>
@@ -551,7 +545,7 @@
             onclick={onSaveTemplate}
             disabled={!canEdit || saving}
           >
-            {t("common.save-template", { fallback: "Save template" })}
+            {t("common.save-template")}
           </button>
         </div>
       </div>

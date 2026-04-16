@@ -12,7 +12,7 @@ import { buildObjectSearchConditions } from '../handlers/exportHandlers.js';
  * @param {Object} options.db - Database instance
  * @returns {Promise<Object>} Export result
  */
-export async function exportStaticWebsite(projectId, outputPath, { db, filters = {}, basePath = '' }) {
+export async function exportStaticWebsite(projectId, outputPath, { db, filters = {}, basePath = '', locale = '' }) {
   if (basePath && !basePath.startsWith('/')) {
     basePath = '/' + basePath;
   }
@@ -21,6 +21,8 @@ export async function exportStaticWebsite(projectId, outputPath, { db, filters =
   const websiteDir = path.join(rootDir, 'src', 'website');
   // Prebuilt SPA artifact for static exports (produced before app packaging)
   const buildDir = path.join(websiteDir, 'build-export');
+  const availableLocales = await getAvailableWebsiteLocales(rootDir);
+  const exportLocale = resolveExportLocale(locale, availableLocales);
 
   try {
     // Step 1: Export data to JSON structure
@@ -35,6 +37,7 @@ export async function exportStaticWebsite(projectId, outputPath, { db, filters =
     const siteData = {
       project: data.project || {},
       settings: data.settings || {},
+      locale: exportLocale,
       connection_types: (data.research_fields || [])
         .filter((field) => field?.type === 'vocabulary')
         .map((field) => ({
@@ -68,7 +71,7 @@ export async function exportStaticWebsite(projectId, outputPath, { db, filters =
 
     // Ensure direct refresh/deep-link works on static hosts without rewrite rules.
     // This runs after writing the exported data so route generation can rely on the final export payload.
-    await createSpaShellRoutes(outputPath, data, basePath);
+    await createSpaShellRoutes(outputPath, data, basePath, exportLocale);
 
     // Step 4: Copy project assets folder
     console.log('[Website Export] Step 4/4: Copying assets...');
@@ -98,7 +101,63 @@ export async function exportStaticWebsite(projectId, outputPath, { db, filters =
   }
 }
 
-function generateHtmlForRoute(indexHtml, basePath, routePath) {
+function normalizeLocale(locale) {
+  return typeof locale === 'string' ? locale.trim().toLowerCase() : '';
+}
+
+async function getAvailableWebsiteLocales(rootDir) {
+  const localesDir = path.join(rootDir, 'src', 'website', 'src', 'lib', 'i18n');
+
+  try {
+    const files = await fs.readdir(localesDir, { withFileTypes: true });
+    const seen = new Set();
+    const locales = [];
+
+    for (const file of files) {
+      if (!file.isFile() || !file.name.endsWith('.json')) {
+        continue;
+      }
+
+      const bundle = JSON.parse(
+        await fs.readFile(path.join(localesDir, file.name), 'utf-8')
+      );
+      const code = normalizeLocale(bundle?.code);
+
+      if (!code || seen.has(code)) {
+        continue;
+      }
+
+      seen.add(code);
+      locales.push(code);
+    }
+
+    return locales;
+  } catch (error) {
+    console.warn('[Website Export] Failed to read website locale files:', error);
+    return [];
+  }
+}
+
+function resolveExportLocale(locale, availableLocales) {
+  if (!Array.isArray(availableLocales) || availableLocales.length === 0) {
+    return normalizeLocale(locale);
+  }
+
+  const normalized = normalizeLocale(locale);
+  if (!normalized) {
+    return availableLocales[0];
+  }
+
+  const exactMatch = availableLocales.find((candidate) => candidate === normalized);
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  const baseMatch = availableLocales.find((candidate) => candidate === normalized.split('-')[0]);
+  return baseMatch || availableLocales[0];
+}
+
+function generateHtmlForRoute(indexHtml, basePath, routePath, locale = '') {
   let prefix;
   let dynamicBaseScript = '';
 
@@ -125,7 +184,12 @@ function generateHtmlForRoute(indexHtml, basePath, routePath) {
   // Inject a dynamic base script to window.__SITE_BASE_PATH__ for runtime path resolution,
   // rewrite root-relative paths for assets/imports to use the calculated prefix,
   // and appropriately set the base path in SvelteKit's client-side router config.
-  return indexHtml
+  const normalizedLocale = normalizeLocale(locale);
+  const htmlWithLocale = normalizedLocale
+    ? indexHtml.replace(/(<html\b[^>]*\slang=")([^"]*)(")/i, `$1${normalizedLocale}$3`)
+    : indexHtml;
+
+  return htmlWithLocale
     .replace(/<head>/i, '<head>\n\t\t<script>window.__SITE_BASE_PATH__=' + dynamicBaseScript + ';</script>')
     .replace(/href="\//g, 'href="' + prefix)
     .replace(/src="\//g, 'src="' + prefix)
@@ -133,12 +197,12 @@ function generateHtmlForRoute(indexHtml, basePath, routePath) {
     .replace(/base:\s*(""|'')/g, 'base: ' + dynamicBaseScript);
 }
 
-async function createSpaShellRoutes(outputPath, data, basePath = "") {
+async function createSpaShellRoutes(outputPath, data, basePath = "", locale = '') {
   const indexPath = path.join(outputPath, 'index.html');
   const originalIndexHtml = await fs.readFile(indexPath, 'utf-8');
 
   // Root index.html
-  const rootIndexHtml = generateHtmlForRoute(originalIndexHtml, basePath, "");
+  const rootIndexHtml = generateHtmlForRoute(originalIndexHtml, basePath, "", locale);
   await fs.writeFile(indexPath, rootIndexHtml, 'utf-8');
 
   const routes = new Set(['about', 'connections']);
@@ -164,7 +228,7 @@ async function createSpaShellRoutes(outputPath, data, basePath = "") {
     const routeDir = path.join(outputPath, ...routePath.split('/'));
     await fs.mkdir(routeDir, { recursive: true });
     
-    const routeHtml = generateHtmlForRoute(originalIndexHtml, basePath, routePath);
+    const routeHtml = generateHtmlForRoute(originalIndexHtml, basePath, routePath, locale);
     await fs.writeFile(path.join(routeDir, 'index.html'), routeHtml, 'utf-8');
   }
 

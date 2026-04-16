@@ -88,7 +88,7 @@
                     {lang.name || lang.code}
                     {#if lang.is_default}
                         <span class="badge bg-primary ms-1">
-                            {t("common.default", { fallback: "Default" })}
+                            {t("common.default")}
                         </span>
                     {/if}
                 </button>
@@ -104,24 +104,18 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <BaseInput
-                                label={t("institutions.institution-name", { fallback: "Institution Name" })}
+                                label={t("institutions.institution-name")}
                                 bind:value={formData.name[langCode]}
                                 error={lang.is_default ? errors.name : null}
                                 required={lang.is_default}
-                                placeholder={t("institutions.enter-name-language", {
-                                    fallback: "Enter name in {{language}}...",
-                                    language: lang.name || langCode,
-                                })}
+                                placeholder={t("institutions.enter-name-language", { language: lang.name || langCode })}
                             />
                         </div>
                         <div class="col-md-6">
                             <BaseInput
-                                label={t("institutions.location", { fallback: "Location" })}
+                                label={t("institutions.location")}
                                 bind:value={formData.location[langCode]}
-                                placeholder={t("institutions.enter-location-language", {
-                                    fallback: "Enter location in {{language}}...",
-                                    language: lang.name || langCode,
-                                })}
+                                placeholder={t("institutions.enter-location-language", { language: lang.name || langCode })}
                             />
                         </div>
                     </div>
@@ -129,12 +123,9 @@
                     <!-- Add Description TextArea -->
                     <div class="mb-3">
                         <BaseTextArea
-                            label={t("common.description", { fallback: "Description" })}
+                            label={t("common.description")}
                             bind:value={formData.description[langCode]}
-                            placeholder={t("institutions.enter-description-language", {
-                                fallback: "Enter description in {{language}}...",
-                                language: lang.name || langCode,
-                            })}
+                            placeholder={t("institutions.enter-description-language", { language: lang.name || langCode })}
                             rows={4}
                         />
                     </div>
@@ -142,12 +133,9 @@
                     <!-- Keep Country below for now or move into columns if preferred -->
                     <div class="mb-3">
                         <BaseInput
-                            label={t("institutions.country", { fallback: "Country" })}
+                            label={t("institutions.country")}
                             bind:value={formData.country[langCode]}
-                            placeholder={t("institutions.enter-country-language", {
-                                fallback: "Enter country in {{language}}...",
-                                language: lang.name || langCode,
-                            })}
+                            placeholder={t("institutions.enter-country-language", { language: lang.name || langCode })}
                         />
                     </div>
                 </div>
@@ -158,7 +146,7 @@
     <!-- Non-translatable fields -->
     <div class="mt-4 mb-3">
         <BaseSelect
-            label={t("common.status", { fallback: "Status" })}
+            label={t("common.status")}
             options={statusOptions}
             bind:value={formData.status}
         />
@@ -167,9 +155,9 @@
     <!-- Links Editor -->
     <div class="mt-4 mb-3 border-top pt-3">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5>{t("institutions.links", { fallback: "Links" })}</h5>
+            <h5>{t("institutions.links")}</h5>
             <BaseButton
-                title={t("institutions.add-link", { fallback: "Add Link" })}
+                title={t("institutions.add-link")}
                 type="button"
                 class="btn btn-icon text-secondary"
                 icon="bi bi-plus-circle"
@@ -181,12 +169,12 @@
             <div class="row g-2 align-items-center mb-1 fw-bold">
                 <div class="col">
                     <div class="form-label mb-0 small">
-                        {t("institutions.url", { fallback: "URL" })}
+                        {t("institutions.url")}
                     </div>
                 </div>
                 <div class="col">
                     <div class="form-label mb-0 small">
-                        {t("common.label", { fallback: "Label" })}
+                        {t("common.label")}
                     </div>
                 </div>
                 <div class="col-auto">
@@ -199,24 +187,20 @@
                     <div class="col">
                         <BaseInput
                             bind:value={link.url}
-                            placeholder={t("institutions.url-placeholder", {
-                                fallback: "URL (e.g., https://example.com)",
-                            })}
+                            placeholder={t("institutions.url-placeholder")}
                             required={true}
                         />
                     </div>
                     <div class="col">
                         <BaseInput
                             bind:value={link.label}
-                            placeholder={t("institutions.link-label-placeholder", {
-                                fallback: "Link Label (e.g., Official Website)",
-                            })}
+                            placeholder={t("institutions.link-label-placeholder")}
                             required={true}
                         />
                     </div>
                     <div class="col-auto">
                         <BaseButton
-                            title={t("institutions.remove-link", { fallback: "Remove Link" })}
+                            title={t("institutions.remove-link")}
                             type="button"
                             class="btn btn-icon text-danger"
                             icon="bi bi-trash"
@@ -232,9 +216,7 @@
     <!-- <div class="controls"> ... </div> -->
 {:else}
     <div class="alert alert-warning">
-        {t("institutions.no-project-languages", {
-            fallback: "No languages available. Please add languages to your project first.",
-        })}
+        {t("institutions.no-project-languages")}
     </div>
 {/if}
 

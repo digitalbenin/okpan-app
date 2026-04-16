@@ -16,7 +16,7 @@
 
   let isDragOver = $state(false);
   const { t } = getTranslationStore();
-  const resolvedPlaceholder = $derived(placeholder || t("file-upload.choose-image", { fallback: "Choose image..." }));
+  const resolvedPlaceholder = $derived(placeholder || t("file-upload.choose-image"));
 
   const displayName = $derived.by(() => {
     if (!value || value?.__cleared) return resolvedPlaceholder;
@@ -40,14 +40,14 @@
     if (disabled) return;
     try {
       const result = await window.api.openFileDialog({
-        title: t("file-upload.select-image", { fallback: "Select Image" }),
+        title: t("file-upload.select-image"),
         multiple: false,
         filters: [
           {
-            name: t("file-upload.images", { fallback: "Images" }),
+            name: t("file-upload.images"),
             extensions: MEDIA_EXTENSIONS.image,
           },
-          { name: t("file-upload.all-files", { fallback: "All Files" }), extensions: ["*"] },
+          { name: t("file-upload.all-files"), extensions: ["*"] },
         ],
       });
       if (result?.canceled) return;
@@ -163,7 +163,7 @@
           />
           <button
             type="button"
-            aria-label={t("media.remove-image", { fallback: "Remove image" })}
+            aria-label={t("media.remove-image")}
             class="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 m-0"
             style="width: 32px; height: 32px; padding: 0;"
             onclick={(e) => {
@@ -171,7 +171,7 @@
               clearFile();
             }}
             {disabled}
-            title={t("media.remove-image", { fallback: "Remove image" })}
+            title={t("media.remove-image")}
           >
             <i class="bi bi-x"></i>
           </button>
@@ -180,14 +180,14 @@
       {:else}
         <div class="text-center py-5">
           <div class="fs-5 mb-0">
-            {t("file-upload.drag-file-here-or", { fallback: "Drag a file here or" })} <button
+            {t("file-upload.drag-file-here-or")} <button
               type="button"
               class="btn btn-success mx-1"
               onclick={(e) => {
                 e.stopPropagation();
                 openDialog();
               }}
-            >{t("file-upload.browse", { fallback: "browse" })}</button> {t("file-upload.file-from-your-computer", { fallback: "a file from your computer" })}
+            >{t("file-upload.browse")}</button> {t("file-upload.file-from-your-computer")}
           </div>
         </div>
       {/if}

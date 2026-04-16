@@ -285,7 +285,7 @@
                         fieldId: field.id,
                         fieldName:
                             field.name?.content ||
-                            t("filters.connections", { fallback: "Connections" }),
+                            t("common.connections", { fallback: "Connections" }),
                         vocabularyId: vocab.id,
                         vocabularyName:
                             vocab.option?.content ||
@@ -307,7 +307,7 @@
             <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-share"></i>
                 <span class="">
-                    {t("filters.connections", { fallback: "Connections" })}
+                    {t("common.connections", { fallback: "Connections" })}
                 </span>
             </div>
             {#if allVocabularyFields.length > 0}

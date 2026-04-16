@@ -11,8 +11,33 @@
 	import BaseAlertDialog from '$lib/components/base/BaseAlertDialog.svelte';
 	import { getTranslationStore } from '$lib/stores/InterfaceTranslationStore.svelte.js';
 
-	const { t } = getTranslationStore();
+	const WEBSITE_LOCALE_MODULES = import.meta.glob('../../../../website/src/lib/i18n/*.json', {
+		eager: true
+	});
+
+	const { t, translationState } = getTranslationStore();
 	let { data } = $props();
+
+	function normalizeLocale(locale) {
+		return typeof locale === 'string' ? locale.trim().toLowerCase() : '';
+	}
+
+	function resolveWebsiteLocale(locale, availableLanguages) {
+		const normalized = normalizeLocale(locale);
+		if (!normalized) {
+			return '';
+		}
+
+		const exactMatch = availableLanguages.find((language) => language.code === normalized);
+		if (exactMatch) {
+			return exactMatch.code;
+		}
+
+		const baseMatch = availableLanguages.find(
+			(language) => language.code === normalized.split('-')[0]
+		);
+		return baseMatch?.code || '';
+	}
 
 	let projectId = $derived($page.params.project_id);
 	let isExporting = $state(false);
@@ -23,6 +48,7 @@
 	let exportResultDialogOpen = $state(false);
 
 	let basePathInput = $state('');
+	let selectedWebsiteLocale = $state('');
 
 	let selectedStatus = $state('all');
 	let selectedInstitutions = $state([]);
@@ -36,6 +62,47 @@
 	let totalCount = $state(0);
 	let deselectedObjectIds = $state(new Set());
 	let facets = $state({ institutions: [], statuses: [], researchFields: [] });
+
+	let websiteLocaleOptions = $derived.by(() => {
+		const seen = new Set();
+
+		return Object.values(WEBSITE_LOCALE_MODULES)
+			.map((module) => module?.default ?? module)
+			.map((bundle) => {
+				const code = normalizeLocale(bundle?.code);
+				if (!code || seen.has(code)) {
+					return null;
+				}
+
+				seen.add(code);
+				return {
+					code,
+					name: bundle?.name || code
+				};
+			})
+			.filter(Boolean);
+	});
+
+	$effect(() => {
+		if (websiteLocaleOptions.length === 0) {
+			selectedWebsiteLocale = '';
+			return;
+		}
+
+		const currentSelection = resolveWebsiteLocale(selectedWebsiteLocale, websiteLocaleOptions);
+		if (currentSelection) {
+			if (currentSelection !== selectedWebsiteLocale) {
+				selectedWebsiteLocale = currentSelection;
+			}
+			return;
+		}
+
+		const interfaceLocale = resolveWebsiteLocale(
+			translationState.currentLocale,
+			websiteLocaleOptions
+		);
+		selectedWebsiteLocale = interfaceLocale || websiteLocaleOptions[0]?.code || '';
+	});
 
 	$effect(() => {
 		if (currentPage !== _prevPage) {
@@ -73,7 +140,7 @@
 			return {
 				value: field.id,
 				label,
-				group: field?.project?.title?.content ?? 'Connections',
+				group: field?.project?.title?.content ?? t('common.connections'),
 				vocabOptions: Array.isArray(field?.vocabularies)
 					? field.vocabularies.map((v) => ({
 							value: v.id,
@@ -97,7 +164,7 @@
 			return {
 				value: field.id,
 				label,
-				group: field?.project?.title?.content ?? 'Research Fields'
+				group: field?.project?.title?.content ?? t('filters.research-fields')
 			};
 		});
 	});
@@ -227,7 +294,7 @@
 		try {
 			// Open folder picker
 			const result = await window.api.openFileDialog({
-				title: 'Select Export Folder',
+				title: t('export-website.select-folder'),
 				properties: ['openDirectory', 'createDirectory']
 			});
 
@@ -244,6 +311,7 @@
 			await window.api.exportStaticWebsite({
 				projectId,
 				outputPath,
+				locale: selectedWebsiteLocale,
 				filters: {
 					...buildCommonFilters(),
 					...(excludeIds.length > 0 && { excludeObjectIds: excludeIds })
@@ -251,22 +319,18 @@
 			});
 
 			exportStatus = 'success';
-			exportMessage = t('export-website.success', {
-				fallback: 'Website exported successfully!'
-			});
+			exportMessage = t('export-website.success');
 			exportResultDialogOpen = true;
 		} catch (error) {
 			console.error('Export failed:', error);
 			exportStatus = 'error';
-			exportMessage =
-				error.message ||
-				t('export-website.error', { fallback: 'Failed to export website. Please try again.' });
+			exportMessage = error.message || t('export-website.error');
 		} finally {
 			isExporting = false;
 		}
 	}
 
-	let exportSummary = $derived(`Objects matching filters: ${totalCount}`);
+	let exportSummary = $derived(t('export.summary', { count: totalCount }));
 	let completedCount = $derived(
 		facets?.statuses?.find((status) => (status.id ?? status.name) === 'completed')?.count || 0
 	);
@@ -276,17 +340,16 @@
 
 	const exportDisabledReason = $derived.by(() => {
 		if (isLoading) return '';
-		if (totalCount === 0) return 'No objects match current filters';
-		if (totalCount - deselectedObjectIds.size <= 0) return 'No objects selected';
+		if (websiteLocaleOptions.length === 0) return t('export-website.no-languages-available');
+		if (totalCount === 0) return t('export.no-objects-match');
+		if (totalCount - deselectedObjectIds.size <= 0) return t('export.no-objects-selected');
 		return '';
 	});
 
 	const rightActionButtons = $derived.by(() => [
 		{
 			id: 'export-website',
-			text: isExporting
-				? t('export-website.exporting', { fallback: 'Exporting...' })
-				: t('export-website.button', { fallback: 'Export Website' }),
+			text: isExporting ? t('export-website.exporting') : t('export-website.button'),
 			class: `btn btn-primary ${isExporting ? 'exporting-button' : ''}`,
 			icon: isExporting ? 'arrow-repeat' : 'download',
 			loading: false,
@@ -303,67 +366,61 @@
 
 	<div class="row mb-4">
 		<div class="col-12">
-			<h1 class="h3 mb-0">
-				{t('export-website.title', { fallback: 'Export Static Website' })}
-			</h1>
+			<h1 class="h3 mb-0">{t('export-website.title')}</h1>
 		</div>
 	</div>
 	<div class="row">
 		<div class="col-8">
 			<div class="card shadow-sm mb-4">
 				<div class="card-body">
-					<h5 class="card-title mb-3">
-						{t('export-website.subtitle', { fallback: 'Generate Static Website' })}
-					</h5>
+					<h5 class="card-title mb-3">{t('export-website.subtitle')}</h5>
 
-					<p class="card-text text-muted mb-4">
-						{t('export-website.description', {
-							fallback:
-								'Export your project data as a static website that can be hosted on any web server. The export includes all entities and configurations set in your website settings.'
-						})}
-					</p>
+					<p class="card-text text-muted mb-4">{t('export-website.description')}</p>
 
 					<div class="mb-0">
-						<h6 class="fw-semibold mb-2">
-							{t('export-website.what-included', { fallback: 'What will be included:' })}
-						</h6>
+						<h6 class="fw-semibold mb-2">{t('export-website.what-included')}</h6>
 						<ul class="text-muted mb-0">
-							<li>
-								{t('export-website.include-objects', {
-									fallback: 'Objects and institutions, along with their metadata'
-								})}
-							</li>
-							<li>
-								{t('export-website.include-assets', { fallback: 'Project media (images, videos, audios)' })}
-							</li>
-							<li>
-								{t('export-website.include-fields', {
-									fallback: 'Connections, research fields and institutional data'
-								})}
-							</li>
-							<li>
-								{t('export-website.include-settings', {
-									fallback: 'Website configuration and branding'
-								})}
-							</li>
+							<li>{t('export-website.include-objects')}</li>
+							<li>{t('export-website.include-assets')}</li>
+							<li>{t('export-website.include-fields')}</li>
+							<li>{t('export-website.include-settings')}</li>
 						</ul>
 					</div>
 				</div>
 			</div>
 
 			<div class="mb-4">
+				<div class="mb-4">
+					<h5 class="card-title mb-3">{t('export-website.language-title')}</h5>
+					<p class="text-muted small mb-2">{t('export-website.language-description')}</p>
+					<label class="form-label" for="website-export-language-select">
+						{t('export-website.language-label')}
+					</label>
+					<select
+						id="website-export-language-select"
+						class="form-select"
+						bind:value={selectedWebsiteLocale}
+						disabled={websiteLocaleOptions.length === 0}
+					>
+						{#each websiteLocaleOptions as language (language.code)}
+							<option value={language.code}>{language.name}</option>
+						{/each}
+					</select>
+					{#if websiteLocaleOptions.length === 0}
+						<p class="text-muted small mt-2 mb-0">{t('export-website.language-empty')}</p>
+					{/if}
+				</div>
 
 				<div class="baspath-section mb-4">
-				<h5 class="card-title mb-3">Hosting Subdirectory (optional)</h5>
-					<p class="text-muted small">If hosting on a sub-path (e.g., GitHub Pages <code>https://user.github.io/my-site</code>), enter <code>/my-site</code>. Leave empty if hosting at the root domain.</p>
+					<h5 class="card-title mb-3">{t('export-website.base-path-title')}</h5>
+					<p class="text-muted small">{t('export-website.base-path-description')}</p>
 					<div class="input-group">
-						<span class="input-group-text" id="basepath-addon">Base path</span>
-						<input type="text" class="form-control" placeholder="/" aria-label="Base Path" aria-describedby="basepath-addon" bind:value={basePathInput}>
+						<span class="input-group-text" id="basepath-addon">{t('export-website.base-path-label')}</span>
+						<input type="text" class="form-control" placeholder="/" aria-label={t('export-website.base-path-label')} aria-describedby="basepath-addon" bind:value={basePathInput}>
 					</div>
 				</div>
 
-
-				<h5 class="h5 mb-3">Filter content</h5>
+				<h5 class="h5 mb-3">{t('export.filter-content')}</h5>
 
 				<StatusFilter
 					bind:selectedStatus
@@ -414,35 +471,21 @@
 
 <BaseAlertDialog bind:open={exportResultDialogOpen} size="lg">
 	{#snippet title()}
-		{t('export-website.success', { fallback: 'Website exported successfully!' })}
+		{t('export-website.success')}
 	{/snippet}
 	{#snippet description()}
 		<div class="d-flex flex-column gap-3">
 			<div class="small text-muted">
-				{t('export-website.exported-to', { fallback: 'Exported to:' })}
+				{t('export-website.exported-to')}
 				<code class="ms-1">{exportPath}</code>
 			</div>
 
 			<div>
-				<h6 class="fw-semibold mb-2">
-					{t('export-website.next-steps', { fallback: 'Next Steps:' })}
-				</h6>
+				<h6 class="fw-semibold mb-2">{t('export-website.next-steps')}</h6>
 				<ol class="text-muted small mb-0">
-					<li>
-						{t('export-website.step1', {
-							fallback: 'Upload the exported folder to your web hosting service'
-						})}
-					</li>
-					<li>
-						{t('export-website.step2', {
-							fallback: 'Configure your web server to serve the static files'
-						})}
-					</li>
-					<li>
-						{t('export-website.step3', {
-							fallback: 'Your website will be accessible at your domain'
-						})}
-					</li>
+					<li>{t('export-website.step1')}</li>
+					<li>{t('export-website.step2')}</li>
+					<li>{t('export-website.step3')}</li>
 				</ol>
 			</div>
 		</div>

@@ -118,7 +118,7 @@
                 label,
                 group:
                     field?.project?.title?.content ??
-                    t("export.connections", { fallback: "Connections" }),
+                    t("common.connections", { fallback: "Connections" }),
                 vocabOptions: Array.isArray(field?.vocabularies)
                     ? field.vocabularies.map((v) => ({
                           value: v.id,

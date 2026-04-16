@@ -261,10 +261,10 @@
           <thead>
             <tr class="border-bottom">
               <th scope="col" class="fw-bold text-muted">
-                {t("objects.institution-field", { fallback: "Institution field" })}
+                {t("common.institution-field", { fallback: "Institution field" })}
               </th>
               <th scope="col" class="fw-bold text-muted">
-                {t("objects.value", { fallback: "Value" })}
+                {t("common.value", { fallback: "Value" })}
               </th>
             </tr>
           </thead>
