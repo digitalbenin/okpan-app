@@ -8,6 +8,19 @@
   const { institution } = $props();
   const { t } = getTranslationStore();
 
+  const countryContent = $derived(institution?.country?.content?.trim() || "");
+  const locationContent = $derived(institution?.location?.content?.trim() || "");
+  const descriptionContent = $derived(institution?.description?.content?.trim() || "");
+  const primaryLink = $derived.by(() => {
+    const validLink = (institution?.links || []).find((link) => link?.url?.trim());
+    if (!validLink) return null;
+
+    return {
+      url: validLink.url.trim(),
+      label: validLink.label?.trim() || t("common.website"),
+    };
+  });
+
   const handleBack = () => {
     goto(`/projects/${institution.project_id}/institutions`);
   };
@@ -69,38 +82,38 @@
       <div class="mt-2">
         <h1 class="mb-1">{institution.name.content}</h1>
 
-        {#if institution.country || institution.location || (institution.links && institution.links.length)}
+        {#if countryContent || locationContent || primaryLink}
           <div
             class="text-muted"
             style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
           >
-            {#if institution.country}
-              <span>{institution.country.content}</span>
+            {#if countryContent}
+              <span>{countryContent}</span>
             {/if}
-            {#if institution.country && institution.location}
+            {#if countryContent && locationContent}
               <span class="mx-1">·</span>
             {/if}
-            {#if institution.location}
-              <span>{institution.location.content}</span>
+            {#if locationContent}
+              <span>{locationContent}</span>
             {/if}
-            {#if (institution.country || institution.location) && institution.links && institution.links.length}
+            {#if (countryContent || locationContent) && primaryLink}
               <span class="mx-1">·</span>
             {/if}
-            {#if institution.links && institution.links.length}
+            {#if primaryLink}
               <a
                 class="link-secondary"
-                href={institution.links[0].url}
+                href={primaryLink.url}
                 target="_blank"
                 rel="noreferrer"
               >
-                {institution.links[0].label || t("common.website")}
+                {primaryLink.label}
               </a>
             {/if}
           </div>
         {/if}
 
-        {#if institution.description}
-          <div class="mt-2">{institution.description.content}</div>
+        {#if descriptionContent}
+          <div class="mt-2">{descriptionContent}</div>
         {/if}
       </div>
     </div>
