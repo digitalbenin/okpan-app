@@ -75,6 +75,16 @@
     (researchFields || []).filter((f) => (f.type || "").toLowerCase() === "vocabulary")
   );
 
+  const visibleTextResearchFields = $derived.by(() =>
+    textResearchFields.filter((field) => field?.id)
+  );
+
+  const visibleConnectionResearchFields = $derived.by(() =>
+    connectionResearchFields.filter(
+      (field) => field?.id && vocabularies.some((vocabulary) => String(vocabulary.field_id) === String(field.id))
+    )
+  );
+
   // Helpers
   const getFieldKey = () => selectedField?.type === "institutions" ? "institutions" : selectedField?.id;
   
@@ -293,10 +303,10 @@
               </button>
             {/if}
 
-              {#if connectionResearchFields.length > 0}
+              {#if visibleConnectionResearchFields.length > 0}
           <div class="mt-3 px-3 pt-3 text-muted">{t("common.connections", { fallback: "Connections" })}</div>
 
-          {#each connectionResearchFields as field (field.id)}
+          {#each visibleConnectionResearchFields as field (field.id)}
             <button
               type="button"
               class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
@@ -315,25 +325,27 @@
           {/each}
         {/if}
 
-        <div class="mt-3 px-3 pt-3 text-muted">{t("filters.research-fields", { fallback: "Research fields" })}</div>
+        {#if visibleTextResearchFields.length > 0}
+          <div class="mt-3 px-3 pt-3 text-muted">{t("filters.research-fields", { fallback: "Research fields" })}</div>
 
-            {#each textResearchFields as field (field.id)}
-              <button
-                type="button"
-                class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
-                onclick={() => showAddTextSearch(`r:${field.id}`, getCurrentTextQuery("research", field.id))}
-                aria-label={t("filters.filter-by-field", {
-                  fallback: "Filter by {{field}}",
-                  field: field.name?.content || field.name,
-                })}
-              >
-                <div class="fw-semibold">{field.name?.content || field.name}</div>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="text-muted ps-3">{getResearchFieldSelectionLabel(field)}</span>
-                  <i class="bi bi-chevron-right"></i>
-                </div>
-              </button>
-            {/each}
+          {#each visibleTextResearchFields as field (field.id)}
+            <button
+              type="button"
+              class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
+              onclick={() => showAddTextSearch(`r:${field.id}`, getCurrentTextQuery("research", field.id))}
+              aria-label={t("filters.filter-by-field", {
+                fallback: "Filter by {{field}}",
+                field: field.name?.content || field.name,
+              })}
+            >
+              <div class="fw-semibold">{field.name?.content || field.name}</div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="text-muted ps-3">{getResearchFieldSelectionLabel(field)}</span>
+                <i class="bi bi-chevron-right"></i>
+              </div>
+            </button>
+          {/each}
+        {/if}
 
         
 
