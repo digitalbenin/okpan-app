@@ -25,7 +25,7 @@
   const t = $derived(translationStore.t);
   
   // Props
-  let { mode = "create", institution = null, languages = [], projectId = null, onSuccess = null } = $props();
+  let { mode = "create", institution = null, languages = [], projectId = null, onSuccess = null, onCancel = null } = $props();
 
   // Constants & Derived
   const TRANSLATABLE_FIELDS = ["name", "description", "country", "location"];
@@ -175,15 +175,30 @@
   const hiddenStaticValues = $derived(mode === "create" ? { status: "in progress" } : {});
   const fieldOrder = $derived(mode === "create" ? ["website", "links"] : ["links"]);
 
-  const leftActionButtons = $derived(isEditMode
-    ? [{
+  const leftActionButtons = $derived.by(() => {
+    const buttons = [];
+
+    if (typeof onCancel === "function") {
+      buttons.push({
+        id: "back-institution",
+        text: t("common.back"),
+        class: "btn btn-outline-secondary",
+        onClick: onCancel,
+      });
+    }
+
+    if (isEditMode) {
+      buttons.push({
         id: "delete-institution",
         text: t("common.delete"),
         class: "btn btn-outline-danger",
         icon: "trash",
         onClick: openDeleteModal,
-      }]
-    : []);
+      });
+    }
+
+    return buttons;
+  });
 
   const rightActionButtons = $derived([
     {

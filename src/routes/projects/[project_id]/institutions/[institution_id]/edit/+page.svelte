@@ -1,6 +1,7 @@
 <script>
   import InstitutionForm from "$lib/components/institutions/InstitutionForm.svelte";
   import { invalidateAll } from "$app/navigation";
+  import { back } from "$lib/utils/navigation.js";
 
   const { data } = $props();
 
@@ -14,4 +15,4 @@
   }
 </script>
 
-<InstitutionForm mode="edit" {institution} {languages} onSuccess={handleSuccess} />
+<InstitutionForm mode="edit" {institution} {languages} onSuccess={handleSuccess} onCancel={back} />
