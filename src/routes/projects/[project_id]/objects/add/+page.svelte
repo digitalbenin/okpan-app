@@ -155,6 +155,13 @@
         onClick: saveAllChanges,
     }]);
 
+    const leftActionButtons = $derived.by(() => [{
+        id: "back-object-add",
+        text: t("common.back", { fallback: "Back" }),
+        class: "btn btn-outline-secondary",
+        onClick: backToInstitution,
+    }]);
+
     const resetDirtyState = () => {
         objectName = "";
         componentChanges.clear();
@@ -224,7 +231,7 @@
     }
 </script>
 
-<PageActionFooter rightButtons={rightActionButtons} {formStore}>
+<PageActionFooter leftButtons={leftActionButtons} rightButtons={rightActionButtons} {formStore}>
     <ObjectHeader
         institutionName={selectedInstitutionName}
         title={t("menu.add-object", { fallback: "Add Object" })}
