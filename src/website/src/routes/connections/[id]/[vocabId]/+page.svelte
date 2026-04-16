@@ -191,63 +191,60 @@
     {/if}
 
     <!-- Linked Objects -->
-    <div class="card border rounded-3 mt-5">
-        <div class="card-header bg-white border-bottom p-3">
-            <h6 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>{t('object.linked-objects')}</h6>
-            <small class="text-muted">{t('object.objects-count', { count: allObjects.length })}</small>
-        </div>
-        
-        <div class="list-group list-group-flush">
-            {#each paginatedObjects as obj}
-                     <a href={isStaticExport ? `${resolveStaticHref(`${obj.id}`)}?back=${encodeURIComponent(staticObjectBackHref)}` : buildPathWithProjectId(`/${obj.id}`, projectId)} 
-                         class="list-group-item list-group-item-action p-3 d-flex align-items-center"
-                >
-                    <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;">
-                        {#if obj.main_image}
-                             <img src={getAssetUrl({ asset_path: obj.main_image })} alt={obj.name} class="w-100 h-100 object-fit-cover">
-                        {:else}
-                            <i class="bi bi-image text-secondary fs-4"></i>
-                        {/if}
-                    </div>
-                    <div>
-                        <div class="fw-bold text-decoration-underline text-success-emphasis">{obj.name || obj.id}</div> 
-                        <!-- ID is used as link text in mockup (2014.2021.277) -->
-                        <div class="small text-muted">{obj.institution_name}</div>
-                    </div>
-                </a>
-            {/each}
+    {#if allObjects.length > 0}
+        <div class="card border rounded-3 mt-5">
+            <div class="card-header bg-white border-bottom p-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>{t('object.linked-objects')}</h6>
+                <small class="text-muted">{t('object.objects-count', { count: allObjects.length })}</small>
+            </div>
             
-            {#if allObjects.length === 0}
-                <div class="p-4 text-center text-muted">{t('object.no-objects-linked')}</div>
-            {/if}
-        </div>
+            <div class="list-group list-group-flush">
+                {#each paginatedObjects as obj}
+                         <a href={isStaticExport ? `${resolveStaticHref(`${obj.id}`)}?back=${encodeURIComponent(staticObjectBackHref)}` : buildPathWithProjectId(`/${obj.id}`, projectId)} 
+                             class="list-group-item list-group-item-action p-3 d-flex align-items-center"
+                    >
+                        <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;">
+                            {#if obj.main_image}
+                                 <img src={getAssetUrl({ asset_path: obj.main_image })} alt={obj.name} class="w-100 h-100 object-fit-cover">
+                            {:else}
+                                <i class="bi bi-image text-secondary fs-4"></i>
+                            {/if}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-decoration-underline text-success-emphasis">{obj.name || obj.id}</div> 
+                            <div class="small text-muted">{obj.institution_name}</div>
+                        </div>
+                    </a>
+                {/each}
+            </div>
 
-        {#if totalPages > 1}
-            <div class="card-footer bg-white p-2 d-flex justify-content-center">
-                <nav>
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item {currentPage === 1 ? 'disabled' : ''}">
-                            <button class="page-link text-dark" onclick={() => goToPage(currentPage - 1)} aria-label={t('pagination.previous-page')}>
-                                <i class="bi bi-chevron-left"></i>
-                            </button>
-                        </li>
-                        
-                        {#each Array(totalPages) as _, i}
-                            <li class="page-item {currentPage === i + 1 ? 'active' : ''}">
-                                <button class="page-link {currentPage === i + 1 ? 'bg-success border-success text-white' : 'text-dark'}" onclick={() => goToPage(i + 1)}>
-                                    {i + 1}
+            {#if totalPages > 1}
+                <div class="card-footer bg-white p-2 d-flex justify-content-center">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item {currentPage === 1 ? 'disabled' : ''}">
+                                <button class="page-link text-dark" onclick={() => goToPage(currentPage - 1)} aria-label={t('pagination.previous-page')}>
+                                    <i class="bi bi-chevron-left"></i>
                                 </button>
                             </li>
-                        {/each}
+                            
+                            {#each Array(totalPages) as _, i}
+                                <li class="page-item {currentPage === i + 1 ? 'active' : ''}">
+                                    <button class="page-link {currentPage === i + 1 ? 'bg-success border-success text-white' : 'text-dark'}" onclick={() => goToPage(i + 1)}>
+                                        {i + 1}
+                                    </button>
+                                </li>
+                            {/each}
 
-                        <li class="page-item {currentPage === totalPages ? 'disabled' : ''}">
-                            <button class="page-link text-dark" onclick={() => goToPage(currentPage + 1)} aria-label={t('pagination.next-page')}>
-                                <i class="bi bi-chevron-right"></i>
-                            </button>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-        {/if}
-    </div>
+                            <li class="page-item {currentPage === totalPages ? 'disabled' : ''}">
+                                <button class="page-link text-dark" onclick={() => goToPage(currentPage + 1)} aria-label={t('pagination.next-page')}>
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            {/if}
+        </div>
+    {/if}
 </div>

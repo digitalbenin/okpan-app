@@ -1309,6 +1309,26 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "edit-connection",
+                             "value":  "Modifica connessione"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "main-image",
+                             "value":  "Immagine principale"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "add-main-image",
+                             "value":  "Aggiungi immagine principale"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "no-main-image",
+                             "value":  "Nessuna immagine principale"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "required",
                              "value":  "Obbligatorio"
                          },

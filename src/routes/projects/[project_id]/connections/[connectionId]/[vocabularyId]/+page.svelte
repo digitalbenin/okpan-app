@@ -111,7 +111,7 @@
         linkedObjectsTotalCount={data.linkedObjectsTotalCount}
         linkedObjectsPage={data.linkedObjectsPage}
         linkedObjectsPageSize={data.linkedObjectsPageSize}
-        title={t("common.edit_connection", {fallback: "Edit Connection"})}
+        title={t("common.edit-connection", {fallback: "Edit Connection"})}
         submitLabel={t("common.save", {fallback: "Save"})}
         onSubmit={handleSave}
         onCancel={() => window.history.back()}

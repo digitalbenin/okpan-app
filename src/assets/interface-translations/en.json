@@ -515,6 +515,26 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "edit-connection",
+                             "value":  "Edit Connection"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "main-image",
+                             "value":  "Main image"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "add-main-image",
+                             "value":  "Add main image"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "no-main-image",
+                             "value":  "No main image"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "required",
                              "value":  "Required"
                          },
