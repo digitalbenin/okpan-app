@@ -5,7 +5,7 @@
   const { data } = $props();
 
   const startHref = $derived.by(() => {
-    const search = $page.url.search || "";
+    const search = page.url.search || "";
     return `/projects/${data.project.id}/import-assets/steps${search}`;
   });
 </script>
