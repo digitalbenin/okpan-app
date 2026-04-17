@@ -16,30 +16,29 @@
 
     // Debug: watch page value directly
 
-    // Toggle single row selection (we track deselections globally)
-    function toggleObjectSelection(objectId) {
-        if (!deselectedObjectIds.has(objectId)) {
-            deselectedObjectIds.add(objectId);
+    function setObjectSelection(objectId, isSelected) {
+        const nextDeselectedObjectIds = new Set(deselectedObjectIds);
+
+        if (isSelected) {
+            nextDeselectedObjectIds.delete(objectId);
         } else {
-            deselectedObjectIds.delete(objectId);
+            nextDeselectedObjectIds.add(objectId);
         }
-        // Reassign to trigger reactivity and propagate via bindable prop
-        deselectedObjectIds = new Set(deselectedObjectIds);
+
+        deselectedObjectIds = nextDeselectedObjectIds;
     }
 
-    // Toggle selection for current page
-    function toggleAllObjects() {
+    function setPageSelection(isSelected) {
         const pageIds = objects.map((o) => o.id);
-        const allSelectedOnPage = pageIds.every(
-            (id) => !deselectedObjectIds.has(id),
-        );
-        if (allSelectedOnPage) {
-            pageIds.forEach((id) => deselectedObjectIds.add(id));
+        const nextDeselectedObjectIds = new Set(deselectedObjectIds);
+
+        if (isSelected) {
+            pageIds.forEach((id) => nextDeselectedObjectIds.delete(id));
         } else {
-            pageIds.forEach((id) => deselectedObjectIds.delete(id));
+            pageIds.forEach((id) => nextDeselectedObjectIds.add(id));
         }
-        // Reassign to trigger reactivity and propagate via bindable prop
-        deselectedObjectIds = new Set(deselectedObjectIds);
+
+        deselectedObjectIds = nextDeselectedObjectIds;
     }
 
     // Helpers previously in page
@@ -117,7 +116,8 @@
                         indeterminate={objects.some(
                             (o) => !deselectedObjectIds.has(o.id),
                         ) && objects.some((o) => deselectedObjectIds.has(o.id))}
-                        onclick={toggleAllObjects}
+                        onchange={(event) =>
+                            setPageSelection(event.currentTarget.checked)}
                     />
                 </th>
                 <th class="image-column" style="width: 60px;"></th>
@@ -133,7 +133,11 @@
                             type="checkbox"
                             class="form-check-input"
                             checked={!deselectedObjectIds.has(object.id)}
-                            onclick={() => toggleObjectSelection(object.id)}
+                            onchange={(event) =>
+                                setObjectSelection(
+                                    object.id,
+                                    event.currentTarget.checked,
+                                )}
                         />
                     </td>
                     <td class="image-column">
