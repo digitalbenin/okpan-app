@@ -1,7 +1,13 @@
 <script>
+  import { page } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   const { t } = getTranslationStore();
   const { data } = $props();
+
+  const startHref = $derived.by(() => {
+    const search = $page.url.search || "";
+    return `/projects/${data.project.id}/import-assets/steps${search}`;
+  });
 </script>
 
 <div
@@ -21,7 +27,7 @@
     <div class="text-center">
       <a
         class="btn btn-primary btn-lg"
-        href="/projects/{data.project.id}/import-assets/steps"
+        href={startHref}
       >
         {t("import.start", { fallback: "Start" })}
       </a>

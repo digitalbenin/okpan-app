@@ -50,7 +50,13 @@
 
   function goToImportAssets() {
     open = false;
-    goto(`/projects/${wizard.projectId}/import-assets`);
+    const searchParams = new URLSearchParams();
+    if (wizard.institutionId) {
+      searchParams.set("institution_id", wizard.institutionId);
+    }
+
+    const query = searchParams.toString();
+    goto(`/projects/${wizard.projectId}/import-assets/steps${query ? `?${query}` : ""}`);
   }
 </script>
 
