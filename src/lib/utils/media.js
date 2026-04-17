@@ -3,15 +3,6 @@ export function addImageProtocolPrefix(url) {
     if (typeof url === 'string' && url.startsWith('media://')) return url;
     const normalized = String(url).replace(/\\/g, '/');
 
-    if (normalized.startsWith('/')) {
-        const encodedPath = normalized
-            .slice(1)
-            .split('/')
-            .map((segment) => encodeURIComponent(segment))
-            .join('/');
-        return `media:///%2F${encodedPath}`;
-    }
-
     return `media://${normalized}`;
 }
 

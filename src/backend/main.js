@@ -272,7 +272,9 @@ function resolveMediaPath(urlObj) {
   if (urlObj.hostname && /^[a-zA-Z]$/.test(urlObj.hostname)) {
     pathStr = urlObj.hostname + decodeURIComponent(urlObj.pathname);
   } else {
-    pathStr = decodeURIComponent(urlObj.pathname).replace(/^\//, '');
+    const fullDecoded = decodeURIComponent(urlObj.pathname);
+    if (path.isAbsolute(fullDecoded)) return path.normalize(fullDecoded);
+    pathStr = fullDecoded.replace(/^\//, '');
   }
 
   // Convert to absolute path if needed
