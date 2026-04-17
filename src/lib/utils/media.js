@@ -4,7 +4,12 @@ export function addImageProtocolPrefix(url) {
     const normalized = String(url).replace(/\\/g, '/');
 
     if (normalized.startsWith('/')) {
-        return `media:////${normalized.replace(/^\/+/, '')}`;
+        const encodedPath = normalized
+            .slice(1)
+            .split('/')
+            .map((segment) => encodeURIComponent(segment))
+            .join('/');
+        return `media:///%2F${encodedPath}`;
     }
 
     return `media://${normalized}`;
