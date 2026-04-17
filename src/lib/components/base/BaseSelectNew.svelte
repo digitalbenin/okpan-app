@@ -18,7 +18,8 @@
     ...restProps
   } = $props();
 
-  let hasInitializedValue = $state(false);
+
+  let hasInitializedValue = false;
 
   $effect(() => {
     const nextValue = value;

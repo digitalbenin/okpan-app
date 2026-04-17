@@ -23,6 +23,13 @@
   let selectedTemplateId = $state(existingTemplate?.id || null);
   let fieldValues = $state(new Map());
   let initialValues = $state(new Map());
+  const serialize = (value) => {
+    try {
+      return JSON.stringify(value ?? null);
+    } catch {
+      return null;
+    }
+  };
 
   const selectedTemplate = $derived.by(() => {
     if (selectedTemplateId) {
@@ -160,8 +167,8 @@
 
   // Watch for updates to existing fields (e.g. after a save or external update)
   watch(
-    () => existingFields,
-    (fields) => {
+    () => serialize(existingFields),
+    () => {
       // When backend data syncs down, only overwrite if actually new
       if (selectedTemplate) {
         initializeFieldValues('existingFields changed');
@@ -178,7 +185,7 @@
     return false;
   });
 
-  // Notify parent of changes
+  // Notify parent of changes – lazy so the initial false doesn't cascade on mount
   watch(
     () => hasChanges,
     (changed) => {
@@ -207,7 +214,8 @@
           },
         });
       }
-    }
+    },
+    { lazy: true }
   );
 
   const handleCreateTemplate = () => {

@@ -8,14 +8,14 @@
   import ObjectDeleteModal from "$lib/components/objects/ObjectDeleteModal.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { back } from "$lib/utils/navigation.js";
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { updateObjectInstitution, deleteObject, updateObjectStatus, updateObjectName } from "$lib/stores/ObjectsUtils.js";
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
   import { createForm } from "@tanstack/svelte-form";
   import { z } from "zod";
-  import { getFormConfig, createFieldValidator } from "$lib/stores/formValidationUtils.js";
+  import { createFieldValidator } from "$lib/stores/formValidationUtils.js";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import { watch } from "runed";
 
@@ -23,10 +23,10 @@
   const { t } = getTranslationStore();
 
   // Get project ID and languages from page params and parent data
-  const projectId = $derived($page.params.project_id);
-  const currentInstitutionIdParam = $derived($page.params.institution_id);
-  const languages = $derived($page.data.languages || []);
-  const listQuery = $derived($page.url.search || "");
+  const projectId = $derived(page.params.project_id);
+  const currentInstitutionIdParam = $derived(page.params.institution_id);
+  const languages = $derived(page.data.languages || []);
+  const listQuery = $derived(page.url.search || "");
   const defaultLanguageId = $derived.by(() => {
     const langs = languages || [];
     const def = langs.find((l) => l.is_default);
@@ -172,6 +172,11 @@
 
   // Handle changes from child components
   function handleComponentChanges(changeData) {
+    const previousChange = componentChanges.get(changeData.component);
+    if (previousChange?.hasChanges === changeData.hasChanges) {
+      return;
+    }
+
     componentChanges.set(changeData.component, changeData);
     syncComponentChanges();
   }

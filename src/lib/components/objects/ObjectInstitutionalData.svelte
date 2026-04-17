@@ -1,6 +1,6 @@
 <script>
   import { invalidate, goto } from "$app/navigation";
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
   import { invalidateAll } from '$app/navigation';
   import ObjectInstitutionalDataSource from "./ObjectInstitutionalDataSource.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
@@ -52,6 +52,7 @@
   
   let creating = $state(false);
   let componentChanges = $state(new Map());
+  let lastNotifiedHasChanges = null;
   let activeDatasourceId = $state(null);
   let tabsContainer = $state(null);
   let deleteDialogOpen = $state(false);
@@ -69,11 +70,14 @@
       invalidate("custom:object");
   };
 
-  // Initialize active datasource
+  // Initialize active datasource – untrack the read of activeDatasourceId
+  // so the effect only re-runs when datasourcesArray changes, not when
+  // we write activeDatasourceId (avoids self-triggering cycle).
   $effect(() => {
-    const hasActive = datasourcesArray.some(d => d.id === activeDatasourceId);
-    if (!hasActive && datasourcesArray.length > 0) {
-      activeDatasourceId = datasourcesArray[0].id;
+    const dsArray = datasourcesArray;
+    const currentId = untrack(() => activeDatasourceId);
+    if (dsArray.length > 0 && !dsArray.some(d => d.id === currentId)) {
+      activeDatasourceId = dsArray[0].id;
     }
   });
 
@@ -111,12 +115,19 @@
 
   // Track changes from child components
   const handleComponentChanges = (changeData) => {
+    const previousChange = componentChanges.get(changeData.component);
+    if (previousChange?.hasChanges === changeData.hasChanges) {
+      return;
+    }
+
     componentChanges.set(changeData.component, changeData);
     componentChanges = new Map(componentChanges);
     
-    // Notify parent if callback provided
+    // Notify parent if callback provided – skip if aggregate hasn't changed
     if (onChangesUpdate) {
       const hasAnyChanges = Array.from(componentChanges.values()).some(c => c.hasChanges);
+      if (hasAnyChanges === lastNotifiedHasChanges) return;
+      lastNotifiedHasChanges = hasAnyChanges;
       
       onChangesUpdate({
         component: "institutional-data",
