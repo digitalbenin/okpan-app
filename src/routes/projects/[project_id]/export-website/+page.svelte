@@ -308,7 +308,7 @@
 			const excludeIds = Array.from(deselectedObjectIds);
 
 			// Call export API
-			await window.api.exportStaticWebsite({
+			const exportResult = await window.api.exportStaticWebsite({
 				projectId,
 				outputPath,
 				locale: selectedWebsiteLocale,
@@ -317,6 +317,8 @@
 					...(excludeIds.length > 0 && { excludeObjectIds: excludeIds })
 				}
 			});
+
+			exportPath = exportResult?.outputPath || outputPath;
 
 			exportStatus = 'success';
 			exportMessage = t('export-website.success');

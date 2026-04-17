@@ -4,6 +4,16 @@ import { and, eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import { buildObjectSearchConditions } from '../handlers/exportHandlers.js';
 
+function sanitizeExportFolderName(value, fallback = 'website-export') {
+  const normalized = String(value || '')
+    .trim()
+    .replace(/[<>:"/\\|?*]+/g, '-')
+    .replace(/\s+/g, ' ')
+    .replace(/^\.+|\.+$/g, '');
+
+  return normalized || fallback;
+}
+
 /**
  * Export website data to JSON file and build static site
  * @param {string} projectId - Project ID to export
@@ -33,6 +43,11 @@ export async function exportStaticWebsite(projectId, outputPath, { db, filters =
       throw new Error('Failed to export data: data or data.objects is null/undefined');
     }
 
+    const resolvedOutputPath = path.join(
+      outputPath,
+      sanitizeExportFolderName(data.project?.name || projectId, projectId)
+    );
+
     // Build lightweight site.json for sidebar
     const siteData = {
       project: data.project || {},
@@ -60,38 +75,38 @@ export async function exportStaticWebsite(projectId, outputPath, { db, filters =
 
     // Step 3: Copy prebuilt website to destination
     console.log('[Website Export] Step 3/4: Copying prebuilt website to output location...');
-    await fs.mkdir(outputPath, { recursive: true });
-    await fs.cp(buildDir, outputPath, { recursive: true });
+    await fs.mkdir(resolvedOutputPath, { recursive: true });
+    await fs.cp(buildDir, resolvedOutputPath, { recursive: true });
 
     // Write export data into output root
-    await fs.writeFile(path.join(outputPath, 'data.json'), JSON.stringify(data, null, 2), 'utf-8');
-    await fs.writeFile(path.join(outputPath, 'site.json'), JSON.stringify(siteData, null, 2), 'utf-8');
+    await fs.writeFile(path.join(resolvedOutputPath, 'data.json'), JSON.stringify(data, null, 2), 'utf-8');
+    await fs.writeFile(path.join(resolvedOutputPath, 'site.json'), JSON.stringify(siteData, null, 2), 'utf-8');
     console.log(`[Website Export] Exported ${data.objects.length} objects to data.json`);
     console.log('[Website Export] Exported site.json for sidebar');
 
     // Ensure direct refresh/deep-link works on static hosts without rewrite rules.
     // This runs after writing the exported data so route generation can rely on the final export payload.
-    await createSpaShellRoutes(outputPath, data, basePath, exportLocale);
+    await createSpaShellRoutes(resolvedOutputPath, data, basePath, exportLocale);
 
     // Step 4: Copy project assets folder
     console.log('[Website Export] Step 4/4: Copying assets...');
     const projectAssetsSource = path.join(rootDir, 'src', 'assets', 'project_assets', projectId);
-    const projectAssetsDest = path.join(outputPath, 'assets', projectId);
+    const projectAssetsDest = path.join(resolvedOutputPath, 'assets', projectId);
     
     try {
       await fs.access(projectAssetsSource);
-      await fs.mkdir(path.join(outputPath, 'assets'), { recursive: true });
+      await fs.mkdir(path.join(resolvedOutputPath, 'assets'), { recursive: true });
       await fs.cp(projectAssetsSource, projectAssetsDest, { recursive: true });
       console.log(`[Website Export] Assets copied to ${projectAssetsDest}`);
     } catch (err) {
       console.warn(`[Website Export] No assets folder found at ${projectAssetsSource}, skipping asset copy`);
     }
 
-    console.log(`[Website Export] Website exported to ${outputPath}`);
+    console.log(`[Website Export] Website exported to ${resolvedOutputPath}`);
 
     return {
       success: true,
-      outputPath,
+      outputPath: resolvedOutputPath,
       objectCount: data.objects.length
     };
 
