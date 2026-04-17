@@ -265,31 +265,43 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 // Helper function for path resolution
-function resolveMediaPath(urlObj) {
+function resolveMediaPath(urlObj, requestUrl) {
   let pathStr;
 
-  // Handle Windows drive letters in hostname (media://c/Users/... -> c/Users/...)
-  if (urlObj.hostname && /^[a-zA-Z]$/.test(urlObj.hostname)) {
-    pathStr = urlObj.hostname + decodeURIComponent(urlObj.pathname);
+  // Use original url string to avoid url parser stripping/moving segments into hostname
+  if (requestUrl) {
+    pathStr = decodeURIComponent(requestUrl.substring('media://'.length));
   } else {
-    const fullDecoded = decodeURIComponent(urlObj.pathname);
-    if (path.isAbsolute(fullDecoded)) return path.normalize(fullDecoded);
-    pathStr = fullDecoded.replace(/^\//, '');
+    // fallback if no requestUrl provided
+    if (urlObj.hostname && /^[a-zA-Z]$/.test(urlObj.hostname)) {
+      pathStr = urlObj.hostname + decodeURIComponent(urlObj.pathname);
+    } else {
+      pathStr = urlObj.hostname ? urlObj.hostname + decodeURIComponent(urlObj.pathname) : decodeURIComponent(urlObj.pathname);
+    }
   }
 
-  // Convert to absolute path if needed
-  if (/^[a-zA-Z]\//.test(pathStr)) {
-    // Windows drive format (c/Users/... -> C:\Users\...)
+  // Windows drive format (c:/Users/... or c/Users/...)
+  if (/^[a-zA-Z]:\//.test(pathStr) || /^[a-zA-Z]\//.test(pathStr)) {
     const driveLetter = pathStr.charAt(0).toUpperCase();
-    const restOfPath = pathStr.substring(2);
-    return process.platform === 'win32'
+    const restOfPath = pathStr.substring(pathStr.indexOf('/') + 1);
+    const winPathStr = process.platform === 'win32'
       ? `${driveLetter}:\\${restOfPath.replace(/\//g, '\\')}`
       : `/${pathStr}`;
+      
+    if (fs.existsSync(winPathStr)) return winPathStr;
   }
 
   if (path.isAbsolute(pathStr)) {
-    return path.normalize(pathStr);
+    if (fs.existsSync(pathStr)) return path.normalize(pathStr);
   }
+
+  // Also handle POSIX paths that might not start with / but are meant to be absolute (from media://volumes/...)
+  const maybePosixAbsolute = '/' + pathStr;
+  if (path.isAbsolute(maybePosixAbsolute) && fs.existsSync(maybePosixAbsolute)) {
+      return path.normalize(maybePosixAbsolute);
+  }
+
+  pathStr = pathStr.replace(/^\//, ''); // Strip leading slash for relative paths
 
   // Try relative paths in project
   const projectRoot = process.cwd();
@@ -348,7 +360,7 @@ app.whenReady().then(() => {
   // Register media protocol handler
   protocol.registerFileProtocol('media', (request, callback) => {
     try {
-      const resolvedPath = resolveMediaPath(new URL(request.url));
+      const resolvedPath = resolveMediaPath(new URL(request.url), request.url);
 
       if (resolvedPath && fs.existsSync(resolvedPath)) {
         callback({ path: resolvedPath });
