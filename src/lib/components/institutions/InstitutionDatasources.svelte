@@ -33,6 +33,9 @@
 
   const projectId = $derived(pageData.params.project_id);
   const institutionId = $derived(pageData.params.institution_id);
+  const importDataHref = $derived(
+    `/projects/${projectId}/import-data${institutionId ? `?institution_id=${encodeURIComponent(institutionId)}` : ""}`,
+  );
 </script>
 
 <div class="w-100">
@@ -46,7 +49,7 @@
       />
     </div>
     <div class="col-12 col-md-6 d-flex justify-content-md-end">
-      <a class="btn btn-secondary btn-sm" href="/projects/{projectId}/import-data">
+      <a class="btn btn-secondary btn-sm" href={importDataHref}>
         <i class="bi bi-plus-lg"></i>
         {t("common.import-data")}
       </a>
