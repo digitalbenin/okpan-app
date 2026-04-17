@@ -33,7 +33,21 @@
 
   // State for modal
   let showDeleteModal = $state(false);
-  let institutionToDeleteId = $state(null);
+  let institutionToDelete = $state(null);
+  let deleteConfirmationName = $state("");
+  let isDeleting = $state(false);
+
+  const institutionToDeleteName = $derived(
+    institutionToDelete?.name?.content || ""
+  );
+  const deleteImpactCounts = $derived.by(() => ({
+    objects: Number(institutionToDelete?.objectsCount || 0),
+    assets: Number(institutionToDelete?.assetsCount || 0),
+    datasources: Number(institutionToDelete?.datasourcesCount || 0),
+  }));
+  const canConfirmDelete = $derived(
+    deleteConfirmationName.trim() === institutionToDeleteName && !isDeleting
+  );
 
   function nextPage() {
     table.nextPage();
@@ -106,7 +120,7 @@
           onClick: async () => {
             // Call the delete function with the institution ID
             console.log("Deleting institution:", row.original.id);
-            confirmDelete(row.original.id);
+            confirmDelete(row.original);
           },
         });
       },
@@ -182,21 +196,36 @@
   });
 
   // Function to open the confirmation modal
-  function confirmDelete(institutionId) {
-    institutionToDeleteId = institutionId;
+  function confirmDelete(institution) {
+    institutionToDelete = institution;
+    deleteConfirmationName = "";
     showDeleteModal = true;
   }
 
   // Function to handle the actual deletion after confirmation
   async function handleConfirmDelete() {
-    if (institutionToDeleteId) {
-      console.log("Confirmed deletion for:", institutionToDeleteId);
-      await deleteInstitution(institutionToDeleteId);
+    if (!institutionToDelete?.id || deleteConfirmationName.trim() !== institutionToDeleteName) {
+      return;
+    }
+
+    isDeleting = true;
+    try {
+      console.log("Confirmed deletion for:", institutionToDelete.id);
+      await deleteInstitution(institutionToDelete.id);
       // TODO: The parent component needs to refetch the data to refresh the table
       // after a successful deletion, as this component doesn't have access to the loading function.
+    } finally {
       showDeleteModal = false;
-      institutionToDeleteId = null;
+      institutionToDelete = null;
+      deleteConfirmationName = "";
+      isDeleting = false;
     }
+  }
+
+  function cancelDelete() {
+    showDeleteModal = false;
+    institutionToDelete = null;
+    deleteConfirmationName = "";
   }
 </script>
 
@@ -305,20 +334,62 @@
   {/snippet}
 
   {#snippet body()}
-    <p>{t("institutions.confirm-delete-institution")}</p>
-    <p>{t("institutions.delete-related-data-warning")}</p>
+    <div class="alert alert-danger mb-3" role="alert">
+      <div class="fw-semibold mb-1">
+        {t("institutions.delete-permanently-title")}
+      </div>
+      <div>
+        {t("institutions.delete-permanently-description")}
+      </div>
+    </div>
+
+    <p class="mb-2">{t("institutions.confirm-delete-institution")}</p>
+
+    <ul class="mb-3 ps-3">
+      <li>
+        {deleteImpactCounts.objects}
+        {t("institutions.delete-impact-objects")}
+      </li>
+      <li>
+        {deleteImpactCounts.assets}
+        {t("institutions.delete-impact-assets")}
+      </li>
+      <li>
+        {deleteImpactCounts.datasources}
+        {t("institutions.delete-impact-datasources")}
+      </li>
+    </ul>
+
+    <label for="institution-table-delete-confirm-name" class="form-label fw-semibold">
+      {t("institutions.type-name-to-delete")}
+    </label>
+    <input
+      id="institution-table-delete-confirm-name"
+      class="form-control"
+      type="text"
+      bind:value={deleteConfirmationName}
+      placeholder={institutionToDeleteName}
+      autocomplete="off"
+    />
+    <div class="form-text">
+      {t("institutions.type-exact-name-to-delete", {
+        name: institutionToDeleteName,
+      })}
+    </div>
   {/snippet}
 
   {#snippet actions()}
     <BaseButton
       text={t("common.cancel")}
       class="btn btn-secondary"
-      onClick={() => (showDeleteModal = false)}
+      onClick={cancelDelete}
+      disabled={isDeleting}
     />
     <BaseButton
-      text={t("common.delete")}
+      text={isDeleting ? t("common.deleting") : t("common.confirm-and-delete")}
       class="btn btn-danger"
       onClick={handleConfirmDelete}
+      disabled={!canConfirmDelete}
     />
   {/snippet}
 </BaseModal>

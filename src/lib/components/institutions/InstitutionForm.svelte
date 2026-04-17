@@ -39,6 +39,7 @@
   // State
   let showDeleteModal = $state(false);
   let isDeleting = $state(false);
+  let deleteConfirmationName = $state("");
 
   // Helper functions
   const safeParseLinks = (linksData) => {
@@ -174,6 +175,15 @@
 
   const hiddenStaticValues = $derived(mode === "create" ? { status: "in progress" } : {});
   const fieldOrder = $derived(mode === "create" ? ["website", "links"] : ["links"]);
+  const institutionDisplayName = $derived(institution?.name?.content || "");
+  const deleteImpactCounts = $derived.by(() => ({
+    objects: Number(institution?.objectsCount || 0),
+    assets: Number(institution?.assetsCount || 0),
+    datasources: Number(institution?.datasourcesCount || 0),
+  }));
+  const canConfirmDelete = $derived(
+    deleteConfirmationName.trim() === institutionDisplayName && !isDeleting
+  );
 
   const leftActionButtons = $derived.by(() => {
     const buttons = [];
@@ -211,11 +221,20 @@
   ]);
 
   // Delete handlers
-  const openDeleteModal = () => isEditMode && (showDeleteModal = true);
-  const cancelDelete = () => showDeleteModal = false;
+  const openDeleteModal = () => {
+    if (!isEditMode) return;
+    deleteConfirmationName = "";
+    showDeleteModal = true;
+  };
+  const cancelDelete = () => {
+    deleteConfirmationName = "";
+    showDeleteModal = false;
+  };
 
   async function confirmDeleteInstitution() {
-    if (!isEditMode || !institution?.id) return showDeleteModal = false;
+    if (!isEditMode || !institution?.id || deleteConfirmationName.trim() !== institutionDisplayName) {
+      return showDeleteModal = false;
+    }
 
     isDeleting = true;
     try {
@@ -225,6 +244,7 @@
       console.error("Error deleting institution:", err);
     } finally {
       isDeleting = false;
+      deleteConfirmationName = "";
       showDeleteModal = false;
     }
   }
@@ -286,9 +306,50 @@
     {/snippet}
 
     {#snippet body()}
-      <p>
+      <div class="alert alert-danger mb-3" role="alert">
+        <div class="fw-semibold mb-1">
+          {t("institutions.delete-permanently-title")}
+        </div>
+        <div>
+          {t("institutions.delete-permanently-description")}
+        </div>
+      </div>
+
+      <p class="mb-2">
         {t("institutions.confirm-delete-institution")}
       </p>
+
+      <ul class="mb-3 ps-3">
+        <li>
+          {deleteImpactCounts.objects}
+          {t("institutions.delete-impact-objects")}
+        </li>
+        <li>
+          {deleteImpactCounts.assets}
+          {t("institutions.delete-impact-assets")}
+        </li>
+        <li>
+          {deleteImpactCounts.datasources}
+          {t("institutions.delete-impact-datasources")}
+        </li>
+      </ul>
+
+      <label for="institution-delete-confirm-name" class="form-label fw-semibold">
+        {t("institutions.type-name-to-delete")}
+      </label>
+      <input
+        id="institution-delete-confirm-name"
+        class="form-control"
+        type="text"
+        bind:value={deleteConfirmationName}
+        placeholder={institutionDisplayName}
+        autocomplete="off"
+      />
+      <div class="form-text">
+        {t("institutions.type-exact-name-to-delete", {
+          name: institutionDisplayName,
+        })}
+      </div>
     {/snippet}
 
     {#snippet actions()}
@@ -307,7 +368,7 @@
             ? t("common.deleting")
             : t("common.confirm-and-delete")}
           onClick={confirmDeleteInstitution}
-          disabled={isDeleting}
+          disabled={!canConfirmDelete}
         />
       </div>
     {/snippet}

@@ -2876,6 +2876,76 @@
                              "namespace":  "common",
                              "key":  "confirm-delete-asset",
                              "value":  "Sei sicuro di voler eliminare questo media? Questa azione non puo essere annullata."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "leave",
+                             "value":  "Esci"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "stay",
+                             "value":  "Resta"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "leave-without-saving",
+                             "value":  "Esci senza salvare"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "stay-on-page",
+                             "value":  "Resta nella pagina"
+                         },
+                         {
+                             "namespace":  "navigation",
+                             "key":  "unsaved-changes-title",
+                             "value":  "Modifiche non salvate"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "import-not-completed-title",
+                             "value":  "Importazione non completata"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "import-not-completed-message",
+                             "value":  "Il processo di importazione non e completato. Sei sicuro di voler uscire?"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-permanently-title",
+                             "value":  "Questa azione elimina definitivamente l'istituzione e tutti i dati collegati."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-permanently-description",
+                             "value":  "Questa azione non puo essere annullata."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-impact-objects",
+                             "value":  "oggetti verranno eliminati definitivamente"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-impact-assets",
+                             "value":  "media verranno eliminati definitivamente"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-impact-datasources",
+                             "value":  "origini dati verranno eliminate definitivamente"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "type-name-to-delete",
+                             "value":  "Digita il nome dell'istituzione per confermare l'eliminazione"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "type-exact-name-to-delete",
+                             "value":  "Digita esattamente \"{{name}}\" per abilitare l'eliminazione."
                          }
                      ]
 }

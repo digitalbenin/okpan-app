@@ -1,15 +1,18 @@
 <script>
   import { beforeNavigate, goto } from "$app/navigation";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   let {
     dirtyTracker = null,
     enabled = true,
-    title = "Unsaved changes",
-    message = "You have unsaved changes. Are you sure you want to leave without saving?",
-    confirmText = "Leave without saving",
-    cancelText = "Stay on page",
+    title = null,
+    message = null,
+    confirmText = null,
+    cancelText = null,
   } = $props();
+
+  const { t } = getTranslationStore();
 
   let showDialog = $state(false);
   let pendingNavigation = $state(null);
@@ -17,6 +20,18 @@
 
   // Watch for dirty state changes
   const isDirty = $derived(dirtyTracker?.isDirty ?? false);
+  const resolvedTitle = $derived(
+    title ?? t("navigation.unsaved-changes-title")
+  );
+  const resolvedMessage = $derived(
+    message ?? t("form.unsaved-changes")
+  );
+  const resolvedConfirmText = $derived(
+    confirmText ?? t("common.leave-without-saving")
+  );
+  const resolvedCancelText = $derived(
+    cancelText ?? t("common.stay-on-page")
+  );
 
   // Intercept navigation when dirty
   beforeNavigate((navigation) => {
@@ -52,16 +67,16 @@
 </script>
 
 <BaseModal bind:isOpen={showDialog} size="md">
-  {#snippet header()}{title}{/snippet}
+  {#snippet header()}{resolvedTitle}{/snippet}
   {#snippet body()}
-    <p class="mb-0">{message}</p>
+    <p class="mb-0">{resolvedMessage}</p>
   {/snippet}
   {#snippet actions()}
     <button type="button" class="btn btn-outline-secondary" onclick={handleStay}>
-        {cancelText}
+        {resolvedCancelText}
     </button>
     <button type="button" class="btn btn-danger" onclick={handleLeave}>
-        {confirmText}
+        {resolvedConfirmText}
     </button>
   {/snippet}
 </BaseModal>

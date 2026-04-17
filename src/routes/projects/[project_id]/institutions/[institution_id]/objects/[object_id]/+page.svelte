@@ -158,12 +158,7 @@
       .map((comp) => ({ component: comp.component, hasChanges: comp.hasChanges })),
   }));
 
-  const dirtyMessage = $derived(
-    t("form.unsaved-changes", {
-      fallback:
-        "You have unsaved changes. Are you sure you want to leave without saving?",
-    })
-  );
+  const dirtyMessage = $derived(t("form.unsaved-changes"));
 
   const markPageClean = () => {
     componentChanges.clear();
