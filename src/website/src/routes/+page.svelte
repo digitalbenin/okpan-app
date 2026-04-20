@@ -6,17 +6,19 @@
 	import Pagination from '$lib/components/Pagination.svelte';
 	import AdvancedFilters from '$lib/components/AdvancedFilters.svelte';
 	import { searchObjects } from '$lib/utils/search.js';
+	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	import { page } from '$app/stores';
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	import { resolveSitePath } from '$lib/utils/sitePaths.js';
+	const { t } = getWebsiteTranslationStore();
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
 	let { data } = $props();
 
 	// SEO data
-	const siteTitle = $derived(data?.settings?.title || data?.project?.name || 'Database Collection');
-	const siteDescription = $derived(data?.settings?.description || data?.project?.description || 'Explore our digital collection');
+	const siteTitle = $derived(data?.settings?.title || data?.project?.name || t('site.default-title'));
+	const siteDescription = $derived(data?.settings?.description || data?.project?.description || t('site.default-description'));
 	const siteLogo = $derived(data?.settings?.logo_asset_path ? getAssetUrl({ asset_path: data.settings.logo_asset_path }) : null);
 
 	let searchTerm = $state(data.queryParams.q);
@@ -92,14 +94,17 @@
 	// Build badge models for active filters
 	const institutionChips = $derived.by(() => {
 		const ids = advancedFilters?.institutions || [];
-		return ids.map((id) => ({ id, label: `Institution: ${institutionsById.get(id)?.name ?? id}` }));
+		return ids.map((id) => ({
+			id,
+			label: t('filters.institution-chip', { name: institutionsById.get(id)?.name ?? id }),
+		}));
 	});
 	const vocabularyChips = $derived.by(() => {
 		const chips = [];
 		for (const [key, arr] of Object.entries(advancedFilters || {})) {
 			if (key === 'institutions' || key === '__textFilters') continue;
 			const fieldId = String(key);
-			const fieldName = researchFieldById.get(fieldId)?.name ?? 'Field';
+			const fieldName = researchFieldById.get(fieldId)?.name ?? t('filters.field-fallback');
 			(arr || []).forEach((vocabId) => {
 				const vName = vocabById.get(vocabId)?.name ?? vocabId;
 				chips.push({ fieldId, vocabId, label: `${fieldName}: ${vName}` });
@@ -114,7 +119,7 @@
 			if (!tf) continue;
 			const fieldId = String(tf.fieldId);
 			const key = `${tf.kind}:${fieldId}:${tf.query}`;
-			let fieldName = 'Field';
+			let fieldName = t('filters.field-fallback');
 			if (tf.kind === 'ontology') fieldName = ontologyFieldById.get(fieldId)?.name ?? fieldName;
 			else fieldName = researchFieldById.get(fieldId)?.name ?? fieldName;
 			chips.push({
@@ -298,13 +303,13 @@
 
 <div class="row">
 	<div class="col-12 p-3 min-vh-100 overflow-y-hidden">
-		<h1>Archive</h1>
+		<h1>{t('nav.archive')}</h1>
 		{#if isLoading}
 			<div class="text-center py-5">
 				<div class="spinner-border" role="status">
-					<span class="visually-hidden">Loading...</span>
+					<span class="visually-hidden">{t('common.loading')}</span>
 				</div>
-				<p class="mt-2">Loading collection...</p>
+				<p class="mt-2">{t('page.archive.loading')}</p>
 			</div>
 		{:else}
 			<FilterBar

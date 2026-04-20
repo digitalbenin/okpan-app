@@ -122,14 +122,14 @@
 <div class="container-fluid py-4">
   <div class="row mb-4">
     <div class="col-12">
-      <h1 class="h3 mb-0">{t("project.research-fields", { fallback: "Research Fields" })}</h1>
+      <h1 class="h3 mb-0">{t("filters.research-fields")}</h1>
     </div>
   </div>
   <div class="row align-items-center mb-3">
     <div class="col-3">
       <BaseInput
         icon="search"
-        placeholder={t("common.search", { fallback: "Search" })}
+        placeholder={t("filters.search")}
         clearable
         size="sm"
         bind:value={search}
@@ -141,9 +141,7 @@
           class="btn btn-primary btn-sm"
           href="/projects/{data.project.id}/data-structure/research-fields/add?type=freetext"
           ><i class="bi bi-plus-lg"></i>
-          {t("common.add-field", {
-            fallback: "Add Field",
-          })}</a
+          {t("export.add-field")}</a
         >
       </div>
     </div>
@@ -152,16 +150,12 @@
   {#if filteredResearchFields.length > 0}
     <div class="border-bottom mb-3">
       {filteredResearchFields.length}
-      {#if filteredResearchFields.length > 1}
-        {t("common.research-fields", { fallback: "research fields" })}
-      {:else}
-        {t("common.research-field", { fallback: "research field" })}
-      {/if}
+      {t("filters.research-fields")}
       {#if search && search.trim() && filteredResearchFields.length !== data.researchFields.length}
         <span class="text-muted">
-          {t("common.of", { fallback: "of" })}
+          {t("common.of")}
           {data.researchFields.length}
-          {t("common.total", { fallback: "total" })}
+          {t("common.total")}
         </span>
       {/if}
     </div>
@@ -181,9 +175,7 @@
             <BaseButton
               class="btn btn-sm btn-link text-dark p-0 text-decoration-none"
               icon="pencil"
-              text={t("common.edit", {
-                fallback: "Edit",
-              })}
+              text={t("common.edit")}
               onClick={() => {
                 console.log("Editing research field:", researchField);
                 goto(
@@ -195,18 +187,12 @@
               class="btn btn-link text-danger p-0 text-decoration-none"
               onClick={() => confirmDelete(researchField)}
               icon="trash"
-              text={t("common.delete", {
-                fallback: "Delete",
-              })}
+              text={t("common.delete")}
             >
-              {t("common.delete", {
-                fallback: "Delete",
-              })}</BaseButton
+              {t("common.delete")}</BaseButton
             >
             <BaseCheckBox
-              labelText={t("common.private", {
-                fallback: "Private",
-              })}
+              labelText={t("common.private")}
               checked={researchField.private === 1}
               onclick={() =>
                 handleCheckboxChange(
@@ -216,9 +202,7 @@
                 )}
             />
             <BaseCheckBox
-              labelText={t("common.public-website", {
-                fallback: "Public on website",
-              })}
+              labelText={t("common.public-website")}
               checked={researchField.onwebsite === 1}
               onclick={() =>
                 handleCheckboxChange(
@@ -234,18 +218,14 @@
   {:else}
     <div class="text-center fst-italic text-muted mt-5">
       {#if search && search.trim()}
-        {t("common.no-search-results", {
-          fallback: "No research fields match your search.",
-        })}
+        {t("common.no-search-results")}
         <div class="mt-2">
           <button class="btn btn-link btn-sm p-0" onclick={() => (search = "")}>
-            {t("common.clear-search", { fallback: "Clear search" })}
+            {t("common.clear-search")}
           </button>
         </div>
       {:else}
-        {t("common.no-research-fields-found", {
-          fallback: "No research field found.",
-        })}
+        {t("common.no-research-fields-found")}
       {/if}
     </div>
   {/if}
@@ -254,30 +234,23 @@
 <!-- Delete Confirmation Modal -->
 <BaseModal bind:isOpen={showDeleteModal}>
   {#snippet header()}
-    {t("common.delete-research-field", { fallback: "Delete research field" })}
+    {t("common.delete-research-field")}
   {/snippet}
 
   {#snippet body()}
     {#if researchFieldToDelete}
       <p class="mb-3">
         {#if isLoadingCount}
-          {t("common.checking-usage", { fallback: "Checking usage..." })}
+          {t("common.checking-usage")}
         {:else if objectsCount > 0}
-          <strong>{objectsCount}</strong>
-          {#if objectsCount === 1}
-            {t("common.object-contains", { fallback: "object contains" })}
-          {:else}
-            {t("common.objects-contain", { fallback: "objects contain" })}
-          {/if}
-          <strong>{researchFieldToDelete.name.content}</strong>
-          {t("common.values-continue", {
-            fallback: "values. Do you want to continue?",
+          {t("common.research-field-usage-warning", {
+            count: objectsCount,
+            name: researchFieldToDelete.name.content,
           })}
         {:else}
           {t("common.confirm-delete-research-field", {
-            fallback: "Are you sure you want to delete the research field",
+            name: researchFieldToDelete.name.content,
           })}
-          <strong>{researchFieldToDelete.name.content}</strong>?
         {/if}
       </p>
     {/if}
@@ -285,15 +258,15 @@
 
   {#snippet actions()}
     <BaseButton
-      text={t("common.cancel", { fallback: "Cancel" })}
+      text={t("common.cancel")}
       class="btn btn-secondary"
       onClick={cancelDelete}
       disabled={isDeleting}
     />
     <BaseButton
       text={isDeleting
-        ? t("common.deleting", { fallback: "Deleting..." })
-        : t("common.confirm-and-delete", { fallback: "Confirm and delete" })}
+        ? t("common.deleting")
+        : t("common.confirm-and-delete")}
       class="btn btn-danger"
       onClick={handleConfirmDelete}
       disabled={isLoadingCount || isDeleting}

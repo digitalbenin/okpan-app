@@ -131,7 +131,7 @@
     <div class="row">
       <div class="col-12">
         <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
+          <span class="visually-hidden">{t("common.loading", { fallback: "Loading..." })}</span>
         </div>
       </div>
     </div>

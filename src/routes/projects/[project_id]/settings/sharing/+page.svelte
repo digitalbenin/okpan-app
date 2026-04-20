@@ -301,7 +301,7 @@
         </h2>
         <p class=" mb-0" style="max-width: 46rem;">
           {t("settings.sharing_description", {
-            fallback: "Here you can configure sharing settings for your project. Multi usrer projects can be accessed by multiple collaborators simultaneously and are required for real-time collaboration features. Private projects are only accessible on this device and do not support real-time collaboration.",
+            fallback: "Here you can configure sharing settings for your project. Multi user projects can be accessed by multiple collaborators simultaneously and are required for real-time collaboration features. Private projects are only accessible on this device and do not support real-time collaboration.",
           })}
         </p>
       </div>
@@ -410,7 +410,7 @@
         
         <div class="mt-3">
           <BaseButton
-            text={t("settings.export_project_file", { fallback: "Export project file" })}
+            text={t("settings.export_project_file")}
             icon="download"
             iconPosition="left"
             onClick={handleExportProjectFile}
@@ -423,28 +423,28 @@
           <div class="mt-3">
             <div class="d-flex align-items-center">
               <div class="spinner-border spinner-border-sm me-2" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">{t("common.loading")}</span>
               </div>
-              {t("settings.exporting", { fallback: "Creating backup..." })}
+              {t("settings.exporting")}
             </div>
           </div>
         {/if}
 
         {#if exportResult}
           <div class="alert alert-success mt-3">
-            <strong>{t("settings.export_success", { fallback: "Success!" })}</strong>
+            <strong>{t("common.success")}</strong>
             <p class="mb-0">
-              {t("settings.export_success_message", {
-                fallback: "Project backup created successfully.",
-              })}
+              {t("settings.export_success_message")}
             </p>
             <small class="text-muted">
-              {t("settings.file_location", { fallback: "File:" })} {exportResult.filePath}
+              {t("settings.file_location", { path: exportResult.filePath })}
             </small>
             <div class="mt-2">
               <small>
-                {t("settings.objects_backed_up", { fallback: "Objects:" })} {exportResult.metadata.counts.objects} |
-                {t("settings.assets_backed_up", { fallback: "Assets:" })} {exportResult.copiedAssets}
+                {t("settings.backup_counts", {
+                  objects: exportResult.metadata.counts.objects,
+                  assets: exportResult.copiedAssets,
+                })}
               </small>
             </div>
           </div>
@@ -452,15 +452,13 @@
 
         {#if exportError}
           <div class="alert alert-danger mt-3">
-            <strong>{t("settings.export_error", { fallback: "Error" })}</strong>
+            <strong>{t("common.error")}</strong>
             <p class="mb-0">{exportError}</p>
           </div>
         {/if}
 
         <p class="text-muted mt-3">
-          {t("settings.import_instruction", {
-            fallback: "You can import this project file from Create new project → Import from file",
-          })}
+          {t("settings.import_instruction")}
         </p>
       </div>
     </div>

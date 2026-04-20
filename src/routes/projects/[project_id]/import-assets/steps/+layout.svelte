@@ -3,8 +3,10 @@
   import BottomToolbar from "$lib/components/import-assets/BottomToolbar.svelte";
   import { createImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import DirtyNavigationGuard from "$lib/components/navigation/DirtyNavigationGuard.svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   const { data, children } = $props();
+  const { t } = getTranslationStore();
   const wizard = createImportAssetsWizardContext({
     projectId: data.project.id,
   });
@@ -38,8 +40,8 @@
 <DirtyNavigationGuard
   {dirtyTracker}
   enabled={!wizard.importCompleted}
-  title="Import not completed"
-  message="The import process is not completed. Are you sure you want to leave?"
-  confirmText="Leave"
-  cancelText="Stay"
+  title={t("import.import-not-completed-title")}
+  message={t("import.import-not-completed-message")}
+  confirmText={t("common.leave")}
+  cancelText={t("common.stay")}
 />

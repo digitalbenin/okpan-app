@@ -380,7 +380,5 @@
 <DirtyNavigationGuard 
     dirtyTracker={dirtyTracker} 
     enabled={enableDirtyTracking && !!dirtyTracker}
-    message={dirtyTrackingMessage || t("form.unsaved-changes", { 
-        fallback: "You have unsaved changes. Are you sure you want to leave without saving?" 
-    })}
+    message={dirtyTrackingMessage || t("form.unsaved-changes")}
 />

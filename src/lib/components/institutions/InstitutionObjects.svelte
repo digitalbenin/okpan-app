@@ -40,20 +40,20 @@
 
   // Options
   const ontologyFieldsList = $derived([
-    { value: "all", label: t("common.all", { fallback: "All" }) },
+    { value: "all", label: t("common.all") },
     ...ontologyFields.result.map((f) => ({ value: f.id, label: f.name.content })),
   ]);
 
   const statuses = $derived([
-    { value: "all", label: t("common.all-status", { fallback: "All status" }) },
-    { value: "in progress", label: t("common.in-progress", { fallback: "In progress" }) },
-    { value: "completed", label: t("common.completed", { fallback: "Completed" }) },
+    { value: "all", label: t("common.all-status") },
+    { value: "in progress", label: t("common.in-progress") },
+    { value: "completed", label: t("common.completed") },
   ]);
 
   const sortOptions = $derived([
-    { value: "updated_at", label: t("common.sort-by-date", { fallback: "Sort by date" }) },
-    { value: "created_at", label: t("common.sort-by-created", { fallback: "Sort by created" }) },
-    { value: "name", label: t("common.sort-by-name", { fallback: "Sort by name" }) },
+    { value: "updated_at", label: t("common.sort-by-date") },
+    { value: "created_at", label: t("common.sort-by-created") },
+    { value: "name", label: t("common.sort-by-name") },
   ]);
 
   // Lookup maps
@@ -170,14 +170,14 @@
     if (params.oStatus && params.oStatus !== "all") {
       const statusLabel = statuses.find((s) => s.value === params.oStatus)?.label || params.oStatus;
       badges.push(createFilterBadge(
-        `${t("common.status", { fallback: "Status" })}: ${statusLabel}`,
+        `${t("common.status")}: ${statusLabel}`,
         () => clearFilter({ oStatus: "all" })
       ));
     }
 
     // Search filter
     if (params.oSearch?.trim()) {
-      const searchLabel = ontologyFieldsList.find((o) => o.value === params.oSearchField)?.label || t("common.search", { fallback: "Search" });
+      const searchLabel = ontologyFieldsList.find((o) => o.value === params.oSearchField)?.label || t("common.search");
       badges.push(createFilterBadge(
         `${searchLabel}: ${params.oSearch}`,
         () => clearFilter({ oSearch: "" })
@@ -266,16 +266,16 @@
   <div class="position-relative mb-3">
     {#if selectedObjects.length}
       <div class="d-flex align-items-center px-3 gap-2 py-2 bg-white border rounded-3">
-        {@render actionButton("x-circle", t("common.clear-selection", { fallback: "Clear selection" }), () => (selectedObjects = []))}
-        {@render actionButton("bank", t("common.change-institution", { fallback: "Change institution" }), () => (showBulkInstitutionModal = true))}
+        {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
+        {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
         <BulkActionsStatusSelect
           items={statuses.filter((s) => s.value !== "all")}
           bind:value={bulkStatusValue}
           onValueChange={applyBulkStatus}
         />
-        {@render actionButton("pencil", t("common.edit-information", { fallback: "Edit information" }), openBulkEdit)}
+        {@render actionButton("pencil", t("common.edit-info"), openBulkEdit)}
         <div class="ms-auto">
-          {@render actionButton("trash", t("common.delete", { fallback: "Delete" }), () => (showBulkDeleteModal = true), "danger")}
+          {@render actionButton("trash", t("common.delete"), () => (showBulkDeleteModal = true), "danger")}
         </div>
       </div>
     {:else}
@@ -283,7 +283,7 @@
         <div class="col-12 col-md-6">
           <BaseInput
             icon="search"
-            placeholder={t("common.search", { fallback: "Search" })}
+            placeholder={t("common.search")}
             size="sm"
             bind:value={params.oSearch}
             optionsList={ontologyFieldsList}
@@ -291,15 +291,15 @@
           />
         </div>
         <div class="col-12 col-md-6 d-flex justify-content-md-end gap-2">
-          {@render toolbarButton("plus-lg", t("common.add-object", { fallback: "Add Object" }), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`)}
-          {@render toolbarButton("plus-lg", t("common.import-data", { fallback: "Import Data" }), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`)}
+          {@render toolbarButton("plus-lg", t("menu.add-object"), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`)}
+          {@render toolbarButton("plus-lg", t("menu.import-data"), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`)}
         </div>
       </div>
 
       <div class="row align-items-center g-2 pb-2 mt-2">
         <div class="col-auto">
           {objectsData.totalCount}
-          {objectsData.totalCount === 1 ? t("common.object", { fallback: "object" }) : t("common.objects", { fallback: "objects" })}
+          {objectsData.totalCount === 1 ? t("common.object") : t("common.objects")}
         </div>
         <div class="col d-flex justify-content-end gap-2 flex-wrap">
           <BaseSelect items={statuses} bind:value={params.oStatus} as="button" inputClass="btn-light btn-sm border">
@@ -318,10 +318,10 @@
           />
           <button type="button" class="btn btn-light btn-sm border" onclick={() => (showAdvancedFilters = true)}>
             <i class="bi bi-filter"></i>
-            {t("common.filter", { fallback: "Filter" })}
+            {t("common.filter")}
           </button>
-          <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as", { fallback: "View as" })}>
-            {#each [{ val: "grid", icon: "grid-3x3-gap", label: t("common.grid-view", { fallback: "Grid" }) }, { val: "table", icon: "list", label: t("common.table-view", { fallback: "Table" }) }] as view}
+          <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as")}>
+            {#each [{ val: "grid", icon: "grid-3x3-gap", label: t("common.grid-view") }, { val: "table", icon: "list", label: t("common.table-view") }] as view}
               <button
                 type="button"
                 class="btn btn-light border"
@@ -343,7 +343,7 @@
       {#each filterBadges as { text, onClear }}
         <span class="badge rounded-pill text-bg-secondary d-flex align-items-center gap-1">
           <span class="text-truncate" style="max-width: 240px;">{text}</span>
-          <button class="btn btn-sm btn-link text-white p-0 m-0" aria-label={t("common.remove", { fallback: "Remove" })} onclick={onClear}>
+          <button class="btn btn-sm btn-link text-white p-0 m-0" aria-label={t("common.remove")} onclick={onClear}>
             <i class="bi bi-x-lg"></i>
           </button>
         </span>
@@ -372,7 +372,7 @@
       </div>
     {/if}
   {:else}
-    <div class="text-center fst-italic text-muted mt-5">{t("common.no-objects-found", { fallback: "No objects found." })}</div>
+    <div class="text-center fst-italic text-muted mt-5">{t("common.no-objects-found")}</div>
   {/if}
 </div>
 

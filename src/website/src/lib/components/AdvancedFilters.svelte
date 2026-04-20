@@ -1,6 +1,8 @@
 <script>
 	import { fly, fade } from 'svelte/transition';
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
+	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	const { t } = getWebsiteTranslationStore();
 
 	let {
 		advancedFilters,
@@ -150,12 +152,12 @@
 
 	function getConnectionSelectionLabel(field) {
 		const selected = advancedFilters?.[field.id];
-		if (!selected || !selected.length) return 'All';
+		if (!selected || !selected.length) return t('filters.all');
 		const names = vocabularies
 			.filter((v) => v.field_id === field.id && selected.includes(v.id))
 			.map((v) => v.name || '')
 			.filter(Boolean);
-		return names.length ? names.join(', ') : 'All';
+		return names.length ? names.join(t('common.list-separator')) : t('filters.all');
 	}
 
 	// Selectable fields for the "Add search field" UI
@@ -220,13 +222,13 @@
 	function getTextFieldLabel(tf) {
 		if (tf?.kind === 'ontology') {
 			const f = (ontologyFields || []).find((o) => String(o.id) === String(tf.fieldId));
-			return f?.name || 'Unknown field';
+			return f?.name || t('common.unknown-field');
 		}
 		if (tf?.kind === 'research') {
 			const f = (researchFields || []).find((r) => String(r.id) === String(tf.fieldId));
-			return f?.name || 'Unknown field';
+			return f?.name || t('common.unknown-field');
 		}
-		return 'Unknown field';
+		return t('common.unknown-field');
 	}
 	function editTextFilter(tf) {
 		const key = `${tf.kind === 'ontology' ? 'o' : 'r'}:${tf.fieldId}`;
@@ -265,11 +267,11 @@
     aria-labelledby="filters-title"
 >
 	<div class="d-flex justify-content-between align-items-center px-3 py-4 border-bottom">
-		<h5 class="m-0" id="filters-title">Filters</h5>
+		<h5 class="m-0" id="filters-title">{t('filters.title')}</h5>
 		<button
 			type="button"
 			class="btn btn-link text-dark text-decoration-none p-0"
-			aria-label="Close filters"
+			aria-label={t('filters.close')}
 			onclick={onClose}
 		>
 			<i class="bi bi-x fs-3"></i>
@@ -287,15 +289,15 @@
 					class="p-3 d-flex justify-content-between align-items-center border-bottom"
 					role="button"
 					tabindex="0"
-					onclick={() => showDetail({ name: 'Institutions', type: 'institutions' })}
-					onkeydown={() => showDetail({ name: 'Institutions', type: 'institutions' })}
+					onclick={() => showDetail({ name: t('filters.institutions'), type: 'institutions' })}
+					onkeydown={() => showDetail({ name: t('filters.institutions'), type: 'institutions' })}
 				>
-					<p class="m-0">Institutions</p>
+					<p class="m-0">{t('filters.institutions')}</p>
 					<i class="bi bi-chevron-right"></i>
 				</div>
 
 				{#if connectionResearchFields.length > 0}
-					<div class="px-3 pt-3 pb-1 text-muted small text-uppercase fw-semibold">Connections</div>
+					<div class="px-3 pt-3 pb-1 text-muted small text-uppercase fw-semibold">{t('filters.connections')}</div>
 					{#each connectionResearchFields as field (field.id)}
 						<div
 							class="p-3 d-flex justify-content-between align-items-center border-bottom"
@@ -314,7 +316,7 @@
 				{/if}
 
 				{#if textResearchFields.length > 0}
-					<div class="px-3 pt-3 pb-1 text-muted small text-uppercase fw-semibold">Research fields</div>
+					<div class="px-3 pt-3 pb-1 text-muted small text-uppercase fw-semibold">{t('filters.research-fields')}</div>
 					{#each textResearchFields as field (field.id)}
 						<div
 							class="p-3 d-flex justify-content-between align-items-center border-bottom"
@@ -325,7 +327,7 @@
 						>
 							<p class="m-0 fw-semibold">{field.name}</p>
 							<div class="d-flex align-items-center gap-2">
-								<span class="text-muted">{getCurrentTextQuery('research', field.id) || 'All'}</span>
+								<span class="text-muted">{getCurrentTextQuery('research', field.id) || t('filters.all')}</span>
 								<i class="bi bi-chevron-right"></i>
 							</div>
 						</div>
@@ -333,18 +335,18 @@
 				{/if}
 
 				{#if currentTextFilters.length > 0}
-					<div class="px-3 pt-3 pb-1 text-muted small text-uppercase fw-semibold">Active text searches</div>
+					<div class="px-3 pt-3 pb-1 text-muted small text-uppercase fw-semibold">{t('filters.active-text-searches')}</div>
 					{#each currentTextFilters as tf (textFilterKey(tf))}
 						<div class="p-3 d-flex justify-content-between align-items-center border-bottom">
 							<p class="m-0">
 								<span class="fw-semibold">{getTextFieldLabel(tf)}</span>
-								<span class="text-muted ms-2">&ldquo;{tf.query}&rdquo;</span>
+								<span class="text-muted ms-2">{t('common.quote-open')}{tf.query}{t('common.quote-close')}</span>
 							</p>
 							<div class="d-flex align-items-center">
 								<button
 									type="button"
 									class="btn btn-outline-danger btn-sm me-2"
-									aria-label="Remove text filter"
+									aria-label={t('filters.remove-text-filter')}
 									onclick={(e) => {
 										e?.stopPropagation?.();
 										removeTextFilter(tf);
@@ -355,7 +357,7 @@
 								<button
 									type="button"
 									class="btn btn-link text-dark text-decoration-none p-0"
-									aria-label="Edit text filter"
+									aria-label={t('filters.edit-text-filter')}
 									onclick={(e) => {
 										e?.stopPropagation?.();
 										editTextFilter(tf);
@@ -371,7 +373,7 @@
 				<div class="p-3">
 					<button class="btn btn-outline-secondary" onclick={() => showAddTextSearch()}>
 						<i class="bi bi-plus-circle"></i>
-						<span>Add text search</span>
+						<span>{t('filters.add-text-search')}</span>
 					</button>
 				</div>
 			</div>
@@ -383,31 +385,33 @@
 			>
 				<div class="d-flex justify-content-between align-items-center p-3 border-bottom">
 					<button class="btn btn-link p-0 text-decoration-none text-body" onclick={showMain}>
-						<i class="bi bi-chevron-left me-2"></i>Search field
+						<i class="bi bi-chevron-left me-2"></i>{t('filters.search-field')}
 					</button>
 					<!-- No Add button; search updates as you type -->
 				</div>
 
 				<div class="p-3">
 					<div class="mb-3">
-						<label class="form-label">Field</label>
+						<label class="form-label" for="text-filter-field-select">{t('filters.field')}</label>
 						<select
+							id="text-filter-field-select"
 							class="form-select"
 							bind:value={textSelectedFieldId}
 							onchange={onTextFieldChange}
 						>
-							<option value="" disabled selected>Choose a field</option>
+							<option value="" disabled selected>{t('filters.choose-field')}</option>
 							{#each selectableTextFields as f (f.key)}
 								<option value={f.key}>{f.label}</option>
 							{/each}
 						</select>
 					</div>
 					<div class="mb-3">
-						<label class="form-label">Search text:</label>
+						<label class="form-label" for="text-filter-query-input">{t('filters.search-text')}:</label>
 						<input
+							id="text-filter-query-input"
 							type="text"
 							class="form-control"
-							placeholder="Type here..."
+							placeholder={t('filters.search-text-placeholder')}
 							bind:value={textQuery}
 							oninput={onTextQueryInput}
 						/>
@@ -425,7 +429,7 @@
 					<button class="btn btn-link p-0 text-decoration-none text-body" onclick={showMain}>
 						<i class="bi bi-chevron-left me-2"></i>{selectedField.name}
 					</button>
-					<button type="button" class="btn btn-link p-0" onclick={resetFilter}>Reset</button>
+					<button type="button" class="btn btn-link p-0" onclick={resetFilter}>{t('filters.reset')}</button>
 				</div>
 
 				<div class="p-3">
@@ -433,7 +437,7 @@
 						<input
 							type="text"
 							class="form-control border-0"
-							placeholder="Search"
+							placeholder={t('filters.search-placeholder')}
 							bind:value={searchTerm}
 						/>
 						<span class="input-group-text border-0"><i class="bi bi-search"></i></span>
@@ -455,7 +459,7 @@
 											{#if item.main_asset_path}
 												<img
 													src={getAssetUrl({ asset_path: item.main_asset_path })}
-													alt={item.name || 'vocabulary thumbnail'}
+													alt={item.name || t('filters.vocabulary-thumbnail')}
 													class="me-3"
 													style="width: 32px; height: 32px; object-fit: cover; border: 1px solid #eee; border-radius: 4px;"
 												/>
@@ -474,7 +478,7 @@
 										<button
 											type="button"
 											class="btn btn-link p-0 text-secondary"
-											aria-label="Info"
+											aria-label={t('filters.info')}
 											onclick={() => toggleInfo(item)}
 										>
 											<i class="bi bi-info-circle"></i>
@@ -492,7 +496,7 @@
 									{#if item.main_asset_path}
 										<img
 											src={getAssetUrl({ asset_path: item.main_asset_path })}
-											alt={item.name || 'vocabulary image'}
+											alt={item.name || t('filters.vocabulary-image')}
 											style="width: 100%; max-height: 240px; object-fit: contain; border-radius: 6px;"
 										/>
 									{:else}
@@ -506,7 +510,7 @@
 									{#if item.description}
 										<p class="mt-2 mb-0 small">{item.description}</p>
 									{:else}
-										<p class="mt-2 mb-0 text-muted small">No description available.</p>
+										<p class="mt-2 mb-0 text-muted small">{t('common.no-description-available')}</p>
 									{/if}
 								</div>
 							{/if}

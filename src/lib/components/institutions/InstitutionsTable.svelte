@@ -13,8 +13,10 @@
   import IndeterminateCheckbox from "$lib/components/table/IntermediateCheckbox.svelte";
   import { deleteInstitution } from "$lib/stores/InstitutionsUtils.js";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   let { institutions, count } = $props();
+  const { t } = getTranslationStore();
 
   const params = queryParameters();
 
@@ -31,7 +33,21 @@
 
   // State for modal
   let showDeleteModal = $state(false);
-  let institutionToDeleteId = $state(null);
+  let institutionToDelete = $state(null);
+  let deleteConfirmationName = $state("");
+  let isDeleting = $state(false);
+
+  const institutionToDeleteName = $derived(
+    institutionToDelete?.name?.content || ""
+  );
+  const deleteImpactCounts = $derived.by(() => ({
+    objects: Number(institutionToDelete?.objectsCount || 0),
+    assets: Number(institutionToDelete?.assetsCount || 0),
+    datasources: Number(institutionToDelete?.datasourcesCount || 0),
+  }));
+  const canConfirmDelete = $derived(
+    deleteConfirmationName.trim() === institutionToDeleteName && !isDeleting
+  );
 
   function nextPage() {
     table.nextPage();
@@ -66,27 +82,27 @@
     }),
     colHelp.accessor((row) => row.name.content + " - " + row.country.content, {
       id: "name",
-      header: "Name",
+      header: t("common.name"),
       cell: ({ cell, row }) =>
         renderComponent(TableLink, {
           text: cell.getValue(),
           row: row.original,
         }),
     }),
-    colHelp.accessor("objectsCount", { header: "Objects" }),
-    colHelp.accessor("assetsCount", { header: "Assets" }),
+    colHelp.accessor("objectsCount", { header: t("common.objects") }),
+    colHelp.accessor("assetsCount", { header: t("common.assets") }),
     colHelp.accessor("status", {
-      header: "Status",
+      header: t("common.status"),
       cell: ({ cell }) => {
         const status = cell.getValue();
         if (status === "in progress") {
           return renderComponent(BaseBadge, {
-            text: "In progress",
+            text: t("common.in-progress"),
             class: "bg-warning text-dark",
           });
         } else if (status === "completed") {
           return renderComponent(BaseBadge, {
-            text: "Completed",
+            text: t("common.completed"),
             class: "bg-success",
           });
         }
@@ -98,13 +114,13 @@
       header: null, // No header for this column
       cell: ({ row }) => {
         return renderComponent(BaseButton, {
-          text: "Delete",
+          text: t("common.delete"),
           icon: "trash",
           class: "btn btn-danger btn-sm",
           onClick: async () => {
             // Call the delete function with the institution ID
             console.log("Deleting institution:", row.original.id);
-            confirmDelete(row.original.id);
+            confirmDelete(row.original);
           },
         });
       },
@@ -180,21 +196,36 @@
   });
 
   // Function to open the confirmation modal
-  function confirmDelete(institutionId) {
-    institutionToDeleteId = institutionId;
+  function confirmDelete(institution) {
+    institutionToDelete = institution;
+    deleteConfirmationName = "";
     showDeleteModal = true;
   }
 
   // Function to handle the actual deletion after confirmation
   async function handleConfirmDelete() {
-    if (institutionToDeleteId) {
-      console.log("Confirmed deletion for:", institutionToDeleteId);
-      await deleteInstitution(institutionToDeleteId);
+    if (!institutionToDelete?.id || deleteConfirmationName.trim() !== institutionToDeleteName) {
+      return;
+    }
+
+    isDeleting = true;
+    try {
+      console.log("Confirmed deletion for:", institutionToDelete.id);
+      await deleteInstitution(institutionToDelete.id);
       // TODO: The parent component needs to refetch the data to refresh the table
       // after a successful deletion, as this component doesn't have access to the loading function.
+    } finally {
       showDeleteModal = false;
-      institutionToDeleteId = null;
+      institutionToDelete = null;
+      deleteConfirmationName = "";
+      isDeleting = false;
     }
+  }
+
+  function cancelDelete() {
+    showDeleteModal = false;
+    institutionToDelete = null;
+    deleteConfirmationName = "";
   }
 </script>
 
@@ -268,7 +299,7 @@
   <nav aria-label="pagination">
     <ul class="pagination pagination-sm">
       <li class="page-item" class:disabled={!table.getCanPreviousPage()}>
-        <button class="page-link" onclick={() => previousPage()}>Prev</button>
+        <button class="page-link" onclick={() => previousPage()}>{t("common.previous-page")}</button>
       </li>
       {#each Array.from({ length: Math.ceil(count / paginationState.pageSize) }, (_, i) => i) as pageIndex}
         <li
@@ -289,7 +320,7 @@
           class="page-link"
           onclick={() => {
             nextPage();
-          }}>Next</button
+          }}>{t("common.next-page")}</button
         >
       </li>
     </ul>
@@ -299,27 +330,66 @@
 <!-- Delete Confirmation Modal -->
 <BaseModal bind:isOpen={showDeleteModal}>
   {#snippet header()}
-    Confirm Deletion
+    {t("common.confirm-delete")}
   {/snippet}
 
   {#snippet body()}
-    <p>Are you sure you want to delete this institution?</p>
-    <p>
-      All related data (objects, assets, datasources, etc.) will also be
-      permanently deleted.
-    </p>
+    <div class="alert alert-danger mb-3" role="alert">
+      <div class="fw-semibold mb-1">
+        {t("institutions.delete-permanently-title")}
+      </div>
+      <div>
+        {t("institutions.delete-permanently-description")}
+      </div>
+    </div>
+
+    <p class="mb-2">{t("institutions.confirm-delete-institution")}</p>
+
+    <ul class="mb-3 ps-3">
+      <li>
+        {deleteImpactCounts.objects}
+        {t("institutions.delete-impact-objects")}
+      </li>
+      <li>
+        {deleteImpactCounts.assets}
+        {t("institutions.delete-impact-assets")}
+      </li>
+      <li>
+        {deleteImpactCounts.datasources}
+        {t("institutions.delete-impact-datasources")}
+      </li>
+    </ul>
+
+    <label for="institution-table-delete-confirm-name" class="form-label fw-semibold">
+      {t("institutions.type-name-to-delete")}
+    </label>
+    <input
+      id="institution-table-delete-confirm-name"
+      class="form-control"
+      type="text"
+      bind:value={deleteConfirmationName}
+      placeholder={institutionToDeleteName}
+      autocomplete="off"
+    />
+    <div class="form-text">
+      {t("institutions.type-exact-name-to-delete", {
+        name: institutionToDeleteName,
+      })}
+    </div>
   {/snippet}
 
   {#snippet actions()}
     <BaseButton
-      text="Cancel"
+      text={t("common.cancel")}
       class="btn btn-secondary"
-      onClick={() => (showDeleteModal = false)}
+      onClick={cancelDelete}
+      disabled={isDeleting}
     />
     <BaseButton
-      text="Delete"
+      text={isDeleting ? t("common.deleting") : t("common.confirm-and-delete")}
       class="btn btn-danger"
       onClick={handleConfirmDelete}
+      disabled={!canConfirmDelete}
     />
   {/snippet}
 </BaseModal>

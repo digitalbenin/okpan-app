@@ -12,9 +12,11 @@
     import { linkAssetToObject, unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
     import { back } from "$lib/utils/navigation.js";
     import { getObjectImageUrl } from "$lib/utils/media.js";
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { z } from "zod";
 
     const { data } = $props();
+    const { t } = getTranslationStore();
 
     // Constants
     const TRANSLATABLE_FIELDS = ["description", "copyright", "author"];
@@ -170,9 +172,9 @@
     const hiddenFields = [LINKED_IDS_FIELD];
 
     const uiSchema = $derived({
-        description: { label: "Description", type: "textarea", colSize: 12, required: false },
-        copyright: { label: "Copyright", type: "textarea", colSize: 12, required: false },
-        author: { label: "Author", type: "textarea", colSize: 12, required: false },
+      description: { label: t("common.description"), type: "textarea", colSize: 12, required: false },
+      copyright: { label: t("common.copyright"), type: "textarea", colSize: 12, required: false },
+      author: { label: t("media.author"), type: "textarea", colSize: 12, required: false },
     });
 
     const openLinkObjectsModal = () => (showLinkObjectsModal = true);
@@ -217,7 +219,7 @@
   formStore={formStore}
   leftButtons={[
   {
-      text: "Delete Media",
+  text: t("common.delete-media"),
       icon: "trash",
       class: "btn btn-outline-danger",
       onClick: openDeleteModal,
@@ -226,7 +228,7 @@
   rightButtons={[
     
     {
-      text: "Save Changes",
+      text: t("common.save"),
       class: "btn btn-success",
       onClick: handleSave,
       disableOnError: true,
@@ -236,7 +238,7 @@
   <div class="container-fluid px-4 py-3">
     <!-- Header -->
     <div class="d-flex align-items-center mb-4">
-      <button type="button" aria-label="Back to institution" class="btn btn-link p-0 me-3 text-muted" onclick={handleCancel}>
+      <button type="button" aria-label={t("common.back")} class="btn btn-link p-0 me-3 text-muted" onclick={handleCancel}>
         <i class="bi bi-arrow-left fs-5"></i>
       </button>
       <div>
@@ -248,7 +250,7 @@
     <div class="row">
       <!-- Main Content - Media -->
       <div class="col-lg-8">
-        <h5 class="mb-3">Media</h5>
+        <h5 class="mb-3">{t("common.media")}</h5>
 
         <!-- Media Display -->
         <div class="mb-4">
@@ -264,7 +266,7 @@
           {:else}
             <div class="w-100 d-flex flex-column align-items-center justify-content-center rounded bg-light text-muted border" style="height: 400px;">
               <i class="bi bi-file-earmark" style="font-size: 4rem;"></i>
-              <span class="mt-2 fw-medium">{asset.type?.toUpperCase() || "FILE"}</span>
+              <span class="mt-2 fw-medium">{asset.type?.toUpperCase() || t("common.file").toUpperCase()}</span>
               <span class="mt-1 small">{asset.filename}</span>
             </div>
           {/if}
@@ -273,11 +275,11 @@
         <!-- File Info -->
         <div class="row mb-4">
           <div class="col-6">
-            <div class="text-muted small">SIZE</div>
+            <div class="text-muted small">{t("common.size").toUpperCase()}</div>
             <div>1.0 MB</div>
           </div>
           <div class="col-6">
-            <div class="text-muted small">IMPORT DATE</div>
+            <div class="text-muted small">{t("common.import-date").toUpperCase()}</div>
             <div>
               {new Date(asset.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
             </div>
@@ -285,7 +287,7 @@
         </div>
 
         <!-- Media Metadata Form -->
-        <h5 class="mb-3">Media metadata</h5>
+        <h5 class="mb-3">{t("media.media-metadata")}</h5>
         {#if formReady}
           <form onsubmit={(e) => { e.preventDefault(); e.stopPropagation(); form?.handleSubmit(); }}>
             <AutoForm
@@ -305,7 +307,7 @@
 
       <!-- Right Sidebar - Linked Objects -->
       <div class="col-lg-4">
-        <h5 class="mb-3">Linked objects</h5>
+        <h5 class="mb-3">{t("common.linked-objects")}</h5>
 
         {#if linkedObjects?.length > 0}
           {#each linkedObjects as objectAsset}
@@ -323,7 +325,7 @@
                 <div class="d-flex flex-column">
                   <span class="fw-medium mb-2">{getObjectDisplayName(objectAsset.object)}</span>
                   <button class="btn btn-sm px-0 btn-link text-danger text-decoration-none" onclick={() => handleUnlinkObject(objectAsset.object_id)}>
-                    <i class="bi bi-dash-circle"></i> Unlink media
+                    <i class="bi bi-dash-circle"></i> {t("common.unlink-media")}
                   </button>
                 </div>
               </div>
@@ -333,7 +335,7 @@
 
         <!-- Link Object Button -->
         <button class="btn btn-outline-primary w-100" onclick={openLinkObjectsModal}>
-          <i class="bi bi-plus-circle me-2"></i> Link object
+          <i class="bi bi-plus-circle me-2"></i> {t("common.link-to-object")}
         </button>
       </div>
     </div>
@@ -342,13 +344,13 @@
 
 <!-- Delete Confirmation Modal -->
 <BaseModal bind:isOpen={showDeleteModal}>
-  {#snippet header()}Confirm Deletion{/snippet}
+  {#snippet header()}{t("common.confirm-delete")}{/snippet}
   {#snippet body()}
-    <p>Are you sure you want to delete this asset? This action cannot be undone.</p>
+    <p>{t("common.confirm-delete-asset")}</p>
   {/snippet}
   {#snippet actions()}
-    <BaseButton type="button" class="btn btn-secondary" text="Cancel" onClick={cancelDelete} disabled={isDeleting} />
-    <BaseButton type="button" class="btn btn-danger" text={isDeleting ? "Deleting..." : "Confirm and delete"} onClick={confirmDeleteAsset} disabled={isDeleting} />
+    <BaseButton type="button" class="btn btn-secondary" text={t("common.cancel")} onClick={cancelDelete} disabled={isDeleting} />
+    <BaseButton type="button" class="btn btn-danger" text={isDeleting ? t("common.deleting") : t("common.confirm-and-delete")} onClick={confirmDeleteAsset} disabled={isDeleting} />
   {/snippet}
 </BaseModal>
 

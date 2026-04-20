@@ -43,29 +43,29 @@
   const { data } = $props();
 
   const orderBy = $derived([
-    { value: "name", label: t("common.name", { fallback: "Name" }) },
+    { value: "name", label: t("common.name") },
     {
       value: "created_at",
-      label: t("common.created-at", { fallback: "Created At" }),
+      label: t("common.created-at"),
     },
     {
       value: "updated_at",
-      label: t("common.updated-at", { fallback: "Updated At" }),
+      label: t("common.updated-at"),
     },
   ]);
 
   const statuses = $derived([
     {
       value: "all",
-      label: t("common.all", { fallback: "All" }),
+      label: t("common.all"),
     },
     {
       value: "in progress",
-      label: t("common.in-progress", { fallback: "In progress" }),
+      label: t("common.in-progress"),
     },
     {
       value: "completed",
-      label: t("common.completed", { fallback: "Completed" }),
+      label: t("common.completed"),
     },
   ]);
 </script>
@@ -75,7 +75,7 @@
     <div class="col">
       <h2 class="m-0 d-flex align-items-center gap-2">
         <i class="bi bi-bank2 text-muted"></i>
-        {t("common.institutions", { fallback: "Institutions" })}
+        {t("common.institutions")}
       </h2>
     </div>
     <div class="col-auto">
@@ -84,7 +84,7 @@
         href="/projects/{data.project.id}/institutions/add"
       >
         <i class="bi bi-plus-lg"></i>
-        {t("common.add-institution", { fallback: "Add Institution" })}
+        {t("menu.add-institution")}
       </a>
     </div>
   </div>
@@ -92,7 +92,7 @@
     <div class="col-3">
       <BaseInput
         icon="search"
-        placeholder={t("common.search", { fallback: "Search" })}
+        placeholder={t("common.search")}
         clearable
         size="sm"
         bind:value={params.search}
@@ -101,7 +101,7 @@
     <div class="col-9 d-flex justify-content-end gap-3 align-items-center">
       <div class="d-flex align-items-center gap-2">
         <div class="col-auto fs-7">
-          {t("common.order-by", { fallback: "Order by" })}
+          {t("common.order-by")}
         </div>
         <BaseSelect items={orderBy} bind:value={params.orderBy} size="sm"
         ></BaseSelect>
@@ -109,7 +109,7 @@
 
       <div class="d-flex align-items-center gap-2">
         <div class="col-auto fs-7">
-          {t("common.status", { fallback: "Status" })}
+          {t("common.status")}
         </div>
         <BaseSelect items={statuses} bind:value={params.status} size="sm"
         ></BaseSelect>
@@ -120,9 +120,9 @@
     <div class="border-bottom mb-3">
       {data.institutions.count}
       {#if data.institutions.count > 1}
-        {t("common.institutions", { fallback: "institutions" })}
+        {t("common.institutions")}
       {:else}
-        {t("common.institution", { fallback: "institution" })}
+        {t("common.institution")}
       {/if}
     </div>
     <InstitutionsGrid
@@ -133,9 +133,7 @@
     />
   {:else}
     <div class="text-center fst-italic text-muted mt-5">
-      {t("common.no-institutions-found", {
-        fallback: "No institutions found.",
-      })}
+      {t("common.no-institutions-found")}
     </div>
   {/if}
 </div>

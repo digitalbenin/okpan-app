@@ -30,10 +30,15 @@
   let initialValues = $state({});
 
   onMount(async () => {
+    if (params.institution_id && !wizard.institutionId) {
+      wizard.institutionId = params.institution_id;
+    }
+
     if (wizard.datasourceId) {
       loading = true;
       const { result } = await getDatasource(wizard.datasourceId);
       if (result) {
+        wizard.institutionId = result.institution_id || wizard.institutionId;
         const values = {
           institutionId: result.institution_id,
           date: result.date,
@@ -112,6 +117,7 @@
           const payload = cleanPayload(value);
           const translations = buildTranslationsPayload(value);
           const finalPayload = { ...payload, ...translations };
+          wizard.institutionId = finalPayload.institutionId || null;
 
           if (!wizard.datasourceId) {
             const result = await createDatasource(finalPayload);

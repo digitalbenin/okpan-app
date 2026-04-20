@@ -1,14 +1,16 @@
 <script>
     import { page } from '$app/stores';
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
+    import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
     import { resolveStaticHref } from '$lib/utils/sitePaths.js';
     import logoWip from '../../assets/logo_wip.png';
     let { project, settings, activeProjectId = null } = $props();
+    const { t, translationState, setLocale } = getWebsiteTranslationStore();
     
     let isExpanded = $state(true);
 
-    const titleText = $derived.by(() => (settings?.title?.trim() || project?.name || 'Untitled Project'));
+    const titleText = $derived.by(() => (settings?.title?.trim() || project?.name || t('site.untitled-project')));
     const descriptionText = $derived.by(() => (settings?.description?.trim() || project?.description || ''));
     const logoUrl = $derived.by(() => {
         const rawLogo = settings?.logo_asset_path;
@@ -71,37 +73,51 @@
         <!-- Archive -->
         <a class={`nav-link d-flex align-items-center gap-3 rounded-2 px-3 py-2 ${isArchive ? 'bg-light text-dark fw-bold' : 'text-secondary'}`} 
               href={archiveHref} 
-           title="Archive"
+           title={t('nav.archive')}
            style:width={isExpanded ? '100%' : 'auto'}
            style:height={isExpanded ? 'auto' : '44px'}>
             <i class="bi bi-archive-fill fs-5"></i>
-            {#if isExpanded}<span>Archive</span>{/if}
+            {#if isExpanded}<span>{t('nav.archive')}</span>{/if}
         </a>
 
         <!-- Connections -->
         <a class={`nav-link d-flex align-items-center gap-3 rounded-2 px-3 py-2 ${isConnections ? 'bg-light text-dark fw-bold' : 'text-secondary'}`} 
               href={connectionsHref} 
-           title="Connections"
+           title={t('nav.connections')}
            style:width={isExpanded ? '100%' : 'auto'}
            style:height={isExpanded ? 'auto' : '44px'}>
             <i class="bi bi-share-fill fs-5"></i>
-            {#if isExpanded}<span>Connections</span>{/if}
+            {#if isExpanded}<span>{t('nav.connections')}</span>{/if}
         </a>
 
         <!-- About -->
         <a class={`nav-link d-flex align-items-center gap-3 rounded-2 px-3 py-2 ${isAbout ? 'bg-light text-dark fw-bold' : 'text-secondary'}`} 
               href={aboutHref} 
-           title="About"
+           title={t('nav.about')}
            style:width={isExpanded ? '100%' : 'auto'}
            style:height={isExpanded ? 'auto' : '44px'}>
             <i class="bi bi-info-circle-fill fs-5"></i>
-            {#if isExpanded}<span>About</span>{/if}
+            {#if isExpanded}<span>{t('nav.about')}</span>{/if}
         </a>
     </nav>
 
+    <div class={`mt-3 w-100 ${isExpanded ? '' : 'd-none'}`}>
+        <label class="form-label small text-muted mb-1" for="sidebar-language-select">{t('nav.language')}</label>
+        <select
+            id="sidebar-language-select"
+            class="form-select form-select-sm"
+            value={translationState.currentLocale}
+            onchange={(event) => setLocale(event.currentTarget.value)}
+        >
+            {#each translationState.languages as language}
+                <option value={language.code}>{language.name}</option>
+            {/each}
+        </select>
+    </div>
+
     <!-- Footer Toggle -->
     <div class={`mt-auto w-100 d-flex align-items-center pt-3 ${isExpanded ? 'justify-content-end' : 'justify-content-center'}`}>
-        <button onclick={toggle} class="btn btn-link text-dark p-0" aria-label={isExpanded ? "Collapse menu" : "Expand menu"}>
+        <button onclick={toggle} class="btn btn-link text-dark p-0" aria-label={isExpanded ? t('nav.collapse-menu') : t('nav.expand-menu')}>
              <i class={`bi bi-chevron-${isExpanded ? 'left' : 'right'} fs-4`}></i>
         </button>
     </div>

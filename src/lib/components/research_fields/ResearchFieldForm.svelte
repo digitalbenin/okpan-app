@@ -148,14 +148,12 @@
         onwebsite: { hidden: true },
         fieldsConfig: { hidden: true },
         name: { 
-            label: isConnection 
-                ? t("common.connection-name", { fallback: "Connection Name" }) 
-                : t("common.research-field-name", { fallback: "Research Field Name" }), 
+            label: t("common.label"), 
             colSize: 7 
         },
-        description: { type: "textarea", label: t("common.description", { fallback: "Description" }), colSize: 7 },
+        description: { type: "textarea", label: t("common.description"), colSize: 7 },
         type: {
-            label: t("common.field-type", { fallback: "Field Type" }),
+            label: t("common.field-type"),
             renderer: TypeSelector,
             colSize: 7,
             rendererProps: { onTypeChange: (newType) => mutableType = newType },
@@ -317,31 +315,24 @@
 
     // Determine title and description - Dynamic based on type
     const isConnection = $derived(selectedType === "vocabulary");
+    const itemLabel = $derived(isConnection ? t("common.connection") : t("common.research-field"));
     
     // Labels
     const title = $derived(customTitle || (
         mode === "create" 
-            ? (isConnection 
-                ? t("common.add-new-connection", { fallback: "Add New Connection" })
-                : t("common.add-new-research-field", { fallback: "Add New Research Field" }))
-            : (isConnection
-                ? t("common.edit-connection", { fallback: "Edit Connection" })
-                : t("common.edit-research-field", { fallback: "Edit Research Field" }))
+            ? t("common.add-item", { item: itemLabel })
+            : t("common.edit-item", { item: itemLabel })
     ));
     
     const description = $derived(customDescription || (
         mode === "create"
-            ? (isConnection
-                ? t("common.add-new-connection-desc", { fallback: "Please fill out the details below to add a new connection to your project." })
-                : t("common.add-new-research-field-desc", { fallback: "Please fill out the details below to add a new research field to your project." }))
-            : (isConnection
-                ? t("common.edit-connection-desc", { fallback: "Please update the details below to modify this connection." })
-                : t("common.edit-research-field-desc", { fallback: "Please update the details below to modify this research field." }))
+            ? t("common.fill-details-below")
+            : t("common.update-details-below")
     ));
 
     const leftActionButtons = $derived(onCancel ? [{
         id: "cancel-research-field",
-        text: t("common.cancel", { fallback: "Cancel" }),
+        text: t("common.cancel"),
         class: "btn btn-outline-secondary",
         type: "button",
         icon: "chevron-left",
@@ -351,7 +342,7 @@
     const rightActionButtons = $derived([
         {
             id: "save-research-field",
-            text: t("common.confirm", { fallback: "Confirm" }),
+            text: t("common.confirm"),
             class: "btn btn-success",
             type: "submit",
             disableOnError: true,

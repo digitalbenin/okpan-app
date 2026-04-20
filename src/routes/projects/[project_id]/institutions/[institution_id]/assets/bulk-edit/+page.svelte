@@ -5,6 +5,7 @@
   import { createForm } from "@tanstack/svelte-form";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { updateAsset, getAssetById } from "$lib/stores/AssetsUtils.js";
   import { z } from "zod";
   import { createFieldValidator } from "$lib/stores/formValidationUtils.js";
@@ -16,6 +17,7 @@
 
   // Read selected asset IDs from institution-level context
   const assetsCtx = getContext("institutionAssetsSelection");
+  const { t } = getTranslationStore();
 
   const defaultLanguage = $derived(
     languages?.find((l) => l.is_default) || languages?.[0],
@@ -124,12 +126,12 @@
 
 <div class="container py-3">
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <h4 class="m-0">Bulk edit asset metadata</h4>
-    <span class="text-muted">{(assetsCtx?.getSelected?.() || []).length} selected</span>
+    <h4 class="m-0">{t("common.bulk-edit-asset-metadata")}</h4>
+    <span class="text-muted">{(assetsCtx?.getSelected?.() || []).length} {t("common.selected")}</span>
   </div>
 
   {#if (assetsCtx?.getSelected?.() || []).length === 0}
-    <div class="alert alert-warning">No assets selected.</div>
+    <div class="alert alert-warning">{t("common.no-assets-selected")}</div>
   {:else}
     <div class="mb-3">
       <AutoForm
@@ -139,17 +141,17 @@
         {languages}
         translatableFields={["description", "copyright", "author"]}
         uiSchema={{
-          description: { label: "Description", type: "textarea", colSize: 12, required: false },
-          copyright: { label: "Copyright", type: "textarea", colSize: 12, required: false },
-          author: { label: "Author", type: "textarea", colSize: 12, required: false },
+          description: { label: t("common.description"), type: "textarea", colSize: 12, required: false },
+          copyright: { label: t("common.copyright"), type: "textarea", colSize: 12, required: false },
+          author: { label: t("media.author"), type: "textarea", colSize: 12, required: false },
         }}
         fieldOrder={["description", "copyright", "author"]}
       />
     </div>
 
     <div class="d-flex gap-2">
-      <BaseButton type="button" class="btn btn-secondary" text="Cancel" onClick={handleCancel} />
-      <BaseButton type="button" class="btn btn-primary" text="Save" onClick={handleSave} />
+      <BaseButton type="button" class="btn btn-secondary" text={t("common.cancel")} onClick={handleCancel} />
+      <BaseButton type="button" class="btn btn-primary" text={t("common.save")} onClick={handleSave} />
     </div>
   {/if}
 </div>

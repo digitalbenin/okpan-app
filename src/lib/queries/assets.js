@@ -10,6 +10,7 @@ export const assetsOperations = {
       institutionId: "Filter by institution ID",
       type: "Filter by asset type",
       search: "Search term for filename or path",
+      linked: "Filter by linked status",
       orderBy: "Field to order by (e.g., created_at, filename)",
       direction: "Sort direction (asc or desc)"
     },
@@ -20,6 +21,7 @@ export const assetsOperations = {
   $institutionId: String
   $type: String
   $search: String
+  $linked: Boolean
   $orderBy: String
   $direction: String
 ) {
@@ -30,6 +32,7 @@ export const assetsOperations = {
     institution_id: $institutionId
     type: $type
     search: $search
+    linked: $linked
     orderBy: $orderBy
     direction: $direction
   ) {

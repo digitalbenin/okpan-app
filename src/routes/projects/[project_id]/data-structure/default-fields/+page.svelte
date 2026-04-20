@@ -1,6 +1,5 @@
 <script>
     import BaseInput from "$lib/components/base/BaseInput.svelte";
-    import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseCheckBox from "$lib/components/base/BaseCheckBox.svelte";
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -32,7 +31,7 @@
     const fieldsByCategory = $derived.by(() => {
         const groups = {};
         filteredOntologyFields.forEach((field) => {
-            const categoryName = field.category?.content || "Uncategorized";
+            const categoryName = field.category?.content || t("common.uncategorized");
             if (!groups[categoryName]) {
                 groups[categoryName] = [];
             }
@@ -45,11 +44,6 @@
     const categoryNames = $derived.by(() => {
         return Object.keys(fieldsByCategory).sort();
     });
-
-    // Function to get "More info" text - placeholder for now
-    function getMoreInfo(field) {
-        return "More info";
-    }
 
     // Function to handle checkbox changes for onwebsite field
     async function handleOnwebsiteChange(field, newValue) {
@@ -75,7 +69,7 @@
 <div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="h3 mb-0">{t("project.default-fields", { fallback: "Default fields" })}</h1>
+            <h1 class="h3 mb-0">{t("menu.default-fields")}</h1>
         </div>
     </div>
 
@@ -83,7 +77,7 @@
         <div class="col-4">
             <BaseInput
                 icon="search"
-                placeholder={t("common.search", { fallback: "Search" })}
+                placeholder={t("filters.search")}
                 clearable
                 size="sm"
                 bind:value={search}
@@ -102,13 +96,13 @@
                         <div class="col-3">
                             <BaseBadge
                                 class="bg-secondary-subtle text-dark"
-                                value={field.name?.content || "Unnamed field"}
+                                value={field.name?.content || t("common.unnamed-field")}
                             ></BaseBadge>
                         </div>
                         <div class="col-6">
                             <p class="mb-0 text-muted">
                                 {field.description?.content ||
-                                    "No description available"}
+                                    t("common.no-description-available")}
                             </p>
                         </div>
                         <div class="col-3 text-end">
@@ -117,9 +111,7 @@
                             >
                                
                                 <BaseCheckBox
-                                    labelText={t("common.public-website", {
-                                        fallback: "Publish on website",
-                                    })}
+                                    labelText={t("common.public-website")}
                                     checked={field.onwebsite === 1}
                                     onclick={() =>
                                         handleOnwebsiteChange(
@@ -134,13 +126,9 @@
             {:else}
                 <div class="text-center fst-italic text-muted py-4">
                     {#if search && search.trim()}
-                        {t("common.no-search-results", {
-                            fallback: `No ${categoryName.toLowerCase()} fields match your search.`,
-                        })}
+                        {t("common.no-search-results")}
                     {:else}
-                        {t("common.no-fields-available", {
-                            fallback: `No ${categoryName.toLowerCase()} fields available.`,
-                        })}
+                        {t("common.no-fields-available")}
                     {/if}
                 </div>
             {/if}
@@ -149,15 +137,13 @@
 
     {#if search && search.trim() && filteredOntologyFields.length === 0}
         <div class="text-center fst-italic text-muted mt-5">
-            {t("common.no-search-results", {
-                fallback: "No fields match your search.",
-            })}
+            {t("common.no-search-results")}
             <div class="mt-2">
                 <button
                     class="btn btn-link btn-sm p-0"
                     onclick={() => (search = "")}
                 >
-                    {t("common.clear-search", { fallback: "Clear search" })}
+                    {t("common.clear-search")}
                 </button>
             </div>
         </div>

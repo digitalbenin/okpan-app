@@ -25,7 +25,7 @@
   const t = $derived(translationStore.t);
   
   // Props
-  let { mode = "create", institution = null, languages = [], projectId = null, onSuccess = null } = $props();
+  let { mode = "create", institution = null, languages = [], projectId = null, onSuccess = null, onCancel = null } = $props();
 
   // Constants & Derived
   const TRANSLATABLE_FIELDS = ["name", "description", "country", "location"];
@@ -39,6 +39,7 @@
   // State
   let showDeleteModal = $state(false);
   let isDeleting = $state(false);
+  let deleteConfirmationName = $state("");
 
   // Helper functions
   const safeParseLinks = (linksData) => {
@@ -126,25 +127,43 @@
     languageId: { hidden: true },
     status: { hidden: true },
     links: {
-      label: t("common.links", { fallback: "Links" }),
+      label: t("institutions.links"),
       renderer: DynamicArrayField,
       rendererProps: {
         arrayFieldName: "links",
         itemFields: [
-          { name: "url", label: "URL", type: "text", placeholder: "https://example.com", required: false, colSize: 5 },
-          { name: "label", label: "Label", type: "text", placeholder: "Website, Online Catalogue, etc.", required: false, colSize: 5 },
+          {
+            name: "url",
+            label: t("institutions.url"),
+            type: "text",
+            placeholder: t("institutions.url-placeholder"),
+            required: false,
+            colSize: 5,
+          },
+          {
+            name: "label",
+            label: t("common.label"),
+            type: "text",
+            placeholder: t("institutions.link-label-placeholder"),
+            required: false,
+            colSize: 5,
+          },
         ],
-        addButtonText: "Add Link",
+        addButtonText: t("institutions.add-link"),
+        deleteButtonTitle: t("institutions.remove-link"),
         minItems: 0,
         maxItems: 10,
         deleteColSize: 2,
       },
     },
-    name: { label: t("common.institution-name", { fallback: "Institution Name" }), colSize: 7 },
-    description: { type: "textarea", label: t("common.description", { fallback: "Description" }), colSize: 7 },
-    country: { label: t("common.country", { fallback: "Country" }) },
-    location: { label: t("common.location", { fallback: "Location" }) },
-    website: { label: t("common.website", { fallback: "Website" }) },
+    name: {
+      label: t("institutions.institution-name"),
+      colSize: 7,
+    },
+    description: { type: "textarea", label: t("common.description"), colSize: 7 },
+    country: { label: t("institutions.country") },
+    location: { label: t("institutions.location") },
+    website: { label: t("common.website") },
   });
 
   // Hidden value providers & static values
@@ -156,21 +175,45 @@
 
   const hiddenStaticValues = $derived(mode === "create" ? { status: "in progress" } : {});
   const fieldOrder = $derived(mode === "create" ? ["website", "links"] : ["links"]);
+  const institutionDisplayName = $derived(institution?.name?.content || "");
+  const deleteImpactCounts = $derived.by(() => ({
+    objects: Number(institution?.objectsCount || 0),
+    assets: Number(institution?.assetsCount || 0),
+    datasources: Number(institution?.datasourcesCount || 0),
+  }));
+  const canConfirmDelete = $derived(
+    deleteConfirmationName.trim() === institutionDisplayName && !isDeleting
+  );
 
-  const leftActionButtons = $derived(isEditMode
-    ? [{
+  const leftActionButtons = $derived.by(() => {
+    const buttons = [];
+
+    if (typeof onCancel === "function") {
+      buttons.push({
+        id: "back-institution",
+        text: t("common.back"),
+        class: "btn btn-outline-secondary",
+        onClick: onCancel,
+      });
+    }
+
+    if (isEditMode) {
+      buttons.push({
         id: "delete-institution",
-        text: t("common.delete", { fallback: "Delete institution" }),
+        text: t("common.delete"),
         class: "btn btn-outline-danger",
         icon: "trash",
         onClick: openDeleteModal,
-      }]
-    : []);
+      });
+    }
+
+    return buttons;
+  });
 
   const rightActionButtons = $derived([
     {
       id: "confirm-institution",
-      text: t("common.confirm", { fallback: "Save changes" }),
+      text: t("common.confirm"),
       class: "btn btn-success",
       type: "submit",
       disableOnError: true,
@@ -178,11 +221,20 @@
   ]);
 
   // Delete handlers
-  const openDeleteModal = () => isEditMode && (showDeleteModal = true);
-  const cancelDelete = () => showDeleteModal = false;
+  const openDeleteModal = () => {
+    if (!isEditMode) return;
+    deleteConfirmationName = "";
+    showDeleteModal = true;
+  };
+  const cancelDelete = () => {
+    deleteConfirmationName = "";
+    showDeleteModal = false;
+  };
 
   async function confirmDeleteInstitution() {
-    if (!isEditMode || !institution?.id) return showDeleteModal = false;
+    if (!isEditMode || !institution?.id || deleteConfirmationName.trim() !== institutionDisplayName) {
+      return showDeleteModal = false;
+    }
 
     isDeleting = true;
     try {
@@ -192,6 +244,7 @@
       console.error("Error deleting institution:", err);
     } finally {
       isDeleting = false;
+      deleteConfirmationName = "";
       showDeleteModal = false;
     }
   }
@@ -214,15 +267,12 @@
       <div class="col-12">
         <h1 class="h3 mb-0">
           {isEditMode
-            ? t("common.edit-institution", { fallback: "Edit Institution" })
-            : t("common.add-new-institution", { fallback: "Add New Institution" })}
+            ? t("institutions.edit-institution")
+            : t("institutions.add-new-institution")}
         </h1>
         {#if !isEditMode}
           <p class="text-muted mt-2 mb-0">
-            {t("common.add-new-institution-desc", {
-              fallback:
-                "Please fill out the details below to add a new institution to your project.",
-            })}
+            {t("institutions.add-new-institution-desc")}
           </p>
         {/if}
       </div>
@@ -252,16 +302,54 @@
   <!-- Delete Confirmation Modal -->
   {#if showDeleteModal}
     {#snippet header()}
-      {t("common.confirm-delete", { fallback: "Confirm Deletion" })}
+      {t("common.confirm-delete")}
     {/snippet}
 
     {#snippet body()}
-      <p>
-        {t("common.confirm-delete-institution", {
-          fallback:
-            "Are you sure you want to delete this institution? This action cannot be undone.",
-        })}
+      <div class="alert alert-danger mb-3" role="alert">
+        <div class="fw-semibold mb-1">
+          {t("institutions.delete-permanently-title")}
+        </div>
+        <div>
+          {t("institutions.delete-permanently-description")}
+        </div>
+      </div>
+
+      <p class="mb-2">
+        {t("institutions.confirm-delete-institution")}
       </p>
+
+      <ul class="mb-3 ps-3">
+        <li>
+          {deleteImpactCounts.objects}
+          {t("institutions.delete-impact-objects")}
+        </li>
+        <li>
+          {deleteImpactCounts.assets}
+          {t("institutions.delete-impact-assets")}
+        </li>
+        <li>
+          {deleteImpactCounts.datasources}
+          {t("institutions.delete-impact-datasources")}
+        </li>
+      </ul>
+
+      <label for="institution-delete-confirm-name" class="form-label fw-semibold">
+        {t("institutions.type-name-to-delete")}
+      </label>
+      <input
+        id="institution-delete-confirm-name"
+        class="form-control"
+        type="text"
+        bind:value={deleteConfirmationName}
+        placeholder={institutionDisplayName}
+        autocomplete="off"
+      />
+      <div class="form-text">
+        {t("institutions.type-exact-name-to-delete", {
+          name: institutionDisplayName,
+        })}
+      </div>
     {/snippet}
 
     {#snippet actions()}
@@ -269,7 +357,7 @@
         <BaseButton
           type="button"
           class="btn btn-secondary"
-          text={t("common.cancel", { fallback: "Cancel" })}
+          text={t("common.cancel")}
           onClick={cancelDelete}
           disabled={isDeleting}
         />
@@ -277,12 +365,10 @@
           type="button"
           class="btn btn-danger"
           text={isDeleting
-            ? t("common.deleting", { fallback: "Deleting..." })
-            : t("common.confirm-and-delete", {
-                fallback: "Confirm and delete",
-              })}
+            ? t("common.deleting")
+            : t("common.confirm-and-delete")}
           onClick={confirmDeleteInstitution}
-          disabled={isDeleting}
+          disabled={!canConfirmDelete}
         />
       </div>
     {/snippet}

@@ -254,8 +254,8 @@
 
                         <!-- Filename (flexible width) -->
                         <div class="flex-grow-1" style="min-width: 0;">
-                            <span class="text-dark fw-medium d-block" style="font-size: 12px; word-break: break-word;" title={asset?.filename || asset?.name || "Unnamed file"}>
-                                {asset?.filename || asset?.name || "Unnamed file"}
+                            <span class="text-dark fw-medium d-block" style="font-size: 12px; word-break: break-word;" title={asset?.filename || asset?.name || t("media.unnamed-file", { fallback: "Unnamed file" })}>
+                                {asset?.filename || asset?.name || t("media.unnamed-file", { fallback: "Unnamed file" })}
                             </span>
                         </div>
 
@@ -263,7 +263,7 @@
                         <button
                             class="btn btn-link text-muted p-1 flex-shrink-0 drag-handle"
                             style="cursor: grab; width: 32px;"
-                            aria-label="drag item"
+                            aria-label={t("media.drag-item", { fallback: "Drag item" })}
                             use:dragHandle
                         >
                             <i class="bi bi-grip-vertical"></i>
@@ -340,8 +340,8 @@
 
                         <!-- Filename (flexible width) -->
                         <div class="flex-grow-1" style="min-width: 0;">
-                            <span class="text-dark fw-medium d-block" style="font-size: 12px; word-break: break-word;" title={asset?.filename || asset?.name || "Unnamed file"}>
-                                {asset?.filename || asset?.name || "Unnamed file"}
+                            <span class="text-dark fw-medium d-block" style="font-size: 12px; word-break: break-word;" title={asset?.filename || asset?.name || t("media.unnamed-file", { fallback: "Unnamed file" })}>
+                                {asset?.filename || asset?.name || t("media.unnamed-file", { fallback: "Unnamed file" })}
                             </span>
                         </div>
 
@@ -349,7 +349,7 @@
                         <button
                             class="btn btn-link text-muted p-1 flex-shrink-0 drag-handle"
                             style="cursor: grab; width: 32px;"
-                            aria-label="drag item"
+                            aria-label={t("media.drag-item", { fallback: "Drag item" })}
                             use:dragHandle
                         >
                             <i class="bi bi-grip-vertical"></i>

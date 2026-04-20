@@ -31,7 +31,7 @@
       type: "separator",
     },
     {
-      label: t("project.new", { fallback: "Start a new project" }),
+      label: t("project.new", { fallback: "New project" }),
       icon: "plus-circle",
       onClick: () => {
         // Navigate to projects page with create parameter
@@ -54,7 +54,7 @@
       },
     },
     {
-      label: t("project.delete-project", { fallback: "Delete this project" }),
+      label: t("project.delete-project", { fallback: "Delete project" }),
       icon: "trash",
       onClick: () => {
         showDeleteModal = true;
@@ -170,7 +170,7 @@
 {#if showDeleteModal}
   <BaseAlertDialog bind:open={showDeleteModal}>
     {#snippet title()}
-      {t("project.delete-project", { fallback: "Delete Project" })}
+      {t("project.delete-project", { fallback: "Delete project" })}
     {/snippet}
     {#snippet description()}
       <p>

@@ -2,6 +2,7 @@
     import { page } from '$app/state';
     import { onDestroy } from 'svelte';
     import { addImageProtocolPrefix } from '$lib/utils/media.js';
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     let {
         asset,
@@ -12,6 +13,7 @@
     } = $props();
 
     let audioElement;
+    const { t } = getTranslationStore();
     let isPlaying = $state(false);
     let currentTime = $state(0);
     let duration = $state(0);
@@ -181,8 +183,8 @@
             class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle position-absolute d-flex align-items-center justify-content-center border-0 opacity-0-hover-100 transition-opacity"
             style="width: 22px; height: 22px; padding: 0; top: 5px; right: 5px; z-index: 10;"
             onclick={handleRemove}
-            title="Remove audio"
-            aria-label="Remove audio"
+            title={t("media.remove-audio", { fallback: "Remove audio" })}
+            aria-label={t("media.remove-audio", { fallback: "Remove audio" })}
         >
             <i class="bi bi-x-lg" style="font-size: 10px;"></i>
         </button>
@@ -195,14 +197,14 @@
         {#if isDownloading}
             <div class="d-flex flex-column align-items-center justify-content-center gap-2 w-100 h-100 px-4 text-center">
                 <div class="spinner-border text-secondary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                    <span class="visually-hidden">{t("common.loading", { fallback: "Loading..." })}</span>
                 </div>
-                <small class="text-secondary opacity-75 mt-1">Connecting to peers...</small>
+                <small class="text-secondary opacity-75 mt-1">{t("media.connecting-to-peers", { fallback: "Connecting to peers..." })}</small>
             </div>
         {:else if isMissing}
             <div class="d-flex flex-column align-items-center justify-content-center gap-2 opacity-50 text-center h-100 px-3">
                 <i class="bi bi-exclamation-circle fs-2"></i>
-                <span class="small">Missing audio</span>
+                <span class="small">{t("media.missing-audio", { fallback: "Missing audio" })}</span>
             </div>
         {:else}
             <i class="bi bi-music-note-beamed text-muted mb-2" style="font-size: 1.5rem;"></i>
@@ -214,7 +216,9 @@
                         onclick={togglePlay}
                         disabled={!isLoaded}
                         style="width: 20px; height: 20px;"
-                        aria-label={isPlaying ? "Pause" : "Play"}
+                        aria-label={isPlaying
+                            ? t("media.pause", { fallback: "Pause" })
+                            : t("media.play", { fallback: "Play" })}
                     >
                         {#if isPlaying}
                             <i
@@ -244,7 +248,7 @@
                     onkeydown={(e) => e.key === "Enter" && handleSeek(e)}
                     role="button"
                     tabindex="0"
-                    aria-label="Seek audio position"
+                    aria-label={t("media.seek-audio-position", { fallback: "Seek audio position" })}
                 >
                     <div
                         class="bg-secondary rounded-pill h-100 transition-all"

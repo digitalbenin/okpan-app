@@ -33,6 +33,8 @@ contextBridge.exposeInMainWorld('api', {
     suggestTemplateReuse: (inputHeaders, projectId) => ipcRenderer.invoke('suggest-template-reuse', inputHeaders, projectId),
     // Languages
     getLanguages: (lang = 'en') => ipcRenderer.invoke('languages:list', { lang }),
+    getGlobalSettings: () => ipcRenderer.invoke('global-settings:get'),
+    updateGlobalInterfaceLanguage: (locale) => ipcRenderer.invoke('global-settings:update-interface-language', locale),
 
     // Embedding methods
     computeAllMissingEmbeddings: () => ipcRenderer.invoke('compute-all-missing-embeddings'),

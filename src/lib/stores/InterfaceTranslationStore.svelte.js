@@ -1,9 +1,11 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "./ValidationStore.svelte.js";
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
+import { browser } from "$app/environment";
 
 // Create a singleton instance
 let storeInstance = null;
+const DEFAULT_INTERFACE_LANGUAGE = { code: 'en', name: 'English' };
 
 // Main store function that creates and returns the store
 export function getTranslationStore() {
@@ -32,6 +34,23 @@ export function getTranslationStore() {
         defaultLocale: 'en' // Added to track default locale
     });
 
+    const getPersistedInterfaceLanguage = async () => {
+        if (!browser || typeof window === 'undefined' || typeof window.api?.getGlobalSettings !== 'function') {
+            return null;
+        }
+
+        try {
+            const settings = await window.api.getGlobalSettings();
+            const locale = typeof settings?.interfaceLanguage === 'string'
+                ? settings.interfaceLanguage.trim()
+                : '';
+            return locale || null;
+        } catch (error) {
+            console.warn('Failed to read persisted interface language:', error);
+            return null;
+        }
+    };
+
     // Fetch all supported languages
     const fetchLanguages = async () => {
         // console.log("Fetching interface languages...");
@@ -55,14 +74,22 @@ export function getTranslationStore() {
             return;
         }
 
-        // Store languages with fallback to empty array
-        translationState.languages = Array.isArray(result.result) ? result.result : [];
+        // Store languages with an English fallback so the app remains usable even
+        // before the interface translations tables are populated.
+        const fetchedLanguages = Array.isArray(result.result) ? result.result : [];
+        translationState.languages = fetchedLanguages.length > 0
+            ? fetchedLanguages
+            : [DEFAULT_INTERFACE_LANGUAGE];
         // console.log(`Found ${translationState.languages.length} interface languages`);
 
         // Set default locale if available
         if (translationState.languages.length > 0) {
+            const persistedLocale = await getPersistedInterfaceLanguage();
+            const persistedLanguage = persistedLocale
+                ? translationState.languages.find(lang => lang.code === persistedLocale)
+                : null;
             const enLang = translationState.languages.find(lang => lang.code === 'en');
-            translationState.currentLocale = enLang ? enLang.code : translationState.languages[0].code;
+            translationState.currentLocale = persistedLanguage?.code || enLang?.code || translationState.languages[0].code;
         }
     };
 
@@ -182,9 +209,19 @@ export function getTranslationStore() {
     };
 
     // Set the current locale
-    const setLocale = (locale) => {
+    const setLocale = async (locale) => {
         if (translationState.languages.some(lang => lang.code === locale)) {
             translationState.currentLocale = locale;
+
+            if (browser && typeof window !== 'undefined' && typeof window.api?.updateGlobalInterfaceLanguage === 'function') {
+                try {
+                    await window.api.updateGlobalInterfaceLanguage(locale);
+                } catch (error) {
+                    console.warn('Failed to persist interface language:', error);
+                    await logError('update_interface_language', error.message);
+                }
+            }
+
             return true;
         } else {
             console.warn(`Locale "${locale}" is not supported in interface languages`);

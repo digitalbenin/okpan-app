@@ -1,5 +1,5 @@
 <script>
-  import BaseBadgeStaus from "$lib/components/base/BaseBadgeStatus.svelte";
+  import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
@@ -11,7 +11,7 @@
   class="w-100 h-100 position-relative d-flex flex-column border p-2 rounded bg-white"
 >
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <div><BaseBadgeStaus status={institution.status}></BaseBadgeStaus></div>
+    <div><BaseBadgeStatus status={institution.status}></BaseBadgeStatus></div>
     <div><i class="bi bi-three-dots-vertical"></i></div>
   </div>
   <h5 class="line-clamp mb-1">
@@ -32,20 +32,20 @@
             asset={institution.previewImages[0]}
             preferredFormat="sm"
             compact={true}
-            alt={institution.name.content || "Institution Image"}
+            alt={institution.name.content || t("common.institution", { fallback: "Institution" })}
           />
         </div>
         {#if institution.previewImages.length > 2}
           <div class="col-4 d-flex flex-column border-start">
             {#each institution.previewImages.slice(1, 3) as image, i}
-              <div class="col" class:border-bottom={i === 0}>
+              <div class="h-50" class:border-bottom={i === 0}>
                 <BaseImage
                   class="w-100 h-100"
                   objectFit="cover"
                   asset={image}
                   preferredFormat="sm"
                   compact={true}
-                  alt={institution.name.content || "Institution Image"}
+                  alt={institution.name.content || t("common.institution", { fallback: "Institution" })}
                 />
               </div>
             {/each}
@@ -65,18 +65,14 @@
       <div class="col">
         {institution.objectsCount}
         {#if institution.objectsCount < 2}
-          {t("common.object", { fallback: "object" })}
+          {t("common.object")}
         {:else}
-          {t("common.objects", { fallback: "objects" })}
+          {t("common.objects")}
         {/if}
       </div>
       <div class="col">
         {institution.assetsCount}
-        {#if institution.assetsCount < 2}
-          {t("common.asset", { fallback: "media" })}
-        {:else}
-          {t("common.assets", { fallback: "media" })}
-        {/if}
+        {t("common.media")}
       </div>
     </div>
   </div>

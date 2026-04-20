@@ -139,12 +139,7 @@
             .map((comp) => ({ component: comp.component, hasChanges: comp.hasChanges })),
     }));
 
-    const dirtyMessage = $derived(
-        t("form.unsaved-changes", {
-            fallback:
-                "You have unsaved changes. Are you sure you want to leave without saving?",
-        })
-    );
+    const dirtyMessage = $derived(t("form.unsaved-changes"));
 
     const rightActionButtons = $derived.by(() => [{
         id: "create-object",
@@ -153,6 +148,13 @@
         disabled: !hasAnyChanges || isSaving || !selectedInstitutionId,
         disableOnError: true,
         onClick: saveAllChanges,
+    }]);
+
+    const leftActionButtons = $derived.by(() => [{
+        id: "back-object-add",
+        text: t("common.back", { fallback: "Back" }),
+        class: "btn btn-outline-secondary",
+        onClick: backToInstitution,
     }]);
 
     const resetDirtyState = () => {
@@ -224,10 +226,10 @@
     }
 </script>
 
-<PageActionFooter rightButtons={rightActionButtons} {formStore}>
+<PageActionFooter leftButtons={leftActionButtons} rightButtons={rightActionButtons} {formStore}>
     <ObjectHeader
         institutionName={selectedInstitutionName}
-        title={t("objects.add_object", { fallback: "Add Object" })}
+        title={t("menu.add-object", { fallback: "Add Object" })}
         status="in progress"
         statusDisabled={true}
         showStatus={false}

@@ -3,6 +3,7 @@
     import BaseSelect from "$lib/components/base/BaseSelect.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { Tabs } from "melt/builders";
     import { page as pageData } from "$app/state";
     let {
@@ -10,6 +11,8 @@
         formData = $bindable({}), // Parent provides and manages this reactive object
         errors = $bindable({}), // Parent can pass down errors
     } = $props();
+
+    const { t } = getTranslationStore();
 
     let activeLanguageCode = $state(null);
 
@@ -84,7 +87,9 @@
                 >
                     {lang.name || lang.code}
                     {#if lang.is_default}
-                        <span class="badge bg-primary ms-1">Default</span>
+                        <span class="badge bg-primary ms-1">
+                            {t("common.default")}
+                        </span>
                     {/if}
                 </button>
             {/each}
@@ -99,18 +104,18 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <BaseInput
-                                label="Institution Name"
+                                label={t("institutions.institution-name")}
                                 bind:value={formData.name[langCode]}
                                 error={lang.is_default ? errors.name : null}
                                 required={lang.is_default}
-                                placeholder={`Enter name in ${lang.name || langCode}...`}
+                                placeholder={t("institutions.enter-name-language", { language: lang.name || langCode })}
                             />
                         </div>
                         <div class="col-md-6">
                             <BaseInput
-                                label="Location"
+                                label={t("institutions.location")}
                                 bind:value={formData.location[langCode]}
-                                placeholder={`Enter location in ${lang.name || langCode}...`}
+                                placeholder={t("institutions.enter-location-language", { language: lang.name || langCode })}
                             />
                         </div>
                     </div>
@@ -118,9 +123,9 @@
                     <!-- Add Description TextArea -->
                     <div class="mb-3">
                         <BaseTextArea
-                            label="Description"
+                            label={t("common.description")}
                             bind:value={formData.description[langCode]}
-                            placeholder={`Enter description in ${lang.name || langCode}...`}
+                            placeholder={t("institutions.enter-description-language", { language: lang.name || langCode })}
                             rows={4}
                         />
                     </div>
@@ -128,9 +133,9 @@
                     <!-- Keep Country below for now or move into columns if preferred -->
                     <div class="mb-3">
                         <BaseInput
-                            label="Country"
+                            label={t("institutions.country")}
                             bind:value={formData.country[langCode]}
-                            placeholder={`Enter country in ${lang.name || langCode}...`}
+                            placeholder={t("institutions.enter-country-language", { language: lang.name || langCode })}
                         />
                     </div>
                 </div>
@@ -141,7 +146,7 @@
     <!-- Non-translatable fields -->
     <div class="mt-4 mb-3">
         <BaseSelect
-            label="Status"
+            label={t("common.status")}
             options={statusOptions}
             bind:value={formData.status}
         />
@@ -150,9 +155,9 @@
     <!-- Links Editor -->
     <div class="mt-4 mb-3 border-top pt-3">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5>Links</h5>
+            <h5>{t("institutions.links")}</h5>
             <BaseButton
-                title="Add Link"
+                title={t("institutions.add-link")}
                 type="button"
                 class="btn btn-icon text-secondary"
                 icon="bi bi-plus-circle"
@@ -163,10 +168,14 @@
             <!-- Add Header Row -->
             <div class="row g-2 align-items-center mb-1 fw-bold">
                 <div class="col">
-                    <label class="form-label mb-0 small">URL</label>
+                    <div class="form-label mb-0 small">
+                        {t("institutions.url")}
+                    </div>
                 </div>
                 <div class="col">
-                    <label class="form-label mb-0 small">Label</label>
+                    <div class="form-label mb-0 small">
+                        {t("common.label")}
+                    </div>
                 </div>
                 <div class="col-auto">
                     <!-- Empty column for alignment with delete button -->
@@ -178,20 +187,20 @@
                     <div class="col">
                         <BaseInput
                             bind:value={link.url}
-                            placeholder="URL (e.g., https://example.com)"
+                            placeholder={t("institutions.url-placeholder")}
                             required={true}
                         />
                     </div>
                     <div class="col">
                         <BaseInput
                             bind:value={link.label}
-                            placeholder="Link Label (e.g., Official Website)"
+                            placeholder={t("institutions.link-label-placeholder")}
                             required={true}
                         />
                     </div>
                     <div class="col-auto">
                         <BaseButton
-                            title="Remove Link"
+                            title={t("institutions.remove-link")}
                             type="button"
                             class="btn btn-icon text-danger"
                             icon="bi bi-trash"
@@ -207,7 +216,7 @@
     <!-- <div class="controls"> ... </div> -->
 {:else}
     <div class="alert alert-warning">
-        No languages available. Please add languages to your project first.
+        {t("institutions.no-project-languages")}
     </div>
 {/if}
 

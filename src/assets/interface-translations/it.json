@@ -1,0 +1,2951 @@
+﻿{
+    "code":  "it",
+    "name":  "italiano",
+    "translations":  [
+                         {
+                             "namespace":  "common",
+                             "key":  "title",
+                             "value":  "Strumento di connessione dati"
+                         },
+                         {
+                             "namespace":  "nav",
+                             "key":  "home",
+                             "value":  "casa"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "projects",
+                             "value":  "Progetti"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "resources",
+                             "value":  "Risorse e guide"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "coming-soon",
+                             "value":  "In arrivo"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "status",
+                             "value":  "Stato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "image",
+                             "value":  "Immagine"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "linked-to",
+                             "value":  "Collegato a"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "root",
+                             "value":  "radice"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "properties",
+                             "value":  "proprieta"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "items",
+                             "value":  "elementi"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "toggle-node",
+                             "value":  "Mostra o nascondi nodo"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "import-progress",
+                             "value":  "Avanzamento importazione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "back",
+                             "value":  "Indietro"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "step",
+                             "value":  "Passo"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "of",
+                             "value":  "di"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "and",
+                             "value":  "e"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-skip",
+                             "value":  "No, torna al progetto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "select-items",
+                             "value":  "Seleziona dove gli oggetti sono salvati nella struttura ad albero"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "selected-items",
+                             "value":  "Oggetti selezionati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "with",
+                             "value":  "con"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "rows",
+                             "value":  "righe"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "in-the-sheets",
+                             "value":  "nel foglio selezionato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "institution-field",
+                             "value":  "Campo istituzione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "mapped-field",
+                             "value":  "Campo mappato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "value",
+                             "value":  "Valore"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "null",
+                             "value":  "nullo"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "object-identifier",
+                             "value":  "Identificatore oggetto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "datasource-name",
+                             "value":  "Nome datasource"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "method",
+                             "value":  "Metodo"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "notes",
+                             "value":  "Note"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "date",
+                             "value":  "Data"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "view-all",
+                             "value":  "Vedi tutto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "last-edited",
+                             "value":  "Ultimi modificati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "recent-institutions",
+                             "value":  "Istituzioni recenti"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "objects-percentage",
+                             "value":  "di oggetti completati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "assets-percentage",
+                             "value":  "delle risorse collegate agli oggetti"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "datasource-language",
+                             "value":  "Lingua datasource"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "contact",
+                             "value":  "Contatto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "copyright",
+                             "value":  "Copyright"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-new-datasource",
+                             "value":  "Aggiungi nuovo datasource"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-new-datasource-desc",
+                             "value":  "Compila i dettagli per aggiungere un nuovo datasource al progetto."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "select-institution-desc",
+                             "value":  "Seleziona l'istituzione a cui appartiene la risorsa."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "select-files",
+                             "value":  "Seleziona file da importare"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "select-file-desc",
+                             "value":  "Puoi caricare immagini in diversi formati come .png, .jpg, .webp o .avif."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "matching",
+                             "value":  "Associazione..."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "selected",
+                             "value":  "Selezionato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "connections",
+                             "value":  "Connessioni"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-connections",
+                             "value":  "Nessuna connessione trovata."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "institution-data",
+                             "value":  "Dati istituzionali"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-institution-data",
+                             "value":  "Nessun dato istituzionale disponibile."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "continue",
+                             "value":  "Continua"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "link-assets",
+                             "value":  "Collega le risorse agli oggetti"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "link-assets-desc",
+                             "value":  "In questo passaggio puoi collegare le risorse agli oggetti della collezione. Il collegamento automatico prova ad associare il nome file con il campo principale degli oggetti importati."
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "application",
+                             "value":  "Impostazioni applicazione"
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "application-description",
+                             "value":  "Scegli la lingua usata per l'interfaccia dell'applicazione."
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "interface-language",
+                             "value":  "Lingua interfaccia"
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "interface-language-invalid",
+                             "value":  "La lingua di interfaccia selezionata non e disponibile."
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "application-save-error",
+                             "value":  "Impossibile salvare le impostazioni dell'applicazione."
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "welcome.title",
+                             "value":  "Da dove vuoi iniziare?"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "welcome.description",
+                             "value":  "Avvia il progetto nel modo giusto. Questa piattaforma ti aiuta a studiare e collegare dati su oggetti culturali provenienti da istituzioni diverse, riunendo conoscenza e patrimonio in un unico posto."
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "welcome.connections-description",
+                             "value":  "Imposta le connessioni del progetto per collegare gli oggetti a vocabolari controllati e termini condivisi."
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "welcome.institution-description",
+                             "value":  "Aggiungi istituzioni, musei o archivi da cui provengono i dati della tua collezione."
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "welcome.import-description",
+                             "value":  "Avvia l'importazione massiva dei dati sui tuoi oggetti di ricerca da file CSV, JSON o XML."
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "welcome.import-requires-institution",
+                             "value":  "Crea almeno un'istituzione per importare i dati."
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "created-on",
+                             "value":  "Creato il"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "collections",
+                             "value":  "Collezioni"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "export-as",
+                             "value":  "Esporta come"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "include-media",
+                             "value":  "Includi i media nell'esportazione"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "filter-content",
+                             "value":  "Filtra contenuto"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "page-description",
+                             "value":  "Scegli i filtri per esportare il dataset."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "summary",
+                             "value":  "Oggetti che corrispondono ai filtri: {{count}}"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "no-objects-match",
+                             "value":  "Nessun oggetto corrisponde ai filtri correnti"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "no-objects-selected",
+                             "value":  "Nessun oggetto selezionato"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "title",
+                             "value":  "Esporta sito web statico"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "subtitle",
+                             "value":  "Genera sito web statico"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "description",
+                             "value":  "Esporta i dati del progetto come sito web statico, ospitabile su qualsiasi server web. L'esportazione include tutte le entita e le configurazioni impostate nelle impostazioni del sito web."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "what-included",
+                             "value":  "Cosa verra incluso:"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "include-objects",
+                             "value":  "Oggetti e istituzioni, insieme ai rispettivi metadati"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "include-assets",
+                             "value":  "Media del progetto (immagini, video, audio)"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "include-fields",
+                             "value":  "Connessioni, campi di ricerca e dati istituzionali"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "include-settings",
+                             "value":  "Configurazione e identita visiva del sito web"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "language-title",
+                             "value":  "Lingua del sito web"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "language-description",
+                             "value":  "Scegli la lingua predefinita del sito web esportato. I visitatori potranno comunque passare a qualsiasi lingua del sito inclusa nel bundle."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "language-label",
+                             "value":  "Lingua di esportazione"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "language-empty",
+                             "value":  "Non ci sono lingue del sito web disponibili per l'esportazione."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "base-path-title",
+                             "value":  "Sottodirectory di hosting (opzionale)"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "base-path-description",
+                             "value":  "Se il sito verra pubblicato in un sotto-percorso, per esempio GitHub Pages all'indirizzo https://user.github.io/my-site, inserisci /my-site. Lascia vuoto se il sito verra pubblicato alla radice del dominio."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "base-path-label",
+                             "value":  "Percorso base"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "select-folder",
+                             "value":  "Seleziona cartella di esportazione"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "success",
+                             "value":  "Sito web esportato correttamente!"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "error",
+                             "value":  "Esportazione del sito web non riuscita. Riprova."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "exporting",
+                             "value":  "Esportazione in corso..."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "button",
+                             "value":  "Esporta sito web"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "exported-to",
+                             "value":  "Esportato in:"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "next-steps",
+                             "value":  "Prossimi passaggi:"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "step1",
+                             "value":  "Carica la cartella esportata sul tuo servizio di hosting web"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "step2",
+                             "value":  "Configura il server web per servire i file statici"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "step3",
+                             "value":  "Il sito web sara accessibile dal tuo dominio"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "no-languages-available",
+                             "value":  "Non ci sono lingue del sito web disponibili"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "begin",
+                             "value":  "Inizia importazione dati"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "description",
+                             "value":  "Questa pagina ti permette di importare dati nel progetto. Puoi caricare file o collegarti a fonti dati esterne."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "start",
+                             "value":  "Inizia"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "upload-title",
+                             "value":  "Carica il file che contiene l'elenco degli oggetti che vuoi importare nel progetto."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "upload-description",
+                             "value":  "Puoi caricare un file CSV, JSON o XML. Assicurati che il file sia formattato correttamente per il processo di importazione."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "select-file",
+                             "value":  "Seleziona file"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "you-selected",
+                             "value":  "Hai selezionato"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "preview-table",
+                             "value":  "Anteprima delle prime righe"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "review-start",
+                             "value":  "Rivedi i dati e salvali nell'archivio."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "review-description",
+                             "value":  "In questo passaggio vedrai un riepilogo dei dati e potrai fare le ultime modifiche prima di salvarli nell'archivio."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "objects-will-be-imported",
+                             "value":  "oggetti saranno importati"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "fields-will-be-imported",
+                             "value":  "campi saranno importati"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "fields-are-mapped",
+                             "value":  "campi sono mappati"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "primary-field-set-to",
+                             "value":  "Il campo identificatore dell'oggetto e impostato su"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "objects-imported",
+                             "value":  "Oggetti importati correttamente"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "objects-imported-summary",
+                             "value":  "oggetti importati correttamente"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "match-fields-description",
+                             "value":  "In questo passaggio collegherai i dati del file alla struttura condivisa cosi gli oggetti potranno essere cercati e confrontati tra istituzioni diverse."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "change-matched-field",
+                             "value":  "Cambia il campo associato per"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "change-linked-asset",
+                             "value":  "Cambia la risorsa collegata per"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "ask-import-media",
+                             "value":  "Vuoi importare i media collegati per questi oggetti?"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "yes-import-media",
+                             "value":  "Si, importa media"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "multi-sheet-warning",
+                             "value":  "Il file Excel contiene piu fogli. Seleziona il foglio da usare."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "select-sheet",
+                             "value":  "Seleziona foglio"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "reuse",
+                             "value":  "Riusa"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "enable-edit",
+                             "value":  "Attiva modifica"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "reusing-template",
+                             "value":  "Riuso del template"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "edit-match",
+                             "value":  "Modifica campo associato"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "reset-match",
+                             "value":  "Reimposta associazione"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "not-set",
+                             "value":  "Non impostato"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "analyzing-fields",
+                             "value":  "Analisi dei campi e ricerca dei template corrispondenti..."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "suggesting-matches",
+                             "value":  "Suggerimento delle corrispondenze dei campi con AI. Potrebbe richiedere qualche istante..."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "fields-count",
+                             "value":  "{{count}} campi"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "include-all-fields",
+                             "value":  "Includi tutti i campi"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "match-template-reuse",
+                             "value":  "Riusa un template corrispondente o creane uno nuovo."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "create-new-mapping",
+                             "value":  "No, voglio creare una nuova mappatura"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "import-field",
+                             "value":  "Campo importazione"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "preview",
+                             "value":  "Anteprima"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "no-values",
+                             "value":  "Nessun valore disponibile"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "match-to",
+                             "value":  "Associa a"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "loading-suggestions",
+                             "value":  "Caricamento suggerimenti..."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "field-unmapped",
+                             "value":  "Campo non mappato"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "match-start",
+                             "value":  "Abbina i campi importati a quelli del progetto."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "identifier-start",
+                             "value":  "Scegli il campo da usare come identificatore dell'oggetto."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "identifier-description",
+                             "value":  "Seleziona il campo che identifica ogni oggetto importato."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "file-selected",
+                             "value":  "file selezionato"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "files",
+                             "value":  "file selezionati"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "select-files",
+                             "value":  "Seleziona file"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "select-directory",
+                             "value":  "Seleziona cartella"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "assets-will-be-imported",
+                             "value":  "media saranno importati."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "media-not-linked",
+                             "value":  "media non sono collegati."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "assets-will-be-linked",
+                             "value":  "media saranno collegati."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "media-import-completed",
+                             "value":  "Importazione media completata"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "assets-imported",
+                             "value":  "Media importati:"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "assets-linked",
+                             "value":  "Media collegati:"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "no-media-linked",
+                             "value":  "Nessun media e stato collegato."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "suggestions",
+                             "value":  "Suggerimenti"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "other-results",
+                             "value":  "Altri risultati"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "suggested",
+                             "value":  "Suggerito"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "cancel-import",
+                             "value":  "Annulla importazione"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "cancel-import-description",
+                             "value":  "Sei sicuro di voler annullare l'importazione?"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "begin",
+                             "value":  "Inizia importazione e associazione media"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "description",
+                             "value":  "Questa pagina ti permette di importare media nel progetto."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "search-in-fields",
+                             "value":  "Cerca nei campi"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "click-start-matching",
+                             "value":  "Seleziona i campi opzionali e fai clic su 'Avvia associazione' per trovare oggetti corrispondenti alle tue risorse."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-fields-placeholder",
+                             "value":  "Seleziona campi..."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "search-fields-hint",
+                             "value":  "Lascia vuoto per cercare solo nei campi principali."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "start-matching",
+                             "value":  "Avvia associazione"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "no-matches-found",
+                             "value":  "Nessuna corrispondenza trovata."
+                         },
+                         {
+                             "namespace":  "nav",
+                             "key":  "back",
+                             "value":  "indietro"
+                         },
+                         {
+                             "namespace":  "nav",
+                             "key":  "settings",
+                             "value":  "impostazioni"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "translations",
+                             "value":  "traduzioni"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "click",
+                             "value":  "click"
+                         },
+                         {
+                             "namespace":  "test",
+                             "key":  "title",
+                             "value":  "Esplorazione delle API Graphql"
+                         },
+                         {
+                             "namespace":  "test",
+                             "key":  "tryit",
+                             "value":  "prova"
+                         },
+                         {
+                             "namespace":  "test",
+                             "key":  "response",
+                             "value":  "risposta"
+                         },
+                         {
+                             "namespace":  "test",
+                             "key":  "editor",
+                             "value":  "editor di query"
+                         },
+                         {
+                             "namespace":  "test",
+                             "key":  "exec",
+                             "value":  "esegui query"
+                         },
+                         {
+                             "namespace":  "test",
+                             "key":  "variables",
+                             "value":  "variabili"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "error",
+                             "value":  "Errore"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "success",
+                             "value":  "Successo"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "loading",
+                             "value":  "Caricamento..."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "cancel",
+                             "value":  "Annulla"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "confirm",
+                             "value":  "Conferma"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete",
+                             "value":  "Elimina"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "confirm-delete",
+                             "value":  "Conferma eliminazione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "deleting",
+                             "value":  "Eliminazione..."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "confirm-and-delete",
+                             "value":  "Conferma ed elimina"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "website",
+                             "value":  "Sito web"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "institutions",
+                             "value":  "Istituzioni"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "objects",
+                             "value":  "Oggetti"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "assets",
+                             "value":  "Risorse"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "username",
+                             "value":  "Nome utente"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "name",
+                             "value":  "Nome"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "all-status",
+                             "value":  "Tutti gli stati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "in-progress",
+                             "value":  "In corso"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "completed",
+                             "value":  "Completato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "clear-selection",
+                             "value":  "Cancella selezione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-selected",
+                             "value":  "Elimina selezionati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "search",
+                             "value":  "Cerca"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "filter",
+                             "value":  "Filtro"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "clear-filters",
+                             "value":  "Cancella filtri"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "grid-view",
+                             "value":  "Griglia"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "table-view",
+                             "value":  "Tabella"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "object",
+                             "value":  "Oggetto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "institution",
+                             "value":  "Istituzione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-value",
+                             "value":  "Nessun valore"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "select",
+                             "value":  "Seleziona"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "save",
+                             "value":  "Salva"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-results",
+                             "value":  "Nessun risultato trovato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add",
+                             "value":  "Aggiungi"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "added",
+                             "value":  "Aggiunto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "processing",
+                             "value":  "Elaborazione..."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "object-id",
+                             "value":  "ID oggetto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "or",
+                             "value":  "o"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "content",
+                             "value":  "Contenuto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "bulk-edit",
+                             "value":  "Modifica multipla"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "selected-objects",
+                             "value":  "oggetti selezionati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "new-value",
+                             "value":  "Nuovo valore"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-research-fields",
+                             "value":  "Nessun campo di ricerca disponibile."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "change-institution",
+                             "value":  "Cambia istituzione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "select-institution",
+                             "value":  "Seleziona istituzione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "upload-image",
+                             "value":  "Carica immagine"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "not-mapped",
+                             "value":  "Non mappato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "unnamed-field",
+                             "value":  "Campo senza nome"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "unnamed",
+                             "value":  "Senza nome"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "created-at",
+                             "value":  "Creato il"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "updated-at",
+                             "value":  "Aggiornato il"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "expand",
+                             "value":  "Espandi"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "collapse",
+                             "value":  "Comprimi"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "validation.value-required",
+                             "value":  "Il valore Ã¨ obbligatorio"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "validation.title-required",
+                             "value":  "Il titolo Ã¨ obbligatorio"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "you-are-about-to-delete",
+                             "value":  "Stai per eliminare"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "operation-irreversible",
+                             "value":  "Questa operazione Ã¨ irreversibile."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "errors-occurred",
+                             "value":  "Si sono verificati alcuni errori:"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "none",
+                             "value":  "Nessuno"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "untitled",
+                             "value":  "Senza titolo"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-connection-type",
+                             "value":  "Aggiungi tipo di connessione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "published",
+                             "value":  "Pubblicato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "not-published",
+                             "value":  "Non pubblicato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "published-on-website",
+                             "value":  "Pubblicato sul sito web"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "not-published-on-website",
+                             "value":  "Non pubblicato sul sito web"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "invalid-connection-type-csv",
+                             "value":  "Formato CSV non valido per un tipo di connessione."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "selected-file",
+                             "value":  "File selezionato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "connection-type-name",
+                             "value":  "Nome del tipo di connessione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "map-csv-languages",
+                             "value":  "Mappa le lingue del CSV"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "map-csv-languages-description",
+                             "value":  "Questo CSV usa colonne lingua diverse da quelle del progetto corrente. Scegli in quale lingua del progetto importare ciascuna lingua del CSV."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "select-language",
+                             "value":  "Seleziona lingua"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "unique-language-mapping",
+                             "value":  "Ogni lingua del CSV deve corrispondere a una lingua diversa del progetto."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "edit-connection-type",
+                             "value":  "Modifica tipo di connessione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-connections-found",
+                             "value":  "Nessuna connessione trovata."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "sort-by-name-desc",
+                             "value":  "Ordina per nome (Z-A)"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-connection",
+                             "value":  "Elimina connessione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-connection-confirmation",
+                             "value":  "Sei sicuro di voler eliminare questa connessione? Questa azione non puÃ² essere annullata."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-connection-type",
+                             "value":  "Elimina tipo di connessione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-connection-type-confirmation",
+                             "value":  "Sei sicuro di voler eliminare questo tipo di connessione? Questa azione non puÃ² essere annullata."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "external-link",
+                             "value":  "Link esterno"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "linked-objects",
+                             "value":  "Oggetti collegati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-linked-objects",
+                             "value":  "Nessun oggetto collegato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "thumbnail",
+                             "value":  "Miniatura"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-thumbnail",
+                             "value":  "Aggiungi miniatura"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-thumbnail",
+                             "value":  "Nessuna miniatura"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "edit-connection",
+                             "value":  "Modifica connessione"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "main-image",
+                             "value":  "Immagine principale"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "add-main-image",
+                             "value":  "Aggiungi immagine principale"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "no-main-image",
+                             "value":  "Nessuna immagine principale"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "required",
+                             "value":  "Obbligatorio"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "close",
+                             "value":  "Chiudi"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "visibility",
+                             "value":  "VisibilitÃ  sul sito web"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "something-went-wrong",
+                             "value":  "Qualcosa Ã¨ andato storto."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "duplicate",
+                             "value":  "Duplica"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "show",
+                             "value":  "Mostra"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "create",
+                             "value":  "Crea"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "next",
+                             "value":  "Avanti"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "saving",
+                             "value":  "Salvataggio..."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "audio",
+                             "value":  "Audio"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "audios",
+                             "value":  "Audio"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "videos",
+                             "value":  "Video"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-images",
+                             "value":  "Aggiungi immagini"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-videos",
+                             "value":  "Aggiungi video"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-audio",
+                             "value":  "Aggiungi audio"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "drag-upload-images",
+                             "value":  "Nessuna immagine"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-videos",
+                             "value":  "Nessun video. Fai clic per aggiungere."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-audio",
+                             "value":  "Nessun audio. Fai clic per aggiungere."
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "connection-types",
+                             "value":  "Tipi di connessione"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "import_connection_type_csv",
+                             "value":  "Importa CSV del tipo di connessione"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "add_connection_type",
+                             "value":  "Aggiungi un nuovo tipo di connessione"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "give_name_connection",
+                             "value":  "Dai un nome al tipo di connessione"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "define_fields_connection",
+                             "value":  "Definisci i campi che vuoi avere per questo tipo di connessione"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "choose_template",
+                             "value":  "Scegli un modello o creane uno tuo."
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "edit_later_hint",
+                             "value":  "Non preoccuparti, potrai modificarli piÃ¹ tardi"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "edit_connection_type",
+                             "value":  "Modifica tipo di connessione"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "connection_type_information",
+                             "value":  "Informazioni sul tipo di connessione"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "data_fields",
+                             "value":  "Campi dati"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.custom.label",
+                             "value":  "Personalizzato"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.custom.description",
+                             "value":  "Crea un tipo di connessione da zero"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.indigenous_designation.label",
+                             "value":  "Denominazione indigena"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.indigenous_designation.description",
+                             "value":  "Registra nomi e termini indigeni"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.iconography.label",
+                             "value":  "Iconografia"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.iconography.description",
+                             "value":  "Descrivi simboli ed elementi visivi"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.place.label",
+                             "value":  "Luogo"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.place.description",
+                             "value":  "Luoghi e siti geografici"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.oral_history.label",
+                             "value":  "Storia orale"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.oral_history.description",
+                             "value":  "Registrazioni e trascrizioni"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.people.label",
+                             "value":  "Persone"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template.people.description",
+                             "value":  "Individui e gruppi"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "object_name",
+                             "value":  "Nome oggetto"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "object_name_required",
+                             "value":  "Il nome dell\u0027oggetto Ã¨ obbligatorio"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "search-objects",
+                             "value":  "Cerca oggetti"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "select-fields",
+                             "value":  "Seleziona campi"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "view-as",
+                             "value":  "Visualizza come"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "edit-selected",
+                             "value":  "Modifica selezionati"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "no-objects-found",
+                             "value":  "Nessun oggetto trovato"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "object-information",
+                             "value":  "Informazioni oggetto"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "select-object",
+                             "value":  "Seleziona oggetto"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "previous-image",
+                             "value":  "Immagine precedente"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "next-image",
+                             "value":  "Immagine successiva"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "research_fields.title",
+                             "value":  "Campi di ricerca"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "research_fields.no_fields",
+                             "value":  "Nessun campo di ricerca trovato"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "research_fields.enter_value",
+                             "value":  "Scrivi qui..."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "research_fields.default_language_required",
+                             "value":  "La lingua predefinita Ã¨ necessaria per creare una nuova opzione."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "research_fields.no_vocabularies",
+                             "value":  "Nessuna opzione di vocabolario disponibile"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.remove",
+                             "value":  "Rimuovi collegamento"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.add_new_connection",
+                             "value":  "Aggiungi nuovo collegamento"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.add_connection",
+                             "value":  "Aggiungi collegamento"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.all_types",
+                             "value":  "Tutti i tipi di collegamento"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.select_specific_type",
+                             "value":  "Seleziona un tipo di collegamento specifico per creare un nuovo elemento."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.connection_type",
+                             "value":  "Tipo di collegamento"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.select_connection_type",
+                             "value":  "Seleziona tipo di collegamento"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.title_placeholder",
+                             "value":  "Titolo del collegamento"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.external_link",
+                             "value":  "Link esterno"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.external_link_placeholder",
+                             "value":  "https://esempio.com"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.add_media_note",
+                             "value":  "NOTA: Puoi aggiungere media e altri dettagli piÃ¹ tardi dalla sezione collegamenti."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.create_connection",
+                             "value":  "Crea collegamento"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "connections.create-option",
+                             "value":  "Crea \"{{value}}\""
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "linked_media.title",
+                             "value":  "Media collegati"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "linked_media.add_media",
+                             "value":  "Aggiungi media"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "linked_media.no_media",
+                             "value":  "Nessun media collegato"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "linked_media.select_media",
+                             "value":  "Seleziona media"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "linked_media.media_linked",
+                             "value":  "media collegati"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "linked_media.select-institution-first",
+                             "value":  "Seleziona prima un\u0027istituzione"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "linked_media.remove-media",
+                             "value":  "Rimuovi media"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "select-mapping-template",
+                             "value":  "Seleziona modello di mappatura"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "create-new-template",
+                             "value":  "Crea nuovo modello"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "institution-field",
+                             "value":  "Campo istituzione"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "value",
+                             "value":  "Valore"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "primary-id",
+                             "value":  "ID primario"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "add-value-placeholder",
+                             "value":  "Aggiungi un valore"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "institution_data.title",
+                             "value":  "Dati istituzionali"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "institution_data.default-name",
+                             "value":  "Fonte dati {{date}}"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "institution_data.scroll-left",
+                             "value":  "Scorri le schede a sinistra"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "institution_data.scroll-right",
+                             "value":  "Scorri le schede a destra"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "add-data-source",
+                             "value":  "Aggiungi fonte dati"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "no-institution-data-found",
+                             "value":  "Nessun dato istituzionale trovato"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "delete-datasource.title",
+                             "value":  "Elimina fonte dati"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "delete-datasource.confirm",
+                             "value":  "Sei sicuro di voler eliminare questa fonte dati?"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "delete-datasource.impact",
+                             "value":  "Questa operazione rimuoverÃ  la configurazione di mappatura salvata per questo oggetto."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "edit-datasource",
+                             "value":  "Modifica fonte dati"
+                         },
+                         {
+                             "namespace":  "header",
+                             "key":  "all-projects",
+                             "value":  "Tutti i progetti"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "new",
+                             "value":  "Nuovo progetto"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "edit-info",
+                             "value":  "Modifica informazioni progetto"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "delete-project",
+                             "value":  "Elimina progetto"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "delete-confirmation",
+                             "value":  "Sei sicuro di voler eliminare questo progetto? Questa azione non puÃ² essere annullata."
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "delete-type-name",
+                             "value":  "Per confermare, digita qui sotto il nome del progetto:"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "data-editor",
+                             "value":  "Editor dati"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "data-explorer",
+                             "value":  "Anteprima sito web"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "overview",
+                             "value":  "Panoramica"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "add-institution",
+                             "value":  "Aggiungi istituzione"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "add-object",
+                             "value":  "Aggiungi oggetto"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "import-data",
+                             "value":  "Importa dati"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "import-assets",
+                             "value":  "Importa media"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "export-data",
+                             "value":  "Esporta dati"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "website-settings",
+                             "value":  "Impostazioni sito web"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "export-website",
+                             "value":  "Esporta sito web"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "data-structure",
+                             "value":  "Struttura dati"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "default-fields",
+                             "value":  "Campi predefiniti"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "general",
+                             "value":  "Generale"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "sharing",
+                             "value":  "Condivisione"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "other",
+                             "value":  "Altro"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "preview",
+                             "value":  "Anteprima"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "error_fetch_languages",
+                             "value":  "Impossibile recuperare le lingue: {0}"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "error_fetch_translations",
+                             "value":  "Impossibile recuperare le traduzioni: {0}"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "error_empty_namespace",
+                             "value":  "Il namespace non puÃ² essere vuoto"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "namespace_created",
+                             "value":  "Namespace creato"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "error_invalid_input",
+                             "value":  "Input non valido"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "translation_added",
+                             "value":  "Traduzione aggiunta"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "translation_updated",
+                             "value":  "Traduzione aggiornata"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "confirm_delete_translation",
+                             "value":  "Eliminare la traduzione \"{key}\"?"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "translation_deleted",
+                             "value":  "Traduzione eliminata"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "confirm_delete_namespace",
+                             "value":  "Eliminare il namespace \"{namespace}\"?"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "namespace_deleted",
+                             "value":  "Namespace eliminato"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "export_success",
+                             "value":  "Esportato in {filePath}"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "import_success",
+                             "value":  "Importato: {imported} nuovi, {updated} aggiornati"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "namespaces",
+                             "value":  "Namespace"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "no_namespaces",
+                             "value":  "Nessun namespace trovato"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "interface_translations",
+                             "value":  "Traduzioni dell\u0027interfaccia"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "export",
+                             "value":  "Esporta"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "import",
+                             "value":  "Importa"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "add_translation",
+                             "value":  "Aggiungi traduzione"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "key",
+                             "value":  "Chiave"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "default",
+                             "value":  "Predefinito"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "actions",
+                             "value":  "Azioni"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "no_translations_for_namespace",
+                             "value":  "Nessuna traduzione trovata per questo namespace. Aggiungi la tua prima traduzione utilizzando il pulsante sopra."
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "select_namespace",
+                             "value":  "Seleziona un namespace esistente o creane uno nuovo utilizzando il pulsante + nella barra laterale."
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "add_new_translation_to",
+                             "value":  "Aggiungi nuova traduzione a \"{namespace}\""
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "translation_key",
+                             "value":  "Chiave di traduzione"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "translation_key_placeholder",
+                             "value":  "es., welcome.message"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "translations",
+                             "value":  "Traduzioni"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "translation_in_language",
+                             "value":  "Traduzione in {language}"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "add_new_namespace",
+                             "value":  "Aggiungi nuovo namespace"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "namespace_name",
+                             "value":  "Nome del namespace"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "namespace_placeholder",
+                             "value":  "es., common, navigation, errors"
+                         },
+                         {
+                             "namespace":  "translations",
+                             "key":  "add_namespace",
+                             "value":  "Aggiungi namespace"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "remove",
+                             "value":  "Rimuovi"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "select-connection",
+                             "value":  "Seleziona connessione..."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "select-options",
+                             "value":  "Seleziona opzioni..."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "no-options-available",
+                             "value":  "Nessuna opzione disponibile"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "add-connection",
+                             "value":  "Aggiungi connessione"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "select-institutions",
+                             "value":  "Seleziona istituzioni..."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "research-fields-free-text",
+                             "value":  "Campi di ricerca (testo libero)"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "select-research-field",
+                             "value":  "Seleziona campo di ricerca..."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "enter-search-terms",
+                             "value":  "Inserisci termini di ricerca..."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "add-field",
+                             "value":  "Aggiungi campo"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "label",
+                             "value":  "Etichetta"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "description",
+                             "value":  "Descrizione"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "institution-name",
+                             "value":  "Nome dell\u0027istituzione"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "location",
+                             "value":  "Luogo"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "country",
+                             "value":  "Paese"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "links",
+                             "value":  "Collegamenti"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "url",
+                             "value":  "URL"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "add-link",
+                             "value":  "Aggiungi collegamento"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "remove-link",
+                             "value":  "Rimuovi collegamento"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "edit-institution",
+                             "value":  "Modifica istituzione"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "add-new-institution",
+                             "value":  "Aggiungi nuova istituzione"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "add-new-institution-desc",
+                             "value":  "Compila i dettagli qui sotto per aggiungere una nuova istituzione al progetto."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "confirm-delete-institution",
+                             "value":  "Sei sicuro di voler eliminare questa istituzione? Questa azione non puÃ² essere annullata."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "url-placeholder",
+                             "value":  "URL (es., https://example.com)"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "link-label-placeholder",
+                             "value":  "Etichetta del collegamento (es., sito ufficiale)"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "enter-name-language",
+                             "value":  "Inserisci il nome in {{language}}..."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "enter-location-language",
+                             "value":  "Inserisci il luogo in {{language}}..."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "enter-description-language",
+                             "value":  "Inserisci la descrizione in {{language}}..."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "enter-country-language",
+                             "value":  "Inserisci il paese in {{language}}..."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "no-project-languages",
+                             "value":  "Nessuna lingua disponibile. Aggiungi prima le lingue al tuo progetto."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "reset",
+                             "value":  "Reimposta"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "remove-mapping",
+                             "value":  "Rimuovi mappatura"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-mapped-field",
+                             "value":  "Aggiungi campo mappato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-row",
+                             "value":  "Elimina riga"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "title",
+                             "value":  "Filtri"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "close-filters",
+                             "value":  "Chiudi filtri"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "filter-by-institution",
+                             "value":  "Filtra per istituzione"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "filter-by-field",
+                             "value":  "Filtra per {{field}}"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "research-fields",
+                             "value":  "Campi di ricerca"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "institution-fields",
+                             "value":  "Campi istituzione"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "remove-filter",
+                             "value":  "Rimuovi filtro"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "search",
+                             "value":  "Cerca..."
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "no-items",
+                             "value":  "Nessun elemento"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "select-a-field",
+                             "value":  "Seleziona un campo"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "choose",
+                             "value":  "Scegli..."
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "enter-query",
+                             "value":  "Inserisci query"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "type-to-search",
+                             "value":  "Digita per cercare"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "all",
+                             "value":  "Tutti"
+                         },
+                         {
+                             "namespace":  "filters",
+                             "key":  "unknown-field",
+                             "value":  "Campo sconosciuto"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "remove-audio",
+                             "value":  "Rimuovi audio"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "remove-video",
+                             "value":  "Rimuovi video"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "remove-image",
+                             "value":  "Rimuovi immagine"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "remove-file",
+                             "value":  "Rimuovi file"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "play",
+                             "value":  "Riproduci"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "pause",
+                             "value":  "Pausa"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "seek-audio-position",
+                             "value":  "Cerca posizione audio"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "unknown-file-type",
+                             "value":  "Tipo di file sconosciuto"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "unknown-file",
+                             "value":  "File sconosciuto"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "close-media-preview",
+                             "value":  "Chiudi anteprima media"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "view-file",
+                             "value":  "Visualizza {{file}}"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "zoom-in",
+                             "value":  "Ingrandisci"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "zoom-out",
+                             "value":  "Riduci"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "fullscreen",
+                             "value":  "Schermo intero"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "toggle-fullscreen",
+                             "value":  "Attiva/disattiva schermo intero"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "video-preview",
+                             "value":  "Anteprima video"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "browser-no-video",
+                             "value":  "Il tuo browser non supporta il tag video."
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "preview-not-available",
+                             "value":  "Anteprima non disponibile per questo tipo di file"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "media-metadata",
+                             "value":  "Metadati media"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "author",
+                             "value":  "Autore"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "no-metadata-available",
+                             "value":  "Nessun metadato disponibile"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "drag-item",
+                             "value":  "Trascina elemento"
+                         },
+                         {
+                             "namespace":  "media",
+                             "key":  "unnamed-file",
+                             "value":  "File senza nome"
+                         },
+                         {
+                             "namespace":  "file-upload",
+                             "key":  "choose-image",
+                             "value":  "Scegli immagine..."
+                         },
+                         {
+                             "namespace":  "file-upload",
+                             "key":  "select-image",
+                             "value":  "Seleziona immagine"
+                         },
+                         {
+                             "namespace":  "file-upload",
+                             "key":  "images",
+                             "value":  "Immagini"
+                         },
+                         {
+                             "namespace":  "file-upload",
+                             "key":  "all-files",
+                             "value":  "Tutti i file"
+                         },
+                         {
+                             "namespace":  "file-upload",
+                             "key":  "drag-file-here-or",
+                             "value":  "Trascina qui un file oppure"
+                         },
+                         {
+                             "namespace":  "file-upload",
+                             "key":  "browse",
+                             "value":  "sfoglia"
+                         },
+                         {
+                             "namespace":  "file-upload",
+                             "key":  "file-from-your-computer",
+                             "value":  "un file dal tuo computer"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "edit",
+                             "value":  "Modifica"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "clear-search",
+                             "value":  "Cancella ricerca"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "total",
+                             "value":  "totale"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "private",
+                             "value":  "Privato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "public-website",
+                             "value":  "Pubblico sul sito web"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-search-results",
+                             "value":  "Nessun risultato trovato."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-fields-available",
+                             "value":  "Nessun campo disponibile."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-research-fields-found",
+                             "value":  "Nessun campo di ricerca trovato."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-description-available",
+                             "value":  "Nessuna descrizione disponibile."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "uncategorized",
+                             "value":  "Senza categoria"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-research-field",
+                             "value":  "Elimina campo di ricerca"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "checking-usage",
+                             "value":  "Controllo utilizzo in corso..."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "research-field-usage-warning",
+                             "value":  "Questo campo di ricerca e usato in {{count}} oggetti. Vuoi continuare?"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "confirm-delete-research-field",
+                             "value":  "Sei sicuro di voler eliminare il campo di ricerca {{name}}?"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "field-type",
+                             "value":  "Tipo di campo"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "connection",
+                             "value":  "Connessione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "research-field",
+                             "value":  "Campo di ricerca"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-item",
+                             "value":  "Aggiungi {{item}}"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "edit-item",
+                             "value":  "Modifica {{item}}"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "fill-details-below",
+                             "value":  "Compila i dettagli qui sotto."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "update-details-below",
+                             "value":  "Aggiorna i dettagli qui sotto."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "logo",
+                             "value":  "Logo"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "about",
+                             "value":  "Informazioni"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "authors",
+                             "value":  "Autori"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "subfolder-path",
+                             "value":  "Percorso sottocartella"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "show-unmapped",
+                             "value":  "Mostra oggetti non mappati"
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "project_file",
+                             "value":  "File del progetto"
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "export_project_file",
+                             "value":  "Esporta file del progetto"
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "exporting",
+                             "value":  "Creazione backup in corso..."
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "export_success_message",
+                             "value":  "Backup del progetto creato correttamente."
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "file_location",
+                             "value":  "File: {{path}}"
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "backup_counts",
+                             "value":  "Oggetti: {{objects}} | Asset: {{assets}}"
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "import_instruction",
+                             "value":  "Puoi importare questo file del progetto da Crea nuovo progetto -> Importa da file"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "settings",
+                             "value":  "Impostazioni progetto"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "settings-desc",
+                             "value":  "Modifica titolo e descrizione del progetto in tutte le lingue abilitate."
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "content_languages",
+                             "value":  "Lingue dei contenuti"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "default_language",
+                             "value":  "Lingua predefinita"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "add_language",
+                             "value":  "Aggiungi lingua"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "title.placeholder",
+                             "value":  "Titolo del progetto"
+                         },
+                         {
+                             "namespace":  "form",
+                             "key":  "unsaved-changes",
+                             "value":  "Ci sono modifiche non salvate. Vuoi davvero uscire senza salvare?"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "open-project",
+                             "value":  "Apri un progetto esistente"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "new-project",
+                             "value":  "Crea nuovo progetto"
+                         },
+                         {
+                             "namespace":  "project",
+                             "key":  "import-from-file",
+                             "value":  "Importa da file"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "order-by",
+                             "value":  "Ordina per"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-institutions-found",
+                             "value":  "Nessuna istituzione trovata."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "media",
+                             "value":  "Media"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "data-mapping",
+                             "value":  "Mappatura dati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "data-sources",
+                             "value":  "Origini dati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "linked",
+                             "value":  "Collegato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "not-linked",
+                             "value":  "Non collegato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "filename",
+                             "value":  "Nome file"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-assets-found",
+                             "value":  "Nessun media trovato."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "objects-count",
+                             "value":  "Numero oggetti"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-datasources-found",
+                             "value":  "Nessuna origine dati trovata."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "sort-by-date",
+                             "value":  "Ordina per data"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "sort-by-created",
+                             "value":  "Ordina per data di creazione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "sort-by-name",
+                             "value":  "Ordina per nome"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "edit-info",
+                             "value":  "Modifica info"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "link-to-object",
+                             "value":  "Collega all'oggetto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "edit-metadata",
+                             "value":  "Modifica metadati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-template",
+                             "value":  "Aggiungi template"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "mapping-templates",
+                             "value":  "Template di mappatura"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-templates",
+                             "value":  "Nessun template"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "data-mapping-title",
+                             "value":  "Titolo mappatura dati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "template-info",
+                             "value":  "Informazioni template"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "template-title-placeholder",
+                             "value":  "Template 1"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "template-mapping",
+                             "value":  "Mappatura template"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "id",
+                             "value":  "ID"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "project-field",
+                             "value":  "Campo del progetto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "object-id-field-cannot-be-deleted",
+                             "value":  "Impossibile eliminare: mappato al campo ID oggetto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "save-template",
+                             "value":  "Salva template"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "previous-page",
+                             "value":  "Precedente"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "next-page",
+                             "value":  "Successiva"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-related-data-warning",
+                             "value":  "Tutti i dati collegati (oggetti, media, origini dati, ecc.) verranno eliminati definitivamente."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "bulk-edit-asset-metadata",
+                             "value":  "Modifica massiva metadati media"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-assets-selected",
+                             "value":  "Nessun media selezionato."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "imported-objects",
+                             "value":  "Oggetti importati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "confirm-delete-datasource",
+                             "value":  "Sei sicuro di voler eliminare questa origine dati? Questo rimuovera anche tutti i campi ontologici collegati dagli oggetti."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-media",
+                             "value":  "Elimina media"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "file",
+                             "value":  "File"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "size",
+                             "value":  "Dimensione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "import-date",
+                             "value":  "Data importazione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "unlink-media",
+                             "value":  "Scollega media"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "confirm-delete-asset",
+                             "value":  "Sei sicuro di voler eliminare questo media? Questa azione non puo essere annullata."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "leave",
+                             "value":  "Esci"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "stay",
+                             "value":  "Resta"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "leave-without-saving",
+                             "value":  "Esci senza salvare"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "stay-on-page",
+                             "value":  "Resta nella pagina"
+                         },
+                         {
+                             "namespace":  "navigation",
+                             "key":  "unsaved-changes-title",
+                             "value":  "Modifiche non salvate"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "import-not-completed-title",
+                             "value":  "Importazione non completata"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "import-not-completed-message",
+                             "value":  "Il processo di importazione non e completato. Sei sicuro di voler uscire?"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-permanently-title",
+                             "value":  "Questa azione elimina definitivamente l'istituzione e tutti i dati collegati."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-permanently-description",
+                             "value":  "Questa azione non puo essere annullata."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-impact-objects",
+                             "value":  "oggetti verranno eliminati definitivamente"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-impact-assets",
+                             "value":  "media verranno eliminati definitivamente"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "delete-impact-datasources",
+                             "value":  "origini dati verranno eliminate definitivamente"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "type-name-to-delete",
+                             "value":  "Digita il nome dell'istituzione per confermare l'eliminazione"
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "type-exact-name-to-delete",
+                             "value":  "Digita esattamente \"{{name}}\" per abilitare l'eliminazione."
+                         }
+                     ]
+}

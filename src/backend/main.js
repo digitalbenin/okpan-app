@@ -7,6 +7,9 @@ import fsPromises from 'fs/promises';
 import { lookup as dnsLookup } from 'dns/promises';
 import { fileURLToPath } from 'url';
 
+const MIN_WINDOW_WIDTH = 800;
+const MIN_WINDOW_HEIGHT = 600;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONNECTIVITY_PROBE_HOSTS = (process.env.CONNECTIVITY_PROBE_HOSTS || 'cloudflare.com,google.com,microsoft.com')
@@ -15,7 +18,13 @@ const CONNECTIVITY_PROBE_HOSTS = (process.env.CONNECTIVITY_PROBE_HOSTS || 'cloud
   .filter(Boolean);
 
 // Import database and schema
-import { db, getGlobalProfile, updateGlobalUsername } from '../db/init.js';
+import {
+  db,
+  getGlobalProfile,
+  updateGlobalUsername,
+  getGlobalSettings,
+  updateGlobalInterfaceLanguage
+} from '../db/init.js';
 import { createGraphQLSchema } from '../db/graphqlDefs.js';
 
 // Import handlers
@@ -383,6 +392,11 @@ ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
   return reconnectJob;
 });
 
+ipcMain.handle('global-settings:get', async () => getGlobalSettings());
+ipcMain.handle('global-settings:update-interface-language', async (event, locale) =>
+  updateGlobalInterfaceLanguage(locale)
+);
+
 // Static website export
 ipcMain.handle('export-static-website', async (event, options) => {
   try {
@@ -390,7 +404,11 @@ ipcMain.handle('export-static-website', async (event, options) => {
     return await exportStaticWebsite(options.projectId, options.outputPath, {
       db,
       filters: options.filters,
-      basePath: options.basePath
+      appPath: app.getAppPath(),
+      resourcesPath: process.resourcesPath,
+      isPackaged: app.isPackaged,
+      basePath: options.basePath,
+      locale: options.locale
     });
   } catch (error) {
     console.error('Error exporting static website:', error);
@@ -713,10 +731,12 @@ ipcMain.handle('read-file', async (event, filePath) => {
   }
 });
 
-ipcMain.on('open-preview', (event, projectId) => {
+ipcMain.on('open-preview', async (event, projectId) => {
   const previewWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    minWidth: MIN_WINDOW_WIDTH,
+    minHeight: MIN_WINDOW_HEIGHT,
     webPreferences: {
       preload: path.join(import.meta.dirname, 'preload.js'),
       nodeIntegration: false,
@@ -724,8 +744,15 @@ ipcMain.on('open-preview', (event, projectId) => {
     },
   });
 
-  // Se stai usando il dev server:
-  previewWindow.loadURL(`http://localhost:5174?project_id=${projectId}`);
+  const globalSettings = await getGlobalSettings();
+  const previewUrl = new URL('http://localhost:5174');
+  previewUrl.searchParams.set('project_id', projectId);
+
+  if (globalSettings?.interfaceLanguage) {
+    previewUrl.searchParams.set('interface_language', globalSettings.interfaceLanguage);
+  }
+
+  previewWindow.loadURL(previewUrl.toString());
 });
 
 // Snapshot management IPC
@@ -911,29 +938,43 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 // Helper function for path resolution
-function resolveMediaPath(urlObj) {
+function resolveMediaPath(urlObj, requestUrl) {
   let pathStr;
 
-  // Handle Windows drive letters in hostname (media://c/Users/... -> c/Users/...)
-  if (urlObj.hostname && /^[a-zA-Z]$/.test(urlObj.hostname)) {
-    pathStr = urlObj.hostname + decodeURIComponent(urlObj.pathname);
+  // Use original url string to avoid url parser stripping/moving segments into hostname
+  if (requestUrl) {
+    pathStr = decodeURIComponent(requestUrl.substring('media://'.length));
   } else {
-    pathStr = decodeURIComponent(urlObj.pathname).replace(/^\//, '');
+    // fallback if no requestUrl provided
+    if (urlObj.hostname && /^[a-zA-Z]$/.test(urlObj.hostname)) {
+      pathStr = urlObj.hostname + decodeURIComponent(urlObj.pathname);
+    } else {
+      pathStr = urlObj.hostname ? urlObj.hostname + decodeURIComponent(urlObj.pathname) : decodeURIComponent(urlObj.pathname);
+    }
   }
 
-  // Convert to absolute path if needed
-  if (/^[a-zA-Z]\//.test(pathStr)) {
-    // Windows drive format (c/Users/... -> C:\Users\...)
+  // Windows drive format (c:/Users/... or c/Users/...)
+  if (/^[a-zA-Z]:\//.test(pathStr) || /^[a-zA-Z]\//.test(pathStr)) {
     const driveLetter = pathStr.charAt(0).toUpperCase();
-    const restOfPath = pathStr.substring(2);
-    return process.platform === 'win32'
+    const restOfPath = pathStr.substring(pathStr.indexOf('/') + 1);
+    const winPathStr = process.platform === 'win32'
       ? `${driveLetter}:\\${restOfPath.replace(/\//g, '\\')}`
       : `/${pathStr}`;
+      
+    if (fs.existsSync(winPathStr)) return winPathStr;
   }
 
   if (path.isAbsolute(pathStr)) {
-    return path.normalize(pathStr);
+    if (fs.existsSync(pathStr)) return path.normalize(pathStr);
   }
+
+  // Also handle POSIX paths that might not start with / but are meant to be absolute (from media://volumes/...)
+  const maybePosixAbsolute = '/' + pathStr;
+  if (path.isAbsolute(maybePosixAbsolute) && fs.existsSync(maybePosixAbsolute)) {
+      return path.normalize(maybePosixAbsolute);
+  }
+
+  pathStr = pathStr.replace(/^\//, ''); // Strip leading slash for relative paths
 
   // Try relative paths in project
   const projectRoot = process.cwd();
@@ -951,6 +992,8 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 1080,
+    minWidth: MIN_WINDOW_WIDTH,
+    minHeight: MIN_WINDOW_HEIGHT,
     icon: path.join(import.meta.dirname, '../assets/logo_wip.png'),
     webPreferences: {
       preload: path.join(import.meta.dirname, 'preload.js'),
@@ -1022,7 +1065,7 @@ app.whenReady().then(() => {
   // Register media protocol handler
   protocol.registerFileProtocol('media', (request, callback) => {
     try {
-      const resolvedPath = resolveMediaPath(new URL(request.url));
+      const resolvedPath = resolveMediaPath(new URL(request.url), request.url);
 
       if (resolvedPath && fs.existsSync(resolvedPath)) {
         callback({ path: resolvedPath });

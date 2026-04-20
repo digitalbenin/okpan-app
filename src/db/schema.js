@@ -696,6 +696,7 @@ export const globalSettings = sqliteTable('global_settings', {
     id: integer('id').primaryKey().notNull().default(1), // Always 1 to enforce singleton
     client_id: text('client_id').notNull().unique(),
     username: text('username'),
+    interface_language: text('interface_language'),
     app_version: text('app_version'),
     initialized_at: integer('initialized_at', { mode: 'timestamp_ms' })
         .notNull()

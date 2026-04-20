@@ -1,5 +1,6 @@
 <script>
   import { slide } from "svelte/transition";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import Self from "./JsonViewer.svelte";
   let {
     node,
@@ -11,6 +12,8 @@
     parentChecked = false,
     maxDepth,
   } = $props();
+
+  const { t } = getTranslationStore();
 
   const expanded = $derived(isExpanded(node));
   const checked = $derived(isChecked(node));
@@ -41,15 +44,19 @@
       class:fw-bold={node.isExpandable}
       class:font-monospace={!node.isExpandable}
     >
-      {node.key !== null ? node.key : "root"}{#if !node.isExpandable}
+      {node.key !== null ? node.key : t("common.root", { fallback: "root" })}{#if !node.isExpandable}
         <span class="mx-1">:</span>
       {/if}
     </div>
     <div class="text-truncate">
       {#if node.type === "object"}
-        <span class="badge text-bg-secondary ms-2">{node.size} properties</span>
+        <span class="badge text-bg-secondary ms-2">
+          {node.size} {t("common.properties", { fallback: "properties" })}
+        </span>
       {:else if node.type === "array"}
-        <span class="badge text-bg-secondary ms-2">{node.size} items</span>
+        <span class="badge text-bg-secondary ms-2">
+          {node.size} {t("common.items", { fallback: "items" })}
+        </span>
       {:else}
         <span
           class="font-monospace"
@@ -66,7 +73,7 @@
       <div class="ms-auto">
         <button
           class="btn btn-light btn-sm"
-          aria-label="Toggle node"
+          aria-label={t("common.toggle-node", { fallback: "Toggle node" })}
           onclick={() => node.isExpandable && toggleNode(node.pathString)}
         >
           <i class="bi bi-chevron-{expanded ? 'down' : 'right'}"></i>

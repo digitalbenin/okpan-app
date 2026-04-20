@@ -9,29 +9,42 @@
   import ProjectWelcome from "$lib/components/projects/ProjectWelcome.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
-  const { t } = getTranslationStore();
+  const { t, translationState } = getTranslationStore();
   const { data } = $props();
+
+  const i18n = $derived.by(() => {
+    translationState.isInitialized;
+    translationState.currentLocale;
+
+    return {
+      objects: t("common.objects", { fallback: "Objects" }),
+      assets: t("common.assets", { fallback: "Assets" }),
+      institutions: t("common.institutions", { fallback: "Institutions" }),
+      objectsPercentage: t("common.objects-percentage", {
+        fallback: "of objects completed",
+      }),
+      assetsPercentage: t("common.assets-percentage", {
+        fallback: "of assets linked to objects",
+      }),
+    };
+  });
 
   //TODO: in the api response, put alla stats in a single object and pass directly to the StatsWidget
   const stats = $derived([
     {
-      label: t("common.objects", { fallback: "Objects" }),
+      label: i18n.objects,
       value: data.project.objectsCount,
       percentage: data.project.completedObjectsCount,
-      labelPercentage: t("common.objects-percentage", {
-        fallback: "of objects completed",
-      }),
+      labelPercentage: i18n.objectsPercentage,
     },
     {
-      label: t("common.assets", { fallback: "Institution Media" }),
+      label: i18n.assets,
       value: data.project.assetsCount,
       percentage: data.project.linkedAssetsCount,
-      labelPercentage: t("common.assets-percentage", {
-        fallback: "of media linked to objects",
-      }),
+      labelPercentage: i18n.assetsPercentage,
     },
     {
-      label: t("common.institutions", { fallback: "Institutions" }),
+      label: i18n.institutions,
       value: data.institutions?.count,
     },
   ]);

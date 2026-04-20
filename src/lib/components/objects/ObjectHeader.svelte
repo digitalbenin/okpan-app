@@ -1,5 +1,6 @@
 <script>
   import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   let {
     institutionName = "",
@@ -10,6 +11,8 @@
     onBack = undefined,
     onStatusChange = undefined,
   } = $props();
+
+  const { t } = getTranslationStore();
 
   const handleStatusChange = (e) => {
     onStatusChange?.(e.detail);
@@ -24,7 +27,7 @@
           {#if onBack}
             <button
               class="btn ps-0"
-              aria-label="back"
+              aria-label={t("nav.back", { fallback: "Back" })}
               onclick={onBack}
             >
               <i class="bi bi-arrow-left"></i>

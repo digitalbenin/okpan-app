@@ -290,9 +290,13 @@
                     seenConnections.add(connectionKey);
                     connections.push({
                         fieldId: field.id,
-                        fieldName: field.name?.content || "Connection",
+                        fieldName:
+                            field.name?.content ||
+                            t("common.connections", { fallback: "Connections" }),
                         vocabularyId: vocab.id,
-                        vocabularyName: vocab.option?.content || "Unnamed",
+                        vocabularyName:
+                            vocab.option?.content ||
+                            t("common.unnamed", { fallback: "Unnamed" }),
                         vocabularyImage: vocab.mainAsset?.path
                             ? `media://${vocab.mainAsset.path}`
                             : null,
@@ -310,14 +314,14 @@
             <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-share"></i>
                 <span class="">
-                    {t("objects.connections.title", { fallback: "Connections" })}
+                    {t("common.connections", { fallback: "Connections" })}
                 </span>
             </div>
             {#if allVocabularyFields.length > 0}
                 <BaseButton
                     class="btn btn-sm btn-secondary"
                     icon="plus"
-                    text={t("objects.connections.add", { fallback: "Add connection" })}
+                    text={t("export.add-connection", { fallback: "Add connection" })}
                     onClick={() => openVocabularyModal(allVocabularyFields[0])}
                 />
             {/if}
@@ -363,7 +367,9 @@
                         <button
                             type="button"
                             class="btn btn-link p-0 text-dark text-decoration-none"
-                            aria-label="Remove connection"
+                            aria-label={t("objects.connections.remove", {
+                                fallback: "Remove connection",
+                            })}
                             onclick={() =>
                                 handleVocabularyRemove(
                                     connection.fieldId,

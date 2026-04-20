@@ -11,11 +11,18 @@
   } = $props();
 
   const tracker = createDirtyTracker({ initialData: values });
+  const serializeValues = (input) => {
+    try {
+      return JSON.stringify(input ?? null);
+    } catch {
+      return null;
+    }
+  };
 
   watch(
-    () => values,
-    (nextValues) => {
-      tracker.update(nextValues ?? null);
+    () => serializeValues(values),
+    () => {
+      tracker.update(values ?? null);
     }
   );
 

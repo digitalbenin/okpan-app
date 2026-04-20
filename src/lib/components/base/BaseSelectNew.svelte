@@ -11,11 +11,28 @@
     type = "single",
     size,
     as = "select",
+    onValueChange = null,
     searchable = false,
     searchPlaceholder = "Search...",
     children,
     ...restProps
   } = $props();
+
+
+  let hasInitializedValue = false;
+
+  $effect(() => {
+    const nextValue = value;
+
+    if (!hasInitializedValue) {
+      hasInitializedValue = true;
+      return;
+    }
+
+    if (typeof onValueChange === "function") {
+      onValueChange(nextValue);
+    }
+  });
 
   // Search term for filtering items within the dropdown
   let searchTerm = $state("");

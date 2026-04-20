@@ -14,6 +14,7 @@ export function createImportWizardContext(params) {
     let nextEnabled = $state(false);
     let saving = $state(false);
     let projectId = $state(params?.projectId);
+    let institutionId = $state(params?.institutionId ?? null);
     let datasourceId = $state();
     let mappingId = $state();
     let file = $state();
@@ -43,6 +44,9 @@ export function createImportWizardContext(params) {
 
         get projectId() { return projectId; },
         set projectId(value) { projectId = value; },
+
+        get institutionId() { return institutionId; },
+        set institutionId(value) { institutionId = value; },
 
         get datasourceId() { return datasourceId; },
         set datasourceId(value) { datasourceId = value; },
@@ -126,6 +130,7 @@ export function createImportWizardContext(params) {
         reset() {
             currentStep = 1;
             importCompleted = false;
+            institutionId = null;
             // formData = {};
             // isValid = false;
             // errors = [];

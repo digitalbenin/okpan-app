@@ -3,10 +3,12 @@
 	import 'bootstrap-icons/font/bootstrap-icons.css';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Topbar from '$lib/components/Topbar.svelte';
+	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	import { onMount } from 'svelte';
 	import { resolveSitePath } from '$lib/utils/sitePaths.js';
 
 	let { children, data } = $props();
+	getWebsiteTranslationStore();
 	
 	// For static export: load project/settings client-side from site.json (small file)
 	let project = $state(data?.project);

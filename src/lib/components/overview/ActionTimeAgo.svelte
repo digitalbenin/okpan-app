@@ -1,32 +1,22 @@
 <script>
   import { Tooltip } from "bits-ui";
   import dayjs from "dayjs";
+  import "dayjs/locale/en";
+  import "dayjs/locale/it";
   import relativeTime from "dayjs/plugin/relativeTime";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates";
 
   const { timestamp } = $props();
-  const { t, translationState } = getTranslationStore();
+  const { translationState } = getTranslationStore();
   dayjs.extend(relativeTime);
 
-  let timeAgo = $state(dayjs(timestamp).fromNow()); // "2 hours ago"
-
-  // Dynamically load locale
-  async function loadLocale(locale) {
-    try {
-      await import(/* @vite-ignore */ `dayjs/locale/${locale}.js`);
-      dayjs.locale(locale);
-      timeAgo = dayjs(timestamp).fromNow();
-    } catch (error) {
-      console.warn(`Locale ${locale} not found, falling back to English`);
-      dayjs.locale("en");
-      timeAgo = dayjs(timestamp).fromNow();
-    }
-  }
-
-  $effect(() => {
-    loadLocale(translationState.currentLocale);
+  const resolvedLocale = $derived.by(() => {
+    const locale = String(translationState.currentLocale || "en").toLowerCase();
+    return locale;
   });
+
+  const timeAgo = $derived.by(() => dayjs(timestamp).locale(resolvedLocale).fromNow());
 </script>
 
 <Tooltip.Provider delayDuration={250}>

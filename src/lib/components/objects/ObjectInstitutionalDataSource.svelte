@@ -23,6 +23,13 @@
   let selectedTemplateId = $state(existingTemplate?.id || null);
   let fieldValues = $state(new Map());
   let initialValues = $state(new Map());
+  const serialize = (value) => {
+    try {
+      return JSON.stringify(value ?? null);
+    } catch {
+      return null;
+    }
+  };
 
   const selectedTemplate = $derived.by(() => {
     if (selectedTemplateId) {
@@ -75,8 +82,8 @@
       }
       
       const ontologyField = ontologyFields.find(f => f.id === parsedItem.mappedField);
-      const institutionFieldName = parsedItem.headerField || `Unnamed Field ${index + 1}`;
-      const ontologyFieldName = ontologyField?.name?.content || "Not mapped";
+      const institutionFieldName = parsedItem.headerField || `${t("common.unnamed-field", { fallback: "Unnamed field" })} ${index + 1}`;
+      const ontologyFieldName = ontologyField?.name?.content || t("common.not-mapped", { fallback: "Not mapped" });
       
       return {
         institutionField: institutionFieldName,
@@ -160,8 +167,8 @@
 
   // Watch for updates to existing fields (e.g. after a save or external update)
   watch(
-    () => existingFields,
-    (fields) => {
+    () => serialize(existingFields),
+    () => {
       // When backend data syncs down, only overwrite if actually new
       if (selectedTemplate) {
         initializeFieldValues('existingFields changed');
@@ -178,7 +185,7 @@
     return false;
   });
 
-  // Notify parent of changes
+  // Notify parent of changes – lazy so the initial false doesn't cascade on mount
   watch(
     () => hasChanges,
     (changed) => {
@@ -207,7 +214,8 @@
           },
         });
       }
-    }
+    },
+    { lazy: true }
   );
 
   const handleCreateTemplate = () => {
@@ -261,10 +269,10 @@
           <thead>
             <tr class="border-bottom">
               <th scope="col" class="fw-bold text-muted">
-                {t("objects.institution-field", { fallback: "Institution field" })}
+                {t("common.institution-field", { fallback: "Institution field" })}
               </th>
               <th scope="col" class="fw-bold text-muted">
-                {t("objects.value", { fallback: "Value" })}
+                {t("common.value", { fallback: "Value" })}
               </th>
             </tr>
           </thead>

@@ -12,5 +12,5 @@
 </script>
 
 <button class="btn btn-outline-secondary" onclick={onCancel}>
-  {t("import.cancel", { fallback: "Cancel" })}
+  {t("common.cancel", { fallback: "Cancel" })}
 </button>

@@ -12,7 +12,7 @@
         switch (key) {
             case "description": return t("common.description", { fallback: "Description" });
             case "url": return t("common.url", { fallback: "URL" });
-            case "thumbnail": return t("common.thumbnail", { fallback: "Thumbnail" });
+            case "thumbnail": return t("connections.main-image", { fallback: "Main image" });
             case "images": return t("common.images", { fallback: "Images" });
             case "videos": return t("common.videos", { fallback: "Videos" });
             case "audios": return t("common.audios", { fallback: "Audios" });

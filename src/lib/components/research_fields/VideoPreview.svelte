@@ -1,5 +1,6 @@
 <script>
     import BaseVideo from "$lib/components/base/BaseVideo.svelte";
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     let {
         asset,
@@ -9,6 +10,8 @@
         onRemove = null,
         onClick = null,
     } = $props();
+
+    const { t } = getTranslationStore();
 
     function handleClick() {
         if (onClick) {
@@ -35,8 +38,8 @@
             class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle position-absolute d-flex align-items-center justify-content-center border-0 opacity-0-hover-100 transition-opacity"
             style="width: 22px; height: 22px; padding: 0; top: 5px; right: 5px; z-index: 10;"
             onclick={handleRemove}
-            title="Remove video"
-            aria-label="Remove video"
+            title={t("media.remove-video", { fallback: "Remove video" })}
+            aria-label={t("media.remove-video", { fallback: "Remove video" })}
         >
             <i class="bi bi-x-lg" style="font-size: 10px;"></i>
         </button>

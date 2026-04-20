@@ -1,5 +1,7 @@
 <script>
+  import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
   let { page = 1, pageCount = 1, onPageChange, size = 'sm' } = $props();
+  const { t } = getWebsiteTranslationStore();
 
   function buildPages(current, total) {
     const pages = [];
@@ -48,12 +50,12 @@
 </script>
 
 {#if pageCount > 0}
-  <nav aria-label="Pagination">
+  <nav aria-label={t('pagination.label')}>
     <ul class="pagination {size ? `pagination-${size}` : ''} mb-0">
       <!-- Prev -->
       <li class="page-item" class:disabled={page <= 1}>
-        <button class="page-link" aria-label="Previous" disabled={page <= 1} onclick={() => goTo(page - 1)}>
-          Prev
+        <button class="page-link" aria-label={t('pagination.previous-page')} disabled={page <= 1} onclick={() => goTo(page - 1)}>
+          {t('pagination.previous')}
         </button>
       </li>
 
@@ -61,11 +63,11 @@
       {#each buildPages(page, pageCount) as btn (btn.key)}
         {#if btn.type === 'ellipsis'}
           <li class="page-item disabled">
-            <button class="page-link" tabindex="-1">...</button>
+            <button class="page-link" tabindex="-1">{t('common.ellipsis')}</button>
           </li>
         {:else}
           <li class="page-item" class:active={btn.value === page}>
-            <button class="page-link" aria-label={`Page ${btn.value}`} onclick={() => goTo(btn.value)}>
+            <button class="page-link" aria-label={t('pagination.page', { count: btn.value })} onclick={() => goTo(btn.value)}>
               {btn.value}
             </button>
           </li>
@@ -74,8 +76,8 @@
 
       <!-- Next -->
       <li class="page-item" class:disabled={page >= pageCount}>
-        <button class="page-link" aria-label="Next" disabled={page >= pageCount} onclick={() => goTo(page + 1)}>
-          Next
+        <button class="page-link" aria-label={t('pagination.next-page')} disabled={page >= pageCount} onclick={() => goTo(page + 1)}>
+          {t('pagination.next')}
         </button>
       </li>
     </ul>

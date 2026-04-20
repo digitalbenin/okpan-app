@@ -4,7 +4,9 @@
 	// - researchFields: [{ id, name, type, description? }]
 	// - vocabularies (optional): [{ id, field_id, name }]
 	const { objectResearchFields = [], researchFields = [], vocabularies = [] } = $props();
+	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
+	const { t } = getWebsiteTranslationStore();
 
 	// Fast lookup maps
 	const researchById = $derived.by(() => {
@@ -103,14 +105,14 @@
 			<div class="d-flex align-items-start border-bottom py-2 px-1">
 				<div class="col-3 text-break">
 					<span class="badge bg-secondary-subtle text-dark">{group.fieldName}</span>
-					<i class="bi bi-info-circle ms-1 text-muted" title={group.description || 'No description'}
+					<i class="bi bi-info-circle ms-1 text-muted" title={group.description || t('common.no-description-available')}
 					></i>
 				</div>
 				<div class="col-9 text-break">
 					{#if group.values.length === 0}
-						<span class="text-muted fst-italic">—</span>
+						<span class="text-muted fst-italic">{t('common.none')}</span>
 					{:else if group.type !== 'vocabulary'}
-						{group.values.join(', ')}
+						{group.values.join(t('common.list-separator'))}
 					{:else if group.values.length === 1}
 						{#if group.values[0]}
 							<button class="btn btn-link text-dark p-0" onclick={() => openVocab(group.values[0])}>
@@ -131,21 +133,24 @@
 		{/each}
 	</div>
 {:else}
-	<p class="text-muted">No research fields available.</p>
+	<p class="text-muted">{t('research.no-fields')}</p>
 {/if}
 
 {#if selectedVocabulary}
 	<div
 		class="modal fade show d-block"
 		style="background-color: rgba(0,0,0,0.5);"
-		onclick={closeModal}
-		onkeydown={closeModal}
+		role="dialog"
+		aria-modal="true"
+		tabindex="0"
+		onclick={(event) => event.target === event.currentTarget && closeModal()}
+		onkeydown={(event) => event.key === 'Escape' && closeModal()}
 	>
-		<div class="modal-dialog" onclick={(e) => e.stopPropagation()}>
+		<div class="modal-dialog" role="document">
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title">{selectedVocabulary.name}</h5>
-					<button type="button" class="btn-close" aria-label="Close" onclick={closeModal}></button>
+					<button type="button" class="btn-close" aria-label={t('common.close')} onclick={closeModal}></button>
 				</div>
 				<div class="modal-body">
 					{#if selectedVocabulary.main_asset_path}
@@ -158,11 +163,11 @@
 					{#if selectedVocabulary.description}
 						<p>{selectedVocabulary.description}</p>
 					{:else}
-						<p class="text-muted">No description available.</p>
+						<p class="text-muted">{t('common.no-description-available')}</p>
 					{/if}
 				</div>
 				<div class="modal-footer">
-					<button class="btn btn-secondary" onclick={closeModal}>Close</button>
+					<button class="btn btn-secondary" onclick={closeModal}>{t('common.close')}</button>
 				</div>
 			</div>
 		</div>

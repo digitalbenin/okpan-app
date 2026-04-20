@@ -34,16 +34,16 @@
 
   // Helpers
   const i18n = $derived({
-    settings: t("project.settings", { fallback: "Project Settings" }),
-    settingsDesc: t("project.settings-desc", { fallback: "Edit your project's title and description in all enabled languages." }),
-    title: t("common.title", { fallback: "Title" }),
-    description: t("common.description", { fallback: "Description" }),
-    titlePlaceholder: t("project.title.placeholder", { fallback: "Project title" }),
-    contentLanguages: t("project.content_languages", { fallback: "Content languages" }),
-    defaultLanguage: t("project.default_language", { fallback: "Default language" }),
-    addLanguage: t("project.add_language", { fallback: "Add language" }),
-    saving: t("common.saving", { fallback: "Saving..." }),
-    confirm: t("common.confirm", { fallback: "Confirm" })
+    settings: t("project.settings"),
+    settingsDesc: t("project.settings-desc"),
+    title: t("common.title"),
+    description: t("common.description"),
+    titlePlaceholder: t("project.title.placeholder"),
+    contentLanguages: t("project.content_languages"),
+    defaultLanguage: t("project.default_language"),
+    addLanguage: t("project.add_language"),
+    saving: t("common.saving"),
+    confirm: t("common.confirm")
   });
 
   function getTranslations(fieldObj) {
@@ -213,10 +213,7 @@
   );
 
   const dirtyMessage = $derived(
-    t("form.unsaved-changes", {
-      fallback:
-        "You have unsaved changes. Are you sure you want to leave without saving?",
-    })
+    t("form.unsaved-changes")
   );
 
   const dirtyValues = $derived.by(() => ({
@@ -278,7 +275,7 @@
                     <span class="badge bg-success">{i18n.defaultLanguage}</span>
                   {:else}
                     <button type="button" class="btn btn-sm btn-link text-dark text-decoration-none" 
-                      onclick={() => removeLanguage(lang)} aria-label="Remove">
+                      onclick={() => removeLanguage(lang)} aria-label={t("common.remove")}>
                       <i class="bi bi-x-circle"></i>
                     </button>
                   {/if}

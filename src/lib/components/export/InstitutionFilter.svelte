@@ -1,11 +1,14 @@
 <script>
     import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     let {
         items = [],
         selectedInstitutions = $bindable([]),
         onChange = null,
     } = $props();
+
+    const { t } = getTranslationStore();
 
     function handleChange(newValue) {
         if (typeof onChange === "function") {
@@ -19,12 +22,14 @@
 </script>
 
 <div class="filter-group mb-4">
-    <p class="filter-label fw-semibold mb-2 d-block">Institution</p>
+    <p class="filter-label fw-semibold mb-2 d-block">
+        {t("common.institution", { fallback: "Institution" })}
+    </p>
     <div class="institution-selection d-flex flex-column gap-2">
         <BaseSelect
             {items}
             bind:value={selectedInstitutions}
-            placeholder="Select institutions..."
+            placeholder={t("export.select-institutions", { fallback: "Select institutions..." })}
             type="multiple"
             size="sm"
             onValueChange={(v) => handleChange(v)}
@@ -40,6 +45,7 @@
                             {institution.label}
                             <button
                                 class="remove-tag bg-transparent border-0 text-dark cursor-pointer fs-6"
+                                aria-label={t("common.remove", { fallback: "Remove" })}
                                 onclick={() => {
                                     selectedInstitutions =
                                         selectedInstitutions.filter(

@@ -50,7 +50,13 @@
 
   function goToImportAssets() {
     open = false;
-    goto(`/projects/${wizard.projectId}/import-assets`);
+    const searchParams = new URLSearchParams();
+    if (wizard.institutionId) {
+      searchParams.set("institution_id", wizard.institutionId);
+    }
+
+    const query = searchParams.toString();
+    goto(`/projects/${wizard.projectId}/import-assets/steps${query ? `?${query}` : ""}`);
   }
 </script>
 
@@ -126,7 +132,7 @@
   {#snippet description()}
     <p class="mb-2">
       <span class="fw-bold">{wizard.data.length}</span>
-      {t("import.match-description", {
+      {t("import.objects-imported-summary", {
         fallback: "objects imported correctly",
       })}
     </p>

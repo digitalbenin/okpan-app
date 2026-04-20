@@ -1,34 +1,36 @@
 <script>
   import { Tabs } from "bits-ui";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import InstitutionAssets from "./InstitutionAssets.svelte";
   import InstitutionObjects from "./InstitutionObjects.svelte";
   import InstitutionDatasources from "./InstitutionDatasources.svelte";
   import InstitutionMappings from "./InstitutionMappings.svelte";
 
   let { view = $bindable(), params = $bindable(), ...restProps } = $props();
+  const { t } = getTranslationStore();
 
   const tabsList = $derived([
     {
       value: "objects",
-      label: "Objects",
+      label: t("common.objects"),
       icon: "bi-box",
       count: restProps.institution?.objectsCount ?? restProps.objects?.totalCount ?? 0,
     },
     {
       value: "assets",
-      label: "Media",
+      label: t("common.media"),
       icon: "bi-image",
       count: restProps.institution?.assetsCount ?? restProps.assets?.totalCount ?? 0,
     },
     {
       value: "mappings",
-      label: "Data mapping",
+      label: t("common.data-mapping"),
       icon: "bi-arrow-left-right",
       count: restProps.mappingTemplates?.length ?? 0,
     },
     {
       value: "datasources",
-      label: "Data sources",
+      label: t("common.data-sources"),
       icon: "bi-table",
       count:
         restProps.institution?.datasourcesCount ??

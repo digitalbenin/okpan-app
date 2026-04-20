@@ -1,8 +1,23 @@
 <script>
   import { page } from "$app/state";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   const projectId = $derived(page.data?.project?.id);
-  const srcUrl = $derived(`website://app/${projectId ? `?project_id=${projectId}` : ''}`);
+  const { translationState } = getTranslationStore();
+
+  const srcUrl = $derived.by(() => {
+    const url = new URL("website://app/");
+
+    if (projectId) {
+      url.searchParams.set("project_id", projectId);
+    }
+
+    if (translationState.currentLocale) {
+      url.searchParams.set("interface_language", translationState.currentLocale);
+    }
+
+    return url.toString();
+  });
 </script>
 
 <div class="explorer-container">

@@ -136,16 +136,16 @@
     aboutTranslations: { hidden: true },
     logoId: { hidden: true },
     logoFile: {
-      label: t("common.logo", { fallback: "Website Logo" }),
+      label: t("common.logo"),
       renderer: FileUpload,
-      rendererProps: { accept: "image/*", placeholder: "Choose logo image or drag and drop", maxSize: 5 * 1024 * 1024, allowedTypes: ["image/jpeg", "image/png", "image/svg+xml", "image/webp"] },
+      rendererProps: { accept: "image/*", maxSize: 5 * 1024 * 1024, allowedTypes: ["image/jpeg", "image/png", "image/svg+xml", "image/webp"] },
       colSize: 12,
     },
-    title: { label: t("common.title", { fallback: "Title" }), colSize: 12 },
-    about: { label: t("common.about", { fallback: "About" }), type: "textarea", colSize: 12 },
-    authors: { label: t("common.authors", { fallback: "Authors" }), colSize: 12, hidden: true },
-    subfolderPath: { label: t("common.subfolder-path", { fallback: "Subfolder Path" }), colSize: 12, hidden: true },
-    showUnmapped: { label: t("common.show-unmapped", { fallback: "Show Unmapped Objects" }), type: "checkbox", colSize: 12, hidden: true },
+    title: { label: t("common.title"), colSize: 12 },
+    about: { label: t("common.about"), type: "textarea", colSize: 12 },
+    authors: { label: t("common.authors"), colSize: 12, hidden: true },
+    subfolderPath: { label: t("common.subfolder-path"), colSize: 12, hidden: true },
+    showUnmapped: { label: t("common.show-unmapped"), type: "checkbox", colSize: 12, hidden: true },
   });
 
   const fieldOrder = $derived(["title", "about", "logoFile"]);

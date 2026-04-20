@@ -159,7 +159,7 @@
   const i18n = $derived({
     objects: t("common.objects", { fallback: "Objects" }),
     clearSelection: t("common.clear-selection", { fallback: "Clear selection" }),
-    changeInstitution: t("objects.change-institution", { fallback: "Change institution" }),
+    changeInstitution: t("common.change-institution", { fallback: "Change institution" }),
     status: t("common.status", { fallback: "Status" }),
     editSelected: t("objects.edit-selected", { fallback: "Edit selected" }),
     deleteSelected: t("common.delete-selected", { fallback: "Delete" }),
@@ -168,7 +168,7 @@
     selectFields: t("objects.select-fields", { fallback: "Select fields" }),
     viewAs: t("objects.view-as", { fallback: "View as" }),
     filter: t("common.filter", { fallback: "Filter" }),
-    addNew: t("objects.add-new", { fallback: "Add new" }),
+    addNew: t("menu.add-object", { fallback: "Add Object" }),
     clearFilters: t("common.clear-filters", { fallback: "Clear filters" }),
     noObjectsFound: t("objects.no-objects-found", { fallback: "No objects found" }),
   });
