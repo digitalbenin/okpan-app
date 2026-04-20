@@ -8,10 +8,14 @@
   import { page } from "$app/stores";
 
   const { data } = $props();
-  const { t } = getTranslationStore();
+  const { t, translationState, setLocale } = getTranslationStore();
 
   let newProjectOpen = $state(false);
   let importProjectOpen = $state(false);
+  let appSettingsOpen = $state(false);
+  let interfaceLanguageDraft = $state("en");
+  let isSavingAppSettings = $state(false);
+  let appSettingsError = $state("");
 
   // Watch for URL parameters to trigger modals
   $effect(() => {
@@ -27,9 +31,17 @@
     }
   });
 
-  const dropdownItems = [
+  $effect(() => {
+    if (appSettingsOpen) {
+      interfaceLanguageDraft =
+        translationState.currentLocale || translationState.languages[0]?.code || "en";
+      appSettingsError = "";
+    }
+  });
+
+  const dropdownItems = $derived([
     {
-      label: t("project.new", { fallback: "New project" }),
+      label: t("project.new"),
       icon: "plus-circle",
       onClick: () => {
         setTimeout(() => {
@@ -38,7 +50,7 @@
       }
     },
     {
-      label: t("project.import-from-file", { fallback: "Import from file" }),
+      label: t("project.import-from-file"),
       icon: "file-earmark-arrow-up",
       onClick: () => {
         setTimeout(() => {
@@ -46,7 +58,7 @@
         }, 100);
       }
     }
-  ];
+  ]);
 
   async function handleCreated({ projectId }) {
     newProjectOpen = false;
@@ -87,6 +99,30 @@
       newProjectOpen = true;
     }, 100);
   }
+
+  async function handleSaveAppSettings() {
+    isSavingAppSettings = true;
+    appSettingsError = "";
+
+    try {
+      const saved = await setLocale(interfaceLanguageDraft);
+      if (!saved) {
+        appSettingsError = t("settings.interface-language-invalid", {
+          fallback: "The selected interface language is not available.",
+        });
+        return;
+      }
+
+      appSettingsOpen = false;
+    } catch (error) {
+      console.error("[App Settings] Failed to save interface language", error);
+      appSettingsError = t("settings.application-save-error", {
+        fallback: "Unable to save application settings.",
+      });
+    } finally {
+      isSavingAppSettings = false;
+    }
+  }
 </script>
 
 <div class="container-fluid">
@@ -102,10 +138,21 @@
     </div>
     <div class="col-3 vh-100 border-start">
       <h4>{t("common.resources", { fallback: "Resources and guides" })}</h4>
-      <h5 class="text-muted">Coming soon</h5>
+      <h5 class="text-muted">{t("common.coming-soon", { fallback: "Coming soon" })}</h5>
     </div>
   </div>
 </div>
+
+<button
+  class="btn btn-outline-secondary position-fixed bottom-0 start-0 m-4 d-flex align-items-center gap-2 shadow-sm"
+  style="z-index: 10;"
+  onclick={() => {
+    appSettingsOpen = true;
+  }}
+>
+  <i class="bi bi-sliders"></i>
+  {t("settings.application", { fallback: "Application settings" })}
+</button>
 
 {#if newProjectOpen}
   <BaseAlertDialog bind:open={newProjectOpen} size="lg">
@@ -114,6 +161,65 @@
     {/snippet}
     {#snippet description()}
       <ProjectCreate onCreated={handleCreated}></ProjectCreate>
+    {/snippet}
+  </BaseAlertDialog>
+{/if}
+
+{#if appSettingsOpen}
+  <BaseAlertDialog bind:open={appSettingsOpen}>
+    {#snippet title()}
+      {t("settings.application", { fallback: "Application settings" })}
+    {/snippet}
+    {#snippet description()}
+      <p class="text-muted mb-3">
+        {t("settings.application-description", {
+          fallback: "Choose the language used for the application interface.",
+        })}
+      </p>
+      <div class="mb-3">
+        <label class="form-label" for="interface-language-select">
+          {t("settings.interface-language", {
+            fallback: "Interface language",
+          })}
+        </label>
+        <select
+          id="interface-language-select"
+          class="form-select"
+          bind:value={interfaceLanguageDraft}
+          disabled={translationState.isLoading || translationState.languages.length === 0}
+        >
+          {#each translationState.languages as language}
+            <option value={language.code}>
+              {language.name} ({language.code})
+            </option>
+          {/each}
+        </select>
+      </div>
+
+      {#if appSettingsError}
+        <div class="alert alert-danger py-2 mb-0">{appSettingsError}</div>
+      {/if}
+    {/snippet}
+    {#snippet footer()}
+      <button
+        class="btn btn-secondary"
+        onclick={() => {
+          appSettingsOpen = false;
+        }}
+        disabled={isSavingAppSettings}
+      >
+        {t("common.cancel", { fallback: "Cancel" })}
+      </button>
+      <button
+        class="btn btn-primary"
+        onclick={handleSaveAppSettings}
+        disabled={isSavingAppSettings || !interfaceLanguageDraft}
+      >
+        {#if isSavingAppSettings}
+          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+        {/if}
+        {t("common.save", { fallback: "Save" })}
+      </button>
     {/snippet}
   </BaseAlertDialog>
 {/if}

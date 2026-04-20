@@ -94,8 +94,8 @@
           {#if importErrors.length}
             <div class="alert alert-danger mt-2 mb-0">
               <h4>
-                {t("import.errors-occurred", {
-                  fallback: "Some errors occurred",
+                {t("common.errors-occurred", {
+                  fallback: "Some errors occurred:",
                 })}
               </h4>
               <ul>

@@ -10,7 +10,14 @@ export default {
         // Disable ASAR to prevent native .node extraction to temp, ensuring DLLs
         // like libvips are loaded from their adjacent directory on Windows
         asar: false,
-        prune: false,
+        prune: true,
+        ignore: [
+            /^\/artic-dataset($|\/)/,
+            /^\/docs($|\/)/,
+            /^\/src\/db\/seed_data($|\/)/,
+            /^\/node_modules($|\/)/,
+            /^\/src\/website\/node_modules($|\/)/
+        ],
         asarUnpack: [
             '.vite/node_modules/@libsql/**',
             '.vite/node_modules/sharp/**/*',

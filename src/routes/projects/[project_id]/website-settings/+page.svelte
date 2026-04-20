@@ -20,7 +20,7 @@
     const rightActionButtons = $derived([
         {
             id: 'save-website-settings',
-            text: t('common.confirm', { fallback: 'Confirm' }),
+            text: t('common.confirm'),
             class: 'btn btn-success',
             onClick: () => websiteSettingsFormRef?.submitForm?.(),
             disableOnError: true,
@@ -31,7 +31,7 @@
 <PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons} formStore={formStore}>
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="h3 mb-0">Website Settings</h1>
+            <h1 class="h3 mb-0">{t('menu.website-settings')}</h1>
         </div>
     </div>
     <div class="row">

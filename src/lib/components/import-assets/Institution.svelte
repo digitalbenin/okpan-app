@@ -36,7 +36,7 @@
     <div class="col-6">
       <div class="mb-3">
         <label for="datasourceInstitution" class="form-label">
-          {t("import.datasource-institution", {
+          {t("common.institution", {
             fallback: "Institution",
           })}
         </label>

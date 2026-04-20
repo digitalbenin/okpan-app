@@ -27,19 +27,19 @@
 {#if projects.length}
   <div class="w-100 d-flex align-items-baseline mb-3">
     <h4>
-      {t("common.open-project", { fallback: "Open an existing project" })}
+      {t("common.open-project")}
     </h4>
     <div class="d-flex gap-2 ms-auto align-items-center">
       <BaseInput
         bind:value={search}
-        placeholder={t("common.search", { fallback: "Search" })}
+        placeholder={t("common.search")}
       />
       <BaseDropdownMenu
         items={dropdownItems}
         triggerClass="btn btn-primary flex-shrink-0"
       >
         {#snippet trigger()}
-          {t("common.new-project", { fallback: "Create new project" })}
+          {t("common.new-project")}
           <i class="bi bi-chevron-down ms-1"></i>
         {/snippet}
       </BaseDropdownMenu>
@@ -54,13 +54,13 @@
   <div
     class="w-100 d-flex align-items-center justify-content-center rounded mb-4 mt-3 p-3 gap-2"
   >
-    {t("project.start", { fallback: "Start creating" })}
+    {t("project.start")}
     <BaseDropdownMenu
       items={dropdownItems}
       triggerClass="btn btn-primary"
     >
       {#snippet trigger()}
-        {t("common.new-project", { fallback: "New project" })}
+        {t("project.new")}
         <i class="bi bi-chevron-down ms-1"></i>
       {/snippet}
     </BaseDropdownMenu>

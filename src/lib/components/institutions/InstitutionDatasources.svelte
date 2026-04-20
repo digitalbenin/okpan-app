@@ -15,24 +15,27 @@
   let viewAs = $state("table");
 
   const viewAsOptions = $derived([
-    { value: "grid", label: t("common.grid-view", { fallback: "Grid" }) },
-    { value: "table", label: t("common.table-view", { fallback: "Table" }) },
+    { value: "grid", label: t("common.grid-view") },
+    { value: "table", label: t("common.table-view") },
   ]);
 
   const orderBy = $derived([
-    { value: "name", label: t("common.name", { fallback: "Name" }) },
+    { value: "name", label: t("common.name") },
     {
       value: "date",
-      label: t("common.date", { fallback: "Date" }),
+      label: t("common.date"),
     },
     {
       value: "objectsCount",
-      label: t("common.objects-count", { fallback: "Objects Count" }),
+      label: t("common.objects-count"),
     },
   ]);
 
   const projectId = $derived(pageData.params.project_id);
   const institutionId = $derived(pageData.params.institution_id);
+  const importDataHref = $derived(
+    `/projects/${projectId}/import-data${institutionId ? `?institution_id=${encodeURIComponent(institutionId)}` : ""}`,
+  );
 </script>
 
 <div class="w-100">
@@ -40,15 +43,15 @@
     <div class="col-12 col-md-6">
       <BaseInput
         icon="search"
-        placeholder={t("common.search", { fallback: "Search" })}
+        placeholder={t("common.search")}
         size="sm"
         bind:value={params.sSearch}
       />
     </div>
     <div class="col-12 col-md-6 d-flex justify-content-md-end">
-      <a class="btn btn-secondary btn-sm" href="/projects/{projectId}/import-data">
+      <a class="btn btn-secondary btn-sm" href={importDataHref}>
         <i class="bi bi-plus-lg"></i>
-        {t("common.import-object", { fallback: "Import object" })}
+        {t("common.import-data")}
       </a>
     </div>
   </div>
@@ -69,7 +72,7 @@
         columns={[
           {
             value: "name",
-            label: t("common.name", { fallback: "Name" }),
+            label: t("common.name"),
             sortable: true,
             accessor: (value) => {
               return value.name.content;
@@ -80,14 +83,14 @@
           },
           {
             value: "date",
-            label: t("common.date", { fallback: "Date" }),
+            label: t("common.date"),
             sortable: true,
             render: (value) =>
               formatDate(+value, translationState.currentLocale),
           },
           {
             value: "objectsCount",
-            label: t("common.objects-count", { fallback: "Objects Count" }),
+            label: t("common.objects-count"),
             sortable: true,
           },
         ]}
@@ -97,7 +100,7 @@
     {/if}
   {:else if datasources.items.length === 0}
     <div class="text-center text-black-50 fs-4 fst-italic mt-4">
-      {t("common.no-datasources-found", { fallback: "No datasources found." })}
+      {t("common.no-datasources-found")}
     </div>
   {/if}
 

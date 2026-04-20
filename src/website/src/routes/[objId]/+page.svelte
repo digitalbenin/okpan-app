@@ -4,7 +4,9 @@
 	import ObjectResearchDataStatic from '$lib/components/ObjectResearchDataStatic.svelte';
 	import ObjectInstitutionData from '$lib/components/ObjectInstitutionData.svelte';
 	import ObjectImages from '$lib/components/ObjectImages.svelte';
+	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
+	const { t } = getWebsiteTranslationStore();
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -24,7 +26,7 @@
 		const name = (data?.object?.name && String(data.object.name).trim()) || '';
 		if (name) return name;
 		const primary = data?.objectOntologyFields?.find((e) => e.primary)?.value;
-		return primary || 'Untitled';
+		return primary || t('common.untitled');
 	});
 	const assets = $derived(data?.assets || []);
 
@@ -39,7 +41,7 @@
 		// Get object type from ontology fields
 		const typeField = objectOntologyFields?.find(f => ontologyFields?.find(of => of.id === f.field_id)?.name?.toLowerCase().includes('type'));
 		if (typeField?.value) parts.push(typeField.value);
-		return parts.length > 0 ? parts.join(' - ') : 'Object details';
+		return parts.length > 0 ? parts.join(t('common.meta-separator')) : t('object.details');
 	});
 </script>
 

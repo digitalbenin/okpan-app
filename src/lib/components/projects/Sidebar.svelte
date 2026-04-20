@@ -19,18 +19,18 @@
       exact: true,
     },
     {
-      label: t("menu.institutions", { fallback: "Institutions" }),
+      label: t("common.institutions", { fallback: "Institutions" }),
       url: `/projects/${page.data.project.id}/institutions`,
       icon: "bank2",
     },
     {
-      label: t("menu.objects", { fallback: "Objects" }),
+      label: t("common.objects", { fallback: "Objects" }),
       url: `/projects/${page.data.project.id}/objects`,
       icon: "box",
       exact: true,
     },
      {
-      label: t("menu.connections", { fallback: "Connections" }),
+      label: t("common.connections", { fallback: "Connections" }),
       url: `/projects/${page.data.project.id}/connections`,
       icon: "share-fill",
       exact: true,
@@ -88,7 +88,7 @@
       icon: "table",
       children: [
         {
-          label: t("menu.research-fields", { fallback: "Research Fields" }),
+          label: t("filters.research-fields", { fallback: "Research Fields" }),
           url: `/projects/${page.data.project.id}/data-structure/research-fields`,
           icon: "",
         },
@@ -100,7 +100,7 @@
       ],
     },
     {
-      label: t("menu.settings", { fallback: "Project Settings" }),
+      label: t("nav.settings", { fallback: "Settings" }),
       icon: "gear-fill",
       children: [
         {
@@ -120,17 +120,17 @@
 
 <div class="sidebar h-100 border-end overflow-y-auto p-3">
   <SidebarMenu items={projectLinks} pathname={page.url.pathname} />
-  <h5>Actions</h5>
+  <h5>{t("translations.actions", { fallback: "Actions" })}</h5>
   <SidebarMenu items={actionsLinks} pathname={page.url.pathname} />
-  <h5>Website</h5>
+  <h5>{t("common.website", { fallback: "Website" })}</h5>
   <SidebarMenu items={websiteLinks} pathname={page.url.pathname} />
-  <h5>Other</h5>
+  <h5>{t("menu.other", { fallback: "Other" })}</h5>
   <SidebarMenu items={otherLinks} pathname={page.url.pathname} />
   {#if systemInfo.isDev}
     <a href="/debug" class="btn btn-link">debug</a>
     <button
       onclick={() => window.api.openPreview(page.data.project.id)}
-      class="btn btn-link">Preview</button
+      class="btn btn-link">{t("menu.preview", { fallback: "Preview" })}</button
     >
     <div class="mt-3 text-muted small">
       <div>{systemInfo.platform} ({systemInfo.arch})</div>

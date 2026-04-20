@@ -213,7 +213,9 @@
                             />
                         </div>
                     {/snippet}
-                    select an institution first
+                    {t("objects.linked_media.select-institution-first", {
+                        fallback: "Select an institution first",
+                    })}
                 </BaseTooltip>
             {:else}
                 <BaseButton
@@ -247,7 +249,7 @@
                                 <button
                                     class="btn btn-link p-1 text-secondary"
                                     style="cursor: grab;"
-                                    aria-label="drag item"
+                                    aria-label={t("media.drag-item", { fallback: "Drag item" })}
                                     use:dragHandle
                                 >
                                     <i class="bi bi-arrows-move"></i>
@@ -255,7 +257,9 @@
                                 <button
                                     class="btn btn-link p-1 text-secondary"
                                     type="button"
-                                    aria-label="Remove media"
+                                    aria-label={t("objects.linked_media.remove-media", {
+                                        fallback: "Remove media",
+                                    })}
                                     onclick={(e) => {
                                         e.stopPropagation();
                                         handleAssetRemove(objectAsset.asset.id);
@@ -276,7 +280,7 @@
                             >
                                 <BaseImage
                                     src={asset?.path ? `media://${asset.path}` : null}
-                                    alt={asset?.filename || "Asset"}
+                                    alt={asset?.filename || t("media.unnamed-file", { fallback: "Unnamed file" })}
                                     class="w-100 h-100"
                                     style="object-fit: contain;"
                                 />
@@ -293,8 +297,8 @@
                             </div>
 
                             <!-- Asset filename -->
-                            <div class="p-2 small text-truncate text-muted" title={asset?.filename || "Unnamed file"}>
-                                {asset?.filename || "Unnamed file"}
+                            <div class="p-2 small text-truncate text-muted" title={asset?.filename || t("media.unnamed-file", { fallback: "Unnamed file" })}>
+                                {asset?.filename || t("media.unnamed-file", { fallback: "Unnamed file" })}
                             </div>
                         </div>
                     </div>

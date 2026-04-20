@@ -44,10 +44,10 @@
 
       <div>
         <p class="my-3">
-          {t("institutions.institution", { fallback: "Institution" })}
+          {t("common.institution", { fallback: "Institution" })}
         </p>
         <BaseSelectNew
-          placeholder={t("institutions.select_institution", {
+          placeholder={t("common.select-institution", {
             fallback: "Select institution",
           })}
           items={institutionItems}

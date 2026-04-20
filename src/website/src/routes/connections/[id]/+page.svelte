@@ -1,7 +1,9 @@
 <script>
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
+    import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
     import { resolveStaticHref } from '$lib/utils/sitePaths.js';
+    const { t } = getWebsiteTranslationStore();
     
     let { data } = $props();
     let researchField = $derived(data.researchField);
@@ -12,8 +14,8 @@
 
 <div class="py-4">
     <div class="mb-4">
-        <a href={isStaticExport ? resolveStaticHref('connections') : buildPathWithProjectId('/connections', projectId)} class="text-secondary text-decoration-none small mb-2 d-inline-block">Connections</a>
-        <h1 class="fw-bold mb-3">{researchField?.name || 'Unknown'}</h1>
+        <a href={isStaticExport ? resolveStaticHref('connections') : buildPathWithProjectId('/connections', projectId)} class="text-secondary text-decoration-none small mb-2 d-inline-block">{t('nav.connections')}</a>
+        <h1 class="fw-bold mb-3">{researchField?.name || t('common.unknown')}</h1>
         
         {#if researchField?.description}
             <p class="text-muted">{researchField.description}</p>
@@ -44,7 +46,7 @@
                         <div class="flex-grow-1">
                             <h5 class="mb-1 text-dark fw-bold">{item.name}</h5>
                             <div class="text-muted small">
-                                 {item.count || 0} objects connected
+                                   {t('object.objects-connected', { count: item.count || 0 })}
                             </div>
                         </div>
                     </div>
@@ -53,7 +55,7 @@
         {/each}
         {#if vocabularies.length === 0}
             <div class="card p-4 text-center text-muted">
-                No items found.
+                {t('page.connections.no-items')}
             </div>
         {/if}
     </div>

@@ -1,4 +1,6 @@
 <script>
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+
     let {
         asset,
         size = 200,
@@ -7,6 +9,8 @@
         onRemove = null,
         onClick = null,
     } = $props();
+
+    const { t } = getTranslationStore();
 
     function handleClick() {
         if (onClick) {
@@ -33,8 +37,8 @@
             class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle position-absolute d-flex align-items-center justify-content-center border-0 opacity-0-hover-100 transition-opacity"
             style="width: 22px; height: 22px; padding: 0; top: 5px; right: 5px; z-index: 10;"
             onclick={handleRemove}
-            title="Remove image"
-            aria-label="Remove image"
+            title={t("media.remove-image", { fallback: "Remove image" })}
+            aria-label={t("media.remove-image", { fallback: "Remove image" })}
         >
             <i class="bi bi-x-lg" style="font-size: 10px;"></i>
         </button>

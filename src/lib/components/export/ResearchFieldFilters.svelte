@@ -1,11 +1,14 @@
 <script>
     import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
+    import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     let {
         freeTextFieldOptions = [],
         freeTextFilters = $bindable([]),
         onChange = null,
     } = $props();
+
+    const { t } = getTranslationStore();
 
     function addFreeTextFilter() {
         freeTextFilters = [
@@ -40,7 +43,9 @@
 </script>
 
 <div class="filter-group mb-4">
-    <p class="filter-label fw-semibold mb-1 d-block">Research fields (free text)</p>
+    <p class="filter-label fw-semibold mb-1 d-block">
+        {t("export.research-fields-free-text", { fallback: "Research fields (free text)" })}
+    </p>
     {#each freeTextFilters as filter, index}
         <div
             class="free-text-filter bg-white border border-light-subtle rounded-3 p-3 d-flex flex-column gap-2 mb-2"
@@ -49,7 +54,7 @@
                 <BaseSelect
                     items={freeTextFieldOptions}
                     bind:value={filter.fieldId}
-                    placeholder="Select research field..."
+                    placeholder={t("export.select-research-field", { fallback: "Select research field..." })}
                     type="single"
                     size="sm"
                     onValueChange={notify}
@@ -59,11 +64,12 @@
                     type="text"
                     class="value-input flex-grow-1 px-2 py-1 border rounded-2"
                     bind:value={filter.query}
-                    placeholder="Enter search terms..."
+                    placeholder={t("export.enter-search-terms", { fallback: "Enter search terms..." })}
                     oninput={notify}
                 />
                 <button
                     class="remove-filter bg-transparent border-0 text-danger cursor-pointer fs-5"
+                    aria-label={t("common.remove", { fallback: "Remove" })}
                     onclick={() => removeFreeTextFilter(index)}
                 >
                     ×
@@ -76,6 +82,6 @@
         onclick={addFreeTextFilter}
     >
         <i class="bi bi-plus-circle"></i>
-        Add field
+        {t("export.add-field", { fallback: "Add field" })}
     </button>
 </div>

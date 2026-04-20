@@ -1,9 +1,10 @@
 <script>
   import { addImageProtocolPrefix, MEDIA_EXTENSIONS, MEDIA_MIME_TYPES } from "$lib/utils/media.js";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   let {
     value = $bindable(null),
-    placeholder = "Choose image...",
+    placeholder = "",
     class: customClass = "",
     errors = [],
     disabled = false,
@@ -14,13 +15,15 @@
   } = $props();
 
   let isDragOver = $state(false);
+  const { t } = getTranslationStore();
+  const resolvedPlaceholder = $derived(placeholder || t("file-upload.choose-image"));
 
   const displayName = $derived.by(() => {
-    if (!value || value?.__cleared) return placeholder;
+    if (!value || value?.__cleared) return resolvedPlaceholder;
     const name = value?.name || value?.filename || null;
     if (name) return name;
     if (typeof value === "string") return value.split("/").pop() || value;
-    return placeholder;
+    return resolvedPlaceholder;
   });
 
   const previewPath = $derived.by(() => {
@@ -37,14 +40,14 @@
     if (disabled) return;
     try {
       const result = await window.api.openFileDialog({
-        title: "Select Image",
+        title: t("file-upload.select-image"),
         multiple: false,
         filters: [
           {
-            name: "Images",
+            name: t("file-upload.images"),
             extensions: MEDIA_EXTENSIONS.image,
           },
-          { name: "All Files", extensions: ["*"] },
+          { name: t("file-upload.all-files"), extensions: ["*"] },
         ],
       });
       if (result?.canceled) return;
@@ -160,7 +163,7 @@
           />
           <button
             type="button"
-            aria-label="Remove image"
+            aria-label={t("media.remove-image")}
             class="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 m-0"
             style="width: 32px; height: 32px; padding: 0;"
             onclick={(e) => {
@@ -168,7 +171,7 @@
               clearFile();
             }}
             {disabled}
-            title="Remove image"
+            title={t("media.remove-image")}
           >
             <i class="bi bi-x"></i>
           </button>
@@ -177,14 +180,14 @@
       {:else}
         <div class="text-center py-5">
           <div class="fs-5 mb-0">
-            Drag a file here or <button
+            {t("file-upload.drag-file-here-or")} <button
               type="button"
               class="btn btn-success mx-1"
               onclick={(e) => {
                 e.stopPropagation();
                 openDialog();
               }}
-            >browse</button> a file from your computer
+            >{t("file-upload.browse")}</button> {t("file-upload.file-from-your-computer")}
           </div>
         </div>
       {/if}

@@ -105,7 +105,8 @@ dist/
 
 # Assets
 src/assets/project_assets/*
-src/assets/models
+src/assets/models/
+artic-dataset/
 
 .vscode
 .cursor

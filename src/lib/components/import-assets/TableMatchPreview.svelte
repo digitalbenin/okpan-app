@@ -1,6 +1,8 @@
 <script>
   import { getAssetImageUrl } from "$lib/utils/media.js";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   const { data } = $props();
+  const { t } = getTranslationStore();
 
   const rows = $derived.by(() => {
     return data.map((item) => ({
@@ -20,9 +22,9 @@
   <table class="table align-middle mb-0 confirmation-table">
     <thead>
       <tr>
-        <th>Image</th>
-        <th>Name</th>
-        <th>Linked objects</th>
+        <th>{t("common.image", { fallback: "Image" })}</th>
+        <th>{t("common.name", { fallback: "Name" })}</th>
+        <th>{t("common.linked-objects", { fallback: "Linked objects" })}</th>
       </tr>
     </thead>
     <tbody>
@@ -42,7 +44,7 @@
           <td class="name-col">{row.fileName}</td>
           <td>
             {#if row.linkedObjects.length > 0}
-              <span class="me-2">Linked to →</span>
+              <span class="me-2">{t("common.linked-to", { fallback: "Linked to" })} →</span>
               {#each row.linkedObjects as objectId}
                 <span style="font-size:1.1rem" class="badge text-bg-light border fw-medium me-2">{objectId}</span>
               {/each}

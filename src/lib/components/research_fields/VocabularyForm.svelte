@@ -28,7 +28,7 @@
         onSubmit, 
         onCancel,
         title = "",
-        submitLabel = "Save"
+        submitLabel = ""
     } = $props();
 
     const { t } = getTranslationStore();
@@ -128,7 +128,7 @@
     const rightActionButtons = $derived([
         {
             id: "save-vocabulary",
-            text: submitLabel,
+            text: resolvedSubmitLabel,
             class: "btn btn-success",
             type: "submit",
             disableOnError: true,
@@ -144,6 +144,8 @@
             type: "button"
         }
     ]);
+
+    const resolvedSubmitLabel = $derived(submitLabel || t("common.save", { fallback: "Save" }));
 
     const mediaSections = $derived([
         { type: 'image', icon: 'images', emptyIcon: 'images', size: 150, label: t("common.images", {fallback: "Images"}), addLabel: t("common.add-images", {fallback: "Add Images"}), emptyText: t("common.drag-upload-images", {fallback: "No images"}), visible: visibleFields.images },
@@ -178,7 +180,6 @@
         }
     };
 
-    // Sync pagination with props
     $effect(() => {
         loPage = linkedObjectsPage;
         loPageSize = linkedObjectsPageSize;
@@ -219,7 +220,7 @@
         <div class="d-flex align-items-center gap-2 mb-2 text-muted">
             <button type="button" class="btn btn-link p-0 text-decoration-none text-muted d-flex align-items-center" onclick={onCancel}>
                 <i class="bi bi-arrow-left me-1"></i>
-                {researchField?.name?.content || "Back"}
+                {researchField?.name?.content || t("nav.back", { fallback: "Back" })}
             </button>
         </div>
         <h2 class="m-0">{title}</h2>
@@ -234,13 +235,13 @@
                      <div class="card-body p-0">
                          <AutoForm 
                             {form} 
-                                     {createFieldValidator}
+                            {createFieldValidator}
                             languages={data.languages}
                             translatableFields={["option", visibleFields.description ? "description" : null].filter(Boolean)}
                             {validator}
                             hiddenFields={autoFormHiddenFields}
                             uiSchema={{
-                                description: { type: "textarea", colSize: 12 },
+                                description: { type: "textarea", colSize: 12, label: t("common.description", { fallback: "Description" }) },
                                 externalLink: { colSize: 12, label: t("common.external-link", { fallback: "External link" }) },
                                 option: { label: t("common.name", { fallback: "Name" }) }
                             }}
@@ -279,19 +280,17 @@
                 {/each}
 
                 <!-- Linked Objects (objects using this connection option) -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white py-3 border-0">
-                        <div class="m-0 text-muted fw-bold">
-                            {t("common.linked-objects", { fallback: "Linked objects" })}
+                {#if linkedObjectsTotalCount > 0}
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 border-0">
+                            <div class="m-0 text-muted fw-bold">
+                                {t("common.linked-objects", { fallback: "Linked objects" })}
+                            </div>
                         </div>
-                    </div>
-                    <div class="card-body p-0">
-                        
-
-                        {#if linkedObjects?.length > 0}
-                        <div class="px-3 pt-3 pb-2 text-muted">
-                            {linkedObjectsTotalCount} {getObjectsLabel(linkedObjectsTotalCount)}
-                        </div>
+                        <div class="card-body p-0">
+                            <div class="px-3 pt-3 pb-2 text-muted">
+                                {linkedObjectsTotalCount} {getObjectsLabel(linkedObjectsTotalCount)}
+                            </div>
                             <div class="list-group list-group-flush">
                                 {#each linkedObjects as obj (obj.id)}
                                     <div class="list-group-item d-flex align-items-center gap-3">
@@ -323,15 +322,8 @@
                                     </div>
                                 {/each}
                             </div>
-                        {:else}
-                            <div class="text-muted text-center m-3 py-5 m-0 border bg-light rounded-2">
-                                <i class="bi bi-link-45deg fs-1 mb-2 d-block opacity-50"></i>
-                                {t("common.no-linked-objects", { fallback: "No linked objects" })}
-                            </div>
-                        {/if}
-                    </div>
+                        </div>
 
-                    {#if linkedObjectsTotalCount > 0}
                         <div class="card-footer bg-white d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center gap-2">
                                 {#if linkedObjectsTotalCount > loPageSize}
@@ -352,20 +344,20 @@
                                 <span class="text-muted">{t("common.objects", { fallback: "Objects" })}</span>
                             </div>
                         </div>
-                    {/if}
-                </div>
+                    </div>
+                {/if}
             </div>
 
-            <!-- Right Column (Thumbnail) -->
+            <!-- Right Column (Main Image) -->
             <div class="col-12 col-xl-4">
-                 <!-- Main Asset (Thumbnail) -->
+                 <!-- Main Asset -->
                  {#if visibleFields.thumbnail}
                     <div class="card shadow-sm mb-4 sticky-top" style="z-index: 1;">
                          <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                            <div class="m-0 text-muted fw-bold">{t("common.thumbnail", {fallback: "Thumbnail"})}</div>
+                            <div class="m-0 text-muted fw-bold">{t("connections.main-image", {fallback: "Main image"})}</div>
                             {#if !mainAsset}
                                 <button type="button" class="btn btn-sm btn-secondary d-flex align-items-center gap-2" onclick={() => handleAddAsset('main')}>
-                                    <i class="bi bi-plus-lg"></i> {t("common.add-thumbnail", {fallback: "Add thumbnail"})}
+                                    <i class="bi bi-plus-lg"></i> {t("connections.add-main-image", {fallback: "Add main image"})}
                                 </button>
                             {/if}
                          </div>
@@ -375,12 +367,12 @@
                                     <AssetPreview asset={mainAsset} size={200} width="100%" showRemoveButton={true} onRemove={() => handleRemoveAsset(mainAsset, 'main')} />
                                 </div>
                                 <div class="text-muted small text-truncate mw-100 px-2" title={mainAsset?.filename || mainAsset?.name}>
-                                    {mainAsset?.filename || mainAsset?.name || "Untitled"}
+                                    {mainAsset?.filename || mainAsset?.name || t("common.untitled", { fallback: "Untitled" })}
                                 </div>
                             {:else}
                                 <div class="text-muted text-center py-5 m-0 bg-light rounded border border-dashed hover-bg-light-dark">
                                     <i class="bi bi-card-image fs-1 mb-2 d-block opacity-50"></i>
-                                    {t("common.no-thumbnail", {fallback: "No thumbnail"})}
+                                    {t("connections.no-main-image", {fallback: "No main image"})}
                                 </div>
                             {/if}
                          </div>

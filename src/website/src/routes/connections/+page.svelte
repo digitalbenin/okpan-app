@@ -1,7 +1,9 @@
 <script>
 	import { onMount } from 'svelte';
+	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
 	import { resolveSitePath, resolveStaticHref } from '$lib/utils/sitePaths.js';
+	const { t } = getWebsiteTranslationStore();
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	let { data } = $props();
@@ -26,10 +28,10 @@
 </script>
 
 <div class=" py-4">
-	<h1 class="mb-4">Connections</h1>
+	<h1 class="mb-4">{t('nav.connections')}</h1>
 
 	{#if isLoading}
-		<p class="text-muted">Loading connections…</p>
+		<p class="text-muted">{t('page.connections.loading')}</p>
 	{:else}
 		{#if connectionTypes.length > 0}
 			<div class="d-flex flex-column gap-3">
@@ -48,7 +50,7 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="text-muted">No connection types defined.</p>
+			<p class="text-muted">{t('page.connections.empty')}</p>
 		{/if}
 	{/if}
 </div>

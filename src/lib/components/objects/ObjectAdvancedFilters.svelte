@@ -1,6 +1,7 @@
 <script>
   import { fly, fade } from "svelte/transition";
   import { debounce } from "$lib/utils/throttle.js";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { onDestroy } from "svelte";
 
   let {
@@ -14,6 +15,8 @@
     facets = {},
     enableInstitutionFilter = true,
   } = $props();
+
+  const { t } = getTranslationStore();
 
   // State
   let activeView = $state("main");
@@ -72,6 +75,16 @@
     (researchFields || []).filter((f) => (f.type || "").toLowerCase() === "vocabulary")
   );
 
+  const visibleTextResearchFields = $derived.by(() =>
+    textResearchFields.filter((field) => field?.id)
+  );
+
+  const visibleConnectionResearchFields = $derived.by(() =>
+    connectionResearchFields.filter(
+      (field) => field?.id && vocabularies.some((vocabulary) => String(vocabulary.field_id) === String(field.id))
+    )
+  );
+
   // Helpers
   const getFieldKey = () => selectedField?.type === "institutions" ? "institutions" : selectedField?.id;
   
@@ -107,7 +120,7 @@
 
   const getFieldLabel = (kind, fieldId, fieldsList) => {
     const field = fieldsList.find((f) => String(f.id) === String(fieldId));
-    return field?.name?.content || field?.name || "Unknown field";
+    return field?.name?.content || field?.name || t("filters.unknown-field", { fallback: "Unknown field" });
   };
 
   const getTextFieldLabel = (tf) => {
@@ -122,20 +135,20 @@
   };
 
   const getSelectionLabel = (selectedIds, items, fieldId = null) => {
-    if (!selectedIds || !selectedIds.length) return "All";
+    if (!selectedIds || !selectedIds.length) return t("filters.all", { fallback: "All" });
     const filtered = items.filter((item) => {
       const matchesField = !fieldId || String(item.field_id) === String(fieldId);
       return matchesField && selectedIds.some((id) => String(id) === String(item.id));
     });
     const names = filtered.map((item) => item?.name?.content || item?.name || item?.option?.content || "").filter(Boolean);
-    return names.length ? names.join(", ") : "All";
+    return names.length ? names.join(", ") : t("filters.all", { fallback: "All" });
   };
 
   const getResearchFieldSelectionLabel = (field) => {
     const isVocab = (field.type || "").toLowerCase() === "vocabulary";
     return isVocab
       ? getSelectionLabel(advancedFilters?.[field.id], vocabularies, field.id)
-      : getCurrentTextQuery("research", field.id) || "All";
+      : getCurrentTextQuery("research", field.id) || t("filters.all", { fallback: "All" });
   };
 
   // Navigation
@@ -261,11 +274,11 @@
   <div
     class="d-flex justify-content-between align-items-center px-3 py-4 border-bottom"
   >
-    <h5 class="m-0" id="filters-title">Filters</h5>
+    <h5 class="m-0" id="filters-title">{t("filters.title", { fallback: "Filters" })}</h5>
     <button
       type="button"
       class="btn btn-link text-dark text-decoration-none p-0"
-      aria-label="Close filters"
+      aria-label={t("filters.close-filters", { fallback: "Close filters" })}
       onclick={onClose}
     >
       <i class="bi bi-x fs-3"></i>
@@ -280,9 +293,9 @@
                 type="button"
                 class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
                 onclick={() => showDetail({ type: "institutions", id: "institutions" })}
-                aria-label="Filter by institution"
+                aria-label={t("filters.filter-by-institution", { fallback: "Filter by institution" })}
               >
-                <div class="fw-semibold">Institution</div>
+                <div class="fw-semibold">{t("common.institution", { fallback: "Institution" })}</div>
                 <div class="d-flex align-items-center gap-2">
                   <span class="text-muted ps-3">{getSelectionLabel(advancedFilters?.institutions, institutions)}</span>
                   <i class="bi bi-chevron-right"></i>
@@ -290,15 +303,18 @@
               </button>
             {/if}
 
-              {#if connectionResearchFields.length > 0}
-          <div class="mt-3 px-3 pt-3 text-muted">Connections</div>
+              {#if visibleConnectionResearchFields.length > 0}
+          <div class="mt-3 px-3 pt-3 text-muted">{t("common.connections", { fallback: "Connections" })}</div>
 
-          {#each connectionResearchFields as field (field.id)}
+          {#each visibleConnectionResearchFields as field (field.id)}
             <button
               type="button"
               class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
               onclick={() => showDetail({ type: "vocabulary", id: field.id })}
-              aria-label={`Filter by ${field.name?.content || field.name}`}
+              aria-label={t("filters.filter-by-field", {
+                fallback: "Filter by {{field}}",
+                field: field.name?.content || field.name,
+              })}
             >
               <div class="fw-semibold">{field.name?.content || field.name}</div>
               <div class="d-flex align-items-center gap-2">
@@ -309,22 +325,27 @@
           {/each}
         {/if}
 
-        <div class="mt-3 px-3 pt-3 text-muted">Research fields</div>
+        {#if visibleTextResearchFields.length > 0}
+          <div class="mt-3 px-3 pt-3 text-muted">{t("filters.research-fields", { fallback: "Research fields" })}</div>
 
-            {#each textResearchFields as field (field.id)}
-              <button
-                type="button"
-                class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
-                onclick={() => showAddTextSearch(`r:${field.id}`, getCurrentTextQuery("research", field.id))}
-                aria-label={`Filter by ${field.name?.content || field.name}`}
-              >
-                <div class="fw-semibold">{field.name?.content || field.name}</div>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="text-muted ps-3">{getResearchFieldSelectionLabel(field)}</span>
-                  <i class="bi bi-chevron-right"></i>
-                </div>
-              </button>
-            {/each}
+          {#each visibleTextResearchFields as field (field.id)}
+            <button
+              type="button"
+              class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
+              onclick={() => showAddTextSearch(`r:${field.id}`, getCurrentTextQuery("research", field.id))}
+              aria-label={t("filters.filter-by-field", {
+                fallback: "Filter by {{field}}",
+                field: field.name?.content || field.name,
+              })}
+            >
+              <div class="fw-semibold">{field.name?.content || field.name}</div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="text-muted ps-3">{getResearchFieldSelectionLabel(field)}</span>
+                <i class="bi bi-chevron-right"></i>
+              </div>
+            </button>
+          {/each}
+        {/if}
 
         
 
@@ -334,13 +355,14 @@
           <div
             class="d-flex flex-column justify-content-between align-items-start"
           >
-            <div class="text-muted pb-3 mt-3">Institution fields</div>
+            <div class="text-muted pb-3 mt-3">{t("filters.institution-fields", { fallback: "Institution fields" })}</div>
             <button
               type="button"
               class="btn btn-outline-secondary btn-sm"
               onclick={() => showAddTextSearch()}
             >
-              <i class="bi bi-plus-circle"></i> Add instituion field filter
+              <i class="bi bi-plus-circle"></i>
+              {t("filters.add-institution-field-filter", { fallback: "Add institution field filter" })}
             </button>
           </div>
 
@@ -354,14 +376,14 @@
                   <button
                     class="btn btn-outline-secondary btn-sm"
                     onclick={() => editTextFilter(tf)}
-                    aria-label="Edit filter"
+                    aria-label={t("filters.edit-filter", { fallback: "Edit filter" })}
                   >
                     <i class="bi bi-pencil"></i>
                   </button>
                   <button
                     class="btn btn-outline-danger btn-sm"
                     onclick={() => removeTextFilter(tf)}
-                    aria-label="Remove filter"
+                    aria-label={t("filters.remove-filter", { fallback: "Remove filter" })}
                   >
                     <i class="bi bi-trash"></i>
                   </button>
@@ -378,10 +400,10 @@
       <div class="d-flex align-items-center justify-content-between">
         <button class="btn btn-link text-decoration-none" onclick={showMain}>
           <i class="bi bi-arrow-left"></i>
-          Back
+          {t("nav.back", { fallback: "Back" })}
         </button>
         <button class="btn btn-outline-secondary btn-sm" onclick={resetFilter}
-          >Reset</button
+          >{t("common.reset", { fallback: "Reset" })}</button
         >
       </div>
 
@@ -389,7 +411,7 @@
         <input
           type="text"
           class="form-control"
-          placeholder="Search..."
+          placeholder={t("filters.search", { fallback: "Search..." })}
           bind:value={searchTerm}
         />
       </div>
@@ -418,7 +440,7 @@
           </div>
         {/each}
         {#if filteredItems.length === 0}
-          <div class="text-muted text-center py-3">No items</div>
+          <div class="text-muted text-center py-3">{t("filters.no-items", { fallback: "No items" })}</div>
         {/if}
       </div>
     </div>
@@ -429,27 +451,27 @@
       <div class="d-flex align-items-center justify-content-between">
         <button class="btn btn-link text-decoration-none" onclick={showMain}>
           <i class="bi bi-arrow-left"></i>
-          Back
+          {t("nav.back", { fallback: "Back" })}
         </button>
       </div>
 
-      <div class="mb-2">Select a field</div>
+      <div class="mb-2">{t("filters.select-a-field", { fallback: "Select a field" })}</div>
       <select
         class="form-select"
         bind:value={textSelectedFieldId}
         onchange={upsertOrRemoveTextFilter}
       >
-        <option value="">Choose...</option>
+        <option value="">{t("filters.choose", { fallback: "Choose..." })}</option>
         {#each selectableTextFields as f (f.key)}
           <option value={f.key}>{f.label}</option>
         {/each}
       </select>
 
-      <div class="mb-2">Enter query</div>
+      <div class="mb-2">{t("filters.enter-query", { fallback: "Enter query" })}</div>
       <input
         type="text"
         class="form-control"
-        placeholder="Type to search"
+        placeholder={t("filters.type-to-search", { fallback: "Type to search" })}
         bind:value={textQuery}
         oninput={() => debouncedUpdateTextFilter()}
       />

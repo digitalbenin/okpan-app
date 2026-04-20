@@ -25,7 +25,7 @@
         wizard.useMatchingSuggestions = true;
       }}
     >
-      {t("import.new-template", {
+      {t("import.create-new-mapping", {
         fallback: "No, I want to create a new mapping",
       })}
     </button>

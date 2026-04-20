@@ -23,6 +23,58 @@
   let basicInfo = $state({});
   let isSubmitting = $state(false);
 
+  function getTemplateLabel(template) {
+    switch (template?.id) {
+      case "custom":
+        return t("connections.template.custom.label", { fallback: "Custom" });
+      case "indigenous_designation":
+        return t("connections.template.indigenous_designation.label", {
+          fallback: "Indigenous designation",
+        });
+      case "iconography":
+        return t("connections.template.iconography.label", { fallback: "Iconography" });
+      case "place":
+        return t("connections.template.place.label", { fallback: "Place" });
+      case "oral_history":
+        return t("connections.template.oral_history.label", { fallback: "Oral history" });
+      case "people":
+        return t("connections.template.people.label", { fallback: "People" });
+      default:
+        return template?.label || "";
+    }
+  }
+
+  function getTemplateDescription(template) {
+    switch (template?.id) {
+      case "custom":
+        return t("connections.template.custom.description", {
+          fallback: "Create a connection type from scratch",
+        });
+      case "indigenous_designation":
+        return t("connections.template.indigenous_designation.description", {
+          fallback: "Record indigenous names/terms",
+        });
+      case "iconography":
+        return t("connections.template.iconography.description", {
+          fallback: "Describe symbols and visual elements",
+        });
+      case "place":
+        return t("connections.template.place.description", {
+          fallback: "Geographic locations and sites",
+        });
+      case "oral_history":
+        return t("connections.template.oral_history.description", {
+          fallback: "Recordings and transcripts",
+        });
+      case "people":
+        return t("connections.template.people.description", {
+          fallback: "Individuals and groups",
+        });
+      default:
+        return template?.description || "";
+    }
+  }
+
   function resetModal() {
     step = 1;
     selectedTemplate = null;
@@ -170,7 +222,8 @@
               style="min-height: 150px;"
             >
               <i class={`bi ${template.icon} fs-1 mb-2`}></i>
-              <p class="card-title mb-0">{template.label}</p>
+              <p class="card-title mb-1">{getTemplateLabel(template)}</p>
+              <p class="text-muted small mb-0">{getTemplateDescription(template)}</p>
             </div>
           </div>
         </div>

@@ -1,0 +1,144 @@
+{
+  "code": "en",
+  "name": "English",
+  "translations": {
+    "nav": {
+      "archive": "Archive",
+      "connections": "Connections",
+      "about": "About",
+      "toggle-menu": "Toggle menu",
+      "collapse-menu": "Collapse menu",
+      "expand-menu": "Expand menu",
+      "language": "Language"
+    },
+    "site": {
+      "untitled-project": "Untitled Project",
+      "default-title": "Database Collection",
+      "default-description": "Explore our digital collection"
+    },
+    "page": {
+      "archive": {
+        "loading": "Loading collection..."
+      },
+      "connections": {
+        "loading": "Loading connections...",
+        "empty": "No connection types defined.",
+        "no-items": "No items found."
+      },
+      "about": {
+        "loading": "Loading about...",
+        "empty": "No description available."
+      }
+    },
+    "filters": {
+      "search-placeholder": "Search...",
+      "title": "Filters",
+      "results": "{{count}} results",
+      "remove-filter": "Remove filter",
+      "clear-all": "Clear all",
+      "institutions": "Institutions",
+      "connections": "Connections",
+      "research-fields": "Research fields",
+      "active-text-searches": "Active text searches",
+      "add-text-search": "Add text search",
+      "search-field": "Search field",
+      "field": "Field",
+      "choose-field": "Choose a field",
+      "search-text": "Search text",
+      "search-text-placeholder": "Type here...",
+      "reset": "Reset",
+      "all": "All",
+      "close": "Close filters",
+      "remove-text-filter": "Remove text filter",
+      "edit-text-filter": "Edit text filter",
+      "info": "Info",
+      "institution-chip": "Institution: {{name}}",
+      "field-fallback": "Field",
+      "vocabulary-thumbnail": "Vocabulary thumbnail",
+      "vocabulary-image": "Vocabulary image"
+    },
+    "pagination": {
+      "label": "Pagination",
+      "previous": "Prev",
+      "next": "Next",
+      "page": "Page {{count}}",
+      "previous-page": "Previous page",
+      "next-page": "Next page"
+    },
+    "common": {
+      "loading": "Loading...",
+      "close": "Close",
+      "back": "Back",
+      "no-description-available": "No description available.",
+      "unknown": "Unknown",
+      "unknown-item": "Unknown item",
+      "unknown-field": "Unknown field",
+      "unknown-datasource": "Unknown datasource",
+      "no-datasource": "No datasource",
+      "unknown-institution": "Unknown institution",
+      "name": "Name",
+      "country": "Country",
+      "address": "Address",
+      "links": "Links",
+      "website": "Website",
+      "link": "Link",
+      "value": "Value",
+      "read-more": "read more",
+      "read-less": "read less",
+      "list-separator": ", ",
+      "meta-separator": " - ",
+      "ellipsis": "...",
+      "quote-open": "\u201c",
+      "quote-close": "\u201d",
+      "untitled": "Untitled",
+      "none": "-"
+    },
+    "object": {
+      "designation": "Designation",
+      "institution": "Institution",
+      "no-title": "No Title",
+      "no-type": "No Type",
+      "details": "Object details",
+      "linked-objects": "Linked objects",
+      "objects-count": "{{count}} objects",
+      "objects-connected": "{{count}} objects connected",
+      "no-objects-linked": "No objects linked.",
+      "external-link": "Link",
+      "no-image": "No Image"
+    },
+    "institution": {
+      "title": "Institution data",
+      "field": "Institution field",
+      "matched-field": "Matched field",
+      "value": "Value",
+      "value-placeholder": "Value field",
+      "no-fields-for-datasource": "No ontology fields for this datasource",
+      "about": "About the institution",
+      "no-data-for-object": "No institution data found for this object"
+    },
+    "research": {
+      "no-fields": "No research fields available."
+    },
+    "media": {
+      "zoom-in": "Zoom in",
+      "zoom-out": "Zoom out",
+      "open-modal": "Open in modal",
+      "open-fullscreen": "Open fullscreen",
+      "no-image-available": "No image available",
+      "select-image": "Select image {{count}}",
+      "image-number": "image {{count}}",
+      "image-preview": "Image preview",
+      "videos": "Videos",
+      "images": "Images",
+      "audio": "Audio",
+      "browser-no-video": "Your browser does not support the video tag.",
+      "browser-no-audio": "Your browser does not support the audio element.",
+      "previous-image": "Previous image",
+      "next-image": "Next image",
+      "previous": "Previous",
+      "next": "Next",
+      "go-to-video": "Go to video {{count}}",
+      "go-to-image": "Go to image {{count}}"
+    }
+  }
+}
