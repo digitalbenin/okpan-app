@@ -67,7 +67,12 @@
   }
 
   const handleSave = async function () {
+    if (wizard.saving) {
+      return;
+    }
+
     try {
+      wizard.saving = true;
       importErrors = [];
       isImporting = true;
       importProgressPercent = 0;
@@ -111,6 +116,7 @@
       // Handle error appropriately, e.g., show a notification
     } finally {
       isImporting = false;
+      wizard.saving = false;
     }
   };
 

@@ -13,6 +13,7 @@ export function createImportAssetsWizardContext(params) {
     ]);
     let currentStep = $state(1);
     let nextEnabled = $state(false);
+    let saving = $state(false);
     let projectId = $state(params?.projectId);
     let institutionId = $state(null);
     let assets = $state([]);
@@ -72,6 +73,9 @@ export function createImportAssetsWizardContext(params) {
 
         get nextEnabled() { return nextEnabled; },
         set nextEnabled(value) { nextEnabled = value; },
+
+        get saving() { return saving; },
+        set saving(value) { saving = value; },
 
         get projectId() { return projectId; },
         set projectId(value) { projectId = value; },
@@ -200,6 +204,7 @@ export function createImportAssetsWizardContext(params) {
             currentStep = 1;
             importCompleted = false;
             nextEnabled = false;
+            saving = false;
             institutionId = null;
             assets = [];
             selectedFiles = [];
