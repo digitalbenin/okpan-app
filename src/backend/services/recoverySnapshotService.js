@@ -481,6 +481,22 @@ function openSnapshotCloneDb(cloneDbPath) {
   };
 }
 
+async function cleanupStagedSnapshotClone(stagingBaseDir, projectId) {
+  try {
+    await removePathRobust(stagingBaseDir, {
+      recursive: true,
+      maxAttempts: 30,
+      retryDelayMs: 200,
+    });
+  } catch (error) {
+    console.warn('[RecoverySnapshot] Failed to remove staged snapshot clone', {
+      projectId,
+      stagingBaseDir,
+      error: error?.message,
+    });
+  }
+}
+
 async function finalizeSnapshotFromDb(projectId, options = {}, sourceDb) {
   await ensureProjectSnapshotDir(projectId);
 
@@ -557,7 +573,7 @@ export async function prepareSessionOpenRecoverySnapshot(projectId, options = {}
         } catch (error) {
           console.warn('[RecoverySnapshot] Failed to close staged clone DB', { projectId, error: error?.message });
         }
-        await fsPromises.rm(stagingBaseDir, { recursive: true, force: true });
+        await cleanupStagedSnapshotClone(stagingBaseDir, projectId);
       }
     })().catch((error) => {
       console.warn('[RecoverySnapshot] Failed to finalize session-open snapshot', { projectId, error: error?.message });
