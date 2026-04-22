@@ -222,6 +222,14 @@ export const updateObjectResearchFields = async (objectId, changes) => {
     const results = [];
     const errors = [];
 
+    const buildResearchFieldRecordId = (targetObjectId, fieldId, vocabularyId) => {
+        if (vocabularyId) {
+            return `objects_research_fields:${targetObjectId}:${fieldId}:${vocabularyId}`;
+        }
+
+        return crypto.randomUUID();
+    };
+
     for (const change of changes) {
         let response;
 
@@ -247,6 +255,7 @@ export const updateObjectResearchFields = async (objectId, changes) => {
         // If change.id is null/undefined, it's a new assignment
         else if (change.fieldId) {
             const params = {
+                recordId: buildResearchFieldRecordId(objectId, change.fieldId, change.vocabularyId),
                 objectId: objectId,
                 fieldId: change.fieldId,
                 value: change.value,

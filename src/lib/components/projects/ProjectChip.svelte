@@ -5,6 +5,7 @@
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { deleteProject } from "$lib/stores/ProjectsUtils.js";
+  import { isSharedProject as getIsSharedProject } from "$lib/utils/projectSharing";
 
   const { project } = $props();
   const { t, translationState } = getTranslationStore();
@@ -46,8 +47,10 @@
   ]);
 
   const isDeleteEnabled = $derived(
-    confirmationText.trim() === project.title.content.trim()
+    confirmationText.trim() === (project.title?.content || "Connecting...").trim()
   );
+
+  const isSharedProject = $derived(getIsSharedProject(project));
 
   async function handleDeleteConfirm() {
     if (!isDeleteEnabled) return;
@@ -77,11 +80,21 @@
 
     <div class="d-flex flex-column">
       <a href="/projects/{project.id}">
-        {project.title.content}
+        {project.title?.content || "Connecting/Downloading Project..."}
       </a>
-      <p class="fs-7 mb-0">
-        {i18n.createdOn}
-        {formatDate(+project.created_at, translationState.currentLocale)}
+      <p class="fs-7 mb-0 text-muted d-flex align-items-center gap-2">
+        <span class="d-inline-flex align-items-center">
+          {#if isSharedProject}
+            <i class="bi bi-people-fill me-1"></i> {t("project.shared", { fallback: "Shared" })}
+          {:else}
+            <i class="bi bi-lock-fill me-1"></i> {t("project.private", { fallback: "Private" })}
+          {/if}
+        </span>
+        <span>&bull;</span>
+        <span>
+          {i18n.createdOn}
+          {project.created_at ? formatDate(+project.created_at, translationState.currentLocale) : '...'}
+        </span>
       </p>
     </div>
   </div>
@@ -133,13 +146,20 @@
       <p>
         {i18n.deleteConfirmation}
       </p>
-      <p class="fw-bold">{project.title.content}</p>
+      {#if isSharedProject}
+        <p class="text-warning-emphasis">
+          {t("project.delete-shared-warning", {
+            fallback: "Deleting a shared project removes it only from this computer. Other people will keep seeing it and can continue working on their copy."
+          })}
+        </p>
+      {/if}
+      <p class="fw-bold">{project.title?.content || "Connecting..."}</p>
       <p class="mb-2">
         {i18n.deleteTypeName}
       </p>
       <BaseInput
         bind:value={confirmationText}
-        placeholder={project.title.content}
+        placeholder={project.title?.content || "Connecting..."}
       />
     {/snippet}
     {#snippet footer()}

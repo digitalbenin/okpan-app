@@ -3,7 +3,9 @@
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
+  import UserPresenceSummary from "$lib/components/projects/UserPresenceSummary.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { isSharedProject as getIsSharedProject } from "$lib/utils/projectSharing.js";
   import { page } from "$app/state";
   import { goto, invalidateAll } from "$app/navigation";
   import { deleteProject } from "$lib/stores/ProjectsUtils.js";
@@ -13,6 +15,8 @@
 
   let dropdownOpen = $state(false);
   let showDeleteModal = $state(false);
+  let showSharingModal = $state(false);
+  let idCopied = $state(false);
   let confirmationText = $state("");
 
   const dropdownItems = $derived([
@@ -42,6 +46,14 @@
       },
     },
     {
+      label: t("project.get-sharing-id", { fallback: "Get project sharing ID" }),
+      icon: "share",
+      onClick: () => {
+        showSharingModal = true;
+        idCopied = false;
+      },
+    },
+    {
       label: t("project.delete-project", { fallback: "Delete project" }),
       icon: "trash",
       onClick: () => {
@@ -52,8 +64,10 @@
   ]);
 
   const isDeleteEnabled = $derived(
-    confirmationText.trim() === project.title.content.trim()
+    confirmationText.trim() === (project.title?.content || "").trim()
   );
+
+  const isSharedProject = $derived(getIsSharedProject(project));
 
   async function handleDeleteConfirm() {
     if (!isDeleteEnabled) return;
@@ -74,6 +88,16 @@
     showDeleteModal = false;
     confirmationText = "";
   }
+
+  async function handleCopySharingId() {
+    try {
+      await navigator.clipboard.writeText(project.id);
+      idCopied = true;
+      setTimeout(() => { idCopied = false; }, 3000);
+    } catch (err) {
+      console.error("Failed to copy!", err);
+    }
+  }
 </script>
 
 <div
@@ -91,7 +115,7 @@
       alignOffset={0}
     >
       {#snippet trigger()}
-        {project.title.content}
+        {project.title?.content || "Connecting/Downloading Project..."}
         <i class="bi bi-chevron-{dropdownOpen ? 'up' : 'down'}"></i>
       {/snippet}
     </BaseDropdownMenu>
@@ -101,9 +125,46 @@
   </div>
 
   <div class="col text-end">
-    <div class="pe-3">{t("common.username", { fallback: "Username" })}</div>
+    {#if isSharedProject}
+      <UserPresenceSummary projectId={project?.id} />
+    {/if}
   </div>
 </div>
+
+<!-- Sharing ID modal -->
+{#if showSharingModal}
+  <BaseAlertDialog bind:open={showSharingModal}>
+    {#snippet title()}
+      {t("project.sharing-id", { fallback: "Project Sharing ID" })}
+    {/snippet}
+    {#snippet description()}
+      <p>
+        {t("project.sharing-id-description", {
+          fallback: "Share this ID with others so they can join your project sync session:"
+        })}
+      </p>
+      <div class="input-group mb-3">
+        <input type="text" class="form-control" value={project.id} readonly />
+        <button class="btn btn-primary" onclick={handleCopySharingId}>
+          <i class={`pe-2 bi bi-${idCopied ? 'check2' : 'clipboard'}`}></i> 
+          {idCopied 
+            ? t("common.copied", { fallback: "Copied!" }) 
+            : t("common.copy", { fallback: "Copy" })}
+        </button>
+      </div>
+      <!--{#if idCopied}
+        <p class="text-success small mb-0">
+          ID copied to your clipboard.
+        </p>
+      {/if}-->
+    {/snippet}
+    {#snippet footer()}
+      <button class="btn btn-primary" onclick={() => (showSharingModal = false)}>
+        {t("common.close", { fallback: "Close" })}
+      </button>
+    {/snippet}
+  </BaseAlertDialog>
+{/if}
 
 <!-- Delete confirmation modal -->
 {#if showDeleteModal}
@@ -117,15 +178,22 @@
           fallback: "Are you sure you want to delete this project? This action cannot be undone." 
         })}
       </p>
-      <p class="fw-bold">{project.title.content}</p>
+      {#if isSharedProject}
+        <p class="text-warning-emphasis">
+          {t("project.delete-shared-warning", {
+            fallback: "Deleting a shared project removes it only from this computer. Other people will keep seeing it and can continue working on their copy."
+          })}
+        </p>
+      {/if}
+      <p class="fw-bold">{project.title?.content || "Connecting/Downloading Project..."}</p>
       <p class="mb-2">
-        {t("project.delete-type-name", { 
-          fallback: "To confirm, please type the project name below:" 
+        {t("project.delete-type-name", {
+          fallback: "To confirm, please type the project name below:"
         })}
       </p>
       <BaseInput
         bind:value={confirmationText}
-        placeholder={project.title.content}
+        placeholder={project.title?.content || "Connecting/Downloading Project..."}
       />
     {/snippet}
     {#snippet footer()}

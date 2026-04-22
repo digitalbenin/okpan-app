@@ -1,6 +1,6 @@
 <script>
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
-  import { addImageProtocolPrefix } from "$lib/utils/media.js";
+  import BaseImage from "$lib/components/base/BaseImage.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   const { t } = getTranslationStore();
   const { institution } = $props();
@@ -14,9 +14,12 @@
   >
     {#if institution.previewImages && institution.previewImages.length > 0}
       <div class="col">
-        <img
-          class="object-fit-cover w-100 h-100"
-          src={addImageProtocolPrefix(institution.previewImages[0].sm)}
+        <BaseImage
+          class="w-100 h-100"
+          objectFit="cover"
+          asset={institution.previewImages[0]}
+          preferredFormat="sm"
+          compact={true}
           alt={institution.name.content || "Institution Image"}
         />
       </div>
@@ -24,9 +27,12 @@
         <div class="col-4 d-flex flex-column border-start">
           {#each institution.previewImages.slice(1, 3) as image, i}
             <div class="col" class:border-bottom={i === 0}>
-              <img
-                class="object-fit-cover w-100 h-100"
-                src={addImageProtocolPrefix(image.sm)}
+              <BaseImage
+                class="w-100 h-100"
+                objectFit="cover"
+                asset={image}
+                preferredFormat="sm"
+                compact={true}
                 alt={institution.name.content || "Institution Image"}
               />
             </div>
@@ -55,8 +61,8 @@
         {institution.country.content}
       </p>
     {/if}
-    <div class="mt-auto d-flex fs-7">
-      <div class="col">
+    <div class="mt-auto d-flex flex-column fs-7 gap-1">
+      <div>
         {institution.objectsCount}
         {#if institution.objectsCount < 2}
           {t("common.object", { fallback: "object" })}
@@ -64,12 +70,12 @@
           {t("common.objects", { fallback: "objects" })}
         {/if}
       </div>
-      <div class="col">
+      <div>
         {institution.assetsCount}
         {#if institution.assetsCount < 2}
-          {t("common.asset", { fallback: "asset" })}
+          {t("common.asset", { fallback: "media" })}
         {:else}
-          {t("common.assets", { fallback: "assets" })}
+          {t("common.assets", { fallback: "media" })}
         {/if}
       </div>
     </div>

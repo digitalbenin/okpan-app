@@ -23,6 +23,8 @@ import {
     createProjectDeleteCascadeMutation,
     createAssetsObjectsBulkLinkMutation,
     createAssetsBulkDeleteMutation,
+    createAssetDeleteMutation,
+    createGenericAssetDeleteMutation,
     createObjectsOntologyFieldsUnlinkMutation,
     createUpdateTemplateAndPropagateMutation
 } from './queries';
@@ -117,6 +119,8 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Mutation._fields.linkAssetsToObjectsBulk = createAssetsObjectsBulkLinkMutation(db, drizzleResult);
     // Bulk delete assets and clean filesystem
     drizzleResult.schema._typeMap.Mutation._fields.deleteAssetsBulk = createAssetsBulkDeleteMutation(db, drizzleResult);
+    drizzleResult.schema._typeMap.Mutation._fields.deleteAssetCascade = createAssetDeleteMutation(db, drizzleResult);
+    drizzleResult.schema._typeMap.Mutation._fields.deleteGenericAssetCascade = createGenericAssetDeleteMutation(db, drizzleResult);
     // Unlink datasource from object
     drizzleResult.schema._typeMap.Mutation._fields.unlinkDatasourceFromObject = createObjectsOntologyFieldsUnlinkMutation(db, drizzleResult);
     // Update template and propagate changes to all objects

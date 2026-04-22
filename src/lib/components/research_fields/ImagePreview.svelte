@@ -1,4 +1,5 @@
 <script>
+    import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     let {
@@ -54,20 +55,17 @@
         onkeydown={(e) => e.key === "Enter" && handleClick()}
     >
         {#if asset?.path}
-            <img
-                src="media://{asset.path}"
+            <BaseImage
+                {asset}
+                preferredFormat="md"
                 alt={asset.filename || asset.name}
-                class="w-100 h-100 object-fit-cover"
+                class="w-100 h-100"
+                objectFit="cover"
                 loading="lazy"
+                compact={true}
             />
         {:else}
             <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
         {/if}
     </div>
 </div>
-
-<style>
-    .object-fit-cover {
-        object-fit: cover;
-    }
-</style>

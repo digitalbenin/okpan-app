@@ -1,6 +1,7 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
 import { invalidate, invalidateAll } from "$app/navigation";
+import { deleteAssetsBulk } from "$lib/stores/AssetsUtils.js";
 
 // Get validation store
 const { getSchema, validate } = getValidationStore();
@@ -90,6 +91,15 @@ export const updateInstitution = async (institutionId, updatedData) => {
 };
 
 export const deleteInstitution = async (institutionId) => {
+    // First, fetch and delete related assets to ensure physical files are removed
+    const assetsListResponse = await executeQuery('assets', 'list', { institutionId, pageSize: 1000 });
+    const relatedAssets = assetsListResponse?.result?.items || [];
+    
+    if (relatedAssets.length > 0) {
+        const assetIds = relatedAssets.map(asset => asset.id);
+        await deleteAssetsBulk(assetIds);
+    }
+
     // The delete mutation expects variable name `id`, not `institutionId`
     const result = await executeQuery('institutions', 'delete', { id: institutionId });
     await invalidateAll();

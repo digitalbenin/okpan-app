@@ -1,4 +1,4 @@
-import { integer, text, blob, sqliteTable, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
+import { integer, real, text, blob, sqliteTable, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Common fields configuration for all tables
@@ -116,7 +116,9 @@ export const project = sqliteTable('project', {
     title_id: text('title_id').references(() => texts.id),
     description_id: text('description_id').references(() => texts.id),
     exports: text('exports', { mode: 'json' }),
-    password: text('password')
+    password: text('password'),
+    is_shared: integer('is_shared').notNull().default(0), // 0=Private, 1=Shared
+    created_app_version: text('created_app_version')
 });
 
 // Object Display Fields table - stores configuration for how objects are displayed in lists
@@ -275,7 +277,15 @@ export const assets = sqliteTable('assets', {
     formats: text('formats', { mode: 'json' }),
     properties: text('properties', { mode: 'json' }),
     institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'cascade' }),
-    project_id: text('project_id').references(() => project.id)
+    project_id: text('project_id').references(() => project.id),
+    // P2P torrent metadata — synced via Yjs to all peers
+    torrent_info_hash: text('torrent_info_hash'),
+    torrent_name: text('torrent_name'),
+    torrent_length: integer('torrent_length'),
+    torrent_piece_length: integer('torrent_piece_length'),
+    asset_content_mime: text('asset_content_mime'),
+    asset_content_ext: text('asset_content_ext'),
+    asset_content_sha256: text('asset_content_sha256')
 });
 
 // Assets relations
@@ -289,7 +299,11 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
         references: [project.id]
     }),
     assetsInstitutions: many(assets_institutions),
-    objectsAssets: many(objects_assets)
+    objectsAssets: many(objects_assets),
+    localState: one(asset_local_state, {
+        fields: [assets.id],
+        references: [asset_local_state.asset_id]
+    })
 }));
 
 // GenericAssets table - for assets not linked to institutions, but to projects and other entities like vocabularies
@@ -300,7 +314,15 @@ export const genericAssets = sqliteTable('generic_assets', {
     type: text('type'),
     formats: text('formats', { mode: 'json' }),
     properties: text('properties', { mode: 'json' }),
-    project_id: text('project_id').references(() => project.id) // No institution_id
+    project_id: text('project_id').references(() => project.id), // No institution_id
+    // P2P torrent metadata — synced via Yjs to all peers
+    torrent_info_hash: text('torrent_info_hash'),
+    torrent_name: text('torrent_name'),
+    torrent_length: integer('torrent_length'),
+    torrent_piece_length: integer('torrent_piece_length'),
+    asset_content_mime: text('asset_content_mime'),
+    asset_content_ext: text('asset_content_ext'),
+    asset_content_sha256: text('asset_content_sha256')
 });
 
 // GenericAssets relations
@@ -312,7 +334,11 @@ export const genericAssetsRelations = relations(genericAssets, ({ one, many }) =
     // This allows querying from a genericAsset to all vocabularies where it is the main_asset_id
     vocabulariesAsMain: many(vocabularies),
     // This allows querying from a genericAsset to all vocabularies through the junction table
-    vocabulariesGenericAssets: many(vocabularies_generic_assets)
+    vocabulariesGenericAssets: many(vocabularies_generic_assets),
+    localState: one(generic_asset_local_state, {
+        fields: [genericAssets.id],
+        references: [generic_asset_local_state.generic_asset_id]
+    })
 }));
 
 // Objects table
@@ -470,7 +496,8 @@ export const objects_research_fields = sqliteTable('objects_research_fields', {
     objectIdx: index('idx_objects_research_fields_object_id').on(table.object_id),
     fieldIdx: index('idx_objects_research_fields_field_id').on(table.field_id),
     vocabularyIdx: index('idx_objects_research_fields_vocabulary_id').on(table.vocabulary_id),
-    objectFieldIdx: index('idx_objects_research_fields_object_field').on(table.object_id, table.field_id)
+    objectFieldIdx: index('idx_objects_research_fields_object_field').on(table.object_id, table.field_id),
+    objectFieldVocabularyUnique: uniqueIndex('objects_research_fields_object_field_vocabulary_unique').on(table.object_id, table.field_id, table.vocabulary_id)
 }));
 
 // Objects Research Fields relations
@@ -652,7 +679,7 @@ export const logs = sqliteTable('logs', {
 
 export const actions = sqliteTable('actions', {
     ...commonFields,
-    project_id: text('project_id').references(() => project.id),
+    project_id: text('project_id').references(() => project.id, { onDelete: 'cascade' }),
     user_id: text('user_id'),
     client_id: text('client_id'),
     action_type: text('action_type').notNull(),
@@ -668,6 +695,7 @@ export const actions = sqliteTable('actions', {
 export const globalSettings = sqliteTable('global_settings', {
     id: integer('id').primaryKey().notNull().default(1), // Always 1 to enforce singleton
     client_id: text('client_id').notNull().unique(),
+    username: text('username'),
     interface_language: text('interface_language'),
     app_version: text('app_version'),
     initialized_at: integer('initialized_at', { mode: 'timestamp_ms' })
@@ -698,6 +726,79 @@ export const actionsRelations = relations(actions, ({ one }) => ({
     })
 }));
 
+// Sync tables: change_log, yjs_updates, yjs_snapshots, ingestion_state
+// These tables support deterministic ingestion, updates transport, and snapshotting.
+
+// Canonical change log written by SQLite triggers
+export const change_log = sqliteTable(
+    'change_log',
+    {
+        ...commonFields,
+        project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
+        table_name: text('table_name').notNull(), // e.g., 'objects', 'institutions'
+        op: text('op').notNull(), // 'INSERT' | 'UPDATE' | 'DELETE'
+        row_id: text('row_id').notNull(),
+        client_id: text('client_id'),
+        origin: text('origin').default('local'), // 'local' | 'remote'
+        new_row: text('new_row', { mode: 'json' }),
+        old_row: text('old_row', { mode: 'json' })
+    },
+    (table) => ({
+        // Deterministic ingestion ordering per project
+        changeLogOrderIdx: index('change_log_order_idx').on(table.project_id, table.created_at, table.id)
+    })
+);
+
+// Append-only stream of Yjs update bytes derived from change_log
+export const yjs_updates = sqliteTable('yjs_updates', {
+    ...commonFields,
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
+    from_change_id: text('from_change_id').references(() => change_log.id, { onDelete: 'set null' }),
+    to_change_id: text('to_change_id').references(() => change_log.id, { onDelete: 'set null' }),
+    update_bytes: blob('update_bytes').notNull()
+});
+
+// Periodic full-state Yjs snapshots with precise watermark
+export const yjs_snapshots = sqliteTable('yjs_snapshots', {
+    ...commonFields,
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
+    last_change_id: text('last_change_id').references(() => change_log.id, { onDelete: 'set null' }),
+    snapshot_bytes: blob('snapshot_bytes').notNull(),
+    state_vector: blob('state_vector')
+});
+
+// Optional ingestion state per project to track watermarks
+export const ingestion_state = sqliteTable('ingestion_state', {
+    ...commonFields,
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }).unique(),
+    last_processed_change_id: text('last_processed_change_id').references(() => change_log.id, { onDelete: 'set null' })
+});
+
+// ---------------------------------------------------------------------------
+// Asset P2P local state tables — NOT synced via Yjs. Machine-local only.
+// Tracks download/seed status, retries, and progress per asset.
+// ---------------------------------------------------------------------------
+
+export const asset_local_state = sqliteTable('asset_local_state', {
+    asset_id: text('asset_id').primaryKey().notNull().references(() => assets.id, { onDelete: 'cascade' }),
+    sync_status: text('sync_status').default('missing'), // missing|downloading|available|seeding|error
+    sync_error: text('sync_error'),
+    retry_count: integer('retry_count').notNull().default(0),
+    last_attempt_at: integer('last_attempt_at'),   // Unix ms
+    last_success_at: integer('last_success_at'),   // Unix ms
+    download_progress: real('download_progress').default(0) // 0-100
+});
+
+export const generic_asset_local_state = sqliteTable('generic_asset_local_state', {
+    generic_asset_id: text('generic_asset_id').primaryKey().notNull().references(() => genericAssets.id, { onDelete: 'cascade' }),
+    sync_status: text('sync_status').default('missing'),
+    sync_error: text('sync_error'),
+    retry_count: integer('retry_count').notNull().default(0),
+    last_attempt_at: integer('last_attempt_at'),
+    last_success_at: integer('last_success_at'),
+    download_progress: real('download_progress').default(0)
+});
+
 // Website Settings relations
 export const websiteSettingsRelations = relations(websiteSettings, ({ one }) => ({
     project: one(project, {
@@ -714,6 +815,20 @@ export const websiteSettingsRelations = relations(websiteSettings, ({ one }) => 
     }),
     logo: one(genericAssets, {
         fields: [websiteSettings.logo_id],
+        references: [genericAssets.id]
+    })
+}));
+
+export const assetLocalStateRelations = relations(asset_local_state, ({ one }) => ({
+    asset: one(assets, {
+        fields: [asset_local_state.asset_id],
+        references: [assets.id]
+    })
+}));
+
+export const genericAssetLocalStateRelations = relations(generic_asset_local_state, ({ one }) => ({
+    genericAsset: one(genericAssets, {
+        fields: [generic_asset_local_state.generic_asset_id],
         references: [genericAssets.id]
     })
 }));

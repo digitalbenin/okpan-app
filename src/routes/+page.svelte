@@ -2,17 +2,31 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import ProjectsList from "$lib/components/projects/ProjectsList.svelte";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
+  import BaseInput from "$lib/components/base/BaseInput.svelte";
   import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
   import ProjectImport from "$lib/components/projects/ProjectImport.svelte";
-  import { goto, invalidateAll } from "$app/navigation";
+  import ProjectSync from "$lib/components/projects/ProjectSync.svelte";
+  import { goto, invalidate, invalidateAll } from "$app/navigation";
   import { page } from "$app/stores";
+  import { addToast } from "$lib/components/base/BaseToast.svelte";
+  import { getProjects } from "$lib/stores/ProjectsUtils.js";
+  import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
 
   const { data } = $props();
   const { t, translationState, setLocale } = getTranslationStore();
+  const userPresenceStore = getUserPresenceStore();
+  const userPresenceState = userPresenceStore.state;
 
   let newProjectOpen = $state(false);
   let importProjectOpen = $state(false);
+  let syncProjectOpen = $state(false);
+  let projects = $state(data.projects || []);
+
+  $effect(() => {
+    projects = data.projects || [];
+  });
   let appSettingsOpen = $state(false);
+  let usernameDraft = $state("");
   let interfaceLanguageDraft = $state("en");
   let isSavingAppSettings = $state(false);
   let appSettingsError = $state("");
@@ -33,6 +47,8 @@
 
   $effect(() => {
     if (appSettingsOpen) {
+      void userPresenceStore.initialize();
+      usernameDraft = userPresenceState.username || "";
       interfaceLanguageDraft =
         translationState.currentLocale || translationState.languages[0]?.code || "en";
       appSettingsError = "";
@@ -57,6 +73,15 @@
           importProjectOpen = true;
         }, 100);
       }
+    },
+    {
+      label: t("project.sync-project", { fallback: "Sync project" }),
+      icon: "cloud-arrow-down",
+      onClick: () => {
+        setTimeout(() => {
+          syncProjectOpen = true;
+        }, 100);
+      }
     }
   ]);
 
@@ -76,15 +101,15 @@
 
   async function handleImported({ projectId, metadata }) {
     importProjectOpen = false;
-    
+
     // Invalidate all data to refresh the projects list
     await invalidateAll();
-    
+
     if (!projectId) {
       console.warn('[Projects] Missing projectId in handleImported');
       return;
     }
-    
+
     // Navigate to the imported project
     const path = `/projects/${projectId}`;
     try {
@@ -92,6 +117,33 @@
     } catch (err) {
       console.error('[Projects] Navigation failed', err);
     }
+  }
+
+  async function handleSynced({ projectId }) {
+    const timeoutAt = Date.now() + 15000;
+
+    while (Date.now() < timeoutAt) {
+      await invalidate("app:projects");
+      const refreshedProjects = await getProjects();
+      projects = refreshedProjects || [];
+
+      if (projects.some((project) => project.id === projectId)) {
+        syncProjectOpen = false;
+        return true;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    addToast({
+      data: {
+        title: "Project sync",
+        description: "Project found on the network, but it is still initializing locally.",
+        type: "warning",
+      },
+    });
+
+    return false;
   }
 
   function handleNewProject() {
@@ -105,6 +157,14 @@
     appSettingsError = "";
 
     try {
+      const normalizedUsernameDraft = usernameDraft.trim();
+      const normalizedCurrentUsername = (userPresenceState.username || "").trim();
+
+      if (normalizedUsernameDraft !== normalizedCurrentUsername) {
+        await userPresenceStore.saveUsername(usernameDraft);
+        usernameDraft = userPresenceState.username || "";
+      }
+
       const saved = await setLocale(interfaceLanguageDraft);
       if (!saved) {
         appSettingsError = t("settings.interface-language-invalid", {
@@ -131,7 +191,7 @@
       <h2>{t("common.projects", { fallback: "Projects" })}</h2>
       
       <ProjectsList 
-        projects={data.projects} 
+        {projects}
         onNewProject={handleNewProject}
         {dropdownItems}
       />
@@ -173,9 +233,25 @@
     {#snippet description()}
       <p class="text-muted mb-3">
         {t("settings.application-description", {
-          fallback: "Choose the language used for the application interface.",
+          fallback: "Choose your username and the language used for the application interface.",
         })}
       </p>
+      <div class="mb-3">
+        <label class="form-label" for="application-username-input">
+          {t("common.username", { fallback: "Username" })}
+        </label>
+        <p class="text-muted small mb-2">
+          {t("settings.username-description", {
+            fallback: "Leave it empty if you want the app to choose a random name for you.",
+          })}
+        </p>
+        <BaseInput
+          id="application-username-input"
+          bind:value={usernameDraft}
+          placeholder={t("common.username", { fallback: "Username" })}
+          disabled={isSavingAppSettings}
+        />
+      </div>
       <div class="mb-3">
         <label class="form-label" for="interface-language-select">
           {t("settings.interface-language", {
@@ -231,6 +307,17 @@
     {/snippet}
     {#snippet description()}
       <ProjectImport onImported={handleImported}></ProjectImport>
+    {/snippet}
+  </BaseAlertDialog>
+{/if}
+
+{#if syncProjectOpen}
+  <BaseAlertDialog bind:open={syncProjectOpen} size="lg">
+    {#snippet title()}
+      {t("project.sync-project", { fallback: "Sync project" })}
+    {/snippet}
+    {#snippet description()}
+      <ProjectSync onSynced={handleSynced}></ProjectSync>
     {/snippet}
   </BaseAlertDialog>
 {/if}

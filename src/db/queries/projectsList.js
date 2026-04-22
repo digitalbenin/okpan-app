@@ -1,4 +1,4 @@
-import { sql, eq, aliasedTable } from 'drizzle-orm';
+import { sql, eq, aliasedTable, isNotNull } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema';
 import { addCountField, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common';
@@ -49,6 +49,7 @@ export const createProjectsListQuery = (db, drizzleResult) => {
                 id: dbSchema.project.id,
                 created_at: dbSchema.project.created_at,
                 updated_at: dbSchema.project.updated_at,
+                is_shared: dbSchema.project.is_shared,
                 description: createTextFieldWithTranslations(descriptionTexts, descriptionTranslations, descriptionLanguages),
                 title: createTextFieldWithTranslations(titleTexts, titleTranslations, titleLanguages),
                 institutionsCount: sql`COALESCE(${institutionsSubquery.institutions_count}, 0)`.as('institutionsCount'),
@@ -56,6 +57,7 @@ export const createProjectsListQuery = (db, drizzleResult) => {
                 assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount')
             })
                 .from(dbSchema.project)
+                .where(isNotNull(dbSchema.project.title_id))
                 .leftJoin(descriptionTexts, eq(dbSchema.project.description_id, descriptionTexts.id))
                 .leftJoin(descriptionTranslations, eq(descriptionTexts.id, descriptionTranslations.text_id))
                 .leftJoin(descriptionLanguages, eq(descriptionTranslations.language_id, descriptionLanguages.id))

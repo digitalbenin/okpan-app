@@ -83,6 +83,42 @@ export const getResearchFieldById = async (fieldId) => {
     return { result: researchFieldsResult[0], error: null };
 };
 
+export const getVocabularyById = async (vocabularyId) => {
+    if (!vocabularyId) {
+        return { result: null, error: "Missing vocabularyId" };
+    }
+
+    const response = await executeQuery('research_fields', 'getVocabularyById', {
+        vocabularyId,
+    });
+
+    if (!response) {
+        return { result: null, error: "Failed to fetch vocabulary: No response" };
+    }
+    if (response.error) {
+        return { result: null, error: response.error?.message || response.error || "Failed to fetch vocabulary: GraphQL error" };
+    }
+
+    const vocabulariesResult = response.vocabularies;
+
+    if (!vocabulariesResult || !Array.isArray(vocabulariesResult)) {
+        return { result: null, error: "Failed to fetch vocabulary: Invalid result structure" };
+    }
+
+    return { result: vocabulariesResult[0], error: null };
+};
+
+async function deleteGenericAssetById(assetId) {
+    if (!assetId) {
+        return;
+    }
+
+    const response = await executeQuery('genericAssets', 'delete', { assetId });
+    if (response?.error) {
+        throw new Error(response.error?.message || response.error || 'Failed to delete generic asset');
+    }
+}
+
 // Create a new research field (initial implementation, may need translation handling)
 export const createResearchField = async (fieldData) => {
     // Set default values for new boolean fields if not provided
@@ -181,6 +217,27 @@ export const deleteResearchField = async (fieldId) => {
     }
 
     try {
+        // Collect all generic asset IDs first, before the cascading deletion wipes the links
+        let uniqueGenericAssetIds = [];
+        try {
+            const vocabRes = await executeQuery('research_fields', 'getVocabulariesByFieldId', { fieldId });
+            const vocabularies = vocabRes?.vocabularies || [];
+
+            const genericAssetIds = [];
+            for (const vocab of vocabularies) {
+                if (vocab.main_asset_id) genericAssetIds.push(vocab.main_asset_id);
+                if (vocab.vocabulariesGenericAssets?.length > 0) {
+                    for (const vga of vocab.vocabulariesGenericAssets) {
+                        if (vga.generic_asset_id) genericAssetIds.push(vga.generic_asset_id);
+                    }
+                }
+            }
+
+            uniqueGenericAssetIds = [...new Set(genericAssetIds)];
+        } catch (e) {
+            console.error("Failed to gather associated generic assets before research field deletion:", e);
+        }
+
         const result = await executeQuery('research_fields', 'delete', { fieldId });
 
         if (!result) {
@@ -188,6 +245,18 @@ export const deleteResearchField = async (fieldId) => {
         }
         if (result.error) {
             return { result: null, error: result.error?.message || result.error || "Failed to delete research field: GraphQL error" };
+        }
+
+        // Now that the research field (and its vocabularies) are deleted, we can safely delete the generic assets
+        // without triggering FOREIGN KEY constraint errors from vocabularies.main_asset_id
+        if (uniqueGenericAssetIds.length > 0) {
+            try {
+                for (const assetId of uniqueGenericAssetIds) {
+                    await executeQuery('genericAssets', 'delete', { assetId });
+                }
+            } catch (e) {
+                console.error("Failed to delete orphaned generic assets:", e);
+            }
         }
 
         invalidate("app:research-fields");
@@ -202,6 +271,14 @@ export const deleteResearchField = async (fieldId) => {
 export const updateVocabulary = async (vocabularyId, updatedData) => {
     if (!vocabularyId) {
         return { result: null, error: "Missing Vocabulary ID" };
+    }
+
+    let previousMainAssetId = null;
+    try {
+        const previousVocabulary = await getVocabularyById(vocabularyId);
+        previousMainAssetId = previousVocabulary?.result?.main_asset_id || null;
+    } catch (error) {
+        console.warn('Failed to load previous vocabulary before update:', error);
     }
 
 
@@ -239,19 +316,40 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
         return { result: null, error: result.error };
     }
 
+    const nextMainAssetId = updatedData.mainAsset || null;
+    if (previousMainAssetId && previousMainAssetId !== nextMainAssetId) {
+        try {
+            await deleteGenericAssetById(previousMainAssetId);
+        } catch (error) {
+            console.error('Failed to delete removed main vocabulary asset:', error);
+        }
+    }
+
 
     invalidate("app:research-fields");
     return { result: result.result, error: null };
 };
 
 export const updateVocabularyAssets = async (vocabularyId, assetIds) => {
+    let previousAssetIds = [];
+    try {
+        const previousVocabulary = await getVocabularyById(vocabularyId);
+        previousAssetIds = (previousVocabulary?.result?.vocabulariesGenericAssets || [])
+            .map((link) => link.generic_asset_id)
+            .filter(Boolean);
+    } catch (error) {
+        console.warn('Failed to load previous vocabulary assets before update:', error);
+    }
+
+    const nextAssetIds = Array.isArray(assetIds) ? assetIds.filter(Boolean) : [];
+
     // 1. Unlink all existing assets
     const deleteResult = await executeQuery('vocabulary_assets', 'delete', { vocabularyId });
     if (deleteResult.error) return { error: deleteResult.error };
 
     // 2. Link new assets if any
-    if (assetIds && assetIds.length > 0) {
-        const values = assetIds.map((assetId, index) => ({
+    if (nextAssetIds.length > 0) {
+        const values = nextAssetIds.map((assetId, index) => ({
             vocabulary_id: vocabularyId,
             generic_asset_id: assetId,
             order: index
@@ -259,7 +357,15 @@ export const updateVocabularyAssets = async (vocabularyId, assetIds) => {
         
         const insertResult = await executeQuery('vocabulary_assets', 'create', { values });
         if (insertResult.error) return { error: insertResult.error };
-        return { result: insertResult.result, error: null };
+    }
+
+    const removedAssetIds = previousAssetIds.filter((assetId) => !nextAssetIds.includes(assetId));
+    for (const assetId of removedAssetIds) {
+        try {
+            await deleteGenericAssetById(assetId);
+        } catch (error) {
+            console.error('Failed to delete removed vocabulary asset:', error);
+        }
     }
 
     return { result: true, error: null };
@@ -303,10 +409,53 @@ export const deleteVocabulary = async (vocabularyId) => {
     if (!vocabularyId) {
         return { result: null, error: "Missing Vocabulary ID" };
     }
+
+    // First gather generic assets associated with the vocabulary so we can delete them AFTER
+    // the vocabulary is deleted (to avoid FOREIGN KEY constraint failures).
+    let uniqueGenericAssetIds = [];
+    try {
+        const vocabResponse = await executeQuery('research_fields', 'getVocabularyById', { vocabularyId });
+        const vocabulary = vocabResponse?.vocabularies?.[0];
+        
+        if (vocabulary) {
+            const genericAssetIds = [];
+            
+            if (vocabulary.main_asset_id) {
+                genericAssetIds.push(vocabulary.main_asset_id);
+            }
+            
+            if (vocabulary.vocabulariesGenericAssets?.length > 0) {
+                for (const vga of vocabulary.vocabulariesGenericAssets) {
+                    if (vga.generic_asset_id) {
+                        genericAssetIds.push(vga.generic_asset_id);
+                    }
+                }
+            }
+            
+            // Deduplicate ids
+            uniqueGenericAssetIds = [...new Set(genericAssetIds)];
+        }
+    } catch (e) {
+        console.error("Failed to gather associated generic assets before vocabulary deletion:", e);
+    }
+
+    // Delete the vocabulary itself first (this cascades to vocabularies_generic_assets but leaves genericAssets orphaned)
     const result = await executeQuery('research_fields', 'deleteVocabulary', { vocabularyId });
     if (result?.error) {
         return { result: null, error: result.error };
     }
+
+    // Now safely delete the generic assets from the DB
+    if (uniqueGenericAssetIds.length > 0) {
+        try {
+            for (const assetId of uniqueGenericAssetIds) {
+                await executeQuery('genericAssets', 'delete', { assetId });
+            }
+        } catch (e) {
+            console.error("Failed to delete orphaned generic assets after vocabulary deletion:", e);
+        }
+    }
+
     invalidate("app:research-fields");
     return { result: result.result || result, error: null };
 };

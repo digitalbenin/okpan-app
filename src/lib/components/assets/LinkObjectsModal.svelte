@@ -9,6 +9,7 @@
   } from "$lib/stores/ObjectsUtils.js";
   import { getAssetById } from "$lib/stores/AssetsUtils.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
+  import BaseImage from "$lib/components/base/BaseImage.svelte";
   // Note: we'll derive primary identifier locally to avoid fallback text
 
   // Declare bindable prop inside $props() as required by Svelte runes
@@ -121,7 +122,7 @@
   }
 
   // Resolve thumbnail src from the first media asset
-  const getMediaThumbSrc = (obj) => getObjectImageUrl(obj, "sm");
+  const getMediaThumbSrc = (obj) => getObjectImageUrl(obj, "sm", false);
 
   function toggleSelectObject(id) {
     const normalized = normalizeId(id);
@@ -291,10 +292,13 @@
                 <div class="mt-2 border-top py-2">
                   <div class="text-muted small mb-1">Media:</div>
                   {#if getMediaThumbSrc(obj)}
-                    <img
+                    <BaseImage
                       src={getMediaThumbSrc(obj)}
                       alt="Media thumbnail"
-                      style="width: 64px; height: 64px; object-fit: cover; border-radius: 0.25rem; border: 1px solid #eee;"
+                      style="width: 64px; height: 64px; border: 1px solid #eee;"
+                      class="rounded"
+                      objectFit="cover"
+                      compact={true}
                     />
                   {:else}
                     <div class="small text-muted">No media</div>

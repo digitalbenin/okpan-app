@@ -86,10 +86,13 @@ export default {
             const viteNodeModules = path.join(buildPath, '.vite', 'node_modules');
             await fs.ensureDir(viteNodeModules);
 
-            const copied = new Set();
+            const rootNodeModules = path.resolve('node_modules');
+            const buildNodeModules = path.join(buildPath, 'node_modules');
+            const copiedDestinations = new Set();
+            const queuedPackages = new Set();
 
-            async function readPackageJson(baseNodeModules, pkgName) {
-                const pkgPath = path.join(baseNodeModules, pkgName, 'package.json');
+            async function readPackageJson(packageDir) {
+                const pkgPath = path.join(packageDir, 'package.json');
                 try {
                     const data = await fs.readFile(pkgPath, 'utf-8');
                     return JSON.parse(data);
@@ -98,58 +101,90 @@ export default {
                 }
             }
 
-            async function copyPackage(baseNodeModules, pkgName) {
-                if (copied.has(pkgName)) return true;
-                const src = path.join(baseNodeModules, pkgName);
-                const dest = path.join(viteNodeModules, pkgName);
-                if (!(await fs.pathExists(src))) return false;
-                await fs.copy(src, dest);
-                copied.add(pkgName);
+            function getSourceNodeModulesBase(packageDir) {
+                const normalized = path.normalize(packageDir);
+
+                if (normalized === rootNodeModules || normalized.startsWith(`${rootNodeModules}${path.sep}`)) {
+                    return rootNodeModules;
+                }
+
+                if (normalized === buildNodeModules || normalized.startsWith(`${buildNodeModules}${path.sep}`)) {
+                    return buildNodeModules;
+                }
+
+                return null;
+            }
+
+            function getPackageLookupStartDirs(fromDir) {
+                if (!fromDir) return [rootNodeModules, buildNodeModules];
+
+                const starts = [];
+                let currentDir = path.normalize(fromDir);
+
+                while (currentDir && currentDir !== path.dirname(currentDir)) {
+                    starts.push(currentDir);
+                    currentDir = path.dirname(currentDir);
+                }
+
+                starts.push(rootNodeModules, buildNodeModules);
+                return [...new Set(starts)];
+            }
+
+            function resolveInstalledPackageDir(pkgName, fromDir) {
+                const packageSegments = pkgName.split('/');
+                const searchRoots = getPackageLookupStartDirs(fromDir);
+
+                for (const searchRoot of searchRoots) {
+                    const nodeModulesDir = path.basename(searchRoot) === 'node_modules'
+                        ? searchRoot
+                        : path.join(searchRoot, 'node_modules');
+
+                    const packageDir = path.join(nodeModulesDir, ...packageSegments);
+                    if (fs.existsSync(path.join(packageDir, 'package.json'))) {
+                        return packageDir;
+                    }
+                }
+
+                return null;
+            }
+
+            async function copyResolvedPackage(packageDir) {
+                const sourceBase = getSourceNodeModulesBase(packageDir);
+                if (!sourceBase) return false;
+
+                const relativePackageDir = path.relative(sourceBase, packageDir);
+                const dest = path.join(viteNodeModules, relativePackageDir);
+                if (copiedDestinations.has(dest)) return true;
+
+                await fs.copy(packageDir, dest);
+                copiedDestinations.add(dest);
                 return true;
             }
 
-            async function ensureCopyDeep(pkgName) {
-                const rootNodeModules = path.resolve('node_modules');
-                const buildNodeModules = path.join(buildPath, 'node_modules');
-
-                // Determine source base
-                let base = rootNodeModules;
-                if (!(await fs.pathExists(path.join(base, pkgName)))) {
-                    base = buildNodeModules;
-                }
-                if (!(await fs.pathExists(path.join(base, pkgName)))) {
-                    // Package not found; skip without online install to keep offline builds
+            async function ensureCopyDeep(pkgName, fromDir = rootNodeModules) {
+                const packageDir = resolveInstalledPackageDir(pkgName, fromDir);
+                if (!packageDir) {
                     console.warn(`packageAfterCopy: Skipping missing package '${pkgName}'`);
                     return;
                 }
 
-                const queue = [pkgName];
-                const seen = new Set();
+                const queue = [packageDir];
 
                 while (queue.length) {
-                    const current = queue.shift();
-                    if (seen.has(current)) continue;
-                    seen.add(current);
+                    const currentPackageDir = queue.shift();
+                    if (queuedPackages.has(currentPackageDir)) continue;
+                    queuedPackages.add(currentPackageDir);
 
-                    // Copy the package folder
-                    await copyPackage(base, current);
+                    await copyResolvedPackage(currentPackageDir);
 
-                    // Read its dependencies and enqueue them
-                    const pkgJson = await readPackageJson(base, current);
+                    const pkgJson = await readPackageJson(currentPackageDir);
                     const depFields = ['dependencies', 'optionalDependencies', 'peerDependencies'];
                     for (const field of depFields) {
                         const deps = pkgJson?.[field] || {};
                         for (const depName of Object.keys(deps)) {
-                            if (seen.has(depName)) continue;
-                            // Prefer root node_modules as base if available
-                            const rootHas = await fs.pathExists(path.join(path.resolve('node_modules'), depName));
-                            const buildHas = await fs.pathExists(path.join(buildNodeModules, depName));
-                            if (!rootHas && !buildHas) continue; // Skip missing
-                            // If dependency exists in root, copy from root; else from build
-                            const depBase = rootHas ? path.resolve('node_modules') : buildNodeModules;
-                            // Copy immediately to ensure availability
-                            await copyPackage(depBase, depName);
-                            queue.push(depName);
+                            const depDir = resolveInstalledPackageDir(depName, currentPackageDir);
+                            if (!depDir || queuedPackages.has(depDir)) continue;
+                            queue.push(depDir);
                         }
                     }
                 }
@@ -168,7 +203,23 @@ export default {
                 '@img/sharp-libvips-win32-x64',
                 '@xenova/transformers',
                 'onnxruntime-node',
-                'onnxruntime'
+                'onnxruntime',
+                // P2P/runtime packages that are externalized from the main-process bundle
+                '@winstonfassett/y-webrtc-trystero',
+                'trystero',
+                'node-datachannel',
+                'ws',
+                'yjs',
+                'y-protocols',
+                'webtorrent',
+                '@thaunknown/simple-peer',
+                'bittorrent-dht',
+                'bittorrent-tracker',
+                'utp-native',
+                'fs-chunk-store',
+                'torrent-discovery',
+                'ut_metadata',
+                'ut_pex'
             ];
 
             for (const pkg of externals) {

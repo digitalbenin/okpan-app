@@ -1,11 +1,14 @@
 import * as fs from 'fs';
 import sharp from 'sharp';
+import crypto from 'crypto';
 import { db } from '../../db/init.js';
 import { assets, genericAssets } from '../../db/schema.js';
+import { eq } from 'drizzle-orm';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import electron from 'electron';
 const { app } = electron;
+import { seedAsset, scheduleAssetReconcile } from '../services/assetTorrentManager.js';
 
 const sm = 300
 const md = 1400
@@ -22,6 +25,19 @@ const getAssetBasePath = () => {
 };
 
 const toPosix = (p) => (p ? p.replace(/\\/g, '/') : p);
+const resolveStoredAssetPath = (filePath) => {
+    if (!filePath || typeof filePath !== 'string') return null;
+    if (fs.existsSync(filePath)) return filePath;
+
+    const normalized = toPosix(filePath).replace(/^\/+/, '');
+    if (normalized.startsWith('src/assets/project_assets')) {
+        const rest = normalized.replace(/^src\/assets\/project_assets\/?/, '');
+        return path.join(getAssetBasePath(), rest);
+    }
+
+    return filePath;
+};
+
 const toLogicalFormats = (fmts, basePath) => {
   const basePosix = toPosix(basePath);
   const logicalRoot = 'src/assets/project_assets';
@@ -36,6 +52,29 @@ const toLogicalFormats = (fmts, basePath) => {
   };
 };
 
+// MIME type map for P2P torrent metadata
+const MIME_BY_EXT = {
+  '.avif': 'image/avif',
+  '.mp4':  'video/mp4',
+  '.webm': 'video/webm',
+  '.mov':  'video/quicktime',
+  '.mp3':  'audio/mpeg',
+  '.ogg':  'audio/ogg',
+};
+
+/**
+ * Compute SHA-256 hex of a file for integrity verification.
+ */
+async function computeFileSha256(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest('hex')));
+    stream.on('error', reject);
+  });
+}
+
 // Configuration object for file types and limits
 const assetConfig = {
     image: {
@@ -45,8 +84,8 @@ const assetConfig = {
     },
     video: {
         formats: ["mp4", "webm", "mov"],
-        maxSize: 52428800, // 50MB
-        maxSizeLabel: "50MB"
+        maxSize: 5242880000, // 50MB
+        maxSizeLabel: "5GB"
     },
     audio: {
         formats: ["mp3", "ogg"],
@@ -162,9 +201,11 @@ const handleImportAssets = async (event, data) => {
             const asset = await processAssetFile(filePath, projectFolder, data, basePath);
 
             if (asset) {
-                const newAsset = await saveAssetToDb(asset, data.isGenericAsset);
-                createdAssets.push({ ...newAsset, _sourcePath: filePath });
+                const seededAssetRecord = await buildSeededAssetRecord(asset, data.isGenericAsset);
+                const newAsset = await saveAssetToDb(seededAssetRecord, data.isGenericAsset);
+                scheduleAssetReconcile(newAsset.project_id, newAsset.id);
                 importedFilePaths.push(filePath);
+                createdAssets.push({ ...newAsset, _sourcePath: filePath });
             }
         } catch (error) {
             console.error(`Error processing file ${filePath}:`, error);
@@ -286,13 +327,63 @@ const processAssetFile = async (filePath, projectFolder, data, basePath) => {
 const saveAssetToDb = async (assetData, isGeneric) => {
     const table = isGeneric ? genericAssets : assets;
     const [newAsset] = await db.insert(table).values({
-        id: uuidv4(),
         ...assetData,
+        id: assetData.id || uuidv4(),
         // Ensure institution_id is explicitly set to null if it's undefined and not a generic asset
         // For generic assets, institution_id should not be part of assetData passed here if schema doesn't have it
         institution_id: isGeneric ? undefined : (assetData.institution_id || null),
     }).returning();
     return newAsset;
+}
+
+/**
+ * Build the final asset record, including torrent metadata, before inserting
+ * it into the shared asset table. This avoids syncing rows that point at a
+ * logical asset path but still have no downloadable torrent metadata.
+ */
+async function buildSeededAssetRecord(assetData, isGeneric) {
+    const filePath = resolveStoredAssetPath(assetData.path);
+    if (!filePath || !fs.existsSync(filePath)) {
+        throw new Error(`Imported asset file not found: ${filePath}`);
+    }
+
+    const assetId = assetData.id || uuidv4();
+    const torrentMeta = await seedAsset({
+        projectId: assetData.project_id,
+        assetId,
+        filePath,
+        isGeneric
+    });
+
+    if (!torrentMeta?.infoHash) {
+        throw new Error(`Failed to create torrent metadata for imported asset ${assetId}`);
+    }
+
+    let sha256 = null;
+    try {
+        sha256 = await computeFileSha256(filePath);
+    } catch (err) {
+        console.warn('[assetHandlers] SHA-256 computation failed:', err?.message);
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const mime = MIME_BY_EXT[ext] || 'application/octet-stream';
+
+    const torrentFields = {
+        torrent_info_hash:   torrentMeta.infoHash,
+        torrent_name:        torrentMeta.name,
+        torrent_length:      torrentMeta.length,
+        torrent_piece_length: torrentMeta.pieceLength,
+        asset_content_mime:  mime,
+        asset_content_ext:   ext,
+        asset_content_sha256: sha256,
+    };
+
+    return {
+        ...assetData,
+        id: assetId,
+        ...torrentFields,
+    };
 }
 
 export { handleImportAssets, getProgress }

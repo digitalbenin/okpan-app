@@ -83,6 +83,8 @@ export const createProjectByIdQuery = (db, drizzleResult) => {
                 id: dbSchema.project.id,
                 created_at: dbSchema.project.created_at,
                 updated_at: dbSchema.project.updated_at,
+                is_shared: dbSchema.project.is_shared,
+                password: dbSchema.project.password,
                 description: createTextFieldWithTranslations(descriptionTexts, descriptionTranslations, descriptionLanguages),
                 title: createTextFieldWithTranslations(titleTexts, titleTranslations, titleLanguages),
                 institutionsCount: sql`COALESCE(${institutionsSubquery.institutions_count}, 0)`.as('institutionsCount'),

@@ -522,6 +522,40 @@ export const researchFieldsOperations = {
     ],
     query: null
   },
+  getVocabulariesByFieldId: {
+    type: "query",
+    name: "Get Vocabularies By Field ID",
+    description: "Gets all vocabularies for a research field",
+    variables: {
+      fieldId: "ID of the research field"
+    },
+    query: `query GetVocabulariesByFieldId($fieldId: String!) {
+  vocabularies(where: { field_id: { eq: $fieldId } }) {
+    id
+    main_asset_id
+    vocabulariesGenericAssets {
+      generic_asset_id
+    }
+  }
+}`
+  },
+  getVocabularyById: {
+    type: "query",
+    name: "Get Vocabulary By ID",
+    description: "Gets a vocabulary option by ID for processing deletions",
+    variables: {
+      vocabularyId: "ID of the vocabulary to retrieve"
+    },
+    query: `query GetVocabularyById($vocabularyId: String!) {
+  vocabularies(where: { id: { eq: $vocabularyId } }) {
+    id
+    main_asset_id
+    vocabulariesGenericAssets {
+      generic_asset_id
+    }
+  }
+}`
+  },
   deleteVocabulary: {
     type: "mutation",
     name: "Delete Vocabulary from Research Field",

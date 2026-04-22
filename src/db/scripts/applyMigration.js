@@ -10,6 +10,16 @@ import { populateObjectSearchIndexes } from './populateObjectSearchIndexes.js';
 // Get the directory name of the current module
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const resolveMigrationPath = (fileName) => {
+    const migrationPath = path.resolve(process.cwd(), 'src', 'db', 'migrations', fileName);
+
+    if (fs.existsSync(migrationPath)) {
+        return migrationPath;
+    }
+
+    throw new Error(`Migration file not found: ${migrationPath}`);
+};
+
 /**
  * Applies the institutions search migration and populates the index
  */
@@ -31,7 +41,7 @@ async function applyMigration() {
         const ftsTableExists = tableCheckResult.rows.length > 0;
 
         // Read the migration file
-        const migrationPath = path.resolve(__dirname, '../migrations/001_create_institutions_search.sql');
+        const migrationPath = resolveMigrationPath('001_create_institutions_search.sql');
         const sqlContent = fs.readFileSync(migrationPath, 'utf8');
 
         // First, let's handle the CREATE VIRTUAL TABLE statement separately to ensure it's processed correctly
@@ -114,7 +124,7 @@ async function applyMigration() {
 
         // --- Objects search migration and population ---
         console.log('Setting up objects search...');
-        const objectsMigrationPath = path.resolve(__dirname, '../migrations/002_create_object_search_fts.sql');
+        const objectsMigrationPath = resolveMigrationPath('002_create_object_search_fts.sql');
         const objectsSql = fs.readFileSync(objectsMigrationPath, 'utf8');
 
         // Build statements, keeping CREATE TRIGGER blocks intact
@@ -162,6 +172,216 @@ async function applyMigration() {
         console.log('FTS setup for objects complete, now populating search index...');
         await populateObjectSearchIndexes(client, db);
         console.log('✅ Objects search setup complete!');
+
+        // --- Change log triggers for core and junction tables ---
+        console.log('Applying change_log triggers for core tables (003)...');
+            const changeLogCorePath = resolveMigrationPath('003_change_log_triggers.sql');
+        if (fs.existsSync(changeLogCorePath)) {
+            const changeLogCoreSql = fs.readFileSync(changeLogCorePath, 'utf8');
+
+            // Drop existing core change_log triggers to ensure updates reapply cleanly
+            const coreTriggerNames = [
+                // project
+                'trg_project_change_log_insert',
+                'trg_project_change_log_update',
+                'trg_project_change_log_delete',
+                // settings
+                'trg_settings_change_log_insert',
+                'trg_settings_change_log_update',
+                'trg_settings_change_log_delete',
+                // website_settings
+                'trg_website_settings_change_log_insert',
+                'trg_website_settings_change_log_update',
+                'trg_website_settings_change_log_delete',
+                // object_display_fields
+                'trg_object_display_fields_change_log_insert',
+                'trg_object_display_fields_change_log_update',
+                'trg_object_display_fields_change_log_delete',
+                // research_fields
+                'trg_research_fields_change_log_insert',
+                'trg_research_fields_change_log_update',
+                'trg_research_fields_change_log_delete',
+                // ontology_fields
+                'trg_ontology_fields_change_log_insert',
+                'trg_ontology_fields_change_log_update',
+                'trg_ontology_fields_change_log_delete',
+                // assets
+                'trg_assets_change_log_insert',
+                'trg_assets_change_log_update',
+                'trg_assets_change_log_delete',
+                // generic_assets
+                'trg_generic_assets_change_log_insert',
+                'trg_generic_assets_change_log_update',
+                'trg_generic_assets_change_log_delete',
+                // objects
+                'trg_objects_change_log_insert',
+                'trg_objects_change_log_update',
+                'trg_objects_change_log_delete',
+                // templates
+                'trg_templates_change_log_insert',
+                'trg_templates_change_log_update',
+                'trg_templates_change_log_delete',
+                // languages
+                'trg_languages_change_log_insert',
+                'trg_languages_change_log_update',
+                'trg_languages_change_log_delete',
+                // institutions
+                'trg_institutions_change_log_insert',
+                'trg_institutions_change_log_update',
+                'trg_institutions_change_log_delete',
+                // texts
+                'trg_texts_change_log_insert',
+                'trg_texts_change_log_update',
+                'trg_texts_change_log_delete',
+                // translations
+                'trg_translations_change_log_insert',
+                'trg_translations_change_log_update',
+                'trg_translations_change_log_delete',
+                // vocabularies
+                'trg_vocabularies_change_log_insert',
+                'trg_vocabularies_change_log_update',
+                'trg_vocabularies_change_log_delete',
+                // datasources
+                'trg_datasources_change_log_insert',
+                'trg_datasources_change_log_update',
+                'trg_datasources_change_log_delete',
+                // imports
+                'trg_imports_change_log_insert',
+                'trg_imports_change_log_update',
+                'trg_imports_change_log_delete'
+            ];
+            for (const tname of coreTriggerNames) {
+                try {
+                    await client.execute({ sql: `DROP TRIGGER IF EXISTS ${tname};` });
+                } catch (err) {
+                    console.warn(`⚠ Warning (drop core trigger ${tname}): ${err.message}`);
+                }
+            }
+
+            let coreStatements = [];
+            let coreCurrent = '';
+            let coreInTrigger = false;
+            for (const rawLine of changeLogCoreSql.split('\n')) {
+                const line = rawLine.trimEnd();
+                if (line.trim().startsWith('--')) continue;
+
+                if (line.includes('CREATE TRIGGER') && !coreInTrigger) {
+                    coreInTrigger = true;
+                    coreCurrent = line.trim();
+                    continue;
+                }
+                if (coreInTrigger) {
+                    coreCurrent += '\n' + line;
+                    if (line.trim() === 'END;') {
+                        coreStatements.push(coreCurrent.trim());
+                        coreCurrent = '';
+                        coreInTrigger = false;
+                    }
+                    continue;
+                }
+
+                if (line.trim() !== '') {
+                    coreCurrent += ' ' + line.trim();
+                    if (line.trim().endsWith(';')) {
+                        coreStatements.push(coreCurrent.trim());
+                        coreCurrent = '';
+                    }
+                }
+            }
+
+            for (const stmt of coreStatements) {
+                if (!stmt) continue;
+                try {
+                    await client.execute({ sql: stmt });
+                    console.log('✓ Executed change_log core trigger');
+                } catch (err) {
+                    console.warn(`⚠ Warning (change_log core): ${err.message}`);
+                }
+            }
+            console.log('✅ Applied change_log core triggers');
+        } else {
+            console.log('⚠ 003_change_log_triggers.sql not found; skipping');
+        }
+
+        console.log('Applying change_log triggers for junction tables (004)...');
+            const changeLogJunctionPath = resolveMigrationPath('004_change_log_junction_triggers.sql');
+        if (fs.existsSync(changeLogJunctionPath)) {
+            const changeLogJunctionSql = fs.readFileSync(changeLogJunctionPath, 'utf8');
+
+            // Drop existing junction change_log triggers to ensure updates reapply cleanly
+            const junctionTriggerNames = [
+                'trg_objects_assets_change_log_insert',
+                'trg_objects_assets_change_log_update',
+                'trg_objects_assets_change_log_delete',
+                'trg_assets_institutions_change_log_insert',
+                'trg_assets_institutions_change_log_update',
+                'trg_assets_institutions_change_log_delete',
+                'trg_objects_research_fields_change_log_insert',
+                'trg_objects_research_fields_change_log_update',
+                'trg_objects_research_fields_change_log_delete',
+                'trg_objects_ontology_fields_change_log_insert',
+                'trg_objects_ontology_fields_change_log_update',
+                'trg_objects_ontology_fields_change_log_delete',
+                'trg_vocabularies_generic_assets_change_log_insert',
+                'trg_vocabularies_generic_assets_change_log_update',
+                'trg_vocabularies_generic_assets_change_log_delete',
+                'trg_objects_datasources_change_log_insert',
+                'trg_objects_datasources_change_log_update',
+                'trg_objects_datasources_change_log_delete'
+            ];
+            for (const tname of junctionTriggerNames) {
+                try {
+                    await client.execute({ sql: `DROP TRIGGER IF EXISTS ${tname};` });
+                } catch (err) {
+                    console.warn(`⚠ Warning (drop junction trigger ${tname}): ${err.message}`);
+                }
+            }
+
+            let jStatements = [];
+            let jCurrent = '';
+            let jInTrigger = false;
+            for (const rawLine of changeLogJunctionSql.split('\n')) {
+                const line = rawLine.trimEnd();
+                if (line.trim().startsWith('--')) continue;
+
+                if (line.includes('CREATE TRIGGER') && !jInTrigger) {
+                    jInTrigger = true;
+                    jCurrent = line.trim();
+                    continue;
+                }
+                if (jInTrigger) {
+                    jCurrent += '\n' + line;
+                    if (line.trim() === 'END;') {
+                        jStatements.push(jCurrent.trim());
+                        jCurrent = '';
+                        jInTrigger = false;
+                    }
+                    continue;
+                }
+
+                if (line.trim() !== '') {
+                    jCurrent += ' ' + line.trim();
+                    if (line.trim().endsWith(';')) {
+                        jStatements.push(jCurrent.trim());
+                        jCurrent = '';
+                    }
+                }
+            }
+
+            for (const stmt of jStatements) {
+                if (!stmt) continue;
+                try {
+                    await client.execute({ sql: stmt });
+                    console.log('✓ Executed change_log junction trigger');
+                } catch (err) {
+                    console.warn(`⚠ Warning (change_log junction): ${err.message}`);
+                }
+            }
+            console.log('✅ Applied change_log junction triggers');
+        } else {
+            console.log('⚠ 004_change_log_junction_triggers.sql not found; skipping');
+        }
+
     } catch (error) {
         console.error('❌ Search setup failed:', error);
     } finally {

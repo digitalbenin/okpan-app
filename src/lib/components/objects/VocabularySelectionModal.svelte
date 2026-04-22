@@ -4,7 +4,6 @@
     import BaseModal from "$lib/components/base/BaseModal.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import { addVocabulary as addVocabularyAPI } from "$lib/stores/ResearchFieldsUtils.js";
-    import { getAssetImageUrl } from "$lib/utils/media.js";
 
     // Props
     let {
@@ -320,12 +319,14 @@
                             <!-- Main Asset Image -->
                             <div class="me-3">
                                 <BaseImage
-                                    src={getAssetImageUrl(vocab.mainAsset, 'sm')}
+                                    asset={vocab.mainAsset}
+                                    preferredFormat="sm"
                                     alt={vocab.option?.content || t("common.unnamed", { fallback: "Unnamed" })}
                                     width={48}
                                     height={48}
                                     class="rounded"
                                     ratio="1/1"
+                                    compact={true}
                                 />
                             </div>
 

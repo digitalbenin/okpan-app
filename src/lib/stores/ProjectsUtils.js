@@ -85,9 +85,18 @@ export const createProject = async (project) => {
     const description = project.description ?? "";
     const languageCode = project.defaultLanguage.code;
     const languageName = project.defaultLanguage.name || project.defaultLanguage.code;
+    const isShared = project.isShared ? 1 : 0;
+    const password = project.password || null;
 
     // Use the registered single-step mutation in queries/projects.js
-    const response = await executeQuery('projects', 'create', { title, description, languageCode, languageName });
+    const response = await executeQuery('projects', 'create', { 
+        title, 
+        description, 
+        languageCode, 
+        languageName,
+        isShared,
+        password 
+    });
 
     const result = response?.result;
     const projectId = result?.project?.id || result?.id || null;
@@ -158,6 +167,41 @@ export const updateProject = async (projectId, updatedData) => {
     return { result: result.result, error: null };
 };
 
+export const updateProjectSharingSettings = async (projectId, { isShared, password } = {}) => {
+    if (!projectId) {
+        return { result: null, error: "Missing Project ID" };
+    }
+
+    const query = {
+        name: "Update Project Sharing Settings",
+        query: `mutation UpdateProjectSharingSettings($projectId: String!, $isShared: Int!, $password: String) {
+  updateProject(
+    set: { is_shared: $isShared, password: $password }
+    where: { id: { eq: $projectId } }
+  ) {
+    id
+    is_shared
+    password
+  }
+}`
+    };
+
+    const params = {
+        projectId,
+        isShared: isShared ? 1 : 0,
+        password: password ?? null,
+    };
+
+    try {
+        const result = await executeQuery('custom', 'mutation', { query, params });
+        invalidate("app:projects");
+        return { result, error: null };
+    } catch (error) {
+        console.error('Project sharing settings update error:', error);
+        return { result: null, error: error.message || error };
+    }
+};
+
 export const deleteProject = async (projectId) => {
     // Use executeQuery which handles errors, logging, and notifications
     const response = await executeQuery('projects', 'delete', { projectId });
@@ -173,6 +217,7 @@ export const deleteProject = async (projectId) => {
         success: result?.deleted || false,
         projectId: result?.projectId,
         assetsFolderRemoved: result?.assetsFolderRemoved,
+        snapshotsFolderRemoved: result?.snapshotsFolderRemoved,
         counts: result?.counts
     };
 };

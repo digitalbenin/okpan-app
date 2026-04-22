@@ -15,11 +15,12 @@
 
   const filteredProjects = $derived(
     projects.filter(
-      (project) =>
-        project.title.content.toLowerCase().includes(search.toLowerCase()) ||
-        project.description.content
-          .toLowerCase()
-          .includes(search.toLowerCase()),
+      (project) => {
+        const titleContent = project.title?.content || "Connecting/Unknown Project";
+        const descriptionContent = project.description?.content || "";
+        return titleContent.toLowerCase().includes(search.toLowerCase()) ||
+               descriptionContent.toLowerCase().includes(search.toLowerCase());
+      }
     ),
   );
 </script>

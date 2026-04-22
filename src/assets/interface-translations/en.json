@@ -1906,7 +1906,12 @@
                          {
                              "namespace":  "settings",
                              "key":  "application-description",
-                             "value":  "Choose the language used for the application interface."
+                             "value":  "Choose your username and the language used for the application interface."
+                         },
+                         {
+                             "namespace":  "settings",
+                             "key":  "username-description",
+                             "value":  "Leave it empty if you want the app to choose a random name for you."
                          },
                          {
                              "namespace":  "settings",

@@ -237,20 +237,34 @@ export async function executeMultiStepMutation(mutations, params) {
  */
 async function processTranslationStep(mutation, params, results, context) {
     const { processTranslations } = mutation;
-    const { textIdPath, translationsParam } = processTranslations;
+    const { textIdPath, textIdPaths, translationsParam } = processTranslations;
 
 
 
     // Get the text ID from previous results
-    let textId = null;
-    if (textIdPath) {
-        const pathParts = textIdPath.split('.');
+    const resolvePath = (path) => {
+        const pathParts = path.split('.');
         let value = results;
         for (const part of pathParts) {
             if (value === undefined || value === null) break;
             value = value[part];
         }
-        textId = value;
+        return value;
+    };
+
+    let textId = null;
+    const candidatePaths = Array.isArray(textIdPaths)
+        ? textIdPaths
+        : textIdPath
+          ? [textIdPath]
+          : [];
+
+    for (const path of candidatePaths) {
+        const value = resolvePath(path);
+        if (value !== undefined && value !== null && value !== '') {
+            textId = value;
+            break;
+        }
     }
 
     // Get the translations array from params
@@ -261,7 +275,8 @@ async function processTranslationStep(mutation, params, results, context) {
     }
 
     if (!textId) {
-        console.warn(`No text ID found at path ${textIdPath}, skipping translations`);
+        const pathLabel = candidatePaths.join(' or ');
+        console.warn(`No text ID found at path ${pathLabel}, skipping translations`);
         return null;
     }
 

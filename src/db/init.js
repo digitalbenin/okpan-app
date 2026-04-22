@@ -7,11 +7,47 @@ import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
 import electron from 'electron';
+import { setGlobalClientIdNumber } from '../backend/services/projectCache.js';
 const { app } = electron;
 
 const GLOBAL_SETTINGS_ID = 1;
 const DEFAULT_INTERFACE_LANGUAGE_CODE = 'en';
 const DEFAULT_DB_RELATIVE_PATH = 'src/db/local.db';
+
+const USERNAME_ADJECTIVES = [
+    'Amber',
+    'Bright',
+    'Calm',
+    'Clever',
+    'Golden',
+    'Merry',
+    'Quiet',
+    'Silver',
+    'Swift',
+    'Wild'
+];
+
+const USERNAME_NOUNS = [
+    'Badger',
+    'Falcon',
+    'Fox',
+    'Heron',
+    'Otter',
+    'Panda',
+    'Robin',
+    'Seal',
+    'Wolf',
+    'Wren'
+];
+
+function pickRandom(items) {
+    return items[Math.floor(Math.random() * items.length)];
+}
+
+export function generateRandomUsername() {
+    const suffix = Math.floor(100 + Math.random() * 900);
+    return `${pickRandom(USERNAME_ADJECTIVES)}${pickRandom(USERNAME_NOUNS)}${suffix}`;
+}
 
 function resolveApplicationRoot() {
     const isElectron = !!process.versions.electron;
@@ -32,10 +68,14 @@ function resolveDatabasePath() {
     }
 
     if (app?.isPackaged) {
-        return path.join(resolveApplicationRoot(), envPath);
+        return path.join(APP_ROOT, envPath);
     }
 
     return path.resolve(envPath);
+}
+
+function getCurrentAppVersion() {
+    return app?.getVersion?.() || process.env.npm_package_version || '1.0.0';
 }
 
 const APP_ROOT = resolveApplicationRoot();
@@ -47,23 +87,18 @@ const parseJsonFile = (filePath) => {
 };
 
 const dbPath = resolveDatabasePath();
-
-// Ensure the database directory exists
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
 }
 
-// Debug logging
 console.log('Database path:', dbPath);
 console.log('Database exists:', fs.existsSync(dbPath));
 
-// Create the SQLite client with proper URL format
 const client = createClient({
-    url: `file:${dbPath.replace(/\\/g, '/')}` // Ensure forward slashes for URLs
+    url: `file:${dbPath.replace(/\\/g, '/')}`
 });
 
-// Create Drizzle instance with schema
 const db = drizzle(client, { schema });
 
 const ensureGlobalSettingsSchema = async () => {
@@ -72,6 +107,11 @@ const ensureGlobalSettingsSchema = async () => {
         const columnNames = Array.isArray(result.rows)
             ? result.rows.map((row) => row.name)
             : [];
+
+        if (!columnNames.includes('username')) {
+            await client.execute('ALTER TABLE global_settings ADD COLUMN username TEXT');
+            console.log('Added username column to global_settings');
+        }
 
         if (!columnNames.includes('interface_language')) {
             await client.execute('ALTER TABLE global_settings ADD COLUMN interface_language TEXT');
@@ -102,7 +142,10 @@ const getBundledInterfaceTranslations = () => {
         const rawFile = parseJsonFile(filePath);
         const locale = rawFile?.code?.trim()?.toLowerCase()
             || entry.name.slice(0, -path.extname(entry.name).length).trim().toLowerCase();
-        if (!locale) continue;
+
+        if (!locale) {
+            continue;
+        }
 
         const fileTranslations = Array.isArray(rawFile?.translations)
             ? rawFile.translations
@@ -163,10 +206,14 @@ const ensureDefaultInterfaceTranslations = async () => {
         const languageMap = new Map();
 
         for (const language of bundled.languages) {
-            if (!language?.code) continue;
+            if (!language?.code) {
+                continue;
+            }
 
             const normalizedCode = language.code.trim().toLowerCase();
-            if (!normalizedCode) continue;
+            if (!normalizedCode) {
+                continue;
+            }
 
             languageMap.set(normalizedCode, {
                 code: normalizedCode,
@@ -175,10 +222,14 @@ const ensureDefaultInterfaceTranslations = async () => {
         }
 
         for (const translation of bundled.translations) {
-            if (!translation?.locale) continue;
+            if (!translation?.locale) {
+                continue;
+            }
 
             const normalizedCode = translation.locale.trim().toLowerCase();
-            if (!normalizedCode || languageMap.has(normalizedCode)) continue;
+            if (!normalizedCode || languageMap.has(normalizedCode)) {
+                continue;
+            }
 
             languageMap.set(normalizedCode, {
                 code: normalizedCode,
@@ -194,7 +245,9 @@ const ensureDefaultInterfaceTranslations = async () => {
         }
 
         for (const language of languageMap.values()) {
-            if (existingLanguageCodes.has(language.code)) continue;
+            if (existingLanguageCodes.has(language.code)) {
+                continue;
+            }
             missingLanguages.push(language);
         }
 
@@ -227,39 +280,81 @@ const ensureDefaultInterfaceTranslations = async () => {
     }
 };
 
-// Initialize global settings (singleton)
+let globalSettingsInitialization = null;
+let globalSettingsInitialized = false;
+
 const initializeGlobalSettings = async () => {
-    try {
-        await ensureGlobalSettingsSchema();
-
-        // Check if global settings already exist
-        const existing = await db.select().from(globalSettings).where(eq(globalSettings.id, GLOBAL_SETTINGS_ID)).limit(1);
-
-        if (existing.length === 0) {
-            // Create the singleton row with UUID
-            await db.insert(globalSettings).values({
-                id: GLOBAL_SETTINGS_ID, // Enforce singleton
-                client_id: randomUUID(),
-                app_version: process.env.npm_package_version || '1.0.0'
-            });
-            console.log('Global settings initialized with new client_id');
-        } else {
-            console.log('Global settings already exist, client_id:', existing[0].client_id);
-        }
-
-        await ensureDefaultInterfaceTranslations();
-    } catch (error) {
-        console.error('Error initializing global settings:', error);
+    if (globalSettingsInitialized) {
+        return;
     }
+
+    if (globalSettingsInitialization) {
+        return globalSettingsInitialization;
+    }
+
+    globalSettingsInitialization = (async () => {
+        try {
+            await ensureGlobalSettingsSchema();
+
+            const existing = await db
+                .select()
+                .from(globalSettings)
+                .where(eq(globalSettings.id, GLOBAL_SETTINGS_ID))
+                .limit(1);
+
+            if (existing.length === 0) {
+                const newClientId = randomUUID();
+                await db.insert(globalSettings).values({
+                    id: GLOBAL_SETTINGS_ID,
+                    client_id: newClientId,
+                    username: null,
+                    interface_language: DEFAULT_INTERFACE_LANGUAGE_CODE,
+                    app_version: getCurrentAppVersion()
+                });
+                console.log('Global settings initialized with new client_id');
+                setGlobalClientIdNumber(newClientId);
+            } else {
+                const currentSettings = existing[0];
+                const updates = {};
+
+                if (!currentSettings.interface_language) {
+                    updates.interface_language = DEFAULT_INTERFACE_LANGUAGE_CODE;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    await db
+                        .update(globalSettings)
+                        .set(updates)
+                        .where(eq(globalSettings.id, GLOBAL_SETTINGS_ID));
+                }
+
+                console.log('Global settings already exist, client_id:', currentSettings.client_id);
+                setGlobalClientIdNumber(currentSettings.client_id);
+            }
+
+            await ensureDefaultInterfaceTranslations();
+            globalSettingsInitialized = true;
+        } catch (error) {
+            console.error('Error initializing global settings:', error);
+            throw error;
+        } finally {
+            globalSettingsInitialization = null;
+        }
+    })();
+
+    return globalSettingsInitialization;
 };
 
 const getGlobalSettingsRow = async () => {
     await initializeGlobalSettings();
-    const settings = await db.select().from(globalSettings).where(eq(globalSettings.id, GLOBAL_SETTINGS_ID)).limit(1);
+    const settings = await db
+        .select()
+        .from(globalSettings)
+        .where(eq(globalSettings.id, GLOBAL_SETTINGS_ID))
+        .limit(1);
     return settings[0] || null;
 };
 
-// Helper function to get client ID
 export const getClientId = async () => {
     try {
         const settings = await getGlobalSettingsRow();
@@ -267,6 +362,22 @@ export const getClientId = async () => {
     } catch (error) {
         console.error('Error getting client_id:', error);
         return null;
+    }
+};
+
+export const getGlobalProfile = async () => {
+    try {
+        const settings = await getGlobalSettingsRow();
+        return {
+            clientId: settings?.client_id || null,
+            username: settings?.username || null
+        };
+    } catch (error) {
+        console.error('Error getting global profile:', error);
+        return {
+            clientId: null,
+            username: null
+        };
     }
 };
 
@@ -288,13 +399,32 @@ export const getGlobalSettings = async () => {
     }
 };
 
+export const updateGlobalUsername = async (username) => {
+    try {
+        const normalizedUsername = typeof username === 'string' ? username.trim() : '';
+        const nextUsername = normalizedUsername || generateRandomUsername();
+
+        await initializeGlobalSettings();
+        await db
+            .update(globalSettings)
+            .set({ username: nextUsername })
+            .where(eq(globalSettings.id, GLOBAL_SETTINGS_ID));
+
+        return getGlobalProfile();
+    } catch (error) {
+        console.error('Error updating global username:', error);
+        throw error;
+    }
+};
+
 export const updateGlobalInterfaceLanguage = async (locale) => {
     try {
         const normalizedLocale = typeof locale === 'string' ? locale.trim() : '';
         const nextLocale = normalizedLocale || null;
 
         await initializeGlobalSettings();
-        await db.update(globalSettings)
+        await db
+            .update(globalSettings)
             .set({ interface_language: nextLocale })
             .where(eq(globalSettings.id, GLOBAL_SETTINGS_ID));
 
@@ -305,7 +435,6 @@ export const updateGlobalInterfaceLanguage = async (locale) => {
     }
 };
 
-// Initialize on startup
-initializeGlobalSettings();
+void initializeGlobalSettings();
 
-export { db };
+export { db, client, dbPath };

@@ -458,12 +458,14 @@ export const objectsOperations = {
     name: "Assign Research Field to Object",
     description: "Associates an object with a research field and assigns a value or vocabulary",
     variables: {
+        recordId: "Deterministic ID of the objects_research_fields record",
       objectId: "ID of the object",
       fieldId: "ID of the research field to assign",
       value: "Value to store for this field (for free text)",
       vocabularyId: "ID of the vocabulary option (for vocabulary-based fields)"
     },
     query: `mutation AssignResearchField(
+    $recordId: String!
   $objectId: String!
   $fieldId: String!
   $value: String
@@ -472,6 +474,7 @@ export const objectsOperations = {
   insertIntoObjects_research_fields(
     values: [
       {
+          id: $recordId
         object_id: $objectId
         field_id: $fieldId
         value: $value

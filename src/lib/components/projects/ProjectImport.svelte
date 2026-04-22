@@ -10,6 +10,7 @@
   let isDragging = $state(false);
   let isImporting = $state(false);
   let error = $state(null);
+  let projectAlreadyExists = $state(false);
 
   async function handleBrowse() {
     try {
@@ -28,17 +29,20 @@
     fileName = name;
     error = null;
     metadata = null;
-    
+    projectAlreadyExists = false;
+
     try {
       const checkResult = await window.api.checkBackupFile({ filePath });
       if (checkResult.success && checkResult.metadata) {
         metadata = checkResult.metadata;
+        if (checkResult.projectExists) {
+          projectAlreadyExists = true;
+        }
       } else {
         throw new Error(checkResult.error || "Invalid backup file");
       }
     } catch (err) {
       console.error('[ProjectImport] Error loading metadata:', err);
-      error = err.message;
     }
   }
 
@@ -164,8 +168,22 @@
     </div>
   {/if}
 
+  {#if projectAlreadyExists}
+    <div class="alert alert-warning mt-3" role="alert">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      <strong>Project already exists.</strong> Importing will overwrite the existing project and all its data. Are you sure?
+    </div>
+  {/if}
+
   <div class="d-flex justify-content-end mt-4">
-    <button 
+    {#if projectAlreadyExists && !isImporting}
+      <button class="btn btn-outline-secondary btn-lg me-2" onclick={() => {
+        onImported({ projectId: metadata.project_id, metadata });
+      }}>
+        {t("project.open-existing", { fallback: "Open existing instead" })}
+      </button>
+    {/if}
+    <button
       class="btn btn-primary btn-lg"
       onclick={handleImport}
       disabled={!selectedFile || isImporting}
@@ -173,6 +191,8 @@
       {#if isImporting}
         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
         {t("project.importing", { fallback: "Importing..." })}
+      {:else if projectAlreadyExists}
+        {t("project.overwrite", { fallback: "Overwrite project" })}
       {:else}
         {t("project.import-project", { fallback: "Import project" })}
       {/if}

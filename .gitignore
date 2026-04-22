@@ -107,7 +107,7 @@ dist/
 src/assets/project_assets/*
 src/assets/models/
 artic-dataset/
-
+artic-dataset.zip
 .vscode
 .cursor
 artic-dataset/

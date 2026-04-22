@@ -1,6 +1,6 @@
 <script>
+  import BaseImage from "$lib/components/base/BaseImage.svelte";
   import BaseLinkedStatus from "$lib/components/base/BaseLinkedStatus.svelte";
-  import { getAssetImageUrl } from "$lib/utils/media.js";
 
   let { asset, selected = $bindable([]) } = $props();
 
@@ -36,10 +36,11 @@
   />
   <div class="bg-light rounded ratio ratio-1x1 mb-3">
     <div>
-      <img
-        class="object-fit-contain w-100 h-100"
-        src={getAssetImageUrl(asset, 'md')}
-        loading="lazy"
+      <BaseImage
+        class="w-100 h-100"
+        asset={asset}
+        preferredFormat="md"
+        objectFit="contain"
         alt={asset.id || "Asset Image"}
       />
     </div>

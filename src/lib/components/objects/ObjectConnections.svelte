@@ -277,10 +277,17 @@
     // Get all vocabulary items with their field information for display
     const allConnections = $derived.by(() => {
         const connections = [];
+        const seenConnections = new Set();
         allVocabularyFields.forEach((field) => {
             field.currentVocabularyIds?.forEach((vocabId) => {
+                const connectionKey = `${field.id}:${vocabId}`;
+                if (seenConnections.has(connectionKey)) {
+                    return;
+                }
+
                 const vocab = field.vocabularies?.find((v) => v.id === vocabId);
                 if (vocab) {
+                    seenConnections.add(connectionKey);
                     connections.push({
                         fieldId: field.id,
                         fieldName:

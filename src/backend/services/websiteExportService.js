@@ -4,22 +4,6 @@ import { and, eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import { buildObjectSearchConditions } from '../handlers/exportHandlers.js';
 
-function resolveApplicationRoot({ appPath, resourcesPath, isPackaged }) {
-  if (!isPackaged) {
-    return process.cwd();
-  }
-
-  if (appPath) {
-    return appPath;
-  }
-
-  if (resourcesPath) {
-    return path.join(resourcesPath, 'app');
-  }
-
-  throw new Error('Unable to resolve packaged application root path');
-}
-
 function sanitizeExportFolderName(value, fallback = 'website-export') {
   const normalized = String(value || '')
     .trim()
@@ -28,6 +12,14 @@ function sanitizeExportFolderName(value, fallback = 'website-export') {
     .replace(/^\.+|\.+$/g, '');
 
   return normalized || fallback;
+}
+
+function resolveApplicationRoot({ appPath, resourcesPath, isPackaged } = {}) {
+  if (isPackaged) {
+    return appPath || (resourcesPath ? path.join(resourcesPath, 'app') : process.cwd());
+  }
+
+  return appPath || process.cwd();
 }
 
 /**
@@ -41,15 +33,7 @@ function sanitizeExportFolderName(value, fallback = 'website-export') {
 export async function exportStaticWebsite(
   projectId,
   outputPath,
-  {
-    db,
-    filters = {},
-    appPath,
-    resourcesPath,
-    isPackaged = false,
-    basePath = '',
-    locale = ''
-  }
+  { db, filters = {}, basePath = '', locale = '', appPath, resourcesPath, isPackaged = false } = {}
 ) {
   if (basePath && !basePath.startsWith('/')) {
     basePath = '/' + basePath;

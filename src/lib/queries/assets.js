@@ -185,10 +185,14 @@ export const assetsOperations = {
       assetId: "ID of the asset to delete"
     },
     query: `mutation DeleteAsset($assetId: String!) {
-  deleteFromAssets(where: { id: { eq: $assetId } }) {
+  result: deleteAssetCascade(assetId: $assetId) {
     id
     filename
     path
+    fileErrors {
+      path
+      error
+    }
   }
 }`
   },
@@ -225,6 +229,34 @@ export const assetsOperations = {
     successes { asset_id object_id }
     skippedDuplicates { asset_id object_id }
     errors { asset_id object_id error }
+  }
+}`
+  },
+
+  // GET LOCAL STATES
+  getLocalStates: {
+    type: "query",
+    name: "Get Asset Local States",
+    description: "Retrieves local sync statuses (missing, downloading, available) for all assets in a project.",
+    variables: {
+      projectId: "Filter by project ID"
+    },
+    query: `query GetAssetStates($projectId: String!) {
+  assets(where: { project_id: { eq: $projectId } }) {
+    id
+    localState {
+      sync_status
+      download_progress
+      sync_error
+    }
+  }
+  genericAssets(where: { project_id: { eq: $projectId } }) {
+    id
+    localState {
+      sync_status
+      download_progress
+      sync_error
+    }
   }
 }`
   }

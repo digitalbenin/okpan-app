@@ -1,4 +1,7 @@
 <script>
+    import { page } from '$app/state';
+    import { onDestroy } from 'svelte';
+    import { addImageProtocolPrefix } from '$lib/utils/media.js';
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
     let {
@@ -15,6 +18,43 @@
     let currentTime = $state(0);
     let duration = $state(0);
     let isLoaded = $state(false);
+    let isDownloading = $state(false);
+    let isMissing = $state(false);
+    let retryKey = $state(0);
+    let unsubscribeProgress = null;
+    let requestedRecoveryKey = $state(null);
+
+    const resolvedAssetId = $derived(asset?.id || null);
+    const resolvedProjectId = $derived(asset?.project_id || page.params?.project_id || page.url?.searchParams?.get('project_id') || null);
+    const audioSource = $derived.by(() => {
+        if (!asset?.path) return null;
+        const baseSrc = addImageProtocolPrefix(asset.path);
+        return retryKey > 0
+            ? (baseSrc.includes('?') ? `${baseSrc}&t=${retryKey}` : `${baseSrc}?t=${retryKey}`)
+            : baseSrc;
+    });
+
+    const cleanupSubscription = () => {
+        if (unsubscribeProgress) {
+            unsubscribeProgress();
+            unsubscribeProgress = null;
+        }
+    };
+
+    async function requestRecovery() {
+        const recoveryKey = resolvedProjectId && resolvedAssetId ? `${resolvedProjectId}:${resolvedAssetId}` : null;
+        if (!recoveryKey || requestedRecoveryKey === recoveryKey || !window.api?.triggerAssetReconcile) {
+            return;
+        }
+
+        requestedRecoveryKey = recoveryKey;
+
+        try {
+            await window.api.triggerAssetReconcile(resolvedProjectId, resolvedAssetId);
+        } catch (err) {
+            console.error('[AudioPreview] Failed to request asset reconcile:', err);
+        }
+    }
 
     function togglePlay(e) {
         if (e) {
@@ -49,6 +89,7 @@
         if (audioElement) {
             duration = audioElement.duration;
             isLoaded = true;
+            isMissing = false;
         }
     }
 
@@ -65,6 +106,37 @@
         console.error("Audio element error:", audioElement?.error);
         isPlaying = false;
         isLoaded = false;
+        isMissing = true;
+        requestRecovery();
+
+        if (resolvedAssetId && window.api?.onAssetSyncProgress && !unsubscribeProgress) {
+            isDownloading = true;
+            isMissing = false;
+
+            unsubscribeProgress = window.api.onAssetSyncProgress((data) => {
+                if (data.assetId !== resolvedAssetId) return;
+
+                if (data.status === 'downloading') {
+                    isDownloading = true;
+                    isMissing = false;
+                } else if (data.status === 'seeding' || data.status === 'available') {
+                    isDownloading = false;
+                    isMissing = false;
+                    requestedRecoveryKey = null;
+                    retryKey = Date.now();
+                    cleanupSubscription();
+
+                    if (audioElement) {
+                        setTimeout(() => {
+                            if (audioElement) audioElement.load();
+                        }, 100);
+                    }
+                } else if (data.status === 'error' || data.status === 'missing') {
+                    isDownloading = false;
+                    isMissing = true;
+                }
+            });
+        }
     }
 
     function handleSeek(e) {
@@ -94,6 +166,10 @@
             onRemove();
         }
     }
+
+    onDestroy(() => {
+        cleanupSubscription();
+    });
 </script>
 
 <div
@@ -118,75 +194,83 @@
     <div
         class="bg-light rounded overflow-hidden d-flex flex-column align-items-center justify-content-center p-2 w-100 h-100"
     >
-        <i class="bi bi-music-note-beamed text-muted mb-2" style="font-size: 1.5rem;"></i>
-        
-        <!-- Audio Controls -->
-        <div class="w-100">
-            <!-- Play button and duration row -->
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <!-- Play/Pause Button -->
-                <button
-                    class="btn btn-sm btn-link p-0 d-flex align-items-center justify-content-center border-0"
-                    onclick={togglePlay}
-                    disabled={!isLoaded}
-                    style="width: 20px; height: 20px;"
-                    aria-label={isPlaying
-                        ? t("media.pause", { fallback: "Pause" })
-                        : t("media.play", { fallback: "Play" })}
-                >
-                    {#if isPlaying}
-                        <i
-                            class="bi bi-pause-circle text-dark"
-                            style="font-size: 20px;"
-                        ></i>
-                    {:else}
-                        <i
-                            class="bi bi-play-circle text-dark"
-                            style="font-size: 20px;"
-                        ></i>
-                    {/if}
-                </button>
-
-                <!-- Duration -->
-                <span
-                    class="text-muted text-end"
-                    style="font-size: 11px; min-width: 35px;"
-                >
-                    {formatTime(duration)}
-                </span>
+        {#if isDownloading}
+            <div class="d-flex flex-column align-items-center justify-content-center gap-2 w-100 h-100 px-4 text-center">
+                <div class="spinner-border text-secondary" role="status">
+                    <span class="visually-hidden">{t("common.loading", { fallback: "Loading..." })}</span>
+                </div>
+                <small class="text-secondary opacity-75 mt-1">{t("media.connecting-to-peers", { fallback: "Connecting to peers..." })}</small>
             </div>
-
-            <!-- Progress Bar row -->
-            <div
-                class="bg-secondary bg-opacity-25 rounded-pill position-relative user-select-none"
-                style="height: 4px; cursor: pointer;"
-                onclick={handleSeek}
-                onkeydown={(e) => e.key === "Enter" && handleSeek(e)}
-                role="button"
-                tabindex="0"
-                aria-label={t("media.seek-audio-position", { fallback: "Seek audio position" })}
-            >
-                <div
-                    class="bg-secondary rounded-pill h-100 transition-all"
-                    style="width: {duration
-                        ? (currentTime / duration) * 100
-                        : 0}%; transition: width 0.1s ease;"
-                ></div>
-                <!-- Progress handle -->
-                <div
-                    class="bg-secondary rounded-circle position-absolute opacity-0 transition-opacity"
-                    style="width: 12px; height: 12px; top: -4px; left: {duration
-                        ? (currentTime / duration) * 100
-                        : 0}%; transform: translateX(-50%);"
-                ></div>
+        {:else if isMissing}
+            <div class="d-flex flex-column align-items-center justify-content-center gap-2 opacity-50 text-center h-100 px-3">
+                <i class="bi bi-exclamation-circle fs-2"></i>
+                <span class="small">{t("media.missing-audio", { fallback: "Missing audio" })}</span>
             </div>
-        </div>
+        {:else}
+            <i class="bi bi-music-note-beamed text-muted mb-2" style="font-size: 1.5rem;"></i>
+            
+            <div class="w-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <button
+                        class="btn btn-sm btn-link p-0 d-flex align-items-center justify-content-center border-0"
+                        onclick={togglePlay}
+                        disabled={!isLoaded}
+                        style="width: 20px; height: 20px;"
+                        aria-label={isPlaying
+                            ? t("media.pause", { fallback: "Pause" })
+                            : t("media.play", { fallback: "Play" })}
+                    >
+                        {#if isPlaying}
+                            <i
+                                class="bi bi-pause-circle text-dark"
+                                style="font-size: 20px;"
+                            ></i>
+                        {:else}
+                            <i
+                                class="bi bi-play-circle text-dark"
+                                style="font-size: 20px;"
+                            ></i>
+                        {/if}
+                    </button>
+
+                    <span
+                        class="text-muted text-end"
+                        style="font-size: 11px; min-width: 35px;"
+                    >
+                        {formatTime(duration)}
+                    </span>
+                </div>
+
+                <div
+                    class="bg-secondary bg-opacity-25 rounded-pill position-relative user-select-none"
+                    style="height: 4px; cursor: pointer;"
+                    onclick={handleSeek}
+                    onkeydown={(e) => e.key === "Enter" && handleSeek(e)}
+                    role="button"
+                    tabindex="0"
+                    aria-label={t("media.seek-audio-position", { fallback: "Seek audio position" })}
+                >
+                    <div
+                        class="bg-secondary rounded-pill h-100 transition-all"
+                        style="width: {duration
+                            ? (currentTime / duration) * 100
+                            : 0}%; transition: width 0.1s ease;"
+                    ></div>
+                    <div
+                        class="bg-secondary rounded-circle position-absolute opacity-0 transition-opacity"
+                        style="width: 12px; height: 12px; top: -4px; left: {duration
+                            ? (currentTime / duration) * 100
+                            : 0}%; transform: translateX(-50%);"
+                    ></div>
+                </div>
+            </div>
+        {/if}
     </div>
 
     <!-- Hidden Audio Element -->
     <audio
         bind:this={audioElement}
-        src={asset?.path ? `media://${asset.path}` : ""}
+        src={audioSource || ""}
         ontimeupdate={handleTimeUpdate}
         onloadedmetadata={handleLoadedMetadata}
         onplay={handlePlay}

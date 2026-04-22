@@ -1,7 +1,7 @@
 <script>
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
+  import BaseImage from "$lib/components/base/BaseImage.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { getAssetImageUrl } from "$lib/utils/media.js";
   import { getObjectIdentifier } from "$lib/utils/objects.js";
   import { formatDate } from "$lib/utils/dates";
   import Swiper from "swiper";
@@ -90,6 +90,7 @@
 <div
   id="object-card-{object.id}"
   class="w-100 d-flex flex-column p-2 rounded bg-white border mb-3"
+  style="min-width: 0;"
   class:border-primary={isSelected}
   class:border-2={isSelected}
 >
@@ -104,7 +105,7 @@
       aria-label={t("objects.select-object", { fallback: "Select object" })}
     />
   </div>
-  <div class="bg-light rounded ratio ratio-1x1 mb-3">
+  <div class="bg-light rounded ratio ratio-1x1 mb-3 overflow-hidden">
     {#if sortedAssets.length > 0}
       <div>
         <div
@@ -120,9 +121,11 @@
           <div class="swiper-wrapper">
             {#each sortedAssets as image, i (image.asset.id + '-' + i)}
               <div class="swiper-slide">
-                <img
-                  class="object-fit-contain w-100 h-100"
-                  src={getAssetImageUrl(image.asset, 'md')}
+                <BaseImage
+                  class="w-100 h-100"
+                  objectFit="contain"
+                  asset={image.asset}
+                  preferredFormat="md"
                   loading="lazy"
                   alt={title}
                 />

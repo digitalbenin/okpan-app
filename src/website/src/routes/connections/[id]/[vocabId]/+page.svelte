@@ -1,4 +1,7 @@
 <script>
+    import BaseVideo from '$lib/components/base/BaseVideo.svelte';
+    import BaseAudio from '$lib/components/base/BaseAudio.svelte';
+    import BaseImage from '$lib/components/base/BaseImage.svelte';
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
@@ -104,11 +107,10 @@
             <div class="card border-0 bg-light rounded-3 overflow-hidden position-relative" style="height: 400px;">
                 <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-black">
                     {#key videos[videoIndex].path}
-                        <video controls class="d-block mw-100 mh-100">
-                            <source src={getAssetUrl({ asset_path: videos[videoIndex].path })} type="video/mp4">
-                            <track kind="captions" />
-                            {t('media.browser-no-video')}
-                        </video>
+                        <BaseVideo 
+                            src={videos[videoIndex].path}
+                            assetId={videos[videoIndex].id}
+                            class="d-block mw-100 mh-100" />
                     {/key}
                 </div>
                 
@@ -141,8 +143,9 @@
             <h6 class="fw-bold  mb-3"><i class="bi bi-images me-2"></i>{t('media.images')}</h6>
             <div class="card border-0 bg-light rounded-3 overflow-hidden position-relative" style="height: 400px;">
                 <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-secondary bg-opacity-10">
-                     <img 
-                        src={getAssetUrl({ asset_path: images[imageIndex].path })} 
+                     <BaseImage
+                        src={images[imageIndex].path} 
+                        assetId={images[imageIndex].id}
                         alt={vocabulary.name}
                         class="mw-100 mh-100 object-fit-contain"
                      />
@@ -179,10 +182,12 @@
                 {#each audio as aud}
                     <div class="card border-0 bg-light p-3 rounded-pill">
                         <div class="d-flex align-items-center gap-3">
-                            <audio controls class="flex-grow-1" style="height: 32px;">
-                                <source src={getAssetUrl({ asset_path: aud.path })} type="audio/mpeg">
-                                {t('media.browser-no-audio')}
-                            </audio>
+                            <BaseAudio 
+                                src={aud.path} 
+                                assetId={aud.id}
+                                class="flex-grow-1" 
+                                style="height: 32px;" 
+                            />
                         </div>
                     </div>
                 {/each}

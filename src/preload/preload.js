@@ -43,14 +43,71 @@ contextBridge.exposeInMainWorld('api', {
     setCurrentProject: (projectId) => ipcRenderer.invoke('set-current-project', projectId),
     getCurrentProject: () => ipcRenderer.invoke('get-current-project'),
     clearCurrentProject: () => ipcRenderer.invoke('clear-current-project'),
+    getNetworkStatus: () => ipcRenderer.invoke('network-status:get'),
+    getProjectPeers: (projectId) => ipcRenderer.invoke('get-project-peers', projectId),
+    getProjectPresence: (projectId) => ipcRenderer.invoke('project-presence:get', projectId),
+    getGlobalProfile: () => ipcRenderer.invoke('global-profile:get'),
+    updateGlobalUsername: (username) => ipcRenderer.invoke('global-profile:update', username),
+
+    // Y.Doc inspection
+    inspectYDoc: (projectId) => ipcRenderer.invoke('ydoc-dump', projectId),
+
+    // Project Sharing & Joining
+    setProjectPassword: (projectId, password) => ipcRenderer.invoke('project-set-password', { projectId, password }),
+    joinP2PProject: (projectId, password) => ipcRenderer.invoke('project-join-p2p', { projectId, password }),
+    suspendP2PProject: (projectId) => ipcRenderer.invoke('project-suspend-p2p', projectId),
+    reconnectP2PProject: (projectId, password) => ipcRenderer.invoke(
+        'project-reconnect-p2p',
+        password === undefined ? projectId : { projectId, password }
+    ),
+
+    // Snapshot management
+    createSnapshot: (projectId) => ipcRenderer.invoke('snapshot-create', projectId),
+    hydrateFromSnapshot: (projectId) => ipcRenderer.invoke('snapshot-hydrate', projectId),
+    listRecoverySnapshots: (projectId) => ipcRenderer.invoke('recovery-snapshots-list', projectId),
+    createRecoverySnapshot: (projectId, reason = null) => ipcRenderer.invoke('recovery-snapshots-create', { projectId, reason }),
+    restoreRecoverySnapshot: (projectId, snapshotId) => ipcRenderer.invoke('recovery-snapshots-restore', { projectId, snapshotId }),
+    deleteRecoverySnapshot: (projectId, snapshotId) => ipcRenderer.invoke('recovery-snapshots-delete', { projectId, snapshotId }),
 
     // Listeners for backend events
+    onDataChanged: (callback) => {
+        const subscription = (event, ...args) => callback(...args);
+        ipcRenderer.on('data-changed', subscription);
+        return () => ipcRenderer.removeListener('data-changed', subscription);
+    },
+    onGlobalProfileChanged: (callback) => {
+        const subscription = (event, ...args) => callback(...args);
+        ipcRenderer.on('global-profile-changed', subscription);
+        return () => ipcRenderer.removeListener('global-profile-changed', subscription);
+    },
+    onProjectPresenceChanged: (callback) => {
+        const subscription = (event, ...args) => callback(...args);
+        ipcRenderer.on('project-presence-changed', subscription);
+        return () => ipcRenderer.removeListener('project-presence-changed', subscription);
+    },
+    onNetworkStatusChanged: (callback) => {
+        const subscription = (event, ...args) => callback(...args);
+        ipcRenderer.on('network-status-changed', subscription);
+        return () => ipcRenderer.removeListener('network-status-changed', subscription);
+    },
     onImportProgress: (callback) => ipcRenderer.on('import-assets-progress', callback),
     removeImportProgressListeners: () => ipcRenderer.removeAllListeners('import-assets-progress'),
     openPreview: (projectId) => ipcRenderer.send('open-preview', projectId),
     
     // Website export
-    exportStaticWebsite: (options) => ipcRenderer.invoke('export-static-website', options)
+    exportStaticWebsite: (options) => ipcRenderer.invoke('export-static-website', options),
+
+    // Asset P2P sync
+    getAssetSyncStatus: (projectId) => ipcRenderer.invoke('asset-sync-status', projectId),
+    triggerAssetReconcile: (projectId, assetId = null) => ipcRenderer.invoke(
+        'asset-sync-reconcile',
+        assetId ? { projectId, assetId } : projectId
+    ),
+    onAssetSyncProgress: (callback) => {
+        const subscription = (event, ...args) => callback(...args);
+        ipcRenderer.on('asset-sync-progress', subscription);
+        return () => ipcRenderer.removeListener('asset-sync-progress', subscription);
+    }
 });
 
 

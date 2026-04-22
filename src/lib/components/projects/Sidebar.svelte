@@ -113,6 +113,11 @@
           url: `/projects/${page.data.project.id}/settings/sharing`,
           icon: "",
         },
+        {
+          label: t("menu.recovery-snapshots", { fallback: "Recovery Snapshots" }),
+          url: `/projects/${page.data.project.id}/settings/recovery-snapshots`,
+          icon: "",
+        },
       ],
     },
   ]);

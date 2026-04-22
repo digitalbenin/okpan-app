@@ -316,6 +316,7 @@
                                     <div class="card h-100">
                                         <BaseImage
                                             src={`media://${asset.path}`}
+                                            assetId={asset.id}
                                             alt={asset.filename}
                                             ratio="1"
                                             class="card-img-top"

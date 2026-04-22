@@ -3,6 +3,10 @@ import path from 'path';
 import { eq, inArray, or } from 'drizzle-orm';
 import { GraphQLBoolean, GraphQLInt, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema.js';
+import { stopP2PForProject } from '../../backend/services/p2pService.js';
+import { clearCurrentProjectId, disposeProjectDoc, getCurrentProjectId } from '../../backend/services/projectCache.js';
+import { deleteProjectRecoverySnapshots } from '../../backend/services/recoverySnapshotService.js';
+import { isSharedProject } from '../../lib/utils/projectSharing.js';
 
 const normalizeIdList = (values) => {
     if (!Array.isArray(values)) return [];
@@ -51,7 +55,9 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
             projectId: { type: GraphQLString },
             deleted: { type: GraphQLBoolean },
             assetsFolderRemoved: { type: GraphQLBoolean },
+            snapshotsFolderRemoved: { type: GraphQLBoolean },
             assetFolderErrors: { type: new GraphQLList(GraphQLString) },
+            snapshotFolderErrors: { type: new GraphQLList(GraphQLString) },
             counts: { type: ProjectDeleteCascadeCounts }
         })
     });
@@ -78,6 +84,7 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
             const projectRow = await db
                 .select({
                     id: dbSchema.project.id,
+                    is_shared: dbSchema.project.is_shared,
                     title_id: dbSchema.project.title_id,
                     description_id: dbSchema.project.description_id
                 })
@@ -91,9 +98,29 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                     projectId,
                     deleted: false,
                     assetsFolderRemoved: false,
+                    snapshotsFolderRemoved: false,
                     assetFolderErrors: [`Project ${projectId} not found`],
+                    snapshotFolderErrors: [],
                     counts: {}
                 };
+            }
+
+            const sharedProject = isSharedProject(projectRow[0]);
+
+            // Shared project deletion must stay local.
+            // Stop transport/tailer linkage first so the local cascade cannot be projected back into Yjs and propagated.
+            if (sharedProject) {
+                try {
+                    await stopP2PForProject(projectId);
+                } catch (error) {
+                    console.warn('[DELETE CASCADE] Failed to stop P2P before deleting shared project:', error);
+                }
+
+                if (getCurrentProjectId() === projectId) {
+                    clearCurrentProjectId();
+                }
+
+                disposeProjectDoc(projectId);
             }
 
             const institutions = await db
@@ -121,6 +148,13 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                 .execute();
 
             const researchFieldIds = normalizeIdList(researchFields.map((row) => row.id));
+
+            const genericAssets = await db
+                .select({ id: dbSchema.genericAssets.id })
+                .from(dbSchema.genericAssets)
+                .where(eq(dbSchema.genericAssets.project_id, projectId))
+                .execute();
+            const genericAssetIds = normalizeIdList(genericAssets.map((row) => row.id));
 
             const ontologyFields = await db
                 .select({
@@ -224,6 +258,27 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                         .execute();
                     counts.actions = deletedActions.length;
 
+                    // 1b. Delete sync tables (change_log and Yjs tables)
+                    await tx
+                        .delete(dbSchema.yjs_updates)
+                        .where(eq(dbSchema.yjs_updates.project_id, projectId))
+                        .execute();
+
+                    await tx
+                        .delete(dbSchema.yjs_snapshots)
+                        .where(eq(dbSchema.yjs_snapshots.project_id, projectId))
+                        .execute();
+
+                    await tx
+                        .delete(dbSchema.ingestion_state)
+                        .where(eq(dbSchema.ingestion_state.project_id, projectId))
+                        .execute();
+
+                    await tx
+                        .delete(dbSchema.change_log)
+                        .where(eq(dbSchema.change_log.project_id, projectId))
+                        .execute();
+
                     // 2. Delete objects (before assets/institutions since junction tables reference it)
                     const deletedObjects = await tx
                         .delete(dbSchema.objects)
@@ -248,6 +303,17 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                         .execute();
                     counts.templates = deletedTemplates.length;
 
+                    // 4b. Delete datasources explicitly (before institutions to ensure triggers resolve project_id)
+                    // Datasources rely on institution lookup for project_id interpretation
+                    if (institutionIds.length > 0) {
+                        const deletedDatasources = await tx
+                             .delete(dbSchema.datasources)
+                             .where(inArray(dbSchema.datasources.institution_id, institutionIds))
+                             .returning({ id: dbSchema.datasources.id })
+                             .execute();
+                        // counts.datasources = deletedDatasources.length; // Add if we track this count later
+                    }
+
                     // 5. Delete institutions (this cascades to datasources)
                     const deletedInstitutions = await tx
                         .delete(dbSchema.institutions)
@@ -256,7 +322,20 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                         .execute();
                     counts.institutions = deletedInstitutions.length;
 
-                    // 6. Delete research fields (this cascades to vocabularies)
+            // 5b. Delete vocabularies explicitly (before research fields/generic assets)
+                    // Vocabularies rely on parent lookup triggers
+                    if (researchFieldIds.length > 0) {
+                         await tx.delete(dbSchema.vocabularies)
+                           .where(inArray(dbSchema.vocabularies.field_id, researchFieldIds))
+                           .execute();
+                    }
+                    if (genericAssetIds.length > 0) {
+                         await tx.delete(dbSchema.vocabularies)
+                           .where(inArray(dbSchema.vocabularies.main_asset_id, genericAssetIds))
+                           .execute();
+                    }
+
+                    // 6. Delete research fields (this cascades to vocabularies but we deleted them safely)
                     const deletedResearchFields = await tx
                         .delete(dbSchema.research_fields)
                         .where(eq(dbSchema.research_fields.project_id, projectId))
@@ -354,11 +433,12 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                     
                     let deletedTextsCount = 0;
                     if (textsWhereClause) {
-                         const deletedTexts = await tx.delete(dbSchema.texts)
+                        const deletedTexts = await tx
+                            .delete(dbSchema.texts)
                             .where(textsWhereClause)
                             .returning({ id: dbSchema.texts.id })
                             .execute();
-                         deletedTextsCount = deletedTexts.length;
+                        deletedTextsCount = deletedTexts.length;
                     }
                     counts.texts = deletedTextsCount;
 
@@ -384,7 +464,9 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
             });
 
             const assetFolderErrors = [];
+            const snapshotFolderErrors = [];
             let assetsFolderRemoved = false;
+            let snapshotsFolderRemoved = false;
             const projectAssetsFolder = path.join(process.cwd(), 'src', 'assets', 'project_assets', projectId);
 
             try {
@@ -394,11 +476,20 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                 assetFolderErrors.push(error?.message || 'Failed to remove project assets folder');
             }
 
+            try {
+                await deleteProjectRecoverySnapshots(projectId);
+                snapshotsFolderRemoved = true;
+            } catch (error) {
+                snapshotFolderErrors.push(error?.message || 'Failed to remove project recovery snapshots folder');
+            }
+
             return {
                 projectId,
                 deleted: counts.project > 0,
                 assetsFolderRemoved,
+                snapshotsFolderRemoved,
                 assetFolderErrors,
+                snapshotFolderErrors,
                 counts
             };
         }

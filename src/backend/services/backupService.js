@@ -6,8 +6,69 @@ import yazl from 'yazl';
 import yauzl from 'yauzl';
 import { eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
+import { removePathRobust } from './fsUtils.js';
 
 const sqlEscape = (val) => String(val).replace(/'/g, "''");
+
+const convertProjectReplaceToUpsert = (statement) => {
+  const match = statement.match(/^INSERT OR REPLACE INTO\s+project\s*\(([^)]+)\)\s*VALUES\s*\((.*)\)$/i);
+  if (!match) {
+    return statement;
+  }
+
+  const rawColumns = match[1].split(',').map((column) => column.trim());
+  const rawValues = match[2].trim();
+  const updateColumns = rawColumns.filter((column) => column.replace(/^"|"$/g, '') !== 'id');
+
+  if (updateColumns.length === 0) {
+    return statement.replace(/^INSERT OR REPLACE/i, 'INSERT');
+  }
+
+  const updateSet = updateColumns
+    .map((column) => `${column} = excluded.${column}`)
+    .join(', ');
+
+  return `INSERT INTO project (${match[1]}) VALUES (${rawValues}) ON CONFLICT("id") DO UPDATE SET ${updateSet}`;
+};
+
+const splitSqlStatements = (sqlContent) => {
+  const statements = [];
+  let current = '';
+  let inSingleQuote = false;
+
+  for (let index = 0; index < sqlContent.length; index += 1) {
+    const char = sqlContent[index];
+    const nextChar = sqlContent[index + 1];
+
+    current += char;
+
+    if (char === "'") {
+      if (inSingleQuote && nextChar === "'") {
+        current += nextChar;
+        index += 1;
+        continue;
+      }
+
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+
+    if (char === ';' && !inSingleQuote) {
+      const trimmed = current.trim();
+      if (trimmed.length > 0) {
+        statements.push(trimmed);
+      }
+      current = '';
+    }
+  }
+
+  const trailing = current.trim();
+  if (trailing.length > 0) {
+    statements.push(trailing);
+  }
+
+  return statements;
+};
 
 const formatValue = (val) => {
   if (val === null || val === undefined) return 'NULL';
@@ -46,25 +107,15 @@ const generateInsertStatements = (tableName, rows) => {
       // Ensure created_at and updated_at have values
       const processedRow = { ...row };
       const now = Date.now();
-      
-      let hadNullTimestamp = false;
+
       if (allCols.includes('created_at') && (processedRow.created_at === null || processedRow.created_at === undefined || processedRow.created_at === '')) {
         console.warn(`[BACKUP] Table "${tableName}" row ${rowIndex} (id: ${row.id}): created_at is NULL, replacing with current timestamp`);
         processedRow.created_at = now;
-        hadNullTimestamp = true;
       }
       if (allCols.includes('updated_at') && (processedRow.updated_at === null || processedRow.updated_at === undefined || processedRow.updated_at === '')) {
         console.warn(`[BACKUP] Table "${tableName}" row ${rowIndex} (id: ${row.id}): updated_at is NULL, replacing with current timestamp`);
         processedRow.updated_at = now;
-        hadNullTimestamp = true;
       }
-      
-      // Check for any other NULL values in non-nullable fields
-      allCols.forEach(col => {
-        if (processedRow[col] === null || processedRow[col] === undefined) {
-          console.warn(`[BACKUP] Table "${tableName}" row ${rowIndex} (id: ${row.id}): column "${col}" is NULL`);
-        }
-      });
       
       const values = allCols.map((c) => formatValue(processedRow[c]));
       return `INSERT OR REPLACE INTO ${tableName} (${colList}) VALUES (${values.join(', ')});`;
@@ -339,6 +390,13 @@ async function ensureDir(dirPath) {
   await fsPromises.mkdir(dirPath, { recursive: true });
 }
 
+async function removePathIfExists(targetPath, options = {}) {
+  await removePathRobust(targetPath, {
+    force: true,
+    recursive: options.recursive === true,
+  });
+}
+
 async function copyFileIfExists(src, dest) {
   try {
     await ensureDir(path.dirname(dest));
@@ -508,10 +566,16 @@ export async function createProjectBackup(options, { db }) {
     if (ds.notes_id) textIds.add(ds.notes_id);
   });
   const datasourceIds = datasources.map(ds => ds.id);
+  const importIds = datasources
+    .map(ds => ds.import_id)
+    .filter(id => typeof id === 'string' && id.trim());
 
-  // Imports (standalone - not linked to datasources)
-  const imports = await db.select().from(dbSchema.imports)
-    .execute();
+  // Imports referenced by this project's datasources
+  const imports = importIds.length > 0
+    ? await db.select().from(dbSchema.imports)
+        .where(inArray(dbSchema.imports.id, importIds))
+        .execute()
+    : [];
 
   // Objects
   const objects = await db.select().from(dbSchema.objects)
@@ -754,7 +818,7 @@ export async function checkProjectExists(project_id, { db }) {
 }
 
 export async function restoreProjectBackup(options, { db }) {
-  const { filePath, strategy = 'merge' } = options || {};
+  const { filePath, strategy = 'merge', preserveProjectRow = false } = options || {};
   
   if (!filePath) {
     throw new Error('filePath is required');
@@ -795,21 +859,23 @@ export async function restoreProjectBackup(options, { db }) {
     
     try {
       // Execute SQL statements
-      const statements = sqlContent
-        .split(';')
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
+      const statements = splitSqlStatements(sqlContent);
 
-      for (const stmt of statements) {
+      for (const rawStmt of statements) {
         try {
+          const tableName = rawStmt.match(/INSERT OR REPLACE INTO (\w+)/i)?.[1] || 'unknown';
+          const stmt = preserveProjectRow && tableName === 'project'
+            ? convertProjectReplaceToUpsert(rawStmt)
+            : rawStmt;
+
           await db.run(stmt + ';');
         } catch (err) {
-          const tableName = stmt.match(/INSERT OR REPLACE INTO (\w+)/i)?.[1] || 'unknown';
-          const idMatch = stmt.match(/"id"\s*,.*?VALUES\s*\('([^']+)'/i);
+          const tableName = rawStmt.match(/INSERT OR REPLACE INTO (\w+)/i)?.[1] || 'unknown';
+          const idMatch = rawStmt.match(/"id"\s*,.*?VALUES\s*\('([^']+)'/i);
           const rowId = idMatch?.[1] || 'unknown';
           
           console.error(`[RESTORE] Error in table "${tableName}", row id: "${rowId}"`);
-          console.error(`[RESTORE] SQL statement: ${stmt.substring(0, 200)}...`);
+          console.error(`[RESTORE] SQL statement: ${rawStmt.substring(0, 200)}...`);
           console.error(`[RESTORE] Error:`, err.message);
           // Continue with other statements even if one fails
         }
@@ -826,7 +892,7 @@ export async function restoreProjectBackup(options, { db }) {
       const assetsDestDir = path.join(process.cwd(), 'src', 'assets', 'project_assets', project_id);
       
       if (strategy === 'overwrite' && fs.existsSync(assetsDestDir)) {
-        await fsPromises.rm(assetsDestDir, { recursive: true, force: true });
+        await removePathIfExists(assetsDestDir, { recursive: true });
       }
       
       await ensureDir(assetsDestDir);

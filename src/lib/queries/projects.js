@@ -8,19 +8,25 @@ export const projectsOperations = {
       title: "Title of the project",
       description: "Description of the project",
       languageCode: "Language code for the default language",
-      languageName: "Language name for the default language"
+      languageName: "Language name for the default language",
+      isShared: "Whether the project is shared or private (1 or 0)",
+      password: "Password for the project, if shared"
     },
     query: `mutation CreateProjectWithDefaults(
   $title: String!
   $description: String
   $languageCode: String!
   $languageName: String
+  $isShared: Int
+  $password: String
 ) {
   result:createProjectWithDefaults(
     title: $title,
     description: $description,
     languageCode: $languageCode,
-    languageName: $languageName
+    languageName: $languageName,
+    isShared: $isShared,
+    password: $password
   ) {
     project { id title_id description_id }
     defaultLanguage { id code name is_default }
@@ -52,6 +58,9 @@ export const projectsOperations = {
     id
     title_id
     description_id
+    title {
+      original_language_id
+    }
   }
 }`,
         useVariables: ["projectId"]
@@ -74,6 +83,47 @@ export const projectsOperations = {
         skipIf: { variableName: "title", isUndefined: true }
       },
       {
+        name: "createDescription",
+        query: `mutation CreateProjectDescription($description: String!, $languageId: String!) {
+  insertIntoTexts(
+    values: [
+      {
+        content: $description
+        context: "project.description"
+        original_language_id: $languageId
+      }
+    ]
+  ) {
+    id
+    content
+    original_language_id
+  }
+}`,
+        useVariables: ["description"],
+        mapVariables: {
+          languageId: { from: "getProject", path: "project.0.title.original_language_id" }
+        },
+        skipIf: { variableName: "description", isEmpty: true },
+        onlyIf: { from: "getProject", path: "project.0.description_id", isNull: true }
+      },
+      {
+        name: "linkDescription",
+        query: `mutation LinkProjectDescription($projectId: String!, $descriptionId: String!) {
+  updateProject(
+    set: { description_id: $descriptionId }
+    where: { id: { eq: $projectId } }
+  ) {
+    id
+    description_id
+  }
+}`,
+        useVariables: ["projectId"],
+        mapVariables: {
+          descriptionId: { from: "createDescription", path: "insertIntoTexts.0.id" }
+        },
+        skipIf: { variableName: "descriptionId", isUndefined: true }
+      },
+      {
         name: "updateDescription",
         query: `mutation UpdateProjectDescription($descriptionId: String!, $description: String!) {
   updateTexts(
@@ -88,7 +138,7 @@ export const projectsOperations = {
         mapVariables: {
           descriptionId: { from: "getProject", path: "project.0.description_id" }
         },
-        skipIf: { variableName: "description", isUndefined: true }
+        skipIf: { variableName: "descriptionId", isEmpty: true }
       },
       // === TRANSLATION PROCESSING STEPS ===
       {
@@ -101,7 +151,10 @@ export const projectsOperations = {
       {
         name: "processDescriptionTranslations",
         processTranslations: {
-          textIdPath: "getProject.project.0.description_id",
+          textIdPaths: [
+            "createDescription.insertIntoTexts.0.id",
+            "getProject.project.0.description_id"
+          ],
           translationsParam: "descriptionTranslations"
         }
       }
@@ -122,7 +175,9 @@ export const projectsOperations = {
     projectId
     deleted
     assetsFolderRemoved
+    snapshotsFolderRemoved
     assetFolderErrors
+    snapshotFolderErrors
     counts {
       actions
       websiteSettings
@@ -160,6 +215,8 @@ export const projectsOperations = {
     updated_at
     title_id
     description_id
+    is_shared
+    password
     title {
       id
       content
@@ -211,6 +268,7 @@ export const projectsOperations = {
     updated_at
     title_id
     description_id
+    is_shared
     title {
       id
       content

@@ -1,7 +1,7 @@
 <script>
-  import BaseBadgeStaus from "$lib/components/base/BaseBadgeStatus.svelte";
+  import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
+  import BaseImage from "$lib/components/base/BaseImage.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { addImageProtocolPrefix } from "$lib/utils/media.js";
 
   const { t } = getTranslationStore();
   const { institution } = $props();
@@ -11,7 +11,7 @@
   class="w-100 h-100 position-relative d-flex flex-column border p-2 rounded bg-white"
 >
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <div><BaseBadgeStaus status={institution.status}></BaseBadgeStaus></div>
+    <div><BaseBadgeStatus status={institution.status}></BaseBadgeStatus></div>
     <div><i class="bi bi-three-dots-vertical"></i></div>
   </div>
   <h5 class="line-clamp mb-1">
@@ -26,20 +26,26 @@
     <div class="imgWrapper w-100 rounded d-flex border overflow-hidden mb-2">
       {#if institution.previewImages && institution.previewImages.length > 0}
         <div class="col">
-          <img
-            class="object-fit-cover w-100 h-100"
-            src={addImageProtocolPrefix(institution.previewImages[0].sm)}
-            alt={institution.name.content || t("common.institution")}
+          <BaseImage
+            class="w-100 h-100"
+            objectFit="cover"
+            asset={institution.previewImages[0]}
+            preferredFormat="sm"
+            compact={true}
+            alt={institution.name.content || t("common.institution", { fallback: "Institution" })}
           />
         </div>
         {#if institution.previewImages.length > 2}
           <div class="col-4 d-flex flex-column border-start">
             {#each institution.previewImages.slice(1, 3) as image, i}
               <div class="h-50" class:border-bottom={i === 0}>
-                <img
-                  class="object-fit-cover w-100 h-100"
-                  src={addImageProtocolPrefix(image.sm)}
-                  alt={institution.name.content || t("common.institution")}
+                <BaseImage
+                  class="w-100 h-100"
+                  objectFit="cover"
+                  asset={image}
+                  preferredFormat="sm"
+                  compact={true}
+                  alt={institution.name.content || t("common.institution", { fallback: "Institution" })}
                 />
               </div>
             {/each}

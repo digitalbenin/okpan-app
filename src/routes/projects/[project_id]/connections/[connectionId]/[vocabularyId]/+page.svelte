@@ -101,7 +101,7 @@
     }
 </script>
 
-{#if vocabulary && researchField && project}
+{#if !data.missingEntity && vocabulary && researchField && project}
     <VocabularyForm
         data={data}
         project={project}
@@ -116,8 +116,4 @@
         onSubmit={handleSave}
         onCancel={() => window.history.back()}
     />
-{:else}
-    <div class="p-8 text-center text-gray-500">
-        {t("common.loading", {fallback: "Loading..."})}
-    </div>
 {/if}

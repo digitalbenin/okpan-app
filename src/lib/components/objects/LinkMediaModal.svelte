@@ -254,14 +254,14 @@
                                         style="width: 64px; height: 64px;"
                                     >
                                         <BaseImage
-                                            src={asset?.path
-                                                ? `media://${asset.path}`
-                                                : null}
+                                            asset={asset}
+                                            preferredFormat="sm"
                                             alt={asset?.filename || t("media.unnamed-file", { fallback: "Unnamed file" })}
                                             width={64}
                                             height={64}
                                             class="rounded"
                                             ratio="1/1"
+                                            compact={true}
                                         />
                                     </div>
                                     <div class="flex-grow-1 min-w-0">
