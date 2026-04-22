@@ -156,7 +156,9 @@ export default {
                 const dest = path.join(viteNodeModules, relativePackageDir);
                 if (copiedDestinations.has(dest)) return true;
 
-                await fs.copy(packageDir, dest);
+                await fs.copy(packageDir, dest, {
+                    filter: (src) => !src.includes(`${path.sep}node_modules${path.sep}.bin${path.sep}`)
+                });
                 copiedDestinations.add(dest);
                 return true;
             }
@@ -223,7 +225,13 @@ export default {
             ];
 
             for (const pkg of externals) {
-                await ensureCopyDeep(pkg);
+                try {
+                    console.log(`packageAfterCopy: Copying runtime package '${pkg}'`);
+                    await ensureCopyDeep(pkg);
+                } catch (err) {
+                    console.error(`packageAfterCopy: Failed while copying runtime package '${pkg}'`, err);
+                    throw err;
+                }
             }
 
             // Small helper to DRY file/dir copy patterns
