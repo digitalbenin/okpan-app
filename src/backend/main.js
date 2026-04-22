@@ -947,7 +947,10 @@ function resolveMediaPath(urlObj, requestUrl) {
 
   // Use original url string to avoid url parser stripping/moving segments into hostname
   if (requestUrl) {
-    pathStr = decodeURIComponent(requestUrl.substring('media://'.length));
+    const rawPath = requestUrl.substring('media://'.length);
+    const pathEndIndex = rawPath.search(/[?#]/);
+    const normalizedRawPath = pathEndIndex >= 0 ? rawPath.substring(0, pathEndIndex) : rawPath;
+    pathStr = decodeURIComponent(normalizedRawPath);
   } else {
     const host = urlObj.hostname || '';
     const pathname = decodeURIComponent(urlObj.pathname || '');
