@@ -95,7 +95,7 @@
   <div class="w-100">
     <div class="d-flex align-items-center justify-content-between mb-2 px-3 py-2 bg-white border rounded">
       <span class="text-muted">
-        {t("import.fields-count", { fallback: "{count} fields", count: fields.length })}
+        {t("import.fields-count", { fallback: "{{count}} fields", count: fields.length })}
       </span>
       <div class="form-check mb-0">
         <input
