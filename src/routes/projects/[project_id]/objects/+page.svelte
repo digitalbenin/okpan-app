@@ -9,8 +9,8 @@
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
-  import { fly } from "svelte/transition";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { topCurtainOverlay } from "$lib/utils/transitions.js";
   import { queryParameters, ssp } from "sveltekit-search-params";
   import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/stores/ObjectsUtils.js";
   import { page } from "$app/stores";
@@ -332,32 +332,8 @@
       </div>
     </div>
 
-    <div class="row align-items-center g-2 pb-2 mt-2">
-      {#if selectedObjects.length > 0}
-        <div class="col d-flex align-items-center gap-2 flex-wrap">
-          <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
-            <span>{i18n.clearSelection}</span>
-            <i class="bi bi-x-circle"></i>
-          </button>
-          <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={openBulkInstitutionModal}>
-            <span>{i18n.changeInstitution}</span>
-            <i class="bi bi-bank"></i>
-          </button>
-          <BulkActionsStatusSelect
-            items={statuses.filter((s) => s.value !== "all")}
-            bind:value={bulkStatusValue}
-            onValueChange={applyBulkStatus}
-          />
-          <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={openBulkEdit}>
-            <span>{i18n.editSelected}</span>
-            <i class="bi bi-pencil"></i>
-          </button>
-          <button class="btn btn-danger btn-sm d-flex align-items-center gap-2" onclick={confirmBulkDelete}>
-            <span>{i18n.deleteSelected}</span>
-            <i class="bi bi-trash"></i>
-          </button>
-        </div>
-      {:else}
+    <div class="position-relative">
+      <div class="row align-items-center g-2 pb-2 mt-2">
         <div class="col-auto">
           {searchData.totalCount}
           {searchData.totalCount === 1 ? t("common.object", { fallback: "object" }) : t("common.objects", { fallback: "objects" })}
@@ -392,6 +368,39 @@
                 <i class="bi bi-{view.icon}"></i>
               </button>
             {/each}
+          </div>
+        </div>
+      </div>
+
+      {#if selectedObjects.length > 0}
+        <div
+          transition:topCurtainOverlay={{ y: -20, duration: 220 }}
+          class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-light"
+        >
+          <div class="row align-items-center g-2 pb-2 mt-2 h-100">
+            <div class="col d-flex align-items-center gap-2 flex-wrap">
+              <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
+                <span>{i18n.clearSelection}</span>
+                <i class="bi bi-x-circle"></i>
+              </button>
+              <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={openBulkInstitutionModal}>
+                <span>{i18n.changeInstitution}</span>
+                <i class="bi bi-bank"></i>
+              </button>
+              <BulkActionsStatusSelect
+                items={statuses.filter((s) => s.value !== "all")}
+                bind:value={bulkStatusValue}
+                onValueChange={applyBulkStatus}
+              />
+              <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={openBulkEdit}>
+                <span>{i18n.editSelected}</span>
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-danger btn-sm d-flex align-items-center gap-2" onclick={confirmBulkDelete}>
+                <span>{i18n.deleteSelected}</span>
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
           </div>
         </div>
       {/if}

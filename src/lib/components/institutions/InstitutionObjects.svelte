@@ -6,11 +6,11 @@
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { fly } from "svelte/transition";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import ObjectAdvancedFilters from "$lib/components/objects/ObjectAdvancedFilters.svelte";
+  import { topCurtainOverlay } from "$lib/utils/transitions.js";
   import { afterNavigate, goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { resource } from "runed";
@@ -281,20 +281,8 @@
       </div>
     </div>
 
-    <div class="row align-items-center g-2 pb-2 mt-2">
-      {#if selectedObjects.length}
-        <div class="col d-flex align-items-center gap-2 flex-wrap">
-          {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
-          {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
-          <BulkActionsStatusSelect
-            items={statuses.filter((s) => s.value !== "all")}
-            bind:value={bulkStatusValue}
-            onValueChange={applyBulkStatus}
-          />
-          {@render actionButton("pencil", t("common.edit-info"), openBulkEdit)}
-          {@render actionButton("trash", t("common.delete"), () => (showBulkDeleteModal = true), "danger")}
-        </div>
-      {:else}
+    <div class="position-relative">
+      <div class="row align-items-center g-2 pb-2 mt-2">
         <div class="col-auto">
           {objectsData.totalCount}
           {objectsData.totalCount === 1 ? t("common.object") : t("common.objects")}
@@ -330,6 +318,27 @@
                 <i class="bi bi-{view.icon}"></i>
               </button>
             {/each}
+          </div>
+        </div>
+      </div>
+
+      {#if selectedObjects.length}
+        <div
+          transition:topCurtainOverlay={{ y: -20, duration: 220 }}
+          class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-white"
+        >
+          <div class="row align-items-center g-2 pb-2 mt-2 h-100">
+            <div class="col d-flex align-items-center gap-2 flex-wrap">
+              {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
+              {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
+              <BulkActionsStatusSelect
+                items={statuses.filter((s) => s.value !== "all")}
+                bind:value={bulkStatusValue}
+                onValueChange={applyBulkStatus}
+              />
+              {@render actionButton("pencil", t("common.edit-info"), openBulkEdit)}
+              {@render actionButton("trash", t("common.delete"), () => (showBulkDeleteModal = true), "danger")}
+            </div>
           </div>
         </div>
       {/if}
