@@ -202,7 +202,7 @@
         ></BaseSelect>
       </div>
       <a
-        class="btn btn-primary btn-sm"
+        class="btn btn-secondary btn-sm"
         href="/projects/{institution.project_id}/import-assets/steps?institution_id={institution.id}"
         ><i class="bi bi-plus-lg"></i>
         {t("menu.import-assets")}</a
