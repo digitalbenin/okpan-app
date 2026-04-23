@@ -26,7 +26,8 @@ import {
     createAssetDeleteMutation,
     createGenericAssetDeleteMutation,
     createObjectsOntologyFieldsUnlinkMutation,
-    createUpdateTemplateAndPropagateMutation
+    createUpdateTemplateAndPropagateMutation,
+    createDeleteTemplateAndCleanupMutation
 } from './queries';
 
 export function createGraphQLSchema(db) {
@@ -125,6 +126,8 @@ export function createGraphQLSchema(db) {
     drizzleResult.schema._typeMap.Mutation._fields.unlinkDatasourceFromObject = createObjectsOntologyFieldsUnlinkMutation(db, drizzleResult);
     // Update template and propagate changes to all objects
     drizzleResult.schema._typeMap.Mutation._fields.updateTemplateAndPropagate = createUpdateTemplateAndPropagateMutation(db, drizzleResult);
+    // Delete template and cleanup associations
+    drizzleResult.schema._typeMap.Mutation._fields.deleteTemplateAndCleanup = createDeleteTemplateAndCleanupMutation(db, drizzleResult);
 
     return { schema: drizzleResult.schema, resolvers: drizzleResult.resolvers };
 };

@@ -238,5 +238,24 @@ export const templatesOperations = {
         updatedFields
       }
     }`
+  },
+
+  // Delete template and clean up fields
+  deleteAndCleanup: {
+    type: "mutation",
+    name: "Delete Template and Cleanup",
+    description: "Deletes a template by ID and removes any associated ontology field mapping data for objects using it.",
+    variables: {
+      templateId: "ID of the template to delete"
+    },
+    query: `mutation DeleteTemplateAndCleanup($templateId: String!) {
+      result:deleteTemplateAndCleanup(
+        templateId: $templateId
+      ) {
+        deletedTemplateId
+        affectedObjects
+        deletedFields
+      }
+    }`
   }
 }; 

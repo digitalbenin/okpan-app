@@ -2825,6 +2825,36 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "delete-template",
+                             "value":  "Delete template"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-template-confirm-title",
+                             "value":  "Confirm Deletion"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-template-confirm-msg",
+                             "value":  "Are you sure you want to delete this template? This cannot be undone."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "template-used-by-one-object",
+                             "value":  "This template is currently used by 1 object. Deleting it will also delete the mapped field values for that object."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "template-used-by-many-objects",
+                             "value":  "objects currently use this template. Deleting it will also delete the mapped field values for those objects."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "template-in-use-warning",
+                             "value":  "This template is actively used by objects. Deleting it will permanently delete the mapped field values for those objects!"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "previous-page",
                              "value":  "Previous"
                          },
