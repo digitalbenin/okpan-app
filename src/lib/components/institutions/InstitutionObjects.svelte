@@ -263,40 +263,38 @@
 {/snippet}
 
 <div class="w-100">
-  <div class="position-relative mb-3">
-    {#if selectedObjects.length}
-      <div class="d-flex align-items-center px-3 gap-2 py-2 bg-white border rounded-3">
-        {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
-        {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
-        <BulkActionsStatusSelect
-          items={statuses.filter((s) => s.value !== "all")}
-          bind:value={bulkStatusValue}
-          onValueChange={applyBulkStatus}
+  <div class="mb-3">
+    <div class="row align-items-center g-2 py-2">
+      <div class="col-12 col-md-6">
+        <BaseInput
+          icon="search"
+          placeholder={t("common.search")}
+          size="sm"
+          bind:value={params.oSearch}
+          optionsList={ontologyFieldsList}
+          bind:optionsValue={params.oSearchField}
         />
-        {@render actionButton("pencil", t("common.edit-info"), openBulkEdit)}
-        <div class="ms-auto">
+      </div>
+      <div class="col-12 col-md-6 d-flex justify-content-md-end gap-2">
+        {@render toolbarButton("plus-lg", t("menu.add-object"), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`)}
+        {@render toolbarButton("plus-lg", t("menu.import-data"), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`)}
+      </div>
+    </div>
+
+    <div class="row align-items-center g-2 pb-2 mt-2">
+      {#if selectedObjects.length}
+        <div class="col d-flex align-items-center gap-2 flex-wrap">
+          {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
+          {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
+          <BulkActionsStatusSelect
+            items={statuses.filter((s) => s.value !== "all")}
+            bind:value={bulkStatusValue}
+            onValueChange={applyBulkStatus}
+          />
+          {@render actionButton("pencil", t("common.edit-info"), openBulkEdit)}
           {@render actionButton("trash", t("common.delete"), () => (showBulkDeleteModal = true), "danger")}
         </div>
-      </div>
-    {:else}
-      <div class="row align-items-center g-2 py-2">
-        <div class="col-12 col-md-6">
-          <BaseInput
-            icon="search"
-            placeholder={t("common.search")}
-            size="sm"
-            bind:value={params.oSearch}
-            optionsList={ontologyFieldsList}
-            bind:optionsValue={params.oSearchField}
-          />
-        </div>
-        <div class="col-12 col-md-6 d-flex justify-content-md-end gap-2">
-          {@render toolbarButton("plus-lg", t("menu.add-object"), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`)}
-          {@render toolbarButton("plus-lg", t("menu.import-data"), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`)}
-        </div>
-      </div>
-
-      <div class="row align-items-center g-2 pb-2 mt-2">
+      {:else}
         <div class="col-auto">
           {objectsData.totalCount}
           {objectsData.totalCount === 1 ? t("common.object") : t("common.objects")}
@@ -334,8 +332,8 @@
             {/each}
           </div>
         </div>
-      </div>
-    {/if}
+      {/if}
+    </div>
   </div>
 
   {#if hasAppliedFilters}

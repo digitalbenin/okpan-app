@@ -12,7 +12,7 @@
   import TableLink from "$lib/components/base/table/TableLink.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
-  import { fly } from "svelte/transition";
+  import { cubicInOut } from "svelte/easing";
   import { watch } from "runed";
 
   let { institution, assets, params = $bindable() } = $props();
@@ -128,63 +128,44 @@
     isDeleteModalOpen = false;
     clearSelection();
   }
+
+  function topCurtainFly(node, params = {}) {
+    const {
+      delay = 0,
+      duration = 220,
+      easing = cubicInOut,
+      y = -20,
+      opacity = 0.18,
+    } = params;
+
+    const style = getComputedStyle(node);
+    const height = node.offsetHeight;
+    const marginTop = parseFloat(style.marginTop) || 0;
+    const marginBottom = parseFloat(style.marginBottom) || 0;
+    const paddingTop = parseFloat(style.paddingTop) || 0;
+    const paddingBottom = parseFloat(style.paddingBottom) || 0;
+
+    return {
+      delay,
+      duration,
+      easing,
+      css: (t, u) => `
+        overflow: hidden;
+        opacity: ${opacity + t * (1 - opacity)};
+        transform: translateY(${u * y}px);
+        height: ${t * height}px;
+        margin-top: ${t * marginTop}px;
+        margin-bottom: ${t * marginBottom}px;
+        padding-top: ${t * paddingTop}px;
+        padding-bottom: ${t * paddingBottom}px;
+        clip-path: inset(0 0 ${u * 100}% 0);
+      `,
+    };
+  }
 </script>
 
 <div class="w-100 mb-3">
-  <div
-    class="row align-items-center mb-3 position-relative overflow-hidden py-2"
-  >
-    {#if selectedAssets.length > 0}
-      <div
-        transition:fly={{ opacity: 1, y: -35 }}
-        class="d-flex align-items-center px-3 gap-2 position-absolute top-0 start-0 end-0 bottom-0 z-1 bg-white border-bottom"
-      >
-        <div>
-          <button
-            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
-            onclick={clearSelection}
-          >
-            <span>
-              {t("common.clear-selection")}
-            </span>
-            <i class="bi bi-x-circle"></i>
-          </button>
-        </div>
-        <div>
-          <button
-            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
-            onclick={openLinkModal}
-          >
-            <span>
-              {t("common.link-to-object")}
-            </span>
-            <i class="bi bi-link-45deg"></i>
-          </button>
-        </div>
-        <div>
-          <button
-            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
-            onclick={openBulkEdit}
-          >
-            <span>
-              {t("common.edit-metadata")}
-            </span>
-            <i class="bi bi-pencil-square"></i>
-          </button>
-        </div>
-        <div class="ms-auto">
-          <button
-            class="btn btn-danger btn-sm d-flex align-items-center gap-2"
-            onclick={openDeleteModal}
-          >
-            <span>
-              {t("common.delete")}
-            </span>
-            <i class="bi bi-trash"></i>
-          </button>
-        </div>
-      </div>
-    {/if}
+  <div class="row align-items-center mb-3 py-2">
     <div class="col-4">
       <BaseInput
         icon="search"
@@ -228,6 +209,50 @@
       >
     </div>
   </div>
+  {#if selectedAssets.length > 0}
+    <div transition:topCurtainFly={{ y: -24, duration: 240 }} class="mb-0">
+      <div class="row pb-3">
+        <div class="col-12 d-flex align-items-center gap-2 flex-wrap py-2">
+          <button
+            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+            onclick={clearSelection}
+          >
+            <span>
+              {t("common.clear-selection")}
+            </span>
+            <i class="bi bi-x-circle"></i>
+          </button>
+          <button
+            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+            onclick={openLinkModal}
+          >
+            <span>
+              {t("common.link-to-object")}
+            </span>
+            <i class="bi bi-link-45deg"></i>
+          </button>
+          <button
+            class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
+            onclick={openBulkEdit}
+          >
+            <span>
+              {t("common.edit-metadata")}
+            </span>
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          <button
+            class="btn btn-danger btn-sm d-flex align-items-center gap-2"
+            onclick={openDeleteModal}
+          >
+            <span>
+              {t("common.delete")}
+            </span>
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
   {#if assetItems.length > 0}
     {#if viewAs === "grid"}
       <div class="row">
