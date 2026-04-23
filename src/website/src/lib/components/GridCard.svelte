@@ -1,9 +1,11 @@
 <script>
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	import { resolveStaticHref } from '$lib/utils/sitePaths.js';
 	import { fly } from 'svelte/transition';
     const { t } = getWebsiteTranslationStore();
+	const { content } = getWebsiteContentStore();
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -67,7 +69,7 @@
     }
 
     function getObjectDisplayName() {
-        const name = (object?.name && String(object.name).trim()) || '';
+		const name = (content(object, 'name') && String(content(object, 'name')).trim()) || '';
         if (name) return name;
         const primaryId = getPrimaryIdentifier();
         if (primaryId) return primaryId;

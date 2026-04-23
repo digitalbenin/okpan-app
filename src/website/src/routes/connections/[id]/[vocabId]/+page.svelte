@@ -6,9 +6,11 @@
     import { page } from '$app/stores';
     import { browser } from '$app/environment';
     import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+    import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
     import { resolveStaticHref } from '$lib/utils/sitePaths.js';
     const { t } = getWebsiteTranslationStore();
+    const { content } = getWebsiteContentStore();
 
     const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -78,14 +80,14 @@
     <div class="mb-4">
         {#if researchField}
             <a href={isStaticExport ? resolveStaticHref(`connections/${researchField.id}`) : buildPathWithProjectId(`/connections/${researchField.id}`, projectId)} class="text-secondary text-decoration-none small mb-2 d-inline-block">
-                {researchField.name}
+                {content(researchField, 'name')}
             </a>
         {/if}
         
-        <h1 class="fw-bold mb-3">{vocabulary?.name || t('common.unknown-item')}</h1>
+        <h1 class="fw-bold mb-3">{content(vocabulary, 'name') || t('common.unknown-item')}</h1>
 
-        {#if vocabulary?.description}
-            <p class="text-muted mb-3">{vocabulary.description}</p>
+		{#if content(vocabulary, 'description')}
+			<p class="text-muted mb-3">{content(vocabulary, 'description')}</p>
         {/if}
 
         {#if vocabulary?.external_link}
@@ -146,7 +148,7 @@
                      <BaseImage
                         src={images[imageIndex].path} 
                         assetId={images[imageIndex].id}
-                        alt={vocabulary.name}
+                                alt={content(vocabulary, 'name')}
                         class="mw-100 mh-100 object-fit-contain"
                      />
                 </div>
@@ -210,14 +212,14 @@
                     >
                         <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;">
                             {#if obj.main_image}
-                                 <img src={getAssetUrl({ asset_path: obj.main_image })} alt={obj.name} class="w-100 h-100 object-fit-cover">
+                                 <img src={getAssetUrl({ asset_path: obj.main_image })} alt={content(obj, 'name') || obj.id} class="w-100 h-100 object-fit-cover">
                             {:else}
                                 <i class="bi bi-image text-secondary fs-4"></i>
                             {/if}
                         </div>
                         <div>
-                            <div class="fw-bold text-decoration-underline text-success-emphasis">{obj.name || obj.id}</div> 
-                            <div class="small text-muted">{obj.institution_name}</div>
+                            <div class="fw-bold text-decoration-underline text-success-emphasis">{content(obj, 'name') || obj.id}</div> 
+							<div class="small text-muted">{content(obj, 'institution_name') || obj.institution_name}</div>
                         </div>
                     </a>
                 {/each}

@@ -2,7 +2,9 @@
 	import { fly, fade } from 'svelte/transition';
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	const { t } = getWebsiteTranslationStore();
+	const { content } = getWebsiteContentStore();
 
 	let {
 		advancedFilters,
@@ -119,7 +121,7 @@
 		const term = (searchTerm || '').toLowerCase().trim();
 		let result = items;
 		if (term) {
-			result = items.filter((item) => (item.name || '').toLowerCase().includes(term));
+			result = items.filter((item) => (content(item, 'name') || '').toLowerCase().includes(term));
 		}
 
 		// Sort by facet count descending; tiebreaker by name ascending
@@ -127,8 +129,8 @@
 			const countB = getFacetCountForItem(b);
 			const countA = getFacetCountForItem(a);
 			if (countB !== countA) return countB - countA;
-			const nameA = (a.name || '').toLowerCase();
-			const nameB = (b.name || '').toLowerCase();
+			const nameA = (content(a, 'name') || '').toLowerCase();
+			const nameB = (content(b, 'name') || '').toLowerCase();
 			return nameA.localeCompare(nameB);
 		});
 
@@ -155,7 +157,7 @@
 		if (!selected || !selected.length) return t('filters.all');
 		const names = vocabularies
 			.filter((v) => v.field_id === field.id && selected.includes(v.id))
-			.map((v) => v.name || '')
+			.map((v) => content(v, 'name') || '')
 			.filter(Boolean);
 		return names.length ? names.join(t('common.list-separator')) : t('filters.all');
 	}
@@ -165,12 +167,12 @@
 		const list = [];
 		// All ontology fields
 		(ontologyFields || []).forEach((f) =>
-			list.push({ key: `o:${f.id}`, label: f.name, kind: 'ontology', id: f.id })
+			list.push({ key: `o:${f.id}`, label: content(f, 'name'), kind: 'ontology', id: f.id })
 		);
 		// All research fields that are NOT vocabulary-based (freetext)
 		(researchFields || [])
 			.filter((f) => f.type !== 'vocabulary')
-			.forEach((f) => list.push({ key: `r:${f.id}`, label: f.name, kind: 'research', id: f.id }));
+			.forEach((f) => list.push({ key: `r:${f.id}`, label: content(f, 'name'), kind: 'research', id: f.id }));
 		// Sort alphabetically
 		return list.sort((a, b) => (a.label || '').localeCompare(b.label || ''));
 	});
@@ -222,11 +224,11 @@
 	function getTextFieldLabel(tf) {
 		if (tf?.kind === 'ontology') {
 			const f = (ontologyFields || []).find((o) => String(o.id) === String(tf.fieldId));
-			return f?.name || t('common.unknown-field');
+			return content(f, 'name') || t('common.unknown-field');
 		}
 		if (tf?.kind === 'research') {
 			const f = (researchFields || []).find((r) => String(r.id) === String(tf.fieldId));
-			return f?.name || t('common.unknown-field');
+			return content(f, 'name') || t('common.unknown-field');
 		}
 		return t('common.unknown-field');
 	}
@@ -306,7 +308,7 @@
 							onclick={() => showDetail(field)}
 							onkeydown={() => showDetail(field)}
 						>
-							<p class="m-0 fw-semibold">{field.name}</p>
+							<p class="m-0 fw-semibold">{content(field, 'name')}</p>
 							<div class="d-flex align-items-center gap-2">
 								<span class="text-muted">{getConnectionSelectionLabel(field)}</span>
 								<i class="bi bi-chevron-right"></i>
@@ -325,7 +327,7 @@
 							onclick={() => showAddTextSearch(`r:${field.id}`, getCurrentTextQuery('research', field.id))}
 							onkeydown={() => showAddTextSearch(`r:${field.id}`, getCurrentTextQuery('research', field.id))}
 						>
-							<p class="m-0 fw-semibold">{field.name}</p>
+							<p class="m-0 fw-semibold">{content(field, 'name')}</p>
 							<div class="d-flex align-items-center gap-2">
 								<span class="text-muted">{getCurrentTextQuery('research', field.id) || t('filters.all')}</span>
 								<i class="bi bi-chevron-right"></i>
@@ -427,7 +429,7 @@
 			>
 				<div class="d-flex justify-content-between align-items-center p-3 border-bottom">
 					<button class="btn btn-link p-0 text-decoration-none text-body" onclick={showMain}>
-						<i class="bi bi-chevron-left me-2"></i>{selectedField.name}
+						<i class="bi bi-chevron-left me-2"></i>{selectedField.type === 'institutions' ? selectedField.name : content(selectedField, 'name')}
 					</button>
 					<button type="button" class="btn btn-link p-0" onclick={resetFilter}>{t('filters.reset')}</button>
 				</div>
@@ -459,7 +461,7 @@
 											{#if item.main_asset_path}
 												<img
 													src={getAssetUrl({ asset_path: item.main_asset_path })}
-													alt={item.name || t('filters.vocabulary-thumbnail')}
+													alt={content(item, 'name') || t('filters.vocabulary-thumbnail')}
 													class="me-3"
 													style="width: 32px; height: 32px; object-fit: cover; border: 1px solid #eee; border-radius: 4px;"
 												/>
@@ -467,7 +469,7 @@
 												<i class="text-secondary bi bi-image ms-2 me-4"></i>
 											{/if}
 										{/if}
-										{item.name}
+										{content(item, 'name')}
 										<span class=" badge bg-light text-secondary ms-2"
 											>{getFacetCountForItem(item)}</span
 										>
@@ -496,7 +498,7 @@
 									{#if item.main_asset_path}
 										<img
 											src={getAssetUrl({ asset_path: item.main_asset_path })}
-											alt={item.name || t('filters.vocabulary-image')}
+											alt={content(item, 'name') || t('filters.vocabulary-image')}
 											style="width: 100%; max-height: 240px; object-fit: contain; border-radius: 6px;"
 										/>
 									{:else}
@@ -507,8 +509,8 @@
 											<i class="bi bi-image text-secondary display-6"></i>
 										</div>
 									{/if}
-									{#if item.description}
-										<p class="mt-2 mb-0 small">{item.description}</p>
+									{#if content(item, 'description')}
+										<p class="mt-2 mb-0 small">{content(item, 'description')}</p>
 									{:else}
 										<p class="mt-2 mb-0 text-muted small">{t('common.no-description-available')}</p>
 									{/if}

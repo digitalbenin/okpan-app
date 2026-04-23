@@ -1,7 +1,9 @@
 <script>
 	import GridCard from '$lib/components/GridCard.svelte';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 
 	let { items = [], ontology_fields = [], institutions = [] } = $props();
+	const { content } = getWebsiteContentStore();
 
 	const ontologyFieldMap = $derived(
 		ontology_fields.reduce((acc, field) => {
@@ -12,7 +14,7 @@
 
 	const institutionMap = $derived(
 		institutions.reduce((acc, inst) => {
-			acc[inst.id] = inst.name;
+			acc[inst.id] = content(inst, 'name');
 			return acc;
 		}, {})
 	);

@@ -42,17 +42,17 @@ export async function load({ params, url, fetch }) {
             
             return {
                 queryParams: { projectId: obj.project_id, backHref },
-                object: { id: obj.id, name: obj.name, project_id: obj.project_id, institution_id: obj.institution_id },
+                object: { id: obj.id, name: obj.name, name_i18n: obj.name_i18n || null, project_id: obj.project_id, institution_id: obj.institution_id },
                 assets: (obj.assets || []).map(a => ({ asset_path: a.asset_path, asset_formats: a.asset_formats, asset_type: a.asset_type, order: a.order })),
                 objectOntologyFields: (obj.objectOntologyFields || []).map(f => ({ id: f.id, field_id: f.field_id, value: f.value, primary: f.primary, datasources_id: f.datasources_id, label: f.label })),
                 objectResearchFields: (obj.objectResearchFields || []).map(f => ({ field_id: f.field_id, vocabulary_id: f.vocabulary_id, value: f.value })),
-                datasources: (obj.datasources || []).filter(ds => usedIds.datasource.has(ds.id)).map(ds => ({ id: ds.id, name: ds.name, method: ds.method, institution: ds.institution?.name ? { name: ds.institution.name } : null })),
-                institution: obj.institution ? { id: obj.institution.id, name: obj.institution.name, description: obj.institution.description, website: obj.institution.website } : null,
-                ontology_fields: pick(data.ontology_fields, usedIds.ontology, f => ({ id: f.id, name: f.name })),
-                research_fields: pick(data.research_fields, usedIds.research, f => ({ id: f.id, name: f.name, type: f.type, description: f.description })),
-                vocabularies: pick(data.vocabularies, usedIds.vocab, v => ({ id: v.id, name: v.name, description: v.description, main_asset_path: v.main_asset_path })),
-                project: data.project ? { name: data.project.name } : {},
-                settings: data.settings ? { title: data.settings.title } : {}
+                datasources: (obj.datasources || []).filter(ds => usedIds.datasource.has(ds.id)).map(ds => ({ id: ds.id, name: ds.name, name_i18n: ds.name_i18n || null, method: ds.method, method_i18n: ds.method_i18n || null, institution: ds.institution?.name ? { name: ds.institution.name, name_i18n: ds.institution.name_i18n || null } : null })),
+                institution: obj.institution ? { id: obj.institution.id, name: obj.institution.name, name_i18n: obj.institution.name_i18n || null, description: obj.institution.description, description_i18n: obj.institution.description_i18n || null, country: obj.institution.country, country_i18n: obj.institution.country_i18n || null, location: obj.institution.location, location_i18n: obj.institution.location_i18n || null, website: obj.institution.website } : null,
+                ontology_fields: pick(data.ontology_fields, usedIds.ontology, f => ({ id: f.id, name: f.name, name_i18n: f.name_i18n || null })),
+                research_fields: pick(data.research_fields, usedIds.research, f => ({ id: f.id, name: f.name, name_i18n: f.name_i18n || null, type: f.type, description: f.description, description_i18n: f.description_i18n || null })),
+                vocabularies: pick(data.vocabularies, usedIds.vocab, v => ({ id: v.id, name: v.name, name_i18n: v.name_i18n || null, description: v.description, description_i18n: v.description_i18n || null, main_asset_path: v.main_asset_path })),
+                project: data.project ? { name: data.project.name, name_i18n: data.project.name_i18n || null } : {},
+                settings: data.settings ? { title: data.settings.title, title_i18n: data.settings.title_i18n || null } : {}
             };
         } catch (e) {
             console.warn('[objId load] Could not load data.json:', e.message);

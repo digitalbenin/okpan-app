@@ -410,6 +410,7 @@ ipcMain.handle('export-static-website', async (event, options) => {
       filters: options.filters,
       appPath: app.getAppPath(),
       resourcesPath: process.resourcesPath,
+      userDataPath: app.getPath('userData'),
       isPackaged: app.isPackaged,
       basePath: options.basePath,
       locale: options.locale

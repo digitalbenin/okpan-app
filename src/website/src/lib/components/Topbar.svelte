@@ -2,15 +2,18 @@
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
     import { page } from '$app/stores';
     import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+    import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
     import { resolveStaticHref } from '$lib/utils/sitePaths.js';
     import { slide } from 'svelte/transition';
     import logoWip from '../../assets/logo_wip.png';
     let { project, settings, activeProjectId = null } = $props();
     let expanded = $state(false);
-    const { t, translationState, setLocale } = getWebsiteTranslationStore();
+    const { t } = getWebsiteTranslationStore();
+    const { contentState, setLocale, content } = getWebsiteContentStore();
 
-    const titleText = $derived.by(() => (settings?.title?.trim() || project?.name || t('site.untitled-project')));
+	const titleText = $derived.by(() => (content(settings, 'title') || content(project, 'name') || t('site.untitled-project')));
+	const showContentLanguageSelector = $derived.by(() => contentState.languages.length > 1);
     const logoUrl = $derived.by(() => {
         const rawLogo = settings?.logo_asset_path;
         if (rawLogo && typeof rawLogo === 'object' && rawLogo.asset_path) {
@@ -67,19 +70,21 @@
             <a class="nav-link text-dark px-4 py-3 border-bottom" href={archiveHref} onclick={toggle}>{t('nav.archive')}</a>
             <a class="nav-link text-dark px-4 py-3 border-bottom" href={connectionsHref} onclick={toggle}>{t('nav.connections')}</a>
             <a class="nav-link text-dark px-4 py-3 border-bottom" href={aboutHref} onclick={toggle}>{t('nav.about')}</a>
-            <div class="px-4 py-3 border-bottom">
-                <label class="form-label small text-muted mb-1" for="mobile-language-select">{t('nav.language')}</label>
-                <select
-                    id="mobile-language-select"
-                    class="form-select form-select-sm"
-                    value={translationState.currentLocale}
-                    onchange={(event) => setLocale(event.currentTarget.value)}
-                >
-                    {#each translationState.languages as language}
-                        <option value={language.code}>{language.name}</option>
-                    {/each}
-                </select>
-            </div>
+            {#if showContentLanguageSelector}
+                <div class="px-4 py-3 border-bottom">
+                    <label class="form-label small text-muted mb-1" for="mobile-language-select">{t('nav.content-language')}</label>
+                    <select
+                        id="mobile-language-select"
+                        class="form-select form-select-sm"
+                        value={contentState.currentLocale}
+                        onchange={(event) => setLocale(event.currentTarget.value)}
+                    >
+                        {#each contentState.languages as language}
+                            <option value={language.code}>{language.name}</option>
+                        {/each}
+                    </select>
+                </div>
+            {/if}
         </nav>
     </div>
 {/if}

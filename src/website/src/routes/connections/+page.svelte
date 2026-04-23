@@ -1,9 +1,11 @@
 <script>
 	import { onMount } from 'svelte';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
 	import { resolveSitePath, resolveStaticHref } from '$lib/utils/sitePaths.js';
 	const { t } = getWebsiteTranslationStore();
+	const { content } = getWebsiteContentStore();
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	let { data } = $props();
@@ -39,7 +41,7 @@
 					<a href={isStaticExport ? resolveStaticHref(`connections/${type.id}`) : buildPathWithProjectId(`/connections/${type.id}`, projectId)} class="text-decoration-none text-dark">
 						<div class="card border rounded p-3 hover-shadow">
 							<h3 class="fs-4 mb-0 fw-normal">
-								{type.name}
+								{content(type, 'name')}
 								<sup class="fs-6 fw-bold text-secondary">{type.count !== undefined ? type.count : ''}</sup>
 							</h3>
 							<!--{#if type.description}

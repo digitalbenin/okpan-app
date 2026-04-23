@@ -5,8 +5,10 @@
 	import ObjectInstitutionData from '$lib/components/ObjectInstitutionData.svelte';
 	import ObjectImages from '$lib/components/ObjectImages.svelte';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	const { t } = getWebsiteTranslationStore();
+	const { content } = getWebsiteContentStore();
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
@@ -23,7 +25,8 @@
 	const datasources = $derived(data.datasources || []);
 	const objId = $derived(data?.objectOntologyFields?.find((e) => e.primary)?.value);
 	const title = $derived.by(() => {
-		const name = (data?.object?.name && String(data.object.name).trim()) || '';
+		const localizedName = content(data?.object, 'name');
+		const name = (localizedName && String(localizedName).trim()) || '';
 		if (name) return name;
 		const primary = data?.objectOntologyFields?.find((e) => e.primary)?.value;
 		return primary || t('common.untitled');
@@ -37,9 +40,10 @@
 	// SEO: Build description from object data
 	const pageDescription = $derived.by(() => {
 		const parts = [];
-		if (institution?.name) parts.push(institution.name);
+		const institutionName = content(institution, 'name');
+		if (institutionName) parts.push(institutionName);
 		// Get object type from ontology fields
-		const typeField = objectOntologyFields?.find(f => ontologyFields?.find(of => of.id === f.field_id)?.name?.toLowerCase().includes('type'));
+		const typeField = objectOntologyFields?.find(f => (content(ontologyFields?.find(of => of.id === f.field_id), 'name') || '').toLowerCase().includes('type'));
 		if (typeField?.value) parts.push(typeField.value);
 		return parts.length > 0 ? parts.join(t('common.meta-separator')) : t('object.details');
 	});

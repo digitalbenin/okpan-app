@@ -1,7 +1,9 @@
 <script>
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	import { resolveStaticHref } from '$lib/utils/sitePaths.js';
 	const { t } = getWebsiteTranslationStore();
+	const { content } = getWebsiteContentStore();
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	const { institution, title, projectId, backHref = null } = $props();
@@ -17,6 +19,6 @@
 		<i class="bi bi-chevron-left"></i>
 		{t('common.back')}</a
 	>
-	<p class="mb-0">{institution?.name}</p>
+	<p class="mb-0">{content(institution, 'name')}</p>
 	<h1 class="mt-0">{title}</h1>
 </div>

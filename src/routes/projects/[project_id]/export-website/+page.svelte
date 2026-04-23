@@ -49,6 +49,29 @@
 
 	let basePathInput = $state('');
 	let selectedWebsiteLocale = $state('');
+	const exportInterfaceLanguageFallbacks = $derived.by(() => {
+		const isItalian = String(translationState.currentLocale || '')
+			.toLowerCase()
+			.startsWith('it');
+
+		if (isItalian) {
+			return {
+				title: "Lingua dell'interfaccia del sito web",
+				description:
+					"Scegli l'unica lingua dell'interfaccia inclusa nel sito web esportato. I visitatori non potranno cambiare la lingua dell'interfaccia in seguito.",
+				label: "Lingua dell'interfaccia esportata",
+				empty: "Non ci sono lingue dell'interfaccia del sito web disponibili per l'esportazione."
+			};
+		}
+
+		return {
+			title: 'Website interface language',
+			description:
+				'Choose the single interface language bundled into the exported website. Visitors will not be able to switch the interface language later.',
+			label: 'Exported interface language',
+			empty: 'No website interface languages are available for export.'
+		};
+	});
 
 	let selectedStatus = $state('all');
 	let selectedInstitutions = $state([]);
@@ -342,7 +365,9 @@
 
 	const exportDisabledReason = $derived.by(() => {
 		if (isLoading) return '';
-		if (websiteLocaleOptions.length === 0) return t('export-website.no-languages-available');
+		if (websiteLocaleOptions.length === 0) {
+			return exportInterfaceLanguageFallbacks.empty;
+		}
 		if (totalCount === 0) return t('export.no-objects-match');
 		if (totalCount - deselectedObjectIds.size <= 0) return t('export.no-objects-selected');
 		return '';
@@ -393,10 +418,10 @@
 
 			<div class="mb-4">
 				<div class="mb-4">
-					<h5 class="card-title mb-3">{t('export-website.language-title')}</h5>
-					<p class="text-muted small mb-2">{t('export-website.language-description')}</p>
+					<h5 class="card-title mb-3">{exportInterfaceLanguageFallbacks.title}</h5>
+					<p class="text-muted small mb-2">{exportInterfaceLanguageFallbacks.description}</p>
 					<label class="form-label" for="website-export-language-select">
-						{t('export-website.language-label')}
+						{exportInterfaceLanguageFallbacks.label}
 					</label>
 					<select
 						id="website-export-language-select"
@@ -409,7 +434,7 @@
 						{/each}
 					</select>
 					{#if websiteLocaleOptions.length === 0}
-						<p class="text-muted small mt-2 mb-0">{t('export-website.language-empty')}</p>
+						<p class="text-muted small mt-2 mb-0">{exportInterfaceLanguageFallbacks.empty}</p>
 					{/if}
 				</div>
 

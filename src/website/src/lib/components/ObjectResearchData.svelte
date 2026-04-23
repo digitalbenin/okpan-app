@@ -5,8 +5,10 @@
 	// - vocabularies (optional): [{ id, field_id, name }]
 	const { objectResearchFields = [], researchFields = [], vocabularies = [] } = $props();
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	const { t } = getWebsiteTranslationStore();
+	const { content } = getWebsiteContentStore();
 
 	// Fast lookup maps
 	const researchById = $derived.by(() => {
@@ -34,13 +36,13 @@
 		return (objectResearchFields || []).map((field) => {
 			const rf = researchById.get(String(field.field_id));
 			const type = rf?.type || 'freetext';
-			const fieldName = rf?.name || '';
-			const description = rf?.description?.content ?? rf?.description ?? null;
+			const fieldName = content(rf, 'name') || '';
+			const description = content(rf, 'description') || null;
 			let vocabularyName = null;
 			let displayValue = '';
 
 			if (type === 'vocabulary' && field.vocabulary_id) {
-				vocabularyName = vocabById.get(String(field.vocabulary_id))?.name ?? null;
+				vocabularyName = content(vocabById.get(String(field.vocabulary_id)), 'name') || null;
 				displayValue = vocabularyName ?? '';
 			} else {
 				displayValue = field?.value ?? '';
@@ -81,8 +83,8 @@
 					: (vocabularies || []).find((vv) => String(vv.id) === String(f.vocabulary_id));
 				g.values.push({
 					id: String(f.vocabulary_id),
-					name: v?.name ?? String(dv),
-					description: v?.description ?? null,
+					name: content(v, 'name') || String(dv),
+					description: content(v, 'description') || null,
 					main_asset_path: v?.main_asset_path ?? null
 				});
 			} else {

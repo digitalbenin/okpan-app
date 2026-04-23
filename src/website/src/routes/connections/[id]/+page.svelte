@@ -1,9 +1,11 @@
 <script>
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
     import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+    import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
     import { resolveStaticHref } from '$lib/utils/sitePaths.js';
     const { t } = getWebsiteTranslationStore();
+    const { content } = getWebsiteContentStore();
     
     let { data } = $props();
     let researchField = $derived(data.researchField);
@@ -15,10 +17,10 @@
 <div class="py-4">
     <div class="mb-4">
         <a href={isStaticExport ? resolveStaticHref('connections') : buildPathWithProjectId('/connections', projectId)} class="text-secondary text-decoration-none small mb-2 d-inline-block">{t('nav.connections')}</a>
-        <h1 class="fw-bold mb-3">{researchField?.name || t('common.unknown')}</h1>
+        <h1 class="fw-bold mb-3">{content(researchField, 'name') || t('common.unknown')}</h1>
         
-        {#if researchField?.description}
-            <p class="text-muted">{researchField.description}</p>
+		{#if content(researchField, 'description')}
+			<p class="text-muted">{content(researchField, 'description')}</p>
         {/if}
     </div>
 
@@ -31,20 +33,20 @@
                             {#if item.main_asset_path}
                                  <img 
                                     src={getAssetUrl({ asset_path: item.main_asset_path })} 
-                                    alt={item.name} 
+                                                alt={content(item, 'name')} 
                                     class="rounded-circle object-fit-cover" 
                                     style="width: 64px; height: 64px;"
                                     loading="lazy"
                                  >
                             {:else}
                                  <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-secondary fw-bold" style="width: 64px; height: 64px; font-size: 1.5rem;">
-                                    {item.name?.[0]?.toUpperCase()}
+                                                {(content(item, 'name') || '')?.[0]?.toUpperCase()}
                                  </div>
                             {/if}
                         </div>
                         
                         <div class="flex-grow-1">
-                            <h5 class="mb-1 text-dark fw-bold">{item.name}</h5>
+                                     <h5 class="mb-1 text-dark fw-bold">{content(item, 'name')}</h5>
                             <div class="text-muted small">
                                    {t('object.objects-connected', { count: item.count || 0 })}
                             </div>

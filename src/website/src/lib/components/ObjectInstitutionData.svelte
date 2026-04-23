@@ -1,12 +1,14 @@
 <script>
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	let { objectOntologyFields = [], ontologyFields = [], datasources = [], institution } = $props();
 	const { t } = getWebsiteTranslationStore();
+	const { content } = getWebsiteContentStore();
 
 	let mappedFields = $derived(
 		objectOntologyFields.map((e) => ({
 			...e,
-			name: ontologyFields.find((f) => f.id == e.field_id)?.name
+			name: content(ontologyFields.find((f) => f.id == e.field_id), 'name')
 		}))
 	);
 
@@ -26,8 +28,7 @@
 	function getDatasourceName(id) {
 		const ds = datasources.find((d) => d.id == id);
 		return (
-			ds?.name?.content ||
-			ds?.name ||
+			content(ds, 'name') ||
 			(id === 'no-datasource' ? t('common.no-datasource') : t('common.unknown-datasource'))
 		);
 	}
@@ -69,8 +70,8 @@
 	const websiteUrl = $derived.by(() => institution?.website || null);
 	const linkItems = $derived.by(() => parseLinks(institution?.links));
 
-	const countryText = $derived(institution?.country || null);
-	const addressText = $derived(institution?.location || null);
+	const countryText = $derived(content(institution, 'country') || null);
+	const addressText = $derived(content(institution, 'location') || null);
 </script>
 
 <div class="bg-white mb-2 px-2">
@@ -121,7 +122,7 @@
 														<div class="d-flex flex-wrap gap-1">
 															{#each fields as field}
 																<span class="badge bg-secondary-subtle text-secondary-emphasis">
-																	{field.name?.content || field.name || t('common.unknown')}
+																	{field.name || t('common.unknown')}
 																</span>
 															{/each}
 														</div>
@@ -159,7 +160,7 @@
 							<h5 class="mb-3">{t('institution.about')}</h5>
 							<div class="mb-3">
 								<div class="label text-uppercase small fw-bold">{t('common.name')}</div>
-								<div>{institution?.name || t('common.none')}</div>
+								<div>{content(institution, 'name') || t('common.none')}</div>
 							</div>
 							<div class="mb-3">
 								<div class="label text-uppercase small fw-bold">{t('common.country')}</div>

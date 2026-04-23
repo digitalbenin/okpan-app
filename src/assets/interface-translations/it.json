@@ -439,6 +439,31 @@
                          },
                          {
                              "namespace":  "export-website",
+                             "key":  "interface-language-title",
+                             "value":  "Lingua dell'interfaccia del sito web"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "interface-language-description",
+                             "value":  "Scegli l'unica lingua dell'interfaccia inclusa nel sito web esportato"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "interface-language-label",
+                             "value":  "Lingua dell'interfaccia esportata"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "interface-language-empty",
+                             "value":  "Non ci sono lingue dell'interfaccia del sito web disponibili per l'esportazione."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "no-interface-languages-available",
+                             "value":  "Non ci sono lingue dell'interfaccia del sito web disponibili per l'esportazione."
+                         },
+                         {
+                             "namespace":  "export-website",
                              "key":  "base-path-title",
                              "value":  "Sottodirectory di hosting (opzionale)"
                          },

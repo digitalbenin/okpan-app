@@ -1,8 +1,10 @@
 <script>
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	const { objectResearchFields = [], researchFields = [], vocabularies = [] } = $props();
 	const { t } = getWebsiteTranslationStore();
+	const { content } = getWebsiteContentStore();
 
 	let selectedVocabulary = $state(null);
 
@@ -23,25 +25,27 @@
 		const byId = Object.create(null);
 		for (const f of objectResearchFields || []) {
 			const rf = researchById.get(String(f.field_id));
-			if (!rf?.name) continue;
+			const researchFieldName = content(rf, 'name');
+			if (!researchFieldName) continue;
 			
 			const type = rf.type || 'freetext';
 			const key = String(f.field_id);
 			const g = byId[key] ?? (byId[key] = {
 				field_id: f.field_id,
-				fieldName: rf.name,
-				description: rf.description?.content ?? rf.description ?? null,
+				fieldName: researchFieldName,
+				description: content(rf, 'description') || null,
 				type,
 				values: []
 			});
 			
 			if (type === 'vocabulary' && f.vocabulary_id) {
 				const v = vocabById.get(String(f.vocabulary_id));
-				if (v?.name) {
+				const vocabularyName = content(v, 'name');
+				if (vocabularyName) {
 					g.values.push({
 						id: String(f.vocabulary_id),
-						name: v.name,
-						description: v.description ?? null,
+						name: vocabularyName,
+						description: content(v, 'description') || null,
 						main_asset_path: v.main_asset_path ?? null
 					});
 				}

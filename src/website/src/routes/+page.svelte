@@ -7,18 +7,20 @@
 	import AdvancedFilters from '$lib/components/AdvancedFilters.svelte';
 	import { searchObjects } from '$lib/utils/search.js';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	import { page } from '$app/stores';
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	import { resolveSitePath } from '$lib/utils/sitePaths.js';
 	const { t } = getWebsiteTranslationStore();
+	const { content } = getWebsiteContentStore();
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
 	let { data } = $props();
 
 	// SEO data
-	const siteTitle = $derived(data?.settings?.title || data?.project?.name || t('site.default-title'));
-	const siteDescription = $derived(data?.settings?.description || data?.project?.description || t('site.default-description'));
+	const siteTitle = $derived(content(data?.settings, 'title') || content(data?.project, 'name') || t('site.default-title'));
+	const siteDescription = $derived(content(data?.settings, 'description') || content(data?.project, 'description') || t('site.default-description'));
 	const siteLogo = $derived(data?.settings?.logo_asset_path ? getAssetUrl({ asset_path: data.settings.logo_asset_path }) : null);
 
 	let searchTerm = $state(data.queryParams.q);
@@ -96,7 +98,7 @@
 		const ids = advancedFilters?.institutions || [];
 		return ids.map((id) => ({
 			id,
-			label: t('filters.institution-chip', { name: institutionsById.get(id)?.name ?? id }),
+			label: t('filters.institution-chip', { name: content(institutionsById.get(id), 'name', id) }),
 		}));
 	});
 	const vocabularyChips = $derived.by(() => {
@@ -104,9 +106,9 @@
 		for (const [key, arr] of Object.entries(advancedFilters || {})) {
 			if (key === 'institutions' || key === '__textFilters') continue;
 			const fieldId = String(key);
-			const fieldName = researchFieldById.get(fieldId)?.name ?? t('filters.field-fallback');
+			const fieldName = content(researchFieldById.get(fieldId), 'name') || t('filters.field-fallback');
 			(arr || []).forEach((vocabId) => {
-				const vName = vocabById.get(vocabId)?.name ?? vocabId;
+				const vName = content(vocabById.get(vocabId), 'name', vocabId);
 				chips.push({ fieldId, vocabId, label: `${fieldName}: ${vName}` });
 			});
 		}
@@ -120,8 +122,8 @@
 			const fieldId = String(tf.fieldId);
 			const key = `${tf.kind}:${fieldId}:${tf.query}`;
 			let fieldName = t('filters.field-fallback');
-			if (tf.kind === 'ontology') fieldName = ontologyFieldById.get(fieldId)?.name ?? fieldName;
-			else fieldName = researchFieldById.get(fieldId)?.name ?? fieldName;
+			if (tf.kind === 'ontology') fieldName = content(ontologyFieldById.get(fieldId), 'name') || fieldName;
+			else fieldName = content(researchFieldById.get(fieldId), 'name') || fieldName;
 			chips.push({
 				key,
 				kind: tf.kind,

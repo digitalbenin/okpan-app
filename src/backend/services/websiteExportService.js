@@ -22,6 +22,60 @@ function resolveApplicationRoot({ appPath, resourcesPath, isPackaged } = {}) {
   return appPath || process.cwd();
 }
 
+function getProjectAssetsSourceCandidates(projectId, { appRoot, userDataPath } = {}) {
+  const candidates = [];
+
+  if (userDataPath) {
+    candidates.push(path.join(userDataPath, 'assets', 'project_assets', projectId));
+  }
+
+  if (appRoot) {
+    candidates.push(path.join(appRoot, 'src', 'assets', 'project_assets', projectId));
+  }
+
+  return candidates;
+}
+
+function normalizeLocale(locale) {
+  return typeof locale === 'string' ? locale.trim().toLowerCase() : '';
+}
+
+function buildTextPayload(textId, textRowsById, translationsByTextId, languagesById) {
+  if (!textId) {
+    return null;
+  }
+
+  const textRow = textRowsById[textId];
+  if (!textRow) {
+    return null;
+  }
+
+  const originalLanguage = languagesById[textRow.original_language_id] || null;
+  const translations = (translationsByTextId[textId] || [])
+    .map((translation) => {
+      const language = languagesById[translation.language_id] || null;
+      const languageCode = normalizeLocale(language?.code);
+      if (!languageCode || !translation?.content) {
+        return null;
+      }
+
+      return {
+        language_id: translation.language_id,
+        language_code: languageCode,
+        content: translation.content
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    text_id: textId,
+    content: textRow.content || '',
+    original_language_id: textRow.original_language_id || null,
+    original_language_code: normalizeLocale(originalLanguage?.code),
+    translations
+  };
+}
+
 /**
  * Export website data to JSON file and build static site
  * @param {string} projectId - Project ID to export
@@ -33,7 +87,7 @@ function resolveApplicationRoot({ appPath, resourcesPath, isPackaged } = {}) {
 export async function exportStaticWebsite(
   projectId,
   outputPath,
-  { db, filters = {}, basePath = '', locale = '', appPath, resourcesPath, isPackaged = false } = {}
+  { db, filters = {}, basePath = '', locale = '', appPath, resourcesPath, userDataPath, isPackaged = false } = {}
 ) {
   if (basePath && !basePath.startsWith('/')) {
     basePath = '/' + basePath;
@@ -65,12 +119,16 @@ export async function exportStaticWebsite(
       project: data.project || {},
       settings: data.settings || {},
       locale: exportLocale,
+      content_languages: data.content_languages || [],
+      default_content_locale: data.default_content_locale || '',
       connection_types: (data.research_fields || [])
         .filter((field) => field?.type === 'vocabulary')
         .map((field) => ({
           id: field.id,
           name: field.name,
+          name_i18n: field.name_i18n || null,
           description: field.description,
+          description_i18n: field.description_i18n || null,
           count: (data.vocabularies || []).filter(v => v.field_id === field.id).length
         }))
     };
@@ -102,17 +160,29 @@ export async function exportStaticWebsite(
 
     // Step 4: Copy project assets folder
     console.log('[Website Export] Step 4/4: Copying assets...');
-    const projectAssetsSource = path.join(appRoot, 'src', 'assets', 'project_assets', projectId);
     const projectAssetsDest = path.join(resolvedOutputPath, 'assets', projectId);
-    
-    try {
-      await fs.access(projectAssetsSource);
-      await fs.mkdir(path.join(resolvedOutputPath, 'assets'), { recursive: true });
-      await fs.cp(projectAssetsSource, projectAssetsDest, { recursive: true });
-      console.log(`[Website Export] Assets copied to ${projectAssetsDest}`);
-    } catch (err) {
+    const assetSourceCandidates = getProjectAssetsSourceCandidates(projectId, {
+      appRoot,
+      userDataPath
+    });
+
+    let copiedAssets = false;
+    for (const projectAssetsSource of assetSourceCandidates) {
+      try {
+        await fs.access(projectAssetsSource);
+        await fs.mkdir(path.join(resolvedOutputPath, 'assets'), { recursive: true });
+        await fs.cp(projectAssetsSource, projectAssetsDest, { recursive: true });
+        console.log(`[Website Export] Assets copied from ${projectAssetsSource} to ${projectAssetsDest}`);
+        copiedAssets = true;
+        break;
+      } catch {
+        // Try the next candidate.
+      }
+    }
+
+    if (!copiedAssets) {
       console.warn(
-        `[Website Export] No assets folder found at ${projectAssetsSource}, skipping asset copy`
+        `[Website Export] No assets folder found. Checked: ${assetSourceCandidates.join(', ')}`
       );
     }
 
@@ -128,10 +198,6 @@ export async function exportStaticWebsite(
     console.error('[Website Export] Error:', error);
     throw new Error(`Website export failed: ${error.message}`);
   }
-}
-
-function normalizeLocale(locale) {
-  return typeof locale === 'string' ? locale.trim().toLowerCase() : '';
 }
 
 async function getAvailableWebsiteLocales(rootDir) {
@@ -314,7 +380,8 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       objectsDatasources,
       institutions,
       researchFields,
-      ontologyFields
+      ontologyFields,
+      projectLanguages
     ] = await Promise.all([
       db.select().from(dbSchema.objects_ontology_fields)
         .where(inArray(dbSchema.objects_ontology_fields.object_id, objectIds)).execute(),
@@ -329,7 +396,9 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       db.select().from(dbSchema.research_fields)
         .where(eq(dbSchema.research_fields.project_id, projectId)).execute(),
       db.select().from(dbSchema.ontology_fields)
-        .where(eq(dbSchema.ontology_fields.project_id, projectId)).execute()
+        .where(eq(dbSchema.ontology_fields.project_id, projectId)).execute(),
+      db.select().from(dbSchema.languages)
+        .where(eq(dbSchema.languages.project_id, projectId)).execute()
     ]);
 
     // Fetch datasources based on IDs referenced in ontology fields
@@ -431,9 +500,58 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       ? await db.select().from(dbSchema.texts)
           .where(inArray(dbSchema.texts.id, allTextIds)).execute()
       : [];
+    const textTranslations = allTextIds.length > 0
+      ? await db.select().from(dbSchema.translations)
+          .where(inArray(dbSchema.translations.text_id, allTextIds)).execute()
+      : [];
 
     // Create text lookup
     const textMap = Object.fromEntries(texts.map(t => [t.id, t.content]));
+    const textRowsById = Object.fromEntries(texts.map(t => [t.id, t]));
+    const languagesById = Object.fromEntries(projectLanguages.map(language => [language.id, language]));
+    const translationsByTextId = textTranslations.reduce((acc, translation) => {
+      if (!translation?.text_id) {
+        return acc;
+      }
+
+      if (!acc[translation.text_id]) {
+        acc[translation.text_id] = [];
+      }
+
+      acc[translation.text_id].push(translation);
+      return acc;
+    }, {});
+    const textPayloadMap = Object.fromEntries(
+      allTextIds.map((textId) => [textId, buildTextPayload(textId, textRowsById, translationsByTextId, languagesById)])
+    );
+
+    const availableContentLanguageCodes = new Set();
+    Object.values(textPayloadMap).forEach((payload) => {
+      const originalCode = normalizeLocale(payload?.original_language_code);
+      if (originalCode) {
+        availableContentLanguageCodes.add(originalCode);
+      }
+
+      (payload?.translations || []).forEach((translation) => {
+        const translationCode = normalizeLocale(translation?.language_code);
+        if (translationCode) {
+          availableContentLanguageCodes.add(translationCode);
+        }
+      });
+    });
+
+    const contentLanguages = projectLanguages
+      .map((language) => ({
+        code: normalizeLocale(language.code),
+        name: language.name,
+        is_default: language.is_default
+      }))
+      .filter((language) => language.code && availableContentLanguageCodes.has(language.code));
+
+    const defaultContentLocale = contentLanguages.find((language) => Number(language.is_default) === 1)?.code
+      || normalizeLocale(textPayloadMap[project?.title_id]?.original_language_code)
+      || contentLanguages[0]?.code
+      || '';
 
     // Create datasource lookup with resolved text
     const datasourceMap = Object.fromEntries(allDatasources.map(ds => [ds.id, {
@@ -464,9 +582,13 @@ async function exportWebsiteData(projectId, db, filters = {}) {
         institution: institution ? {
           id: institution.id,
           name: textMap[institution.name_id],
+          name_i18n: textPayloadMap[institution.name_id] || null,
           description: textMap[institution.description_id],
+          description_i18n: textPayloadMap[institution.description_id] || null,
           country: textMap[institution.country_id],
+          country_i18n: textPayloadMap[institution.country_id] || null,
           location: textMap[institution.location_id],
+          location_i18n: textPayloadMap[institution.location_id] || null,
           website: institution.website
         } : null,
         assets: objAssets.map(oa => {
@@ -556,11 +678,15 @@ async function exportWebsiteData(projectId, db, filters = {}) {
             return {
               id: ds.id,
               name: textMap[ds.name_id] || 'Unknown',
+              name_i18n: textPayloadMap[ds.name_id] || null,
               method: textMap[ds.method_id],
+              method_i18n: textPayloadMap[ds.method_id] || null,
               notes: textMap[ds.notes_id],
+              notes_i18n: textPayloadMap[ds.notes_id] || null,
               institution: dsInstitution ? {
                 id: dsInstitution.id,
                 name: textMap[dsInstitution.name_id],
+                name_i18n: textPayloadMap[dsInstitution.name_id] || null,
                 website: dsInstitution.website
               } : null
             };
@@ -573,16 +699,22 @@ async function exportWebsiteData(projectId, db, filters = {}) {
     const transformedInstitutions = institutions.map(i => ({
       id: i.id,
       name: textMap[i.name_id],
+      name_i18n: textPayloadMap[i.name_id] || null,
       description: textMap[i.description_id],
+      description_i18n: textPayloadMap[i.description_id] || null,
       country: textMap[i.country_id],
+      country_i18n: textPayloadMap[i.country_id] || null,
       location: textMap[i.location_id],
+      location_i18n: textPayloadMap[i.location_id] || null,
       website: i.website
     }));
 
     const transformedResearchFields = researchFields.map(rf => ({
       id: rf.id,
       name: textMap[rf.name_id],
+      name_i18n: textPayloadMap[rf.name_id] || null,
       description: textMap[rf.description_id],
+      description_i18n: textPayloadMap[rf.description_id] || null,
       type: rf.type,
       private: rf.private,
       onwebsite: rf.onwebsite
@@ -591,8 +723,11 @@ async function exportWebsiteData(projectId, db, filters = {}) {
     const transformedOntologyFields = ontologyFields.map(of => ({
       id: of.id,
       name: textMap[of.name_id],
+      name_i18n: textPayloadMap[of.name_id] || null,
       description: textMap[of.description_id],
+      description_i18n: textPayloadMap[of.description_id] || null,
       category: textMap[of.category_id],
+      category_i18n: textPayloadMap[of.category_id] || null,
       onwebsite: of.onwebsite
     }));
 
@@ -625,7 +760,9 @@ async function exportWebsiteData(projectId, db, filters = {}) {
         id: v.id,
         field_id: v.field_id,
         name: textMap[v.option_id],
+        name_i18n: textPayloadMap[v.option_id] || null,
         description: textMap[v.description_id],
+        description_i18n: textPayloadMap[v.description_id] || null,
         external_link: v.external_link,
         main_asset_path: genericAsset?.path || null,
         assets: attachedAssets,
@@ -646,15 +783,20 @@ async function exportWebsiteData(projectId, db, filters = {}) {
     const transformedProject = project ? {
       id: project.id,
       name: textMap[project.title_id] || null,
-      description: textMap[project.description_id] || null
+      name_i18n: textPayloadMap[project.title_id] || null,
+      description: textMap[project.description_id] || null,
+      description_i18n: textPayloadMap[project.description_id] || null
     } : {};
 
     // Transform settings with resolved text, falling back to project values
     const aboutText = textMap[settings?.about_id] || textMap[project?.description_id] || null;
     const transformedSettings = {
       title: textMap[settings?.title_id] || textMap[project?.title_id] || null,
+      title_i18n: textPayloadMap[settings?.title_id] || textPayloadMap[project?.title_id] || null,
       about: aboutText,
+      about_i18n: textPayloadMap[settings?.about_id] || textPayloadMap[project?.description_id] || null,
       description: aboutText,
+      description_i18n: textPayloadMap[settings?.about_id] || textPayloadMap[project?.description_id] || null,
       authors: settings?.authors || null,
       logo_asset_path: logoAssetPath,
       show_unmapped: settings?.show_unmapped || 0
@@ -665,7 +807,9 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       .map((field) => ({
         id: field.id,
         name: field.name,
+        name_i18n: field.name_i18n || null,
         description: field.description,
+        description_i18n: field.description_i18n || null,
         count: transformedVocabularies.filter(v => v.field_id === field.id).length
       }));
 
@@ -678,6 +822,8 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       },
       project: transformedProject,
       settings: transformedSettings,
+      content_languages: contentLanguages.map(({ is_default, ...language }) => language),
+      default_content_locale: defaultContentLocale,
       objects: transformedObjects,
       institutions: transformedInstitutions,
       research_fields: transformedResearchFields,

@@ -2055,6 +2055,31 @@
                          },
                          {
                              "namespace":  "export-website",
+                             "key":  "interface-language-title",
+                             "value":  "Website interface language"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "interface-language-description",
+                             "value":  "Choose the single interface language bundled into the exported website"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "interface-language-label",
+                             "value":  "Exported interface language"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "interface-language-empty",
+                             "value":  "No website interface languages are available for export."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "no-interface-languages-available",
+                             "value":  "No website interface languages are available for export."
+                         },
+                         {
+                             "namespace":  "export-website",
                              "key":  "base-path-title",
                              "value":  "Hosting subdirectory (optional)"
                          },

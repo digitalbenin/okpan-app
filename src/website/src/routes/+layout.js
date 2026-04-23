@@ -22,7 +22,7 @@ export async function load({ url, fetch }) {
     return;
   }
 
-  const { getDb, initClientDb, fetchInstitutions, fetchOntologyFields, fetchResearchFields, fetchVocabularies, fetchProject, fetchWebsiteSettings } = await import('$lib/utils/dbUtils.js');
+  const { getDb, initClientDb, fetchInstitutions, fetchOntologyFields, fetchResearchFields, fetchVocabularies, fetchProject, fetchWebsiteSettings, fetchProjectLanguages } = await import('$lib/utils/dbUtils.js');
   
   // Ensure DB is initialized (may have been done in hooks.client.js, but be safe)
   let db = getDb();
@@ -41,12 +41,16 @@ export async function load({ url, fetch }) {
   const vocabularies = fetchVocabularies(db, projectId);
   const project = fetchProject(db, projectId);
   const settings = fetchWebsiteSettings(db, projectId);
+  const content_languages = fetchProjectLanguages(db, projectId);
+  const default_content_locale = content_languages.find((language) => language.is_default)?.code || content_languages[0]?.code || '';
   const connection_types = (research_fields || [])
     .filter((field) => field?.type === 'vocabulary')
     .map((field) => ({
       id: field.id,
       name: field.name,
+      name_i18n: field.name_i18n,
       description: field.description,
+      description_i18n: field.description_i18n,
       count: (vocabularies || []).filter(v => v.field_id === field.id).length
     }));
 
@@ -57,6 +61,8 @@ export async function load({ url, fetch }) {
     vocabularies,
     project,
     settings,
+    content_languages,
+    default_content_locale,
     activeProjectId: projectId,
     connection_types
   };

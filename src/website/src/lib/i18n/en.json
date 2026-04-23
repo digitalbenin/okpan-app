@@ -9,7 +9,8 @@
       "toggle-menu": "Toggle menu",
       "collapse-menu": "Collapse menu",
       "expand-menu": "Expand menu",
-      "language": "Language"
+      "language": "Language",
+      "content-language": "Content language"
     },
     "site": {
       "untitled-project": "Untitled Project",

@@ -3,6 +3,64 @@ import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 
 let dbPromise = null;
 
+function normalizeLocale(locale) {
+  return typeof locale === 'string' ? locale.trim().toLowerCase() : '';
+}
+
+function buildTextPayloadMap(db, textIds = []) {
+  const ids = [...new Set((Array.isArray(textIds) ? textIds : []).filter(Boolean))];
+  if (ids.length === 0) {
+    return {};
+  }
+
+  const placeholders = ids.map(() => '?').join(', ');
+  const textRows = results_to_objects(
+    db.exec(
+      `SELECT t.id, t.content, t.original_language_id, l.code AS original_language_code
+       FROM texts t
+       LEFT JOIN languages l ON t.original_language_id = l.id
+       WHERE t.id IN (${placeholders})`,
+      ids
+    )
+  );
+  const translationRows = results_to_objects(
+    db.exec(
+      `SELECT tr.text_id, tr.language_id, tr.content, l.code AS language_code
+       FROM translations tr
+       LEFT JOIN languages l ON tr.language_id = l.id
+       WHERE tr.text_id IN (${placeholders})`,
+      ids
+    )
+  );
+
+  const translationsByTextId = translationRows.reduce((acc, row) => {
+    if (!acc[row.text_id]) {
+      acc[row.text_id] = [];
+    }
+
+    if (row.content) {
+      acc[row.text_id].push({
+        language_id: row.language_id,
+        language_code: normalizeLocale(row.language_code),
+        content: row.content
+      });
+    }
+
+    return acc;
+  }, {});
+
+  return textRows.reduce((acc, row) => {
+    acc[row.id] = {
+      text_id: row.id,
+      content: row.content || '',
+      original_language_id: row.original_language_id || null,
+      original_language_code: normalizeLocale(row.original_language_code),
+      translations: translationsByTextId[row.id] || []
+    };
+    return acc;
+  }, {});
+}
+
 /**
  * Initialize the client-side sql.js database from a static asset.
  * Subsequent calls return the same promise.
@@ -145,7 +203,19 @@ export function fetchInstitutions(db, projectId) {
        LEFT JOIN texts loc_txt ON i.location_id = loc_txt.id`
     );
   }
-  return results_to_objects(res);
+  const rows = results_to_objects(res);
+  const textPayloadMap = buildTextPayloadMap(
+    db,
+    rows.flatMap((row) => [row.name_id, row.description_id, row.country_id, row.location_id])
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    name_i18n: textPayloadMap[row.name_id] || null,
+    description_i18n: textPayloadMap[row.description_id] || null,
+    country_i18n: textPayloadMap[row.country_id] || null,
+    location_i18n: textPayloadMap[row.location_id] || null
+  }));
 }
 
 export function fetchOntologyFields(db, projectId) {
@@ -160,7 +230,18 @@ export function fetchOntologyFields(db, projectId) {
       'SELECT o.*, t.content as name FROM ontology_fields o LEFT JOIN texts t ON o.name_id = t.id'
     );
   }
-  return results_to_objects(res);
+  const rows = results_to_objects(res);
+  const textPayloadMap = buildTextPayloadMap(
+    db,
+    rows.flatMap((row) => [row.name_id, row.description_id, row.category_id])
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    name_i18n: textPayloadMap[row.name_id] || null,
+    description_i18n: textPayloadMap[row.description_id] || null,
+    category_i18n: textPayloadMap[row.category_id] || null
+  }));
 }
 
 export function fetchResearchFields(db, projectId) {
@@ -182,7 +263,17 @@ export function fetchResearchFields(db, projectId) {
        LEFT JOIN texts desc_txt ON r.description_id = desc_txt.id`
     );
   }
-  return results_to_objects(res);
+  const rows = results_to_objects(res);
+  const textPayloadMap = buildTextPayloadMap(
+    db,
+    rows.flatMap((row) => [row.name_id, row.description_id])
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    name_i18n: textPayloadMap[row.name_id] || null,
+    description_i18n: textPayloadMap[row.description_id] || null
+  }));
 }
 
 export function fetchVocabularyDetails(db, vocabId) {
@@ -210,6 +301,10 @@ export function fetchVocabularyDetails(db, vocabId) {
     if (!vocabularies || vocabularies.length === 0) return null;
 
     const vocabulary = vocabularies[0];
+    const textPayloadMap = buildTextPayloadMap(db, [vocabulary.option_id, vocabulary.description_id]);
+
+    vocabulary.name_i18n = textPayloadMap[vocabulary.option_id] || null;
+    vocabulary.description_i18n = textPayloadMap[vocabulary.description_id] || null;
 
     // Fetch associated generic assets
     const assetsRes = db.exec(
@@ -264,7 +359,17 @@ export function fetchVocabularies(db, projectId) {
       GROUP BY v.id`
     );
   }
-  return results_to_objects(res);
+  const rows = results_to_objects(res);
+  const textPayloadMap = buildTextPayloadMap(
+    db,
+    rows.flatMap((row) => [row.option_id, row.description_id])
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    name_i18n: textPayloadMap[row.option_id] || null,
+    description_i18n: textPayloadMap[row.description_id] || null
+  }));
 }
 
 export function fetchProject(db, projectId) {
@@ -282,7 +387,14 @@ export function fetchProject(db, projectId) {
     [projectId]
   );
   const arr = results_to_objects(res);
-  return arr[0] || {};
+  const row = arr[0] || {};
+  const textPayloadMap = buildTextPayloadMap(db, [row.title_id, row.description_id]);
+
+  return {
+    ...row,
+    name_i18n: textPayloadMap[row.title_id] || null,
+    description_i18n: textPayloadMap[row.description_id] || null
+  };
 }
 
 /**
@@ -326,7 +438,40 @@ export function fetchWebsiteSettings(db, projectId) {
     );
   }
   const arr = results_to_objects(res);
-  return arr[0] || null;
+  const row = arr[0] || null;
+  if (!row) {
+    return null;
+  }
+
+  const textPayloadMap = buildTextPayloadMap(db, [row.title_id, row.about_id]);
+
+  return {
+    ...row,
+    title_i18n: textPayloadMap[row.title_id] || null,
+    about_i18n: textPayloadMap[row.about_id] || null,
+    description_i18n: textPayloadMap[row.about_id] || null
+  };
+}
+
+export function fetchProjectLanguages(db, projectId) {
+  if (!projectId) return [];
+
+  const rows = results_to_objects(
+    db.exec(
+      `SELECT id, code, name, is_default
+       FROM languages
+       WHERE project_id = ?
+       ORDER BY is_default DESC, name ASC, code ASC`,
+      [projectId]
+    )
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    code: normalizeLocale(row.code),
+    name: row.name || row.code,
+    is_default: Number(row.is_default) === 1
+  }));
 }
 
 /**

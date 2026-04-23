@@ -4,23 +4,44 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Topbar from '$lib/components/Topbar.svelte';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	import { onMount } from 'svelte';
 	import { resolveSitePath } from '$lib/utils/sitePaths.js';
 
 	let { children, data } = $props();
-	getWebsiteTranslationStore();
+	const { setLocale } = getWebsiteTranslationStore();
+	const { initialize } = getWebsiteContentStore();
 	
-	// For static export: load project/settings client-side from site.json (small file)
-	let project = $state(data?.project);
-	let settings = $state(data?.settings);
+	// Static export can override loader data after fetching site.json.
+	let staticProject = $state(null);
+	let staticSettings = $state(null);
+	const project = $derived.by(() => staticProject || data?.project || {});
+	const settings = $derived.by(() => staticSettings || data?.settings || {});
+
+	initialize({
+		languages: data?.content_languages || [],
+		defaultLocale: data?.default_content_locale || ''
+	});
+
+	if (data?.locale) {
+		setLocale(data.locale);
+	}
 	
 	onMount(async () => {
 		if (data?.needsClientLoad) {
 			try {
 				const response = await fetch(resolveSitePath('site.json'));
 				const json = await response.json();
-				project = json.project || {};
-				settings = json.settings || {};
+				staticProject = json.project || {};
+				staticSettings = json.settings || {};
+				initialize({
+					languages: json.content_languages || [],
+					defaultLocale: json.default_content_locale || ''
+				});
+
+				if (json.locale) {
+					setLocale(json.locale);
+				}
 			} catch (e) {
 				console.warn('Could not load site data:', e);
 			}

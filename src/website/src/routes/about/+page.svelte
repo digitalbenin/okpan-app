@@ -2,18 +2,22 @@
 	import { onMount } from 'svelte';
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
+	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 	import { resolveSitePath } from '$lib/utils/sitePaths.js';
 	const { t } = getWebsiteTranslationStore();
+	const { content } = getWebsiteContentStore();
 
 	const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	let { data } = $props();
 
-	let project = $state(data?.project || {});
-	let settings = $state(data?.settings || {});
+	let staticProject = $state(null);
+	let staticSettings = $state(null);
+	const project = $derived.by(() => staticProject || data?.project || {});
+	const settings = $derived.by(() => staticSettings || data?.settings || {});
 	let isLoading = $state(isStaticExport && data?.needsClientLoad);
 
-	const titleText = $derived.by(() => settings?.title || project?.name || t('nav.about'));
-	const aboutText = $derived.by(() => settings?.about || settings?.description || project?.description || '');
+	const titleText = $derived.by(() => content(settings, 'title', content(project, 'name')) || t('nav.about'));
+	const aboutText = $derived.by(() => content(settings, 'about', content(project, 'description')) || content(settings, 'description') || '');
 	const logoUrl = $derived.by(() => (settings?.logo_asset_path ? getAssetUrl({ asset_path: settings.logo_asset_path }) : ''));
 
 	onMount(async () => {
@@ -21,8 +25,8 @@
 			try {
 				const response = await fetch(resolveSitePath('site.json'));
 				const json = await response.json();
-				project = json.project || {};
-				settings = json.settings || {};
+				staticProject = json.project || {};
+				staticSettings = json.settings || {};
 			} catch (error) {
 				console.error('[About] Failed to load site.json:', error);
 			} finally {
