@@ -6,11 +6,11 @@
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { fly } from "svelte/transition";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import ObjectAdvancedFilters from "$lib/components/objects/ObjectAdvancedFilters.svelte";
+  import { topCurtainOverlay } from "$lib/utils/transitions.js";
   import { afterNavigate, goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { resource } from "runed";
@@ -263,39 +263,25 @@
 {/snippet}
 
 <div class="w-100">
-  <div class="position-relative mb-3">
-    {#if selectedObjects.length}
-      <div class="d-flex align-items-center px-3 gap-2 py-2 bg-white border rounded-3">
-        {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
-        {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
-        <BulkActionsStatusSelect
-          items={statuses.filter((s) => s.value !== "all")}
-          bind:value={bulkStatusValue}
-          onValueChange={applyBulkStatus}
+  <div class="mb-3">
+    <div class="row align-items-center g-2 py-2">
+      <div class="col-12 col-md-6">
+        <BaseInput
+          icon="search"
+          placeholder={t("common.search")}
+          size="sm"
+          bind:value={params.oSearch}
+          optionsList={ontologyFieldsList}
+          bind:optionsValue={params.oSearchField}
         />
-        {@render actionButton("pencil", t("common.edit-info"), openBulkEdit)}
-        <div class="ms-auto">
-          {@render actionButton("trash", t("common.delete"), () => (showBulkDeleteModal = true), "danger")}
-        </div>
       </div>
-    {:else}
-      <div class="row align-items-center g-2 py-2">
-        <div class="col-12 col-md-6">
-          <BaseInput
-            icon="search"
-            placeholder={t("common.search")}
-            size="sm"
-            bind:value={params.oSearch}
-            optionsList={ontologyFieldsList}
-            bind:optionsValue={params.oSearchField}
-          />
-        </div>
-        <div class="col-12 col-md-6 d-flex justify-content-md-end gap-2">
-          {@render toolbarButton("plus-lg", t("menu.add-object"), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`)}
-          {@render toolbarButton("plus-lg", t("menu.import-data"), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`)}
-        </div>
+      <div class="col-12 col-md-6 d-flex justify-content-md-end gap-2">
+        {@render toolbarButton("plus-lg", t("menu.add-object"), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`)}
+        {@render toolbarButton("plus-lg", t("menu.import-data"), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`)}
       </div>
+    </div>
 
+    <div class="position-relative">
       <div class="row align-items-center g-2 pb-2 mt-2">
         <div class="col-auto">
           {objectsData.totalCount}
@@ -335,7 +321,28 @@
           </div>
         </div>
       </div>
-    {/if}
+
+      {#if selectedObjects.length}
+        <div
+          transition:topCurtainOverlay={{ y: -20, duration: 220 }}
+          class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-white"
+        >
+          <div class="row align-items-center g-2 pb-2 mt-2 h-100">
+            <div class="col d-flex align-items-center gap-2 flex-wrap">
+              {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
+              {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
+              <BulkActionsStatusSelect
+                items={statuses.filter((s) => s.value !== "all")}
+                bind:value={bulkStatusValue}
+                onValueChange={applyBulkStatus}
+              />
+              {@render actionButton("pencil", t("common.edit-info"), openBulkEdit)}
+              {@render actionButton("trash", t("common.delete"), () => (showBulkDeleteModal = true), "danger")}
+            </div>
+          </div>
+        </div>
+      {/if}
+    </div>
   </div>
 
   {#if hasAppliedFilters}

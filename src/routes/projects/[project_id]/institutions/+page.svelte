@@ -6,6 +6,7 @@
   import InstitutionsGrid from "$lib/components/institutions/InstitutionsGrid.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import { updateInstitutionsStatusBulk } from "$lib/stores/InstitutionsUtils.js";
+  import { topCurtainOverlay } from "$lib/utils/transitions.js";
 
   const { t } = getTranslationStore();
 
@@ -106,20 +107,8 @@
       </a>
     </div>
   </div>
-  <div class="row align-items-center mb-3">
-    {#if selectedInstitutions.length > 0}
-      <div class="col-12 d-flex gap-3 align-items-center mt-1 mb-0">
-        <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
-          <span>{t("common.clear-selection", { fallback: "Clear selection" })}</span>
-          <i class="bi bi-x-circle"></i>
-        </button>
-        <BulkActionsStatusSelect
-          items={statuses.filter((status) => status.value !== "all")}
-          bind:value={bulkStatusValue}
-          onValueChange={applyBulkStatus}
-        />
-      </div>
-    {:else}
+  <div class="position-relative mb-3">
+    <div class="row align-items-center">
       <div class="col-3">
         <BaseInput
           icon="search"
@@ -144,6 +133,27 @@
           </div>
           <BaseSelect items={statuses} bind:value={params.status} size="sm"
           ></BaseSelect>
+        </div>
+      </div>
+    </div>
+
+    {#if selectedInstitutions.length > 0}
+      <div
+        transition:topCurtainOverlay={{ y: -20, duration: 220 }}
+        class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-light"
+      >
+        <div class="row align-items-center h-100">
+          <div class="col-12 d-flex gap-3 align-items-center mt-1 mb-0">
+            <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
+              <span>{t("common.clear-selection", { fallback: "Clear selection" })}</span>
+              <i class="bi bi-x-circle"></i>
+            </button>
+            <BulkActionsStatusSelect
+              items={statuses.filter((status) => status.value !== "all")}
+              bind:value={bulkStatusValue}
+              onValueChange={applyBulkStatus}
+            />
+          </div>
         </div>
       </div>
     {/if}
