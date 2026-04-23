@@ -2815,6 +2815,11 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "primary-id-tooltip",
+                             "value":  "There must always be one institution field set as the primary ID"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "save-template",
                              "value":  "Save template"
                          },

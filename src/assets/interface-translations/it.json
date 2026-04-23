@@ -2814,6 +2814,11 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "primary-id-tooltip",
+                             "value":  "Deve esserci sempre un campo istituzione impostato come ID primario"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "save-template",
                              "value":  "Salva template"
                          },
