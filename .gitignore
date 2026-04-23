@@ -108,6 +108,10 @@ src/assets/project_assets/*
 src/assets/models/
 artic-dataset/
 artic-dataset.zip
+
+# IDEs and editors
+.idea
 .vscode
 .cursor
 artic-dataset/
+copilot-instructions.md
