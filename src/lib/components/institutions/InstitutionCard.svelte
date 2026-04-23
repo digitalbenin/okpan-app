@@ -4,15 +4,43 @@
   import { addImageProtocolPrefix } from "$lib/utils/media.js";
 
   const { t } = getTranslationStore();
-  const { institution } = $props();
+  let {
+    institution,
+    selected = $bindable([]),
+    selectable = false,
+  } = $props();
+
+  let isSelected = $derived(selectable && selected.includes(institution.id));
+
+  function handleCheckboxChange(event) {
+    event.stopPropagation();
+    if (isSelected) {
+      selected = selected.filter((id) => id !== institution.id);
+    } else {
+      selected = [...selected, institution.id];
+    }
+  }
 </script>
 
 <div
   class="w-100 h-100 position-relative d-flex flex-column border p-2 rounded bg-white"
+  class:border-primary={isSelected}
+  class:border-1={isSelected}
 >
   <div class="d-flex justify-content-between align-items-center mb-2">
     <div><BaseBadgeStaus status={institution.status}></BaseBadgeStaus></div>
-    <div><i class="bi bi-three-dots-vertical"></i></div>
+    {#if selectable}
+      <div class="position-relative z-2">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          checked={isSelected}
+          onchange={handleCheckboxChange}
+          onclick={(event) => event.stopPropagation()}
+          aria-label={t("common.select-institution", { fallback: "Select institution" })}
+        />
+      </div>
+    {/if}
   </div>
   <h5 class="line-clamp mb-1">
     {institution.name.content}

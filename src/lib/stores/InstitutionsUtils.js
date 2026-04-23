@@ -26,7 +26,7 @@ export const updateInstitutionStatus = async (institutionId, status) => {
         return { result: null, error: "Missing status value" };
     }
 
-    const result = await executeQuery('institutions', 'update', { id: institutionId, status });
+    const result = await executeQuery('institutions', 'updateStatus', { id: institutionId, status });
 
     if (result?.error) {
         return { result: null, error: result.error };
@@ -35,8 +35,31 @@ export const updateInstitutionStatus = async (institutionId, status) => {
     // Invalidate both the detail and listings
     await invalidateAll();
 
-    const updated = result?.result?.updateInstitutions || result?.updateInstitutions || [{ id: institutionId, status }];
+    const updated = result?.result || result?.updateInstitutions || [{ id: institutionId, status }];
     return { result: updated, error: null };
+};
+
+export const updateInstitutionsStatusBulk = async (institutionIds, status) => {
+    if (!Array.isArray(institutionIds) || institutionIds.length === 0) {
+        return { result: [], errors: [{ error: "No institutions selected" }] };
+    }
+    if (!status) {
+        return { result: [], errors: [{ error: "Missing status value" }] };
+    }
+
+    const updates = institutionIds.map((id) => ({ id, status }));
+    const result = await executeQuery('institutions', 'bulkUpdate', { updates });
+
+    if (result?.error) {
+        return { result: [], errors: [{ error: result.error }] };
+    }
+
+    await invalidateAll();
+
+    return {
+        result: result?.result?.bulkUpdateInstitutions || result?.bulkUpdateInstitutions || [],
+        errors: []
+    };
 };
 
 // Function to update an institution, including translations orchestration

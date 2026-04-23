@@ -441,7 +441,8 @@ export const institutionsOperations = {
         mapVariables: {
           descriptionId: { from: "getInstitution", path: "institution.description.id" }
         },
-        skipIf: { variableName: "descriptionId", isEmpty: true }
+        onlyIf: { from: "getInstitution", path: "institution.description", isNull: false },
+        skipIf: { variableName: "description", isUndefined: true }
       },
       {
         name: "createCountry",
@@ -624,6 +625,25 @@ export const institutionsOperations = {
       }
     ],
     query: null
+  },
+
+  updateStatus: {
+    type: "mutation",
+    name: "Update Institution Status",
+    description: "Updates the status of an institution by ID",
+    variables: {
+      id: "ID of the institution to update",
+      status: "New status"
+    },
+    query: `mutation UpdateInstitutionStatus($id: String!, $status: String!) {
+  result: updateInstitutions(
+    set: { status: $status }
+    where: { id: { eq: $id } }
+  ) {
+    id
+    status
+  }
+}`
   },
 
   // DELETE
