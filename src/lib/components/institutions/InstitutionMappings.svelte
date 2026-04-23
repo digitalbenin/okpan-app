@@ -440,13 +440,20 @@
                 {#each rows as row (row.rowId)}
                   <tr>
                     <td class="text-center">
-                      <input
-                        type="checkbox"
-                        class="form-check-input"
-                        checked={row.primary}
-                        onchange={() => setPrimary(row.rowId)}
-                        disabled={!canEdit}
-                      />
+                      <BaseTooltip rootProps={{ side: "right", align: "center" }}>
+                        {#snippet trigger(props)}
+                          <span class="d-inline-flex" {...(({ type, ...rest }) => rest)(props)}>
+                            <input
+                              type="checkbox"
+                              class="form-check-input"
+                              checked={row.primary}
+                              onchange={() => setPrimary(row.rowId)}
+                              disabled={!canEdit || row.primary}
+                            />
+                          </span>
+                        {/snippet}
+                        {t("common.primary-id-tooltip")}
+                      </BaseTooltip>
                     </td>
                     <td>
                       <input
