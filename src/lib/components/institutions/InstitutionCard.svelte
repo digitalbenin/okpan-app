@@ -28,7 +28,7 @@
   class:border-1={isSelected}
 >
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <div><BaseBadgeStaus status={institution.status}></BaseBadgeStaus></div>
+    <div><BaseBadgeStatus status={institution.status}></BaseBadgeStatus></div>
     {#if selectable}
       <div class="position-relative z-2">
         <input
