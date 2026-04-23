@@ -52,8 +52,8 @@
       decode: (value) => (value ? parseInt(value) : null),
       defaultValue: 1,
     },
-    aOrderBy: ssp.string("filename"),
-    aDirection: ssp.string("asc"),
+    aOrderBy: ssp.string("created_at"),
+    aDirection: ssp.string("desc"),
     aSearch: ssp.string(undefined),
     aLinked: {
       encode: (value) => (value === "all" ? undefined : value),
