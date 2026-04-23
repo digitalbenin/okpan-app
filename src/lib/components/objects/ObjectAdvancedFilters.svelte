@@ -171,6 +171,8 @@
   // Filter actions
   const toggleFilter = (itemId) => {
     if (!selectedField) return;
+    const count = getFacetCountForItem({ id: itemId });
+    if (count === 0 && !isSelected(itemId)) return;
     ensureFiltersObject();
     const fieldKey = getFieldKey();
     
@@ -206,6 +208,8 @@
     const arr = Array.isArray(advancedFilters?.[getFieldKey()]) ? advancedFilters[getFieldKey()] : [];
     return arr.some((id) => String(id) === String(itemId));
   };
+
+  const isDisabledFilterItem = (item) => getFacetCountForItem(item) === 0 && !isSelected(item.id);
 
   // Text filter actions
   const upsertOrRemoveTextFilter = () => {
@@ -418,17 +422,19 @@
 
       <div class="list-group list-group-flush">
         {#each filteredItems as item (item.id)}
-          <div class="list-group-item">
+          <div class="list-group-item" class:opacity-50={isDisabledFilterItem(item)}>
             <div class="d-flex align-items-center gap-2">
               <input
                 class="form-check-input"
                 type="checkbox"
                 id={`filter-${selectedField.id}-${item.id}`}
                 checked={isSelected(item.id)}
+                disabled={isDisabledFilterItem(item)}
                 onchange={() => toggleFilter(item.id)}
               />
               <label
                 class="form-check-label"
+                class:pe-none={isDisabledFilterItem(item)}
                 for={`filter-${selectedField.id}-${item.id}`}
               >
                 <span class="fw-semibold">{item.name}</span>
