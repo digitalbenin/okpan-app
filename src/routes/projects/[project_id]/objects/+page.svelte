@@ -271,6 +271,7 @@
 
   const handleSearchInput = (e) => {
     searchText = e.target.value;
+    params.searchField = "all";
     params.search = searchText;
     params.page = 1;
   };
@@ -311,20 +312,19 @@
       </h2>
     </div>
   </div>
-  <div class="mb-3 py-2 ps-2">
-    <div class="row align-items-center g-2 py-2">
-      <div class="col-12 col-md-6">
+  <div class="position-relative mb-3">
+    <div class="row align-items-center">
+      <div class="col-3">
         <BaseInput
           icon="search"
           placeholder={i18n.search}
+          clearable
           size="sm"
           bind:value={searchText}
           onInput={handleSearchInput}
-          optionsList={ontologyFieldsList}
-          bind:optionsValue={params.searchField}
         />
       </div>
-      <div class="col-12 col-md-6 d-flex justify-content-md-end gap-2">
+      <div class="col-9 d-flex justify-content-end gap-3 align-items-center mb-1">
         <a class="btn btn-secondary btn-sm" href="/projects/{data.project.id}/objects/add">
           <i class="bi bi-plus-lg"></i>
           {i18n.addNew}

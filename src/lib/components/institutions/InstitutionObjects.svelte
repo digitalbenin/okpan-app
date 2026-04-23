@@ -38,12 +38,6 @@
     getFieldList(fields).map((f) => [String(f.id), f.name?.content || f.name || String(f.id)])
   );
 
-  // Options
-  const ontologyFieldsList = $derived([
-    { value: "all", label: t("common.all") },
-    ...ontologyFields.result.map((f) => ({ value: f.id, label: f.name.content })),
-  ]);
-
   const statuses = $derived([
     { value: "all", label: t("common.all-status") },
     { value: "in progress", label: t("common.in-progress") },
@@ -108,10 +102,7 @@
       .map((x) => ({ fieldId: x.fieldId, query: x.query }));
 
     if (deps.search?.trim()) {
-      const sf = deps.searchField;
-      (sf && sf !== "all") 
-        ? ontologyFieldQueries.push({ fieldId: sf, query: deps.search })
-        : opts.genericQuery = deps.search;
+      opts.genericQuery = deps.search;
     }
     if (ontologyFieldQueries.length) opts.ontologyFieldQueries = ontologyFieldQueries;
 
@@ -122,7 +113,6 @@
   const objectsResource = resource(
     () => ({
       search: params.oSearch,
-      searchField: params.oSearchField,
       status: params.oStatus,
       orderBy: params.oOrderBy,
       direction: params.oDirection,
@@ -177,9 +167,8 @@
 
     // Search filter
     if (params.oSearch?.trim()) {
-      const searchLabel = ontologyFieldsList.find((o) => o.value === params.oSearchField)?.label || t("common.search");
       badges.push(createFilterBadge(
-        `${searchLabel}: ${params.oSearch}`,
+        `${t("common.search")}: ${params.oSearch}`,
         () => clearFilter({ oSearch: "" })
       ));
     }
@@ -265,17 +254,15 @@
 <div class="w-100">
   <div class="mb-3">
     <div class="row align-items-center g-2 py-2">
-      <div class="col-12 col-md-6">
+      <div class="col-4">
         <BaseInput
           icon="search"
           placeholder={t("common.search")}
           size="sm"
           bind:value={params.oSearch}
-          optionsList={ontologyFieldsList}
-          bind:optionsValue={params.oSearchField}
         />
       </div>
-      <div class="col-12 col-md-6 d-flex justify-content-md-end gap-2">
+      <div class="col-8 d-flex justify-content-end gap-2 align-items-center">
         {@render toolbarButton("plus-lg", t("menu.add-object"), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`)}
         {@render toolbarButton("plus-lg", t("menu.import-data"), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`)}
       </div>
