@@ -54,6 +54,16 @@ export const deleteTemplate = async (templateId) => {
   return result;
 };
 
+export const deleteTemplateAndCleanup = async (templateId) => {
+  if (!templateId) {
+    throw new Error("Template ID is required to delete a template");
+  }
+  const result = await executeQuery("templates", "deleteAndCleanup", { templateId });
+  invalidate("app:templates");
+  invalidate("app:objects");
+  return result;
+};
+
 export const updateTemplateAndPropagate = async (templateId, { mapping, institutionId, title }) => {
   if (!templateId) {
     throw new Error("Template ID is required to update a template");

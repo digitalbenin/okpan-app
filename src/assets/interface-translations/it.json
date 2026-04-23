@@ -2819,6 +2819,36 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "delete-template",
+                             "value":  "Elimina template"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-template-confirm-title",
+                             "value":  "Conferma eliminazione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "delete-template-confirm-msg",
+                             "value":  "Sei sicuro di voler eliminare questo template? Questa operazione non può essere annullata."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "template-used-by-one-object",
+                             "value":  "Questo template è attualmente utilizzato da 1 oggetto. Eliminandolo verranno eliminati anche i valori dei campi mappati per quell'oggetto."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "template-used-by-many-objects",
+                             "value":  "oggetti utilizzano attualmente questo template. Eliminandolo verranno eliminati anche i valori dei campi mappati per quegli oggetti."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "template-in-use-warning",
+                             "value":  "Questo template è attualmente utilizzato da alcuni oggetti. Eliminandolo verranno eliminati anche i dati dei campi mappati per quegli oggetti!"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "previous-page",
                              "value":  "Precedente"
                          },

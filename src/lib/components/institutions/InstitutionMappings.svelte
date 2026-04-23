@@ -2,7 +2,10 @@
   import { watch } from "runed";
   import SetMatch from "$lib/components/import/matchPreview/SetMatch.svelte";
   import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
-  import { createTemplate, updateTemplate, updateTemplateAndPropagate } from "$lib/stores/TemplatesUtils.js";
+  import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import { executeQuery } from "$lib/stores/GraphqlUtils.js";
+  import { createTemplate, updateTemplateAndPropagate, deleteTemplateAndCleanup } from "$lib/stores/TemplatesUtils.js";
   import { page } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
@@ -314,6 +317,43 @@
     }
   }
 
+  let deleteModalOpen = $state(false);
+  let deletingTemplate = $state(false);
+  let objectCountUsingTemplate = $state(0);
+
+  async function promptDeleteTemplate() {
+    if (!selectedTemplateId) return;
+    try {
+      const query = `query getCount($templateId: String!) { result:objects_datasources(where: { template_id: { eq: $templateId } }) { object_id } }`;
+      const countRes = await window.api.executeGraphQL(query, { templateId: selectedTemplateId });
+      const objectsUsingIt = countRes?.data?.result || [];
+      const uniqueObjects = new Set(objectsUsingIt.map(o => o.object_id)).size;
+      objectCountUsingTemplate = uniqueObjects;
+    } catch(err) {
+      console.error("Failed to count template usage", err);
+      objectCountUsingTemplate = 0;
+    }
+    deleteModalOpen = true;
+  }
+
+  async function onDeleteTemplate() {
+    if (!selectedTemplateId || deletingTemplate) return;
+    deletingTemplate = true;
+    try {
+      const res = await deleteTemplateAndCleanup(selectedTemplateId);
+      const deletedId = res?.result?.deletedTemplateId;
+      console.log(`Deleted template. Affected objects: ${res?.result?.affectedObjects}, Deleted fields: ${res?.result?.deletedFields}`);
+      
+      templates = templates.filter(t => t.id !== selectedTemplateId);
+      selectedTemplateId = templates.length > 0 ? templates[0].id : null;
+      deleteModalOpen = false;
+    } catch(err) {
+      console.error("Failed to delete template:", err);
+    } finally {
+      deletingTemplate = false;
+    }
+  }
+
   // Reusable picker modal state (suggestions shown ONLY inside the modal)
   let pickerOpen = $state(false);
   let pickerRowId = $state(null);
@@ -546,11 +586,19 @@
           </div>
         </div>
 
-        <div class="card-footer bg-transparent border-0 d-flex justify-content-end">
+        <div class="card-footer bg-transparent border-0 d-flex justify-content-end gap-2">
+          <button
+            class="btn btn-outline-danger"
+            onclick={promptDeleteTemplate}
+            disabled={!canEdit || saving || creating || deletingTemplate}
+          >
+            {t("common.delete-template", { fallback: "Delete template" })}
+          </button>
+
           <button
             class="btn btn-success"
             onclick={onSaveTemplate}
-            disabled={!canEdit || saving}
+            disabled={!canEdit || saving || creating || deletingTemplate}
           >
             {t("common.save-template")}
           </button>
@@ -569,4 +617,37 @@
   triggerVariant="add"
   buttonProps={{ class: "d-none" }}
 />
+
+<BaseModal bind:isOpen={deleteModalOpen}>
+  {#snippet header()}
+    {t("common.delete-template-confirm-title", { fallback: "Confirm deletion" })}
+  {/snippet}
+  {#snippet body()}
+    {#if objectCountUsingTemplate > 0}
+      <p class="mb-3">
+        {#if objectCountUsingTemplate === 1}
+          {t("common.template-used-by-one-object", { fallback: "This template is currently used by 1 object. Deleting it will also delete the mapped field values for that object." })}
+        {:else}
+          {objectCountUsingTemplate} {t("common.template-used-by-many-objects", { fallback: "objects currently use this template. Deleting it will also delete the mapped field values for those objects." })}
+        {/if}
+      </p>
+    {/if}
+    <p class="mb-0">
+      {t("common.delete-template-confirm-msg", { fallback: "Are you sure you want to delete this template? This cannot be undone." })}
+    </p>
+  {/snippet}
+  {#snippet actions()}
+    <BaseButton
+      text={t("common.cancel", { fallback: "Cancel" })}
+      class="btn btn-secondary"
+      onClick={() => (deleteModalOpen = false)}
+    />
+    <BaseButton 
+      text={t("common.delete", { fallback: "Delete" })} 
+      class="btn btn-danger" 
+      onClick={onDeleteTemplate} 
+      loading={deletingTemplate} 
+    />
+  {/snippet}
+</BaseModal>
 
