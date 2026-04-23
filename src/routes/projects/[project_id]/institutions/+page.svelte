@@ -4,6 +4,8 @@
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import InstitutionsGrid from "$lib/components/institutions/InstitutionsGrid.svelte";
+  import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
+  import { updateInstitutionsStatusBulk } from "$lib/stores/InstitutionsUtils.js";
 
   const { t } = getTranslationStore();
 
@@ -41,6 +43,8 @@
   });
 
   const { data } = $props();
+  let selectedInstitutions = $state([]);
+  let bulkStatusValue = $state("");
 
   const orderBy = $derived([
     { value: "name", label: t("common.name") },
@@ -68,6 +72,20 @@
       label: t("common.completed"),
     },
   ]);
+
+  const clearSelection = () => {
+    selectedInstitutions = [];
+  };
+
+  const applyBulkStatus = async () => {
+    if (!bulkStatusValue || selectedInstitutions.length === 0) return;
+    const { errors } = await updateInstitutionsStatusBulk(selectedInstitutions, bulkStatusValue);
+    if (errors?.length) {
+      return;
+    }
+    selectedInstitutions = [];
+    bulkStatusValue = "";
+  };
 </script>
 
 <div class="container-fluid bg-light" style="min-height: 100%;">
@@ -89,32 +107,46 @@
     </div>
   </div>
   <div class="row align-items-center mb-3">
-    <div class="col-3">
-      <BaseInput
-        icon="search"
-        placeholder={t("common.search")}
-        clearable
-        size="sm"
-        bind:value={params.search}
-      />
-    </div>
-    <div class="col-9 d-flex justify-content-end gap-3 align-items-center">
-      <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.order-by")}
-        </div>
-        <BaseSelect items={orderBy} bind:value={params.orderBy} size="sm"
-        ></BaseSelect>
+    {#if selectedInstitutions.length > 0}
+      <div class="col-12 d-flex gap-3 align-items-center mt-1 mb-0">
+        <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
+          <span>{t("common.clear-selection", { fallback: "Clear selection" })}</span>
+          <i class="bi bi-x-circle"></i>
+        </button>
+        <BulkActionsStatusSelect
+          items={statuses.filter((status) => status.value !== "all")}
+          bind:value={bulkStatusValue}
+          onValueChange={applyBulkStatus}
+        />
       </div>
+    {:else}
+      <div class="col-3">
+        <BaseInput
+          icon="search"
+          placeholder={t("common.search")}
+          clearable
+          size="sm"
+          bind:value={params.search}
+        />
+      </div>
+      <div class="col-9 d-flex justify-content-end gap-3 align-items-center mb-1">
+        <div class="d-flex align-items-center gap-2">
+          <div class="col-auto fs-7">
+            {t("common.order-by")}
+          </div>
+          <BaseSelect items={orderBy} bind:value={params.orderBy} size="sm"
+          ></BaseSelect>
+        </div>
 
-      <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.status")}
+        <div class="d-flex align-items-center gap-2">
+          <div class="col-auto fs-7">
+            {t("common.status")}
+          </div>
+          <BaseSelect items={statuses} bind:value={params.status} size="sm"
+          ></BaseSelect>
         </div>
-        <BaseSelect items={statuses} bind:value={params.status} size="sm"
-        ></BaseSelect>
       </div>
-    </div>
+    {/if}
   </div>
   {#if data.institutions?.count}
     <div class="border-bottom mb-3">
@@ -127,6 +159,7 @@
     </div>
     <InstitutionsGrid
       institutions={data.institutions.result}
+      bind:selected={selectedInstitutions}
       bind:page={params.page}
       pageSize={params.pageSize}
       count={data.institutions.count}

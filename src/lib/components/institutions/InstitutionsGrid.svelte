@@ -1,13 +1,19 @@
 <script>
   import InstitutionCard from "./InstitutionCard.svelte";
   import BasePagination from "$lib/components/base/BasePagination.svelte";
-  let { institutions = [], page = $bindable(), pageSize, count } = $props();
+  let {
+    institutions = [],
+    selected = $bindable([]),
+    page = $bindable(),
+    pageSize,
+    count,
+  } = $props();
 </script>
 
 <div class="row">
   {#each institutions as institution (institution.id)}
     <div class="col-4 mb-3">
-      <InstitutionCard {institution} />
+      <InstitutionCard {institution} bind:selected selectable={true} />
     </div>
   {/each}
 </div>
