@@ -117,10 +117,22 @@ IF you add more entries you can export the file with the related button in the s
 
 ## Building
 
-Create a production build:
+Build the Electron app and both website production artifacts:
 
 ```bash
-npm run make
+yarn build
+```
+
+This runs:
+
+- `yarn build:app` for the root Electron renderer build
+- `yarn build:website:preview` for the embedded website UI served inside Electron from `src/website/build`
+- `yarn build:website:static` for the standalone export artifact copied from `src/website/build-export`
+
+Create the packaged production build:
+
+```bash
+yarn make
 ```
 
 ## Troubleshooting

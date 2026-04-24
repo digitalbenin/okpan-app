@@ -26,9 +26,6 @@ jobs:
       - name: Install website dependencies
         run: yarn --cwd src/website install
 
-      - name: Build website (SvelteKit)
-        run: yarn --cwd src/website build
-
       - name: Prepare database (push, seed, search setup)
         run: |
           yarn db:push
@@ -85,9 +82,6 @@ jobs:
       - name: Install website dependencies
         run: yarn --cwd src/website install
 
-      - name: Build website (SvelteKit)
-        run: yarn --cwd src/website build
-
       - name: Prepare database (push, seed, search setup)
         run: |
           yarn db:push
@@ -143,9 +137,6 @@ jobs:
 
       - name: Install website dependencies
         run: yarn --cwd src/website install
-
-      - name: Build website (SvelteKit)
-        run: yarn --cwd src/website build
 
       - name: Prepare database (push, seed, search setup)
         run: |

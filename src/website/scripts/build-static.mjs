@@ -1,25 +1,19 @@
 import { spawn } from 'node:child_process';
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
-const websiteDir = path.join(rootDir, 'src', 'website');
-const buildExportDir = path.join(websiteDir, 'build-export');
-
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const websiteDir = path.resolve(__dirname, '..');
+const viteBin = path.join(websiteDir, 'node_modules', 'vite', 'bin', 'vite.js');
 
 await new Promise((resolve, reject) => {
-  const child = spawn(npmCommand, ['run', 'build', '--', '--mode', 'production'], {
+  const child = spawn(process.execPath, [viteBin, 'build'], {
     cwd: websiteDir,
     stdio: 'inherit',
-    shell: true,
     env: {
       ...process.env,
-      STATIC_EXPORT: 'true',
-      NODE_ENV: 'production'
+      STATIC_EXPORT: 'true'
     }
   });
 
@@ -32,8 +26,7 @@ await new Promise((resolve, reject) => {
       resolve();
       return;
     }
+
     reject(new Error(`Website static build failed with exit code ${code}`));
   });
 });
-
-
