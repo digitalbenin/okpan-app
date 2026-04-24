@@ -1,5 +1,5 @@
 <script>
-  import { updateProject, removeLanguageFromProject } from "$lib/stores/ProjectsUtils.js";
+  import { updateProject, removeLanguageFromProject, getProjectLanguages } from "$lib/stores/ProjectsUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import AddProjectLanguagesModal from "$lib/components/projects/AddProjectLanguagesModal.svelte";
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
@@ -10,7 +10,8 @@
   const { data } = $props();
   const { t } = getTranslationStore();
   const project = $derived(data.project);
-  const languages = $derived(data.languages || []);
+  let projectLanguages = $state(data.languages || []);
+  const languages = $derived(projectLanguages || []);
   const defaultLanguage = $derived(languages.find((l) => l.is_default) || languages[0]);
   const secondaryLanguages = $derived(languages.filter((l) => !l.is_default));
 
@@ -97,12 +98,47 @@
 
     syncSnapshots();
   }
-  initValues();
+
+  $effect(() => {
+    projectLanguages = data.languages || [];
+  });
+
+  $effect(() => {
+    if (!project || !languages?.length) {
+      return;
+    }
+
+    const incomingSignature = getIncomingSignature();
+    if (!incomingSignature || incomingSignature === lastIncomingSignature) {
+      return;
+    }
+
+    lastIncomingSignature = incomingSignature;
+    initValues();
+  });
 
   async function removeLanguage(lang) {
     if (!lang || lang.is_default) return;
-    try { await removeLanguageFromProject(lang.id); } 
+    try {
+      const response = await removeLanguageFromProject(lang.id);
+      if (!response?.error) {
+        await refreshProjectLanguages();
+      }
+    } 
     catch (e) { console.error("Failed to remove language:", e); }
+  }
+
+  async function refreshProjectLanguages() {
+    if (!project?.id) return;
+    const nextLanguages = await getProjectLanguages(project.id);
+    projectLanguages = nextLanguages || [];
+
+    if (
+      activeLanguageCode !== "default" &&
+      !projectLanguages.some((lang) => lang.id === activeLanguageCode)
+    ) {
+      activeLanguageCode = "default";
+    }
   }
 
   async function handleSubmit(e) {
@@ -241,7 +277,8 @@
         </div>
 
         <AddProjectLanguagesModal bind:isOpen={showAddLanguages} projectId={project?.id} 
-          existingLanguages={languages} onAdded={() => {
+          existingLanguages={languages} onAdded={async () => {
+            await refreshProjectLanguages();
             activeLanguageCode = "default";
           }} />
       </div>
