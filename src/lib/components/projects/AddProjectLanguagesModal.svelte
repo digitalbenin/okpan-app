@@ -98,6 +98,7 @@
       isOpen = false;
       return;
     }
+    error = null;
     try {
       // Add each selected language
       for (const code of selectedCodes) {
@@ -105,12 +106,16 @@
           (l) => (l.code || "").toLowerCase() === code,
         );
         if (!lang) continue;
-        await addLanguageToProject(
+        const response = await addLanguageToProject(
           projectId,
           lang.code,
           lang.name || lang.native || lang.englishName || lang.code,
           0,
         );
+        if (response?.error) {
+          error = response.error;
+          return;
+        }
       }
 
       // Remove each selected existing secondary language
@@ -119,27 +124,28 @@
           (l) => (l.code || "").toLowerCase() === code,
         );
         if (!existing || existing.is_default) continue;
-        try {
-          await removeLanguageFromProject(existing.id);
-        } catch (e) {
-          console.error("Failed removing language:", code, e);
+        const response = await removeLanguageFromProject(existing.id);
+        if (response?.error) {
+          error = response.error;
+          return;
         }
       }
 
       // Optional callback
       if (typeof onAdded === "function") {
-        onAdded({
+        await onAdded({
           added: Array.from(selectedCodes),
           removed: Array.from(removeCodes),
         });
       }
-    } catch (e) {
-      console.error("Failed adding languages:", e);
-    } finally {
+
       // Close and reset selection
       selectedCodes = new Set();
       removeCodes = new Set();
       isOpen = false;
+    } catch (e) {
+      console.error("Failed adding languages:", e);
+      error = e?.message || "Failed to save languages";
     }
   }
 

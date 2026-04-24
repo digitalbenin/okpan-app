@@ -118,28 +118,6 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                 assetsCount: sql`COALESCE(${assetsSubquery.assets_count}, 0)`.as('assetsCount'),
                 previewImages: sql`COALESCE(
                     (
-                        SELECT json_group_array(json(preview.asset_json))
-                        FROM (
-                            SELECT json_object(
-                                'id', a.id,
-                                'path', a.path,
-                                'filename', a.filename,
-                                'type', a.type,
-                                'formats', json(a.formats)
-                            ) AS asset_json
-                            FROM assets a
-                            WHERE a.institution_id = ${dbSchema.institutions.id}
-                              AND (LOWER(a.type) LIKE '%image%'
-                                   OR LOWER(a.filename) LIKE '%.jpg'
-                                   OR LOWER(a.filename) LIKE '%.png'
-                                   OR LOWER(a.filename) LIKE '%.jpeg'
-                                   OR LOWER(a.filename) LIKE '%.avif'
-                                   OR LOWER(a.filename) LIKE '%.webp')
-                            ORDER BY a.created_at DESC
-                            LIMIT 3
-                        ) preview
-                    ),
-                    (
                         SELECT json_group_array(json(preview.asset_json)) 
                         FROM (
                             SELECT json_object(

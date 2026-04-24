@@ -223,6 +223,16 @@ export const deleteProject = async (projectId) => {
 };
 
 export const addLanguageToProject = async (projectId, languageCode, languageName, isDefault = 0) => {
+    const normalizedCode = String(languageCode || '').trim().toLowerCase();
+    if (!projectId || !normalizedCode) {
+        return { error: 'Project ID and language code are required', result: null };
+    }
+
+    const existingLanguages = await getProjectLanguages(projectId);
+    if (existingLanguages.some((language) => String(language.code || '').trim().toLowerCase() === normalizedCode)) {
+        return { error: `Language "${languageCode}" is already enabled for this project`, result: null };
+    }
+
     // Use executeQuery which handles errors, logging, and notifications
     const result = await executeQuery('projects', 'addLanguage', {
         projectId,
@@ -231,8 +241,8 @@ export const addLanguageToProject = async (projectId, languageCode, languageName
         isDefault
     });
     // Centralized cache refreshes for project language changes
-    invalidate("app:projects");
-    try { invalidate("app:project-shared"); } catch (_) {}
+    await invalidate("app:projects");
+    try { await invalidate("app:project-shared"); } catch (_) {}
     return result;
 };
 
@@ -240,8 +250,8 @@ export const removeLanguageFromProject = async (languageId) => {
     // Use executeQuery which handles errors, logging, and notifications
     const result = await executeQuery('projects', 'removeLanguage', { languageId });
     // Centralized cache refreshes for project language changes
-    invalidate("app:projects");
-    try { invalidate("app:project-shared"); } catch (_) {}
+    await invalidate("app:projects");
+    try { await invalidate("app:project-shared"); } catch (_) {}
     return result;
 };
 
