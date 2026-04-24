@@ -220,6 +220,11 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "view-as",
+                             "value":  "View as"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "table-view",
                              "value":  "Table"
                          },
@@ -272,6 +277,11 @@
                              "namespace":  "common",
                              "key":  "object-id",
                              "value":  "Object ID"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-objects-found",
+                             "value":  "No objects found"
                          },
                          {
                              "namespace":  "common",

@@ -1044,6 +1044,11 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "view-as",
+                             "value":  "Visualizza come"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "table-view",
                              "value":  "Tabella"
                          },
@@ -1096,6 +1101,11 @@
                              "namespace":  "common",
                              "key":  "object-id",
                              "value":  "ID oggetto"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "no-objects-found",
+                             "value":  "Nessun oggetto trovato"
                          },
                          {
                              "namespace":  "common",
