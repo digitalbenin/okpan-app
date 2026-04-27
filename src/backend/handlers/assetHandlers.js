@@ -201,9 +201,11 @@ const handleImportAssets = async (event, data) => {
             const asset = await processAssetFile(filePath, projectFolder, data, basePath);
 
             if (asset) {
-                const seededAssetRecord = await buildSeededAssetRecord(asset, data.isGenericAsset);
+                const seededAssetRecord = await buildSeededAssetRecord(asset, data.isGenericAsset, data.disableP2P === true);
                 const newAsset = await saveAssetToDb(seededAssetRecord, data.isGenericAsset);
-                scheduleAssetReconcile(newAsset.project_id, newAsset.id);
+                if (data.disableP2P !== true) {
+                    scheduleAssetReconcile(newAsset.project_id, newAsset.id);
+                }
                 importedFilePaths.push(filePath);
                 createdAssets.push({ ...newAsset, _sourcePath: filePath });
             }
@@ -341,7 +343,7 @@ const saveAssetToDb = async (assetData, isGeneric) => {
  * it into the shared asset table. This avoids syncing rows that point at a
  * logical asset path but still have no downloadable torrent metadata.
  */
-async function buildSeededAssetRecord(assetData, isGeneric) {
+async function buildSeededAssetRecord(assetData, isGeneric, disableP2P = false) {
     const filePath = resolveStoredAssetPath(assetData.path);
     if (!filePath || !fs.existsSync(filePath)) {
         throw new Error(`Imported asset file not found: ${filePath}`);
@@ -352,7 +354,8 @@ async function buildSeededAssetRecord(assetData, isGeneric) {
         projectId: assetData.project_id,
         assetId,
         filePath,
-        isGeneric
+        isGeneric,
+        enableSignaling: !disableP2P
     });
 
     if (!torrentMeta?.infoHash) {

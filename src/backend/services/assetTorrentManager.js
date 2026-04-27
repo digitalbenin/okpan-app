@@ -735,7 +735,7 @@ async function repairProjectAssetStates(projectId) {
 }
 
 
-export async function seedAsset({ projectId, assetId, filePath, isGeneric = false, expectedInfoHash = null, expectedLength = null }) {
+export async function seedAsset({ projectId, assetId, filePath, isGeneric = false, expectedInfoHash = null, expectedLength = null, enableSignaling = true }) {
   if (!projectId || !assetId || !filePath) return null;
   if (stoppedProjects.has(projectId)) return null;
   if (!hasCompleteLocalFile(filePath, expectedLength)) {
@@ -752,7 +752,9 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
       client.seed(filePath, { name }, (torrent) => {
         //console.log(`[AssetTorrent] Seeding: assetId=${assetId} infoHash=${torrent.infoHash}`);
         recordSeededHash(projectId, torrent.infoHash);
-        setupSignalingForProject(projectId).catch(() => {});
+        if (enableSignaling) {
+          setupSignalingForProject(projectId).catch(() => {});
+        }
         upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, last_success_at: Date.now(), download_progress: 100 }).catch(() => {});
         emitSyncProgress(assetId, isGeneric, 'seeding', 100);
         resolve({ infoHash: torrent.infoHash, name: torrent.name, length: torrent.length, pieceLength: torrent.pieceLength });
@@ -765,7 +767,9 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
           || client.torrents.find((torrent) => torrent.files?.some((file) => path.resolve(file.path) === absPath));
         if (existing?.done && hasCompleteLocalFile(filePath, expectedLength) && await isReadableTorrentStore(existing)) {
           recordSeededHash(projectId, existing.infoHash);
-          setupSignalingForProject(projectId).catch(() => {});
+          if (enableSignaling) {
+            setupSignalingForProject(projectId).catch(() => {});
+          }
           upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, download_progress: 100 }).catch(() => {});
           emitSyncProgress(assetId, isGeneric, 'seeding', 100);
           resolve({ infoHash: existing.infoHash, name: existing.name, length: existing.length, pieceLength: existing.pieceLength });

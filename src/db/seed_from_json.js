@@ -10,6 +10,24 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { handleImportAssets } from '../backend/handlers/assetHandlers.js';
 import { embeddingService } from '../backend/services/embeddingService.js';
+import { destroyTorrentManager } from '../backend/services/assetTorrentManager.js';
+
+const KNOWN_SOURCE_LANGUAGES = {
+    en: { code: 'en', name: 'English' },
+    english: { code: 'en', name: 'English' },
+    it: { code: 'it', name: 'Italian' },
+    italian: { code: 'it', name: 'Italian' },
+    de: { code: 'de', name: 'German' },
+    german: { code: 'de', name: 'German' },
+    fr: { code: 'fr', name: 'French' },
+    french: { code: 'fr', name: 'French' },
+    es: { code: 'es', name: 'Spanish' },
+    spanish: { code: 'es', name: 'Spanish' },
+    nl: { code: 'nl', name: 'Dutch' },
+    dutch: { code: 'nl', name: 'Dutch' },
+    pt: { code: 'pt', name: 'Portuguese' },
+    portuguese: { code: 'pt', name: 'Portuguese' }
+};
 
 // --- Configuration & Argument Parsing ---
 const DEFAULT_SEED_DATA_PATH = path.join(process.cwd(), 'src', 'db', 'seed_data');
@@ -49,6 +67,19 @@ const readJsonData = async (filePath) => {
     }
 };
 
+const normalizeProjectLanguage = (value) => {
+    if (!value || typeof value !== 'string') {
+        return null;
+    }
+
+    const normalizedValue = value.trim().toLowerCase();
+    if (!normalizedValue) {
+        return null;
+    }
+
+    return KNOWN_SOURCE_LANGUAGES[normalizedValue] || null;
+};
+
 // Helper function to create a text entry
 const createTextEntry = async (content, context, languageId) => {
     if (!content || typeof content !== 'string' || content.trim() === '') {
@@ -84,15 +115,24 @@ const seed = async () => {
     try {
         console.log('Starting seeding process from JSON data...');
 
+        // --- 0. Load JSON Data ---
+        const baseDataPath = seedDataPath;
+        const institutionsData = await readJsonData(path.join(baseDataPath, 'institutions.json'));
+        const objectsData = await readJsonData(path.join(baseDataPath, 'objects.json'));
+        const dataSourcesData = await readJsonData(path.join(baseDataPath, 'data_sources.json'));
+        const edoDesignationsData = await readJsonData(path.join(baseDataPath, 'edo_designations.json'));
+        console.log('JSON data loaded.');
+
         // --- 1. Basic Setup (Project and Languages) ---
         const [projectRecord] = await db.insert(project).values({
             id: uuidv4(),
             title_id: null,
-            description_id: null
+            description_id: null,
+            is_shared: 0
         }).returning();
         const mainProjectId = projectRecord.id;
 
-        // Create project-specific languages
+        // Seed projects always start with the default editable pair English + Italian.
         const [englishLangRes, italianLangRes] = await Promise.all([
             db.insert(languages).values({
                 id: uuidv4(),
@@ -110,7 +150,10 @@ const seed = async () => {
             }).returning()
         ]);
         const englishLang = englishLangRes[0];
-        const italianLang = italianLangRes[0];
+
+        if (!englishLang) {
+            throw new Error('Failed to create the default English project language.');
+        }
 
         // Create project texts with language IDs
         const projectTitleId = await createTextEntry('Digital Benin Archive (Seeded from JSON)', 'project.title', englishLang.id);
@@ -251,14 +294,6 @@ const seed = async () => {
             console.log('You can compute them later using: window.api.computeAllMissingEmbeddings()');
         }
 
-        // --- 3. Load JSON Data ---
-        const baseDataPath = seedDataPath;
-        const institutionsData = await readJsonData(path.join(baseDataPath, 'institutions.json'));
-        const objectsData = await readJsonData(path.join(baseDataPath, 'objects.json'));
-        const dataSourcesData = await readJsonData(path.join(baseDataPath, 'data_sources.json'));
-        const edoDesignationsData = await readJsonData(path.join(baseDataPath, 'edo_designations.json'));
-        console.log('JSON data loaded.');
-
         // --- 4. Seed Institutions ---
         const institutionMap = new Map();
         for (const instData of institutionsData) {
@@ -306,12 +341,14 @@ const seed = async () => {
             const dsName = `Data source for ${institutionsData.find(i => i.id === dsData.institution)?.name || dsData.institution}`;
             const nameId = await createTextEntry(dsName, 'datasources.name', englishLang.id);
             const methodId = await createTextEntry(dsData.method, 'datasources.method', englishLang.id);
+            const normalizedSourceLanguage = normalizeProjectLanguage(dsData.languages?.[0]);
+            const datasourceLanguageCode = normalizedSourceLanguage?.code || englishLang.code;
 
             const [dbDataSource] = await db.insert(datasources).values({
                 id: uuidv4(),
                 name_id: nameId,
                 institution_id: newInstitutionId,
-                language: dsData.languages?.[0] || englishLang.code, // Take first language or default
+                language: datasourceLanguageCode,
                 method_id: methodId,
                 date: dsData.date ? new Date(dsData.date) : new Date(),
                 source: `seed_data_${dsData.institution}_${dsData.id}.csv` // Add fake filename as source
@@ -422,7 +459,8 @@ const seed = async () => {
                         isDirectory: false,
                         projectId: mainProjectId,
                         institutionId: null,
-                        isGenericAsset: true
+                                isGenericAsset: true,
+                                disableP2P: true
                     };
                     try {
                         const importResult = await handleImportAssets(null, assetData);
@@ -514,7 +552,8 @@ const seed = async () => {
                                 isDirectory: false,
                                 projectId: mainProjectId,
                                 institutionId: newInstitutionId,
-                                isGenericAsset: false
+                                isGenericAsset: false,
+                                disableP2P: true
                             };
                             try {
                                 const importResult = await handleImportAssets(null, assetData);
@@ -648,8 +687,10 @@ const seed = async () => {
         console.log(`${objectsData.length} objects seeded.`);
 
         console.log('Seed completed successfully!');
+        destroyTorrentManager();
     } catch (error) {
         console.error('Error during seeding:', error);
+        destroyTorrentManager();
         process.exit(1);
     }
 };
