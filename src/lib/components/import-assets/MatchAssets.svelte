@@ -40,6 +40,7 @@
       }));
 
       const suggestions = await window.api.suggestObjectMatches(toMap, {
+        projectId: wizard.projectId,
         institutionId: wizard.institutionId,
         searchFields: [...selectedFieldIds], // Spread to plain array (avoid Proxy issues with IPC)
         maxSuggestions: 3,

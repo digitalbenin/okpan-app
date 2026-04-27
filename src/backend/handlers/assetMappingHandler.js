@@ -18,6 +18,7 @@ import { eq, sql, and, inArray, aliasedTable } from 'drizzle-orm';
  */
 export const suggestObjectMatches = async (assets, options = {}) => {
     const {
+        projectId,
         institutionId,
         searchFields = [], // Empty means use primary fields
         prefix = '',
@@ -29,7 +30,11 @@ export const suggestObjectMatches = async (assets, options = {}) => {
 
     try {
         // Step 1: Get all objects with their ontology fields for searching
-        const objectsForSearch = await getObjectsWithOntologyFields(institutionId, searchFields);
+        const objectsForSearch = await getObjectsWithOntologyFields({
+            projectId,
+            institutionId,
+            searchFields
+        });
 
         console.log(`Loaded ${objectsForSearch.length} objects for searching.`);
         if (objectsForSearch.length === 0) {
@@ -96,10 +101,28 @@ export const suggestObjectMatches = async (assets, options = {}) => {
 };
 
 /**
- * Gets objects with their ontology fields, filtered by institution if specified
+ * Gets objects with their ontology fields, filtered to the current project and institution.
  */
-async function getObjectsWithOntologyFields(institutionId, searchFields) {
-    let query = db
+async function getObjectsWithOntologyFields({ projectId, institutionId, searchFields = [] }) {
+    const conditions = [
+        sql`${dbSchema.objects_ontology_fields.value} IS NOT NULL AND ${dbSchema.objects_ontology_fields.value} != ''`
+    ];
+
+    if (projectId) {
+        conditions.push(eq(dbSchema.objects.project_id, projectId));
+    }
+
+    if (institutionId) {
+        conditions.push(eq(dbSchema.objects.institution_id, institutionId));
+    }
+
+    if (searchFields.length > 0) {
+        conditions.push(inArray(dbSchema.objects_ontology_fields.field_id, searchFields));
+    } else {
+        conditions.push(eq(dbSchema.objects_ontology_fields.primary, 1));
+    }
+
+    const query = db
         .select({
             object_id: dbSchema.objects.id,
             object_status: dbSchema.objects.status,
@@ -115,19 +138,7 @@ async function getObjectsWithOntologyFields(institutionId, searchFields) {
         .innerJoin(dbSchema.objects_ontology_fields, eq(dbSchema.objects.id, dbSchema.objects_ontology_fields.object_id))
         .leftJoin(dbSchema.ontology_fields, eq(dbSchema.objects_ontology_fields.field_id, dbSchema.ontology_fields.id))
         .leftJoin(dbSchema.texts, eq(dbSchema.ontology_fields.name_id, dbSchema.texts.id))
-        .where(sql`${dbSchema.objects_ontology_fields.value} IS NOT NULL AND ${dbSchema.objects_ontology_fields.value} != ''`);
-
-    // Filter by institution if specified
-    if (institutionId) {
-        query = query.where(eq(dbSchema.objects.institution_id, institutionId));
-    }
-
-    // Filter by specific field IDs if specified, otherwise use primary fields
-    if (searchFields.length > 0) {
-        query = query.where(inArray(dbSchema.objects_ontology_fields.field_id, searchFields));
-    } else {
-        query = query.where(eq(dbSchema.objects_ontology_fields.primary, 1));
-    }
+        .where(and(...conditions));
 
     const results = await query.execute();
 
