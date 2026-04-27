@@ -18,8 +18,23 @@ const CONNECTIVITY_PROBE_HOSTS = (process.env.CONNECTIVITY_PROBE_HOSTS || 'cloud
   .map((host) => host.trim())
   .filter(Boolean);
 
-// Initialize electron-serve early (before app is ready) so its protocol is registered in time
+const registerSchemesAsPrivilegedOnce = protocol.registerSchemesAsPrivileged.bind(protocol);
+let didRegisterPrivilegedSchemes = false;
+protocol.registerSchemesAsPrivileged = (schemes) => {
+  if (didRegisterPrivilegedSchemes) {
+    return;
+  }
+
+  didRegisterPrivilegedSchemes = true;
+  return registerSchemesAsPrivilegedOnce(schemes);
+};
+
+// Initialize electron-serve early (before app is ready) so its protocol is registered in time.
 const loadURLProd = serve({ directory: 'build' });
+
+queueMicrotask(() => {
+  protocol.registerSchemesAsPrivileged = registerSchemesAsPrivilegedOnce;
+});
 
 // Import database and schema
 import {
@@ -918,6 +933,18 @@ ipcMain.handle('asset-sync-reconcile', async (event, payload) => {
 
 // Register protocol
 protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      secure: true,
+      standard: true,
+      allowServiceWorkers: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+      codeCache: true
+    }
+  },
   {
     scheme: 'media',
     privileges: {
