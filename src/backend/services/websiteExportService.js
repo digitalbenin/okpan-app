@@ -24,6 +24,7 @@ function resolveApplicationRoot({ appPath, resourcesPath, isPackaged } = {}) {
 
 function getProjectAssetsSourceCandidates(projectId, { appRoot, userDataPath } = {}) {
   const candidates = [];
+  const cwdRoot = process.cwd();
 
   if (userDataPath) {
     candidates.push(path.join(userDataPath, 'assets', 'project_assets', projectId));
@@ -31,9 +32,15 @@ function getProjectAssetsSourceCandidates(projectId, { appRoot, userDataPath } =
 
   if (appRoot) {
     candidates.push(path.join(appRoot, 'src', 'assets', 'project_assets', projectId));
+    candidates.push(path.join(appRoot, 'assets', 'project_assets', projectId));
   }
 
-  return candidates;
+  if (cwdRoot) {
+    candidates.push(path.join(cwdRoot, 'src', 'assets', 'project_assets', projectId));
+    candidates.push(path.join(cwdRoot, 'assets', 'project_assets', projectId));
+  }
+
+  return [...new Set(candidates)];
 }
 
 function normalizeLocale(locale) {

@@ -14,6 +14,7 @@ export default {
         ignore: [
             /^\/artic-dataset($|\/)/,
             /^\/docs($|\/)/,
+            /^\/src\/db\/db_sample_data($|\/)/,
             /^\/src\/db\/seed_data($|\/)/,
             /^\/node_modules($|\/)/,
             /^\/src\/website\/node_modules($|\/)/
