@@ -18,23 +18,71 @@ const CONNECTIVITY_PROBE_HOSTS = (process.env.CONNECTIVITY_PROBE_HOSTS || 'cloud
   .map((host) => host.trim())
   .filter(Boolean);
 
+const PRIVILEGED_SCHEMES = [
+  {
+    scheme: 'app',
+    privileges: {
+      secure: true,
+      standard: true,
+      allowServiceWorkers: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+      codeCache: true
+    }
+  },
+  {
+    scheme: 'media',
+    privileges: {
+      secure: true,
+      standard: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+      corsEnabled: true,
+      stream: true
+    }
+  },
+  {
+    scheme: 'website',
+    privileges: {
+      secure: true,
+      standard: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+      corsEnabled: true,
+      stream: true
+    }
+  }
+];
+
 const registerSchemesAsPrivilegedOnce = protocol.registerSchemesAsPrivileged.bind(protocol);
-let didRegisterPrivilegedSchemes = false;
-protocol.registerSchemesAsPrivileged = (schemes) => {
-  if (didRegisterPrivilegedSchemes) {
-    return;
+const restoreRegisterSchemesAsPrivileged = (() => {
+  if (process.platform === 'darwin') {
+    let didRegisterPrivilegedSchemes = false;
+    protocol.registerSchemesAsPrivileged = () => {
+      if (didRegisterPrivilegedSchemes) {
+        return;
+      }
+
+      didRegisterPrivilegedSchemes = true;
+      return registerSchemesAsPrivilegedOnce(PRIVILEGED_SCHEMES);
+    };
+  } else {
+    registerSchemesAsPrivilegedOnce(PRIVILEGED_SCHEMES);
+    protocol.registerSchemesAsPrivileged = () => {};
   }
 
-  didRegisterPrivilegedSchemes = true;
-  return registerSchemesAsPrivilegedOnce(schemes);
-};
+  return () => {
+    queueMicrotask(() => {
+      protocol.registerSchemesAsPrivileged = registerSchemesAsPrivilegedOnce;
+    });
+  };
+})();
 
 // Initialize electron-serve early (before app is ready) so its protocol is registered in time.
 const loadURLProd = serve({ directory: 'build' });
 
-queueMicrotask(() => {
-  protocol.registerSchemesAsPrivileged = registerSchemesAsPrivilegedOnce;
-});
+restoreRegisterSchemesAsPrivileged();
 
 // Import database and schema
 import {
@@ -931,44 +979,6 @@ ipcMain.handle('asset-sync-reconcile', async (event, payload) => {
   }
 });
 
-// Register protocol
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: 'app',
-    privileges: {
-      secure: true,
-      standard: true,
-      allowServiceWorkers: true,
-      supportFetchAPI: true,
-      corsEnabled: true,
-      stream: true,
-      codeCache: true
-    }
-  },
-  {
-    scheme: 'media',
-    privileges: {
-      secure: true,
-      standard: true,
-      supportFetchAPI: true,
-      bypassCSP: true,
-      corsEnabled: true,
-      stream: true
-    }
-  },
-  {
-    scheme: 'website',
-    privileges: {
-      secure: true,
-      standard: true,
-      supportFetchAPI: true,
-      bypassCSP: true,
-      corsEnabled: true,
-      stream: true
-    }
-  }
-]);
-
 // Helper function for path resolution
 function resolveMediaPath(urlObj, requestUrl) {
   let pathStr;
@@ -1214,8 +1224,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
