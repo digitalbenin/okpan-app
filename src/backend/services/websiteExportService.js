@@ -83,6 +83,46 @@ function buildTextPayload(textId, textRowsById, translationsByTextId, languagesB
   };
 }
 
+function filterTextPayloadByLocales(payload, includedLocaleCodes, fallbackLocale) {
+  if (!payload) {
+    return null;
+  }
+
+  const allowedLocales = includedLocaleCodes instanceof Set
+    ? includedLocaleCodes
+    : new Set(Array.isArray(includedLocaleCodes) ? includedLocaleCodes.map(normalizeLocale).filter(Boolean) : []);
+  const normalizedFallbackLocale = normalizeLocale(fallbackLocale);
+  const originalLanguageCode = normalizeLocale(payload.original_language_code);
+  const filteredTranslations = (payload.translations || []).filter((translation) => {
+    return allowedLocales.has(normalizeLocale(translation?.language_code));
+  });
+
+  let nextContent = payload.content || '';
+  let nextOriginalLanguageId = payload.original_language_id || null;
+  let nextOriginalLanguageCode = originalLanguageCode;
+
+  if (originalLanguageCode && !allowedLocales.has(originalLanguageCode)) {
+    const defaultTranslation = filteredTranslations.find(
+      (translation) => normalizeLocale(translation?.language_code) === normalizedFallbackLocale
+    );
+    const replacement = defaultTranslation || filteredTranslations[0] || null;
+
+    if (replacement?.content) {
+      nextContent = replacement.content;
+      nextOriginalLanguageId = replacement.language_id || null;
+      nextOriginalLanguageCode = normalizeLocale(replacement.language_code);
+    }
+  }
+
+  return {
+    ...payload,
+    content: nextContent,
+    original_language_id: nextOriginalLanguageId,
+    original_language_code: nextOriginalLanguageCode,
+    translations: filteredTranslations
+  };
+}
+
 /**
  * Export website data to JSON file and build static site
  * @param {string} projectId - Project ID to export
@@ -528,37 +568,49 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       acc[translation.text_id].push(translation);
       return acc;
     }, {});
-    const textPayloadMap = Object.fromEntries(
+    let textPayloadMap = Object.fromEntries(
       allTextIds.map((textId) => [textId, buildTextPayload(textId, textRowsById, translationsByTextId, languagesById)])
     );
 
-    const availableContentLanguageCodes = new Set();
-    Object.values(textPayloadMap).forEach((payload) => {
-      const originalCode = normalizeLocale(payload?.original_language_code);
-      if (originalCode) {
-        availableContentLanguageCodes.add(originalCode);
-      }
-
-      (payload?.translations || []).forEach((translation) => {
-        const translationCode = normalizeLocale(translation?.language_code);
-        if (translationCode) {
-          availableContentLanguageCodes.add(translationCode);
-        }
-      });
-    });
-
-    const contentLanguages = projectLanguages
+    let contentLanguages = projectLanguages
       .map((language) => ({
         code: normalizeLocale(language.code),
         name: language.name,
         is_default: language.is_default
       }))
-      .filter((language) => language.code && availableContentLanguageCodes.has(language.code));
+      .filter((language) => language.code);
 
-    const defaultContentLocale = contentLanguages.find((language) => Number(language.is_default) === 1)?.code
+    let defaultContentLocale = contentLanguages.find((language) => Number(language.is_default) === 1)?.code
       || normalizeLocale(textPayloadMap[project?.title_id]?.original_language_code)
       || contentLanguages[0]?.code
       || '';
+
+    const requestedContentLanguageCodes = Array.isArray(filters?.contentLanguageCodes)
+      ? filters.contentLanguageCodes.map(normalizeLocale).filter(Boolean)
+      : [];
+    const availableContentLanguageSet = new Set(contentLanguages.map((language) => language.code));
+    const effectiveContentLanguageSet = requestedContentLanguageCodes.length > 0
+      ? new Set(requestedContentLanguageCodes.filter((code) => availableContentLanguageSet.has(code)))
+      : new Set(availableContentLanguageSet);
+
+    if (defaultContentLocale) {
+      effectiveContentLanguageSet.add(defaultContentLocale);
+    }
+    if (effectiveContentLanguageSet.size === 0 && contentLanguages[0]?.code) {
+      effectiveContentLanguageSet.add(contentLanguages[0].code);
+    }
+
+    textPayloadMap = Object.fromEntries(
+      Object.entries(textPayloadMap).map(([textId, payload]) => [
+        textId,
+        filterTextPayloadByLocales(payload, effectiveContentLanguageSet, defaultContentLocale)
+      ])
+    );
+
+    contentLanguages = contentLanguages.filter((language) => effectiveContentLanguageSet.has(language.code));
+    defaultContentLocale = contentLanguages.find((language) => Number(language.is_default) === 1)?.code
+      || contentLanguages[0]?.code
+      || defaultContentLocale;
 
     // Create datasource lookup with resolved text
     const datasourceMap = Object.fromEntries(allDatasources.map(ds => [ds.id, {

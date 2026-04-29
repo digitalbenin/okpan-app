@@ -2085,6 +2085,26 @@
                          },
                          {
                              "namespace":  "export-website",
+                             "key":  "languages-title",
+                             "value":  "Languages"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "content-languages-title",
+                             "value":  "Content languages"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "content-languages-description",
+                             "value":  "The default content language is always exported. Choose which additional content languages to include."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "default-content-language-label",
+                             "value":  "{{name}} - default"
+                         },
+                         {
+                             "namespace":  "export-website",
                              "key":  "no-interface-languages-available",
                              "value":  "No website interface languages are available for export."
                          },

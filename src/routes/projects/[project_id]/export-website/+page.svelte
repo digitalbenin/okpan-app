@@ -49,29 +49,8 @@
 
 	let basePathInput = $state('');
 	let selectedWebsiteLocale = $state('');
-	const exportInterfaceLanguageFallbacks = $derived.by(() => {
-		const isItalian = String(translationState.currentLocale || '')
-			.toLowerCase()
-			.startsWith('it');
-
-		if (isItalian) {
-			return {
-				title: "Lingua dell'interfaccia del sito web",
-				description:
-					"Scegli l'unica lingua dell'interfaccia inclusa nel sito web esportato. I visitatori non potranno cambiare la lingua dell'interfaccia in seguito.",
-				label: "Lingua dell'interfaccia esportata",
-				empty: "Non ci sono lingue dell'interfaccia del sito web disponibili per l'esportazione."
-			};
-		}
-
-		return {
-			title: 'Website interface language',
-			description:
-				'Choose the single interface language bundled into the exported website. Visitors will not be able to switch the interface language later.',
-			label: 'Exported interface language',
-			empty: 'No website interface languages are available for export.'
-		};
-	});
+	let selectedOptionalContentLanguages = $state([]);
+	let optionalLanguagesInitialized = $state(false);
 
 	let selectedStatus = $state('all');
 	let selectedInstitutions = $state([]);
@@ -104,6 +83,83 @@
 				};
 			})
 			.filter(Boolean);
+	});
+
+	let contentLanguageOptions = $derived.by(() => {
+		const fromData = Array.isArray(data?.contentLanguages) ? data.contentLanguages : [];
+		const normalized = fromData
+			.map((language) => {
+				const code = normalizeLocale(language?.code);
+				if (!code) return null;
+
+				return {
+					code,
+					name: language?.name || code,
+					isDefault: Number(language?.is_default) === 1
+				};
+			})
+			.filter(Boolean);
+
+		normalized.sort((a, b) => {
+			if (a.isDefault === b.isDefault) {
+				return a.code.localeCompare(b.code);
+			}
+
+			return a.isDefault ? -1 : 1;
+		});
+
+		return normalized;
+	});
+
+	const defaultContentLanguage = $derived.by(
+		() =>
+			contentLanguageOptions.find((language) => language.isDefault) ||
+			contentLanguageOptions[0] ||
+			null
+	);
+
+	const optionalContentLanguages = $derived.by(() => {
+		if (!defaultContentLanguage) {
+			return contentLanguageOptions;
+		}
+
+		return contentLanguageOptions.filter((language) => language.code !== defaultContentLanguage.code);
+	});
+
+	const showContentLanguageSelection = $derived.by(() => optionalContentLanguages.length > 0);
+
+	$effect(() => {
+		const optionalCodes = optionalContentLanguages.map((language) => language.code);
+		selectedOptionalContentLanguages = optionalCodes.filter((code) =>
+			selectedOptionalContentLanguages.includes(code)
+		);
+
+		if (!optionalLanguagesInitialized && selectedOptionalContentLanguages.length === 0 && optionalCodes.length > 0) {
+			selectedOptionalContentLanguages = [...optionalCodes];
+			optionalLanguagesInitialized = true;
+			return;
+		}
+
+		if (!optionalLanguagesInitialized && optionalCodes.length === 0) {
+			optionalLanguagesInitialized = true;
+		}
+	});
+
+	const selectedContentLanguageCodes = $derived.by(() => {
+		const selectedCodes = new Set();
+
+		if (defaultContentLanguage?.code) {
+			selectedCodes.add(defaultContentLanguage.code);
+		}
+
+		selectedOptionalContentLanguages.forEach((code) => {
+			const normalizedCode = normalizeLocale(code);
+			if (normalizedCode) {
+				selectedCodes.add(normalizedCode);
+			}
+		});
+
+		return [...selectedCodes];
 	});
 
 	$effect(() => {
@@ -337,6 +393,7 @@
 				locale: selectedWebsiteLocale,
 				filters: {
 					...buildCommonFilters(),
+					contentLanguageCodes: selectedContentLanguageCodes,
 					...(excludeIds.length > 0 && { excludeObjectIds: excludeIds })
 				}
 			});
@@ -366,7 +423,7 @@
 	const exportDisabledReason = $derived.by(() => {
 		if (isLoading) return '';
 		if (websiteLocaleOptions.length === 0) {
-			return exportInterfaceLanguageFallbacks.empty;
+			return t('export-website.interface-language-empty');
 		}
 		if (totalCount === 0) return t('export.no-objects-match');
 		if (totalCount - deselectedObjectIds.size <= 0) return t('export.no-objects-selected');
@@ -418,10 +475,12 @@
 
 			<div class="mb-4">
 				<div class="mb-4">
-					<h5 class="card-title mb-3">{exportInterfaceLanguageFallbacks.title}</h5>
-					<p class="text-muted small mb-2">{exportInterfaceLanguageFallbacks.description}</p>
+					<h5 class="card-title mb-3">{t('export-website.languages-title')}</h5>
+
+					<h6 class="fw-semibold mb-2">{t('export-website.interface-language-title')}</h6>
+					<p class="small mb-2">{t('export-website.interface-language-description')}</p>
 					<label class="form-label" for="website-export-language-select">
-						{exportInterfaceLanguageFallbacks.label}
+						{t('export-website.interface-language-label')}
 					</label>
 					<select
 						id="website-export-language-select"
@@ -434,7 +493,44 @@
 						{/each}
 					</select>
 					{#if websiteLocaleOptions.length === 0}
-						<p class="text-muted small mt-2 mb-0">{exportInterfaceLanguageFallbacks.empty}</p>
+						<p class="small mt-2 mb-0">{t('export-website.interface-language-empty')}</p>
+					{/if}
+
+					{#if showContentLanguageSelection}
+						<div class="mt-4">
+							<h6 class="fw-semibold mb-2">{t('export-website.content-languages-title')}</h6>
+							<p class="small mb-2">{t('export-website.content-languages-description')}</p>
+
+							<div class="form-check mb-2">
+								<input
+									id="default-content-language"
+									class="form-check-input"
+									type="checkbox"
+									checked={true}
+									disabled={true}
+								/>
+								<label class="form-check-label" for="default-content-language">
+									{t('export-website.default-content-language-label', {
+										name: defaultContentLanguage?.name || defaultContentLanguage?.code || ''
+									})}
+								</label>
+							</div>
+
+							{#each optionalContentLanguages as language (language.code)}
+								<div class="form-check mb-2">
+									<input
+										id={`content-language-${language.code}`}
+										class="form-check-input"
+										type="checkbox"
+										value={language.code}
+										bind:group={selectedOptionalContentLanguages}
+									/>
+									<label class="form-check-label" for={`content-language-${language.code}`}>
+										{language.name}
+									</label>
+								</div>
+							{/each}
+						</div>
 					{/if}
 				</div>
 

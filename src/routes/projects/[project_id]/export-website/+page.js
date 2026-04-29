@@ -1,5 +1,7 @@
 import { getProjectInstitutions } from '$lib/stores/InstitutionsUtils.js';
 import { getResearchFields } from '$lib/stores/ResearchFieldsUtils.js';
+import { browser } from '$app/environment';
+import { executeQuery } from '$lib/stores/GraphqlUtils.js';
 
 export async function load({ params, fetch }) {
     const { project_id } = params;
@@ -30,10 +32,24 @@ export async function load({ params, fetch }) {
         (field) => (field.type || '').toLowerCase() !== 'vocabulary'
     );
 
+    let contentLanguages = [];
+    if (browser) {
+        try {
+            const languageResponse = await executeQuery('languages', 'listByProject', {
+                projectId: project_id
+            });
+            contentLanguages = Array.isArray(languageResponse?.result) ? languageResponse.result : [];
+        } catch (error) {
+            console.error('Failed to load content languages for website export:', error);
+            contentLanguages = [];
+        }
+    }
+
     return {
         institutions,
         connectionFields,
         freeTextFields,
+        contentLanguages,
         project_id
     };
 }

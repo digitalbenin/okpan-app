@@ -459,6 +459,26 @@
                          },
                          {
                              "namespace":  "export-website",
+                             "key":  "languages-title",
+                             "value":  "Lingue"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "content-languages-title",
+                             "value":  "Lingue dei contenuti"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "content-languages-description",
+                             "value":  "La lingua predefinita dei contenuti viene sempre esportata. Scegli quali lingue aggiuntive includere."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "default-content-language-label",
+                             "value":  "{{name}} - lingua predefinita"
+                         },
+                         {
+                             "namespace":  "export-website",
                              "key":  "no-interface-languages-available",
                              "value":  "Non ci sono lingue dell'interfaccia del sito web disponibili per l'esportazione."
                          },
