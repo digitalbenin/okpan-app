@@ -17,6 +17,9 @@
   let tree = $derived(analyzeJsonStructure(data));
 
   const fields = $derived(extractLeafPaths(tree).sort());
+  const hasPresetMapping = $derived.by(
+    () => Boolean(wizard.file?.preset?.id && wizard.mapping.length > 0)
+  );
 
   // Per-field inclusion tracking (all included by default)
   let fieldInclusion = $state({});
@@ -40,12 +43,12 @@
   }
 
   const matchingSuggestions = resource(
-    () => [fields, wizard.useMatchingSuggestions],
+    () => [fields, wizard.useMatchingSuggestions, hasPresetMapping],
     async (
-      [fields, useMatchingSuggestions],
+      [fields, useMatchingSuggestions, skipSuggestions],
       { data, refetching, onCleanup, signal }
     ) => {
-      if (!useMatchingSuggestions) {
+      if (skipSuggestions || !useMatchingSuggestions) {
         return [];
       }
       const response = await suggestFieldMappings(fields);
@@ -55,8 +58,12 @@
   );
 
   const templateSuggestions = resource(
-    () => fields,
-    async (fields, prevFields, { data, refetching, onCleanup, signal }) => {
+    () => [fields, hasPresetMapping],
+    async ([fields, skipSuggestions], prevFields, { data, refetching, onCleanup, signal }) => {
+      if (skipSuggestions) {
+        return [];
+      }
+
       const response = await suggestTemplateReuse(fields, wizard.projectId);
       if (response.totalMatches === 0) {
         wizard.useMatchingSuggestions = true;

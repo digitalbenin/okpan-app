@@ -7,6 +7,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { setCurrentProjectId, getCurrentProjectId, clearCurrentProjectId } from '../services/projectCache.js';
 import { stopP2PForProject } from '../services/p2pService.js';
 import { stopProjectTorrents } from '../services/assetTorrentManager.js';
+import { applyImportPreset, describeImportPresets } from '../services/importPresets/index.js';
 
 /**
  * Handler for ping requests
@@ -39,11 +40,9 @@ async function listFilesRecursively(dirPath) {
                 results.push({
                     path: fullPath,
                     name: entry.name,
-                    //sizeBytes: stat.size,
                     size: bytesToMB(stat.size),
                 });
             } catch (e) {
-                // Skip items we cannot stat, but include an error marker if needed in the future
             }
         }
     }
@@ -51,16 +50,7 @@ async function listFilesRecursively(dirPath) {
     return results;
 }
 
-/**
- * Handler for opening system file dialog
- * @param {Event} event - The IPC event
- * @param {Object} options - Dialog options
- * @param {boolean} options.isDirectory - Whether to open directory picker
- * @param {boolean} options.multiple - Whether to allow multiple file selection
- * @returns {Promise<Object>} Dialog result containing selected file paths
- */
 export const handleFileDialog = async (event, options) => {
-    // Image-specific filters for asset selection
     const imageFilters = [
         { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'] },
         { name: 'All Files', extensions: ['*'] }
@@ -70,31 +60,23 @@ export const handleFileDialog = async (event, options) => {
         title: options.title || 'Select Image Assets',
         properties: [
             options.isDirectory ? 'openDirectory' : 'openFile',
-            // Use options.properties if provided (like 'openFile')
-            // Note: Electron combines properties, so sending ['openFile'] 
-            // from renderer is okay even if we derive it here.
             ...(Array.isArray(options.properties) ? options.properties : []),
             options.multiple && !options.isDirectory ? 'multiSelections' : null
-        ].filter(p => p !== null && p !== undefined).filter((v, i, a) => a.indexOf(v) === i), // Filter nulls and duplicates
-        // Use provided filters or default to image filters for asset selection
+        ].filter(p => p !== null && p !== undefined).filter((v, i, a) => a.indexOf(v) === i),
         filters: options.filters || imageFilters
     };
 
     try {
         const result = await dialog.showOpenDialog(dialogOptions);
 
-        // If user canceled, return early with the standard shape
         if (result.canceled || !result.filePaths?.length) {
             return { canceled: true, filePaths: [] };
         }
 
-        // Build detailed file info without opening file contents (use fs.stat)
         let files = [];
         if (options.isDirectory) {
-            // For directory selection, list all files recursively
             for (const dirPath of result.filePaths) {
                 const listed = await listFilesRecursively(dirPath);
-                // Filter to only include image files
                 const imageFiles = listed.filter(file => {
                     const ext = file.name.split('.').pop().toLowerCase();
                     return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'].includes(ext);
@@ -102,18 +84,15 @@ export const handleFileDialog = async (event, options) => {
                 files.push(...imageFiles);
             }
         } else {
-            // For file selection, stat each selected file
             for (const filePath of result.filePaths) {
                 try {
                     const stat = await fs.stat(filePath);
                     files.push({
                         path: filePath,
                         name: filePath.split(/[/\\]/).pop(),
-                        //sizeBytes: stat.size,
                         size: bytesToMB(stat.size),
                     });
                 } catch (e) {
-                    // Skip files we cannot stat
                 }
             }
         }
@@ -124,21 +103,11 @@ export const handleFileDialog = async (event, options) => {
             files
         };
     } catch (error) {
-        console.error("Error showing file dialog:", error);
-        // Return an error structure consistent with a cancelled dialog
+        console.error('Error showing file dialog:', error);
         return { canceled: true, filePaths: [] };
     }
 };
 
-/**
- * Handler for importing structured data files (JSON, CSV, TSV, XLSX)
- * @param {Event} event - The IPC event
- * @param {Object} options - Dialog options
- * @param {string} options.title - Dialog title
- * @param {boolean} options.multiple - Whether to allow multiple file selection
- * @param {string} options.separator - Custom separator for CSV/TSV files (default: auto-detect)
- * @returns {Promise<Object>} Result with parsed data or error
- */
 export const handleStructuredDataImport = async (event, options = {}) => {
     const filters = [
         { name: 'All Supported', extensions: ['json', 'csv', 'tsv', 'xlsx', 'xls', 'xml'] },
@@ -159,18 +128,29 @@ export const handleStructuredDataImport = async (event, options = {}) => {
     };
 
     try {
-        const result = await dialog.showOpenDialog(dialogOptions);
+        let filePaths = [];
 
-        if (result.canceled || !result.filePaths?.length) {
-            return { success: false, canceled: true, data: null };
+        if (options.filePath) {
+            filePaths = [options.filePath];
+        } else {
+            const result = await dialog.showOpenDialog(dialogOptions);
+
+            if (result.canceled || !result.filePaths?.length) {
+                return { success: false, canceled: true, data: null };
+            }
+
+            filePaths = result.filePaths;
         }
 
-        const filePaths = result.filePaths;
         const parsedFiles = [];
 
         for (const filePath of filePaths) {
             try {
-                const parsedData = await parseStructuredFile(filePath, options.separator);
+                const parsedData = await parseStructuredFile(filePath, {
+                    separator: options.separator,
+                    selectedPreset: options.selectedPreset
+                });
+
                 parsedFiles.push({
                     filePath,
                     fileName: filePath.split(/[/\\]/).pop(),
@@ -194,9 +174,8 @@ export const handleStructuredDataImport = async (event, options = {}) => {
             canceled: false,
             data: options.multiple ? parsedFiles : parsedFiles[0]
         };
-
     } catch (error) {
-        console.error("Error in structured data import:", error);
+        console.error('Error in structured data import:', error);
         return {
             success: false,
             canceled: false,
@@ -206,26 +185,21 @@ export const handleStructuredDataImport = async (event, options = {}) => {
     }
 };
 
-/**
- * Parse a structured data file based on its extension
- * @param {string} filePath - Path to the file
- * @param {string} separator - Custom separator for CSV/TSV files
- * @returns {Promise<Object>} Parsed data with format info
- */
-async function parseStructuredFile(filePath, separator) {
+async function parseStructuredFile(filePath, options = {}) {
+    const { separator, selectedPreset } = options;
     const extension = filePath.split('.').pop().toLowerCase();
     const fileContent = await fs.readFile(filePath, 'utf-8');
 
     switch (extension) {
         case 'json':
-            return {
+            return finalizeParsedData({
                 success: true,
                 format: 'json',
                 data: JSON.parse(fileContent),
                 error: null
-            };
+            }, selectedPreset);
 
-        case 'csv':
+        case 'csv': {
             const csvData = parse(fileContent, {
                 columns: true,
                 skip_empty_lines: true,
@@ -233,14 +207,16 @@ async function parseStructuredFile(filePath, separator) {
                 delimiter: separator || ',',
                 relax_column_count: true
             });
-            return {
+
+            return finalizeParsedData({
                 success: true,
                 format: 'csv',
                 data: csvData,
                 error: null
-            };
+            }, selectedPreset);
+        }
 
-        case 'tsv':
+        case 'tsv': {
             const tsvData = parse(fileContent, {
                 columns: true,
                 skip_empty_lines: true,
@@ -248,63 +224,59 @@ async function parseStructuredFile(filePath, separator) {
                 delimiter: separator || '\t',
                 relax_column_count: true
             });
-            return {
+
+            return finalizeParsedData({
                 success: true,
                 format: 'tsv',
                 data: tsvData,
                 error: null
-            };
+            }, selectedPreset);
+        }
 
         case 'xlsx':
-        case 'xls':
-            // For Excel files, we need to read as binary
+        case 'xls': {
             const binaryContent = await fs.readFile(filePath);
             const workbook = XLSX.read(binaryContent, { type: 'buffer' });
 
-            // Check if there are multiple sheets
             if (workbook.SheetNames.length > 1) {
-                // Return sheet list for user selection when multiple sheets exist
-                return {
+                return finalizeParsedData({
                     success: true,
                     format: extension,
                     multiPage: true,
                     sheets: workbook.SheetNames,
-                    data: null, // No data until user selects a sheet
+                    data: null,
                     error: null
-                };
-            } else {
-                // Single sheet - proceed as before
-                const sheetName = workbook.SheetNames[0];
-                const sheet = workbook.Sheets[sheetName];
-
-                // Convert to JSON
-                const excelData = XLSX.utils.sheet_to_json(sheet);
-
-                return {
-                    success: true,
-                    format: extension,
-                    multiPage: false,
-                    data: excelData,
-                    error: null,
-                    sheets: workbook.SheetNames
-                };
+                }, selectedPreset);
             }
+
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const excelData = XLSX.utils.sheet_to_json(sheet);
+
+            return finalizeParsedData({
+                success: true,
+                format: extension,
+                multiPage: false,
+                data: excelData,
+                error: null,
+                sheets: workbook.SheetNames
+            }, selectedPreset);
+        }
 
         case 'xml':
             try {
-                const options = {
+                const parser = new XMLParser({
                     ignoreAttributes: false,
                     attributeNamePrefix: '@_'
-                };
-                const parser = new XMLParser(options);
+                });
                 const parsedContent = parser.parse(fileContent);
 
-                return {
+                return finalizeParsedData({
                     success: true,
                     format: 'xml',
                     data: parsedContent,
                     error: null
-                };
+                }, selectedPreset);
             } catch (error) {
                 throw new Error(`XML parsing error: ${error.message}`);
             }
@@ -312,7 +284,15 @@ async function parseStructuredFile(filePath, separator) {
         default:
             throw new Error(`Unsupported file format: ${extension}`);
     }
-};
+}
+
+function finalizeParsedData(parsedData, selectedPreset) {
+    if (selectedPreset) {
+        return applyImportPreset(parsedData, { selectedPreset });
+    }
+
+    return describeImportPresets(parsedData);
+}
 
 /**
  * Handler for setting the current project ID in cache

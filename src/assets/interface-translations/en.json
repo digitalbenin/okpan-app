@@ -2479,6 +2479,26 @@
                              "value":  "Are you sure you want to cancel the import?"
                          },
                          {
+                             "namespace":  "import",
+                             "key":  "compatible-parser-found",
+                             "value":  "A compatible parser was found: {{name}}"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "compatible-parser-description",
+                             "value":  "You can use the parser to jump directly to the parsed field preview and suggested matches, or continue with the standard import flow."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "use-detected-parser",
+                             "value":  "Use parser"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "continue-standard-import",
+                             "value":  "Continue standard import"
+                         },
+                         {
                              "namespace":  "import-assets",
                              "key":  "begin",
                              "value":  "Begin assets import and matching"

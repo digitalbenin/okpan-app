@@ -853,6 +853,26 @@
                              "value":  "Sei sicuro di voler annullare l'importazione?"
                          },
                          {
+                             "namespace":  "import",
+                             "key":  "compatible-parser-found",
+                             "value":  "E stato trovato un parser compatibile: {{name}}"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "compatible-parser-description",
+                             "value":  "Puoi usare il parser per passare direttamente all'anteprima dei campi analizzati e delle associazioni suggerite, oppure continuare con il flusso standard di importazione."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "use-detected-parser",
+                             "value":  "Usa parser"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "continue-standard-import",
+                             "value":  "Continua con importazione standard"
+                         },
+                         {
                              "namespace":  "import-assets",
                              "key":  "begin",
                              "value":  "Inizia importazione e associazione media"

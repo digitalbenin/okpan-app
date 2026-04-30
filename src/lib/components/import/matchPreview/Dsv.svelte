@@ -14,6 +14,9 @@
   const wizard = getImportWizardContext();
 
   const fields = $derived(Object.keys(data[0]));
+  const hasPresetMapping = $derived.by(
+    () => Boolean(wizard.file?.preset?.id && wizard.mapping.length > 0)
+  );
 
   // Per-field inclusion tracking (all included by default)
   let fieldInclusion = $state({});
@@ -37,12 +40,12 @@
   }
 
   const matchingSuggestions = resource(
-    () => [fields, wizard.useMatchingSuggestions],
+    () => [fields, wizard.useMatchingSuggestions, hasPresetMapping],
     async (
-      [fields, useMatchingSuggestions],
+      [fields, useMatchingSuggestions, skipSuggestions],
       { data, refetching, onCleanup, signal }
     ) => {
-      if (!useMatchingSuggestions) {
+      if (skipSuggestions || !useMatchingSuggestions) {
         return [];
       }
       const response = await suggestFieldMappings(fields);
@@ -52,8 +55,12 @@
   );
 
   const templateSuggestions = resource(
-    () => fields,
-    async (fields, prevFields, { data, refetching, onCleanup, signal }) => {
+    () => [fields, hasPresetMapping],
+    async ([fields, skipSuggestions], prevFields, { data, refetching, onCleanup, signal }) => {
+      if (skipSuggestions) {
+        return [];
+      }
+
       const response = await suggestTemplateReuse(fields, wizard.projectId);
       if (response.totalMatches === 0) {
         wizard.useMatchingSuggestions = true;
@@ -111,19 +118,21 @@
       {@const matchingSuggestion = matchingSuggestions.current.find(
         (s) => s.csvField === field
       )}
-      {@const mappedField = wizard.reusedTemplate?.mapping?.filter(
+      {@const mappedField = wizard.mapping?.filter(
         (m) => m.headerField === field
       )}
-      <Card
-        {values}
-        {field}
-        {mappedField}
-        {matchingSuggestion}
-        matchingSuggestionsLoading={matchingSuggestions.loading}
-        bind:included={fieldInclusion[field]}
-        i={i + 1}
-        tot={fields.length}
-      />
+      {#if field in fieldInclusion}
+        <Card
+          {values}
+          {field}
+          {mappedField}
+          {matchingSuggestion}
+          matchingSuggestionsLoading={matchingSuggestions.loading}
+          bind:included={fieldInclusion[field]}
+          i={i + 1}
+          tot={fields.length}
+        />
+      {/if}
     {/each}
   </div>
 {/if}

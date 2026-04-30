@@ -20,7 +20,7 @@
   });
 
   const mappedField = $derived.by(() => {
-    return wizard.reusedTemplate?.mapping?.filter(
+    return wizard.mapping?.filter(
       (m) => m.headerField === node.pathString
     );
   });
@@ -62,15 +62,17 @@
       </div>
     {/each}
   {:else}
-    <Card
-      field={node.pathString}
-      {values}
-      {mappedField}
-      {matchingSuggestion}
-      {matchingSuggestionsLoading}
-      bind:included={fieldInclusion[node.pathString]}
-      {i}
-      {tot}
-    />
+    {#if node.pathString in fieldInclusion}
+      <Card
+        field={node.pathString}
+        {values}
+        {mappedField}
+        {matchingSuggestion}
+        {matchingSuggestionsLoading}
+        bind:included={fieldInclusion[node.pathString]}
+        {i}
+        {tot}
+      />
+    {/if}
   {/if}
 </div>
