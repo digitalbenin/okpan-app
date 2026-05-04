@@ -13,9 +13,24 @@
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
 
-  const fields = $derived(Object.keys(data[0]));
+  const rows = $derived.by(() =>
+    Array.isArray(data)
+      ? data.filter((row) => row && typeof row === "object" && !Array.isArray(row))
+      : []
+  );
+  const fields = $derived.by(() => {
+    const seen = new Set();
+
+    for (const row of rows) {
+      for (const field of Object.keys(row || {})) {
+        seen.add(field);
+      }
+    }
+
+    return [...seen];
+  });
   const hasPresetMapping = $derived.by(
-    () => Boolean(wizard.file?.preset?.id && wizard.mapping.length > 0)
+    () => Boolean(wizard.file?.preset?.id && wizard.mapping.some((m) => m.mappedField))
   );
 
   // Per-field inclusion tracking (all included by default)
@@ -45,7 +60,7 @@
       [fields, useMatchingSuggestions, skipSuggestions],
       { data, refetching, onCleanup, signal }
     ) => {
-      if (skipSuggestions || !useMatchingSuggestions) {
+      if (skipSuggestions || !useMatchingSuggestions || fields.length === 0) {
         return [];
       }
       const response = await suggestFieldMappings(fields);
@@ -57,7 +72,7 @@
   const templateSuggestions = resource(
     () => [fields, hasPresetMapping],
     async ([fields, skipSuggestions], prevFields, { data, refetching, onCleanup, signal }) => {
-      if (skipSuggestions) {
+      if (skipSuggestions || fields.length === 0) {
         return [];
       }
 
@@ -93,7 +108,13 @@
   </div>
 {/if}
 <SuggestTemplate {templateSuggestions}></SuggestTemplate>
-{#if wizard.useMatchingTemplate || wizard.useMatchingSuggestions || wizard.mapping.length > 0}
+{#if !rows.length}
+  <div class="alert alert-warning mt-3" role="alert">
+    {t("import.no-previewable-rows", {
+      fallback: "The parsed file does not contain previewable tabular rows for field matching."
+    })}
+  </div>
+{:else}
   <div class="w-100">
     <div class="d-flex align-items-center justify-content-between mb-2 px-3 py-2 bg-white border rounded">
       <span class="text-muted">
@@ -114,7 +135,7 @@
       </div>
     </div>
     {#each fields as field, i}
-      {@const values = [...new Set(data.map((s) => s[field]))]}
+      {@const values = [...new Set(rows.map((row) => row[field]))]}
       {@const matchingSuggestion = matchingSuggestions.current.find(
         (s) => s.csvField === field
       )}

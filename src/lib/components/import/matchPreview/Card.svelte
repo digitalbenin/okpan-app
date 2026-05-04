@@ -83,7 +83,7 @@
       }
       if (
         field === prevField &&
-        fieldMatched === prevFieldMatched &&
+        fieldMatched?.id === prevFieldMatched?.id &&
         included === prevIncluded
       ) {
         return;

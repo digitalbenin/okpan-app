@@ -80,10 +80,32 @@
       || response.format === "csv"
       || response.format === "tsv"
       || (response.format === "xlsx" && !response.multiPage);
+    const hasPreviewableRows = Array.isArray(response.data)
+      && response.data.some((row) => row && typeof row === "object" && !Array.isArray(row));
 
-    if (isTabular && Array.isArray(response.data)) {
+    if (isTabular && hasPreviewableRows) {
       wizard.data = response.data;
       wizard.nextEnabled = response.preset ? wizard.mapping.length > 0 : true;
+
+      if (advanceToMatch) {
+        wizard.currentStep = 3;
+      }
+
+      return;
+    }
+
+    const canFallbackToStructuredMatching = response.preset
+      && (response.format === "json" || response.format === "xml")
+      && response.sourceData;
+
+    if (canFallbackToStructuredMatching) {
+      wizard.file = {
+        ...wizard.file,
+        data: response.sourceData,
+        tabularized: false,
+      };
+      wizard.mapping = [];
+      wizard.nextEnabled = false;
 
       if (advanceToMatch) {
         wizard.currentStep = 3;
@@ -212,6 +234,14 @@
                 {t("import.use-detected-parser", { fallback: "Use parser" })}
               </button>
             </div>
+          </div>
+        {/if}
+
+        {#if wizard.file.parserWarnings?.length}
+          <div class="alert alert-warning mt-3" role="alert">
+            {#each wizard.file.parserWarnings as warning}
+              <div>{warning}</div>
+            {/each}
           </div>
         {/if}
 

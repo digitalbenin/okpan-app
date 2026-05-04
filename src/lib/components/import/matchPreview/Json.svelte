@@ -18,7 +18,7 @@
 
   const fields = $derived(extractLeafPaths(tree).sort());
   const hasPresetMapping = $derived.by(
-    () => Boolean(wizard.file?.preset?.id && wizard.mapping.length > 0)
+    () => Boolean(wizard.file?.preset?.id && wizard.mapping.some((m) => m.mappedField))
   );
 
   // Per-field inclusion tracking (all included by default)
@@ -48,7 +48,7 @@
       [fields, useMatchingSuggestions, skipSuggestions],
       { data, refetching, onCleanup, signal }
     ) => {
-      if (skipSuggestions || !useMatchingSuggestions) {
+      if (skipSuggestions || !useMatchingSuggestions || fields.length === 0) {
         return [];
       }
       const response = await suggestFieldMappings(fields);
@@ -60,7 +60,7 @@
   const templateSuggestions = resource(
     () => [fields, hasPresetMapping],
     async ([fields, skipSuggestions], prevFields, { data, refetching, onCleanup, signal }) => {
-      if (skipSuggestions) {
+      if (skipSuggestions || fields.length === 0) {
         return [];
       }
 
@@ -98,7 +98,13 @@
   </div>
 {/if}
 <SuggestTemplate {templateSuggestions}></SuggestTemplate>
-{#if wizard.useMatchingTemplate || wizard.useMatchingSuggestions || wizard.mapping.length > 0}
+{#if !fields.length}
+  <div class="alert alert-warning mt-3" role="alert">
+    {t("import.no-structured-fields", {
+      fallback: "The parsed file does not contain structured fields that can be matched here."
+    })}
+  </div>
+{:else}
   <div class="w-100">
     <div class="d-flex align-items-center justify-content-between mb-2 px-3 py-2 bg-white border rounded">
       <span class="text-muted">

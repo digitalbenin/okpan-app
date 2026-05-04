@@ -176,12 +176,16 @@ function getType(value) {
 //   );
 // }
 
-export function analyzeJsonStructure(jsonArray, maxSamples = 100) {
-  if (!Array.isArray(jsonArray) || jsonArray.length === 0) {
-    throw new Error("Input must be a non-empty array");
+export function analyzeJsonStructure(jsonValue, maxSamples = 100) {
+  if (Array.isArray(jsonValue)) {
+    return walkJsonStructure(jsonValue, null, 0, [], maxSamples);
   }
 
-  return walkJsonStructure(jsonArray, null, 0, [], maxSamples);
+  if (jsonValue && typeof jsonValue === "object") {
+    return walkJsonStructure(jsonValue, null, 0, [], maxSamples);
+  }
+
+  return createNode(null, [], "array", 0, [], "", {}, 0);
 }
 
 function walkJsonStructure(

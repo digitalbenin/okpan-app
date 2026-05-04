@@ -110,8 +110,9 @@ export const handleFileDialog = async (event, options) => {
 
 export const handleStructuredDataImport = async (event, options = {}) => {
     const filters = [
-        { name: 'All Supported', extensions: ['json', 'csv', 'tsv', 'xlsx', 'xls', 'xml'] },
+        { name: 'All Supported', extensions: ['json', 'jsonld', 'json-ld', 'csv', 'tsv', 'xlsx', 'xls', 'xml'] },
         { name: 'JSON Files', extensions: ['json'] },
+        { name: 'JSON-LD Files', extensions: ['jsonld', 'json-ld'] },
         { name: 'CSV Files', extensions: ['csv'] },
         { name: 'TSV Files', extensions: ['tsv'] },
         { name: 'Excel Files', extensions: ['xlsx', 'xls'] },
@@ -192,6 +193,8 @@ async function parseStructuredFile(filePath, options = {}) {
 
     switch (extension) {
         case 'json':
+        case 'jsonld':
+        case 'json-ld':
             return finalizeParsedData({
                 success: true,
                 format: 'json',
@@ -286,7 +289,7 @@ async function parseStructuredFile(filePath, options = {}) {
     }
 }
 
-function finalizeParsedData(parsedData, selectedPreset) {
+async function finalizeParsedData(parsedData, selectedPreset) {
     if (selectedPreset) {
         return applyImportPreset(parsedData, { selectedPreset });
     }

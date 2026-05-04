@@ -1,4 +1,4 @@
-import jsonLdPreset from './presets/jsonLdPreset.js';
+import jsonLdPreset from './presets/jsonld/jsonLdPreset.js';
 import lidoPreset from './presets/lido/lidoPreset.js';
 
 const PRESETS = [lidoPreset, jsonLdPreset];
@@ -34,6 +34,7 @@ export function detectImportPreset(parsedResult) {
 export function describeImportPresets(parsedResult) {
   return {
     ...parsedResult,
+    sourceData: parsedResult?.data,
     detectedPreset: detectImportPreset(parsedResult),
     availablePresets: listPresetsForFormat(parsedResult?.format),
     preset: null,
@@ -43,7 +44,7 @@ export function describeImportPresets(parsedResult) {
   };
 }
 
-export function applyImportPreset(parsedResult, { selectedPreset } = {}) {
+export async function applyImportPreset(parsedResult, { selectedPreset } = {}) {
   if (!selectedPreset) {
     return describeImportPresets(parsedResult);
   }
@@ -58,10 +59,11 @@ export function applyImportPreset(parsedResult, { selectedPreset } = {}) {
     throw new Error(`Preset '${selectedPreset}' does not support ${parsedResult?.format} files`);
   }
 
-  const presetOutput = preset.parse(parsedResult) || {};
+  const presetOutput = await preset.parse(parsedResult) || {};
 
   return {
     ...parsedResult,
+    sourceData: parsedResult?.data,
     ...('data' in presetOutput ? { data: presetOutput.data } : {}),
     tabularized: Boolean(presetOutput.tabularized),
     prefilledMapping: Array.isArray(presetOutput.prefilledMapping) ? presetOutput.prefilledMapping : [],
