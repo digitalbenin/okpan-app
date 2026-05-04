@@ -31,24 +31,22 @@
     wizard.reusedTemplate = null;
   }
 
-  function normalizeFieldName(value) {
-    return String(value || "").trim().toLowerCase();
-  }
-
-  function resolveOntologyFieldId(mappedFieldName) {
+  // Resolves a preset-defined ontology field name (e.g. "object type") to its DB id.
+  // Only used for fields explicitly mapped by a preset (LIDO, Linked Art, etc.) —
+  // not as a fallback for arbitrary field names. Transformer model handles everything else.
+  function resolvePresetOntologyFieldId(mappedFieldName) {
     if (!mappedFieldName) return null;
-
+    const normalized = String(mappedFieldName).trim().toLowerCase();
     const match = ontologyFields.find(
-      (field) => normalizeFieldName(field?.name?.content || field?.name) === normalizeFieldName(mappedFieldName)
+      (field) => String(field?.name?.content || field?.name || '').trim().toLowerCase() === normalized
     );
-
     return match?.id || null;
   }
 
   function normalizePrefilledMapping(prefilledMapping) {
     return (prefilledMapping || []).map((entry) => ({
       ...entry,
-      mappedField: entry?.mappedField || resolveOntologyFieldId(entry?.mappedFieldName)
+      mappedField: entry?.mappedField ?? resolvePresetOntologyFieldId(entry?.mappedFieldName)
     }));
   }
 

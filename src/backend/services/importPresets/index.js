@@ -1,7 +1,9 @@
 import jsonLdPreset from './presets/jsonld/jsonLdPreset.js';
 import lidoPreset from './presets/lido/lidoPreset.js';
+import linkedArtPreset from './presets/linkedArt/linkedArtPreset.js';
 
-const PRESETS = [lidoPreset, jsonLdPreset];
+// linkedArtPreset is listed before jsonLdPreset so it wins auto-detection for Linked Art data
+const PRESETS = [lidoPreset, linkedArtPreset, jsonLdPreset];
 
 function sanitizePresetMeta(preset) {
   return {

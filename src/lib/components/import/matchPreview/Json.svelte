@@ -45,14 +45,23 @@
   const matchingSuggestions = resource(
     () => [fields, wizard.useMatchingSuggestions, hasPresetMapping],
     async (
-      [fields, useMatchingSuggestions, skipSuggestions],
+      [allFields, useMatchingSuggestions, isPresetImport],
       { data, refetching, onCleanup, signal }
     ) => {
-      if (skipSuggestions || !useMatchingSuggestions || fields.length === 0) {
-        return [];
+      if (allFields.length === 0) return [];
+
+      if (isPresetImport) {
+        // For preset imports: only run AI suggestions on fields the preset left unmapped
+        const mappedHeaders = new Set(
+          wizard.mapping.filter((m) => m.mappedField).map((m) => m.headerField)
+        );
+        const toSuggest = allFields.filter((f) => !mappedHeaders.has(f));
+        if (!toSuggest.length) return [];
+        return await suggestFieldMappings(toSuggest);
       }
-      const response = await suggestFieldMappings(fields);
-      return response;
+
+      if (!useMatchingSuggestions) return [];
+      return await suggestFieldMappings(allFields);
     },
     { initialValue: [] }
   );
