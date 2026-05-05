@@ -29,8 +29,12 @@
 
     return [...seen];
   });
-  const hasPresetMapping = $derived.by(
-    () => Boolean(wizard.file?.preset?.id && wizard.mapping.some((m) => m.mappedField))
+  const isPresetImport = $derived.by(() => Boolean(wizard.file?.preset?.id));
+  const mappingSignature = $derived.by(() =>
+    (wizard.mapping || [])
+      .map((entry) => `${entry?.headerField || ''}:${entry?.mappedField || ''}`)
+      .sort()
+      .join('|')
   );
 
   // Per-field inclusion tracking (all included by default)
@@ -55,22 +59,30 @@
   }
 
   const matchingSuggestions = resource(
-    () => [fields, wizard.useMatchingSuggestions, hasPresetMapping],
+    () => [fields, wizard.useMatchingSuggestions, isPresetImport, mappingSignature, wizard.projectId],
     async (
-      [fields, useMatchingSuggestions, skipSuggestions],
+      [fields, useMatchingSuggestions, presetImport, _mappingSignature, projectId],
       { data, refetching, onCleanup, signal }
     ) => {
-      if (skipSuggestions || !useMatchingSuggestions || fields.length === 0) {
-        return [];
+      if (fields.length === 0) return [];
+
+      if (presetImport) {
+        const mappedHeaders = new Set(
+          wizard.mapping.filter((m) => m.mappedField).map((m) => m.headerField)
+        );
+        const toSuggest = fields.filter((field) => !mappedHeaders.has(field));
+        if (!toSuggest.length) return [];
+        return await suggestFieldMappings(toSuggest, { projectId });
       }
-      const response = await suggestFieldMappings(fields);
-      return response;
+
+      if (!useMatchingSuggestions) return [];
+      return await suggestFieldMappings(fields, { projectId });
     },
     { initialValue: [] }
   );
 
   const templateSuggestions = resource(
-    () => [fields, hasPresetMapping],
+    () => [fields, isPresetImport],
     async ([fields, skipSuggestions], prevFields, { data, refetching, onCleanup, signal }) => {
       if (skipSuggestions || fields.length === 0) {
         return [];

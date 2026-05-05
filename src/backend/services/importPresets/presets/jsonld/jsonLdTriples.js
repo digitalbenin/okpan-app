@@ -1,5 +1,6 @@
 import { appendValue, buildPrefilledMapping, finalizeRow } from '../../shared/presetUtils.js';
 
+// Returns true if data looks like JSON-LD — checks recursively for @context, @id, @type, or @graph at any level
 export const isJsonLdShape = (data) => {
   if (Array.isArray(data)) return data.some(isJsonLdShape);
   if (!data || typeof data !== 'object') return false;
@@ -43,6 +44,10 @@ const findKeyProperty = (items) => {
   return null;
 };
 
+// Projects a single JSON-LD entity into a flat key→value row.
+// Scalar predicates are stored directly; object-valued predicates are dot-path expanded,
+// using keyed expansion (predicate[keyProp=val].subKey) when a stable key property is found,
+// or flat expansion (predicate.subKey) otherwise.
 const projectEntity = (entity) => {
   const row = {};
 
@@ -95,6 +100,7 @@ const projectEntity = (entity) => {
   return finalizeRow(row);
 };
 
+// Entry point: collects all entity objects from data, projects each to a flat row, and returns rows + prefilled mapping
 export const extractJsonLdProjection = (data) => {
   const entities = extractEntityCollection(data);
   const rows = entities.map(projectEntity).filter((r) => Object.keys(r).length > 0);

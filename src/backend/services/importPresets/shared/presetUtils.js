@@ -29,7 +29,7 @@ export const finalizeRow = (bucketRow) => {
   const row = {};
 
   Object.entries(bucketRow).forEach(([key, values]) => {
-    const normalizedValues = normalizeStrings(values);
+    const normalizedValues = uniqueStrings(values);
     if (!normalizedValues.length) return;
     row[key] = normalizedValues.length === 1 ? normalizedValues[0] : normalizedValues;
   });

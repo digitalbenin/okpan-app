@@ -83,6 +83,9 @@
 
     if (isTabular && hasPreviewableRows) {
       wizard.data = response.data;
+      if (response.preset) {
+        wizard.useMatchingSuggestions = true;
+      }
       wizard.nextEnabled = response.preset ? wizard.mapping.length > 0 : true;
 
       if (advanceToMatch) {
@@ -102,8 +105,9 @@
         data: response.sourceData,
         tabularized: false,
       };
-      wizard.mapping = [];
-      wizard.nextEnabled = false;
+      wizard.useMatchingSuggestions = true;
+      // Keep parser-provided mappings so only still-unmapped JSON fields go to AI suggestions.
+      wizard.nextEnabled = wizard.mapping.length > 0;
 
       if (advanceToMatch) {
         wizard.currentStep = 3;

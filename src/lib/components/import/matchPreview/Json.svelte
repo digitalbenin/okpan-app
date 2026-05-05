@@ -17,8 +17,12 @@
   let tree = $derived(analyzeJsonStructure(data));
 
   const fields = $derived(extractLeafPaths(tree).sort());
-  const hasPresetMapping = $derived.by(
-    () => Boolean(wizard.file?.preset?.id && wizard.mapping.some((m) => m.mappedField))
+  const isPresetImport = $derived.by(() => Boolean(wizard.file?.preset?.id));
+  const mappingSignature = $derived.by(() =>
+    (wizard.mapping || [])
+      .map((entry) => `${entry?.headerField || ''}:${entry?.mappedField || ''}`)
+      .sort()
+      .join('|')
   );
 
   // Per-field inclusion tracking (all included by default)
@@ -43,31 +47,31 @@
   }
 
   const matchingSuggestions = resource(
-    () => [fields, wizard.useMatchingSuggestions, hasPresetMapping],
+    () => [fields, wizard.useMatchingSuggestions, isPresetImport, mappingSignature, wizard.projectId],
     async (
-      [allFields, useMatchingSuggestions, isPresetImport],
+      [allFields, useMatchingSuggestions, presetImport, _mappingSignature, projectId],
       { data, refetching, onCleanup, signal }
     ) => {
       if (allFields.length === 0) return [];
 
-      if (isPresetImport) {
+      if (presetImport) {
         // For preset imports: only run AI suggestions on fields the preset left unmapped
         const mappedHeaders = new Set(
           wizard.mapping.filter((m) => m.mappedField).map((m) => m.headerField)
         );
         const toSuggest = allFields.filter((f) => !mappedHeaders.has(f));
         if (!toSuggest.length) return [];
-        return await suggestFieldMappings(toSuggest);
+        return await suggestFieldMappings(toSuggest, { projectId });
       }
 
       if (!useMatchingSuggestions) return [];
-      return await suggestFieldMappings(allFields);
+      return await suggestFieldMappings(allFields, { projectId });
     },
     { initialValue: [] }
   );
 
   const templateSuggestions = resource(
-    () => [fields, hasPresetMapping],
+    () => [fields, isPresetImport],
     async ([fields, skipSuggestions], prevFields, { data, refetching, onCleanup, signal }) => {
       if (skipSuggestions || fields.length === 0) {
         return [];

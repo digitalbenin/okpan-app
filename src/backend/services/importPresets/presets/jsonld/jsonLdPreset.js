@@ -11,6 +11,8 @@ const jsonLdPreset = {
     return isJsonLdShape(data);
   },
 
+  // Projects JSON-LD subjects into flat rows; returns an empty-data result if nothing was extracted
+  // and wraps all parsing in an error boundary so a malformed file surfaces as a warning rather than a crash
   parse({ data }) {
     try {
       const { rows, prefilledMapping, warnings } = extractJsonLdProjection(data);

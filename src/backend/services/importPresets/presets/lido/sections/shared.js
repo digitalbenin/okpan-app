@@ -40,16 +40,22 @@ export const LEGAL_STATUS_HINTS = [
 ];
 export const WEIGHT_HINTS = [/weight/, /mass/];
 
+// Returns true if any of the given values (lowercased) matches any of the regex patterns.
 export const matchesAny = (values, patterns) => values
   .map((value) => normalizeText(value))
   .some((value) => patterns.some((pattern) => pattern.test(value)));
 
+// Classifies a rights node as 'license' or 'legal status' based on its text values,
+// or null if it doesn't match either hint set.
 export const classifyRightsTarget = (values) => {
   if (matchesAny(values, LICENSE_HINTS)) return 'license';
   if (matchesAny(values, LEGAL_STATUS_HINTS)) return 'legal status';
   return null;
 };
 
+// Infers an ontology field name from an unrecognised residual field path and its values.
+// Used as a fallback when a field is not explicitly handled by any section extractor.
+// Returns a string like 'weblink', 'notes', 'dimensions', etc.
 const inferResidualTargetField = (headerField, values = []) => {
   const normalizedPath = normalizeText(headerField).replace(/\u007f/g, '');
   if (!normalizedPath) return null;
@@ -76,6 +82,8 @@ const inferResidualTargetField = (headerField, values = []) => {
   return 'notes';
 };
 
+// Low-level writer: appends deduplicated string values to `bucket[headerField]` and
+// records the field's ontology hint and primary flag in `mappingHints`.
 export const appendMappedValue = (bucket, mappingHints, headerField, mappedFieldName, values, options = {}) => {
   const normalizedValues = uniqueStrings(values);
   if (!headerField || !normalizedValues.length) return;
@@ -99,6 +107,10 @@ export const appendMappedValue = (bucket, mappingHints, headerField, mappedField
   mappingHints[headerField] = existing;
 };
 
+// Recursively walks the remaining (unhandled) portion of the LIDO tree under `node`
+// and emits every leaf value under a dot-separated path rooted at `basePath`.
+// `handledLocalNames` lists element names already extracted by section modules
+// so they are not double-counted here.
 export const appendResidualTreeValues = (
   bucket,
   mappingHints,
@@ -143,6 +155,9 @@ export const appendResidualTreeValues = (
   visit(node, basePath);
 };
 
+// Builds the prefilledMapping array from all row headers and collected mappingHints.
+// Picks the primary header by: explicit primary flag → first `object id` field →
+// first `designation` field → first header overall.
 export const buildPrefilledMapping = (rows, mappingHints) => {
   const headers = [...new Set(rows.flatMap((row) => Object.keys(row)))];
   if (!headers.length) return [];
@@ -161,6 +176,8 @@ export const buildPrefilledMapping = (rows, mappingHints) => {
   }));
 };
 
+// Extracts the list of individual <lido> nodes from a parsed document.
+// Handles both bare <lido> elements and documents wrapped in a <lidoWrap> container.
 export const extractLidoNodes = (data) => {
   const wrappers = collectDescendantsByLocalName(data, 'lidoWrap');
   if (wrappers.length) {
@@ -170,10 +187,13 @@ export const extractLidoNodes = (data) => {
   return collectDescendantsByLocalName(data, 'lido');
 };
 
+// Builds a namespaced path segment like `scope_0` for indexing repeated elements.
 export const buildIndexedScope = (prefix, index) => `${prefix}_${index}`;
 
+// Joins a scope prefix with one or more path segments using `.` as separator.
 export const buildScopedField = (scope, ...segments) => joinPath(scope, ...segments.filter(Boolean));
 
+// Convenience wrapper: builds the scoped field name then delegates to appendMappedValue.
 export const appendScopedField = (bucket, mappingHints, scope, segments, mappedFieldName, values, options = {}) => {
   appendMappedValue(bucket, mappingHints, buildScopedField(scope, ...segments), mappedFieldName, values, options);
 };

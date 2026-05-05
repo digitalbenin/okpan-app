@@ -24,6 +24,8 @@ const SOURCE_TEXT_NAMES = [
   'sourceStateEdition'
 ];
 
+// Emits all `source*` text nodes from the top-level lido element as bibliography fields.
+// Each source element type gets its own indexed header (e.g. `bibliography.sourceAppellation_0`).
 const appendBibliographySources = (bucket, mappingHints, lidoNode) => {
   SOURCE_TEXT_NAMES.forEach((localName, index) => {
     appendScopedField(
@@ -37,10 +39,16 @@ const appendBibliographySources = (bucket, mappingHints, lidoNode) => {
   });
 };
 
+// Returns true if the parsed XML data contains at least one `lido` or `lidoWrap` element.
 export function isLidoDocument(data) {
   return extractLidoNodes(data).length > 0 || collectDescendantsByLocalName(data, 'lidoWrap').length > 0;
 }
 
+// Main entry point: parses a LIDO XML document (already converted to a JS object)
+// and returns { rows, prefilledMapping }.
+// Each <lido> element produces one row.  Field extraction is delegated to the
+// descriptiveMetadata and administrativeMetadata section modules; residual
+// (unrecognised) tree nodes are caught by appendResidualTreeValues.
 export function extractLidoProjection(data) {
   const lidoNodes = extractLidoNodes(data);
   const mappingHints = {};
