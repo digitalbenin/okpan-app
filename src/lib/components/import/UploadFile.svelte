@@ -260,7 +260,7 @@
             })}
           </p>
           <TablePreview data={wizard.data.slice(0, 25)} />
-        {:else if (wizard.file.format === "json" || wizard.file.format === "xml") && !wizard.file.tabularized}
+        {:else if (wizard.file.format === "json" || wizard.file.format === "xml") && !wizard.file.tabularized && !showDetectedParserPrompt}
           <RootSelection jsonData={wizard.file.data}></RootSelection>
         {/if}
       {/if}
