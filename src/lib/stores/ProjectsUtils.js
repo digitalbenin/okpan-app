@@ -1,6 +1,6 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
-import { invalidate } from "$app/navigation";
+import { invalidate, invalidateAll } from "$app/navigation";
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
@@ -240,25 +240,21 @@ export const addLanguageToProject = async (projectId, languageCode, languageName
         languageName,
         isDefault
     });
-    // Centralized cache refreshes for project language changes
-    await invalidate("app:projects");
-    try { await invalidate("app:project-shared"); } catch (_) {}
+    await invalidateAll();
     return result;
 };
 
 export const removeLanguageFromProject = async (languageId) => {
     // Use executeQuery which handles errors, logging, and notifications
     const result = await executeQuery('projects', 'removeLanguage', { languageId });
-    // Centralized cache refreshes for project language changes
-    await invalidate("app:projects");
-    try { await invalidate("app:project-shared"); } catch (_) {}
+    await invalidateAll();
     return result;
 };
 
 export const setLanguageAsDefault = async (projectId, languageId) => {
     // Use executeQuery which handles errors, logging, and notifications
     const result = await executeQuery('projects', 'setDefaultLanguage', { projectId, languageId });
-    invalidate("app:projects");
+    await invalidateAll();
     return result;
 };
 

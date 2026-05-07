@@ -1,5 +1,5 @@
 <script>
-  import { updateProject, removeLanguageFromProject, getProjectLanguages } from "$lib/stores/ProjectsUtils.js";
+  import { updateProject, removeLanguageFromProject } from "$lib/stores/ProjectsUtils.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import AddProjectLanguagesModal from "$lib/components/projects/AddProjectLanguagesModal.svelte";
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
@@ -10,8 +10,7 @@
   const { data } = $props();
   const { t } = getTranslationStore();
   const project = $derived(data.project);
-  let projectLanguages = $state(data.languages || []);
-  const languages = $derived(projectLanguages || []);
+  const languages = $derived(data.languages || []);
   const defaultLanguage = $derived(languages.find((l) => l.is_default) || languages[0]);
   const secondaryLanguages = $derived(languages.filter((l) => !l.is_default));
 
@@ -112,11 +111,6 @@
       projectId: project.id,
       title: project.title?.content || "",
       description: project.description?.content || "",
-      languages: languages.map((lang) => ({
-        id: lang.id,
-        code: lang.code,
-        is_default: lang.is_default,
-      })),
       titleTranslations: getTranslations(project.title).map((translation) => ({
         id: translation.id || null,
         language_code: translation.language?.code || translation.language_code || null,
@@ -137,46 +131,43 @@
     syncSnapshots();
   }
 
-  $effect(() => {
-    projectLanguages = data.languages || [];
-  });
+  watch(
+    () => getIncomingSignature(),
+    (incomingSignature) => {
+      if (!incomingSignature || incomingSignature === lastIncomingSignature) {
+        return;
+      }
 
-  $effect(() => {
-    if (!project || !languages?.length) {
-      return;
-    }
+      lastIncomingSignature = incomingSignature;
+      initValues();
+    },
+  );
 
-    const incomingSignature = getIncomingSignature();
-    if (!incomingSignature || incomingSignature === lastIncomingSignature) {
-      return;
-    }
+  watch(
+    () => ({
+      activeLanguageCode,
+      languageIds: languages.map((lang) => lang.id),
+    }),
+    ({ activeLanguageCode: nextActiveLanguageCode, languageIds }) => {
+      if (nextActiveLanguageCode === "default") {
+        return;
+      }
 
-    lastIncomingSignature = incomingSignature;
-    initValues();
-  });
+      if (!languageIds.includes(nextActiveLanguageCode)) {
+        activeLanguageCode = "default";
+      }
+    },
+  );
 
   async function removeLanguage(lang) {
     if (!lang || lang.is_default) return;
     try {
       const response = await removeLanguageFromProject(lang.id);
       if (!response?.error) {
-        await refreshProjectLanguages();
+        activeLanguageCode = "default";
       }
     } 
     catch (e) { console.error("Failed to remove language:", e); }
-  }
-
-  async function refreshProjectLanguages() {
-    if (!project?.id) return;
-    const nextLanguages = await getProjectLanguages(project.id);
-    projectLanguages = nextLanguages || [];
-
-    if (
-      activeLanguageCode !== "default" &&
-      !projectLanguages.some((lang) => lang.id === activeLanguageCode)
-    ) {
-      activeLanguageCode = "default";
-    }
   }
 
   async function handleSubmit(e) {
@@ -316,7 +307,6 @@
 
         <AddProjectLanguagesModal bind:isOpen={showAddLanguages} projectId={project?.id} 
           existingLanguages={languages} onAdded={async () => {
-            await refreshProjectLanguages();
             activeLanguageCode = "default";
           }} />
       </div>

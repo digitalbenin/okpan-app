@@ -1,6 +1,6 @@
 <script>
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
+	import { watch } from 'runed';
 	import { searchObjects } from '$lib/stores/ObjectsUtils.js';
 	import PreviewTable from '$lib/components/export/PreviewTable.svelte';
 	import StatusFilter from '$lib/components/export/StatusFilter.svelte';
@@ -39,6 +39,27 @@
 		return baseMatch?.code || '';
 	}
 
+	function setOptionalContentLanguageEnabled(code, enabled) {
+		const normalizedCode = normalizeLocale(code);
+		if (!normalizedCode) {
+			return;
+		}
+
+		if (enabled) {
+			excludedOptionalContentLanguageCodes = excludedOptionalContentLanguageCodes.filter(
+				(existingCode) => existingCode !== normalizedCode
+			);
+			return;
+		}
+
+		if (!excludedOptionalContentLanguageCodes.includes(normalizedCode)) {
+			excludedOptionalContentLanguageCodes = [
+				...excludedOptionalContentLanguageCodes,
+				normalizedCode
+			];
+		}
+	}
+
 	let projectId = $derived($page.params.project_id);
 	let isExporting = $state(false);
 	let isLoading = $state(false);
@@ -48,9 +69,8 @@
 	let exportResultDialogOpen = $state(false);
 
 	let basePathInput = $state('');
-	let selectedWebsiteLocale = $state('');
-	let selectedOptionalContentLanguages = $state([]);
-	let optionalLanguagesInitialized = $state(false);
+	let websiteLocalePreference = $state('');
+	let excludedOptionalContentLanguageCodes = $state([]);
 
 	let selectedStatus = $state('all');
 	let selectedInstitutions = $state([]);
@@ -58,7 +78,6 @@
 	let freeTextFilters = $state([]);
 
 	let currentPage = $state(1);
-	let _prevPage = $state(1);
 	let pageSize = $state(10);
 	let objects = $state([]);
 	let totalCount = $state(0);
@@ -128,21 +147,14 @@
 
 	const showContentLanguageSelection = $derived.by(() => optionalContentLanguages.length > 0);
 
-	$effect(() => {
-		const optionalCodes = optionalContentLanguages.map((language) => language.code);
-		selectedOptionalContentLanguages = optionalCodes.filter((code) =>
-			selectedOptionalContentLanguages.includes(code)
+	const selectedOptionalContentLanguages = $derived.by(() => {
+		const excludedCodes = new Set(
+			excludedOptionalContentLanguageCodes.map((code) => normalizeLocale(code))
 		);
 
-		if (!optionalLanguagesInitialized && selectedOptionalContentLanguages.length === 0 && optionalCodes.length > 0) {
-			selectedOptionalContentLanguages = [...optionalCodes];
-			optionalLanguagesInitialized = true;
-			return;
-		}
-
-		if (!optionalLanguagesInitialized && optionalCodes.length === 0) {
-			optionalLanguagesInitialized = true;
-		}
+		return optionalContentLanguages
+			.map((language) => language.code)
+			.filter((code) => !excludedCodes.has(code));
 	});
 
 	const selectedContentLanguageCodes = $derived.by(() => {
@@ -162,37 +174,22 @@
 		return [...selectedCodes];
 	});
 
-	$effect(() => {
+	const selectedWebsiteLocale = $derived.by(() => {
 		if (websiteLocaleOptions.length === 0) {
-			selectedWebsiteLocale = '';
-			return;
+			return '';
 		}
 
-		const currentSelection = resolveWebsiteLocale(selectedWebsiteLocale, websiteLocaleOptions);
-		if (currentSelection) {
-			if (currentSelection !== selectedWebsiteLocale) {
-				selectedWebsiteLocale = currentSelection;
-			}
-			return;
-		}
-
-		const interfaceLocale = resolveWebsiteLocale(
-			translationState.currentLocale,
-			websiteLocaleOptions
+		return (
+			resolveWebsiteLocale(websiteLocalePreference, websiteLocaleOptions) ||
+			resolveWebsiteLocale(translationState.currentLocale, websiteLocaleOptions) ||
+			websiteLocaleOptions[0]?.code ||
+			''
 		);
-		selectedWebsiteLocale = interfaceLocale || websiteLocaleOptions[0]?.code || '';
 	});
 
-	$effect(() => {
-		if (currentPage !== _prevPage) {
-			_prevPage = currentPage;
-			performSearch();
-		}
-	});
-
-	onMount(() => {
+	watch(() => currentPage, () => {
 		performSearch();
-	});
+	}, { immediate: true });
 
 	let connectionFields = $derived.by(() => {
 		const fields = data.connectionFields;
@@ -342,25 +339,37 @@
 
 	function onStatusChanged(newStatus) {
 		selectedStatus = newStatus;
-		currentPage = 1;
+		if (currentPage !== 1) {
+			currentPage = 1;
+			return;
+		}
 		performSearch();
 	}
 
 	function onInstitutionsChanged(newInstitutions) {
 		selectedInstitutions = Array.isArray(newInstitutions) ? newInstitutions : [];
-		currentPage = 1;
+		if (currentPage !== 1) {
+			currentPage = 1;
+			return;
+		}
 		performSearch();
 	}
 
 	function onConnectionFiltersChanged(newFilters) {
 		connectionFilters = Array.isArray(newFilters) ? newFilters : [];
-		currentPage = 1;
+		if (currentPage !== 1) {
+			currentPage = 1;
+			return;
+		}
 		performSearch();
 	}
 
 	function onFreeTextFiltersChanged(newFilters) {
 		freeTextFilters = Array.isArray(newFilters) ? newFilters : [];
-		currentPage = 1;
+		if (currentPage !== 1) {
+			currentPage = 1;
+			return;
+		}
 		performSearch();
 	}
 
@@ -485,7 +494,10 @@
 					<select
 						id="website-export-language-select"
 						class="form-select"
-						bind:value={selectedWebsiteLocale}
+						value={selectedWebsiteLocale}
+						onchange={(event) => {
+							websiteLocalePreference = event.currentTarget.value;
+						}}
 						disabled={websiteLocaleOptions.length === 0}
 					>
 						{#each websiteLocaleOptions as language (language.code)}
@@ -522,8 +534,13 @@
 										id={`content-language-${language.code}`}
 										class="form-check-input"
 										type="checkbox"
-										value={language.code}
-										bind:group={selectedOptionalContentLanguages}
+										checked={selectedOptionalContentLanguages.includes(language.code)}
+										onchange={(event) => {
+											setOptionalContentLanguageEnabled(
+												language.code,
+												event.currentTarget.checked
+											);
+										}}
 									/>
 									<label class="form-check-label" for={`content-language-${language.code}`}>
 										{language.name}
