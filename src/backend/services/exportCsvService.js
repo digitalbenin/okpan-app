@@ -6,6 +6,7 @@ import yazl from 'yazl';
 import { and, inArray, eq } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
+import { resolveLogicalAssetPath } from './assetPaths.js';
 
 const SEP = ' || ';
 const ensureDir = (p) => fsPromises.mkdir(p, { recursive: true });
@@ -247,7 +248,10 @@ export async function exportProjectCsv(options,{ db }){
   const assetHeader = ['id','filename','file_type','size', ...propKeys.map(k=>`metadata_${k}`)];
   const assetRows = await Promise.all(assets.map(async a=>{
     let size='';
-    try{ if(a.path) size = String((await fsPromises.stat(a.path)).size); }catch{}
+    try {
+      const sourcePath = resolveLogicalAssetPath(a.path);
+      if (sourcePath) size = String((await fsPromises.stat(sourcePath)).size);
+    } catch {}
     const p = tryJSON(a.properties)||{};
     const cols = propKeys.map(k=>{
       const v = p[k];
@@ -352,16 +356,20 @@ export async function exportProjectCsv(options,{ db }){
     for (const ga of genericAssets) {
       if (!ga?.path) continue;
       try {
+        const sourcePath = resolveLogicalAssetPath(ga.path);
+        if (!sourcePath) continue;
         const base = ga.filename || String(ga.id);
-        await fsPromises.copyFile(ga.path, path.join(assetsDir, base));
+        await fsPromises.copyFile(sourcePath, path.join(assetsDir, base));
       } catch {}
     }
     // Copy object-linked assets
     for (const a of assets) {
       if (!a?.path) continue;
       try {
+        const sourcePath = resolveLogicalAssetPath(a.path);
+        if (!sourcePath) continue;
         const base = a.filename || String(a.id);
-        await fsPromises.copyFile(a.path, path.join(assetsDir, base));
+        await fsPromises.copyFile(sourcePath, path.join(assetsDir, base));
       } catch {}
     }
   }

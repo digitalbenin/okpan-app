@@ -6,6 +6,7 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import yazl from 'yazl';
 import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
+import { resolveLogicalAssetPath } from './assetPaths.js';
 
 // Utility: escape single quotes for SQL
 const sqlEscape = (val) => String(val).replace(/'/g, "''");
@@ -378,11 +379,15 @@ export async function exportProjectSql(options, { db }) {
     await ensureDir(assetsDir);
     for (const a of genericAssets) {
       if (!a?.path) continue;
-      const ok = await copyFileIfExists(a.path, path.join(assetsDir, a.filename || String(a.id)));
+      const sourcePath = resolveLogicalAssetPath(a.path);
+      if (!sourcePath) continue;
+      const ok = await copyFileIfExists(sourcePath, path.join(assetsDir, a.filename || String(a.id)));
     }
     for (const a of assets) {
       if (!a?.path) continue;
-      const ok = await copyFileIfExists(a.path, path.join(assetsDir, a.filename || String(a.id)));
+      const sourcePath = resolveLogicalAssetPath(a.path);
+      if (!sourcePath) continue;
+      const ok = await copyFileIfExists(sourcePath, path.join(assetsDir, a.filename || String(a.id)));
     }
   }
 

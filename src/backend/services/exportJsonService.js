@@ -6,6 +6,7 @@ import yazl from 'yazl';
 import { eq, inArray, and } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
+import { resolveLogicalAssetPath } from './assetPaths.js';
 
 async function ensureDir(dirPath) { await fsPromises.mkdir(dirPath, { recursive: true }); }
 async function writeJson(filePath, obj) { await ensureDir(path.dirname(filePath)); await fsPromises.writeFile(filePath, JSON.stringify(obj, null, 2), 'utf-8'); }
@@ -390,17 +391,21 @@ export async function exportProjectJson(options, { db }) {
     for (const a of assets) {
       if (!a?.path) continue;
       try {
-        const base = a.filename || path.basename(a.path || a.id);
+        const sourcePath = resolveLogicalAssetPath(a.path);
+        if (!sourcePath) continue;
+        const base = a.filename || path.basename(sourcePath || a.path || a.id);
         const dest = path.join(assetsDir, base);
-        await fsPromises.copyFile(a.path, dest);
+        await fsPromises.copyFile(sourcePath, dest);
       } catch { }
     }
     for (const ga of genericAssets) {
       if (!ga?.path) continue;
       try {
-        const base = ga.filename || path.basename(ga.path || ga.id);
+        const sourcePath = resolveLogicalAssetPath(ga.path);
+        if (!sourcePath) continue;
+        const base = ga.filename || path.basename(sourcePath || ga.path || ga.id);
         const dest = path.join(assetsDir, base);
-        await fsPromises.copyFile(ga.path, dest);
+        await fsPromises.copyFile(sourcePath, dest);
       } catch { }
     }
   }
