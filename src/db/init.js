@@ -1,18 +1,24 @@
 import { drizzle } from 'drizzle-orm/libsql';
+import { migrate } from 'drizzle-orm/libsql/migrator';
+import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { createClient } from '@libsql/client';
+import electron from 'electron';
 import * as schema from './schema.js';
 import { globalSettings, interface_languages, interface_translations } from './schema.js';
 import { eq } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
-import electron from 'electron';
 import { setGlobalClientIdNumber } from '../backend/services/projectCache.js';
+import { resolveApplicationRoot, resolveDatabasePath } from './runtimeDatabasePaths.js';
+import { populateInstitutionsSearchIndex } from './scripts/populateInstitutionsSearch.js';
+import { populateObjectSearchIndexes } from './scripts/populateObjectSearchIndexes.js';
+
 const { app } = electron;
 
 const GLOBAL_SETTINGS_ID = 1;
 const DEFAULT_INTERFACE_LANGUAGE_CODE = 'en';
-const DEFAULT_DB_RELATIVE_PATH = 'src/db/local.db';
+const DRIZZLE_MIGRATIONS_TABLE = '__drizzle_migrations';
 
 const USERNAME_ADJECTIVES = [
     'Amber',
@@ -40,57 +46,12 @@ const USERNAME_NOUNS = [
     'Wren'
 ];
 
-function pickRandom(items) {
-    return items[Math.floor(Math.random() * items.length)];
-}
-
-export function generateRandomUsername() {
-    const suffix = Math.floor(100 + Math.random() * 900);
-    return `${pickRandom(USERNAME_ADJECTIVES)}${pickRandom(USERNAME_NOUNS)}${suffix}`;
-}
-
-function resolveApplicationRoot() {
-    const isElectron = !!process.versions.electron;
-
-    if (isElectron && app?.isPackaged) {
-        return app.getAppPath?.()
-            || (process.resourcesPath ? path.join(process.resourcesPath, 'app') : process.cwd());
-    }
-
-    return process.cwd();
-}
-
-function resolveDatabasePath() {
-    const envPath = process.env.DB_FILE_NAME || DEFAULT_DB_RELATIVE_PATH;
-
-    if (path.isAbsolute(envPath)) {
-        return envPath;
-    }
-
-    if (app?.isPackaged) {
-        return path.join(APP_ROOT, envPath);
-    }
-
-    return path.resolve(envPath);
-}
-
-function getCurrentAppVersion() {
-    return app?.getVersion?.() || process.env.npm_package_version || '1.0.0';
-}
-
 const APP_ROOT = resolveApplicationRoot();
 const INTERFACE_TRANSLATIONS_DIR = path.join(APP_ROOT, 'src', 'assets', 'interface-translations');
-
-const parseJsonFile = (filePath) => {
-    const fileContent = fs.readFileSync(filePath, 'utf-8').replace(/^\uFEFF/, '');
-    return JSON.parse(fileContent);
-};
-
+const MIGRATIONS_FOLDER = path.join(APP_ROOT, 'src', 'db', 'migrations');
 const dbPath = resolveDatabasePath();
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-}
+
+ensureDirectoryExists(path.dirname(dbPath));
 
 console.log('Database path:', dbPath);
 console.log('Database exists:', fs.existsSync(dbPath));
@@ -101,24 +62,178 @@ const client = createClient({
 
 const db = drizzle(client, { schema });
 
-const ensureGlobalSettingsSchema = async () => {
-    try {
-        const result = await client.execute('PRAGMA table_info(global_settings)');
-        const columnNames = Array.isArray(result.rows)
-            ? result.rows.map((row) => row.name)
-            : [];
+let globalSettingsInitialization = null;
+let globalSettingsInitialized = false;
+let databaseReadyPromise = null;
 
-        if (!columnNames.includes('username')) {
-            await client.execute('ALTER TABLE global_settings ADD COLUMN username TEXT');
-            console.log('Added username column to global_settings');
+function pickRandom(items) {
+    return items[Math.floor(Math.random() * items.length)];
+}
+
+export function generateRandomUsername() {
+    const suffix = Math.floor(100 + Math.random() * 900);
+    return `${pickRandom(USERNAME_ADJECTIVES)}${pickRandom(USERNAME_NOUNS)}${suffix}`;
+}
+
+function ensureDirectoryExists(directoryPath) {
+    if (!fs.existsSync(directoryPath)) {
+        fs.mkdirSync(directoryPath, { recursive: true });
+    }
+}
+
+function getCurrentAppVersion() {
+    return app?.getVersion?.() || process.env.npm_package_version || '1.0.0';
+}
+
+function parseJsonFile(filePath) {
+    const fileContent = fs.readFileSync(filePath, 'utf-8').replace(/^\uFEFF/, '');
+    return JSON.parse(fileContent);
+}
+
+const getCountValue = (result) => Number(result.rows?.[0]?.count ?? 0);
+
+const sqliteObjectExists = async (type, name) => {
+    const result = await client.execute({
+        sql: 'SELECT 1 FROM sqlite_master WHERE type = ? AND name = ? LIMIT 1',
+        args: [type, name]
+    });
+
+    return result.rows.length > 0;
+};
+
+const getTableRowCount = async (tableName) => {
+    if (!(await sqliteObjectExists('table', tableName))) {
+        return 0;
+    }
+
+    const result = await client.execute(`SELECT COUNT(*) AS count FROM "${tableName}"`);
+    return getCountValue(result);
+};
+
+const getTableColumnNames = async (tableName) => {
+    const result = await client.execute(`PRAGMA table_info(${tableName})`);
+    return Array.isArray(result.rows)
+        ? result.rows.map((row) => row.name)
+        : [];
+};
+
+const ensureTableColumn = async (tableName, columnName, definition) => {
+    const columnNames = await getTableColumnNames(tableName);
+
+    if (columnNames.includes(columnName)) {
+        return false;
+    }
+
+    await client.execute(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+    return true;
+};
+
+const loadMigrationJournal = () => {
+    const journalPath = path.join(MIGRATIONS_FOLDER, 'meta', '_journal.json');
+
+    if (!fs.existsSync(journalPath)) {
+        return null;
+    }
+
+    return JSON.parse(fs.readFileSync(journalPath, 'utf8'));
+};
+
+const isLegacyMigrationAlreadyPresent = async (journalEntry) => {
+    if (journalEntry.idx === 0) {
+        return sqliteObjectExists('table', 'project');
+    }
+
+    if (journalEntry.tag.endsWith('institutions-search-fts')) {
+        return sqliteObjectExists('table', 'institutions_search');
+    }
+
+    if (journalEntry.tag.endsWith('object-search-fts')) {
+        return sqliteObjectExists('table', 'objects_search');
+    }
+
+    if (journalEntry.tag.endsWith('change-log-triggers')) {
+        return sqliteObjectExists('trigger', 'trg_project_change_log_insert');
+    }
+
+    if (journalEntry.tag.endsWith('change-log-junction-triggers')) {
+        return sqliteObjectExists('trigger', 'trg_objects_assets_change_log_insert');
+    }
+
+    return false;
+};
+
+const bootstrapMigrationJournal = async () => {
+    const journal = loadMigrationJournal();
+    if (!journal) {
+        return;
+    }
+
+    const migrationTableExists = await sqliteObjectExists('table', DRIZZLE_MIGRATIONS_TABLE);
+    if (migrationTableExists) {
+        const existingRows = await client.execute(`SELECT COUNT(*) AS count FROM "${DRIZZLE_MIGRATIONS_TABLE}"`);
+        if (getCountValue(existingRows) > 0) {
+            return;
+        }
+    }
+
+    if (!(await sqliteObjectExists('table', 'project'))) {
+        return;
+    }
+
+    const migrations = readMigrationFiles({ migrationsFolder: MIGRATIONS_FOLDER });
+    await client.execute(`
+        CREATE TABLE IF NOT EXISTS "${DRIZZLE_MIGRATIONS_TABLE}" (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            hash text NOT NULL,
+            created_at numeric
+        )
+    `);
+
+    for (const [index, journalEntry] of journal.entries.entries()) {
+        if (!(await isLegacyMigrationAlreadyPresent(journalEntry))) {
+            continue;
         }
 
-        if (!columnNames.includes('interface_language')) {
-            await client.execute('ALTER TABLE global_settings ADD COLUMN interface_language TEXT');
-            console.log('Added interface_language column to global_settings');
+        const migrationMeta = migrations[index];
+        await client.execute({
+            sql: `INSERT INTO "${DRIZZLE_MIGRATIONS_TABLE}" ("hash", "created_at") VALUES (?, ?)`,
+            args: [migrationMeta.hash, migrationMeta.folderMillis]
+        });
+    }
+};
+
+const ensureSearchIndexesPopulated = async () => {
+    if (await sqliteObjectExists('table', 'institutions_search')) {
+        const institutionsCount = await getTableRowCount('institutions');
+        const institutionsSearchCount = await getTableRowCount('institutions_search');
+
+        if (institutionsCount > 0 && institutionsSearchCount === 0) {
+            await populateInstitutionsSearchIndex(client, db);
         }
-    } catch (error) {
-        console.error('Error ensuring global settings schema:', error);
+    }
+
+    if (await sqliteObjectExists('table', 'objects_search')) {
+        const [objectsCount, objectsSearchCount] = await Promise.all([
+            getTableRowCount('objects'),
+            getTableRowCount('objects_search')
+        ]);
+        const [ontologyFieldsCount, ontologyFieldsSearchCount] = await Promise.all([
+            getTableRowCount('objects_ontology_fields'),
+            getTableRowCount('objects_ontology_fields_search')
+        ]);
+        const [researchFieldsCount, researchFieldsSearchCount] = await Promise.all([
+            getTableRowCount('objects_research_fields'),
+            getTableRowCount('objects_research_fields_search')
+        ]);
+
+        const needsObjectBackfill =
+            (objectsCount > 0 && objectsSearchCount === 0)
+            || (ontologyFieldsCount > 0 && ontologyFieldsSearchCount === 0)
+            || (researchFieldsCount > 0 && researchFieldsSearchCount === 0);
+
+        if (needsObjectBackfill) {
+            await populateObjectSearchIndexes(client, db);
+        }
     }
 };
 
@@ -176,6 +291,20 @@ const getBundledInterfaceTranslations = () => {
     }
 
     return { languages, translations };
+};
+
+const ensureGlobalSettingsSchema = async () => {
+    try {
+        if (await ensureTableColumn('global_settings', 'username', 'TEXT')) {
+            console.log('Added username column to global_settings');
+        }
+
+        if (await ensureTableColumn('global_settings', 'interface_language', 'TEXT')) {
+            console.log('Added interface_language column to global_settings');
+        }
+    } catch (error) {
+        console.error('Error ensuring global settings schema:', error);
+    }
 };
 
 const ensureDefaultInterfaceTranslations = async () => {
@@ -280,9 +409,6 @@ const ensureDefaultInterfaceTranslations = async () => {
     }
 };
 
-let globalSettingsInitialization = null;
-let globalSettingsInitialized = false;
-
 const initializeGlobalSettings = async () => {
     if (globalSettingsInitialized) {
         return;
@@ -346,7 +472,7 @@ const initializeGlobalSettings = async () => {
 };
 
 const getGlobalSettingsRow = async () => {
-    await initializeGlobalSettings();
+    await ensureDatabaseReady();
     const settings = await db
         .select()
         .from(globalSettings)
@@ -404,7 +530,7 @@ export const updateGlobalUsername = async (username) => {
         const normalizedUsername = typeof username === 'string' ? username.trim() : '';
         const nextUsername = normalizedUsername || generateRandomUsername();
 
-        await initializeGlobalSettings();
+        await ensureDatabaseReady();
         await db
             .update(globalSettings)
             .set({ username: nextUsername })
@@ -422,7 +548,7 @@ export const updateGlobalInterfaceLanguage = async (locale) => {
         const normalizedLocale = typeof locale === 'string' ? locale.trim() : '';
         const nextLocale = normalizedLocale || null;
 
-        await initializeGlobalSettings();
+        await ensureDatabaseReady();
         await db
             .update(globalSettings)
             .set({ interface_language: nextLocale })
@@ -435,6 +561,24 @@ export const updateGlobalInterfaceLanguage = async (locale) => {
     }
 };
 
-void initializeGlobalSettings();
+export const ensureDatabaseReady = async () => {
+    if (databaseReadyPromise) {
+        return databaseReadyPromise;
+    }
+
+    databaseReadyPromise = (async () => {
+        await bootstrapMigrationJournal();
+        await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+        await ensureSearchIndexesPopulated();
+        await initializeGlobalSettings();
+    })().catch((error) => {
+        databaseReadyPromise = null;
+        throw error;
+    });
+
+    return databaseReadyPromise;
+};
+
+void ensureDatabaseReady();
 
 export { db, client, dbPath };

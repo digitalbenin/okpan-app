@@ -10,7 +10,7 @@ Tutti i test dovrebbero essere eseguiti idealmente con almeno due istanze dell'a
 - installare le dipendenze con `yarn sintall`
 - se è presente un database da un'installazione precedente, cancellarlo con il comando `rm src/db/local.db`
 - reiniziare il database con `yarn db:push`
-- creare le tabelle per la ricerca e i trigger per la sync con `yarn db:search-setup`
+- avviare l'app per applicare automaticamente le migrazioni Drizzle, incluse quelle per la ricerca e i trigger di sync
 - avviare l'applicazione con `yarn start`
 
 ---

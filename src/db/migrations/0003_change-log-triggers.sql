@@ -1,11 +1,3 @@
--- Change Log Triggers for Core Project Tables
--- Ensure a canonical row-level event is written to change_log
--- for INSERT/UPDATE/DELETE operations across primary domain tables.
-
--- Helper note:
--- client_id is read from the singleton global_settings table (id=1).
--- origin is set to 'local' by default; remote ingestion may set different provenance.
-
 CREATE TRIGGER IF NOT EXISTS trg_project_change_log_insert
 AFTER INSERT ON project
 BEGIN
@@ -30,7 +22,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_project_change_log_update
 AFTER UPDATE ON project
 BEGIN
@@ -63,8 +55,7 @@ BEGIN
     )
   );
 END;
-
--- settings
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_settings_change_log_insert
 AFTER INSERT ON settings
 BEGIN
@@ -90,7 +81,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_settings_change_log_update
 AFTER UPDATE ON settings
 BEGIN
@@ -125,7 +116,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_settings_change_log_delete
 AFTER DELETE ON settings
 BEGIN
@@ -151,8 +142,7 @@ BEGIN
     )
   );
 END;
-
--- website_settings
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_website_settings_change_log_insert
 AFTER INSERT ON website_settings
 BEGIN
@@ -180,7 +170,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_website_settings_change_log_update
 AFTER UPDATE ON website_settings
 BEGIN
@@ -219,7 +209,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_website_settings_change_log_delete
 AFTER DELETE ON website_settings
 BEGIN
@@ -247,8 +237,7 @@ BEGIN
     )
   );
 END;
-
--- object_display_fields
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_object_display_fields_change_log_insert
 AFTER INSERT ON object_display_fields
 BEGIN
@@ -273,7 +262,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_object_display_fields_change_log_update
 AFTER UPDATE ON object_display_fields
 BEGIN
@@ -306,7 +295,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_object_display_fields_change_log_delete
 AFTER DELETE ON object_display_fields
 BEGIN
@@ -331,8 +320,7 @@ BEGIN
     )
   );
 END;
-
--- research_fields
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_research_fields_change_log_insert
 AFTER INSERT ON research_fields
 BEGIN
@@ -359,7 +347,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_research_fields_change_log_update
 AFTER UPDATE ON research_fields
 BEGIN
@@ -396,7 +384,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_research_fields_change_log_delete
 AFTER DELETE ON research_fields
 BEGIN
@@ -423,8 +411,7 @@ BEGIN
     )
   );
 END;
-
--- ontology_fields
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_ontology_fields_change_log_insert
 AFTER INSERT ON ontology_fields
 BEGIN
@@ -451,7 +438,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_ontology_fields_change_log_update
 AFTER UPDATE ON ontology_fields
 BEGIN
@@ -488,7 +475,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_ontology_fields_change_log_delete
 AFTER DELETE ON ontology_fields
 BEGIN
@@ -515,8 +502,7 @@ BEGIN
     )
   );
 END;
-
--- assets
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_assets_change_log_insert
 AFTER INSERT ON assets
 BEGIN
@@ -544,7 +530,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_assets_change_log_update
 AFTER UPDATE ON assets
 BEGIN
@@ -583,7 +569,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_assets_change_log_delete
 AFTER DELETE ON assets
 BEGIN
@@ -611,8 +597,7 @@ BEGIN
     )
   );
 END;
-
--- generic_assets
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_generic_assets_change_log_insert
 AFTER INSERT ON generic_assets
 BEGIN
@@ -639,7 +624,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_generic_assets_change_log_update
 AFTER UPDATE ON generic_assets
 BEGIN
@@ -676,7 +661,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_generic_assets_change_log_delete
 AFTER DELETE ON generic_assets
 BEGIN
@@ -703,8 +688,7 @@ BEGIN
     )
   );
 END;
-
--- objects
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_change_log_insert
 AFTER INSERT ON objects
 WHEN NEW.project_id IS NOT NULL
@@ -730,7 +714,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_change_log_update
 AFTER UPDATE ON objects
 WHEN COALESCE(NEW.project_id, OLD.project_id) IS NOT NULL
@@ -764,7 +748,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_change_log_delete
 AFTER DELETE ON objects
 WHEN OLD.project_id IS NOT NULL
@@ -790,8 +774,7 @@ BEGIN
     )
   );
 END;
-
--- templates
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_templates_change_log_insert
 AFTER INSERT ON templates
 BEGIN
@@ -815,7 +798,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_templates_change_log_update
 AFTER UPDATE ON templates
 BEGIN
@@ -846,7 +829,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_templates_change_log_delete
 AFTER DELETE ON templates
 BEGIN
@@ -870,8 +853,7 @@ BEGIN
     )
   );
 END;
-
--- languages
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_languages_change_log_insert
 AFTER INSERT ON languages
 BEGIN
@@ -896,7 +878,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_languages_change_log_update
 AFTER UPDATE ON languages
 BEGIN
@@ -929,7 +911,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_languages_change_log_delete
 AFTER DELETE ON languages
 BEGIN
@@ -954,8 +936,7 @@ BEGIN
     )
   );
 END;
-
--- institutions
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_institutions_change_log_insert
 AFTER INSERT ON institutions
 WHEN NEW.project_id IS NOT NULL
@@ -988,7 +969,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_institutions_change_log_update
 AFTER UPDATE ON institutions
 WHEN COALESCE(NEW.project_id, OLD.project_id) IS NOT NULL
@@ -1036,8 +1017,7 @@ BEGIN
     )
   );
 END;
-
--- texts
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_texts_change_log_insert
 AFTER INSERT ON texts
 WHEN (SELECT project_id FROM languages WHERE id = NEW.original_language_id) IS NOT NULL
@@ -1062,7 +1042,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_texts_change_log_update
 AFTER UPDATE ON texts
 WHEN COALESCE(
@@ -1100,7 +1080,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_texts_change_log_delete
 AFTER DELETE ON texts
 WHEN (SELECT project_id FROM languages WHERE id = OLD.original_language_id) IS NOT NULL
@@ -1125,8 +1105,7 @@ BEGIN
     )
   );
 END;
-
--- translations
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_translations_change_log_insert
 AFTER INSERT ON translations
 WHEN (SELECT project_id FROM languages WHERE id = NEW.language_id) IS NOT NULL
@@ -1151,7 +1130,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_translations_change_log_update
 AFTER UPDATE ON translations
 WHEN COALESCE(
@@ -1189,7 +1168,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_translations_change_log_delete
 AFTER DELETE ON translations
 WHEN (SELECT project_id FROM languages WHERE id = OLD.language_id) IS NOT NULL
@@ -1214,8 +1193,7 @@ BEGIN
     )
   );
 END;
-
--- vocabularies
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_vocabularies_change_log_insert
 AFTER INSERT ON vocabularies
 WHEN COALESCE(
@@ -1247,7 +1225,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_vocabularies_change_log_update
 AFTER UPDATE ON vocabularies
 WHEN COALESCE(
@@ -1287,7 +1265,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_vocabularies_change_log_delete
 AFTER DELETE ON vocabularies
 WHEN COALESCE(
@@ -1319,8 +1297,7 @@ BEGIN
     )
   );
 END;
-
--- datasources
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_datasources_change_log_insert
 AFTER INSERT ON datasources
 WHEN (SELECT project_id FROM institutions WHERE id = NEW.institution_id) IS NOT NULL
@@ -1350,7 +1327,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_datasources_change_log_update
 AFTER UPDATE ON datasources
 WHEN (SELECT project_id FROM institutions WHERE id = COALESCE(NEW.institution_id, OLD.institution_id)) IS NOT NULL
@@ -1392,7 +1369,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_datasources_change_log_delete
 AFTER DELETE ON datasources
 WHEN (SELECT project_id FROM institutions WHERE id = OLD.institution_id) IS NOT NULL
@@ -1422,7 +1399,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_institutions_change_log_delete
 AFTER DELETE ON institutions
 WHEN OLD.project_id IS NOT NULL

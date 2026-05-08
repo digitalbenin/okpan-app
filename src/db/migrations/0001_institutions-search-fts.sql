@@ -1,4 +1,3 @@
--- Create the FTS virtual table for institutions search
 CREATE VIRTUAL TABLE IF NOT EXISTS institutions_search USING FTS5(
   institution_id,
   text_id,
@@ -7,25 +6,28 @@ CREATE VIRTUAL TABLE IF NOT EXISTS institutions_search USING FTS5(
   language_id,
   tokenize='porter unicode61'
 );
-
+--> statement-breakpoint
 DROP TRIGGER IF EXISTS institution_delete;
+--> statement-breakpoint
 DROP TRIGGER IF EXISTS institution_insert;
+--> statement-breakpoint
 DROP TRIGGER IF EXISTS institution_text_ref_update;
+--> statement-breakpoint
 DROP TRIGGER IF EXISTS text_content_change;
+--> statement-breakpoint
 DROP TRIGGER IF EXISTS translation_insert;
+--> statement-breakpoint
 DROP TRIGGER IF EXISTS translation_content_change;
+--> statement-breakpoint
 DROP TRIGGER IF EXISTS translation_delete;
-
--- Trigger for when an institution is deleted
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS institution_delete AFTER DELETE ON institutions
 BEGIN
   DELETE FROM institutions_search WHERE institution_id = OLD.id;
 END;
-
--- Trigger for when an institution is created
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS institution_insert AFTER INSERT ON institutions
 BEGIN
-  -- Index original-language text content
   INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
   SELECT NEW.id, NEW.name_id, 'name', t.content, t.original_language_id
   FROM texts t
@@ -42,8 +44,6 @@ BEGIN
   SELECT NEW.id, NEW.location_id, 'location', t.content, t.original_language_id
   FROM texts t
   WHERE NEW.location_id IS NOT NULL AND t.id = NEW.location_id;
-
-  -- Index all existing translations for referenced texts
   INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
   SELECT NEW.id, NEW.name_id, 'name', tr.content, tr.language_id
   FROM translations tr
@@ -61,16 +61,12 @@ BEGIN
   FROM translations tr
   WHERE NEW.location_id IS NOT NULL AND tr.text_id = NEW.location_id;
 END;
-
--- Trigger for when institution text references change
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS institution_text_ref_update AFTER UPDATE ON institutions
-WHEN OLD.name_id != NEW.name_id OR OLD.description_id != NEW.description_id 
+WHEN OLD.name_id != NEW.name_id OR OLD.description_id != NEW.description_id
   OR OLD.country_id != NEW.country_id OR OLD.location_id != NEW.location_id
 BEGIN
-  -- Reindex this institution from scratch using current references
   DELETE FROM institutions_search WHERE institution_id = NEW.id;
-
-  -- Index original-language text content
   INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
   SELECT NEW.id, NEW.name_id, 'name', t.content, t.original_language_id
   FROM texts t
@@ -87,8 +83,6 @@ BEGIN
   SELECT NEW.id, NEW.location_id, 'location', t.content, t.original_language_id
   FROM texts t
   WHERE NEW.location_id IS NOT NULL AND t.id = NEW.location_id;
-
-  -- Index all existing translations for referenced texts
   INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
   SELECT NEW.id, NEW.name_id, 'name', tr.content, tr.language_id
   FROM translations tr
@@ -106,22 +100,18 @@ BEGIN
   FROM translations tr
   WHERE NEW.location_id IS NOT NULL AND tr.text_id = NEW.location_id;
 END;
-
--- Trigger for when text content changes
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS text_content_change AFTER UPDATE OF content ON texts
 BEGIN
-  -- Update all institutions_search entries that reference this text
-  UPDATE institutions_search 
+  UPDATE institutions_search
   SET content = NEW.content
   WHERE text_id = NEW.id AND language_id = NEW.original_language_id;
 END;
-
--- Trigger for when a new translation is added
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS translation_insert AFTER INSERT ON translations
 BEGIN
-  -- Find institutions that reference this text and add to search index
   INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
-  SELECT 
+  SELECT
     i.id,
     NEW.text_id,
     CASE
@@ -133,22 +123,19 @@ BEGIN
     NEW.content,
     NEW.language_id
   FROM institutions i
-  WHERE i.name_id = NEW.text_id OR i.description_id = NEW.text_id 
+  WHERE i.name_id = NEW.text_id OR i.description_id = NEW.text_id
      OR i.country_id = NEW.text_id OR i.location_id = NEW.text_id;
 END;
-
--- Trigger for when a translation changes
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS translation_content_change AFTER UPDATE OF content ON translations
 BEGIN
-  -- Update all institutions_search entries that reference this translation
-  UPDATE institutions_search 
+  UPDATE institutions_search
   SET content = NEW.content
   WHERE text_id = NEW.text_id AND language_id = NEW.language_id;
 END;
-
--- Trigger for when a translation is deleted
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS translation_delete AFTER DELETE ON translations
 BEGIN
-  DELETE FROM institutions_search 
+  DELETE FROM institutions_search
   WHERE text_id = OLD.text_id AND language_id = OLD.language_id;
-END; 
+END;

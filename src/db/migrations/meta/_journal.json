@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1778233101349,
+      "tag": "0000_grey_morph",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1778233101839,
+      "tag": "0001_institutions-search-fts",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778233102339,
+      "tag": "0002_object-search-fts",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778233102821,
+      "tag": "0003_change-log-triggers",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1778233103298,
+      "tag": "0004_change-log-junction-triggers",
+      "breakpoints": true
+    }
+  ]
+}

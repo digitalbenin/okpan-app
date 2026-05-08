@@ -2,6 +2,7 @@ import initSqlJs from 'sql.js';
 import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 
 let dbPromise = null;
+const DEFAULT_DATABASE_URL = 'media://app-db/current.db';
 
 function normalizeLocale(locale) {
   return typeof locale === 'string' ? locale.trim().toLowerCase() : '';
@@ -64,10 +65,10 @@ function buildTextPayloadMap(db, textIds = []) {
 /**
  * Initialize the client-side sql.js database from a static asset.
  * Subsequent calls return the same promise.
- * @param {string} dbUrl path to the DB file (default: 'media://db/local.db')
+ * @param {string} dbUrl runtime URL for the DB file (default: 'media://app-db/current.db')
  * @returns {Promise<import('sql.js').Database>}
  */
-export function initClientDb(dbUrl = 'media://src/db/local.db') {
+export function initClientDb(dbUrl = DEFAULT_DATABASE_URL) {
   if (dbPromise) return dbPromise;
 
   dbPromise = (async () => {

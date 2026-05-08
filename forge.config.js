@@ -317,13 +317,6 @@ export default {
                 'website static export build'
             );
 
-            // Copy the development SQLite database into the packaged app
-            await copyPathIfExists(
-                path.join(process.cwd(), 'src', 'db', 'local.db'),
-                path.join(buildPath, 'src', 'db', 'local.db'),
-                'database file'
-            );
-
             // Copy ontology default fields JSON into the packaged app
             await copyPathIfExists(
                 path.join(process.cwd(), 'src', 'db', 'default_ontology_fields.json'),

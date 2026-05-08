@@ -1,18 +1,17 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net, powerMonitor } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net, powerMonitor } from 'electron';
 import serve from 'electron-serve';
 import started from 'electron-squirrel-startup';
 import 'dotenv/config';
+import EventEmitter from 'events';
 import path from 'path';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { lookup as dnsLookup } from 'dns/promises';
-import { fileURLToPath } from 'url';
+import { eq, isNull } from 'drizzle-orm';
 
 const MIN_WINDOW_WIDTH = 800;
 const MIN_WINDOW_HEIGHT = 600;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const CONNECTIVITY_PROBE_HOSTS = (process.env.CONNECTIVITY_PROBE_HOSTS || 'cloudflare.com,google.com,microsoft.com')
   .split(',')
   .map((host) => host.trim())
@@ -87,11 +86,14 @@ restoreRegisterSchemesAsPrivileged();
 // Import database and schema
 import {
   db,
+  dbPath,
+  ensureDatabaseReady,
   getGlobalProfile,
   updateGlobalUsername,
   getGlobalSettings,
   updateGlobalInterfaceLanguage
 } from '../db/init.js';
+import { DATABASE_MEDIA_ALIAS } from '../db/runtimeDatabasePaths.js';
 import { createGraphQLSchema } from '../db/graphqlDefs.js';
 
 // Import handlers
@@ -109,7 +111,6 @@ import { startP2PForProject, stopP2PForProject, getP2PProvider, getProjectPeersC
 import { startChangeLogTailer } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot, hydrateProjectFromDatabase } from './services/snapshotService.js';
 import { createRecoverySnapshot, deleteRecoverySnapshot, listRecoverySnapshots, prepareSessionOpenRecoverySnapshot, restoreRecoverySnapshot } from './services/recoverySnapshotService.js';
-import { eq, sql, isNull } from 'drizzle-orm';
 import {
   handleExportProject,
   handleExportConnections,
@@ -118,7 +119,6 @@ import {
   handleImportConnectionTypeCsv
 } from './handlers/exportHandlers.js';
 import { handleListLanguages } from './handlers/languagesHandlers.js';
-// import { applyMigration } from '../db/scripts/applyMigration.js';
 import { handleCreateBackup, handleSelectBackupFile, handleCheckBackupFile, handleRestoreBackup } from './handlers/backupHandler.js';
 import {
   startReconcileLoop,
@@ -132,7 +132,6 @@ import { isSharedProject } from '../lib/utils/projectSharing.js';
 
 // Trystero + WebTorrent open many concurrent sockets per project. Bump the
 // global EventEmitter listener cap to avoid spurious MaxListenersExceededWarnings.
-import EventEmitter from 'events';
 EventEmitter.defaultMaxListeners = 50;
 
 // Suppress noisy Trystero relay-failure logs (relay redundancy is expected;
@@ -154,8 +153,9 @@ process.on('uncaughtException', (error) => {
   // Optionally, re-throw or handle fatal errors appropriately here
 });
 
-app.disableHardwareAcceleration()
+app.disableHardwareAcceleration();
 
+// Main-process state shared across network, window, and project runtime helpers.
 let currentNetworkStatus = {
   online: true,
   source: 'startup',
@@ -170,7 +170,11 @@ let consecutiveConnectivityProbeFailures = 0;
 const openedProjectsThisSession = new Set();
 const sessionOpenSnapshotJobs = new Map();
 const pendingProjectJoins = new Set();
+let tailerStarted = false;
+const reconnectP2PJobs = new Map();
+const delayedReconcileStarts = new Map();
 
+// Renderer notifications and connectivity monitoring.
 function sendToAllWindows(channel, payload) {
   for (const window of BrowserWindow.getAllWindows()) {
     if (window.isDestroyed() || window.webContents.isDestroyed()) continue;
@@ -278,6 +282,42 @@ function stopConnectivityProbe() {
   consecutiveConnectivityProbeFailures = 0;
 }
 
+function sendToEventSender(event, channel, payload, warningMessage) {
+  const sender = event?.sender;
+  if (!sender || sender.isDestroyed()) {
+    return false;
+  }
+
+  try {
+    sender.send(channel, payload);
+    return true;
+  } catch (error) {
+    console.warn(warningMessage, error);
+    return false;
+  }
+}
+
+function notifyProjectDataChanged(event, projectId, origin) {
+  return sendToEventSender(
+    event,
+    'data-changed',
+    { projectId, origin },
+    'Failed to notify frontend of data change'
+  );
+}
+
+function notifyProjectPresence(event, projectId) {
+  return sendToEventSender(
+    event,
+    'project-presence-changed',
+    {
+      projectId,
+      presence: getProjectPresence(projectId)
+    },
+    'Failed to notify frontend of project presence'
+  );
+}
+
 setPresenceNotifier((projectId, presence) => {
   sendToAllWindows('project-presence-changed', { projectId, presence });
 });
@@ -290,237 +330,194 @@ if (started) {
   app.quit();
 }
 
-// Register IPC handlers
-ipcMain.handle('ping', handlePing);
-ipcMain.handle('get-system-info', () => ({
-  arch: process.arch,
-  platform: process.platform,
-  isDev: !!MAIN_WINDOW_VITE_DEV_SERVER_URL
-}));
-ipcMain.handle('network-status:get', () => {
-  const netOnline = app.isReady() ? net.isOnline() : null;
-  console.log('[Network] network-status:get', {
-    cached: currentNetworkStatus,
-    netOnline
+const withDatabaseContext = (handler) => (event, payload) => handler(event, payload, { db });
+const withGraphQLContext = (handler) => (event, payload) =>
+  handler(event, payload, { schema, resolvers, db });
+
+function registerCoreIpcHandlers() {
+  ipcMain.handle('ping', handlePing);
+  ipcMain.handle('get-system-info', () => ({
+    arch: process.arch,
+    platform: process.platform,
+    isDev: !!MAIN_WINDOW_VITE_DEV_SERVER_URL
+  }));
+  ipcMain.handle('network-status:get', () => {
+    const netOnline = app.isReady() ? net.isOnline() : null;
+    console.log('[Network] network-status:get', {
+      cached: currentNetworkStatus,
+      netOnline
+    });
+
+    return {
+      ...currentNetworkStatus,
+      netOnline
+    };
   });
-  return {
-    ...currentNetworkStatus,
-    netOnline
-  };
-});
-ipcMain.handle('execute-graphql', (event, params) =>
-  handleGraphQL(event, params, { schema, resolvers, db })
-);
-ipcMain.handle('export-translations', (event, filePath) =>
-  handleExportTranslations(event, filePath, { schema, resolvers, db })
-);
-ipcMain.handle('import-translations', (event, filePath) =>
-  handleImportTranslations(event, filePath, { schema, resolvers, db })
-);
-ipcMain.handle('import-assets', (event, data) =>
-  handleImportAssets(event, data)
-);
-ipcMain.handle('open-file-dialog', handleFileDialog);
-ipcMain.handle('import-structured-data', handleStructuredDataImport);
-ipcMain.handle('excel-sheet-selection', handleExcelSheetSelection);
-ipcMain.handle('languages:list', handleListLanguages);
-ipcMain.handle('global-profile:get', async () => {
-  return getGlobalProfile();
-});
-ipcMain.handle('global-profile:update', async (event, username) => {
-  const profile = await updateGlobalUsername(username);
-  await refreshAllProjectPresence();
-  sendToAllWindows('global-profile-changed', profile);
-  return profile;
-});
 
-// P2P Sharing Settings & Joining
-ipcMain.handle('project-set-password', async (event, { projectId, password }) => {
-  try {
-    const { eq } = await import('drizzle-orm');
-    const { project } = await import('../db/schema.js');
-    await db.update(project).set({ password }).where(eq(project.id, projectId)).execute();
-    setPendingProjectPassword(projectId, password || null);
-    return { success: true };
-  } catch (err) {
-    console.error('[P2P] Failed to set password:', err);
-    return { success: false, error: err.message };
-  }
-});
+  ipcMain.handle('execute-graphql', withGraphQLContext(handleGraphQL));
+  ipcMain.handle('export-translations', withGraphQLContext(handleExportTranslations));
+  ipcMain.handle('import-translations', withGraphQLContext(handleImportTranslations));
+  ipcMain.handle('import-assets', handleImportAssets);
+  ipcMain.handle('open-file-dialog', handleFileDialog);
+  ipcMain.handle('import-structured-data', handleStructuredDataImport);
+  ipcMain.handle('excel-sheet-selection', handleExcelSheetSelection);
+  ipcMain.handle('languages:list', handleListLanguages);
+  ipcMain.handle('global-profile:get', async () => getGlobalProfile());
+  ipcMain.handle('global-profile:update', async (_event, username) => {
+    const profile = await updateGlobalUsername(username);
+    await refreshAllProjectPresence();
+    sendToAllWindows('global-profile-changed', profile);
+    return profile;
+  });
+  ipcMain.handle('global-settings:get', async () => getGlobalSettings());
+  ipcMain.handle('global-settings:update-interface-language', async (_event, locale) =>
+    updateGlobalInterfaceLanguage(locale)
+  );
 
-ipcMain.handle('project-join-p2p', async (event, { projectId, password }) => {
-  try {
-    pendingProjectJoins.add(projectId);
-    setPendingProjectPassword(projectId, password || null);
-    clearDelayedReconcileStart(projectId);
-    await stopProjectTorrents(projectId);
-    await stopP2PForProject(projectId);
-
-    return { success: true, projectId };
-  } catch (err) {
-    console.error('[P2P] Failed to join P2P project:', err);
-    return { success: false, error: err.message };
-  }
-});
-  ipcMain.handle('project-suspend-p2p', async (event, projectId) => {
+  ipcMain.handle('project-set-password', async (_event, { projectId, password }) => {
     try {
-      if (!projectId) return { success: false, error: 'No projectId provided' };
+      await db.update(project).set({ password }).where(eq(project.id, projectId)).execute();
+      setPendingProjectPassword(projectId, password || null);
+      return { success: true };
+    } catch (err) {
+      console.error('[P2P] Failed to set password:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('project-join-p2p', async (_event, { projectId, password }) => {
+    try {
+      pendingProjectJoins.add(projectId);
+      setPendingProjectPassword(projectId, password || null);
       clearDelayedReconcileStart(projectId);
       await stopProjectTorrents(projectId);
-      
-      const wasRunning = !!getP2PProvider(projectId);
-      if (wasRunning) {
+      await stopP2PForProject(projectId);
+
+      return { success: true, projectId };
+    } catch (err) {
+      console.error('[P2P] Failed to join P2P project:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('project-suspend-p2p', async (_event, projectId) => {
+    try {
+      if (!projectId) {
+        return { success: false, error: 'No projectId provided' };
+      }
+
+      clearDelayedReconcileStart(projectId);
+      await stopProjectTorrents(projectId);
+
+      if (getP2PProvider(projectId)) {
         await stopP2PForProject(projectId);
       }
+
       return { success: true };
     } catch (err) {
       console.error('[P2P] Failed to suspend P2P project:', err);
       return { success: false, error: err.message };
     }
   });
-ipcMain.handle('project-reconnect-p2p', async (event, projectId) => {
-  const normalizedProjectId = typeof projectId === 'string' ? projectId : projectId?.projectId;
-  const passwordOverride = typeof projectId === 'string' ? undefined : projectId?.password;
 
-  if (reconnectP2PJobs.has(normalizedProjectId)) {
-    console.log('[P2P] reconnect request deduped', { projectId: normalizedProjectId });
-    return reconnectP2PJobs.get(normalizedProjectId);
-  }
+  ipcMain.handle('project-reconnect-p2p', async (event, payload) => {
+    const normalizedProjectId = typeof payload === 'string' ? payload : payload?.projectId;
+    const passwordOverride = typeof payload === 'string' ? undefined : payload?.password;
 
-  const reconnectJob = (async () => {
-    try {
-      if (!normalizedProjectId) return { success: false, error: 'No projectId provided' };
-      const sharedProject = await isProjectShared(normalizedProjectId);
-      console.log('[P2P] reconnect requested', {
-        projectId: normalizedProjectId,
-        sharedProject,
-        hadProvider: !!getP2PProvider(normalizedProjectId),
-        hasPasswordOverride: passwordOverride !== undefined,
-      });
-      clearDelayedReconcileStart(normalizedProjectId);
-
-      if (passwordOverride !== undefined) {
-        setPendingProjectPassword(normalizedProjectId, passwordOverride || null);
-      }
-
-      const wasRunning = !!getP2PProvider(normalizedProjectId);
-      await stopProjectTorrents(normalizedProjectId);
-      if (wasRunning) {
-        await stopP2PForProject(normalizedProjectId);
-      }
-
-      if (!sharedProject) {
-        return { success: true, skipped: true, reason: 'project-is-private' };
-      }
-
-      const notifyFrontend = () => {
-        if (event?.sender && !event.sender.isDestroyed()) {
-          try {
-            event.sender.send('data-changed', { projectId: normalizedProjectId, origin: 'p2p' });
-          } catch (notifyError) {
-            console.warn('Failed to notify frontend of data change', notifyError);
-          }
-        }
-      };
-
-      await startP2PForProject(normalizedProjectId, {
-        onDataChange: notifyFrontend,
-        skipHydration: true,
-      });
-
-      try {
-        event?.sender?.send('project-presence-changed', {
-          projectId: normalizedProjectId,
-          presence: getProjectPresence(normalizedProjectId)
-        });
-      } catch (presenceError) {
-        console.warn('Failed to notify frontend of project presence', presenceError);
-      }
-
-      scheduleDelayedReconcileStart(normalizedProjectId);
-
-      console.log('[P2P] reconnect completed', {
-        projectId: normalizedProjectId,
-        hadProvider: wasRunning,
-        hasProvider: !!getP2PProvider(normalizedProjectId),
-        peers: getProjectPeersCount(normalizedProjectId)
-      });
-
-      return { success: true };
-    } catch (err) {
-      console.error('[P2P] Failed to reconnect P2P project:', err);
-      return { success: false, error: err.message };
-    } finally {
-      reconnectP2PJobs.delete(normalizedProjectId);
+    if (reconnectP2PJobs.has(normalizedProjectId)) {
+      console.log('[P2P] reconnect request deduped', { projectId: normalizedProjectId });
+      return reconnectP2PJobs.get(normalizedProjectId);
     }
-  })();
 
-  reconnectP2PJobs.set(normalizedProjectId, reconnectJob);
-  return reconnectJob;
-});
+    const reconnectJob = (async () => {
+      try {
+        if (!normalizedProjectId) {
+          return { success: false, error: 'No projectId provided' };
+        }
 
-ipcMain.handle('global-settings:get', async () => getGlobalSettings());
-ipcMain.handle('global-settings:update-interface-language', async (event, locale) =>
-  updateGlobalInterfaceLanguage(locale)
-);
+        const sharedProject = await isProjectShared(normalizedProjectId);
+        console.log('[P2P] reconnect requested', {
+          projectId: normalizedProjectId,
+          sharedProject,
+          hadProvider: !!getP2PProvider(normalizedProjectId),
+          hasPasswordOverride: passwordOverride !== undefined,
+        });
+        clearDelayedReconcileStart(normalizedProjectId);
 
-// Static website export
-ipcMain.handle('export-static-website', async (event, options) => {
-  try {
-    const { exportStaticWebsite } = await import('./services/websiteExportService.js');
-    return await exportStaticWebsite(options.projectId, options.outputPath, {
-      db,
-      filters: options.filters,
-      appPath: app.getAppPath(),
-      resourcesPath: process.resourcesPath,
-      userDataPath: app.getPath('userData'),
-      isPackaged: app.isPackaged,
-      basePath: options.basePath,
-      locale: options.locale
-    });
-  } catch (error) {
-    console.error('Error exporting static website:', error);
-    throw error;
-  }
-});
+        if (passwordOverride !== undefined) {
+          setPendingProjectPassword(normalizedProjectId, passwordOverride || null);
+        }
 
-// New generic export channel supports { format: 'sql' | 'json', ... }
-ipcMain.handle('export-project', (event, options) =>
-  handleExportProject(event, options, { db })
-);
+        const wasRunning = !!getP2PProvider(normalizedProjectId);
+        await stopProjectTorrents(normalizedProjectId);
+        if (wasRunning) {
+          await stopP2PForProject(normalizedProjectId);
+        }
 
-ipcMain.handle('export-connections', (event, options) =>
-  handleExportConnections(event, options, { db })
-);
+        if (!sharedProject) {
+          return { success: true, skipped: true, reason: 'project-is-private' };
+        }
 
-ipcMain.handle('import-connections', (event, options) =>
-  handleImportConnections(event, options, { db })
-);
+        await startP2PForProject(normalizedProjectId, {
+          onDataChange: () => notifyProjectDataChanged(event, normalizedProjectId, 'p2p'),
+          skipHydration: true,
+        });
 
-ipcMain.handle('export-connection-type-csv', (event, options) =>
-  handleExportConnectionTypeCsv(event, options, { db })
-);
+        notifyProjectPresence(event, normalizedProjectId);
+        scheduleDelayedReconcileStart(normalizedProjectId);
 
-ipcMain.handle('import-connection-type-csv', (event, options) =>
-  handleImportConnectionTypeCsv(event, options, { db })
-);
+        console.log('[P2P] reconnect completed', {
+          projectId: normalizedProjectId,
+          hadProvider: wasRunning,
+          hasProvider: !!getP2PProvider(normalizedProjectId),
+          peers: getProjectPeersCount(normalizedProjectId)
+        });
 
-// Backup handlers
-ipcMain.handle('backup-create', (event, options) =>
-  handleCreateBackup(event, options, { db })
-);
-ipcMain.handle('backup-select-file', handleSelectBackupFile);
-ipcMain.handle('backup-check-file', (event, options) =>
-  handleCheckBackupFile(event, options, { db })
-);
-ipcMain.handle('backup-restore', (event, options) =>
-  handleRestoreBackup(event, options, { db })
-);
+        return { success: true };
+      } catch (err) {
+        console.error('[P2P] Failed to reconnect P2P project:', err);
+        return { success: false, error: err.message };
+      } finally {
+        reconnectP2PJobs.delete(normalizedProjectId);
+      }
+    })();
+
+    reconnectP2PJobs.set(normalizedProjectId, reconnectJob);
+    return reconnectJob;
+  });
+
+  ipcMain.handle('export-static-website', async (_event, options) => {
+    try {
+      const { exportStaticWebsite } = await import('./services/websiteExportService.js');
+      return await exportStaticWebsite(options.projectId, options.outputPath, {
+        db,
+        filters: options.filters,
+        appPath: app.getAppPath(),
+        resourcesPath: process.resourcesPath,
+        userDataPath: app.getPath('userData'),
+        isPackaged: app.isPackaged,
+        basePath: options.basePath,
+        locale: options.locale
+      });
+    } catch (error) {
+      console.error('Error exporting static website:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('export-project', withDatabaseContext(handleExportProject));
+  ipcMain.handle('export-connections', withDatabaseContext(handleExportConnections));
+  ipcMain.handle('import-connections', withDatabaseContext(handleImportConnections));
+  ipcMain.handle('export-connection-type-csv', withDatabaseContext(handleExportConnectionTypeCsv));
+  ipcMain.handle('import-connection-type-csv', withDatabaseContext(handleImportConnectionTypeCsv));
+
+  ipcMain.handle('backup-create', withDatabaseContext(handleCreateBackup));
+  ipcMain.handle('backup-select-file', handleSelectBackupFile);
+  ipcMain.handle('backup-check-file', withDatabaseContext(handleCheckBackupFile));
+  ipcMain.handle('backup-restore', withDatabaseContext(handleRestoreBackup));
+}
 
 // Project cache handlers
-let tailerStarted = false;
-const reconnectP2PJobs = new Map();
-const delayedReconcileStarts = new Map();
 
 function clearDelayedReconcileStart(projectId) {
   const timer = delayedReconcileStarts.get(projectId);
@@ -635,31 +632,14 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
   }
 
   try {
-    const notifyFrontend = () => {
-      if (event && event.sender && !event.sender.isDestroyed()) {
-        try {
-          event.sender.send('data-changed', { projectId, origin: 'p2p' });
-        } catch (e) {
-          console.warn('Failed to notify frontend of data change', e);
-        }
-      }
-    };
-
     await startP2PForProject(projectId, { 
-      onDataChange: notifyFrontend,
+      onDataChange: () => notifyProjectDataChanged(event, projectId, 'p2p'),
       skipHydration: true // Already handled by hydrateSnapshot logic above
     });
     if (sharedProject) {
       pendingProjectJoins.delete(projectId);
     }
-    try {
-      event.sender.send('project-presence-changed', {
-        projectId,
-        presence: getProjectPresence(projectId)
-      });
-    } catch (presenceError) {
-      console.warn('Failed to notify frontend of project presence', presenceError);
-    }
+    notifyProjectPresence(event, projectId);
   } catch (err) {
     console.error('Failed to start P2P provider for project', projectId, err);
   }
@@ -669,317 +649,322 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
   return { success: true };
 }
 
-ipcMain.handle('set-current-project', async (event, projectId) => {
-  // Set project in cache using existing handler
-  const res = handleSetCurrentProject(event, projectId);
-  if (!res?.success) {
-    return res;
-  }
-  await bootstrapProjectRuntime(event, projectId, { hydrateSnapshot: true, captureSessionSnapshot: true });
-  return { ...res, hydrated: true };
-});
-ipcMain.handle('get-current-project', handleGetCurrentProject);
-ipcMain.handle('clear-current-project', handleClearCurrentProject);
-
-ipcMain.handle('get-project-peers', (event, projectId) => {
-  return getProjectPeersCount(projectId);
-});
-ipcMain.handle('project-presence:get', (event, projectId) => {
-  return getProjectPresence(projectId);
-});
-
-// Y.Doc inspection handler (returns plain JS object)
-ipcMain.handle('ydoc-dump', async (event, projectId) => {
-  try {
-    if (!projectId || typeof projectId !== 'string') {
-      throw new Error('ydoc-dump requires a valid projectId string');
-    }
-    const doc = getProjectDoc(projectId);
-    const meta = doc.getMap('meta').toJSON();
-    const tables = doc.getMap('tables').toJSON();
-    // Compute simple row counts to aid debugging/hydration verification
-    let totalRows = 0;
-    const rowCounts = {};
-    try {
-      doc.getMap('tables').forEach((tableMap, key) => {
-        const size = typeof tableMap?.size === 'number' ? tableMap.size : 0;
-        rowCounts[key] = size;
-        totalRows += size;
-      });
-    } catch { }
-    return { meta, tables, guid: doc.guid, rowCounts, totalRows };
-  } catch (error) {
-    console.error('Error in ydoc-dump:', error);
-    throw error;
-  }
-});
-
-// Asset mapping handlers
-ipcMain.handle('suggest-object-matches', async (event, assets, options) => {
-  try {
-    return await suggestObjectMatches(assets, options);
-  } catch (error) {
-    console.error('Error in suggest-object-matches:', error);
-    throw error;
-  }
-});
-
-ipcMain.handle('suggest-field-mappings', async (event, csvFieldNames, options) => {
-  try {
-    return await suggestFieldMappings(csvFieldNames, options);
-  } catch (error) {
-    console.error('Error in suggest-field-mappings:', error);
-    throw error;
-  }
-});
-
-// Template matching handlers
-ipcMain.handle('suggest-template-reuse', async (event, inputHeaders, projectId) => {
-  try {
-    return await handleSuggestTemplateReuse(event, inputHeaders, projectId);
-  } catch (error) {
-    console.error('Error in suggest-template-reuse:', error);
-    throw error;
-  }
-});
-
-// Embedding handlers
-ipcMain.handle('compute-all-missing-embeddings', async (event) => {
-  try {
-    const fieldsWithoutEmbeddings = await db
-      .select({
-        field_id: ontology_fields.id,
-        name_content: texts.content,
-        description_content: texts.content
-      })
-      .from(ontology_fields)
-      .leftJoin(texts, eq(ontology_fields.name_id, texts.id))
-      .where(isNull(ontology_fields.embeddings))
-      .execute();
-
-    await embeddingService.initialize();
-
-    for (const field of fieldsWithoutEmbeddings) {
-      const embedding = await embeddingService.computeOntologyFieldEmbedding(
-        field.name_content,
-        field.description_content
-      );
-
-      if (embedding) {
-        await db
-          .update(ontology_fields)
-          .set({ embeddings: embedding })
-          .where(eq(ontology_fields.id, field.field_id))
-          .execute();
-      }
+function registerProjectRuntimeIpcHandlers() {
+  ipcMain.handle('set-current-project', async (event, projectId) => {
+    const result = handleSetCurrentProject(event, projectId);
+    if (!result?.success) {
+      return result;
     }
 
-    return fieldsWithoutEmbeddings.length;
-  } catch (error) {
-    console.error('Error computing embeddings:', error);
-    throw error;
-  }
-});
-
-// Handler for reading file content
-ipcMain.handle('read-file', async (event, filePath) => {
-  if (!filePath || typeof filePath !== 'string') {
-    throw new Error('Invalid file path provided.');
-  }
-  // Basic security check (optional): Ensure it's an absolute path if needed
-  // or restrict to certain directories if required.
-  // For now, we assume the path provided by dialog is trustworthy enough
-  try {
-    const content = await fsPromises.readFile(filePath, 'utf-8');
-    return content;
-  } catch (error) {
-    console.error(`Error reading file ${filePath}:`, error);
-    // Rethrow a more generic error or specific error code
-    throw new Error(`Failed to read file: ${error.message}`);
-  }
-});
-
-ipcMain.on('open-preview', async (event, projectId) => {
-  const previewWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: MIN_WINDOW_WIDTH,
-    minHeight: MIN_WINDOW_HEIGHT,
-    webPreferences: {
-      preload: path.join(import.meta.dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
-  });
-
-  const globalSettings = await getGlobalSettings();
-  const previewUrl = new URL('http://localhost:5174');
-  previewUrl.searchParams.set('project_id', projectId);
-
-  if (globalSettings?.interfaceLanguage) {
-    previewUrl.searchParams.set('interface_language', globalSettings.interfaceLanguage);
-  }
-
-  previewWindow.loadURL(previewUrl.toString());
-});
-
-// Snapshot management IPC
-ipcMain.handle('snapshot-create', async (event, projectId) => {
-  try {
-    if (!projectId || typeof projectId !== 'string') {
-      throw new Error('snapshot-create requires a valid projectId');
-    }
-    const result = await createProjectSnapshot(projectId);
-    return { success: true, result };
-  } catch (error) {
-    console.error('Error in snapshot:create:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('snapshot-hydrate', async (event, projectId) => {
-  try {
-    if (!projectId || typeof projectId !== 'string') {
-      throw new Error('snapshot-hydrate requires a valid projectId');
-    }
-    const wasRunning = !!getP2PProvider(projectId);
-    if (wasRunning) {
-      await stopP2PForProject(projectId);
-    }
-    const result = await hydrateProjectFromLatestSnapshot(projectId);
-    if (wasRunning) {
-      await startP2PForProject(projectId, { skipHydration: true });
-    }
-    return { success: true, result };
-  } catch (error) {
-    console.error('Error in snapshot-hydrate:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('recovery-snapshots-list', async (_event, projectId) => {
-  try {
-    if (!projectId || typeof projectId !== 'string') {
-      throw new Error('recovery-snapshots-list requires a valid projectId');
-    }
-
-    const snapshots = await listRecoverySnapshots(projectId, { limit: 10 });
-    return { success: true, snapshots };
-  } catch (error) {
-    console.error('Error in recovery-snapshots-list:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('recovery-snapshots-create', async (_event, payload) => {
-  try {
-    const projectId = typeof payload === 'string' ? payload : payload?.projectId;
-    const reason = typeof payload === 'string' ? null : payload?.reason ?? null;
-    if (!projectId || typeof projectId !== 'string') {
-      throw new Error('recovery-snapshots-create requires a valid projectId');
-    }
-
-    const snapshot = await createRecoverySnapshot(projectId, {
-      trigger: 'manual',
-      reason,
-      isAutomatic: false,
+    await bootstrapProjectRuntime(event, projectId, {
+      hydrateSnapshot: true,
+      captureSessionSnapshot: true
     });
 
-    return { success: true, snapshot };
-  } catch (error) {
-    console.error('Error in recovery-snapshots-create:', error);
-    return { success: false, error: error.message };
-  }
-});
+    return { ...result, hydrated: true };
+  });
+  ipcMain.handle('get-current-project', handleGetCurrentProject);
+  ipcMain.handle('clear-current-project', handleClearCurrentProject);
+  ipcMain.handle('get-project-peers', (_event, projectId) => getProjectPeersCount(projectId));
+  ipcMain.handle('project-presence:get', (_event, projectId) => getProjectPresence(projectId));
 
-ipcMain.handle('recovery-snapshots-restore', async (event, payload) => {
-  try {
-    const projectId = payload?.projectId;
-    const snapshotId = payload?.snapshotId;
-    if (!projectId || typeof projectId !== 'string') {
-      throw new Error('recovery-snapshots-restore requires a valid projectId');
+  ipcMain.handle('ydoc-dump', async (_event, projectId) => {
+    try {
+      if (!projectId || typeof projectId !== 'string') {
+        throw new Error('ydoc-dump requires a valid projectId string');
+      }
+
+      const doc = getProjectDoc(projectId);
+      const meta = doc.getMap('meta').toJSON();
+      const tables = doc.getMap('tables').toJSON();
+      let totalRows = 0;
+      const rowCounts = {};
+
+      try {
+        doc.getMap('tables').forEach((tableMap, key) => {
+          const size = typeof tableMap?.size === 'number' ? tableMap.size : 0;
+          rowCounts[key] = size;
+          totalRows += size;
+        });
+      } catch {}
+
+      return { meta, tables, guid: doc.guid, rowCounts, totalRows };
+    } catch (error) {
+      console.error('Error in ydoc-dump:', error);
+      throw error;
     }
-    if (!snapshotId || typeof snapshotId !== 'string') {
-      throw new Error('recovery-snapshots-restore requires a valid snapshotId');
+  });
+}
+
+function registerAnalysisIpcHandlers() {
+  ipcMain.handle('suggest-object-matches', async (_event, assets, options) => {
+    try {
+      return await suggestObjectMatches(assets, options);
+    } catch (error) {
+      console.error('Error in suggest-object-matches:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('suggest-field-mappings', async (_event, csvFieldNames, options) => {
+    try {
+      return await suggestFieldMappings(csvFieldNames, options);
+    } catch (error) {
+      console.error('Error in suggest-field-mappings:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('suggest-template-reuse', async (event, inputHeaders, projectId) => {
+    try {
+      return await handleSuggestTemplateReuse(event, inputHeaders, projectId);
+    } catch (error) {
+      console.error('Error in suggest-template-reuse:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('compute-all-missing-embeddings', async () => {
+    try {
+      const fieldsWithoutEmbeddings = await db
+        .select({
+          field_id: ontology_fields.id,
+          name_content: texts.content,
+          description_content: texts.content
+        })
+        .from(ontology_fields)
+        .leftJoin(texts, eq(ontology_fields.name_id, texts.id))
+        .where(isNull(ontology_fields.embeddings))
+        .execute();
+
+      await embeddingService.initialize();
+
+      for (const field of fieldsWithoutEmbeddings) {
+        const embedding = await embeddingService.computeOntologyFieldEmbedding(
+          field.name_content,
+          field.description_content
+        );
+
+        if (embedding) {
+          await db
+            .update(ontology_fields)
+            .set({ embeddings: embedding })
+            .where(eq(ontology_fields.id, field.field_id))
+            .execute();
+        }
+      }
+
+      return fieldsWithoutEmbeddings.length;
+    } catch (error) {
+      console.error('Error computing embeddings:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('read-file', async (_event, filePath) => {
+    if (!filePath || typeof filePath !== 'string') {
+      throw new Error('Invalid file path provided.');
     }
 
-    clearDelayedReconcileStart(projectId);
-    const hadProvider = !!getP2PProvider(projectId);
+    try {
+      return await fsPromises.readFile(filePath, 'utf-8');
+    } catch (error) {
+      console.error(`Error reading file ${filePath}:`, error);
+      throw new Error(`Failed to read file: ${error.message}`);
+    }
+  });
+}
 
-    await stopProjectTorrents(projectId);
-    if (hadProvider) {
-      await stopP2PForProject(projectId);
+function registerPreviewAndSnapshotIpcHandlers() {
+  ipcMain.on('open-preview', async (_event, projectId) => {
+    const previewWindow = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      minWidth: MIN_WINDOW_WIDTH,
+      minHeight: MIN_WINDOW_HEIGHT,
+      webPreferences: {
+        preload: path.join(import.meta.dirname, 'preload.js'),
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    const globalSettings = await getGlobalSettings();
+    const previewUrl = new URL('http://localhost:5174');
+    previewUrl.searchParams.set('project_id', projectId);
+
+    if (globalSettings?.interfaceLanguage) {
+      previewUrl.searchParams.set('interface_language', globalSettings.interfaceLanguage);
     }
 
-    const result = await restoreRecoverySnapshot(projectId, snapshotId);
+    previewWindow.loadURL(previewUrl.toString());
+  });
 
-    if (hadProvider) {
-      await startP2PForProject(projectId, { skipHydration: true });
+  ipcMain.handle('snapshot-create', async (_event, projectId) => {
+    try {
+      if (!projectId || typeof projectId !== 'string') {
+        throw new Error('snapshot-create requires a valid projectId');
+      }
+
+      const result = await createProjectSnapshot(projectId);
+      return { success: true, result };
+    } catch (error) {
+      console.error('Error in snapshot:create:', error);
+      return { success: false, error: error.message };
     }
+  });
 
-    scheduleDelayedReconcileStart(projectId);
+  ipcMain.handle('snapshot-hydrate', async (_event, projectId) => {
+    try {
+      if (!projectId || typeof projectId !== 'string') {
+        throw new Error('snapshot-hydrate requires a valid projectId');
+      }
 
-    if (event?.sender && !event.sender.isDestroyed()) {
-      event.sender.send('data-changed', { projectId, origin: 'recovery-snapshot-restore' });
+      const wasRunning = !!getP2PProvider(projectId);
+      if (wasRunning) {
+        await stopP2PForProject(projectId);
+      }
+
+      const result = await hydrateProjectFromLatestSnapshot(projectId);
+      if (wasRunning) {
+        await startP2PForProject(projectId, { skipHydration: true });
+      }
+
+      return { success: true, result };
+    } catch (error) {
+      console.error('Error in snapshot-hydrate:', error);
+      return { success: false, error: error.message };
     }
+  });
 
-    return { success: true, result };
-  } catch (error) {
-    console.error('Error in recovery-snapshots-restore:', error);
-    return { success: false, error: error.message };
-  }
-});
+  ipcMain.handle('recovery-snapshots-list', async (_event, projectId) => {
+    try {
+      if (!projectId || typeof projectId !== 'string') {
+        throw new Error('recovery-snapshots-list requires a valid projectId');
+      }
 
-ipcMain.handle('recovery-snapshots-delete', async (_event, payload) => {
-  try {
-    const projectId = payload?.projectId;
-    const snapshotId = payload?.snapshotId;
-    if (!projectId || typeof projectId !== 'string') {
-      throw new Error('recovery-snapshots-delete requires a valid projectId');
+      const snapshots = await listRecoverySnapshots(projectId, { limit: 10 });
+      return { success: true, snapshots };
+    } catch (error) {
+      console.error('Error in recovery-snapshots-list:', error);
+      return { success: false, error: error.message };
     }
-    if (!snapshotId || typeof snapshotId !== 'string') {
-      throw new Error('recovery-snapshots-delete requires a valid snapshotId');
+  });
+
+  ipcMain.handle('recovery-snapshots-create', async (_event, payload) => {
+    try {
+      const projectId = typeof payload === 'string' ? payload : payload?.projectId;
+      const reason = typeof payload === 'string' ? null : payload?.reason ?? null;
+      if (!projectId || typeof projectId !== 'string') {
+        throw new Error('recovery-snapshots-create requires a valid projectId');
+      }
+
+      const snapshot = await createRecoverySnapshot(projectId, {
+        trigger: 'manual',
+        reason,
+        isAutomatic: false,
+      });
+
+      return { success: true, snapshot };
+    } catch (error) {
+      console.error('Error in recovery-snapshots-create:', error);
+      return { success: false, error: error.message };
     }
+  });
 
-    const result = await deleteRecoverySnapshot(projectId, snapshotId);
-    return { success: true, result };
-  } catch (error) {
-    console.error('Error in recovery-snapshots-delete:', error);
-    return { success: false, error: error.message };
-  }
-});
+  ipcMain.handle('recovery-snapshots-restore', async (event, payload) => {
+    try {
+      const projectId = payload?.projectId;
+      const snapshotId = payload?.snapshotId;
+      if (!projectId || typeof projectId !== 'string') {
+        throw new Error('recovery-snapshots-restore requires a valid projectId');
+      }
+      if (!snapshotId || typeof snapshotId !== 'string') {
+        throw new Error('recovery-snapshots-restore requires a valid snapshotId');
+      }
 
-// Asset P2P sync status handler (for UI queries)
-ipcMain.handle('asset-sync-status', async (event, projectId) => {
-  try {
-    if (!projectId || typeof projectId !== 'string') {
-      throw new Error('asset-sync-status requires a valid projectId');
+      clearDelayedReconcileStart(projectId);
+      const hadProvider = !!getP2PProvider(projectId);
+
+      await stopProjectTorrents(projectId);
+      if (hadProvider) {
+        await stopP2PForProject(projectId);
+      }
+
+      const result = await restoreRecoverySnapshot(projectId, snapshotId);
+
+      if (hadProvider) {
+        await startP2PForProject(projectId, { skipHydration: true });
+      }
+
+      scheduleDelayedReconcileStart(projectId);
+      notifyProjectDataChanged(event, projectId, 'recovery-snapshot-restore');
+
+      return { success: true, result };
+    } catch (error) {
+      console.error('Error in recovery-snapshots-restore:', error);
+      return { success: false, error: error.message };
     }
-    const status = await getProjectSyncStatus(projectId);
-    return { success: true, status };
-  } catch (error) {
-    console.error('Error in asset-sync-status:', error);
-    return { success: false, error: error.message };
-  }
-});
+  });
 
-// Manual reconcile trigger (for refresh button, debug, or targeted renderer recovery)
-ipcMain.handle('asset-sync-reconcile', async (event, payload) => {
-  try {
-    const projectId = typeof payload === 'string' ? payload : payload?.projectId;
-    const assetId = typeof payload === 'string' ? null : payload?.assetId ?? null;
-    if (!projectId || typeof projectId !== 'string') {
-      throw new Error('asset-sync-reconcile requires a valid projectId');
+  ipcMain.handle('recovery-snapshots-delete', async (_event, payload) => {
+    try {
+      const projectId = payload?.projectId;
+      const snapshotId = payload?.snapshotId;
+      if (!projectId || typeof projectId !== 'string') {
+        throw new Error('recovery-snapshots-delete requires a valid projectId');
+      }
+      if (!snapshotId || typeof snapshotId !== 'string') {
+        throw new Error('recovery-snapshots-delete requires a valid snapshotId');
+      }
+
+      const result = await deleteRecoverySnapshot(projectId, snapshotId);
+      return { success: true, result };
+    } catch (error) {
+      console.error('Error in recovery-snapshots-delete:', error);
+      return { success: false, error: error.message };
     }
-    scheduleAssetReconcile(projectId, assetId);
-    return { success: true };
-  } catch (error) {
-    console.error('Error in asset-sync-reconcile:', error);
-    return { success: false, error: error.message };
-  }
-});
+  });
 
-// Helper function for path resolution
+  ipcMain.handle('asset-sync-status', async (_event, projectId) => {
+    try {
+      if (!projectId || typeof projectId !== 'string') {
+        throw new Error('asset-sync-status requires a valid projectId');
+      }
+
+      const status = await getProjectSyncStatus(projectId);
+      return { success: true, status };
+    } catch (error) {
+      console.error('Error in asset-sync-status:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('asset-sync-reconcile', async (_event, payload) => {
+    try {
+      const projectId = typeof payload === 'string' ? payload : payload?.projectId;
+      const assetId = typeof payload === 'string' ? null : payload?.assetId ?? null;
+      if (!projectId || typeof projectId !== 'string') {
+        throw new Error('asset-sync-reconcile requires a valid projectId');
+      }
+
+      scheduleAssetReconcile(projectId, assetId);
+      return { success: true };
+    } catch (error) {
+      console.error('Error in asset-sync-reconcile:', error);
+      return { success: false, error: error.message };
+    }
+  });
+}
+
+function registerIpcHandlers() {
+  registerCoreIpcHandlers();
+  registerProjectRuntimeIpcHandlers();
+  registerAnalysisIpcHandlers();
+  registerPreviewAndSnapshotIpcHandlers();
+}
+
+// Media and website protocol resolution.
 function resolveMediaPath(urlObj, requestUrl) {
   let pathStr;
 
@@ -1005,6 +990,11 @@ function resolveMediaPath(urlObj, requestUrl) {
     if (!/^[a-zA-Z]:\//.test(pathStr)) {
       pathStr = pathStr.replace(/^\//, '');
     }
+  }
+
+  const normalizedLogicalPath = pathStr.replace(/^\/+/, '');
+  if (normalizedLogicalPath === DATABASE_MEDIA_ALIAS) {
+    return dbPath ? path.normalize(dbPath) : null;
   }
 
   // Windows drive format (C:/Users/...)
@@ -1069,20 +1059,20 @@ function resolveMediaPath(urlObj, requestUrl) {
   return candidates.find(fs.existsSync) || null;
 }
 
-// Create window function
+// Main application window bootstrap.
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 1080,
-  minWidth: MIN_WINDOW_WIDTH,
-  minHeight: MIN_WINDOW_HEIGHT,
+    minWidth: MIN_WINDOW_WIDTH,
+    minHeight: MIN_WINDOW_HEIGHT,
     icon: path.join(app.getAppPath(), 'src/assets/logo_wip.png'),
     webPreferences: {
       preload: path.join(app.getAppPath(), '.vite/preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: true  // Enable sandboxing
+      sandbox: true
     },
   });
 
@@ -1140,8 +1130,7 @@ const createWindow = () => {
   setMainWindowContents(mainWindow.webContents);
 };
 
-// Initialize app
-app.whenReady().then(() => {
+function registerPowerMonitorHandlers() {
   powerMonitor.on('suspend', () => {
     broadcastNetworkStatus(false, 'electron-suspend');
   });
@@ -1149,10 +1138,9 @@ app.whenReady().then(() => {
   powerMonitor.on('resume', () => {
     broadcastNetworkStatus(true, 'electron-resume');
   });
+}
 
-  // startConnectivityProbe();
-
-  // Register media protocol handler
+function registerMediaProtocol() {
   protocol.registerFileProtocol('media', (request, callback) => {
     try {
       const resolvedPath = resolveMediaPath(new URL(request.url), request.url);
@@ -1167,13 +1155,12 @@ app.whenReady().then(() => {
       callback({ error: -2 });
     }
   });
+}
 
-  // Serve SPA build via custom website:// protocol
-  // URL format: website://app/path - 'app' is the host, path is the file
+function registerWebsiteProtocol() {
   protocol.registerFileProtocol('website', (request, callback) => {
     try {
       const url = new URL(request.url);
-      // pathname starts with / so we remove it
       const pathname = decodeURIComponent(url.pathname).replace(/^\//, '');
       const websiteRootDir = app.isPackaged ? app.getAppPath() : process.cwd();
       const buildDir = path.join(websiteRootDir, 'src', 'website', 'build');
@@ -1181,27 +1168,44 @@ app.whenReady().then(() => {
         ? path.join(buildDir, 'index.html')
         : path.join(buildDir, '200.html');
 
-      let filePath;
-      if (!pathname || pathname === '' || pathname === 'index.html' || pathname === '200.html') {
-        filePath = spaShellPath;
-      } else {
-        filePath = path.join(buildDir, pathname);
-      }
+      const filePath = !pathname || pathname === 'index.html' || pathname === '200.html'
+        ? spaShellPath
+        : path.join(buildDir, pathname);
 
       if (fs.existsSync(filePath)) {
         callback({ path: filePath });
-      } else {
-        if (fs.existsSync(spaShellPath)) {
-          callback({ path: spaShellPath });
-        } else {
-          callback({ error: -6 });
-        }
+        return;
       }
+
+      if (fs.existsSync(spaShellPath)) {
+        callback({ path: spaShellPath });
+        return;
+      }
+
+      callback({ error: -6 });
     } catch (error) {
       console.error('Website protocol error:', error);
       callback({ error: -2 });
     }
   });
+}
+
+function registerFileProtocols() {
+  registerMediaProtocol();
+  registerWebsiteProtocol();
+}
+
+registerIpcHandlers();
+
+// Application lifecycle.
+app.whenReady().then(async () => {
+  registerPowerMonitorHandlers();
+
+  // startConnectivityProbe();
+
+  await ensureDatabaseReady();
+
+  registerFileProtocols();
 
   createWindow();
 });

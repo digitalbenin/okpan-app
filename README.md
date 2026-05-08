@@ -47,10 +47,12 @@ An Electron application for managing collections, built with:
    DB_FILE_NAME=src/db/local.db
    ```
 
-3. Initialize the database:
+3. Generate schema migrations when the schema changes:
    ```bash
-   npm run db:push
+   npm run db:generate
    ```
+
+4. Start the app to apply migrations and initialize the local database.
 
 ## Development
 
@@ -65,10 +67,10 @@ npm start
 1. **Initialize the database**:
 
    ```bash
-   npm run db:push
+   npm run db:generate
    ```
 
-   This creates the database with the schema defined in your project.
+   This updates the SQL migration files from the current Drizzle schema. The app applies those migrations automatically at startup.
 
 2. **Seed the database**:
 
@@ -76,7 +78,7 @@ npm start
    npm run db:seed
    ```
 
-   This populates the database with initial data from the default location (`src/db/seed_data`).
+   This is a development-only workflow for local authoring and sample-data preparation. It does not run during packaging or app startup.
    You can also specify a custom path for your seed data using the `--data-path` argument:
 
    ```bash
@@ -91,19 +93,19 @@ npm start
 
    Note that this process will create a folder of images for the project. In case you need to reset, this image folder must be deleted manually.
 
-3. **Set up search functionality**:
+3. **Runtime migrations**:
 
-   ```bash
-   npm run db:search-setup
-   ```
+   The packaged app applies schema and custom SQL migrations automatically at startup, including the FTS and change-log trigger migrations under `src/db/migrations`.
 
-   This creates and configures the full-text search index for institutions, including setting up the required tables, triggers, and populating the search index with institution data and translations.
+4. **Local database location**:
 
-4. **Complete database setup (all-in-one)**:
-   ```bash
-   npm run db:setup-all
-   ```
-   This unified command runs all three steps above in sequence (push schema, seed data, and setup search).
+   In development, the default database remains `src/db/local.db` unless `DB_FILE_NAME` overrides it.
+   In packaged builds, the live database is created under Electron's `userData` directory so app reinstalls and upgrades do not rely on writable files inside the application bundle.
+
+5. **Sample project distribution**:
+
+   The sample project should be distributed as an external `.dctx` backup artifact, not shipped inside the installer or seeded into the packaged database.
+   The recommended workflow is to curate the sample project in development, export it with the standard project backup flow, and let users import it on demand through the existing restore-backup UI.
 
 ### Development Tools
 

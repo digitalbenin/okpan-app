@@ -1,8 +1,3 @@
--- Change Log Triggers for Junction/Association Tables
--- Emits one row into change_log for INSERT/UPDATE/DELETE on junction tables.
--- Derives project_id via parent references.
-
--- objects_assets
 CREATE TRIGGER IF NOT EXISTS trg_objects_assets_change_log_insert
 AFTER INSERT ON objects_assets
 WHEN COALESCE(
@@ -33,7 +28,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_assets_change_log_update
 AFTER UPDATE ON objects_assets
 WHEN COALESCE(
@@ -71,7 +66,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_assets_change_log_delete
 AFTER DELETE ON objects_assets
 WHEN COALESCE(
@@ -102,8 +97,7 @@ BEGIN
     )
   );
 END;
-
--- assets_institutions
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_assets_institutions_change_log_insert
 AFTER INSERT ON assets_institutions
 WHEN COALESCE(
@@ -134,7 +128,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_assets_institutions_change_log_update
 AFTER UPDATE ON assets_institutions
 WHEN COALESCE(
@@ -172,7 +166,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_assets_institutions_change_log_delete
 AFTER DELETE ON assets_institutions
 WHEN COALESCE(
@@ -203,8 +197,7 @@ BEGIN
     )
   );
 END;
-
--- objects_research_fields
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_research_fields_change_log_insert
 AFTER INSERT ON objects_research_fields
 WHEN COALESCE(
@@ -236,7 +229,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_research_fields_change_log_update
 AFTER UPDATE ON objects_research_fields
 WHEN COALESCE(
@@ -276,7 +269,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_research_fields_change_log_delete
 AFTER DELETE ON objects_research_fields
 WHEN COALESCE(
@@ -308,8 +301,7 @@ BEGIN
     )
   );
 END;
-
--- objects_ontology_fields
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_ontology_fields_change_log_insert
 AFTER INSERT ON objects_ontology_fields
 WHEN COALESCE(
@@ -346,7 +338,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_ontology_fields_change_log_update
 AFTER UPDATE ON objects_ontology_fields
 WHEN COALESCE(
@@ -394,7 +386,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_ontology_fields_change_log_delete
 AFTER DELETE ON objects_ontology_fields
 WHEN COALESCE(
@@ -431,8 +423,7 @@ BEGIN
     )
   );
 END;
-
--- vocabularies_generic_assets
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_vocabularies_generic_assets_change_log_insert
 AFTER INSERT ON vocabularies_generic_assets
 BEGIN
@@ -459,7 +450,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_vocabularies_generic_assets_change_log_update
 AFTER UPDATE ON vocabularies_generic_assets
 BEGIN
@@ -493,7 +484,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_vocabularies_generic_assets_change_log_delete
 AFTER DELETE ON vocabularies_generic_assets
 BEGIN
@@ -520,8 +511,7 @@ BEGIN
     )
   );
 END;
-
--- objects_datasources
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_datasources_change_log_insert
 AFTER INSERT ON objects_datasources
 WHEN (SELECT project_id FROM objects WHERE id = NEW.object_id) IS NOT NULL
@@ -546,7 +536,7 @@ BEGIN
     NULL
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_datasources_change_log_update
 AFTER UPDATE ON objects_datasources
 WHEN (SELECT project_id FROM objects WHERE id = COALESCE(NEW.object_id, OLD.object_id)) IS NOT NULL
@@ -578,7 +568,7 @@ BEGIN
     )
   );
 END;
-
+--> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS trg_objects_datasources_change_log_delete
 AFTER DELETE ON objects_datasources
 WHEN (SELECT project_id FROM objects WHERE id = OLD.object_id) IS NOT NULL
