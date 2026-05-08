@@ -6,6 +6,7 @@ import * as dbSchema from '../schema.js';
 import { stopP2PForProject } from '../../backend/services/p2pService.js';
 import { clearCurrentProjectId, disposeProjectDoc, getCurrentProjectId } from '../../backend/services/projectCache.js';
 import { deleteProjectRecoverySnapshots } from '../../backend/services/recoverySnapshotService.js';
+import { resolveProjectAssetPath } from '../../backend/services/assetPaths.js';
 import { isSharedProject } from '../../lib/utils/projectSharing.js';
 
 const normalizeIdList = (values) => {
@@ -467,7 +468,7 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
             const snapshotFolderErrors = [];
             let assetsFolderRemoved = false;
             let snapshotsFolderRemoved = false;
-            const projectAssetsFolder = path.join(process.cwd(), 'src', 'assets', 'project_assets', projectId);
+            const projectAssetsFolder = resolveProjectAssetPath(projectId);
 
             try {
                 await fs.rm(projectAssetsFolder, { recursive: true, force: true });

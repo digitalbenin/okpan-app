@@ -7,6 +7,11 @@ import yauzl from 'yauzl';
 import { eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import { removePathRobust } from './fsUtils.js';
+import {
+  LOGICAL_ASSET_ROOT,
+  resolveProjectAssetPath,
+  toLogicalStoredAssetPath,
+} from './assetPaths.js';
 
 const sqlEscape = (val) => String(val).replace(/'/g, "''");
 
@@ -92,6 +97,75 @@ const formatValue = (val) => {
   
   return `'${sqlEscape(String(val))}'`;
 };
+
+function normalizeAssetPathReference(filePath, projectId) {
+  if (!filePath || typeof filePath !== 'string') {
+    return filePath;
+  }
+
+  const normalizedPath = toLogicalStoredAssetPath(filePath);
+  if (typeof normalizedPath === 'string' && normalizedPath.startsWith(LOGICAL_ASSET_ROOT)) {
+    return normalizedPath;
+  }
+
+  const fileName = path.basename(filePath);
+  if (!fileName) {
+    return normalizedPath;
+  }
+
+  return `${LOGICAL_ASSET_ROOT}/${projectId}/${fileName}`;
+}
+
+function normalizeAssetFormats(formats, projectId) {
+  if (!formats || typeof formats !== 'object') {
+    return formats;
+  }
+
+  const normalizedFormats = {};
+  for (const [key, value] of Object.entries(formats)) {
+    normalizedFormats[key] = normalizeAssetPathReference(value, projectId);
+  }
+
+  return normalizedFormats;
+}
+
+function normalizeAssetRowsForBackup(rows, projectId) {
+  return rows.map((row) => ({
+    ...row,
+    path: normalizeAssetPathReference(row.path, projectId),
+    formats: normalizeAssetFormats(row.formats, projectId),
+  }));
+}
+
+async function normalizeRestoredAssetRows(projectId, { db }) {
+  const assetRows = await db.select().from(dbSchema.assets)
+    .where(eq(dbSchema.assets.project_id, projectId))
+    .execute();
+
+  for (const assetRow of assetRows) {
+    await db.update(dbSchema.assets)
+      .set({
+        path: normalizeAssetPathReference(assetRow.path, projectId),
+        formats: normalizeAssetFormats(assetRow.formats, projectId),
+      })
+      .where(eq(dbSchema.assets.id, assetRow.id))
+      .execute();
+  }
+
+  const genericAssetRows = await db.select().from(dbSchema.genericAssets)
+    .where(eq(dbSchema.genericAssets.project_id, projectId))
+    .execute();
+
+  for (const assetRow of genericAssetRows) {
+    await db.update(dbSchema.genericAssets)
+      .set({
+        path: normalizeAssetPathReference(assetRow.path, projectId),
+        formats: normalizeAssetFormats(assetRow.formats, projectId),
+      })
+      .where(eq(dbSchema.genericAssets.id, assetRow.id))
+      .execute();
+  }
+}
 
 const generateInsertStatements = (tableName, rows) => {
   if (!rows || rows.length === 0) return '';
@@ -613,6 +687,7 @@ export async function createProjectBackup(options, { db }) {
   const assets = await db.select().from(dbSchema.assets)
     .where(eq(dbSchema.assets.project_id, project_id))
     .execute();
+  const normalizedAssets = normalizeAssetRowsForBackup(assets, project_id);
   const assetIds = assets.map(a => a.id);
 
   // Assets institutions junction
@@ -626,6 +701,7 @@ export async function createProjectBackup(options, { db }) {
   const genericAssets = await db.select().from(dbSchema.genericAssets)
     .where(eq(dbSchema.genericAssets.project_id, project_id))
     .execute();
+  const normalizedGenericAssets = normalizeAssetRowsForBackup(genericAssets, project_id);
 
   // Texts and translations
   const textIdsArray = Array.from(textIds);
@@ -677,7 +753,7 @@ export async function createProjectBackup(options, { db }) {
     generateInsertStatements('research_fields', researchFields),
     
     // Ninth: generic_assets (depends on project and texts)
-    generateInsertStatements('generic_assets', genericAssets),
+    generateInsertStatements('generic_assets', normalizedGenericAssets),
     
     // Tenth: vocabularies (depends on research_fields, texts, and generic_assets)
     generateInsertStatements('vocabularies', vocabularies),
@@ -698,7 +774,7 @@ export async function createProjectBackup(options, { db }) {
     generateInsertStatements('datasources', datasources),
     
     // Sixteenth: assets (depends on project and institutions)
-    generateInsertStatements('assets', assets),
+    generateInsertStatements('assets', normalizedAssets),
     
     // Seventeenth: objects (depends on project and institutions)
     generateInsertStatements('objects', objects),
@@ -744,7 +820,7 @@ export async function createProjectBackup(options, { db }) {
     'utf-8'
   );
 
-  const projectAssetsFolder = path.join(process.cwd(), 'src', 'assets', 'project_assets', project_id);
+  const projectAssetsFolder = resolveProjectAssetPath(project_id);
   let copiedAssets = 0;
   
   if (fs.existsSync(projectAssetsFolder)) {
@@ -889,7 +965,7 @@ export async function restoreProjectBackup(options, { db }) {
     let copiedAssets = 0;
 
     if (fs.existsSync(assetsSourceDir)) {
-      const assetsDestDir = path.join(process.cwd(), 'src', 'assets', 'project_assets', project_id);
+      const assetsDestDir = resolveProjectAssetPath(project_id);
       
       if (strategy === 'overwrite' && fs.existsSync(assetsDestDir)) {
         await removePathIfExists(assetsDestDir, { recursive: true });
@@ -907,6 +983,8 @@ export async function restoreProjectBackup(options, { db }) {
         return fs.statSync(fullPath).isFile();
       }).length;
     }
+
+    await normalizeRestoredAssetRows(project_id, { db });
 
     try {
       await fsPromises.rm(tmpBase, { recursive: true, force: true });

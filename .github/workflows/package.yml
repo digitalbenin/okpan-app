@@ -1,4 +1,4 @@
-name: Build macOS Electron App
+name: Package Electron App
 
 on:
   workflow_dispatch:
@@ -25,12 +25,6 @@ jobs:
 
       - name: Install website dependencies
         run: yarn --cwd src/website install
-
-      - name: Prepare database (push, seed, search setup)
-        run: |
-          yarn db:push
-          yarn db:seed
-          yarn db:search-setup
 
       - name: Build Electron app (ARM64)
         run: yarn make -- --arch=arm64
@@ -82,12 +76,6 @@ jobs:
       - name: Install website dependencies
         run: yarn --cwd src/website install
 
-      - name: Prepare database (push, seed, search setup)
-        run: |
-          yarn db:push
-          yarn db:seed
-          yarn db:search-setup
-
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64
 
@@ -137,12 +125,6 @@ jobs:
 
       - name: Install website dependencies
         run: yarn --cwd src/website install
-
-      - name: Prepare database (push, seed, search setup)
-        run: |
-          yarn db:push
-          yarn db:seed
-          yarn db:search-setup
 
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64

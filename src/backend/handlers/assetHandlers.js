@@ -6,51 +6,17 @@ import { assets, genericAssets } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import electron from 'electron';
-const { app } = electron;
 import { seedAsset, scheduleAssetReconcile } from '../services/assetTorrentManager.js';
+import {
+    resolveAssetBasePath,
+    resolveLogicalAssetPath,
+    resolveProjectAssetPath,
+    toLogicalAssetFormats
+} from '../services/assetPaths.js';
 
 const sm = 300
 const md = 1400
 // const assetPath = "./src/assets/project_assets"
-
-// Resolve a writable base path for assets that works in dev and packaged app
-const getAssetBasePath = () => {
-  try {
-    const userData = app?.getPath?.('userData');
-    if (userData) return path.join(userData, 'assets', 'project_assets');
-  } catch {}
-  // Fallback to project-relative path in dev
-  return path.join(process.cwd(), 'src', 'assets', 'project_assets');
-};
-
-const toPosix = (p) => (p ? p.replace(/\\/g, '/') : p);
-const resolveStoredAssetPath = (filePath) => {
-    if (!filePath || typeof filePath !== 'string') return null;
-    if (fs.existsSync(filePath)) return filePath;
-
-    const normalized = toPosix(filePath).replace(/^\/+/, '');
-    if (normalized.startsWith('src/assets/project_assets')) {
-        const rest = normalized.replace(/^src\/assets\/project_assets\/?/, '');
-        return path.join(getAssetBasePath(), rest);
-    }
-
-    return filePath;
-};
-
-const toLogicalFormats = (fmts, basePath) => {
-  const basePosix = toPosix(basePath);
-  const logicalRoot = 'src/assets/project_assets';
-  const replaceBase = (p) => {
-    const pos = toPosix(p);
-    return (pos && typeof pos === 'string' && pos.startsWith(basePosix)) ? logicalRoot + pos.substring(basePosix.length) : pos;
-  };
-  return {
-    sm: replaceBase(fmts.sm),
-    md: replaceBase(fmts.md),
-    original: replaceBase(fmts.original),
-  };
-};
 
 // MIME type map for P2P torrent metadata
 const MIME_BY_EXT = {
@@ -143,8 +109,8 @@ const handleImportAssets = async (event, data) => {
 
 
     //check if folder with projectid is present, otherwise create it
-    const basePath = getAssetBasePath();
-    const projectFolder = path.join(basePath, data.projectId);
+    const basePath = resolveAssetBasePath();
+    const projectFolder = resolveProjectAssetPath(data.projectId, { assetBasePath: basePath });
     if (!fs.existsSync(projectFolder)) {
         fs.mkdirSync(projectFolder, { recursive: true });
     }
@@ -314,7 +280,7 @@ const processAssetFile = async (filePath, projectFolder, data, basePath) => {
         return null;
     }
 
-    const logicalFormats = toLogicalFormats(formats, basePath);
+    const logicalFormats = toLogicalAssetFormats(formats, { assetBasePath: basePath });
 
     return {
         project_id: data?.projectId,
@@ -344,7 +310,7 @@ const saveAssetToDb = async (assetData, isGeneric) => {
  * logical asset path but still have no downloadable torrent metadata.
  */
 async function buildSeededAssetRecord(assetData, isGeneric, disableP2P = false) {
-    const filePath = resolveStoredAssetPath(assetData.path);
+    const filePath = resolveLogicalAssetPath(assetData.path);
     if (!filePath || !fs.existsSync(filePath)) {
         throw new Error(`Imported asset file not found: ${filePath}`);
     }

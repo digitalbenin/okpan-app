@@ -13,6 +13,7 @@ import { createProjectBackup, restoreProjectBackup } from './backupService.js';
 import { ingestOnceForProject } from './changeLogTailerService.js';
 import { hydrateProjectFromDatabase } from './snapshotService.js';
 import { removePathRobust, WINDOWS_FS_RETRY_OPTIONS } from './fsUtils.js';
+import { resolveProjectAssetPath } from './assetPaths.js';
 
 const SNAPSHOT_ROOT_DIR = 'project-recovery-snapshots';
 const DEFAULT_SNAPSHOT_LIMIT = 10;
@@ -177,7 +178,7 @@ async function deleteWhereIn(tx, table, column, ids) {
 }
 
 async function deleteProjectAssetsFolder(projectId) {
-  const projectAssetsFolder = path.join(process.cwd(), 'src', 'assets', 'project_assets', projectId);
+  const projectAssetsFolder = resolveProjectAssetPath(projectId);
   await removePathRobust(projectAssetsFolder, { recursive: true });
 }
 

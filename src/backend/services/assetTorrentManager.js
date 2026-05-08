@@ -10,13 +10,17 @@ import sharp from 'sharp';
 import { joinRoom } from 'trystero';
 import { RTCPeerConnection } from 'node-datachannel/polyfill';
 import SimplePeer from '@thaunknown/simple-peer';
-import electron from 'electron';
 import { db } from '../../db/init.js';
 import { assets, genericAssets, asset_local_state, generic_asset_local_state } from '../../db/schema.js';
 import { eq, and, isNotNull, inArray, sql } from 'drizzle-orm';
+import {
+  LOGICAL_ASSET_ROOT,
+  resolveAssetBasePath,
+  resolveLogicalAssetPath,
+  resolveProjectAssetPath,
+  toLogicalStoredAssetPath,
+} from './assetPaths.js';
 
-const { app } = electron;
-const LOGICAL_ASSET_ROOT = 'src/assets/project_assets';
 const MAX_CONCURRENT_DOWNLOADS_PER_PROJECT = 3;
 const MAX_RETRIES = 5;
 const DOWNLOAD_TIMEOUT_MS = 60 * 1000;
@@ -36,32 +40,6 @@ let _WebTorrentModule = null;
 let _wtClient = null;
 let _webContents = null;
 
-function toPosix(filePath) {
-  return typeof filePath === 'string' ? filePath.replace(/\\/g, '/') : '';
-}
-
-function getAssetBasePath() {
-  try {
-    const userData = app?.getPath?.('userData');
-    if (userData) return path.join(userData, 'assets', 'project_assets');
-  } catch {}
-
-  return path.join(process.cwd(), 'src', 'assets', 'project_assets');
-}
-
-function resolveLogicalAssetPath(filePath) {
-  if (!filePath || typeof filePath !== 'string') return null;
-  if (path.isAbsolute(filePath)) return path.normalize(filePath);
-
-  const normalized = toPosix(filePath).replace(/^\/+/, '');
-  if (normalized.startsWith(LOGICAL_ASSET_ROOT)) {
-    const rest = normalized.replace(/^src\/assets\/project_assets\/?/, '');
-    return path.join(getAssetBasePath(), rest);
-  }
-
-  return path.resolve(filePath);
-}
-
 function resolveReadableAssetPath(filePath) {
   const candidates = [filePath, resolveLogicalAssetPath(filePath)]
     .filter((candidate, index, arr) => typeof candidate === 'string' && candidate.length > 0 && arr.indexOf(candidate) === index);
@@ -72,21 +50,6 @@ function resolveReadableAssetPath(filePath) {
 
   return candidates[1] || candidates[0] || null;
 }
-
-function toLogicalStoredAssetPath(filePath) {
-  const resolvedPath = resolveLogicalAssetPath(filePath);
-  if (!resolvedPath) return filePath;
-
-  const basePath = toPosix(path.normalize(getAssetBasePath()));
-  const normalizedResolvedPath = toPosix(path.normalize(resolvedPath));
-  if (normalizedResolvedPath === basePath || normalizedResolvedPath.startsWith(`${basePath}/`)) {
-    const suffix = normalizedResolvedPath.slice(basePath.length).replace(/^\/+/, '');
-    return suffix ? `${LOGICAL_ASSET_ROOT}/${suffix}` : LOGICAL_ASSET_ROOT;
-  }
-
-  return normalizedResolvedPath;
-}
-
 const activeDownloads   = new Map(); // projectId → Set<assetId>
 const downloadQueues    = new Map(); // projectId → DownloadJob[]
 const downloadAbortFuncs= new Map(); // projectId ? Map<assetId, abortFn>
@@ -237,7 +200,7 @@ async function collectProjectTorrentHashes(projectId) {
 }
 
 function isTorrentWithinProjectDir(projectId, torrent) {
-  const projectDir = path.resolve(getAssetBasePath(), projectId);
+  const projectDir = resolveProjectAssetPath(projectId);
   return torrent?.files?.some((file) => {
     const resolvedPath = path.resolve(file.path);
     return resolvedPath === projectDir || resolvedPath.startsWith(`${projectDir}${path.sep}`);
@@ -638,7 +601,7 @@ async function resetPendingSeederForPeer(projectId, peerId) {
 
 function resolveCandidateAssetPaths(projectId, row) {
   const safeName = sanitizeName(row.torrent_name || path.basename(row.path || 'asset.bin'));
-  const localPath = path.join(getAssetBasePath(), projectId, safeName);
+  const localPath = path.join(resolveProjectAssetPath(projectId), safeName);
   const candidates = [
     resolveReadableAssetPath(row.path),
     resolveReadableAssetPath(row.formats?.original),
@@ -834,7 +797,7 @@ function resolveDownloadedFilePath(expectedPath, torrent) {
 async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGeneric, expectedLength = null }) {
   const client   = await getWtClient();
   const safeName = sanitizeName(torrentName);
-  const destDir  = path.join(getAssetBasePath(), projectId);
+  const destDir  = resolveProjectAssetPath(projectId);
   const expected = path.join(destDir, safeName);
 
   fs.mkdirSync(destDir, { recursive: true });

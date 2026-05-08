@@ -39,7 +39,11 @@ An Electron application for managing collections, built with:
    git clone <repository-url>
    cd db-connection-tool
    yarn install
+   yarn --cwd src/website install
    ```
+
+   The `src/website` folder is a separate nested package with its own `package.json` and `yarn.lock`.
+   Run `yarn --cwd src/website install` on a fresh checkout and whenever dependencies under `src/website` change.
 
 2. Create a `.env` file in the project root:
 
@@ -119,10 +123,26 @@ IF you add more entries you can export the file with the related button in the s
 
 ## Building
 
+### Website handling
+
+The website in `src/website` is used for two different outputs:
+
+- the embedded preview UI loaded inside the Electron app from `src/website/build`
+- the standalone static export copied from `src/website/build-export`
+
+It is maintained as a separate nested package, so its dependencies must be installed with `yarn --cwd src/website install`.
+
 Build the Electron app and both website production artifacts:
 
 ```bash
 yarn build
+```
+
+Before running the build, make sure both dependency trees are installed:
+
+```bash
+yarn install
+yarn --cwd src/website install
 ```
 
 This runs:
@@ -154,6 +174,7 @@ yarn make
    - Check the developer console (F12) for detailed error messages
 
 3. **Development server issues**
-   - Make sure all dependencies are installed with `npm install`
-   - Try deleting the `node_modules` folder and running `npm install` again
+   - Make sure both dependency trees are installed with `yarn install` and `yarn --cwd src/website install`
+   - If website build commands fail with missing Vite or Svelte packages, reinstall `src/website` separately
+   - Try deleting both `node_modules` and `src/website/node_modules`, then reinstall
    - Check if all required ports are available

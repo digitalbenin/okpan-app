@@ -6,8 +6,11 @@ import yauzl from 'yauzl';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
-
-const assetPath = './src/assets/project_assets';
+import {
+  resolveProjectAssetPath,
+  toLogicalAssetFormats,
+  toLogicalStoredAssetPath,
+} from './assetPaths.js';
 
 async function ensureDir(dirPath) {
   await fsPromises.mkdir(dirPath, { recursive: true });
@@ -116,12 +119,14 @@ async function importImageReference(imageRef, extractedRoot, projectFolder, proj
     formats[key] = destination;
   }
 
+  const storedFormats = toLogicalAssetFormats(formats);
+
   const [newAsset] = await db.insert(dbSchema.genericAssets).values({
     id: uuidv4(),
     filename: imageRef.filename || path.basename(originalSource),
-    path: formats.original,
+    path: toLogicalStoredAssetPath(originalDest),
     type: imageRef.type || 'image',
-    formats,
+    formats: storedFormats,
     project_id: projectId
   }).returning();
 
@@ -158,7 +163,7 @@ export async function importConnectionsJson(options, { db }) {
       return { success: false, error: 'No project language found for import' };
     }
 
-    const projectFolder = path.join(assetPath, projectId);
+    const projectFolder = resolveProjectAssetPath(projectId);
     await ensureDir(projectFolder);
 
     let importedConnectionTypes = 0;

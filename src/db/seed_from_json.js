@@ -2,12 +2,13 @@ import { db } from './init.js';
 import {
     languages, project, institutions, texts, objects, assets,
     objects_assets, research_fields, vocabularies, objects_research_fields,
-    ontology_fields, datasources, objects_ontology_fields, templates, objects_datasources
+    ontology_fields, datasources, objects_ontology_fields, templates, objects_datasources, globalSettings
 } from './schema.js';
 import { v4 as uuidv4 } from 'uuid';
 import { sql, eq } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { pathToFileURL } from 'url';
 import { handleImportAssets } from '../backend/handlers/assetHandlers.js';
 import { embeddingService } from '../backend/services/embeddingService.js';
 import { destroyTorrentManager } from '../backend/services/assetTorrentManager.js';
@@ -31,30 +32,39 @@ const KNOWN_SOURCE_LANGUAGES = {
 
 // --- Configuration & Argument Parsing ---
 const DEFAULT_SEED_DATA_PATH = path.join(process.cwd(), 'src', 'db', 'seed_data');
-let seedDataPath = DEFAULT_SEED_DATA_PATH;
-
-const args = process.argv.slice(2);
-
-if (args.includes('-h') || args.includes('--help')) {
-    console.log(`
-Usage: node src/db/seed_from_json.js [options]
+const HELP_TEXT = `
+Usage: yarn db:seed [options]
 
 Options:
   --data-path <path>  Specify the path to the seed data directory.
                       Defaults to '${DEFAULT_SEED_DATA_PATH}'.
   -h, --help          Display this help message.
-    `);
-    process.exit(0);
+`;
+// --- End Configuration ---
+
+export function printSeedFromJsonHelp() {
+    console.log(HELP_TEXT);
 }
 
-const dataPathIndex = args.indexOf('--data-path');
-if (dataPathIndex !== -1 && args[dataPathIndex + 1]) {
-    seedDataPath = path.resolve(args[dataPathIndex + 1]);
-    console.log(`Using custom seed data path: ${seedDataPath}`);
-} else {
-    console.log(`Using default seed data path: ${seedDataPath}`);
+export function getSeedFromJsonOptions(argv = process.argv.slice(2)) {
+    const showHelp = argv.includes('-h') || argv.includes('--help');
+    const dataPathIndex = argv.indexOf('--data-path');
+    const hasCustomDataPath = dataPathIndex !== -1 && Boolean(argv[dataPathIndex + 1]);
+
+    return {
+        showHelp,
+        seedDataPath: hasCustomDataPath
+            ? path.resolve(argv[dataPathIndex + 1])
+            : DEFAULT_SEED_DATA_PATH,
+        hasCustomDataPath,
+    };
 }
-// --- End Configuration ---
+
+function ensureElectronRuntime() {
+    if (!process.versions?.electron) {
+        throw new Error('The JSON seed must run through Electron so the runtime user data path comes from Electron itself. Use the Electron-backed db:seed script.');
+    }
+}
 
 // Helper function to read JSON files
 const readJsonData = async (filePath) => {
@@ -80,6 +90,16 @@ const normalizeProjectLanguage = (value) => {
     return KNOWN_SOURCE_LANGUAGES[normalizedValue] || null;
 };
 
+const getSeedProjectAppVersion = async () => {
+    const [settingsRow] = await db
+        .select({ appVersion: globalSettings.app_version })
+        .from(globalSettings)
+        .where(eq(globalSettings.id, 1))
+        .limit(1);
+
+    return settingsRow?.appVersion || process.env.npm_package_version || 'dev';
+};
+
 // Helper function to create a text entry
 const createTextEntry = async (content, context, languageId) => {
     if (!content || typeof content !== 'string' || content.trim() === '') {
@@ -95,7 +115,7 @@ const createTextEntry = async (content, context, languageId) => {
 };
 
 // Helper to find local asset path
-const findAssetPath = async (assetName, subfolders = ['images', 'edo_images']) => {
+const findAssetPath = async (assetName, seedDataPath, subfolders = ['images', 'edo_images']) => {
     const baseAssetPath = seedDataPath;
     for (const subfolder of subfolders) {
         const potentialPath = path.join(baseAssetPath, subfolder, assetName);
@@ -111,8 +131,10 @@ const findAssetPath = async (assetName, subfolders = ['images', 'edo_images']) =
 };
 
 
-const seed = async () => {
+export const seedFromJson = async ({ seedDataPath = DEFAULT_SEED_DATA_PATH } = {}) => {
     try {
+        ensureElectronRuntime();
+        console.log(`Using seed data path: ${seedDataPath}`);
         console.log('Starting seeding process from JSON data...');
 
         // --- 0. Load JSON Data ---
@@ -124,11 +146,13 @@ const seed = async () => {
         console.log('JSON data loaded.');
 
         // --- 1. Basic Setup (Project and Languages) ---
+        const seedProjectAppVersion = await getSeedProjectAppVersion();
         const [projectRecord] = await db.insert(project).values({
             id: uuidv4(),
             title_id: null,
             description_id: null,
-            is_shared: 0
+            is_shared: 0,
+            created_app_version: seedProjectAppVersion
         }).returning();
         const mainProjectId = projectRecord.id;
 
@@ -451,7 +475,7 @@ const seed = async () => {
             let newAssetId = null;
             if (edoData.asset) {
                 // For vocabulary assets from edo_designations.json, specifically look only in the 'edo_images' subfolder.
-                const localAssetPath = await findAssetPath(edoData.asset, ['edo_images']);
+                const localAssetPath = await findAssetPath(edoData.asset, seedDataPath, ['edo_images']);
 
                 if (localAssetPath) {
                     const assetData = {
@@ -545,7 +569,7 @@ const seed = async () => {
             if (objData.images?.length > 0) {
                 for (const [index, imgData] of objData.images.entries()) {
                     if (imgData.asset) {
-                        const localImgPath = await findAssetPath(imgData.asset);
+                        const localImgPath = await findAssetPath(imgData.asset, seedDataPath);
                         if (localImgPath) {
                             const assetData = {
                                 path: [localImgPath],
@@ -689,10 +713,32 @@ const seed = async () => {
         console.log('Seed completed successfully!');
         destroyTorrentManager();
     } catch (error) {
-        console.error('Error during seeding:', error);
         destroyTorrentManager();
-        process.exit(1);
+        throw error;
     }
 };
 
-seed();
+export async function runSeedFromJsonCli(argv = process.argv.slice(2)) {
+    const { showHelp, seedDataPath } = getSeedFromJsonOptions(argv);
+
+    if (showHelp) {
+        printSeedFromJsonHelp();
+        return 0;
+    }
+
+    try {
+        await seedFromJson({ seedDataPath });
+        return 0;
+    } catch (error) {
+        console.error('Error during seeding:', error);
+        return 1;
+    }
+}
+
+const isDirectExecution = Boolean(process.argv[1])
+    && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+
+if (isDirectExecution) {
+    const exitCode = await runSeedFromJsonCli();
+    process.exit(exitCode);
+}

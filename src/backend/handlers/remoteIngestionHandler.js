@@ -3,15 +3,13 @@ import { diff as deepDiff } from '@opentf/obj-diff'
 import crypto from 'crypto'
 import { promises as fs } from 'fs'
 import path from 'path'
-import electron from 'electron'
 import { db } from '../../db/init.js'
 import * as schema from '../../db/schema.js'
 import { eq } from 'drizzle-orm'
 import { getProjectDoc } from '../services/projectCache.js'
 import { FK_ORDER } from '../services/projectScope.js'
 import { scheduleAssetReconcile } from '../services/assetTorrentManager.js'
-
-const { app } = electron
+import { resolveLogicalAssetPath } from '../services/assetPaths.js'
 
 // FK order centralized in projectScope.js
 
@@ -64,20 +62,7 @@ function resolveFilePath(filePath) {
   if (!filePath || typeof filePath !== 'string') return null
   const trimmed = filePath.trim()
   if (!trimmed) return null
-  if (path.isAbsolute(trimmed)) return trimmed
-
-  const normalized = trimmed.replace(/\\/g, '/').replace(/^\/+/, '')
-  if (normalized.startsWith('src/assets/project_assets')) {
-    try {
-      const userData = app?.getPath?.('userData')
-      if (userData) {
-        const rest = normalized.replace(/^src\/assets\/project_assets\/?/, '')
-        return path.join(userData, 'assets', 'project_assets', rest)
-      }
-    } catch {}
-  }
-
-  return path.join(process.cwd(), trimmed)
+  return resolveLogicalAssetPath(trimmed)
 }
 
 function collectAssetFilePaths(row) {

@@ -128,6 +128,7 @@ import {
   getProjectSyncStatus,
   scheduleAssetReconcile
 } from './services/assetTorrentManager.js';
+import { LOGICAL_ASSET_ROOT, resolveLogicalAssetPath } from './services/assetPaths.js';
 import { isSharedProject } from '../lib/utils/projectSharing.js';
 
 // Trystero + WebTorrent open many concurrent sockets per project. Bump the
@@ -1033,15 +1034,9 @@ function resolveMediaPath(urlObj, requestUrl) {
   const projectRoot = process.cwd();
   const appRoot = app.getAppPath?.() || '';
   const resourcesApp = process.resourcesPath ? path.join(process.resourcesPath, 'app') : '';
-  const userData = app?.getPath?.('userData') || '';
-  const userAssetsRoot = userData ? path.join(userData, 'assets', 'project_assets') : '';
-
-  // Special mapping: logical seeded path -> userData assets
-  let userDataCandidate = null;
-  if (pathStr.startsWith('src/assets/project_assets')) {
-    const rest = pathStr.replace(/^src\/assets\/project_assets\/?/, '');
-    userDataCandidate = userAssetsRoot ? path.join(userAssetsRoot, rest) : null;
-  }
+  const logicalAssetCandidate = pathStr.startsWith(LOGICAL_ASSET_ROOT)
+    ? resolveLogicalAssetPath(pathStr)
+    : null;
 
   const candidates = [
     // Packaged app locations
@@ -1049,8 +1044,8 @@ function resolveMediaPath(urlObj, requestUrl) {
     appRoot ? path.join(appRoot, 'src', pathStr) : null,
     resourcesApp ? path.join(resourcesApp, pathStr) : null,
     resourcesApp ? path.join(resourcesApp, 'src', pathStr) : null,
-    // userData mapping for writable assets
-    userDataCandidate,
+    // Logical asset mapping for writable assets
+    logicalAssetCandidate,
     // Dev locations
     path.join(projectRoot, pathStr),
     path.join(projectRoot, 'src', pathStr)
