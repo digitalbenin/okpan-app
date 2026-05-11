@@ -5,11 +5,12 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { db } from '../../db/init.js'
 import * as schema from '../../db/schema.js'
-import { eq } from 'drizzle-orm'
+import { and, eq, gt, sql } from 'drizzle-orm'
 import { getProjectDoc } from '../services/projectCache.js'
 import { FK_ORDER } from '../services/projectScope.js'
 import { scheduleAssetReconcile } from '../services/assetTorrentManager.js'
 import { resolveLogicalAssetPath } from '../services/assetPaths.js'
+import { recordProjectActivityFromSyncEvent } from '../services/syncActivityService.js'
 
 // FK order centralized in projectScope.js
 
@@ -219,6 +220,35 @@ function jsonTables(doc) {
   }
 }
 
+function jsonActivityEvents(doc) {
+  try {
+    const activityEvents = doc.getMap('activity_events')
+    return activityEvents ? activityEvents.toJSON() : {}
+  } catch (_) {
+    return {}
+  }
+}
+
+function collectNewActivityEvents(beforeEvents, afterEvents) {
+  const nextEvents = []
+
+  for (const [key, value] of Object.entries(afterEvents || {})) {
+    if (!value) continue
+
+    const previousValue = beforeEvents?.[key]
+    if (JSON.stringify(previousValue || null) === JSON.stringify(value)) {
+      continue
+    }
+
+    nextEvents.push({
+      source_key: key,
+      ...value
+    })
+  }
+
+  return nextEvents
+}
+
 // Simple stats helper for logging
 function tablesStats(tablesJson) {
   try {
@@ -402,6 +432,13 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   if (!projectId || !updateBytes) return { applied: 0 }
   const ASSET_TABLES = new Set(['assets', 'generic_assets'])
   const pendingFileDeletes = []
+  const beforeChangeLogRowidRows = await db
+    .select({ rowid: sql`coalesce(max(rowid), 0)` })
+    .from(schema.change_log)
+    .where(eq(schema.change_log.project_id, projectId))
+    .execute()
+  const beforeChangeLogRowid = Number(beforeChangeLogRowidRows[0]?.rowid || 0)
+
   // Allow callers to provide a baseline doc representing the BEFORE state
   // This fixes zero-diff when the canonical doc has already integrated the update.
   const baseline = options?.beforeDoc || getProjectDoc(projectId)
@@ -413,6 +450,7 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   // Capture BEFORE tables from the shadow seeded at a single point-in-time
   // This avoids races from reading the live canonical doc, which can mutate concurrently
   const beforeTables = jsonTables(shadow)
+  const beforeActivityEvents = jsonActivityEvents(shadow)
   const beforeStats = tablesStats(beforeTables)
 
   const explicitDeletes = new Set();
@@ -441,8 +479,10 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     return { applied: 0, error: err?.message }
   }
   let afterTables = jsonTables(shadow)
+  const afterActivityEvents = jsonActivityEvents(shadow)
   let afterStats = tablesStats(afterTables)
   let source = options?.beforeDoc ? 'baseline' : 'shadow'
+  const newActivityEvents = collectNewActivityEvents(beforeActivityEvents, afterActivityEvents)
 
   // Fallbacks:
   // 1) Structural: if AFTER equals BEFORE by counts, and canonical differs by counts → use canonical.
@@ -680,6 +720,20 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
         //console.warn('[RemoteIngestion] Failed to store update_bytes', err?.message)
       }
     }
+
+    // Remote replay writes still pass through ordinary SQLite triggers.
+    // Re-stamp only the rows created by this ingestion batch so later projectors
+    // can distinguish remote sync from local user edits.
+    await tx
+      .update(schema.change_log)
+      .set({ origin: 'remote' })
+      .where(
+        and(
+          eq(schema.change_log.project_id, projectId),
+          gt(sql`rowid`, beforeChangeLogRowid)
+        )
+      )
+      .execute()
   })
 
   for (const entry of pendingFileDeletes) {
@@ -757,6 +811,10 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     } catch (e) {
       console.error('[RemoteIngestion] Rescue map replacement fail', e);
     }
+  }
+
+  for (const activityEvent of newActivityEvents) {
+    await recordProjectActivityFromSyncEvent(projectId, activityEvent)
   }
 
   return {

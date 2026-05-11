@@ -310,10 +310,6 @@ async function deleteProjectStateForRestore(projectId) {
       .where(eq(dbSchema.project.id, projectId))
       .execute();
 
-    await tx.delete(dbSchema.actions)
-      .where(eq(dbSchema.actions.project_id, projectId))
-      .execute();
-
     if (assetIds.length > 0) {
       await deleteWhereIn(tx, dbSchema.asset_local_state, dbSchema.asset_local_state.asset_id, assetIds);
     }

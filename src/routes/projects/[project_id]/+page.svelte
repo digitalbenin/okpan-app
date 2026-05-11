@@ -4,7 +4,7 @@
   import ObjectsWidget from "$lib/components/overview/ObjectsWidget.svelte";
   import StatsWidget from "$lib/components/overview/StatsWidget.svelte";
   import InstitutionsWidget from "$lib/components/overview/InstitutionsWidget.svelte";
-  import ActionsWidget from "$lib/components/overview/ActionsWidget.svelte";
+  import RecentActivityWidget from "$lib/components/overview/RecentActivityWidget.svelte";
   import SearchWidget from "$lib/components/overview/SearchWidget.svelte";
   import ProjectWelcome from "$lib/components/projects/ProjectWelcome.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -76,7 +76,7 @@
         <InstitutionsWidget institutions={data.institutions.result} />
       </div>
       <div class="col-7">
-        <ActionsWidget actions={data.actions.items} />
+        <RecentActivityWidget activities={data.activities.items} />
       </div>
     </div>
   </div>

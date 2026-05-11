@@ -31,7 +31,6 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
     const ProjectDeleteCascadeCounts = new GraphQLObjectType({
         name: 'ProjectDeleteCascadeCounts',
         fields: () => ({
-            actions: { type: GraphQLInt },
             websiteSettings: { type: GraphQLInt },
             settings: { type: GraphQLInt },
             objects: { type: GraphQLInt },
@@ -224,7 +223,6 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
             );
 
             const counts = {
-                actions: 0,
                 websiteSettings: 0,
                 settings: 0,
                 objects: 0,
@@ -251,15 +249,7 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                         .where(eq(dbSchema.project.id, projectId))
                         .execute();
 
-                    // 1. Delete actions first (no dependencies)
-                    const deletedActions = await tx
-                        .delete(dbSchema.actions)
-                        .where(eq(dbSchema.actions.project_id, projectId))
-                        .returning({ id: dbSchema.actions.id })
-                        .execute();
-                    counts.actions = deletedActions.length;
-
-                    // 1b. Delete sync tables (change_log and Yjs tables)
+                    // 1. Delete sync tables (change_log and Yjs tables)
                     await tx
                         .delete(dbSchema.yjs_updates)
                         .where(eq(dbSchema.yjs_updates.project_id, projectId))

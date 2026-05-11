@@ -136,6 +136,7 @@ export const projectRelations = relations(project, ({ many, one }) => ({
     objects: many(objects),
     researchFields: many(research_fields),
     ontologyFields: many(ontology_fields),
+    projectActivities: many(project_activity),
     settings: one(settings),
     assets: many(assets),
     genericAssets: many(genericAssets),
@@ -677,20 +678,6 @@ export const logs = sqliteTable('logs', {
     message: text('message').notNull(), // The log message
 });
 
-export const actions = sqliteTable('actions', {
-    ...commonFields,
-    project_id: text('project_id').references(() => project.id, { onDelete: 'cascade' }),
-    user_id: text('user_id'),
-    client_id: text('client_id'),
-    action_type: text('action_type').notNull(),
-    entity_type: text('entity_type').notNull(),
-    entity_id: text('entity_id'),
-    changes: text('changes', { mode: 'json' }),
-    yjs_update: blob('yjs_update'),
-    parent_action_id: text('parent_action_id'),
-    metadata: text('metadata', { mode: 'json' })
-});
-
 // Global Settings table - singleton table (only one row ever)
 export const globalSettings = sqliteTable('global_settings', {
     id: integer('id').primaryKey().notNull().default(1), // Always 1 to enforce singleton
@@ -715,14 +702,44 @@ export const websiteSettings = sqliteTable('website_settings', {
     project_id: text('project_id').references(() => project.id).unique()
 });
 
-export const actionsRelations = relations(actions, ({ one }) => ({
+export const project_activity = sqliteTable('project_activity', {
+    ...commonFields,
+    project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
+    source_key: text('source_key').notNull(),
+    bundle_id: text('bundle_id'),
+    sync_kind: text('sync_kind').notNull().default('user'),
+    actor_client_id: text('actor_client_id'),
+    actor_username: text('actor_username'),
+    action_type: text('action_type').notNull(),
+    entity_type: text('entity_type').notNull(),
+    entity_id: text('entity_id'),
+    institution_id: text('institution_id').references(() => institutions.id, { onDelete: 'set null' }),
+    institution_name: text('institution_name'),
+    message_key: text('message_key').notNull(),
+    item_count: integer('item_count').notNull().default(1),
+    summary_params: text('summary_params', { mode: 'json' })
+}, (table) => ({
+    projectUpdatedIdx: index('idx_project_activity_project_updated').on(table.project_id, table.updated_at, table.id),
+    sourceIdx: index('idx_project_activity_source').on(table.project_id, table.source_key),
+    bundleIdx: index('idx_project_activity_bundle').on(table.project_id, table.bundle_id),
+    feedGroupingIdx: index('idx_project_activity_feed_grouping').on(
+        table.project_id,
+        table.actor_client_id,
+        table.message_key,
+        table.entity_type,
+        table.institution_id,
+        table.updated_at
+    )
+}));
+
+export const projectActivityRelations = relations(project_activity, ({ one }) => ({
     project: one(project, {
-        fields: [actions.project_id],
+        fields: [project_activity.project_id],
         references: [project.id]
     }),
-    parentAction: one(actions, {
-        fields: [actions.parent_action_id],
-        references: [actions.id]
+    institution: one(institutions, {
+        fields: [project_activity.institution_id],
+        references: [institutions.id]
     })
 }));
 

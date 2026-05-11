@@ -171,7 +171,7 @@ let consecutiveConnectivityProbeFailures = 0;
 const openedProjectsThisSession = new Set();
 const sessionOpenSnapshotJobs = new Map();
 const pendingProjectJoins = new Set();
-let tailerStarted = false;
+let changeLogTailerStarted = false;
 const reconnectP2PJobs = new Map();
 const delayedReconcileStarts = new Map();
 
@@ -608,9 +608,9 @@ async function bootstrapProjectRuntime(event, projectId, { hydrateSnapshot = fal
     }
   }
 
-  if (!tailerStarted) {
+  if (!changeLogTailerStarted) {
     startChangeLogTailer();
-    tailerStarted = true;
+    changeLogTailerStarted = true;
   }
 
   if (captureSessionSnapshot) {

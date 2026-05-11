@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, gt, sql } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema.js';
 import fs from 'fs';
@@ -45,6 +45,12 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                 // Embedding initialization removed to prevent sharp module load issues
 
                 const result = await db.transaction(async (tx) => {
+                    const [changeLogState] = await tx
+                        .select({ lastRowId: sql`COALESCE(MAX(rowid), 0)` })
+                        .from(dbSchema.change_log)
+                        .execute();
+                    const bootstrapChangeLogRowId = Number(changeLogState?.lastRowId || 0);
+
                     // 1) Create project shell (record app version at creation)
                     const [settingsRow] = await tx
                         .select()
@@ -53,7 +59,7 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                         .limit(1);
                     const appVersion = settingsRow?.app_version || process.env.npm_package_version || 'dev';
 
-const [projectInserted] = await tx.insert(dbSchema.project)
+                    const [projectInserted] = await tx.insert(dbSchema.project)
                         .values({
                             created_app_version: appVersion,
                             is_shared: isShared || 0,
@@ -173,6 +179,15 @@ const [projectInserted] = await tx.insert(dbSchema.project)
                             throw fieldErr;
                         }
                     }
+
+                    await tx
+                        .update(dbSchema.change_log)
+                        .set({ origin: 'system' })
+                        .where(and(
+                            eq(dbSchema.change_log.project_id, projectInserted.id),
+                            gt(sql`rowid`, bootstrapChangeLogRowId)
+                        ))
+                        .execute();
                     
 
                     // Build result

@@ -179,7 +179,6 @@ export const projectsOperations = {
     assetFolderErrors
     snapshotFolderErrors
     counts {
-      actions
       websiteSettings
       settings
       objects

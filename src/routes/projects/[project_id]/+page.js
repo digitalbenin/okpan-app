@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 import { getProjectInstitutions } from "$lib/stores/InstitutionsUtils.js";
 import { getObjects } from "$lib/stores/ObjectsUtils.js";
-import { getActions } from "$lib/stores/ActionsUtils.js";
+import { getProjectActivity } from "$lib/stores/ProjectActivityUtils.js";
 
 export const load = async ({ params, url, depends }) => {
     if (!browser) return;
@@ -9,13 +9,13 @@ export const load = async ({ params, url, depends }) => {
     const objects = await getObjects({ projectId: params.project_id, orderBy: 'updated_at', direction: 'desc', pageSize: 25 });
     const objectsInProgress = await getObjects({ projectId: params.project_id, orderBy: 'updated_at', direction: 'desc', pageSize: 25, status: 'in progress' });
     const institutions = await getProjectInstitutions({ projectId: params.project_id, page: 0, pageSize: 25, orderBy: 'created_at', direction: 'desc' });
-    const actions = await getActions({ projectId: params.project_id, limit: 10 });
+    const activities = await getProjectActivity(params.project_id, 10);
 
     return {
         objects,
         objectsInProgress,
         institutions,
-        actions
+        activities
     }
 };
 

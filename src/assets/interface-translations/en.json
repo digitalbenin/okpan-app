@@ -8,6 +8,116 @@
                              "value":  "Data Connection Tool"
                          },
                          {
+                             "namespace":  "common",
+                             "key":  "user",
+                             "value":  "A user"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "title",
+                             "value":  "Recent activity"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "empty",
+                             "value":  "No activity yet."
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "unknown-institution",
+                             "value":  "an institution"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institution-media-added",
+                             "value":  "{{actor}} added {{count}} media to {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institution-media-updated",
+                             "value":  "{{actor}} edited {{count}} media links for {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institution-media-removed",
+                             "value":  "{{actor}} removed {{count}} media from {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "objects-created",
+                             "value":  "{{actor}} created {{count}} objects in {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "objects-updated",
+                             "value":  "{{actor}} edited {{count}} objects in {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "objects-deleted",
+                             "value":  "{{actor}} deleted {{count}} objects from {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institutions-created",
+                             "value":  "{{actor}} created {{count}} institutions"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institutions-updated",
+                             "value":  "{{actor}} edited {{count}} institutions"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institutions-deleted",
+                             "value":  "{{actor}} deleted {{count}} institutions"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "research-fields-created",
+                             "value":  "{{actor}} created {{count}} research fields"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "research-fields-updated",
+                             "value":  "{{actor}} edited {{count}} research fields"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "research-fields-deleted",
+                             "value":  "{{actor}} deleted {{count}} research fields"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "vocabularies-created",
+                             "value":  "{{actor}} created {{count}} vocabularies"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "vocabularies-updated",
+                             "value":  "{{actor}} edited {{count}} vocabularies"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "vocabularies-deleted",
+                             "value":  "{{actor}} deleted {{count}} vocabularies"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "connections-created",
+                             "value":  "{{actor}} created {{count}} connections"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "connections-updated",
+                             "value":  "{{actor}} edited {{count}} connections"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "connections-deleted",
+                             "value":  "{{actor}} deleted {{count}} connections"
+                         },
+                         {
                              "namespace":  "nav",
                              "key":  "home",
                                 "value":  "Home"

@@ -36,6 +36,20 @@
       "when": 1778233103298,
       "tag": "0004_change-log-junction-triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1778233103779,
+      "tag": "0005_project-activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1778241123000,
+      "tag": "0006_drop-actions",
+      "breakpoints": true
     }
   ]
 }

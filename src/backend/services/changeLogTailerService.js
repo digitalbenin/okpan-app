@@ -1,5 +1,5 @@
 import * as Y from 'yjs';
-import { db } from '../../db/init.js';
+import { db, getGlobalProfile, updateGlobalUsername } from '../../db/init.js';
 import { eq, and, or, gt, sql } from 'drizzle-orm';
 import { FK_ORDER } from './projectScope.js';
 import {
@@ -37,6 +37,7 @@ import {
   getCurrentProjectId,
   hasCurrentProjectId,
 } from './projectCache.js';
+import { recordProjectActivityFromSyncEvent } from './syncActivityService.js';
 
 const DEFAULT_INGEST_BATCH_SIZE = 200;
 const DEFAULT_INGEST_INTERVAL_MS = 1000;
@@ -74,10 +75,13 @@ async function fetchNextChangeBatch(projectId, batchSize) {
     .select({
       id: change_log.id,
       project_id: change_log.project_id,
+      origin: change_log.origin,
       table_name: change_log.table_name,
       op: change_log.op,
       row_id: change_log.row_id,
-      created_at: change_log.created_at
+      created_at: change_log.created_at,
+      new_row: change_log.new_row,
+      old_row: change_log.old_row
     })
     .from(change_log)
     .where(and(eq(change_log.project_id, projectId), gt(sql`rowid`, lastRowid)))
@@ -86,6 +90,47 @@ async function fetchNextChangeBatch(projectId, batchSize) {
     .execute();
 
   return rows;
+}
+
+async function ensureActivityActorProfile() {
+  let profile = await getGlobalProfile();
+
+  if (!profile?.username) {
+    profile = await updateGlobalUsername('');
+  }
+
+  return {
+    actor_client_id: profile?.clientId || null,
+    actor_username: profile?.username || null
+  };
+}
+
+async function buildSyncActivityEvent(rows) {
+  if (!rows?.length || rows[0]?.origin !== 'local') {
+    return null;
+  }
+
+  const actor = await ensureActivityActorProfile();
+  const sourceKey = rows[rows.length - 1]?.id;
+
+  if (!sourceKey) {
+    return null;
+  }
+
+  return {
+    source_key: sourceKey,
+    bundle_id: sourceKey,
+    kind: 'user',
+    created_at: Date.now(),
+    ...actor,
+    changes: JSON.stringify(rows.map((row) => ({
+      table_name: row.table_name,
+      op: row.op,
+      row_id: row.row_id,
+      new_row: row.new_row,
+      old_row: row.old_row
+    })))
+  };
 }
 
 // Helper: load a single row from a table by id; skip heavy fields for certain tables
@@ -209,6 +254,7 @@ async function applyBatchToDoc(projectId, rows) {
 
   const doc = getProjectDoc(projectId);
   const stateVector = Y.encodeStateVector(doc);
+  const syncActivityEvent = await buildSyncActivityEvent(rows);
 
   // Track if the transaction produced any Yjs changes
   let changed = false;
@@ -279,6 +325,17 @@ async function applyBatchToDoc(projectId, rows) {
           setRowFields(rowMap, op.payload);
         }
       }
+
+      if (syncActivityEvent) {
+        const activityEvents = doc.getMap('activity_events');
+        const eventMap = new Y.Map();
+
+        for (const [key, value] of Object.entries(syncActivityEvent)) {
+          eventMap.set(key, value);
+        }
+
+        activityEvents.set(syncActivityEvent.source_key, eventMap);
+      }
     } catch (err) {
       console.error('Tailer apply error:', err);
     }
@@ -334,6 +391,10 @@ async function applyBatchToDoc(projectId, rows) {
       .execute();
   }
 
+  if (syncActivityEvent) {
+    await recordProjectActivityFromSyncEvent(projectId, syncActivityEvent);
+  }
+
   return { fromId, toId, changed };
 }
 
@@ -351,8 +412,11 @@ export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST
       return false;
     }
     nullFetchCounter = 0;
+    const firstOrigin = rows[0]?.origin || 'local';
+    const segmentLength = rows.findIndex((row) => (row.origin || 'local') !== firstOrigin);
+    const batchRows = segmentLength === -1 ? rows : rows.slice(0, segmentLength);
     //console.log('[Tailer] Fetched batch', { projectId, foundCount: rows?.length || 0 });
-    const res = await applyBatchToDoc(projectId, rows);
+    const res = await applyBatchToDoc(projectId, batchRows);
     //console.log('[Tailer] Applied batch', { projectId, fromId: res?.fromId, toId: res?.toId, changed: !!res?.changed, rowCount: rows.length });
     return true;
   } catch (error) {

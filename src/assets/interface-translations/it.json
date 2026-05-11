@@ -8,6 +8,116 @@
                              "value":  "Strumento di connessione dati"
                          },
                          {
+                             "namespace":  "common",
+                             "key":  "user",
+                             "value":  "Un utente"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "title",
+                             "value":  "Attivita recenti"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "empty",
+                             "value":  "Nessuna attivita ancora."
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "unknown-institution",
+                             "value":  "un'istituzione"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institution-media-added",
+                             "value":  "{{actor}} ha aggiunto {{count}} media a {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institution-media-updated",
+                             "value":  "{{actor}} ha modificato {{count}} collegamenti media per {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institution-media-removed",
+                             "value":  "{{actor}} ha rimosso {{count}} media da {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "objects-created",
+                             "value":  "{{actor}} ha creato {{count}} oggetti in {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "objects-updated",
+                             "value":  "{{actor}} ha modificato {{count}} oggetti in {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "objects-deleted",
+                             "value":  "{{actor}} ha eliminato {{count}} oggetti da {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institutions-created",
+                             "value":  "{{actor}} ha creato {{count}} istituzioni"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institutions-updated",
+                             "value":  "{{actor}} ha modificato {{count}} istituzioni"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "institutions-deleted",
+                             "value":  "{{actor}} ha eliminato {{count}} istituzioni"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "research-fields-created",
+                             "value":  "{{actor}} ha creato {{count}} campi di ricerca"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "research-fields-updated",
+                             "value":  "{{actor}} ha modificato {{count}} campi di ricerca"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "research-fields-deleted",
+                             "value":  "{{actor}} ha eliminato {{count}} campi di ricerca"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "vocabularies-created",
+                             "value":  "{{actor}} ha creato {{count}} vocabolari"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "vocabularies-updated",
+                             "value":  "{{actor}} ha modificato {{count}} vocabolari"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "vocabularies-deleted",
+                             "value":  "{{actor}} ha eliminato {{count}} vocabolari"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "connections-created",
+                             "value":  "{{actor}} ha creato {{count}} connessioni"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "connections-updated",
+                             "value":  "{{actor}} ha modificato {{count}} connessioni"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "connections-deleted",
+                             "value":  "{{actor}} ha eliminato {{count}} connessioni"
+                         },
+                         {
                              "namespace":  "nav",
                              "key":  "home",
                              "value":  "casa"
