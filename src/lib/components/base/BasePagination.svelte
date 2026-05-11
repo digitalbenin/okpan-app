@@ -4,7 +4,7 @@
   let { page = $bindable(), pageSize, count, size } = $props();
 </script>
 
-<Pagination.Root {count} perPage={pageSize} bind:page={() => page, (p) => (page = p)}>
+<Pagination.Root {count} perPage={pageSize} bind:page>
   {#snippet children({ pages })}
     <ul class="pagination {size ? `pagination-${size}` : ''} mb-0">
       <Pagination.PrevButton forceMount>

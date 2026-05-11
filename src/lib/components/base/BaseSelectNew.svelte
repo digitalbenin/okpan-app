@@ -19,6 +19,21 @@
   } = $props();
 
 
+  let hasInitializedValue = false;
+
+  $effect(() => {
+    const nextValue = value;
+
+    if (!hasInitializedValue) {
+      hasInitializedValue = true;
+      return;
+    }
+
+    if (typeof onValueChange === "function") {
+      onValueChange(nextValue);
+    }
+  });
+
   // Search term for filtering items within the dropdown
   let searchTerm = $state("");
 
@@ -63,7 +78,7 @@
   });
 </script>
 
-<Select.Root bind:value {type} {onValueChange} {...restProps}>
+<Select.Root bind:value {type} {...restProps}>
   <Select.Trigger
     class={[
       "d-flex align-items-center",
