@@ -689,7 +689,7 @@ export async function recordProjectActivityFromSyncEvent(projectId, syncEvent) {
     }
 
     const groupedActivities = groupActivityInputs(activityInputs);
-    const activityTimestamp = new Date(syncEvent.created_at || Date.now());
+    const activityTimestamp = new Date(Math.min(syncEvent.created_at || Date.now(), Date.now()));
 
     for (const activity of groupedActivities) {
       await mergeOrInsertActivity(tx, {
