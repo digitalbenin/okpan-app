@@ -44,6 +44,11 @@ const DEFAULT_INGEST_INTERVAL_MS = 1000;
 
 const tailerLocks = new Map(); // projectId → boolean
 
+let dataChangeNotifier = null;
+export function setDataChangeNotifier(fn) {
+  dataChangeNotifier = fn;
+}
+
 function isSkeletonProjectRow(row) {
   return !!row && !row.title_id && !row.description_id
 }
@@ -417,7 +422,9 @@ export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST
     const batchRows = segmentLength === -1 ? rows : rows.slice(0, segmentLength);
     //console.log('[Tailer] Fetched batch', { projectId, foundCount: rows?.length || 0 });
     const res = await applyBatchToDoc(projectId, batchRows);
-    //console.log('[Tailer] Applied batch', { projectId, fromId: res?.fromId, toId: res?.toId, changed: !!res?.changed, rowCount: rows.length });
+    if (firstOrigin === 'local') {
+      dataChangeNotifier?.(projectId);
+    }
     return true;
   } catch (error) {
     console.error('Error ingesting change_log:', error);

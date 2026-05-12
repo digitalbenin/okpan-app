@@ -202,8 +202,6 @@ export const updateDatasource = async (datasourceId, updatedData) => {
 
         invalidate("app:datasources");
         invalidate("app:institution");
-        console.log("invalidate :)")
-
 
         if (translationErrors.length > 0) {
             const errorMessage = `Main data saved, but errors occurred during translation updates: ${translationErrors.join('; ')}`;

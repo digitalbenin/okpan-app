@@ -74,6 +74,96 @@
                          },
                          {
                              "namespace":  "activity",
+                             "key":  "datasources-created",
+                             "value":  "{{actor}} created {{count}} datasources for {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "datasources-created-generic",
+                             "value":  "{{actor}} created {{count}} datasources"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "datasources-updated",
+                             "value":  "{{actor}} edited {{count}} datasources for {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "datasources-updated-generic",
+                             "value":  "{{actor}} edited {{count}} datasources"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "datasources-deleted",
+                             "value":  "{{actor}} deleted {{count}} datasources for {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "datasources-deleted-generic",
+                             "value":  "{{actor}} deleted {{count}} datasources"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-created",
+                             "value":  "{{actor}} created {{count}} templates for {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-created-generic",
+                             "value":  "{{actor}} created {{count}} templates"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-updated",
+                             "value":  "{{actor}} edited {{count}} templates for {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-updated-generic",
+                             "value":  "{{actor}} edited {{count}} templates"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-deleted",
+                             "value":  "{{actor}} deleted {{count}} templates for {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-deleted-generic",
+                             "value":  "{{actor}} deleted {{count}} templates"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-created",
+                             "value":  "{{actor}} uploaded {{count}} assets for {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-created-generic",
+                             "value":  "{{actor}} uploaded {{count}} assets"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-updated",
+                             "value":  "{{actor}} edited {{count}} assets for {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-updated-generic",
+                             "value":  "{{actor}} edited {{count}} assets"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-deleted",
+                             "value":  "{{actor}} deleted {{count}} assets from {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-deleted-generic",
+                             "value":  "{{actor}} deleted {{count}} assets"
+                         },
+                         {
+                             "namespace":  "activity",
                              "key":  "research-fields-created",
                              "value":  "{{actor}} created {{count}} research fields"
                          },
@@ -89,18 +179,18 @@
                          },
                          {
                              "namespace":  "activity",
-                             "key":  "vocabularies-created",
-                             "value":  "{{actor}} created {{count}} vocabularies"
+                             "key":  "connection-types-created",
+                             "value":  "{{actor}} created {{count}} connection types"
                          },
                          {
                              "namespace":  "activity",
-                             "key":  "vocabularies-updated",
-                             "value":  "{{actor}} edited {{count}} vocabularies"
+                             "key":  "connection-types-updated",
+                             "value":  "{{actor}} edited {{count}} connection types"
                          },
                          {
                              "namespace":  "activity",
-                             "key":  "vocabularies-deleted",
-                             "value":  "{{actor}} deleted {{count}} vocabularies"
+                             "key":  "connection-types-deleted",
+                             "value":  "{{actor}} deleted {{count}} connection types"
                          },
                          {
                              "namespace":  "activity",
@@ -116,6 +206,16 @@
                              "namespace":  "activity",
                              "key":  "connections-deleted",
                              "value":  "{{actor}} deleted {{count}} connections"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "project-settings-updated",
+                             "value":  "{{actor}} edited project settings"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "website-settings-updated",
+                             "value":  "{{actor}} edited website settings"
                          },
                          {
                              "namespace":  "nav",
@@ -155,18 +255,33 @@
                          },
                          {
                              "namespace":  "test",
-                             "key":  "title",
-                             "value":  "GraphQL API Explorer"
+                             "key":  "connections-created",
+                             "value":  "{{actor}} created {{count}} connections"
                          },
                          {
-                             "namespace":  "test",
-                             "key":  "tryit",
-                             "value":  "try it now"
+                             "namespace":  "activity",
+                             "key":  "connections-updated",
+                             "value":  "{{actor}} edited {{count}} connections"
                          },
                          {
-                             "namespace":  "test",
-                             "key":  "response",
-                             "value":  "response"
+                             "namespace":  "activity",
+                             "key":  "connections-deleted",
+                             "value":  "{{actor}} deleted {{count}} connections"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "connection-types-created",
+                             "value":  "{{actor}} created {{count}} connection types"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "connection-types-updated",
+                             "value":  "{{actor}} edited {{count}} connection types"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "connection-types-deleted",
+                             "value":  "{{actor}} deleted {{count}} connection types"
                          },
                          {
                              "namespace":  "test",

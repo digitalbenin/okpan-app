@@ -1,5 +1,5 @@
 <script>
-    import { goto, invalidate, invalidateAll } from "$app/navigation";
+    import { goto } from "$app/navigation";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import VocabularyForm from "$lib/components/research_fields/VocabularyForm.svelte";
@@ -67,9 +67,8 @@
         
         if (result.error) {
              console.error("Failed to add connection", result.error);
-             // handle error (maybe show toast)
-                 console.groupEnd();
-             return;
+             console.groupEnd();
+           return false;
         }
 
         // Logic to extract ID from result. 
@@ -95,9 +94,10 @@
              }
         }
         
-        await invalidateAll();
         console.groupEnd();
-        goBack();
+        window.setTimeout(() => {
+            goBack();
+        }, 0);
     }
 
     function goBack() {

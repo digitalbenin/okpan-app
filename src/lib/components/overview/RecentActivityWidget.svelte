@@ -1,25 +1,30 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import ActivityTimeAgo from "./ActivityTimeAgo.svelte";
-  import { formatActivityMessageFallback } from "$lib/constants/activityFeedDefinitions.js";
+  import { formatActivityMessageFallback, resolveActivityMessageKey } from "$lib/constants/activityFeedDefinitions.js";
 
   const { t } = getTranslationStore();
   const { activities = [] } = $props();
 
   function getActivityMessage(activity) {
     const summaryParams = activity.summary_params || {};
+    const rawInstitutionName = summaryParams.institutionName || activity.institution_name || null;
+    const institutionName = rawInstitutionName || t("activity.unknown-institution", {
+      fallback: "an institution"
+    });
+    const messageKey = resolveActivityMessageKey(activity.message_key, {
+      omitInstitution: !rawInstitutionName
+    });
     const params = {
+      ...summaryParams,
       actor: activity.actor_username || t("common.user", { fallback: "A user" }),
       count: activity.item_count || 1,
-      institutionName: summaryParams.institutionName || activity.institution_name || t("activity.unknown-institution", {
-        fallback: "an institution"
-      }),
-      ...summaryParams
+      institutionName
     };
 
-    return t(activity.message_key, {
+    return t(messageKey, {
       ...params,
-      fallback: formatActivityMessageFallback(activity.message_key, params)
+      fallback: formatActivityMessageFallback(messageKey, params)
     });
   }
 </script>

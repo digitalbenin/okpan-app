@@ -108,7 +108,7 @@ import { embeddingService } from './services/embeddingService.js';
 import { ontology_fields, project, texts } from '../db/schema.js';
 import { getProjectDoc, getCurrentProjectId } from './services/projectCache.js';
 import { startP2PForProject, stopP2PForProject, getP2PProvider, getProjectPeersCount, getProjectPresence, setPresenceNotifier, refreshAllProjectPresence, setPendingProjectPassword } from './services/p2pService.js';
-import { startChangeLogTailer } from './services/changeLogTailerService.js';
+import { startChangeLogTailer, setDataChangeNotifier } from './services/changeLogTailerService.js';
 import { createProjectSnapshot, hydrateProjectFromLatestSnapshot, hydrateProjectFromDatabase } from './services/snapshotService.js';
 import { createRecoverySnapshot, deleteRecoverySnapshot, listRecoverySnapshots, prepareSessionOpenRecoverySnapshot, restoreRecoverySnapshot } from './services/recoverySnapshotService.js';
 import {
@@ -321,6 +321,10 @@ function notifyProjectPresence(event, projectId) {
 
 setPresenceNotifier((projectId, presence) => {
   sendToAllWindows('project-presence-changed', { projectId, presence });
+});
+
+setDataChangeNotifier((projectId) => {
+  sendToAllWindows('data-changed', { projectId, origin: 'local' });
 });
 
 // Create GraphQL schema

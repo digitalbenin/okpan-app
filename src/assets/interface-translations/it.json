@@ -74,6 +74,96 @@
                          },
                          {
                              "namespace":  "activity",
+                             "key":  "datasources-created",
+                             "value":  "{{actor}} ha creato {{count}} datasource per {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "datasources-created-generic",
+                             "value":  "{{actor}} ha creato {{count}} datasource"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "datasources-updated",
+                             "value":  "{{actor}} ha modificato {{count}} datasource per {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "datasources-updated-generic",
+                             "value":  "{{actor}} ha modificato {{count}} datasource"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "datasources-deleted",
+                             "value":  "{{actor}} ha eliminato {{count}} datasource per {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "datasources-deleted-generic",
+                             "value":  "{{actor}} ha eliminato {{count}} datasource"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-created",
+                             "value":  "{{actor}} ha creato {{count}} template per {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-created-generic",
+                             "value":  "{{actor}} ha creato {{count}} template"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-updated",
+                             "value":  "{{actor}} ha modificato {{count}} template per {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-updated-generic",
+                             "value":  "{{actor}} ha modificato {{count}} template"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-deleted",
+                             "value":  "{{actor}} ha eliminato {{count}} template per {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "templates-deleted-generic",
+                             "value":  "{{actor}} ha eliminato {{count}} template"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-created",
+                             "value":  "{{actor}} ha caricato {{count}} file per {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-created-generic",
+                             "value":  "{{actor}} ha caricato {{count}} file"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-updated",
+                             "value":  "{{actor}} ha modificato {{count}} file per {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-updated-generic",
+                             "value":  "{{actor}} ha modificato {{count}} file"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-deleted",
+                             "value":  "{{actor}} ha eliminato {{count}} file da {{institutionName}}"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "assets-deleted-generic",
+                             "value":  "{{actor}} ha eliminato {{count}} file"
+                         },
+                         {
+                             "namespace":  "activity",
                              "key":  "research-fields-created",
                              "value":  "{{actor}} ha creato {{count}} campi di ricerca"
                          },
@@ -89,18 +179,18 @@
                          },
                          {
                              "namespace":  "activity",
-                             "key":  "vocabularies-created",
-                             "value":  "{{actor}} ha creato {{count}} vocabolari"
+                             "key":  "connection-types-created",
+                             "value":  "{{actor}} ha creato {{count}} tipi di connessione"
                          },
                          {
                              "namespace":  "activity",
-                             "key":  "vocabularies-updated",
-                             "value":  "{{actor}} ha modificato {{count}} vocabolari"
+                             "key":  "connection-types-updated",
+                             "value":  "{{actor}} ha modificato {{count}} tipi di connessione"
                          },
                          {
                              "namespace":  "activity",
-                             "key":  "vocabularies-deleted",
-                             "value":  "{{actor}} ha eliminato {{count}} vocabolari"
+                             "key":  "connection-types-deleted",
+                             "value":  "{{actor}} ha eliminato {{count}} tipi di connessione"
                          },
                          {
                              "namespace":  "activity",
@@ -116,6 +206,16 @@
                              "namespace":  "activity",
                              "key":  "connections-deleted",
                              "value":  "{{actor}} ha eliminato {{count}} connessioni"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "project-settings-updated",
+                             "value":  "{{actor}} ha modificato le impostazioni del progetto"
+                         },
+                         {
+                             "namespace":  "activity",
+                             "key":  "website-settings-updated",
+                             "value":  "{{actor}} ha modificato le impostazioni del sito web"
                          },
                          {
                              "namespace":  "nav",
