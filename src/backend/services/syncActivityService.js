@@ -479,6 +479,14 @@ async function resolveActivityInput(change, createdEntityIdsByType, vocabularyFi
     return null;
   }
 
+  // Only `properties` is user-editable on assets; all other fields are managed by the
+  // import pipeline or torrent write-backs. Skip UPDATEs that don't touch it.
+  if (change.op === 'UPDATE' && (change.table_name === 'assets' || change.table_name === 'generic_assets')) {
+    const old = parseJsonField(change.old_row);
+    const next = parseJsonField(change.new_row);
+    if (old && next && old.properties === next.properties) return null;
+  }
+
   // An UPDATE that arrives in the same batch as the INSERT for this entity is a creation
   // side-effect, not a real edit — suppress it so only the "created" entry is recorded.
   // researchField resolves its entity type dynamically and handles this check itself.
