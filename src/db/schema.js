@@ -6,10 +6,10 @@ const commonFields = {
     id: text('id').primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
     created_at: integer('created_at', { mode: 'timestamp_ms' })
         .notNull()
-        .default(sql`CURRENT_TIMESTAMP`),
+        .$defaultFn(() => new Date()),
     updated_at: integer('updated_at', { mode: 'timestamp_ms' })
         .notNull()
-        .default(sql`CURRENT_TIMESTAMP`)
+        .$defaultFn(() => new Date())
         .$onUpdateFn(() => new Date())
 };
 
