@@ -15,6 +15,9 @@ import {
   resolveActivityMessageKey
 } from '../../lib/constants/activityFeedDefinitions.js';
 
+const activityWriteQueueByProject = new Map();
+
+// Detect FK failures across libsql/sqlite wrappers.
 function isFkError(err) {
   const code = err?.code ?? err?.rawCode;
   if (code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || code === 787) {
@@ -24,6 +27,7 @@ function isFkError(err) {
   return /FOREIGN KEY constraint failed/i.test(String(err?.message || ''));
 }
 
+// Parse JSON-like payloads from change_log rows safely.
 function parseJsonField(value) {
   if (!value) return null;
   if (typeof value === 'object') return value;
@@ -35,6 +39,7 @@ function parseJsonField(value) {
   }
 }
 
+// Normalize summary params to a plain object with non-null values.
 function normalizeSummaryParams(value) {
   const params = parseJsonField(value);
 
@@ -47,12 +52,14 @@ function normalizeSummaryParams(value) {
   );
 }
 
+// Resolve the row payload from change_log shape based on operation type.
 function getChangePayload(change) {
   return change.op === 'DELETE'
     ? parseJsonField(change.old_row)
     : parseJsonField(change.new_row);
 }
 
+// Track entity ids per activity entity type for same-batch suppression logic.
 function addEntityId(entityIdsByType, entityType, entityId) {
   if (!entityType || !entityId) {
     return;
@@ -63,6 +70,7 @@ function addEntityId(entityIdsByType, entityType, entityId) {
   entityIdsByType.set(entityType, entityIds);
 }
 
+// Check whether an entity id was already seen in the current batch.
 function hasEntityInBatch(entityIdsByType, entityType, entityId) {
   if (!entityType || !entityId) {
     return false;
@@ -71,6 +79,7 @@ function hasEntityInBatch(entityIdsByType, entityType, entityId) {
   return entityIdsByType.get(entityType)?.has(String(entityId)) || false;
 }
 
+// Preload vocabulary field ids so research-field activity type resolution is accurate.
 function collectVocabularyFieldIds(changes) {
   const vocabularyFieldIds = new Set();
 
@@ -88,6 +97,7 @@ function collectVocabularyFieldIds(changes) {
   return vocabularyFieldIds;
 }
 
+// Gather created entities to suppress noisy UPDATE activities in the same batch.
 async function collectCreatedEntityIds(changes, vocabularyFieldIds) {
   const createdEntityIdsByType = new Map();
 
@@ -115,6 +125,7 @@ async function collectCreatedEntityIds(changes, vocabularyFieldIds) {
   return createdEntityIdsByType;
 }
 
+// Gather deleted entities to avoid emitting transient non-delete activities for removed rows.
 function collectDeletedEntityIds(changes) {
   const deletedEntityIdsByType = new Map();
 
@@ -147,6 +158,7 @@ function collectDeletedEntityIds(changes) {
   return deletedEntityIdsByType;
 }
 
+// Load text content used for fallback activity labels.
 async function loadTextContent(textId) {
   if (!textId) return null;
 
@@ -160,6 +172,7 @@ async function loadTextContent(textId) {
   return rows[0]?.content || null;
 }
 
+// Resolve institution id/name from DB when available; otherwise keep payload fallback.
 async function loadInstitutionContext({ institutionId, nameId } = {}) {
   if (institutionId) {
     const institution = await db.query.institutions.findFirst({
@@ -183,6 +196,7 @@ async function loadInstitutionContext({ institutionId, nameId } = {}) {
   };
 }
 
+// Resolve object context with institution linkage for object-related activity entries.
 async function loadObjectContext({ objectId, institutionId } = {}) {
   if (objectId) {
     const object = await db.query.objects.findFirst({
@@ -232,6 +246,7 @@ async function resolveEntityInstitutionId(entityType, entityId, payloadInstituti
   return row?.institution_id || null;
 }
 
+// Resolve translation -> text link when payload omits text_id.
 async function loadTranslationTextId(translationId, payload) {
   if (payload?.text_id) {
     return payload.text_id;
@@ -247,6 +262,7 @@ async function loadTranslationTextId(translationId, payload) {
   return rows[0]?.text_id || null;
 }
 
+// Resolve research field activity type into research_fields vs connection_types.
 async function resolveResearchFieldEntityType(researchFieldId, vocabularyFieldIds) {
   if (!researchFieldId) {
     return 'research_fields';
@@ -266,6 +282,7 @@ async function resolveResearchFieldEntityType(researchFieldId, vocabularyFieldId
   return String(field?.type || '').toLowerCase() === 'vocabulary' ? 'connection_types' : 'research_fields';
 }
 
+// Build message keys for research field activity by action and resolved type.
 function getResearchFieldMessageKey(actionType, entityType) {
   const messagePrefix = entityType === 'connection_types'
     ? 'activity.connection-types'
@@ -282,6 +299,7 @@ function getResearchFieldMessageKey(actionType, entityType) {
   return `${messagePrefix}-updated`;
 }
 
+// Resolve activity for institution-media events.
 async function resolveInstitutionMediaActivity(change, definition, payload) {
   const institution = await loadInstitutionContext({
     institutionId: payload?.institution_id
@@ -304,6 +322,7 @@ async function resolveInstitutionMediaActivity(change, definition, payload) {
   };
 }
 
+// Resolve activity for object events and object-context updates.
 async function resolveObjectActivity(change, definition, payload) {
   const objectContext = await loadObjectContext({
     objectId: payload?.id || change.row_id,
@@ -327,6 +346,7 @@ async function resolveObjectActivity(change, definition, payload) {
   };
 }
 
+// Resolve activity for entities that belong to an institution (assets, templates, datasources, etc).
 async function resolveInstitutionEntityActivity(change, definition, payload) {
   const entityId = payload?.id || change.row_id;
   const institutionId = await resolveEntityInstitutionId(
@@ -350,6 +370,7 @@ async function resolveInstitutionEntityActivity(change, definition, payload) {
   };
 }
 
+// Resolve activity for research fields, including vocabulary subtype handling.
 async function resolveResearchFieldActivity(change, definition, payload, vocabularyFieldIds, createdEntityIdsByType) {
   const entityId = payload?.id || change.row_id;
 
@@ -373,6 +394,7 @@ async function resolveResearchFieldActivity(change, definition, payload, vocabul
   };
 }
 
+// Resolve activity for object junction/link changes.
 async function resolveObjectLinkActivity(definition, payload) {
   if (!payload?.object_id) {
     return null;
@@ -393,6 +415,7 @@ async function resolveObjectLinkActivity(definition, payload) {
   };
 }
 
+// Resolve activity for direct entity rows that do not need extra context.
 function resolveDirectEntityActivity(change, definition) {
   return {
     actionType: definition.actionType,
@@ -405,6 +428,7 @@ function resolveDirectEntityActivity(change, definition) {
   };
 }
 
+// Resolve activity emitted via texts/translations by discovering the owning entity.
 async function resolveTextOwnerActivity(change, payload, createdEntityIdsByType, vocabularyFieldIds) {
   const textId = change.table_name === 'translations'
     ? await loadTranslationTextId(change.row_id, payload)
@@ -471,6 +495,7 @@ async function resolveTextOwnerActivity(change, payload, createdEntityIdsByType,
   return null;
 }
 
+// Route change rows to the correct activity resolver and apply suppression rules.
 async function resolveActivityInput(change, createdEntityIdsByType, vocabularyFieldIds) {
   if (IGNORED_ACTIVITY_TABLES.has(change.table_name)) {
     return null;
@@ -526,6 +551,7 @@ async function resolveActivityInput(change, createdEntityIdsByType, vocabularyFi
   }
 }
 
+// Merge summary params while keeping normalized shape.
 function mergeSummaryParams(existingSummaryParams, nextSummaryParams) {
   return {
     ...normalizeSummaryParams(existingSummaryParams),
@@ -533,6 +559,7 @@ function mergeSummaryParams(existingSummaryParams, nextSummaryParams) {
   };
 }
 
+// Group raw activity inputs into feed-friendly aggregated items.
 function groupActivityInputs(activityInputs) {
   const groupedActivities = new Map();
 
@@ -571,6 +598,7 @@ function groupActivityInputs(activityInputs) {
   }));
 }
 
+// Parse sync event change payload into a stable array.
 function parseSyncEventChanges(syncEvent) {
   const changes = parseJsonField(syncEvent?.changes);
   return Array.isArray(changes) ? changes : [];
@@ -651,104 +679,119 @@ async function mergeOrInsertActivity(tx, record) {
   }
 }
 
+// Convert one sync event into grouped project_activity entries.
+// Writes are serialized per project to avoid concurrent delete/insert races.
 export async function recordProjectActivityFromSyncEvent(projectId, syncEvent) {
   if (!projectId || !syncEvent?.source_key) {
     return;
   }
 
-  const syncKind = syncEvent.kind || syncEvent.sync_kind || 'user';
-  const sourceKey = syncEvent.source_key;
+  const previousRun = activityWriteQueueByProject.get(projectId) || Promise.resolve();
+  const currentRun = previousRun.catch(() => {}).then(async () => {
+    const syncKind = syncEvent.kind || syncEvent.sync_kind || 'user';
+    const sourceKey = syncEvent.source_key;
 
-  await db.transaction(async (tx) => {
-    await tx
-      .delete(project_activity)
-      .where(and(
-        eq(project_activity.project_id, projectId),
-        eq(project_activity.source_key, sourceKey)
-      ))
-      .execute();
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(project_activity)
+        .where(and(
+          eq(project_activity.project_id, projectId),
+          eq(project_activity.source_key, sourceKey)
+        ))
+        .execute();
 
-    if (syncKind !== 'user') {
-      return;
-    }
-
-    const changes = parseSyncEventChanges(syncEvent);
-    if (changes.length === 0) {
-      return;
-    }
-
-    const vocabularyFieldIds = collectVocabularyFieldIds(changes);
-    const createdEntityIdsByType = await collectCreatedEntityIds(changes, vocabularyFieldIds);
-    const deletedEntityIdsByType = collectDeletedEntityIds(changes);
-    const activityInputs = [];
-
-    for (const change of changes) {
-      const activity = await resolveActivityInput(change, createdEntityIdsByType, vocabularyFieldIds);
-      if (
-        activity
-        && activity.actionType !== 'delete'
-        && hasEntityInBatch(deletedEntityIdsByType, activity.entityType, activity.entityId)
-      ) {
-        continue;
+      if (syncKind !== 'user') {
+        return;
       }
 
-      if (activity) {
-        activityInputs.push(activity);
+      const changes = parseSyncEventChanges(syncEvent);
+      if (changes.length === 0) {
+        return;
       }
-    }
 
-    const groupedActivities = groupActivityInputs(activityInputs);
-    const activityTimestamp = new Date(Math.min(syncEvent.created_at || Date.now(), Date.now()));
-    const pendingActivities = groupedActivities.map((activity) => ({
-      created_at: activityTimestamp,
-      updated_at: activityTimestamp,
-      project_id: projectId,
-      source_key: sourceKey,
-      bundle_id: syncEvent.bundle_id || sourceKey,
-      sync_kind: syncKind,
-      actor_client_id: syncEvent.actor_client_id || null,
-      actor_username: syncEvent.actor_username || null,
-      action_type: activity.actionType,
-      entity_type: activity.entityType,
-      entity_id: activity.entityId,
-      institution_id: activity.institutionId,
-      institution_name: activity.institutionName,
-      message_key: activity.messageKey,
-      item_count: activity.itemCount,
-      summary_params: activity.summaryParams
-    }));
+      const vocabularyFieldIds = collectVocabularyFieldIds(changes);
+      const createdEntityIdsByType = await collectCreatedEntityIds(changes, vocabularyFieldIds);
+      const deletedEntityIdsByType = collectDeletedEntityIds(changes);
+      const activityInputs = [];
 
-    let remainingActivities = pendingActivities;
+      for (const change of changes) {
+        const activity = await resolveActivityInput(change, createdEntityIdsByType, vocabularyFieldIds);
+        if (
+          activity
+          && activity.actionType !== 'delete'
+          && hasEntityInBatch(deletedEntityIdsByType, activity.entityType, activity.entityId)
+        ) {
+          continue;
+        }
 
-    for (let pass = 0; pass < 2 && remainingActivities.length > 0; pass += 1) {
-      const nextRemaining = [];
-
-      for (const activity of remainingActivities) {
-        try {
-          await mergeOrInsertActivity(tx, activity);
-        } catch (err) {
-          if (isFkError(err)) {
-            nextRemaining.push(activity);
-            continue;
-          }
-
-          throw err;
+        if (activity) {
+          activityInputs.push(activity);
         }
       }
 
-      remainingActivities = nextRemaining;
-    }
+      const groupedActivities = groupActivityInputs(activityInputs);
+      const activityTimestamp = new Date(Math.min(syncEvent.created_at || Date.now(), Date.now()));
+      const pendingActivities = groupedActivities.map((activity) => ({
+        created_at: activityTimestamp,
+        updated_at: activityTimestamp,
+        project_id: projectId,
+        source_key: sourceKey,
+        bundle_id: syncEvent.bundle_id || sourceKey,
+        sync_kind: syncKind,
+        actor_client_id: syncEvent.actor_client_id || null,
+        actor_username: syncEvent.actor_username || null,
+        action_type: activity.actionType,
+        entity_type: activity.entityType,
+        entity_id: activity.entityId,
+        institution_id: activity.institutionId,
+        institution_name: activity.institutionName,
+        message_key: activity.messageKey,
+        item_count: activity.itemCount,
+        summary_params: activity.summaryParams
+      }));
 
-    for (const activity of remainingActivities) {
-      if (!activity.institution_id) {
-        await mergeOrInsertActivity(tx, activity);
-        continue;
+      let remainingActivities = pendingActivities;
+
+      for (let pass = 0; pass < 2 && remainingActivities.length > 0; pass += 1) {
+        const nextRemaining = [];
+
+        for (const activity of remainingActivities) {
+          try {
+            await mergeOrInsertActivity(tx, activity);
+          } catch (err) {
+            if (isFkError(err)) {
+              nextRemaining.push(activity);
+              continue;
+            }
+
+            throw err;
+          }
+        }
+
+        remainingActivities = nextRemaining;
       }
 
-      await mergeOrInsertActivity(tx, {
-        ...activity,
-        institution_id: null
-      });
-    }
+      for (const activity of remainingActivities) {
+        if (!activity.institution_id) {
+          await mergeOrInsertActivity(tx, activity);
+          continue;
+        }
+
+        await mergeOrInsertActivity(tx, {
+          ...activity,
+          institution_id: null
+        });
+      }
+    });
   });
+
+  activityWriteQueueByProject.set(projectId, currentRun);
+
+  try {
+    return await currentRun;
+  } finally {
+    if (activityWriteQueueByProject.get(projectId) === currentRun) {
+      activityWriteQueueByProject.delete(projectId);
+    }
+  }
 }
