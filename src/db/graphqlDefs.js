@@ -129,6 +129,15 @@ export function createGraphQLSchema(db) {
     // Delete template and cleanup associations
     drizzleResult.schema._typeMap.Mutation._fields.deleteTemplateAndCleanup = createDeleteTemplateAndCleanupMutation(db, drizzleResult);
 
+    // drizzle-graphql bypasses $onUpdateFn, so we inject updated_at manually on every object update.
+    // Note: updated_at is intentionally excluded from p2p sync payloads in changeLogTailerService.
+    const originalUpdateObjects = drizzleResult.schema._typeMap.Mutation._fields.updateObjects;
+    const originalUpdateObjectsResolve = originalUpdateObjects.resolve;
+    originalUpdateObjects.resolve = (source, args, context, info) => {
+        if (args.set) args.set.updated_at = new Date();
+        return originalUpdateObjectsResolve(source, args, context, info);
+    };
+
     return { schema: drizzleResult.schema, resolvers: drizzleResult.resolvers };
 };
 

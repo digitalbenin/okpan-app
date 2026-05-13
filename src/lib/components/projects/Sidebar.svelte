@@ -22,6 +22,7 @@
       label: t("common.institutions", { fallback: "Institutions" }),
       url: `/projects/${page.data.project.id}/institutions`,
       icon: "bank2",
+      exact: true,
     },
     {
       label: t("common.objects", { fallback: "Objects" }),

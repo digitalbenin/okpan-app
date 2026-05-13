@@ -107,50 +107,58 @@
 </script>
 
 <div class="card h-100 border-secondary-subtle rounded-3 p-2">
-	<div class="bg-light w-100 position-relative" style="height: 200px; overflow: hidden;">
-		{#key clampedIndex}
-			<div
-				class="position-absolute top-0 start-0 w-100 h-100"
-				in:fly={{ x: slideDir === 'next' ? 120 : -120, duration: 200 }}
-				out:fly={{ x: slideDir === 'next' ? -120 : 120, duration: 200 }}
-			>
-				{#if imageUrl}
+	<div class="bg-light rounded ratio ratio-1x1 mb-3 overflow-hidden position-relative">
+		<div>
+			{#key clampedIndex}
+				<div
+					class="position-absolute top-0 start-0 w-100 h-100"
+					in:fly={{ x: slideDir === 'next' ? 120 : -120, duration: 200 }}
+					out:fly={{ x: slideDir === 'next' ? -120 : 120, duration: 200 }}
+				>
+					{#if imageUrl}
                     <img
                         src={imageUrl}
                         class="card-img-top object-fit-contain"
                         alt={getObjectDisplayName()}
-                        style="height: 100%; width: 100%; object-fit: cover;"
+                        style="height: 100%; width: 100%; object-fit: contain;"
                     />
-				{:else}
-					<div
-						class="card-img-top d-flex flex-column align-items-center justify-content-center"
-						style="height: 100%;"
-					>
-						<i class="bi bi-image text-secondary display-5"></i>
-						<span class="text-muted">{t('object.no-image')}</span>
-					</div>
-				{/if}
-			</div>
-		{/key}
+					{:else}
+						<div
+							class="card-img-top d-flex flex-column align-items-center justify-content-center"
+							style="height: 100%;"
+						>
+							<i class="bi bi-image text-secondary display-5"></i>
+							<span class="text-muted">{t('object.no-image')}</span>
+						</div>
+					{/if}
+				</div>
+			{/key}
 
-		{#if assets.length > 1}
-			<button
-				type="button"
-				class="btn btn-light btn-sm position-absolute top-50 start-0 translate-middle-y ms-2 opacity-75"
-				aria-label={t('media.previous-image')}
-				onclick={prevAsset}
-			>
-				<i class="bi bi-chevron-left"></i>
-			</button>
-			<button
-				type="button"
-				class="btn btn-light btn-sm position-absolute top-50 end-0 translate-middle-y me-2 opacity-75"
-				aria-label={t('media.next-image')}
-				onclick={nextAsset}
-			>
-				<i class="bi bi-chevron-right"></i>
-			</button>
-		{/if}
+			{#if assets.length > 1}
+				<div class="position-absolute top-50 start-0 translate-middle-y z-2 ps-1">
+					<button
+						type="button"
+						class="d-flex align-items-center justify-content-center prev btn btn-secondary btn-sm p-0 rounded-circle aspect-ratio-1x1 border-0 opacity-50 flex-shrink-0"
+						style="width: 20px; height: 20px;"
+						aria-label={t('media.previous-image')}
+						onclick={prevAsset}
+					>
+						<i style="font-size: 8px;" class="bi bi-chevron-left"></i>
+					</button>
+				</div>
+				<div class="position-absolute top-50 end-0 translate-middle-y z-2 pe-1">
+					<button
+						type="button"
+						class="d-flex align-items-center justify-content-center next btn btn-secondary btn-sm rounded-circle aspect-ratio-1x1 border-0 opacity-50 p-0"
+						style="width: 20px; height: 20px;"
+						aria-label={t('media.next-image')}
+						onclick={nextAsset}
+					>
+						<i style="font-size: 8px;" class="bi bi-chevron-right"></i>
+					</button>
+				</div>
+			{/if}
+		</div>
 	</div>
 	<div class="card-body">
         <h5 class="card-title mb-3">

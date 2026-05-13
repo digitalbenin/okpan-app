@@ -113,8 +113,8 @@
           class="position-absolute top-50 start-0 translate-middle-y z-2 ps-1"
         >
           <button
-            class="prev btn btn-sm btn-outline-dark rounded-circle aspect-ratio-1x1"
-            aria-label={t("objects.previous-image", { fallback: "Previous image" })}><i class="bi bi-arrow-left"></i></button
+            class="d-flex align-items-center justify-content-center prev btn btn-secondary btn-sm p-0 rounded-circle aspect-ratio-1x1 border-0 opacity-50 flex-shrink-0" style="width: 20px; height: 20px;"
+            aria-label={t("objects.previous-image", { fallback: "Previous image" })}><i style="font-size: 8px;" class="bi bi-chevron-left"></i></button
           >
         </div>
         <div class="swiper w-100 h-100" {@attach attachSwiper}>
@@ -138,8 +138,8 @@
           class="position-absolute top-50 end-0 translate-middle-y z-2 pe-1"
         >
           <button
-            class="next btn btn-sm btn-outline-dark rounded-circle aspect-ratio-1x1"
-            aria-label={t("objects.next-image", { fallback: "Next image" })}><i class="bi bi-arrow-right"></i></button
+            class="d-flex align-items-center justify-content-center next btn btn-secondary btn-sm rounded-circle aspect-ratio-1x1 border-0 opacity-50 p-0" style="width: 20px; height: 20px;"
+            aria-label={t("objects.next-image", { fallback: "Next image" })}><i style="font-size: 8px;" class="bi bi-chevron-right"></i></button
           >
         </div>
       </div>
