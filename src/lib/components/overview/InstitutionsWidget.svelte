@@ -25,7 +25,7 @@
   {#if institutions.length === 0}
     <InstitutionCardEmpty />
   {:else}
-    <div class="row g-3">
+    <div class="row row-cols-3 g-3">
       {#each institutions.slice(0, 3) as institution}
         <div class="col">
           <InstitutionGridCard {institution} />

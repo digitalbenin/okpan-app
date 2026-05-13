@@ -24,14 +24,16 @@
     <a href={url}>{i18n.viewAll}</a>
   </div>
 
-  <div class="d-flex gap-3">
+  <div class="row row-cols-5 g-3">
     {#each visibleObjects as object}
-      <div class="flex-grow-1 min-w-0">
+      <div class="col">
         <ObjectCard {object} />
       </div>
     {/each}
     {#if objects.length === 0}
-      <ObjectCardEmpty />
+      <div class="col">
+        <ObjectCardEmpty />
+      </div>
     {/if}
   </div>
 </div>
