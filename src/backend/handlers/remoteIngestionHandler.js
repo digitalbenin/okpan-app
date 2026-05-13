@@ -14,6 +14,18 @@ import { recordProjectActivityFromSyncEvent } from '../services/syncActivityServ
 
 // FK order centralized in projectScope.js
 
+const REMOTE_SYNC_DEBUG_LOG = path.join(process.cwd(), 'remote-sync-debug.log')
+
+async function appendRemoteSyncDebug(stage, details = {}) {
+  try {
+    await fs.appendFile(
+      REMOTE_SYNC_DEBUG_LOG,
+      `${new Date().toISOString()} ${stage} ${JSON.stringify(details)}\n`,
+      'utf8'
+    )
+  } catch (_) {}
+}
+
 function isFkError(err) {
   const code = err?.code ?? err?.rawCode
   if (code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || code === 787) {
@@ -430,6 +442,11 @@ async function applyDelete(dbOrTx, tableName, id, pendingFileDeletes = []) {
  */
 export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   if (!projectId || !updateBytes) return { applied: 0 }
+  await appendRemoteSyncDebug('ingest:start', {
+    projectId,
+    updateBytes: updateBytes?.length || 0,
+    hasBaseline: !!options?.beforeDoc,
+  })
   const ASSET_TABLES = new Set(['assets', 'generic_assets'])
   const pendingFileDeletes = []
   const beforeChangeLogRowidRows = await db
@@ -483,6 +500,13 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   let afterStats = tablesStats(afterTables)
   let source = options?.beforeDoc ? 'baseline' : 'shadow'
   const newActivityEvents = collectNewActivityEvents(beforeActivityEvents, afterActivityEvents)
+  await appendRemoteSyncDebug('ingest:after-yjs-apply', {
+    projectId,
+    source,
+    beforeRows: beforeStats.rows,
+    afterRows: afterStats.rows,
+    activityEvents: newActivityEvents.length,
+  })
 
   // Fallbacks:
   // 1) Structural: if AFTER equals BEFORE by counts, and canonical differs by counts → use canonical.
@@ -813,9 +837,48 @@ export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
     }
   }
 
+  await appendRemoteSyncDebug('ingest:before-activity', {
+    projectId,
+    activityEvents: newActivityEvents.length,
+    applied,
+    deferredInserts,
+    deferredUpdates,
+    deferredDeletes,
+  })
+
   for (const activityEvent of newActivityEvents) {
-    await recordProjectActivityFromSyncEvent(projectId, activityEvent)
+    try {
+      await appendRemoteSyncDebug('activity:start', {
+        projectId,
+        sourceKey: activityEvent?.source_key,
+        kind: activityEvent?.kind || activityEvent?.sync_kind || null,
+      })
+      await recordProjectActivityFromSyncEvent(projectId, activityEvent)
+      await appendRemoteSyncDebug('activity:done', {
+        projectId,
+        sourceKey: activityEvent?.source_key,
+      })
+    } catch (err) {
+      await appendRemoteSyncDebug('activity:error', {
+        projectId,
+        sourceKey: activityEvent?.source_key,
+        message: err?.message || String(err),
+        code: err?.code ?? err?.rawCode ?? null,
+        stack: err?.stack || null,
+      })
+      console.log('[RemoteIngestion] Failed to record activity event from sync:', activityEvent?.source_key, err?.message)
+      // Activity recording is best-effort and must not abort a completed sync.
+    }
   }
+
+  await appendRemoteSyncDebug('ingest:return', {
+    projectId,
+    applied,
+    deferredInserts,
+    deferredUpdates,
+    deferredDeletes,
+    committedAssetChanges,
+  })
 
   return {
     applied,

@@ -15,6 +15,15 @@ import {
   resolveActivityMessageKey
 } from '../../lib/constants/activityFeedDefinitions.js';
 
+function isFkError(err) {
+  const code = err?.code ?? err?.rawCode;
+  if (code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || code === 787) {
+    return true;
+  }
+
+  return /FOREIGN KEY constraint failed/i.test(String(err?.message || ''));
+}
+
 function parseJsonField(value) {
   if (!value) return null;
   if (typeof value === 'object') return value;
@@ -690,25 +699,55 @@ export async function recordProjectActivityFromSyncEvent(projectId, syncEvent) {
 
     const groupedActivities = groupActivityInputs(activityInputs);
     const activityTimestamp = new Date(Math.min(syncEvent.created_at || Date.now(), Date.now()));
+    const pendingActivities = groupedActivities.map((activity) => ({
+      created_at: activityTimestamp,
+      updated_at: activityTimestamp,
+      project_id: projectId,
+      source_key: sourceKey,
+      bundle_id: syncEvent.bundle_id || sourceKey,
+      sync_kind: syncKind,
+      actor_client_id: syncEvent.actor_client_id || null,
+      actor_username: syncEvent.actor_username || null,
+      action_type: activity.actionType,
+      entity_type: activity.entityType,
+      entity_id: activity.entityId,
+      institution_id: activity.institutionId,
+      institution_name: activity.institutionName,
+      message_key: activity.messageKey,
+      item_count: activity.itemCount,
+      summary_params: activity.summaryParams
+    }));
 
-    for (const activity of groupedActivities) {
+    let remainingActivities = pendingActivities;
+
+    for (let pass = 0; pass < 2 && remainingActivities.length > 0; pass += 1) {
+      const nextRemaining = [];
+
+      for (const activity of remainingActivities) {
+        try {
+          await mergeOrInsertActivity(tx, activity);
+        } catch (err) {
+          if (isFkError(err)) {
+            nextRemaining.push(activity);
+            continue;
+          }
+
+          throw err;
+        }
+      }
+
+      remainingActivities = nextRemaining;
+    }
+
+    for (const activity of remainingActivities) {
+      if (!activity.institution_id) {
+        await mergeOrInsertActivity(tx, activity);
+        continue;
+      }
+
       await mergeOrInsertActivity(tx, {
-        created_at: activityTimestamp,
-        updated_at: activityTimestamp,
-        project_id: projectId,
-        source_key: sourceKey,
-        bundle_id: syncEvent.bundle_id || sourceKey,
-        sync_kind: syncKind,
-        actor_client_id: syncEvent.actor_client_id || null,
-        actor_username: syncEvent.actor_username || null,
-        action_type: activity.actionType,
-        entity_type: activity.entityType,
-        entity_id: activity.entityId,
-        institution_id: activity.institutionId,
-        institution_name: activity.institutionName,
-        message_key: activity.messageKey,
-        item_count: activity.itemCount,
-        summary_params: activity.summaryParams
+        ...activity,
+        institution_id: null
       });
     }
   });

@@ -9,6 +9,18 @@ import fsPromises from 'fs/promises';
 import { lookup as dnsLookup } from 'dns/promises';
 import { eq, isNull } from 'drizzle-orm';
 
+const MAIN_PROCESS_DEBUG_LOG = path.join(process.cwd(), 'main-process-debug.log');
+
+function appendMainProcessDebug(stage, details = {}) {
+  try {
+    fs.appendFileSync(
+      MAIN_PROCESS_DEBUG_LOG,
+      `${new Date().toISOString()} ${stage} ${JSON.stringify(details)}\n`,
+      'utf8'
+    );
+  } catch (_) {}
+}
+
 const MIN_WINDOW_WIDTH = 800;
 const MIN_WINDOW_HEIGHT = 600;
 
@@ -150,8 +162,22 @@ process.on('uncaughtException', (error) => {
     console.warn('[Network] Suppressed uncaught socket/DNS error:', error.message);
     return;
   }
+  appendMainProcessDebug('process:uncaughtException', {
+    message: error?.message || String(error),
+    code: error?.code ?? error?.rawCode ?? null,
+    stack: error?.stack || null,
+  });
   console.error('Uncaught Exception:', error);
   // Optionally, re-throw or handle fatal errors appropriately here
+});
+
+process.on('unhandledRejection', (reason) => {
+  appendMainProcessDebug('process:unhandledRejection', {
+    message: reason?.message || String(reason),
+    code: reason?.code ?? reason?.rawCode ?? null,
+    stack: reason?.stack || null,
+  });
+  console.error('Unhandled Rejection:', reason);
 });
 
 app.disableHardwareAcceleration();
@@ -1211,6 +1237,7 @@ app.whenReady().then(async () => {
 
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
+  appendMainProcessDebug('app:window-all-closed', { platform: process.platform });
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -1218,6 +1245,7 @@ app.on('window-all-closed', () => {
 
 // Clean up WebTorrent client and reconcile loops before the process exits
 app.on('before-quit', () => {
+  appendMainProcessDebug('app:before-quit');
   stopConnectivityProbe();
   try { destroyTorrentManager(); } catch (err) { console.warn('destroyTorrentManager error on quit:', err); }
 });

@@ -5,6 +5,8 @@
   import RecentActivityWidget from "$lib/components/overview/RecentActivityWidget.svelte";
   import ProjectWelcome from "$lib/components/projects/ProjectWelcome.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { onMount } from "svelte";
+  import { invalidate } from "$app/navigation";
 
   const { t, translationState } = getTranslationStore();
   const { data } = $props();
@@ -64,6 +66,28 @@
       iconColor: "#fd7e14",
     },
   ]);
+
+  onMount(() => {
+    if (!window.api?.onDataChanged) {
+      return;
+    }
+
+    const unsubscribe = window.api.onDataChanged((payload) => {
+      if (payload?.projectId && String(payload.projectId) !== String(data.project?.id)) {
+        return;
+      }
+
+      // Remote changes handled by global listener.
+      // Homepage listener handles LOCAL changes only.
+      if (payload?.origin && payload.origin !== "local") {
+        return;
+      }
+
+      invalidate("app:project-shared");
+    });
+
+    return unsubscribe;
+  });
 </script>
 
 {#if (data.objects?.totalCount ?? 0) === 0}

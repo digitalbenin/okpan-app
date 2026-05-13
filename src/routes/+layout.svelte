@@ -7,7 +7,8 @@
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
   import { onMount } from "svelte";
-  import { invalidateAll } from "$app/navigation";
+  import { invalidate, invalidateAll } from "$app/navigation";
+  import { page } from "$app/state";
 
   let { children } = $props();
 
@@ -42,8 +43,23 @@
     });
 
     if (window.api && window.api.onDataChanged) {
-      const removeListener = window.api.onDataChanged(() => {
-        console.log("Data changed from backend, invalidating all...");
+      const removeListener = window.api.onDataChanged((payload = {}) => {
+        const origin = payload?.origin;
+        // Keep global reactivity for peer/snapshot events only.
+        if (origin !== "p2p" && origin !== "recovery-snapshot-restore") {
+          return;
+        }
+
+        const activeProjectId = page?.params?.project_id;
+        if (payload?.projectId && activeProjectId && String(payload.projectId) !== String(activeProjectId)) {
+          return;
+        }
+
+        if (!activeProjectId) {
+          invalidate("app:projects");
+          return;
+        }
+
         invalidateAll();
       });
       return removeListener;

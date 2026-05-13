@@ -8,9 +8,11 @@
   import ProjectSync from "$lib/components/projects/ProjectSync.svelte";
   import { goto, invalidate, invalidateAll } from "$app/navigation";
   import { page } from "$app/stores";
+  import { watch } from "runed";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
   import { getProjects } from "$lib/stores/ProjectsUtils.js";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
+  import { onMount } from "svelte";
 
   const { data } = $props();
   const { t, translationState, setLocale } = getTranslationStore();
@@ -20,16 +22,19 @@
   let newProjectOpen = $state(false);
   let importProjectOpen = $state(false);
   let syncProjectOpen = $state(false);
-  let projects = $state(data.projects || []);
-
-  $effect(() => {
-    projects = data.projects || [];
-  });
+  let projects = $state([]);
   let appSettingsOpen = $state(false);
   let usernameDraft = $state("");
   let interfaceLanguageDraft = $state("en");
   let isSavingAppSettings = $state(false);
   let appSettingsError = $state("");
+
+  watch(
+    () => data.projects,
+    (nextProjects) => {
+      projects = nextProjects || [];
+    }
+  );
 
   // Watch for URL parameters to trigger modals
   $effect(() => {
@@ -53,6 +58,24 @@
         translationState.currentLocale || translationState.languages[0]?.code || "en";
       appSettingsError = "";
     }
+  });
+
+  onMount(() => {
+    if (!window.api?.onDataChanged) {
+      return;
+    }
+
+    const unsubscribe = window.api.onDataChanged((payload = {}) => {
+      const origin = payload?.origin;
+
+      if (origin !== "p2p" && origin !== "recovery-snapshot-restore") {
+        return;
+      }
+
+      void invalidate("app:projects");
+    });
+
+    return unsubscribe;
   });
 
   const dropdownItems = $derived([
@@ -120,12 +143,11 @@
   }
 
   async function handleSynced({ projectId }) {
-    const timeoutAt = Date.now() + 15000;
+    const timeoutAt = Date.now() + 40000;
 
     while (Date.now() < timeoutAt) {
       await invalidate("app:projects");
-      const refreshedProjects = await getProjects();
-      projects = refreshedProjects || [];
+      projects = (await getProjects()) || [];
 
       if (projects.some((project) => project.id === projectId)) {
         syncProjectOpen = false;
@@ -134,6 +156,8 @@
 
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
+
+    syncProjectOpen = false;
 
     addToast({
       data: {
@@ -317,7 +341,12 @@
       {t("project.sync-project", { fallback: "Sync project" })}
     {/snippet}
     {#snippet description()}
-      <ProjectSync onSynced={handleSynced}></ProjectSync>
+      <ProjectSync
+        onSynced={handleSynced}
+        onTimeout={() => {
+          syncProjectOpen = false;
+        }}
+      ></ProjectSync>
     {/snippet}
   </BaseAlertDialog>
 {/if}

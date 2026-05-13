@@ -3,7 +3,7 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
 
-  const { onSynced } = $props();
+  const { onSynced, onTimeout = null } = $props();
 
   let projectId = $state("");
   let password = $state("");
@@ -22,7 +22,7 @@
 
     return new Promise((resolve) => {
       let settled = false;
-      const timeoutId = setTimeout(() => finish(false), 10000);
+      const timeoutId = setTimeout(() => finish(false), 40000);
       const removeListener = window.api.onProjectPresenceChanged(({ projectId: changedProjectId, presence }) => {
         if (changedProjectId === targetProjectId && (presence?.count || 0) > 0) {
           finish(true);
@@ -82,6 +82,7 @@
       } else {
         // Did not find peers in time
         // Provide user feedback
+        onTimeout?.();
         addToast({
           data: {
             title: "Timeout",
