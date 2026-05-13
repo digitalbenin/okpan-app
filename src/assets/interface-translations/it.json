@@ -30,47 +30,47 @@
                          {
                              "namespace":  "activity",
                              "key":  "institution-media-added",
-                             "value":  "{{actor}} ha aggiunto {{count}} media a {{institutionName}}"
+                             "value":  "{{actor}} ha aggiunto {{count}} file media a {{institutionName}} | {{actor}} ha aggiunto {{count}} file media a {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "institution-media-updated",
-                             "value":  "{{actor}} ha modificato {{count}} collegamenti media per {{institutionName}}"
+                             "value":  "{{actor}} ha modificato {{count}} collegamento media per {{institutionName}} | {{actor}} ha modificato {{count}} collegamenti media per {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "institution-media-removed",
-                             "value":  "{{actor}} ha rimosso {{count}} media da {{institutionName}}"
+                             "value":  "{{actor}} ha rimosso {{count}} file media da {{institutionName}} | {{actor}} ha rimosso {{count}} file media da {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "objects-created",
-                             "value":  "{{actor}} ha creato {{count}} oggetti in {{institutionName}}"
+                             "value":  "{{actor}} ha creato {{count}} oggetto in {{institutionName}} | {{actor}} ha creato {{count}} oggetti in {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "objects-updated",
-                             "value":  "{{actor}} ha modificato {{count}} oggetti in {{institutionName}}"
+                             "value":  "{{actor}} ha modificato {{count}} oggetto in {{institutionName}} | {{actor}} ha modificato {{count}} oggetti in {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "objects-deleted",
-                             "value":  "{{actor}} ha eliminato {{count}} oggetti da {{institutionName}}"
+                             "value":  "{{actor}} ha eliminato {{count}} oggetto da {{institutionName}} | {{actor}} ha eliminato {{count}} oggetti da {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "institutions-created",
-                             "value":  "{{actor}} ha creato {{count}} istituzioni"
+                             "value":  "{{actor}} ha creato {{count}} istituzione | {{actor}} ha creato {{count}} istituzioni"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "institutions-updated",
-                             "value":  "{{actor}} ha modificato {{count}} istituzioni"
+                             "value":  "{{actor}} ha modificato {{count}} istituzione | {{actor}} ha modificato {{count}} istituzioni"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "institutions-deleted",
-                             "value":  "{{actor}} ha eliminato {{count}} istituzioni"
+                             "value":  "{{actor}} ha eliminato {{count}} istituzione | {{actor}} ha eliminato {{count}} istituzioni"
                          },
                          {
                              "namespace":  "activity",
@@ -165,47 +165,47 @@
                          {
                              "namespace":  "activity",
                              "key":  "research-fields-created",
-                             "value":  "{{actor}} ha creato {{count}} campi di ricerca"
+                             "value":  "{{actor}} ha creato {{count}} campo di ricerca | {{actor}} ha creato {{count}} campi di ricerca"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "research-fields-updated",
-                             "value":  "{{actor}} ha modificato {{count}} campi di ricerca"
+                             "value":  "{{actor}} ha modificato {{count}} campo di ricerca | {{actor}} ha modificato {{count}} campi di ricerca"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "research-fields-deleted",
-                             "value":  "{{actor}} ha eliminato {{count}} campi di ricerca"
+                             "value":  "{{actor}} ha eliminato {{count}} campo di ricerca | {{actor}} ha eliminato {{count}} campi di ricerca"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connection-types-created",
-                             "value":  "{{actor}} ha creato {{count}} tipi di connessione"
+                             "value":  "{{actor}} ha creato {{count}} tipo di connessione | {{actor}} ha creato {{count}} tipi di connessione"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connection-types-updated",
-                             "value":  "{{actor}} ha modificato {{count}} tipi di connessione"
+                             "value":  "{{actor}} ha modificato {{count}} tipo di connessione | {{actor}} ha modificato {{count}} tipi di connessione"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connection-types-deleted",
-                             "value":  "{{actor}} ha eliminato {{count}} tipi di connessione"
+                             "value":  "{{actor}} ha eliminato {{count}} tipo di connessione | {{actor}} ha eliminato {{count}} tipi di connessione"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connections-created",
-                             "value":  "{{actor}} ha creato {{count}} connessioni"
+                             "value":  "{{actor}} ha creato {{count}} connessione | {{actor}} ha creato {{count}} connessioni"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connections-updated",
-                             "value":  "{{actor}} ha modificato {{count}} connessioni"
+                             "value":  "{{actor}} ha modificato {{count}} connessione | {{actor}} ha modificato {{count}} connessioni"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connections-deleted",
-                             "value":  "{{actor}} ha eliminato {{count}} connessioni"
+                             "value":  "{{actor}} ha eliminato {{count}} connessione | {{actor}} ha eliminato {{count}} connessioni"
                          },
                          {
                              "namespace":  "activity",
@@ -396,6 +396,36 @@
                              "namespace":  "common",
                              "key":  "assets-percentage",
                              "value":  "delle risorse collegate agli oggetti"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "relations",
+                             "value":  "Relazioni"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "media-files",
+                             "value":  "File media"
+                         },
+                         {
+                             "namespace":  "overview",
+                             "key":  "recently-edited-objects",
+                             "value":  "Oggetti modificati di recente"
+                         },
+                         {
+                             "namespace":  "overview",
+                             "key":  "view-all-objects",
+                             "value":  "Vedi tutti gli oggetti"
+                         },
+                         {
+                             "namespace":  "overview",
+                             "key":  "view-all-institutions",
+                             "value":  "Vedi tutte le istituzioni"
+                         },
+                         {
+                             "namespace":  "overview",
+                             "key":  "assets-all-linked",
+                             "value":  "Tutti collegati agli oggetti"
                          },
                          {
                              "namespace":  "common",
@@ -2181,6 +2211,21 @@
                              "namespace":  "menu",
                              "key":  "other",
                              "value":  "Altro"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "add-content",
+                             "value":  "Aggiungi contenuto"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "publish",
+                             "value":  "Pubblica"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "settings-section",
+                             "value":  "Impostazioni"
                          },
                          {
                              "namespace":  "menu",

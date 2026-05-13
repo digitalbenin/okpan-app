@@ -30,182 +30,182 @@
                          {
                              "namespace":  "activity",
                              "key":  "institution-media-added",
-                             "value":  "{{actor}} added {{count}} media to {{institutionName}}"
+                             "value":  "{{actor}} added {{count}} media file to {{institutionName}} | {{actor}} added {{count}} media files to {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "institution-media-updated",
-                             "value":  "{{actor}} edited {{count}} media links for {{institutionName}}"
+                             "value":  "{{actor}} edited {{count}} media link for {{institutionName}} | {{actor}} edited {{count}} media links for {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "institution-media-removed",
-                             "value":  "{{actor}} removed {{count}} media from {{institutionName}}"
+                             "value":  "{{actor}} removed {{count}} media file from {{institutionName}} | {{actor}} removed {{count}} media files from {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "objects-created",
-                             "value":  "{{actor}} created {{count}} objects in {{institutionName}}"
+                             "value":  "{{actor}} created {{count}} object in {{institutionName}} | {{actor}} created {{count}} objects in {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "objects-updated",
-                             "value":  "{{actor}} edited {{count}} objects in {{institutionName}}"
+                             "value":  "{{actor}} edited {{count}} object in {{institutionName}} | {{actor}} edited {{count}} objects in {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "objects-deleted",
-                             "value":  "{{actor}} deleted {{count}} objects from {{institutionName}}"
+                             "value":  "{{actor}} deleted {{count}} object from {{institutionName}} | {{actor}} deleted {{count}} objects from {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "institutions-created",
-                             "value":  "{{actor}} created {{count}} institutions"
+                             "value":  "{{actor}} created {{count}} institution | {{actor}} created {{count}} institutions"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "institutions-updated",
-                             "value":  "{{actor}} edited {{count}} institutions"
+                             "value":  "{{actor}} edited {{count}} institution | {{actor}} edited {{count}} institutions"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "institutions-deleted",
-                             "value":  "{{actor}} deleted {{count}} institutions"
+                             "value":  "{{actor}} deleted {{count}} institution | {{actor}} deleted {{count}} institutions"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "datasources-created",
-                             "value":  "{{actor}} created {{count}} datasources for {{institutionName}}"
+                             "value":  "{{actor}} created {{count}} datasource for {{institutionName}} | {{actor}} created {{count}} datasources for {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "datasources-created-generic",
-                             "value":  "{{actor}} created {{count}} datasources"
+                             "value":  "{{actor}} created {{count}} datasource | {{actor}} created {{count}} datasources"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "datasources-updated",
-                             "value":  "{{actor}} edited {{count}} datasources for {{institutionName}}"
+                             "value":  "{{actor}} edited {{count}} datasource for {{institutionName}} | {{actor}} edited {{count}} datasources for {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "datasources-updated-generic",
-                             "value":  "{{actor}} edited {{count}} datasources"
+                             "value":  "{{actor}} edited {{count}} datasource | {{actor}} edited {{count}} datasources"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "datasources-deleted",
-                             "value":  "{{actor}} deleted {{count}} datasources for {{institutionName}}"
+                             "value":  "{{actor}} deleted {{count}} datasource for {{institutionName}} | {{actor}} deleted {{count}} datasources for {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "datasources-deleted-generic",
-                             "value":  "{{actor}} deleted {{count}} datasources"
+                             "value":  "{{actor}} deleted {{count}} datasource | {{actor}} deleted {{count}} datasources"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "templates-created",
-                             "value":  "{{actor}} created {{count}} templates for {{institutionName}}"
+                             "value":  "{{actor}} created {{count}} template for {{institutionName}} | {{actor}} created {{count}} templates for {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "templates-created-generic",
-                             "value":  "{{actor}} created {{count}} templates"
+                             "value":  "{{actor}} created {{count}} template | {{actor}} created {{count}} templates"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "templates-updated",
-                             "value":  "{{actor}} edited {{count}} templates for {{institutionName}}"
+                             "value":  "{{actor}} edited {{count}} template for {{institutionName}} | {{actor}} edited {{count}} templates for {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "templates-updated-generic",
-                             "value":  "{{actor}} edited {{count}} templates"
+                             "value":  "{{actor}} edited {{count}} template | {{actor}} edited {{count}} templates"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "templates-deleted",
-                             "value":  "{{actor}} deleted {{count}} templates for {{institutionName}}"
+                             "value":  "{{actor}} deleted {{count}} template for {{institutionName}} | {{actor}} deleted {{count}} templates for {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "templates-deleted-generic",
-                             "value":  "{{actor}} deleted {{count}} templates"
+                             "value":  "{{actor}} deleted {{count}} template | {{actor}} deleted {{count}} templates"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "assets-created",
-                             "value":  "{{actor}} uploaded {{count}} assets for {{institutionName}}"
+                             "value":  "{{actor}} uploaded {{count}} file for {{institutionName}} | {{actor}} uploaded {{count}} files for {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "assets-created-generic",
-                             "value":  "{{actor}} uploaded {{count}} assets"
+                             "value":  "{{actor}} uploaded {{count}} file | {{actor}} uploaded {{count}} files"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "assets-updated",
-                             "value":  "{{actor}} edited {{count}} assets for {{institutionName}}"
+                             "value":  "{{actor}} edited {{count}} file for {{institutionName}} | {{actor}} edited {{count}} files for {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "assets-updated-generic",
-                             "value":  "{{actor}} edited {{count}} assets"
+                             "value":  "{{actor}} edited {{count}} file | {{actor}} edited {{count}} files"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "assets-deleted",
-                             "value":  "{{actor}} deleted {{count}} assets from {{institutionName}}"
+                             "value":  "{{actor}} deleted {{count}} file from {{institutionName}} | {{actor}} deleted {{count}} files from {{institutionName}}"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "assets-deleted-generic",
-                             "value":  "{{actor}} deleted {{count}} assets"
+                             "value":  "{{actor}} deleted {{count}} file | {{actor}} deleted {{count}} files"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "research-fields-created",
-                             "value":  "{{actor}} created {{count}} research fields"
+                             "value":  "{{actor}} created {{count}} research field | {{actor}} created {{count}} research fields"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "research-fields-updated",
-                             "value":  "{{actor}} edited {{count}} research fields"
+                             "value":  "{{actor}} edited {{count}} research field | {{actor}} edited {{count}} research fields"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "research-fields-deleted",
-                             "value":  "{{actor}} deleted {{count}} research fields"
+                             "value":  "{{actor}} deleted {{count}} research field | {{actor}} deleted {{count}} research fields"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connection-types-created",
-                             "value":  "{{actor}} created {{count}} connection types"
+                             "value":  "{{actor}} created {{count}} connection type | {{actor}} created {{count}} connection types"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connection-types-updated",
-                             "value":  "{{actor}} edited {{count}} connection types"
+                             "value":  "{{actor}} edited {{count}} connection type | {{actor}} edited {{count}} connection types"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connection-types-deleted",
-                             "value":  "{{actor}} deleted {{count}} connection types"
+                             "value":  "{{actor}} deleted {{count}} connection type | {{actor}} deleted {{count}} connection types"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connections-created",
-                             "value":  "{{actor}} created {{count}} connections"
+                             "value":  "{{actor}} created {{count}} connection | {{actor}} created {{count}} connections"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connections-updated",
-                             "value":  "{{actor}} edited {{count}} connections"
+                             "value":  "{{actor}} edited {{count}} connection | {{actor}} edited {{count}} connections"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connections-deleted",
-                             "value":  "{{actor}} deleted {{count}} connections"
+                             "value":  "{{actor}} deleted {{count}} connection | {{actor}} deleted {{count}} connections"
                          },
                          {
                              "namespace":  "activity",
@@ -261,27 +261,27 @@
                          {
                              "namespace":  "activity",
                              "key":  "connections-updated",
-                             "value":  "{{actor}} edited {{count}} connections"
+                             "value":  "{{actor}} edited {{count}} connection | {{actor}} edited {{count}} connections"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connections-deleted",
-                             "value":  "{{actor}} deleted {{count}} connections"
+                             "value":  "{{actor}} deleted {{count}} connection | {{actor}} deleted {{count}} connections"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connection-types-created",
-                             "value":  "{{actor}} created {{count}} connection types"
+                             "value":  "{{actor}} created {{count}} connection type | {{actor}} created {{count}} connection types"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connection-types-updated",
-                             "value":  "{{actor}} edited {{count}} connection types"
+                             "value":  "{{actor}} edited {{count}} connection type | {{actor}} edited {{count}} connection types"
                          },
                          {
                              "namespace":  "activity",
                              "key":  "connection-types-deleted",
-                             "value":  "{{actor}} deleted {{count}} connection types"
+                             "value":  "{{actor}} deleted {{count}} connection type | {{actor}} deleted {{count}} connection types"
                          },
                          {
                              "namespace":  "test",
@@ -381,7 +381,7 @@
                          {
                              "namespace":  "common",
                              "key":  "in-progress",
-                             "value":  "In progress"
+                             "value":  "Draft"
                          },
                          {
                              "namespace":  "common",
@@ -407,6 +407,36 @@
                              "namespace":  "common",
                              "key":  "assets-percentage",
                              "value":  "of assets linked to objects"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "relations",
+                             "value":  "Relations"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "media-files",
+                             "value":  "Media files"
+                         },
+                         {
+                             "namespace":  "overview",
+                             "key":  "recently-edited-objects",
+                             "value":  "Recently edited objects"
+                         },
+                         {
+                             "namespace":  "overview",
+                             "key":  "view-all-objects",
+                             "value":  "View all objects"
+                         },
+                         {
+                             "namespace":  "overview",
+                             "key":  "view-all-institutions",
+                             "value":  "View all institutions"
+                         },
+                         {
+                             "namespace":  "overview",
+                             "key":  "assets-all-linked",
+                             "value":  "All linked to objects"
                          },
                          {
                              "namespace":  "common",
@@ -1332,6 +1362,21 @@
                              "namespace":  "menu",
                              "key":  "other",
                              "value":  "Other"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "add-content",
+                             "value":  "Add content"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "publish",
+                             "value":  "Publish"
+                         },
+                         {
+                             "namespace":  "menu",
+                             "key":  "settings-section",
+                             "value":  "Settings"
                          },
                          {
                              "namespace":  "menu",

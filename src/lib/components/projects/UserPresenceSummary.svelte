@@ -133,7 +133,7 @@
           title={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
           aria-label={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
         >
-          <i class="bi {syncIcon} text-white d-flex align-items-center justify-content-center lh-1" style="font-size: 1.8rem;"></i>
+          <i class="bi {syncIcon} text-body d-flex align-items-center justify-content-center lh-1" style="font-size: 1.5rem;"></i>
         </div>
       {/snippet}
 
@@ -177,12 +177,12 @@
       {/snippet}
     </BaseDropdownMenu>
     <div class="d-flex flex-column align-items-start text-start gap-0 justify-content-center ms-1">
-      <span class="fw-semibold text-truncate" style="max-width: 180px; lh-sm">{currentUsername}</span>
+      <span class="fw-semibold text-body text-truncate" style="max-width: 180px; lh-sm">{currentUsername}</span>
     </div>
   </div>
 
   {#if connectedPeers.length > 0}
-    <div class="vr ms-3 text-white opacity-75 align-self-stretch my-1"></div>
+    <div class="vr ms-3 align-self-stretch my-1"></div>
 
     <BaseDropdownMenu
       bind:open={peersDropdownOpen}

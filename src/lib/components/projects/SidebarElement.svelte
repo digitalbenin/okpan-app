@@ -7,10 +7,10 @@
 
   const isActive = $derived(
     hasChildren
-      ? element.children.some((child) => pathname.startsWith(child.url))
+      ? element.children.some((child) => pathname === child.url || pathname.startsWith(child.url + "/"))
       : element.exact
         ? pathname === element.url
-        : pathname.startsWith(element.url) && !pathname.endsWith("add"),
+        : pathname === element.url || pathname.startsWith(element.url + "/"),
   );
 
   function toggleCollapse() {
@@ -35,7 +35,8 @@
 
 <div
   class="px-1 py-2 border-dark"
-  class:bg-light={isActive && !hasChildren}
+  class:bg-primary={isActive && !hasChildren}
+  class:bg-opacity-10={isActive && !hasChildren}
   class:rounded-2={isActive && !hasChildren}
 >
   {#if hasChildren}
@@ -45,7 +46,7 @@
       aria-disabled={disabled}
       class="d-flex align-items-center justify-content-between text-decoration-none"
       class:link-secondary={!isActive}
-      class:link-dark={isActive}
+      class:link-primary={isActive}
       onclick={toggleCollapse}
       onkeydown={toggleCollapse}
       style={disabled ? "opacity: 0.5; cursor: not-allowed;" : "cursor: pointer;"}
@@ -59,7 +60,7 @@
       <i class="bi bi-chevron-{isCollapsed ? 'right' : 'down'}"></i>
     </div>
     {#if !isCollapsed}
-      <div class="ps-3">
+      <div class="ps-3 pt-2">
         <SidebarMenu items={element.children} {pathname} />
       </div>
     {/if}
@@ -70,7 +71,7 @@
       tabindex={disabled ? -1 : undefined}
       class="d-flex align-items-center justify-content-between text-decoration-none"
       class:link-secondary={!isActive}
-      class:link-dark={isActive}
+      class:link-primary={isActive}
       onclick={blockWhenDisabled}
       style={disabled ? "opacity: 0.5; cursor: not-allowed; pointer-events: none;" : ""}
     >

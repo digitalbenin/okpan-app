@@ -60,11 +60,6 @@
       url: `/projects/${page.data.project.id}/import-assets`,
       icon: "box-arrow-in-right",
     },
-    {
-      label: t("menu.export-data", { fallback: "Export Data" }),
-      url: `/projects/${page.data.project.id}/export`,
-      icon: "box-arrow-up-right",
-    },
   ]);
 
   const websiteLinks = $derived([
@@ -79,6 +74,11 @@
       url: `/projects/${page.data.project.id}/export-website`,
       icon: "globe",
       exact: true,
+    },
+    {
+      label: t("menu.export-data", { fallback: "Export Data" }),
+      url: `/projects/${page.data.project.id}/export`,
+      icon: "box-arrow-up-right",
     },
   ]);
 
@@ -125,11 +125,11 @@
 
 <div class="sidebar h-100 border-end overflow-y-auto p-3">
   <SidebarMenu items={projectLinks} pathname={page.url.pathname} />
-  <h5>{t("translations.actions", { fallback: "Actions" })}</h5>
+  <div class="text-uppercase small fw-semibold text-secondary mt-3 mb-1 px-1">{t("menu.add-content", { fallback: "Add content" })}</div>
   <SidebarMenu items={actionsLinks} pathname={page.url.pathname} />
-  <h5>{t("common.website", { fallback: "Website" })}</h5>
+  <div class="text-uppercase small fw-semibold text-secondary mt-3 mb-1 px-1">{t("menu.publish", { fallback: "Publish" })}</div>
   <SidebarMenu items={websiteLinks} pathname={page.url.pathname} />
-  <h5>{t("menu.other", { fallback: "Other" })}</h5>
+  <div class="text-uppercase small fw-semibold text-secondary mt-3 mb-1 px-1">{t("menu.settings-section", { fallback: "Settings" })}</div>
   <SidebarMenu items={otherLinks} pathname={page.url.pathname} />
   {#if systemInfo.isDev}
     <a href="/debug" class="btn btn-link">debug</a>

@@ -792,6 +792,12 @@ export function getTranslationStore() {
         // Get the translation with fallback value
         let text = getTranslation(namespace, translationKey, null, fallback);
 
+        // Plural support: "singular form | plural form" — pick based on count param
+        if ('count' in otherParams && text.includes(' | ')) {
+            const [singular, plural] = text.split(' | ');
+            text = Number(otherParams.count) === 1 ? singular : plural;
+        }
+
         // Replace parameters in the translation (excluding fallback)
         if (otherParams && Object.keys(otherParams).length > 0) {
             Object.keys(otherParams).forEach(param => {

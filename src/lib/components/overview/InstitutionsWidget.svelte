@@ -1,7 +1,7 @@
 <script>
   import { page } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import InstitutionCard from "./InstitutionCard.svelte";
+  import InstitutionGridCard from "./InstitutionGridCard.svelte";
   import InstitutionCardEmpty from "./InstitutionCardEmpty.svelte";
   const { t, translationState } = getTranslationStore();
   const { institutions } = $props();
@@ -11,27 +11,26 @@
     translationState.currentLocale;
 
     return {
-      recentInstitutions: t("common.recent-institutions", {
-        fallback: "Recent Institutions",
-      }),
-      viewAll: t("common.view-all", { fallback: "View all" }),
+      recentInstitutions: t("common.recent-institutions", { fallback: "Recent Institutions" }),
+      viewAll: t("overview.view-all-institutions", { fallback: "View all institutions" }),
     };
   });
 </script>
 
-<div class="bg-white rounded border d-flex flex-column p-4">
+<div class=" rounded-5">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0">
-      {i18n.recentInstitutions}
-    </h3>
-    <a class="btn btn-sm btn-light" href="{page.url.pathname}/institutions"
-      >{i18n.viewAll}</a
-    >
+    <div>{i18n.recentInstitutions}</div>
+    <a href="{page.url.pathname}/institutions">{i18n.viewAll}</a>
   </div>
-  {#each institutions as institution}
-    <InstitutionCard {institution} />
-  {/each}
   {#if institutions.length === 0}
     <InstitutionCardEmpty />
+  {:else}
+    <div class="row g-3">
+      {#each institutions.slice(0, 3) as institution}
+        <div class="col">
+          <InstitutionGridCard {institution} />
+        </div>
+      {/each}
+    </div>
   {/if}
 </div>

@@ -101,24 +101,26 @@
 </script>
 
 <div
-  class="header w-100 d-flex justify-content-between align-items-center py-2 text-bg-secondary border-bottom gap-2 px-1"
+  class="header w-100 d-flex justify-content-between align-items-center py-2 bg-white border-bottom gap-2 px-1"
 >
   <div class="col">
-    <BaseDropdownMenu
-      bind:open={dropdownOpen}
-      items={dropdownItems}
-      triggerClass="btn btn-secondary btn-sm d-flex align-items-center gap-2"
-      contentProps={{ style: "left: 0; min-width: 200px;" }}
-      side="bottom"
-      align="start"
-      sideOffset={4}
-      alignOffset={0}
-    >
-      {#snippet trigger()}
-        {project.title?.content || "Connecting/Downloading Project..."}
-        <i class="bi bi-chevron-{dropdownOpen ? 'up' : 'down'}"></i>
-      {/snippet}
-    </BaseDropdownMenu>
+    <div class="d-inline-flex rounded-2 p-1" style="background-color: #eaebe7;">
+      <BaseDropdownMenu
+        bind:open={dropdownOpen}
+        items={dropdownItems}
+        triggerClass="btn btn-sm btn-link text-decoration-none link-primary d-flex align-items-center gap-1"
+        contentProps={{ style: "left: 0; min-width: 200px;" }}
+        side="bottom"
+        align="start"
+        sideOffset={4}
+        alignOffset={0}
+      >
+        {#snippet trigger()}
+          {project.title?.content || "Connecting/Downloading Project..."}
+          <i class="bi bi-chevron-{dropdownOpen ? 'up' : 'down'}"></i>
+        {/snippet}
+      </BaseDropdownMenu>
+    </div>
   </div>
   <div class="col d-flex justify-content-center">
     <HeaderSwitch />

@@ -1,89 +1,88 @@
 <script>
-  // import { queryParameters } from "sveltekit-search-params";
-  // import InstitutionsTable from "$lib/components/institutions/InstitutionsTable.svelte";
   import ObjectsWidget from "$lib/components/overview/ObjectsWidget.svelte";
   import StatsWidget from "$lib/components/overview/StatsWidget.svelte";
   import InstitutionsWidget from "$lib/components/overview/InstitutionsWidget.svelte";
   import RecentActivityWidget from "$lib/components/overview/RecentActivityWidget.svelte";
-  import SearchWidget from "$lib/components/overview/SearchWidget.svelte";
   import ProjectWelcome from "$lib/components/projects/ProjectWelcome.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   const { t, translationState } = getTranslationStore();
   const { data } = $props();
 
+  const connectionTypesCount = $derived(
+    (data.researchFields?.result ?? []).filter((rf) => rf.type === "vocabulary").length
+  );
+
   const i18n = $derived.by(() => {
     translationState.isInitialized;
     translationState.currentLocale;
 
     return {
+      overview: t("menu.overview", { fallback: "Overview" }),
       objects: t("common.objects", { fallback: "Objects" }),
-      assets: t("common.assets", { fallback: "Assets" }),
+      mediaFiles: t("common.media-files", { fallback: "Media files" }),
       institutions: t("common.institutions", { fallback: "Institutions" }),
-      objectsPercentage: t("common.objects-percentage", {
-        fallback: "of objects completed",
-      }),
-      assetsPercentage: t("common.assets-percentage", {
-        fallback: "of assets linked to objects",
-      }),
+      relations: t("common.relations", { fallback: "Relations" }),
+      objectsPercentage: t("common.objects-percentage", { fallback: "marked as complete" }),
+      assetsPercentage: t("common.assets-percentage", { fallback: "assets linked to objects" }),
+      assetsAllLinked: t("overview.assets-all-linked", { fallback: "All linked to objects" }),
     };
   });
 
-  //TODO: in the api response, put alla stats in a single object and pass directly to the StatsWidget
   const stats = $derived([
     {
       label: i18n.objects,
       value: data.project.objectsCount,
       percentage: data.project.completedObjectsCount,
       labelPercentage: i18n.objectsPercentage,
+      icon: "box",
+      iconBgColor: "rgba(111, 66, 193, 0.12)",
+      iconColor: "#6f42c1",
     },
     {
-      label: i18n.assets,
+      label: i18n.mediaFiles,
       value: data.project.assetsCount,
       percentage: data.project.linkedAssetsCount,
       labelPercentage: i18n.assetsPercentage,
+      labelComplete: i18n.assetsAllLinked,
+      icon: "images",
+      iconBgColor: "rgba(214, 51, 132, 0.12)",
+      iconColor: "#d63384",
     },
     {
       label: i18n.institutions,
-      value: data.institutions?.count,
+      value: data.project.institutionsCount,
+      icon: "bank2",
+      iconBgColor: "rgba(13, 110, 253, 0.12)",
+      iconColor: "#0d6efd",
+    },
+    {
+      label: i18n.relations,
+      value: connectionTypesCount,
+      icon: "share-fill",
+      iconBgColor: "rgba(253, 126, 20, 0.12)",
+      iconColor: "#fd7e14",
     },
   ]);
 </script>
 
 {#if (data.objects?.totalCount ?? 0) === 0}
-  <ProjectWelcome institutionsCount={data.institutions?.count ?? 0} />
+  <ProjectWelcome institutionsCount={data.project.institutionsCount ?? 0} />
 {:else}
-  <div class="wrapper container-fluid bg-light pb-3">
-    <div class="row">
-      <div class="col-7">
-        <div class="my-3">
-          <SearchWidget projectId={data.project.id} />
-        </div>
-      </div>
+  <div class="p-4 min-vh-100 d-flex flex-column gap-4 bg-light">
+    <div class="d-flex flex-column gap-2">
+      <div>{i18n.overview}</div>
+      <StatsWidget {stats} />
     </div>
 
-    <div class="row mb-3">
-      <div class="col-9">
-        <ObjectsWidget
-          objectsEdited={data.objects.items}
-          objectsInProgress={data.objectsInProgress.items}
-        />
-      </div>
-      <div class="col-3"><StatsWidget {stats} /></div>
-    </div>
-    <div class="row">
-      <div class="col-5">
+    <div class="d-flex gap-3 align-items-start">
+      <div class="flex-grow-1 d-flex flex-column gap-5 min-w-0">
+        <ObjectsWidget objects={data.objects.items} />
         <InstitutionsWidget institutions={data.institutions.result} />
       </div>
-      <div class="col-7">
+      <div class="flex-shrink-0" style="width: 277px;">
         <RecentActivityWidget activities={data.activities.items} />
       </div>
     </div>
   </div>
 {/if}
-
-<style>
-  .wrapper {
-    min-height: 100%;
-  }
-</style>

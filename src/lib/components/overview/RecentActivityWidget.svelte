@@ -6,6 +6,18 @@
   const { t } = getTranslationStore();
   const { activities = [] } = $props();
 
+  const ACTION_ICONS = {
+    create: "plus-lg",
+    delete: "trash",
+    remove: "trash",
+    update: "pencil",
+    add: "pencil",
+  };
+
+  function getActivityIcon(activity) {
+    return ACTION_ICONS[activity.action_type] ?? "pencil";
+  }
+
   function getActivityMessage(activity) {
     const summaryParams = activity.summary_params || {};
     const rawInstitutionName = summaryParams.institutionName || activity.institution_name || null;
@@ -29,25 +41,29 @@
   }
 </script>
 
-<div class="bg-white rounded border d-flex flex-column p-4">
-  <h3 class="mb-3">
+<div class="bg-white rounded-2 border d-flex flex-column p-4 gap-4">
+  <div class="text-uppercase fw-normal small" style="letter-spacing: 0.04em;">
     {t("activity.title", { fallback: "Recent activity" })}
-  </h3>
+  </div>
   <div>
     {#each activities as activity}
-      <div
-        class="border-bottom mb-3 pb-3 d-flex justify-content-between align-items-start gap-3"
-      >
-        <div class="lh-sm">
-          {getActivityMessage(activity)}
+      <div class="d-flex gap-2 align-items-start py-2 border-bottom">
+        <div
+          class="rounded-circle bg-secondary  border d-flex align-items-center justify-content-center flex-shrink-0"
+          style="width: 30px; height: 30px;"
+        >
+          <i class="bi bi-{getActivityIcon(activity)} text-white" style="font-size: 12px;"></i>
         </div>
-        <div class="flex-shrink-0">
-          <ActivityTimeAgo timestamp={activity.updated_at || activity.created_at}></ActivityTimeAgo>
+        <div>
+          <div class="lh-sm small">{getActivityMessage(activity)}</div>
+          <div class="small text-secondary">
+            <ActivityTimeAgo timestamp={activity.updated_at || activity.created_at} />
+          </div>
         </div>
       </div>
     {/each}
     {#if activities.length === 0}
-      <div class="fst-italic">
+      <div class="fst-italic small">
         {t("activity.empty", { fallback: "No activity yet." })}
       </div>
     {/if}
