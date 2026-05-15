@@ -125,6 +125,12 @@ export const suggestFieldMappings = async (csvFieldNames, options = {
         }
 
         //console.log(`Completed semantic mapping for ${csvFieldNames.length} fields`);
+        console.log('[ImportMatchDebug][Backend] suggestFieldMappings:done', {
+            fieldCount: csvFieldNames.length,
+            resultCount: results.length,
+            nonEmptyCount: results.filter((entry) => (entry?.suggestions || []).length > 0).length,
+            projectId: effectiveProjectId
+        });
         return results;
 
     } catch (error) {

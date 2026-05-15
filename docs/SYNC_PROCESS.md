@@ -4,6 +4,12 @@ This document describes the complete peer-to-peer synchronization pipeline: how 
 
 ## Table of Contents
 
+### 0. Timing Quick Reference
+- Default interval for local changelog checks
+- Event-driven network update handling vs. polling
+- Ingestion queue behavior and practical latency
+- Asset reconcile debounce, periodic scan, and retry backoff windows
+
 ### 1. Architectural Overview
 - Introduction to the Local-First paradigm
 - Core Technologies (SQLite, Yjs, WebRTC/WebSockets, WebTorrent)
@@ -50,6 +56,26 @@ This document describes the complete peer-to-peer synchronization pipeline: how 
 - Forced rollback risks in a live swarm
 
 ---
+
+## 0. Timing Quick Reference
+
+This section answers the practical question: "How often does the app check for new updates?"
+
+| Subsystem | Timing model | Default interval / trigger | Why it matters |
+|---|---|---|---|
+| Local DB -> Yjs (`changeLogTailerService.js`) | Polling loop | Every `1000ms` | Sets baseline outbound sync latency for local writes. |
+| Per-tailer tick drain | Bounded catch-up loop | Up to `5` ingest passes per tick, `200` rows each pass | Lets bursts drain quickly without an unbounded loop. |
+| Yjs transport (`p2pService.js`) | Event-driven push | No fixed poll interval for document updates | Remote updates propagate as soon as peers exchange Yjs messages. |
+| Remote Yjs -> SQLite (`remoteIngestionHandler.js`) | Sequential queue | Triggered on each inbound Yjs update event | Preserves order and prevents concurrent write races. |
+| Presence heartbeat (`p2pService.js`) | Periodic heartbeat | Every `10000ms` | Keeps peer presence fresh and visible after reconnects. |
+| Asset reconcile scheduling (`assetTorrentManager.js`) | Debounced trigger + periodic sweep | Debounce `600ms`, periodic sweep `90000ms` | Fast reaction to change plus eventual consistency for missed events. |
+| Asset download timeout | Watchdog timer | `60000ms` per attempt | Prevents stuck downloads from hanging forever. |
+| Asset retry backoff | Timed retries | `5s`, `15s`, `30s`, `60s`, `120s` | Avoids aggressive retry storms when peers are unavailable. |
+
+Two important clarifications:
+
+1. Not all sync is timer-driven. Document updates over Yjs are primarily event-driven after connection.
+2. The main explicit "check for new local updates" interval is the `1000ms` changelog tailer loop.
 
 ## 1. Architectural Overview
 
@@ -119,6 +145,15 @@ The outbound sync path begins with a local database write. A UI action reaches t
 
 This design is important because it keeps the synchronization layer downstream from ordinary application behavior. The application does not need to know how to speak Yjs in every handler. It only needs to write to SQLite consistently.
 
+### Timing of Local Change Detection
+The tailer runs on a fixed interval of `1000ms` by default. On each tick, it attempts to drain multiple batches (up to five passes, with a default batch size of 200 rows per pass).
+
+In practical terms, this means:
+
+- A local write is usually observed by the sync layer within about 1 second.
+- Under heavy write bursts, each tick can process up to 1000 changelog rows before waiting for the next interval.
+- The lock around per-project ingestion prevents overlapping tailer runs for the same project.
+
 ### Preventing Circular Echo Loops
 Bi-directional sync always risks echoing a remote update back to the network as if it were local. The system avoids this by tracking write context. When a remote Yjs update is being applied into SQLite, the ingestion path marks that work as remote-originated. The changelog tailer checks that context and skips re-broadcasting those writes.
 
@@ -164,6 +199,11 @@ After the handshake, newly generated Yjs binary updates are streamed over the op
 
 That keeps the transport generic and allows Yjs to remain the only authority on merge semantics.
 
+### Timing: Push vs Poll
+After peers are connected, this stage is push-based rather than timer-polled. There is no "check every N seconds" loop for document deltas in the transport layer itself.
+
+The notable periodic timer in this service is presence re-announcement every `10000ms`, which refreshes awareness metadata (who is online), not row-level document content.
+
 ### Disconnects, Reconnects, and Partitions
 If a peer goes offline, local work continues. The peer keeps writing to SQLite and the tailer keeps mutating the local `Y.Doc`. When the connection returns, the handshake runs again and only the missing operations are exchanged.
 
@@ -197,6 +237,13 @@ Once the diff is computed, the ingestion layer turns it into concrete SQLite ope
 Remote updates may arrive quickly or overlap in time. To avoid lock contention and out-of-order writes, the system processes inbound synchronization through a sequential queue. Each batch is applied in order inside a controlled database transaction.
 
 During that write, the system marks the work as remote-originated so that the changelog tailer does not re-emit it back to the network.
+
+### Timing of Remote Ingestion
+Inbound application is event-triggered and queue-serialized:
+
+- A remote Yjs update enters immediately when received from the peer channel.
+- The persistence path chains updates in a strict Promise queue (one batch at a time).
+- End-to-end inbound delay therefore depends on queue depth and DB transaction time, not on a fixed polling interval.
 
 ## 6. Conflict Resolution & Edge Cases
 
@@ -237,6 +284,16 @@ When a user adds an asset:
 
 This split keeps structured sync and binary transfer independent while still making them appear as one coherent feature to the user.
 
+### Asset Timing Model
+Asset sync combines immediate triggers and periodic maintenance:
+
+- Change-triggered reconcile calls are debounced by `600ms` to coalesce bursts.
+- A periodic reconcile loop runs every `90000ms` per active project.
+- Download attempts timeout after `60000ms` if no progress resolves completion.
+- Failed downloads retry with backoff (`5s` -> `15s` -> `30s` -> `60s` -> `120s`, up to max retries).
+
+This dual strategy avoids excessive churn while still recovering from missed events, reconnects, or temporarily unavailable seeders.
+
 ## 8. Backups, Rehydration, and P2P Traps (`backupService.js`)
 
 ### What a `.dctx` Backup Contains
@@ -248,6 +305,13 @@ This distinction is important: restoring a backup recreates the relational state
 During restore, the backup service extracts the archive and executes the SQL payload into SQLite. From the point of view of the local system, this looks like a large batch of new local writes. Those writes enter the changelog, the tailer observes them, project genesis ensures the structural maps exist, and the local `Y.Doc` is rebuilt from the restored relational state.
 
 That means a backup restore is effectively a local rehydration event that regenerates collaborative state from SQLite.
+
+### Restore Timing Implications
+Because restore writes re-enter the same outbound pipeline, they follow the same timing rules:
+
+- The tailer begins projecting restored rows on its next `1000ms` tick.
+- Large restores may take multiple ticks because ingestion is batched.
+- As those projections become Yjs updates, connected peers receive them via normal event-driven propagation.
 
 ### Private Restore vs. Shared Restore Behavior
 If the restored project remains private and isolated, this is fine. The restored SQLite state is projected into a fresh `Y.Doc`, and no external peer is affected.

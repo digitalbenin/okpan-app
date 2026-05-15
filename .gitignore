@@ -116,3 +116,4 @@ src/db/db_sample_data/
 .cursor
 artic-dataset/
 copilot-instructions.md
+.tmp/

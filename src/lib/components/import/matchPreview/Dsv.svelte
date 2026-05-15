@@ -30,6 +30,9 @@
     return [...seen];
   });
   const isPresetImport = $derived.by(() => Boolean(wizard.file?.preset?.id));
+  const skipTemplateSuggestions = $derived.by(
+    () => Boolean(wizard.file?.preset?.id && wizard.file?.preset?.id !== "json-ld")
+  );
   const mappingSignature = $derived.by(() =>
     (wizard.mapping || [])
       .map((entry) => `${entry?.headerField || ''}:${entry?.mappedField || ''}`)
@@ -61,8 +64,7 @@
   const matchingSuggestions = resource(
     () => [fields, wizard.useMatchingSuggestions, isPresetImport, mappingSignature, wizard.projectId],
     async (
-      [fields, useMatchingSuggestions, presetImport, _mappingSignature, projectId],
-      { data, refetching, onCleanup, signal }
+      [fields, useMatchingSuggestions, presetImport, _mappingSignature, projectId]
     ) => {
       if (fields.length === 0) return [];
 
@@ -82,11 +84,9 @@
   );
 
   const templateSuggestions = resource(
-    () => [fields, isPresetImport],
+    () => [fields, skipTemplateSuggestions],
     async ([fields, skipSuggestions], prevFields, { data, refetching, onCleanup, signal }) => {
-      if (skipSuggestions || fields.length === 0) {
-        return [];
-      }
+      if (skipSuggestions || fields.length === 0) return [];
 
       const response = await suggestTemplateReuse(fields, wizard.projectId);
       if (response.totalMatches === 0) {
