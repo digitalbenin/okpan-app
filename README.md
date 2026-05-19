@@ -17,9 +17,9 @@ An Electron application for managing collections, built with:
 │   ├── db/              # Database related files
 │   │   ├── migrations/  # SQL migration files
 │   │   ├── scripts/     # Database utility scripts
-│   │   ├── schema.js    # Database schema definition
-│   │   ├── seed.js      # Database seeding script
-│   │   └── init.js      # Database initialization
+│   │   ├── schema.js         # Database schema definition
+│   │   ├── seed_from_json.js # Seeds database from JSON data files (run via `yarn db:seed`)
+│   │   └── init.js           # Database initialization
 │   ├── lib/             # Shared utilities and components
 │   │   ├── components/  # UI components
 │   │   ├── queries/     # GraphQL queries

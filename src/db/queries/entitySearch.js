@@ -1,6 +1,6 @@
 import { sql, eq, aliasedTable, or } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLString } from 'graphql';
-import * as dbSchema from '../schema';
+import * as dbSchema from '../schema.js';
 
 export const createEntitySearchQuery = (db, drizzleResult) => {
     // Define the search result type

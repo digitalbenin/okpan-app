@@ -3,10 +3,7 @@ import { GraphQLObjectType, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema.js';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { resolveApplicationRoot } from '../runtimeDatabasePaths.js';
 
 // Define a result type for the mutation
 export const createProjectCreateMutation = (db, drizzleResult) => {
@@ -28,22 +25,18 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
         name: 'createProjectWithDefaults',
         type: new GraphQLNonNull(ProjectCreateResult),
         args: [
-            { name: 'title', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String) },
-            { name: 'description', type: drizzleResult.schema._typeMap.String },
-            { name: 'languageCode', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String) },
-            { name: 'languageName', type: drizzleResult.schema._typeMap.String },
-            { name: 'isShared', type: drizzleResult.schema._typeMap.Int },
-            { name: 'password', type: drizzleResult.schema._typeMap.String }
+            { name: 'title', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String), description: 'Project title' },
+            { name: 'description', type: drizzleResult.schema._typeMap.String, description: 'Project description' },
+            { name: 'languageCode', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String), description: 'BCP 47 language code for the default language (e.g. en, it)' },
+            { name: 'languageName', type: drizzleResult.schema._typeMap.String, description: 'Human-readable name of the default language; falls back to languageCode if omitted' },
+            { name: 'isShared', type: drizzleResult.schema._typeMap.Int, description: '1 if the project is shared over the network, 0 otherwise' },
+            { name: 'password', type: drizzleResult.schema._typeMap.String, description: 'Optional password to protect the shared project' }
         ],
-        resolve: async (source, args, context) => {
+        resolve: async (source, args) => {
             const { title, description, languageCode, isShared, password } = args;
             const languageName = args.languageName || args.languageCode;
 
-            // Init
-
             try {
-                // Embedding initialization removed to prevent sharp module load issues
-
                 const result = await db.transaction(async (tx) => {
                     const [changeLogState] = await tx
                         .select({ lastRowId: sql`COALESCE(MAX(rowid), 0)` })
@@ -111,8 +104,8 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
                         .execute();
                     
 
-                    // 5) Seed ontology fields (explicit absolute path)
-                    const resolvedJsonPath = path.join(__dirname, '../src/db/default_ontology_fields.json');
+                    // 5) Seed ontology fields
+                    const resolvedJsonPath = path.join(resolveApplicationRoot(), 'src', 'db', 'default_ontology_fields.json');
                     let seedData;
                     try {
                         if (!fs.existsSync(resolvedJsonPath)) {

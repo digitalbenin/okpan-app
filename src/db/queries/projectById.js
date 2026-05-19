@@ -1,6 +1,6 @@
 import { sql, eq, aliasedTable } from 'drizzle-orm';
-import * as dbSchema from '../schema';
-import { addCountField, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common';
+import * as dbSchema from '../schema.js';
+import { addCountField, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common.js';
 
 export const createProjectByIdQuery = (db, drizzleResult) => {
     // Add count fields to ProjectSelectItem type

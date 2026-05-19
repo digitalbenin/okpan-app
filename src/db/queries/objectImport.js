@@ -1,7 +1,7 @@
 import { sql, eq } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString, GraphQLInt } from 'graphql';
-import * as dbSchema from '../schema';
-import { GraphQLJSON } from './common';
+import * as dbSchema from '../schema.js';
+import { GraphQLJSON } from './common.js';
 
 const coercePrimary01 = (val) => {
     return val === true || val === 1 || val === '1' || val === 'true' ? 1 : 0;

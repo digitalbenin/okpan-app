@@ -1,5 +1,5 @@
 // Common utilities
-export * from './common';
+export * from './common.js';
 
 // Query modules
 export { createProjectsListQuery } from './projectsList';

@@ -10,8 +10,6 @@ contextBridge.exposeInMainWorld('api', {
     getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
     exportTranslations: (filePath) => ipcRenderer.invoke('export-translations', filePath),
     importTranslations: (filePath) => ipcRenderer.invoke('import-translations', filePath),
-    exportLogs: (filePath) => ipcRenderer.invoke('export-logs', filePath),
-    clearLogs: (filters) => ipcRenderer.invoke('clear-logs', filters),
     importAssets: (data) => ipcRenderer.invoke('import-assets', data),
     // Removed legacy exportProjectSql in favor of unified exportProject
     exportProject: (options) => ipcRenderer.invoke('export-project', options),

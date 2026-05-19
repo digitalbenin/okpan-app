@@ -1,7 +1,7 @@
 import { sql, eq, aliasedTable, isNotNull } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
-import * as dbSchema from '../schema';
-import { addCountField, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common';
+import * as dbSchema from '../schema.js';
+import { addCountField, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common.js';
 
 export const createProjectsListQuery = (db, drizzleResult) => {
     // Add count fields to ProjectSelectItem type
@@ -13,8 +13,7 @@ export const createProjectsListQuery = (db, drizzleResult) => {
         name: 'projectsList',
         type: new GraphQLList(new GraphQLNonNull(drizzleResult.schema._typeMap.ProjectSelectItem)),
         args: [],
-        resolve: async (source, args, context, info) => {
-            // Create aliases for the texts, translations, and languages tables
+        resolve: async (source, args) => {
             const descriptionTexts = aliasedTable(dbSchema.texts, 'description_texts');
             const titleTexts = aliasedTable(dbSchema.texts, 'title_texts');
             const titleTranslations = aliasedTable(dbSchema.translations, 'title_translations');
@@ -44,7 +43,6 @@ export const createProjectsListQuery = (db, drizzleResult) => {
                 'assets_count'
             );
 
-            // Execute the query
             const projects = await db.select({
                 id: dbSchema.project.id,
                 created_at: dbSchema.project.created_at,
@@ -70,7 +68,6 @@ export const createProjectsListQuery = (db, drizzleResult) => {
                 .groupBy(dbSchema.project.id)
                 .execute();
 
-            // Process translations
             return processTranslations(projects, ['title', 'description']);
         }
     };

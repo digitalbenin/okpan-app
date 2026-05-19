@@ -12,7 +12,7 @@ import { getProjectDoc } from './projectCache.js'
 import { ingestRemoteUpdate } from '../handlers/remoteIngestionHandler.js'
 import { hydrateProjectFromDatabase } from './snapshotService.js'
 import { scheduleAssetReconcile, resetErroredAssets } from './assetTorrentManager.js'
-import { getGlobalProfile } from '../../db/init.js'
+import { getGlobalProfile } from '../../db/queries/globalSettings.js'
 
 // Helper: count tables and rows in a Y.Doc's `tables` map
 function countDocTables(doc) {

@@ -1,7 +1,7 @@
 import { sql, eq, aliasedTable } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
-import * as dbSchema from '../schema';
-import { addCountField, createTextFieldWithTranslations, processTranslations } from './common';
+import * as dbSchema from '../schema.js';
+import { addCountField, createTextFieldWithTranslations, processTranslations } from './common.js';
 
 export const createDatasourcesListQuery = (db, drizzleResult) => {
     // Add count fields to DatasourcesSelectItem type
@@ -46,18 +46,15 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 defaultValue: 'desc'
             }
         ],
-        resolve: async (source, args, context, info) => {
-            // Create aliases for the texts tables
+        resolve: async (source, args) => {
             const nameTexts = aliasedTable(dbSchema.texts, 'name_texts');
             const methodTexts = aliasedTable(dbSchema.texts, 'method_texts');
             const notesTexts = aliasedTable(dbSchema.texts, 'notes_texts');
 
-            // Create aliases for the translations tables
             const nameTranslations = aliasedTable(dbSchema.translations, 'name_translations');
             const methodTranslations = aliasedTable(dbSchema.translations, 'method_translations');
             const notesTranslations = aliasedTable(dbSchema.translations, 'notes_translations');
 
-            // Create aliases for the languages tables
             const nameLanguages = aliasedTable(dbSchema.languages, 'name_languages');
             const methodLanguages = aliasedTable(dbSchema.languages, 'method_languages');
             const notesLanguages = aliasedTable(dbSchema.languages, 'notes_languages');
@@ -75,7 +72,6 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 .groupBy(dbSchema.objects_ontology_fields.datasources_id)
                 .as('objects_ontology_fields_subquery');
 
-            // Build the base query with translations using helpers similar to institutions list
             let query = db.select({
                 id: dbSchema.datasources.id,
                 created_at: dbSchema.datasources.created_at,
@@ -90,13 +86,10 @@ export const createDatasourcesListQuery = (db, drizzleResult) => {
                 name: createTextFieldWithTranslations(nameTexts, nameTranslations, nameLanguages),
                 method: createTextFieldWithTranslations(methodTexts, methodTranslations, methodLanguages),
                 notes: createTextFieldWithTranslations(notesTexts, notesTranslations, notesLanguages),
-                // Include the object count, defaulting to 0 if no objects are linked
                 objectsCount: sql`COALESCE(${objectsOntologyFieldsSubquery.objects_count}, 0)`.as('objectsCount')
             })
                 .from(dbSchema.datasources)
-                // Left join with the subquery to get the object count
                 .leftJoin(objectsOntologyFieldsSubquery, eq(dbSchema.datasources.id, objectsOntologyFieldsSubquery.datasources_id))
-                // Joins for texts, translations and languages
                 .leftJoin(nameTexts, eq(dbSchema.datasources.name_id, nameTexts.id))
                 .leftJoin(nameTranslations, eq(nameTexts.id, nameTranslations.text_id))
                 .leftJoin(nameLanguages, eq(nameTranslations.language_id, nameLanguages.id))

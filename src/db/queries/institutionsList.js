@@ -1,7 +1,7 @@
 import { sql, eq, aliasedTable, and } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
-import * as dbSchema from '../schema';
-import { addCountField, buildSafeFtsAndPrefixQuery, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common';
+import * as dbSchema from '../schema.js';
+import { addCountField, buildSafeFtsAndPrefixQuery, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common.js';
 
 export const createInstitutionsListQuery = (db, drizzleResult) => {
     // Add count fields to InstitutionsSelectItem type
@@ -60,26 +60,22 @@ export const createInstitutionsListQuery = (db, drizzleResult) => {
                 description: 'Filter institutions by status'
             }
         ],
-        resolve: async (source, args, context, info) => {
-            // Create aliases for the texts tables
+        resolve: async (source, args) => {
             const nameTexts = aliasedTable(dbSchema.texts, 'name_texts');
             const descriptionTexts = aliasedTable(dbSchema.texts, 'description_texts');
             const locationTexts = aliasedTable(dbSchema.texts, 'location_texts');
             const countryTexts = aliasedTable(dbSchema.texts, 'country_texts');
 
-            // Create aliases for the translations tables
             const nameTranslations = aliasedTable(dbSchema.translations, 'name_translations');
             const descriptionTranslations = aliasedTable(dbSchema.translations, 'description_translations');
             const locationTranslations = aliasedTable(dbSchema.translations, 'location_translations');
             const countryTranslations = aliasedTable(dbSchema.translations, 'country_translations');
 
-            // Create aliases for the languages tables
             const nameLanguages = aliasedTable(dbSchema.languages, 'name_languages');
             const descriptionLanguages = aliasedTable(dbSchema.languages, 'description_languages');
             const locationLanguages = aliasedTable(dbSchema.languages, 'location_languages');
             const countryLanguages = aliasedTable(dbSchema.languages, 'country_languages');
 
-            // Create count subqueries
             const objectsSubquery = createCountSubquery(
                 db,
                 dbSchema.objects,

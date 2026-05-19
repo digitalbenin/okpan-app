@@ -1,80 +1,40 @@
-import { sql } from 'drizzle-orm';
-
 /**
- * Populates the institutions_search FTS index with all current data
- * Run this after migration to initialize the search index
+ * Populates the institutions_search FTS index with all current data.
+ * Run once at startup to back-fill the index when the source table has data
+ * but the FTS index is empty. Indexes both original text and all translations
+ * for the four searchable fields: name, description, country, location.
  * @param {Object} client - LibSQL client instance
  * @param {Object} db - Drizzle database instance
  */
 export async function populateInstitutionsSearchIndex(client, db) {
     console.log('Populating institutions search index...');
 
-    // Clear existing index
-    await client.execute({ sql: "DELETE FROM institutions_search" });
+    await client.execute('DELETE FROM institutions_search');
 
-    // Get all institutions with their text references
-    const institutions = await db.select({
-        id: sql`id`,
-        name_id: sql`name_id`,
-        description_id: sql`description_id`,
-        country_id: sql`country_id`,
-        location_id: sql`location_id`
-    }).from(sql`institutions`);
+    // Index original text content for all four searchable fields in one query
+    await client.execute(`
+        INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
+        SELECT i.id, t.id, 'name',        t.content, t.original_language_id FROM institutions i JOIN texts t ON t.id = i.name_id        WHERE i.name_id IS NOT NULL
+        UNION ALL
+        SELECT i.id, t.id, 'description', t.content, t.original_language_id FROM institutions i JOIN texts t ON t.id = i.description_id WHERE i.description_id IS NOT NULL
+        UNION ALL
+        SELECT i.id, t.id, 'country',     t.content, t.original_language_id FROM institutions i JOIN texts t ON t.id = i.country_id    WHERE i.country_id IS NOT NULL
+        UNION ALL
+        SELECT i.id, t.id, 'location',    t.content, t.original_language_id FROM institutions i JOIN texts t ON t.id = i.location_id   WHERE i.location_id IS NOT NULL
+    `);
 
-    let indexedCount = 0;
+    // Index translations for all four searchable fields in one query
+    await client.execute(`
+        INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id)
+        SELECT i.id, tr.text_id, 'name',        tr.content, tr.language_id FROM institutions i JOIN translations tr ON tr.text_id = i.name_id        WHERE i.name_id IS NOT NULL
+        UNION ALL
+        SELECT i.id, tr.text_id, 'description', tr.content, tr.language_id FROM institutions i JOIN translations tr ON tr.text_id = i.description_id WHERE i.description_id IS NOT NULL
+        UNION ALL
+        SELECT i.id, tr.text_id, 'country',     tr.content, tr.language_id FROM institutions i JOIN translations tr ON tr.text_id = i.country_id    WHERE i.country_id IS NOT NULL
+        UNION ALL
+        SELECT i.id, tr.text_id, 'location',    tr.content, tr.language_id FROM institutions i JOIN translations tr ON tr.text_id = i.location_id   WHERE i.location_id IS NOT NULL
+    `);
 
-    // For each institution, add its text fields to the search index
-    for (const institution of institutions) {
-        const textFields = [
-            { field: 'name', id: institution.name_id },
-            { field: 'description', id: institution.description_id },
-            { field: 'country', id: institution.country_id },
-            { field: 'location', id: institution.location_id }
-        ];
-
-        for (const { field, id } of textFields) {
-            if (!id) continue; // Skip null text references
-
-            // Get the original text content
-            const texts = await db.select({
-                content: sql`content`,
-                language_id: sql`original_language_id`
-            })
-                .from(sql`texts`)
-                .where(sql`id = ${id}`);
-
-            if (texts.length > 0) {
-                // Add main text to search index
-                await client.execute({
-                    sql: `INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id) 
-                          VALUES (?, ?, ?, ?, ?)`,
-                    args: [institution.id, id, field, texts[0].content, texts[0].language_id]
-                });
-                indexedCount++;
-
-                // Add translations to search index
-                const translations = await db.select({
-                    content: sql`content`,
-                    language_id: sql`language_id`
-                })
-                    .from(sql`translations`)
-                    .where(sql`text_id = ${id}`);
-
-                for (const translation of translations) {
-                    await client.execute({
-                        sql: `INSERT INTO institutions_search (institution_id, text_id, field_name, content, language_id) 
-                              VALUES (?, ?, ?, ?, ?)`,
-                        args: [institution.id, id, field, translation.content, translation.language_id]
-                    });
-                    indexedCount++;
-                }
-            }
-        }
-    }
-
-    console.log(`Search index populated with ${indexedCount} entries`);
+    const { rows } = await client.execute('SELECT COUNT(*) AS count FROM institutions_search');
+    console.log(`institutions_search populated with ${rows[0].count} entries`);
 }
-
-// Example usage:
-// import { db } from '../index.js';
-// populateInstitutionsSearchIndex(db).catch(console.error); 

@@ -1,6 +1,6 @@
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLString } from 'graphql';
 import { eq } from 'drizzle-orm';
-import * as dbSchema from '../schema';
+import * as dbSchema from '../schema.js';
 
 export const createObjectDisplayFieldsTransformedQuery = (db, drizzleResult) => {
     // Define the transformed type

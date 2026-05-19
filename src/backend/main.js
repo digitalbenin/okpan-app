@@ -87,12 +87,14 @@ restoreRegisterSchemesAsPrivileged();
 import {
   db,
   dbPath,
-  ensureDatabaseReady,
+  ensureDatabaseReady
+} from '../db/init.js';
+import {
   getGlobalProfile,
   updateGlobalUsername,
   getGlobalSettings,
   updateGlobalInterfaceLanguage
-} from '../db/init.js';
+} from '../db/queries/globalSettings.js';
 import { DATABASE_MEDIA_ALIAS } from '../db/runtimeDatabasePaths.js';
 import { createGraphQLSchema } from '../db/graphqlDefs.js';
 

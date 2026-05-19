@@ -3,6 +3,7 @@ import path from 'path';
 import { and, eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
 import { buildObjectSearchConditions } from '../handlers/exportHandlers.js';
+import { resolveAppRootFromParams } from '../../db/runtimeDatabasePaths.js';
 
 function sanitizeExportFolderName(value, fallback = 'website-export') {
   const normalized = String(value || '')
@@ -12,14 +13,6 @@ function sanitizeExportFolderName(value, fallback = 'website-export') {
     .replace(/^\.+|\.+$/g, '');
 
   return normalized || fallback;
-}
-
-function resolveApplicationRoot({ appPath, resourcesPath, isPackaged } = {}) {
-  if (isPackaged) {
-    return appPath || (resourcesPath ? path.join(resourcesPath, 'app') : process.cwd());
-  }
-
-  return appPath || process.cwd();
 }
 
 function getProjectAssetsSourceCandidates(projectId, { appRoot, userDataPath } = {}) {
@@ -140,7 +133,7 @@ export async function exportStaticWebsite(
     basePath = '/' + basePath;
   }
   basePath = basePath.replace(/\/$/, '');
-  const appRoot = resolveApplicationRoot({ appPath, resourcesPath, isPackaged });
+  const appRoot = resolveAppRootFromParams({ appPath, resourcesPath, isPackaged });
   const websiteDir = path.join(appRoot, 'src', 'website');
   // Prebuilt SPA artifact for static exports (produced before app packaging)
   const buildDir = path.join(websiteDir, 'build-export');

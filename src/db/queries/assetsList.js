@@ -1,6 +1,6 @@
 import { sql, eq, aliasedTable, countDistinct } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLInt } from 'graphql';
-import * as dbSchema from '../schema';
+import * as dbSchema from '../schema.js';
 
 export const createAssetsListQuery = (db, drizzleResult) => {
     // Define Payload type for AssetsList

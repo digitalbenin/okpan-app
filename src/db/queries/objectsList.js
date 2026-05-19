@@ -1,7 +1,7 @@
 import { sql, eq, aliasedTable, countDistinct } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLInt, GraphQLString } from 'graphql';
-import * as dbSchema from '../schema';
-import { addCountField, GraphQLJSON } from './common';
+import * as dbSchema from '../schema.js';
+import { addCountField, GraphQLJSON } from './common.js';
 
 export const createObjectsListQuery = (db, drizzleResult) => {
     // Add displayFields as a JSON field to ObjectsSelectItem type

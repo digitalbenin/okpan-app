@@ -1,5 +1,6 @@
 import * as Y from 'yjs';
-import { db, getGlobalProfile, updateGlobalUsername } from '../../db/init.js';
+import { db } from '../../db/init.js';
+import { getGlobalProfile, updateGlobalUsername } from '../../db/queries/globalSettings.js';
 import { eq, and, or, gt, sql } from 'drizzle-orm';
 import { FK_ORDER } from './projectScope.js';
 import {

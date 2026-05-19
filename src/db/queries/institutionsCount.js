@@ -1,6 +1,6 @@
 import { sql, eq, and } from 'drizzle-orm';
-import * as dbSchema from '../schema';
-import { buildSafeFtsAndPrefixQuery } from './common';
+import * as dbSchema from '../schema.js';
+import { buildSafeFtsAndPrefixQuery } from './common.js';
 
 export const createInstitutionsCountQuery = (db, drizzleResult) => {
     return {
@@ -28,25 +28,21 @@ export const createInstitutionsCountQuery = (db, drizzleResult) => {
                 description: 'Filter institutions by status'
             }
         ],
-        resolve: async (source, args, context, info) => {
-            // Start with a basic count query
+        resolve: async (source, args) => {
             let query = db
                 .select({ count: sql`count(*)` })
                 .from(dbSchema.institutions);
 
             const whereConditions = [];
 
-            // Apply project_id filter if specified
             if (args.project_id) {
                 whereConditions.push(eq(dbSchema.institutions.project_id, args.project_id));
             }
 
-            // Apply status filter if specified
             if (args.status) {
                 whereConditions.push(eq(dbSchema.institutions.status, args.status));
             }
 
-            // Apply search filter if provided
             if (args.search && args.search.trim()) {
                 const searchQuery = buildSafeFtsAndPrefixQuery(args.search);
 

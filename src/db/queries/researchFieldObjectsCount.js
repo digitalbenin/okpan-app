@@ -12,14 +12,12 @@ export const createResearchFieldObjectsCountQuery = (db, drizzleResult) => {
                 description: 'ID of the research field to count objects for'
             }
         ],
-        resolve: async (source, args, context, info) => {
-            // Count objects that have values for this research field
-            const countQuery = db
+        resolve: async (source, args) => {
+            const result = await db
                 .select({ count: sql`count(*)` })
                 .from(dbSchema.objects_research_fields)
-                .where(eq(dbSchema.objects_research_fields.field_id, args.fieldId));
-
-            const result = await countQuery.execute();
+                .where(eq(dbSchema.objects_research_fields.field_id, args.fieldId))
+                .execute();
             return result[0]?.count || 0;
         }
     };

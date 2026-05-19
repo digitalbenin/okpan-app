@@ -42,11 +42,11 @@ Options:
 `;
 // --- End Configuration ---
 
-export function printSeedFromJsonHelp() {
+function printSeedFromJsonHelp() {
     console.log(HELP_TEXT);
 }
 
-export function getSeedFromJsonOptions(argv = process.argv.slice(2)) {
+function getSeedFromJsonOptions(argv = process.argv.slice(2)) {
     const showHelp = argv.includes('-h') || argv.includes('--help');
     const dataPathIndex = argv.indexOf('--data-path');
     const hasCustomDataPath = dataPathIndex !== -1 && Boolean(argv[dataPathIndex + 1]);
@@ -131,6 +131,16 @@ const findAssetPath = async (assetName, seedDataPath, subfolders = ['images', 'e
 };
 
 
+/**
+ * Seeds the database with sample data loaded from a directory of JSON files.
+ * Requires an Electron runtime — the database path is resolved via Electron's `userData` directory.
+ *
+ * Expected files in `seedDataPath`: `institutions.json`, `objects.json`,
+ * `data_sources.json`, `edo_designations.json`.
+ *
+ * @param {{ seedDataPath?: string }} [options]
+ * @returns {Promise<void>}
+ */
 export const seedFromJson = async ({ seedDataPath = DEFAULT_SEED_DATA_PATH } = {}) => {
     try {
         ensureElectronRuntime();

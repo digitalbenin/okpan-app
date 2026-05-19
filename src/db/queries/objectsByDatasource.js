@@ -1,6 +1,6 @@
 import { sql, eq, aliasedTable, countDistinct } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLInt } from 'graphql';
-import * as dbSchema from '../schema';
+import * as dbSchema from '../schema.js';
 
 // Return a distinct list of objects linked to a given datasource via objects_ontology_fields
 export const createObjectsByDatasourceQuery = (db, drizzleResult) => {
@@ -63,7 +63,7 @@ export const createObjectsByDatasourceQuery = (db, drizzleResult) => {
                 defaultValue: 'desc'
             }
         ],
-        resolve: async (source, args, context, info) => {
+        resolve: async (source, args) => {
             // Aliases for texts and translations (consistent with objectsList)
             const institutionNameTexts = aliasedTable(dbSchema.texts, 'institution_name_texts_obj_by_ds');
             const institutionNameTranslations = aliasedTable(dbSchema.translations, 'institution_name_translations_obj_by_ds');

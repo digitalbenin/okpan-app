@@ -1,10 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLString, GraphQLInputObjectType } from 'graphql';
-import * as dbSchema from '../schema';
+import * as dbSchema from '../schema.js';
 
-// Creates a custom mutation to bulk link assets to objects
 export const createAssetsObjectsBulkLinkMutation = (db, drizzleResult) => {
-    // Define input type: an asset with a list of object IDs (ids are enough)
     const AssetObjectsLinkInput = new GraphQLInputObjectType({
         name: 'AssetObjectsLinkInput',
         fields: () => ({
@@ -13,7 +11,6 @@ export const createAssetsObjectsBulkLinkMutation = (db, drizzleResult) => {
         })
     });
 
-    // Success item type
     const LinkSuccessItem = new GraphQLObjectType({
         name: 'LinkSuccessItem',
         fields: () => ({
@@ -22,7 +19,6 @@ export const createAssetsObjectsBulkLinkMutation = (db, drizzleResult) => {
         })
     });
 
-    // Skipped duplicate item type
     const LinkSkippedItem = new GraphQLObjectType({
         name: 'LinkSkippedItem',
         fields: () => ({
@@ -31,7 +27,6 @@ export const createAssetsObjectsBulkLinkMutation = (db, drizzleResult) => {
         })
     });
 
-    // Error item type
     const LinkErrorItem = new GraphQLObjectType({
         name: 'LinkErrorItem',
         fields: () => ({
@@ -41,7 +36,6 @@ export const createAssetsObjectsBulkLinkMutation = (db, drizzleResult) => {
         })
     });
 
-    // Payload type
     const AssetsObjectsBulkLinkPayload = new GraphQLObjectType({
         name: 'AssetsObjectsBulkLinkPayload',
         fields: () => ({
@@ -51,7 +45,6 @@ export const createAssetsObjectsBulkLinkMutation = (db, drizzleResult) => {
         })
     });
 
-    // Register types in the schema map for consistency
     drizzleResult.schema._typeMap.AssetObjectsLinkInput = AssetObjectsLinkInput;
     drizzleResult.schema._typeMap.LinkSuccessItem = LinkSuccessItem;
     drizzleResult.schema._typeMap.LinkSkippedItem = LinkSkippedItem;

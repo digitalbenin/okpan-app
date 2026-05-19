@@ -30,6 +30,13 @@ import {
     createDeleteTemplateAndCleanupMutation
 } from './queries';
 
+/**
+ * Builds the full GraphQL schema by extending the auto-generated drizzle-graphql base
+ * with all custom queries, mutations, and scalar types.
+ *
+ * @param {import('drizzle-orm/libsql').LibSQLDatabase} db - Drizzle database instance.
+ * @returns {{ schema: import('graphql').GraphQLSchema, resolvers: object }}
+ */
 export function createGraphQLSchema(db) {
     // Get the schema from drizzle-graphql
     const drizzleResult = buildSchema(db, {

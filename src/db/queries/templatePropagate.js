@@ -10,7 +10,7 @@ export const createUpdateTemplateAndPropagateMutation = (db, drizzleResult) => {
     // Define the return type
     const TemplatePropagationResult = new GraphQLObjectType({
         name: 'TemplatePropagationResult',
-        fields: {
+        fields: () => ({
             updatedTemplate: { 
                 type: drizzleResult.schema._typeMap.TemplatesSelectItem,
                 description: 'The updated template'
@@ -23,7 +23,7 @@ export const createUpdateTemplateAndPropagateMutation = (db, drizzleResult) => {
                 type: drizzleResult.schema._typeMap.Int,
                 description: 'Number of ontology fields updated'
             }
-        }
+        })
     });
 
     // Register the type in the schema map (matches patterns used by other custom queries/mutations)
@@ -33,13 +33,13 @@ export const createUpdateTemplateAndPropagateMutation = (db, drizzleResult) => {
         name: 'updateTemplateAndPropagate',
         type: TemplatePropagationResult,
         args: [
-            { name: 'templateId', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String) },
-            { name: 'name', type: drizzleResult.schema._typeMap.String },
-            { name: 'mapping', type: new GraphQLNonNull(drizzleResult.schema._typeMap.JSON) },
-            { name: 'institutionId', type: drizzleResult.schema._typeMap.String },
-            { name: 'assetMapRule', type: drizzleResult.schema._typeMap.String }
+            { name: 'templateId', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String), description: 'ID of the template to update' },
+            { name: 'name', type: drizzleResult.schema._typeMap.String, description: 'New name for the template' },
+            { name: 'mapping', type: new GraphQLNonNull(drizzleResult.schema._typeMap.JSON), description: 'New field mapping definition as a JSON array' },
+            { name: 'institutionId', type: drizzleResult.schema._typeMap.String, description: 'Institution ID to associate with the template' },
+            { name: 'assetMapRule', type: drizzleResult.schema._typeMap.String, description: 'Rule for mapping assets to objects' }
         ],
-        resolve: async (parent, args, context) => {
+        resolve: async (source, args) => {
             const { templateId, name, mapping, institutionId, assetMapRule } = args;
 
             return await db.transaction(async (tx) => {
@@ -126,8 +126,6 @@ export const createUpdateTemplateAndPropagateMutation = (db, drizzleResult) => {
                     datasourceIds.includes(f.datasources_id)
                 );
 
-                console.log(`Found ${relevantFields.length} ontology fields to potentially update`);
-
                 // 5. Update each field's field_id and primary flag based on the new mapping
                 let updatedFieldsCount = 0;
 
@@ -154,8 +152,6 @@ export const createUpdateTemplateAndPropagateMutation = (db, drizzleResult) => {
                     }
                 }
 
-                console.log(`Updated ${updatedFieldsCount} ontology fields across ${affectedObjectIds.length} objects`);
-
                 return {
                     updatedTemplate,
                     affectedObjects: affectedObjectIds.length,
@@ -172,7 +168,7 @@ export const createUpdateTemplateAndPropagateMutation = (db, drizzleResult) => {
 export const createDeleteTemplateAndCleanupMutation = (db, drizzleResult) => {
     const TemplateCleanupResult = new GraphQLObjectType({
         name: 'TemplateCleanupResult',
-        fields: {
+        fields: () => ({
             deletedTemplateId: { 
                 type: drizzleResult.schema._typeMap.String,
                 description: 'The deleted template ID'
@@ -185,7 +181,7 @@ export const createDeleteTemplateAndCleanupMutation = (db, drizzleResult) => {
                 type: drizzleResult.schema._typeMap.Int,
                 description: 'Number of ontology fields deleted'
             }
-        }
+        })
     });
 
     drizzleResult.schema._typeMap.TemplateCleanupResult = TemplateCleanupResult;
@@ -194,9 +190,9 @@ export const createDeleteTemplateAndCleanupMutation = (db, drizzleResult) => {
         name: 'deleteTemplateAndCleanup',
         type: TemplateCleanupResult,
         args: [
-            { name: 'templateId', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String) }
+            { name: 'templateId', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String), description: 'ID of the template to delete' }
         ],
-        resolve: async (parent, args, context) => {
+        resolve: async (source, args) => {
             const { templateId } = args;
 
             return await db.transaction(async (tx) => {
