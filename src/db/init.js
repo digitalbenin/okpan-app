@@ -1,3 +1,9 @@
+/**
+ * Core database module — initialises the SQLite database via Drizzle ORM,
+ * runs pending migrations, seeds global settings, and back-fills search indexes.
+ *
+ * @namespace db
+ */
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
@@ -441,6 +447,7 @@ const initializeGlobalSettings = async () => {
  * and initialises global settings. Safe to call multiple times — subsequent
  * calls reuse the same in-flight promise.
  *
+ * @memberOf db
  * @returns {Promise<void>}
  */
 export const ensureDatabaseReady = async () => {
@@ -463,4 +470,19 @@ export const ensureDatabaseReady = async () => {
 
 void ensureDatabaseReady();
 
+/**
+ * Drizzle ORM database instance connected to the local SQLite file.
+ * @memberOf db
+ * @type {Object}
+ */
+/**
+ * LibSQL client for executing raw SQL statements.
+ * @memberOf db
+ * @type {Object}
+ */
+/**
+ * Absolute path to the SQLite database file on disk.
+ * @memberOf db
+ * @type {string}
+ */
 export { db, client, dbPath };

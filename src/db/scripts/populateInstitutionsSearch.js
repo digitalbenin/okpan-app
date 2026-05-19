@@ -3,6 +3,7 @@
  * Run once at startup to back-fill the index when the source table has data
  * but the FTS index is empty. Indexes both original text and all translations
  * for the four searchable fields: name, description, country, location.
+ * @memberOf db.scripts
  * @param {Object} client - LibSQL client instance
  * @param {Object} db - Drizzle database instance
  */

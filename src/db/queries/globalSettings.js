@@ -1,3 +1,10 @@
+/**
+ * Global settings queries — read and update the single `global_settings` row
+ * that stores the device identity, username, and UI preferences.
+ *
+ * @namespace db.queries
+ * @memberOf db
+ */
 import { db, ensureDatabaseReady } from '../init.js';
 import { globalSettings } from '../schema.js';
 import { eq } from 'drizzle-orm';
@@ -38,6 +45,7 @@ function pickRandom(items) {
  * Generates a random display name in the form `AdjectiveNounNNN`.
  * Used as the default username when no name has been configured.
  *
+ * @memberOf db.queries
  * @returns {string}
  */
 export function generateRandomUsername() {
@@ -58,6 +66,7 @@ const getGlobalSettingsRow = async () => {
 /**
  * Returns the current user's profile from global settings.
  *
+ * @memberOf db.queries
  * @returns {Promise<{ clientId: string|null, username: string|null }>}
  */
 export const getGlobalProfile = async () => {
@@ -79,6 +88,7 @@ export const getGlobalProfile = async () => {
 /**
  * Returns the full set of app-wide global settings.
  *
+ * @memberOf db.queries
  * @returns {Promise<{ clientId: string|null, interfaceLanguage: string|null, appVersion: string|null }>}
  */
 export const getGlobalSettings = async () => {
@@ -103,6 +113,7 @@ export const getGlobalSettings = async () => {
  * Persists a new display name for the current user.
  * Falls back to a randomly generated username when `username` is blank.
  *
+ * @memberOf db.queries
  * @param {string} username
  * @returns {Promise<{ clientId: string|null, username: string|null }>}
  */
@@ -127,6 +138,7 @@ export const updateGlobalUsername = async (username) => {
 /**
  * Persists the preferred UI locale.
  *
+ * @memberOf db.queries
  * @param {string} locale BCP 47 language tag (e.g. `'en'`, `'it'`).
  * @returns {Promise<{ clientId: string|null, interfaceLanguage: string|null, appVersion: string|null }>}
  */

@@ -23,7 +23,9 @@
     "db:generate": "drizzle-kit generate",
     "db:seed": "electron src/backend/seedCli.js",
     "docs:schema": "node docs/scripts/generateSchema.js",
-    "docs:generate": "npm run docs:schema && spectaql docs/spectaql.config.yml -t docs/dist"
+    "docs:generate": "npm run docs:schema && spectaql docs/spectaql.config.yml -t docs/dist",
+    "docs:jsdoc": "jsdoc -c jsdoc.json",
+    "docs:jsdoc:md": "jsdoc2md --files \"src/preload/**/*.js\" \"src/db/**/*.js\" > docs/api.md"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.6.1",
@@ -40,10 +42,13 @@
     "@sveltejs/kit": "^2.22.2",
     "@sveltejs/vite-plugin-svelte": "^5.1.0",
     "@types/node": "^20.11.17",
+    "docdash": "^2.0.2",
     "dotenv": "^16.4.7",
     "drizzle-kit": "^0.30.4",
     "electron": "37",
     "electron-squirrel-startup": "^1.0.1",
+    "jsdoc": "^4.0.5",
+    "jsdoc-to-markdown": "^9.1.3",
     "sass": "1.77.6",
     "svelte": "^5.35.2",
     "sveltekit-search-params": "^4.0.0-next.0",

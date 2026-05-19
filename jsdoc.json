@@ -1,0 +1,36 @@
+{
+  "source": {
+    "include": [
+      "src/preload"
+    ],
+    "includePattern": "\\.js$"
+  },
+  "opts": {
+    "template": "node_modules/docdash",
+    "destination": "./docs/jsdoc",
+    "recurse": true,
+    "readme": "README.md"
+  },
+  "templates": {
+    "useLongnameInNav": true
+  },
+  "docdash": {
+    "static": false,
+    "sort": true,
+    "scripts": ["../jsdoc-theme.css"],
+    "sectionOrder": [
+      "Namespaces",
+      "Modules",
+      "Classes",
+      "Externals",
+      "Events",
+      "Interfaces",
+      "Mixins",
+      "Tutorials",
+      "Global"
+    ]
+  },
+  "tags": {
+    "allowUnknownTags": true
+  }
+}

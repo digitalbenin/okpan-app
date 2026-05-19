@@ -1,3 +1,12 @@
+/**
+ * Drizzle ORM schema \u2014 defines all SQLite tables and their relations.
+ * Tables are grouped by domain: Translations, Project, Institutions, Objects,
+ * Ontology fields, Research fields & vocabularies, Assets, Imports & datasources,
+ * Website, Project activity, Sync, and App settings.
+ *
+ * @namespace db.schema
+ * @memberOf db
+ */
 import { integer, real, text, blob, sqliteTable, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 import { relations, sql } from 'drizzle-orm';
 
