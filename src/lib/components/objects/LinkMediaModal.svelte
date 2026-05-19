@@ -88,15 +88,14 @@
             uploadPercent = 0;
 
             // Listen to progress events while importing
-            window.api.onImportProgress((event, data) => {
+            const unsubscribeImportProgress = window.api.onImportProgress((data) => {
                 if (data?.status === "progress") {
                     uploadPercent = data.percent || 0;
                 }
                 if (data?.status === "complete") {
                     uploadPercent = 100;
                     isUploading = false;
-                    // Clean up listeners
-                    window.api.removeImportProgressListeners?.();
+                    unsubscribeImportProgress?.();
                 }
             });
 
@@ -122,7 +121,7 @@
         } catch (e) {
             console.error("Image upload failed:", e);
         } finally {
-            window.api.removeImportProgressListeners?.();
+            unsubscribeImportProgress?.();
             isUploading = false;
         }
     }

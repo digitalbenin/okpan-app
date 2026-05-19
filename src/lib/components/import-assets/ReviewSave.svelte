@@ -22,9 +22,11 @@
   let importProgressText = $state("");
   let importErrors = $state([]);
 
+  let unsubscribeImportProgress;
+
   onMount(() => {
-    if (window.api && window.api.onImportProgress) {
-      window.api.onImportProgress((_event, data) => {
+    if (window.api?.onImportProgress) {
+      unsubscribeImportProgress = window.api.onImportProgress((data) => {
         if (!isImporting) return;
         if (data.status === "start") {
           importProgressPercent = 0;
@@ -40,9 +42,7 @@
   });
 
   onDestroy(() => {
-    if (window.api && window.api.removeImportProgressListeners) {
-      window.api.removeImportProgressListeners();
-    }
+    unsubscribeImportProgress?.();
   });
 
   function mapTempIdsToCreatedAssets(createdAssets, stagedAssets) {

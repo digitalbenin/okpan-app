@@ -109,6 +109,7 @@ src/assets/models/
 artic-dataset/
 artic-dataset.zip
 src/db/db_sample_data/
+src/db/seed_data/
 
 # IDEs and editors
 .idea
