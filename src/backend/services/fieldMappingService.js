@@ -1,3 +1,10 @@
+/**
+ * Semantic import-field mapping service for matching CSV headers to ontology
+ * fields using embeddings.
+ *
+ * @namespace backend.services.fieldMappingService
+ * @memberof backend.services
+ */
 import { db } from '../../db/init.js';
 import { ontology_fields, texts } from '../../db/schema.js';
 import { eq, sql, isNotNull } from 'drizzle-orm';
@@ -7,7 +14,11 @@ import { getCurrentProjectId } from '../services/projectCacheService.js';
 
 /**
  * Suggest ontology mappings for import fields, scoped to the active project.
- * If no projectId is passed, it will be resolved from the backend project cache.
+ * @memberof backend.services.fieldMappingService
+ * @method
+ * @param {string[]} csvFieldNames - CSV field names to map.
+ * @param {Object} [options={}] - Mapping options.
+ * @returns {Promise<Array>}
  */
 export const suggestFieldMappings = async (csvFieldNames, options = {
     maxSuggestions: 3,

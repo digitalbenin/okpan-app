@@ -1,20 +1,20 @@
+/**
+ * Asset-to-object fuzzy matching service used during import workflows.
+ *
+ * @namespace backend.services.assetMappingService
+ * @memberof backend.services
+ */
 import Fuse from 'fuse.js';
 import { db } from '../../db/init.js';
 import * as dbSchema from '../../db/schema.js';
 import { eq, sql, and, inArray, aliasedTable } from 'drizzle-orm';
 /**
- * Suggests object matches for a batch of assets using fuzzy matching.
- * The response includes the full asset object and the full matched objects, including their ontology and research fields.
- * @param {Array} assets - Array of asset objects with filename property
- * @param {Object} options - Configuration options
- * @param {string} [options.institutionId] - Filter objects by institution ID
- * @param {Array<string>} [options.searchFields] - Custom fields to search in (default: primary id fields)
- * @param {string} [options.prefix] - Prefix to add to asset filename when searching
- * @param {string} [options.suffix] - Suffix to add to asset filename when searching
- * @param {number} [options.maxSuggestions=1] - Maximum number of suggestions per asset
- * @param {number} [options.minConfidence=0.3] - Minimum confidence score (0-1)
- * @param {Object} [options.fuseOptions] - Custom Fuse.js options
- * @returns {Array} Array of objects with asset info and suggested matches
+ * Suggest object matches for a batch of assets using fuzzy matching.
+ * @memberof backend.services.assetMappingService
+ * @method
+ * @param {Array} assets - Array of asset objects with filename property.
+ * @param {Object} [options={}] - Configuration options.
+ * @returns {Promise<Array>}
  */
 export const suggestObjectMatches = async (assets, options = {}) => {
     const {
@@ -101,7 +101,10 @@ export const suggestObjectMatches = async (assets, options = {}) => {
 };
 
 /**
- * Gets objects with their ontology fields, filtered to the current project and institution.
+ * Get objects with their ontology fields, filtered to the current project and institution.
+ * @memberof backend.services.assetMappingService
+ * @param {Object} options - Search options.
+ * @returns {Promise<Array>}
  */
 async function getObjectsWithOntologyFields({ projectId, institutionId, searchFields = [] }) {
     const conditions = [
@@ -169,7 +172,10 @@ async function getObjectsWithOntologyFields({ projectId, institutionId, searchFi
 }
 
 /**
- * Prepares search data for Fuse.js from objects and their fields
+ * Prepare search data for Fuse.js from objects and their fields.
+ * @memberof backend.services.assetMappingService
+ * @param {Array} objects - Object rows with preloaded fields.
+ * @returns {Array}
  */
 function prepareSearchData(objects) {
     const searchData = [];
@@ -206,7 +212,12 @@ function prepareSearchData(objects) {
 }
 
 /**
- * Creates the search query from asset filename with optional prefix/suffix
+ * Create the search query from an asset filename with optional prefix/suffix.
+ * @memberof backend.services.assetMappingService
+ * @param {string} filename - Asset filename.
+ * @param {string} prefix - Optional prefix.
+ * @param {string} suffix - Optional suffix.
+ * @returns {string}
  */
 function getSearchQuery(filename, prefix, suffix) {
     // Remove file extension
@@ -219,7 +230,13 @@ function getSearchQuery(filename, prefix, suffix) {
 }
 
 /**
- * Finds matches using Fuse.js and processes the results
+ * Find matches using Fuse.js and process the results.
+ * @memberof backend.services.assetMappingService
+ * @param {Fuse} fuse - Fuse.js instance.
+ * @param {string} searchQuery - Search query.
+ * @param {number} maxSuggestions - Maximum number of suggestions.
+ * @param {number} minConfidence - Minimum confidence threshold.
+ * @returns {Array}
  */
 function findMatches(fuse, searchQuery, maxSuggestions, minConfidence) {
     // Split search query into words for better matching
@@ -279,7 +296,10 @@ function findMatches(fuse, searchQuery, maxSuggestions, minConfidence) {
 
 
 /**
- * Fetch full objects (assets, ontology fields, research fields) by IDs
+ * Fetch full objects (assets, ontology fields, research fields) by IDs.
+ * @memberof backend.services.assetMappingService
+ * @param {Array<string>} objectIds - Object identifiers.
+ * @returns {Promise<Array>}
  */
 async function getFullObjectsByIds(objectIds) {
     if (objectIds.length === 0) return [];

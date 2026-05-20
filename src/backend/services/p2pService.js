@@ -1,3 +1,10 @@
+/**
+ * P2P sync service for project collaboration, presence tracking, and
+ * Trystero-backed Yjs provider management.
+ *
+ * @namespace backend.services.p2pService
+ * @memberof backend.services
+ */
 import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
 // Use Trystero Torrent (WebTorrent) strategy for matchmaking
 import { joinRoom, getRelaySockets } from 'trystero'
@@ -54,6 +61,13 @@ let presenceNotifier = null
 const LOCAL_PRESENCE_HEARTBEAT_MS = 10000
 const WEBSOCKET_READY_STATE_LABELS = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']
 
+/**
+ * Store a pending project password used during reconnect flows.
+ * @memberof backend.services.p2pService
+ * @param {string} projectId - Project identifier.
+ * @param {string} password - Pending password.
+ * @returns {void}
+ */
 export function setPendingProjectPassword(projectId, password) {
   if (!projectId) return
 
@@ -139,6 +153,12 @@ function emitProjectPresence(projectId) {
   presenceNotifier(projectId, getProjectPresence(projectId))
 }
 
+/**
+ * Set the callback used to broadcast presence changes.
+ * @memberof backend.services.p2pService
+ * @param {Function|null} notifier - Presence notifier callback.
+ * @returns {void}
+ */
 export function setPresenceNotifier(notifier) {
   presenceNotifier = notifier
 }
@@ -157,6 +177,13 @@ if (typeof globalThis.WebSocket === 'undefined') {
  * @param {string} projectId
  * @param {Object} options
  * @param {Function} [options.onDataChange] Callback when remote data is ingested
+ */
+/**
+ * Start a Trystero-backed Yjs provider for a project.
+ * @memberof backend.services.p2pService
+ * @param {string} projectId - Project identifier.
+ * @param {Object} [options={}] - Start options.
+ * @returns {Promise<Object|null>}
  */
 export async function startP2PForProject(projectId, options = {}) {
   if (!projectId) return null
@@ -370,6 +397,12 @@ export async function startP2PForProject(projectId, options = {}) {
 /**
  * Stop and remove the provider for the given project.
  */
+/**
+ * Stop the Trystero-backed Yjs provider for a project.
+ * @memberof backend.services.p2pService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<void>}
+ */
 export async function stopP2PForProject(projectId) {
   const entry = providers.get(projectId)
   console.log('[P2P] stop requested', { projectId, hasEntry: !!entry })
@@ -410,6 +443,12 @@ export async function stopP2PForProject(projectId) {
 /**
  * Get the provider instance for a project.
  */
+/**
+ * Get the current P2P provider for a project.
+ * @memberof backend.services.p2pService
+ * @param {string} projectId - Project identifier.
+ * @returns {Object|null}
+ */
 export function getP2PProvider(projectId) {
   return providers.get(projectId)?.provider || null
 }
@@ -417,10 +456,22 @@ export function getP2PProvider(projectId) {
 /**
  * Get the number of connected peers for a project.
  */
+/**
+ * Get the current peer count for a project.
+ * @memberof backend.services.p2pService
+ * @param {string} projectId - Project identifier.
+ * @returns {number}
+ */
 export function getProjectPeersCount(projectId) {
   return getProjectPresence(projectId).count
 }
 
+/**
+ * Get the current presence payload for a project.
+ * @memberof backend.services.p2pService
+ * @param {string} projectId - Project identifier.
+ * @returns {Object}
+ */
 export function getProjectPresence(projectId) {
   const peers = listRemotePeers(projectId)
   return {
@@ -429,6 +480,11 @@ export function getProjectPresence(projectId) {
   }
 }
 
+/**
+ * Refresh the presence state for every active project.
+ * @memberof backend.services.p2pService
+ * @returns {Promise<void>}
+ */
 export async function refreshAllProjectPresence() {
   const globalProfile = await getGlobalProfile()
 

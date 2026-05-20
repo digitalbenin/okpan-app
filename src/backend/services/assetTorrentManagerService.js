@@ -271,6 +271,13 @@ async function queryAssetRowPresence(assetId, isGeneric) {
 }
 
 
+/**
+ * Asset torrent manager service for P2P seeding, downloading, and reconcile
+ * scheduling of project assets.
+ *
+ * @namespace backend.services.assetTorrentManagerService
+ * @memberof backend.services
+ */
 export function setMainWindowContents(webContents) {
   _webContents = webContents;
 }
@@ -437,6 +444,12 @@ function reseedExistingAsset({ projectId, row, filePath, isGeneric }) {
 }
 
 
+/**
+ * Seed a local asset file and persist torrent metadata.
+ * @memberof backend.services.assetTorrentManagerService
+ * @param {Object} options - Seeding options.
+ * @returns {Promise<Object|null>}
+ */
 export async function seedAsset({ projectId, assetId, filePath, isGeneric = false, expectedInfoHash = null, expectedLength = null, enableSignaling = true }) {
   if (!projectId || !assetId || !filePath) return null;
   if (stoppedProjects.has(projectId)) return null;
@@ -726,6 +739,13 @@ async function seedUnseededLocalAssets(projectId) {
   }
 }
 
+/**
+ * Schedule a reconcile pass for a project.
+ * @memberof backend.services.assetTorrentManagerService
+ * @param {string} projectId - Project identifier.
+ * @param {string|null} [assetId=null] - Optional asset identifier.
+ * @returns {void}
+ */
 export function scheduleAssetReconcile(projectId, assetId = null) {
   if (!projectId) return;
   if (reconcileDebounce.has(projectId)) clearTimeout(reconcileDebounce.get(projectId));
@@ -816,6 +836,12 @@ async function reconcileTable({ projectId, variant, specificAssetId }) {
 }
 
 
+/**
+ * Start the recurring reconcile loop for a project.
+ * @memberof backend.services.assetTorrentManagerService
+ * @param {string} projectId - Project identifier.
+ * @returns {void}
+ */
 export function startReconcileLoop(projectId) {
   if (!projectId || reconcileIntervals.has(projectId)) return;
   stoppedProjects.delete(projectId);
@@ -828,6 +854,12 @@ export function startReconcileLoop(projectId) {
   reconcileIntervals.set(projectId, interval);
 }
 
+/**
+ * Stop all torrent activity for a project.
+ * @memberof backend.services.assetTorrentManagerService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<void>}
+ */
 export async function stopProjectTorrents(projectId) {
   if (!projectId) return;
   stoppedProjects.add(projectId);
@@ -846,6 +878,11 @@ export async function stopProjectTorrents(projectId) {
   reconcileRunning.delete(projectId);
 }
 
+/**
+ * Destroy the torrent manager and clear all global state.
+ * @memberof backend.services.assetTorrentManagerService
+ * @returns {void}
+ */
 export function destroyTorrentManager() {
   for (const t of reconcileIntervals.values()) clearInterval(t);
   for (const t of reconcileDebounce.values())  clearTimeout(t);
@@ -865,6 +902,12 @@ export function destroyTorrentManager() {
   }
 }
 
+/**
+ * Reset errored asset-local-state rows back to a missing state.
+ * @memberof backend.services.assetTorrentManagerService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<void>}
+ */
 export async function resetErroredAssets(projectId) {
   if (!projectId) return;
   try {
@@ -879,6 +922,12 @@ export async function resetErroredAssets(projectId) {
   }
 }
 
+/**
+ * Get the current asset sync summary for a project.
+ * @memberof backend.services.assetTorrentManagerService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<Object|null>}
+ */
 export async function getProjectSyncStatus(projectId) {
   if (!projectId) return null;
   try {

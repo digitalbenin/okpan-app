@@ -1,3 +1,10 @@
+/**
+ * Connections JSON import service for restoring connection-type bundles and
+ * their linked assets into a project.
+ *
+ * @namespace backend.services.importConnectionsJsonService
+ * @memberof backend.services
+ */
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -130,6 +137,13 @@ async function importImageReference(imageRef, extractedRoot, projectFolder, proj
   return newAsset;
 }
 
+/**
+ * Import a connections-export ZIP into the current project.
+ * @memberof backend.services.importConnectionsJsonService
+ * @param {Object} options - Import options.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
+ */
 export async function importConnectionsJson(options, { db }) {
   const { filePath, projectId } = options || {};
   if (!filePath) throw new Error('filePath is required');

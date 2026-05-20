@@ -1,3 +1,9 @@
+/**
+ * CSV export service for object-centric project exports and asset packaging.
+ *
+ * @namespace backend.services.exportCsvService
+ * @memberof backend.services
+ */
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -64,6 +70,13 @@ const CSV_TEXT_FIELD_LABEL_MAP = {
   vocabularies: { option_id: 'option', description_id: 'description' }
 };
 
+/**
+ * Export the project data set to a zipped CSV package.
+ * @memberof backend.services.exportCsvService
+ * @param {Object} options - Export options.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
+ */
 export async function exportProjectCsv(options,{ db }){
   const { filePath, filters={}, includeAssets = false } = options||{};
   if (!filePath || !filePath.toLowerCase().endsWith('.zip')) throw new Error('filePath must be a .zip path for CSV export');

@@ -1,3 +1,10 @@
+/**
+ * Change-log tailer service that ingests database change_log rows into the
+ * in-memory Yjs document and persists derived updates.
+ *
+ * @namespace backend.services.changeLogTailerService
+ * @memberof backend.services
+ */
 import * as Y from 'yjs';
 import { db } from '../../db/init.js';
 import { getGlobalProfile, updateGlobalUsername } from '../../db/queries/globalSettings.js';
@@ -46,6 +53,12 @@ const DEFAULT_INGEST_INTERVAL_MS = 1000;
 const tailerLocks = new Map(); // projectId → boolean
 
 let dataChangeNotifier = null;
+/**
+ * Set the callback that fires when local changes have been ingested.
+ * @memberof backend.services.changeLogTailerService
+ * @param {Function|null} fn - Change notification callback.
+ * @returns {void}
+ */
 export function setDataChangeNotifier(fn) {
   dataChangeNotifier = fn;
 }
@@ -405,6 +418,13 @@ async function applyBatchToDoc(projectId, rows) {
 }
 
 let nullFetchCounter = 0;
+/**
+ * Ingest a single change_log batch for a project.
+ * @memberof backend.services.changeLogTailerService
+ * @param {string} projectId - Project identifier.
+ * @param {number} [batchSize=200] - Maximum rows to ingest.
+ * @returns {Promise<boolean>}
+ */
 export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST_BATCH_SIZE) {
   if (!projectId) return false;
   if (tailerLocks.get(projectId)) return false;
@@ -436,6 +456,14 @@ export async function ingestOnceForProject(projectId, batchSize = DEFAULT_INGEST
 }
 
 //let intervalCounter = 0;
+/**
+ * Start the periodic change-log tailing loop.
+ * @memberof backend.services.changeLogTailerService
+ * @param {Object} [options={}] - Tailer options.
+ * @param {number} [options.intervalMs=1000] - Polling interval in milliseconds.
+ * @param {number} [options.batchSize=200] - Maximum rows per batch.
+ * @returns {void}
+ */
 export function startChangeLogTailer({ intervalMs = 1000, batchSize = 200 } = {}) {
   // Debug log to ensure the tailer actually started
   //console.log('[Tailer] Loop started');

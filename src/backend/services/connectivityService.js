@@ -1,3 +1,10 @@
+/**
+ * Network connectivity probe service for tracking online/offline state and
+ * broadcasting status changes to renderer windows.
+ *
+ * @namespace backend.services.connectivityService
+ * @memberof backend.services
+ */
 import { net } from 'electron';
 import { lookup as dnsLookup } from 'dns/promises';
 import { sendToAllWindows } from './windowNotifierService.js';
@@ -16,14 +23,33 @@ let probeTimer = null;
 let probeRunning = false;
 let consecutiveFailures = 0;
 
+/**
+ * Get the latest cached network status.
+ * @memberof backend.services.connectivityService
+ * @returns {Object}
+ */
 export function getCurrentNetworkStatus() {
   return currentNetworkStatus;
 }
 
+/**
+ * Replace the cached network status without broadcasting it.
+ * @memberof backend.services.connectivityService
+ * @param {boolean} online - Whether the app is online.
+ * @param {string} source - Status source label.
+ * @returns {void}
+ */
 export function setNetworkStatus(online, source) {
   currentNetworkStatus = { online: !!online, source, ts: Date.now() };
 }
 
+/**
+ * Update and broadcast the network status to all renderer windows.
+ * @memberof backend.services.connectivityService
+ * @param {boolean} online - Whether the app is online.
+ * @param {string} [source='electron'] - Status source label.
+ * @returns {void}
+ */
 export function broadcastNetworkStatus(online, source = 'electron') {
   const next = { online: !!online, source, ts: Date.now() };
   if (currentNetworkStatus.online === next.online && currentNetworkStatus.source === next.source) {
@@ -78,12 +104,22 @@ async function runProbe() {
   }
 }
 
+/**
+ * Start the recurring DNS-based connectivity probe.
+ * @memberof backend.services.connectivityService
+ * @returns {void}
+ */
 export function startConnectivityProbe() {
   if (probeTimer) return;
   void runProbe();
   probeTimer = setInterval(() => void runProbe(), PROBE_INTERVAL_MS);
 }
 
+/**
+ * Stop the recurring connectivity probe and reset probe state.
+ * @memberof backend.services.connectivityService
+ * @returns {void}
+ */
 export function stopConnectivityProbe() {
   if (!probeTimer) return;
   clearInterval(probeTimer);

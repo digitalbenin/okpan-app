@@ -1,4 +1,11 @@
-﻿import * as Y from 'yjs'
+﻿/**
+ * Remote ingestion service that applies inbound Yjs updates into SQLite in a
+ * FK-safe order, then refreshes local project state.
+ *
+ * @namespace backend.services.remoteIngestionService
+ * @memberof backend.services
+ */
+import * as Y from 'yjs'
 import { diff as deepDiff } from '@opentf/obj-diff'
 import crypto from 'crypto'
 import { promises as fs } from 'fs'
@@ -384,10 +391,11 @@ async function applyDelete(dbOrTx, tableName, id, pendingFileDeletes = []) {
 
 /**
  * Ingest a remote Yjs update for a project using SQLite-first order.
- * - Applies inbound bytes to a shadow doc seeded from the canonical doc
- * - Computes row-level diffs using shadow BEFORE vs AFTER to avoid races
- * - Commits INSERT/UPDATE/DELETE in FK-safe order inside a single transaction
- * - SQLite triggers emit change_log; tailer will project and persist yjs_updates
+ * @memberof backend.services.remoteIngestionService
+ * @param {string} projectId - Project identifier.
+ * @param {Uint8Array|ArrayBuffer|Buffer} updateBytes - Inbound Yjs update bytes.
+ * @param {Object} [options={}] - Ingestion options.
+ * @returns {Promise<Object>}
  */
 export async function ingestRemoteUpdate(projectId, updateBytes, options = {}) {
   if (!projectId || !updateBytes) return { applied: 0 }

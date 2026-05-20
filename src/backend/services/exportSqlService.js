@@ -1,5 +1,11 @@
 import { eq, inArray, and } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
+/**
+ * SQL export service for project backups packaged as SQLite-compatible SQL.
+ *
+ * @namespace backend.services.exportSqlService
+ * @memberof backend.services
+ */
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -269,6 +275,13 @@ async function createZipFromFolder(folderPath, zipPath) {
   });
 }
 
+/**
+ * Export the project data set to a zipped SQL package.
+ * @memberof backend.services.exportSqlService
+ * @param {Object} options - Export options.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
+ */
 export async function exportProjectSql(options, { db }) {
   const { filePath, filters = {}, includeAssets = false, mode = 'sql' } = options || {};
   if (!filters?.project_id) throw new Error('project_id is required in filters');

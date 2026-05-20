@@ -1,3 +1,10 @@
+/**
+ * Project runtime orchestration service that starts and stops P2P, change-log
+ * tailing, and reconcile workflows for the active project.
+ *
+ * @namespace backend.services.projectRuntimeService
+ * @memberof backend.services
+ */
 import { db } from '../../db/init.js';
 import { project } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -12,9 +19,29 @@ import { prepareSessionOpenRecoverySnapshot } from './recoverySnapshotService.js
 // These maps/sets track in-flight async jobs and per-project lifecycle state so
 // that concurrent IPC calls are safely deduplicated or cancelled.
 
+/**
+ * Projects already opened during the current app session.
+ * @memberof backend.services.projectRuntimeService
+ * @constant {Set<string>}
+ */
 export const openedProjectsThisSession = new Set();
+/**
+ * In-flight recovery snapshot jobs keyed by project id.
+ * @memberof backend.services.projectRuntimeService
+ * @constant {Map<string, Promise>}
+ */
 export const sessionOpenSnapshotJobs = new Map();
+/**
+ * Projects waiting to finish a remote join before local teardown runs.
+ * @memberof backend.services.projectRuntimeService
+ * @constant {Set<string>}
+ */
 export const pendingProjectJoins = new Set();
+/**
+ * In-flight reconnect jobs keyed by project id.
+ * @memberof backend.services.projectRuntimeService
+ * @constant {Map<string, Promise>}
+ */
 export const reconnectP2PJobs = new Map();
 
 const delayedReconcileStarts = new Map();
@@ -22,6 +49,12 @@ let changeLogTailerStarted = false;
 
 // ─── Delayed asset-reconcile scheduling ───────────────────────────────────────
 
+/**
+ * Cancel a delayed reconcile start for a project.
+ * @memberof backend.services.projectRuntimeService
+ * @param {string} projectId - Project identifier.
+ * @returns {void}
+ */
 export function clearDelayedReconcileStart(projectId) {
   const timer = delayedReconcileStarts.get(projectId);
   if (timer) {
@@ -31,9 +64,10 @@ export function clearDelayedReconcileStart(projectId) {
 }
 
 /**
- * Start the asset-reconcile loop for a project after a short debounce delay.
- * Debouncing avoids redundant reconcile starts when P2P connects quickly after
- * a stop/start cycle (e.g. password change, reconnect).
+ * Schedule a delayed reconcile loop start for a project.
+ * @memberof backend.services.projectRuntimeService
+ * @param {string} projectId - Project identifier.
+ * @returns {void}
  */
 export function scheduleDelayedReconcileStart(projectId) {
   if (!projectId) return;
@@ -54,6 +88,12 @@ export function scheduleDelayedReconcileStart(projectId) {
 
 // ─── Project sharing check ────────────────────────────────────────────────────
 
+/**
+ * Check whether a project is shared.
+ * @memberof backend.services.projectRuntimeService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<boolean>}
+ */
 export async function isProjectShared(projectId) {
   if (!projectId) return false;
 
@@ -70,8 +110,10 @@ export async function isProjectShared(projectId) {
 // ─── Session-open recovery snapshot ──────────────────────────────────────────
 
 /**
- * Capture a "session-open" recovery snapshot the first time a project is
- * opened in a session. Deduplicates concurrent calls with a job map.
+ * Capture the session-open recovery snapshot once per project per session.
+ * @memberof backend.services.projectRuntimeService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<Object|null>}
  */
 export async function ensureSessionOpenRecoverySnapshot(projectId) {
   if (!projectId || openedProjectsThisSession.has(projectId)) return null;
@@ -102,14 +144,13 @@ export async function ensureSessionOpenRecoverySnapshot(projectId) {
 // ─── Project runtime bootstrap ────────────────────────────────────────────────
 
 /**
- * Start all runtime services for a project (P2P, change log, asset sync).
- * Called when a project is set as the active one in the renderer.
- *
- * @param {Electron.IpcMainInvokeEvent} event
- * @param {string} projectId
- * @param {Object} options - Runtime options with optional `hydrateSnapshot` and `captureSessionSnapshot` flags.
- * @param {Object} notifiers - BrowserWindow-dependent notification callbacks (`notifyProjectDataChanged`, `notifyProjectPresence`).
- *   BrowserWindow-dependent notification callbacks injected from the main process.
+ * Start all runtime services for a project.
+ * @memberof backend.services.projectRuntimeService
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {string} projectId - Project identifier.
+ * @param {Object} [options={}] - Runtime options.
+ * @param {Object} notifiers - Renderer notification callbacks.
+ * @returns {Promise<Object>}
  */
 export async function bootstrapProjectRuntime(event, projectId, options = {}, { notifyProjectDataChanged, notifyProjectPresence }) {
   const { hydrateSnapshot = false, captureSessionSnapshot = false } = options;

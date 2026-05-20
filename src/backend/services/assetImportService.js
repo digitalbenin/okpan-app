@@ -1,3 +1,10 @@
+/**
+ * Asset import service for processing uploaded media, persisting imported
+ * assets, and creating seeded asset records with torrent metadata.
+ *
+ * @namespace backend.services.assetImportService
+ * @memberof backend.services
+ */
 import * as fs from 'fs';
 import sharp from 'sharp';
 import { db } from '../../db/init.js';
@@ -11,6 +18,11 @@ import { computeFileSha256, getAssetContentInfo } from '../utils/assetMetadata.j
 const sm = 300;
 const md = 1400;
 
+/**
+ * Supported asset formats and size limits used by the import pipeline.
+ * @memberof backend.services.assetImportService
+ * @constant {Object}
+ */
 export const assetConfig = {
     image: {
         formats: ["png", "jpg", "jpeg", "webp", "gif", "avif"],
@@ -33,8 +45,21 @@ const imagesFormats = assetConfig.image.formats;
 const videoFormats = assetConfig.video.formats;
 const audioFormats = assetConfig.audio.formats;
 
+/**
+ * Generate a short random suffix for imported filenames.
+ * @memberof backend.services.assetImportService
+ * @method
+ * @returns {string}
+ */
 export const getCroppedUUID = () => uuidv4().slice(0, 8);
 
+/**
+ * Detect whether a file should be treated as an image, video, audio, or unknown.
+ * @memberof backend.services.assetImportService
+ * @method
+ * @param {string} filePath - Source file path.
+ * @returns {string}
+ */
 export const checkAssetType = (filePath) => {
     const ext = path.extname(filePath).toLowerCase().slice(1);
     if (imagesFormats.includes(ext)) return "image";
@@ -43,6 +68,14 @@ export const checkAssetType = (filePath) => {
     return "unknown";
 };
 
+/**
+ * Convert an image into AVIF derivatives and return the generated paths.
+ * @memberof backend.services.assetImportService
+ * @method
+ * @param {string} imagePath - Source image path.
+ * @param {string} destPath - Destination folder path.
+ * @returns {Promise<Object>}
+ */
 export const makeAVIF = async (imagePath, destPath) => {
     const image = sharp(imagePath);
     const metadata = await image.metadata();
@@ -73,6 +106,15 @@ export const makeAVIF = async (imagePath, destPath) => {
 };
 
 // Generic processor for media files (video and audio)
+/**
+ * Copy a video or audio file into the project asset folder.
+ * @memberof backend.services.assetImportService
+ * @method
+ * @param {string} filePath - Source file path.
+ * @param {string} destPath - Destination folder path.
+ * @param {string} assetType - Asset type label.
+ * @returns {Promise<Object>}
+ */
 export const processMediaFile = async (filePath, destPath, assetType) => {
     const config = assetConfig[assetType];
     if (!config) {
@@ -98,6 +140,16 @@ export const processMediaFile = async (filePath, destPath, assetType) => {
 };
 
 // Unified file processor that routes to the correct processor by asset type
+/**
+ * Process a single asset file and return the normalized asset payload.
+ * @memberof backend.services.assetImportService
+ * @method
+ * @param {string} filePath - Source file path.
+ * @param {string} projectFolder - Destination project asset folder.
+ * @param {Object} data - Import payload.
+ * @param {string} basePath - Logical asset base path.
+ * @returns {Promise<Object|null>}
+ */
 export const processAssetFile = async (filePath, projectFolder, data, basePath) => {
     const assetType = checkAssetType(filePath);
     let formats = null;
@@ -123,6 +175,14 @@ export const processAssetFile = async (filePath, projectFolder, data, basePath) 
     };
 };
 
+/**
+ * Persist an imported asset record to the appropriate table.
+ * @memberof backend.services.assetImportService
+ * @method
+ * @param {Object} assetData - Asset payload.
+ * @param {boolean} isGeneric - Whether to save into generic_assets.
+ * @returns {Promise<Object>}
+ */
 export const saveAssetToDb = async (assetData, isGeneric) => {
     const table = isGeneric ? genericAssets : assets;
     const [newAsset] = await db.insert(table).values({
@@ -134,9 +194,12 @@ export const saveAssetToDb = async (assetData, isGeneric) => {
 };
 
 /**
- * Build the final asset record, including torrent metadata, before inserting
- * it into the shared asset table. This avoids syncing rows that point at a
- * logical asset path but still have no downloadable torrent metadata.
+ * Build a seeded asset record with torrent metadata before insert.
+ * @memberof backend.services.assetImportService
+ * @param {Object} assetData - Asset payload.
+ * @param {boolean} isGeneric - Whether the record is generic.
+ * @param {boolean} [disableP2P=false] - Disable signaling for this import.
+ * @returns {Promise<Object>}
  */
 export async function buildSeededAssetRecord(assetData, isGeneric, disableP2P = false) {
     const filePath = resolveLogicalAssetPath(assetData.path);

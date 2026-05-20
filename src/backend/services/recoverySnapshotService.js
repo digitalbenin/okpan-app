@@ -7,6 +7,13 @@ import { app } from 'electron';
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { eq, inArray, or } from 'drizzle-orm';
+/**
+ * Recovery snapshot service for creating, listing, restoring, and deleting
+ * project recovery snapshots.
+ *
+ * @namespace backend.services.recoverySnapshotService
+ * @memberof backend.services
+ */
 import { db, dbPath } from '../../db/init.js';
 import * as dbSchema from '../../db/schema.js';
 import { createProjectBackup, restoreProjectBackup } from './backupService.js';
@@ -128,6 +135,12 @@ async function pruneProjectSnapshots(projectId, keepCount = DEFAULT_SNAPSHOT_LIM
   }
 }
 
+/**
+ * Delete every recovery snapshot for a project.
+ * @memberof backend.services.recoverySnapshotService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<void>}
+ */
 export async function deleteProjectRecoverySnapshots(projectId) {
   if (!projectId || typeof projectId !== 'string') {
     throw new Error('deleteProjectRecoverySnapshots requires a valid projectId');
@@ -510,12 +523,26 @@ async function finalizeSnapshotFromDb(projectId, options = {}, sourceDb) {
   return toPublicManifest(manifest);
 }
 
+/**
+ * List recovery snapshots for a project.
+ * @memberof backend.services.recoverySnapshotService
+ * @param {string} projectId - Project identifier.
+ * @param {Object} [options={}] - Listing options.
+ * @returns {Promise<Array>}
+ */
 export async function listRecoverySnapshots(projectId, options = {}) {
   const limit = Number.isFinite(options.limit) ? options.limit : DEFAULT_SNAPSHOT_LIMIT;
   const manifests = await loadProjectSnapshotManifests(projectId);
   return manifests.slice(0, Math.max(limit, 0)).map(toPublicManifest);
 }
 
+/**
+ * Create a recovery snapshot for a project.
+ * @memberof backend.services.recoverySnapshotService
+ * @param {string} projectId - Project identifier.
+ * @param {Object} [options={}] - Snapshot options.
+ * @returns {Promise<Object>}
+ */
 export async function createRecoverySnapshot(projectId, options = {}) {
   if (!projectId || typeof projectId !== 'string') {
     throw new Error('createRecoverySnapshot requires a valid projectId');
@@ -526,6 +553,13 @@ export async function createRecoverySnapshot(projectId, options = {}) {
   });
 }
 
+/**
+ * Prepare the automatic session-open recovery snapshot workflow.
+ * @memberof backend.services.recoverySnapshotService
+ * @param {string} projectId - Project identifier.
+ * @param {Object} [options={}] - Snapshot options.
+ * @returns {Promise<Object>}
+ */
 export async function prepareSessionOpenRecoverySnapshot(projectId, options = {}) {
   if (!projectId || typeof projectId !== 'string') {
     throw new Error('prepareSessionOpenRecoverySnapshot requires a valid projectId');
@@ -568,6 +602,13 @@ export async function prepareSessionOpenRecoverySnapshot(projectId, options = {}
   });
 }
 
+/**
+ * Restore a project from a recovery snapshot.
+ * @memberof backend.services.recoverySnapshotService
+ * @param {string} projectId - Project identifier.
+ * @param {string} snapshotId - Snapshot identifier.
+ * @returns {Promise<Object>}
+ */
 export async function restoreRecoverySnapshot(projectId, snapshotId) {
   if (!projectId || typeof projectId !== 'string') {
     throw new Error('restoreRecoverySnapshot requires a valid projectId');
@@ -608,6 +649,13 @@ export async function restoreRecoverySnapshot(projectId, snapshotId) {
   });
 }
 
+/**
+ * Delete a single recovery snapshot.
+ * @memberof backend.services.recoverySnapshotService
+ * @param {string} projectId - Project identifier.
+ * @param {string} snapshotId - Snapshot identifier.
+ * @returns {Promise<void>}
+ */
 export async function deleteRecoverySnapshot(projectId, snapshotId) {
   if (!projectId || typeof projectId !== 'string') {
     throw new Error('deleteRecoverySnapshot requires a valid projectId');

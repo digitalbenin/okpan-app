@@ -1,3 +1,10 @@
+/**
+ * Embedding service for loading the local model and computing semantic
+ * similarity vectors for import workflows.
+ *
+ * @namespace backend.services.embeddingService
+ * @memberof backend.services
+ */
 import { pipeline } from '@xenova/transformers';
 import path from 'path';
 import fs from 'fs';
@@ -15,6 +22,10 @@ class EmbeddingService {
             : path.join(process.cwd(), 'src', 'assets', 'models');
     }
 
+    /**
+     * Load the embedding model into memory if it is not already initialized.
+     * @returns {Promise<void>}
+     */
     async initialize() {
         if (this.model || this.isInitializing) {
             return;
@@ -45,6 +56,12 @@ class EmbeddingService {
         }
     }
 
+    /**
+     * Compute a normalized embedding for a single text input.
+     * @param {string} text - Input text.
+     * @param {string} [prefix=''] - Optional prefix used by the model.
+     * @returns {Promise<string|null>}
+     */
     async computeEmbedding(text, prefix = '') {
         if (!this.model) {
             await this.initialize();
@@ -75,6 +92,12 @@ class EmbeddingService {
         }
     }
 
+    /**
+     * Compute an embedding for an ontology field description.
+     * @param {string} name - Field name.
+     * @param {string} description - Field description.
+     * @returns {Promise<string|null>}
+     */
     async computeOntologyFieldEmbedding(name, description) {
         // For ontology fields (documents), no prefix needed
         const combinedText = `${name || ''} ${description || ''}`.trim();
@@ -86,12 +109,24 @@ class EmbeddingService {
         return await this.computeEmbedding(combinedText);
     }
 
+    /**
+     * Compute an embedding for a CSV field name query.
+     * @param {string} fieldName - CSV field name.
+     * @returns {Promise<string|null>}
+     */
     async computeFieldNameEmbedding(fieldName) {
         // For CSV field names (queries), use "query: " prefix as per Arctic v2 docs
         return await this.computeEmbedding(fieldName, 'query: ');
     }
 
     // For similarity comparison during CSV/JSON imports
+    /**
+     * Find ontology fields with semantic similarity above the threshold.
+     * @param {string} csvFieldName - CSV field name.
+     * @param {Array} ontologyFields - Ontology field rows.
+     * @param {number} [threshold=0.1] - Minimum similarity threshold.
+     * @returns {Promise<Array>}
+     */
     async findSimilarFields(csvFieldName, ontologyFields, threshold = 0.1) {
         // Slightly higher threshold for Arctic v2 due to better quality
         if (!csvFieldName || !ontologyFields || ontologyFields.length === 0) {
@@ -128,6 +163,12 @@ class EmbeddingService {
         return similarities.sort((a, b) => b.similarity - a.similarity);
     }
 
+    /**
+     * Compute cosine similarity between two vectors.
+     * @param {number[]} a - First vector.
+     * @param {number[]} b - Second vector.
+     * @returns {number}
+     */
     cosineSimilarity(a, b) {
         if (a.length !== b.length) return 0;
 
@@ -144,6 +185,11 @@ class EmbeddingService {
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 
+    /**
+     * Convert a similarity score into a human-readable confidence label.
+     * @param {number} similarity - Similarity score.
+     * @returns {string}
+     */
     getConfidenceLevel(similarity) {
         if (similarity >= 0.35) return 'high';
         if (similarity >= 0.25) return 'medium';
@@ -151,7 +197,10 @@ class EmbeddingService {
         return 'very_low';
     }
 
-    // Get model status for UI
+    /**
+     * Get the current embedding model status.
+     * @returns {{isLoaded:boolean, isInitializing:boolean, modelName:string}}
+     */
     getStatus() {
         return {
             isLoaded: this.model !== null,

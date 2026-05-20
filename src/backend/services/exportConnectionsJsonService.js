@@ -1,3 +1,10 @@
+/**
+ * Connections JSON export service for serializing connection types and their
+ * linked assets.
+ *
+ * @namespace backend.services.exportConnectionsJsonService
+ * @memberof backend.services
+ */
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -59,6 +66,13 @@ function makeRelativeAssetExportPath(assetId, absolutePath) {
   return `assets/${assetId}/${fileBase}${ext && fileBase.endsWith(ext) ? '' : ext}`;
 }
 
+/**
+ * Export connection types and linked assets to a ZIP archive.
+ * @memberof backend.services.exportConnectionsJsonService
+ * @param {Object} options - Export options.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
+ */
 export async function exportConnectionsJson(options, { db }) {
   const { filePath, projectId } = options || {};
   if (!filePath || !filePath.toLowerCase().endsWith('.zip')) throw new Error('filePath must be a .zip path for connections export');

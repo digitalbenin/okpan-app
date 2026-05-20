@@ -1,3 +1,10 @@
+/**
+ * Static website export service for building the project website bundle and
+ * copying its asset set.
+ *
+ * @namespace backend.services.websiteExportService
+ * @memberof backend.services
+ */
 import fs from 'fs/promises';
 import path from 'path';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -117,12 +124,12 @@ function filterTextPayloadByLocales(payload, includedLocaleCodes, fallbackLocale
 }
 
 /**
- * Export website data to JSON file and build static site
- * @param {string} projectId - Project ID to export
- * @param {string} outputPath - Destination path for exported website folder
- * @param {Object} options - Export options
- * @param {Object} options.db - Database instance
- * @returns {Promise<Object>} Export result
+ * Export a static website bundle for the requested project.
+ * @memberof backend.services.websiteExportService
+ * @param {string} projectId - Project identifier.
+ * @param {string} outputPath - Destination folder.
+ * @param {Object} options - Export options.
+ * @returns {Promise<Object>}
  */
 export async function exportStaticWebsite(
   projectId,
@@ -374,6 +381,14 @@ async function createSpaShellRoutes(outputPath, data, basePath = "", locale = ''
  * @param {string} projectId - Project ID
  * @param {Object} db - Database instance
  * @returns {Promise<Object>} Unified data structure
+ */
+/**
+ * Export all website data to unified JSON structure.
+ * @memberof backend.services.websiteExportService
+ * @param {string} projectId - Project identifier.
+ * @param {Object} db - Database instance.
+ * @param {Object} [filters={}] - Search and export filters.
+ * @returns {Promise<Object>}
  */
 async function exportWebsiteData(projectId, db, filters = {}) {
   try {

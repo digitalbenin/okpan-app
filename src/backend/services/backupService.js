@@ -1,3 +1,10 @@
+/**
+ * Backup service for creating, inspecting, and restoring project `.dctx`
+ * archives.
+ *
+ * @namespace backend.services.backupService
+ * @memberof backend.services
+ */
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -442,6 +449,13 @@ async function createZipFromFolder(folderPath, zipPath) {
   });
 }
 
+/**
+ * Create a project backup archive.
+ * @memberof backend.services.backupService
+ * @param {Object} options - Backup options.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
+ */
 export async function createProjectBackup(options, { db }) {
   const { project_id, filePath } = options || {};
   
@@ -811,6 +825,13 @@ async function extractZipToFolder(zipPath, destFolder) {
   });
 }
 
+/**
+ * Check whether a project exists in the database.
+ * @memberof backend.services.backupService
+ * @param {string} project_id - Project identifier.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<boolean>}
+ */
 export async function checkProjectExists(project_id, { db }) {
   const projects = await db.select().from(dbSchema.project)
     .where(eq(dbSchema.project.id, project_id))
@@ -822,6 +843,13 @@ export async function checkProjectExists(project_id, { db }) {
 /**
  * Open a .dctx backup file, read its metadata.json, and check if the project
  * it belongs to already exists in the local database.
+ */
+/**
+ * Inspect a backup archive and return its metadata and validation state.
+ * @memberof backend.services.backupService
+ * @param {string} filePath - Backup file path.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
  */
 export async function inspectBackupFile(filePath, { db }) {
   if (!fs.existsSync(filePath)) {
@@ -874,6 +902,13 @@ export async function inspectBackupFile(filePath, { db }) {
   });
 }
 
+/**
+ * Restore a project backup archive.
+ * @memberof backend.services.backupService
+ * @param {Object} options - Restore options.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
+ */
 export async function restoreProjectBackup(options, { db }) {
   const { filePath, strategy = 'merge', preserveProjectRow = false } = options || {};
   

@@ -1,13 +1,21 @@
+/**
+ * Template matching service for finding saved mappings that fully match a set
+ * of incoming headers.
+ *
+ * @namespace backend.services.templateMatchingService
+ * @memberof backend.services
+ */
 import { db } from '../../db/init.js';
 import { templates, objects_datasources, datasources, texts } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 
 /**
- * Finds templates that have a 100% match with a subset of the input headers
- * @param {string[]} inputHeaders - Array of header names from the user's dataset
- * @param {string} projectId - Project ID to limit search scope
- * @param {string} [institutionId] - Optional institution ID to prioritize templates from same institution
- * @returns {Promise<Array>} Array of matching templates with their details and usage info
+ * Find templates that fully match a subset of the input headers.
+ * @memberof backend.services.templateMatchingService
+ * @param {string[]} inputHeaders - Header names from the user's dataset.
+ * @param {string} projectId - Project identifier.
+ * @param {string} [institutionId] - Optional institution identifier.
+ * @returns {Promise<Array>}
  */
 export async function findMatchingTemplates(inputHeaders, projectId, institutionId = null) {
     try {
@@ -96,9 +104,10 @@ export async function findMatchingTemplates(inputHeaders, projectId, institution
 }
 
 /**
- * Gets datasources associated with a template
- * @param {string} templateId - Template ID
- * @returns {Promise<Array>} Array of datasources
+ * Get datasources associated with a template.
+ * @memberof backend.services.templateMatchingService
+ * @param {string} templateId - Template identifier.
+ * @returns {Promise<Array>}
  */
 async function getTemplateDatasources(templateId) {
     try {
@@ -123,9 +132,10 @@ async function getTemplateDatasources(templateId) {
 }
 
 /**
- * Gets usage information for a template (how many objects/datasources used it)
- * @param {string} templateId - Template ID to get usage info for
- * @returns {Promise<Object>} Object with usage counts
+ * Get usage information for a template.
+ * @memberof backend.services.templateMatchingService
+ * @param {string} templateId - Template identifier.
+ * @returns {Promise<Object>}
  */
 async function getTemplateUsageInfo(templateId) {
     try {

@@ -1,3 +1,9 @@
+/**
+ * JSON export service for project data and linked asset packaging.
+ *
+ * @namespace backend.services.exportJsonService
+ * @memberof backend.services
+ */
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -94,6 +100,13 @@ async function createZipFromFolder(folderPath, zipPath) {
   });
 }
 
+/**
+ * Export the project data set to a zipped JSON package.
+ * @memberof backend.services.exportJsonService
+ * @param {Object} options - Export options.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
+ */
 export async function exportProjectJson(options, { db }) {
   const { filePath, filters = {}, includeAssets = false } = options || {};
   if (!filePath || !filePath.toLowerCase().endsWith('.zip')) throw new Error('filePath must be a .zip path for JSON export');

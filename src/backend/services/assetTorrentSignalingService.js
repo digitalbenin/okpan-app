@@ -104,10 +104,24 @@ function clearProjectPendingSignals(projectId) {
   }
 }
 
+/**
+ * Get the current signaling state for a project.
+ * @memberof backend.services.assetTorrentSignalingService
+ * @param {string} projectId - Project identifier.
+ * @returns {Object|null}
+ */
 export function getProjectAssetSignaling(projectId) {
   return signalingActions.get(projectId) || null;
 }
 
+/**
+ * Remove the pending peer signaling entry for an asset.
+ * @memberof backend.services.assetTorrentSignalingService
+ * @param {string} projectId - Project identifier.
+ * @param {string} infoHash - Torrent info hash.
+ * @param {string|null} [attemptId=null] - Optional attempt identifier.
+ * @returns {void}
+ */
 export function cleanupAssetSignalingPeer(projectId, infoHash, attemptId = null) {
   const normalizedAttemptId = normalizeAttemptId(attemptId);
   if (normalizedAttemptId) {
@@ -118,6 +132,15 @@ export function cleanupAssetSignalingPeer(projectId, infoHash, attemptId = null)
   clearPendingPeerSignalsForAsset(projectId, infoHash);
 }
 
+/**
+ * Create the downloader-side peer used for asset torrent signaling.
+ * @memberof backend.services.assetTorrentSignalingService
+ * @param {Object} options - Peer creation options.
+ * @param {string} options.projectId - Project identifier.
+ * @param {string} options.infoHash - Torrent info hash.
+ * @param {Object} options.torrent - WebTorrent torrent instance.
+ * @returns {boolean}
+ */
 export function createDownloaderSignalPeer({ projectId, infoHash, torrent }) {
   const sig = signalingActions.get(projectId);
   if (!sig || !torrent) return false;
@@ -197,6 +220,14 @@ async function resetPendingSeederForPeer(projectId, peerId) {
   }
 }
 
+/**
+ * Ensure a signaling room exists for the project and attach request/signal handlers.
+ * @memberof backend.services.assetTorrentSignalingService
+ * @param {string} projectId - Project identifier.
+ * @param {Object} [options={}] - Signaling options.
+ * @param {Function} options.getTorrent - Lookup function that returns a torrent by info hash.
+ * @returns {Promise<Object|null>}
+ */
 export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}) {
   if (!projectId || typeof getTorrent !== 'function') return null;
 
@@ -300,6 +331,12 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
   return state;
 }
 
+/**
+ * Stop and clear project-specific signaling state.
+ * @memberof backend.services.assetTorrentSignalingService
+ * @param {string} projectId - Project identifier.
+ * @returns {void}
+ */
 export function stopProjectAssetSignaling(projectId) {
   if (!projectId) return;
 
@@ -313,6 +350,11 @@ export function stopProjectAssetSignaling(projectId) {
   clearProjectPendingSignals(projectId);
 }
 
+/**
+ * Destroy all signaling rooms and clear pending peer state.
+ * @memberof backend.services.assetTorrentSignalingService
+ * @returns {void}
+ */
 export function destroyAssetSignaling() {
   for (const projectId of [...signalingActions.keys()]) {
     stopProjectAssetSignaling(projectId);

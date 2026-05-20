@@ -1,3 +1,10 @@
+/**
+ * Connection-type CSV export service for serializing multilingual vocabulary
+ * mappings from a project.
+ *
+ * @namespace backend.services.exportConnectionTypeCsvService
+ * @memberof backend.services
+ */
 import fsPromises from 'fs/promises';
 import { eq, and, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
@@ -50,6 +57,13 @@ function getTextMap(textRow, translations, languagesById) {
   return map;
 }
 
+/**
+ * Export a single connection type to CSV.
+ * @memberof backend.services.exportConnectionTypeCsvService
+ * @param {Object} options - Export options.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
+ */
 export async function exportConnectionTypeCsv(options, { db }) {
   const { filePath, projectId, connectionTypeId } = options || {};
   if (!filePath || !filePath.toLowerCase().endsWith('.csv')) throw new Error('filePath must be a .csv path for connection type export');

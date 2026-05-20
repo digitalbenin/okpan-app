@@ -1,3 +1,10 @@
+/**
+ * Sync activity service for converting change-log batches into grouped project
+ * activity entries.
+ *
+ * @namespace backend.services.syncActivityService
+ * @memberof backend.services
+ */
 import { and, eq, gte, isNull } from 'drizzle-orm';
 import { db } from '../../db/init.js';
 import {
@@ -681,6 +688,13 @@ async function mergeOrInsertActivity(tx, record) {
 
 // Convert one sync event into grouped project_activity entries.
 // Writes are serialized per project to avoid concurrent delete/insert races.
+/**
+ * Record grouped project activity rows from a sync event payload.
+ * @memberof backend.services.syncActivityService
+ * @param {string} projectId - Project identifier.
+ * @param {Object} syncEvent - Normalized sync event payload.
+ * @returns {Promise<void>}
+ */
 export async function recordProjectActivityFromSyncEvent(projectId, syncEvent) {
   if (!projectId || !syncEvent?.source_key) {
     return;

@@ -1,3 +1,10 @@
+/**
+ * Connection-type CSV import service for restoring multilingual vocabulary
+ * mappings into a project.
+ *
+ * @namespace backend.services.importConnectionTypeCsvService
+ * @memberof backend.services
+ */
 import fsPromises from 'fs/promises';
 import { parse } from 'csv-parse/sync';
 import { eq } from 'drizzle-orm';
@@ -67,6 +74,13 @@ function describeValue(value) {
   return String(value);
 }
 
+/**
+ * Import a connection-type CSV file into a project.
+ * @memberof backend.services.importConnectionTypeCsvService
+ * @param {Object} options - Import options.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
+ */
 export async function importConnectionTypeCsv(options, { db }) {
   const { filePath, projectId, connectionTypeName, languageMapping = {} } = options || {};
   if (!filePath) throw new Error('filePath is required');

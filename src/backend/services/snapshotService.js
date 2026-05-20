@@ -1,3 +1,10 @@
+/**
+ * Snapshot service for creating and hydrating project snapshots used by the
+ * runtime and recovery flows.
+ *
+ * @namespace backend.services.snapshotService
+ * @memberof backend.services
+ */
 import * as Y from 'yjs';
 import { db } from '../../db/init.js';
 import { eq, and, gt, desc, sql, inArray, or } from 'drizzle-orm';
@@ -79,6 +86,12 @@ async function getLatestWatermark(projectId) {
   return lastChange[0]?.id ?? null;
 }
 
+/**
+ * Create a new snapshot row and return it.
+ * @memberof backend.services.snapshotService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<Object>}
+ */
 export async function createProjectSnapshot(projectId) {
   if (!projectId) throw new Error('createProjectSnapshot requires projectId');
   const doc = getProjectDoc(projectId);
@@ -96,6 +109,12 @@ export async function createProjectSnapshot(projectId) {
   return { projectId, lastChangeId };
 }
 
+/**
+ * Load the latest snapshot for a project.
+ * @memberof backend.services.snapshotService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<Object|null>}
+ */
 export async function loadLatestSnapshot(projectId) {
   const rows = await db
     .select()
@@ -107,6 +126,13 @@ export async function loadLatestSnapshot(projectId) {
   return rows[0] || null;
 }
 
+/**
+ * Apply a snapshot row to the in-memory project document.
+ * @memberof backend.services.snapshotService
+ * @param {string} projectId - Project identifier.
+ * @param {Object} snapshotRow - Snapshot database row.
+ * @returns {Promise<void>}
+ */
 export async function applySnapshotToDoc(projectId, snapshotRow) {
   if (!snapshotRow) return false;
   const doc = replaceProjectDoc(projectId);
@@ -117,6 +143,13 @@ export async function applySnapshotToDoc(projectId, snapshotRow) {
   return true;
 }
 
+/**
+ * Replay change-log updates after a snapshot point.
+ * @memberof backend.services.snapshotService
+ * @param {string} projectId - Project identifier.
+ * @param {Object} snapshotRow - Snapshot database row.
+ * @returns {Promise<void>}
+ */
 export async function replayUpdatesAfterSnapshot(projectId, snapshotRow) {
   if (!snapshotRow) return 0;
   const doc = getProjectDoc(projectId);
@@ -169,6 +202,12 @@ async function replayAllUpdates(projectId) {
   return applied;
 }
 
+/**
+ * Hydrate a project from its latest snapshot.
+ * @memberof backend.services.snapshotService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<void>}
+ */
 export async function hydrateProjectFromLatestSnapshot(projectId) {
   try {
     const doc = getProjectDoc(projectId);
@@ -206,6 +245,13 @@ export async function hydrateProjectFromLatestSnapshot(projectId) {
   }
 }
 
+/**
+ * Hydrate a project from the database by loading a snapshot and replaying
+ * updates.
+ * @memberof backend.services.snapshotService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<void>}
+ */
 export async function hydrateProjectFromDatabase(projectId) {
   if (!projectId) return { applied: 0 };
 

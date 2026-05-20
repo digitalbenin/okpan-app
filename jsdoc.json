@@ -6,7 +6,6 @@
       "src/preload"
     ],
     "exclude": [
-      "src/backend/services",
       "src/db/queries",
       "src/db/graphqlDefs.js",
       "src/db/seed_from_json.js"
