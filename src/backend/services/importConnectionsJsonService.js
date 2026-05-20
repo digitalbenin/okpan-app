@@ -10,11 +10,8 @@ import {
   resolveProjectAssetPath,
   toLogicalAssetFormats,
   toLogicalStoredAssetPath,
-} from './assetPaths.js';
-
-async function ensureDir(dirPath) {
-  await fsPromises.mkdir(dirPath, { recursive: true });
-}
+} from '../utils/assetPaths.js';
+import { ensureDir } from '../utils/fsUtils.js';
 
 async function extractZipToFolder(zipPath, destFolder) {
   await ensureDir(destFolder);

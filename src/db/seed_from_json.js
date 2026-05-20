@@ -8,10 +8,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { sql, eq } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { pathToFileURL } from 'url';
+import electron from 'electron';
 import { handleImportAssets } from '../backend/handlers/assetHandlers.js';
 import { embeddingService } from '../backend/services/embeddingService.js';
-import { destroyTorrentManager } from '../backend/services/assetTorrentManager.js';
+import { destroyTorrentManager } from '../backend/services/assetTorrentManagerService.js';
+import { resolveApplicationRoot } from './runtimeDatabasePaths.js';
+
+const APP_ROOT = resolveApplicationRoot();
 
 const KNOWN_SOURCE_LANGUAGES = {
     en: { code: 'en', name: 'English' },
@@ -31,7 +34,7 @@ const KNOWN_SOURCE_LANGUAGES = {
 };
 
 // --- Configuration & Argument Parsing ---
-const DEFAULT_SEED_DATA_PATH = path.join(process.cwd(), 'src', 'db', 'seed_data');
+const DEFAULT_SEED_DATA_PATH = path.join(APP_ROOT, 'src', 'db', 'seed_data');
 const HELP_TEXT = `
 Usage: yarn db:seed [options]
 
@@ -58,12 +61,6 @@ function getSeedFromJsonOptions(argv = process.argv.slice(2)) {
             : DEFAULT_SEED_DATA_PATH,
         hasCustomDataPath,
     };
-}
-
-function ensureElectronRuntime() {
-    if (!process.versions?.electron) {
-        throw new Error('The JSON seed must run through Electron so the runtime user data path comes from Electron itself. Use the Electron-backed db:seed script.');
-    }
 }
 
 // Helper function to read JSON files
@@ -140,10 +137,10 @@ const findAssetPath = async (assetName, seedDataPath, subfolders = ['images', 'e
  *
  * @param {{ seedDataPath?: string }} [options]
  * @returns {Promise<void>}
+ * @ignore
  */
-export const seedFromJson = async ({ seedDataPath = DEFAULT_SEED_DATA_PATH } = {}) => {
+export const seedFromJson = async ({ seedDataPath = DEFAULT_SEED_DATA_PATH, userDataPath } = {}) => {
     try {
-        ensureElectronRuntime();
         console.log(`Using seed data path: ${seedDataPath}`);
         console.log('Starting seeding process from JSON data...');
 
@@ -494,7 +491,8 @@ export const seedFromJson = async ({ seedDataPath = DEFAULT_SEED_DATA_PATH } = {
                         projectId: mainProjectId,
                         institutionId: null,
                                 isGenericAsset: true,
-                                disableP2P: true
+                                disableP2P: true,
+                                userDataPath
                     };
                     try {
                         const importResult = await handleImportAssets(null, assetData);
@@ -587,7 +585,8 @@ export const seedFromJson = async ({ seedDataPath = DEFAULT_SEED_DATA_PATH } = {
                                 projectId: mainProjectId,
                                 institutionId: newInstitutionId,
                                 isGenericAsset: false,
-                                disableP2P: true
+                                disableP2P: true,
+                                userDataPath
                             };
                             try {
                                 const importResult = await handleImportAssets(null, assetData);
@@ -729,6 +728,10 @@ export const seedFromJson = async ({ seedDataPath = DEFAULT_SEED_DATA_PATH } = {
 };
 
 export async function runSeedFromJsonCli(argv = process.argv.slice(2)) {
+    if (!process.versions?.electron) {
+        throw new Error('The JSON seed must run through Electron. Use `yarn db:seed`.');
+    }
+
     const { showHelp, seedDataPath } = getSeedFromJsonOptions(argv);
 
     if (showHelp) {
@@ -736,8 +739,19 @@ export async function runSeedFromJsonCli(argv = process.argv.slice(2)) {
         return 0;
     }
 
+    // When running `electron script.js` directly, Electron defaults the app name to "Electron",
+    // which causes userData to resolve to AppData\Roaming\Electron instead of the correct path.
+    // Explicitly set the name from package.json before resolving any paths.
+    const { createRequire } = await import('module');
+    const require = createRequire(import.meta.url);
+    const { productName } = require(path.join(APP_ROOT, 'package.json'));
+    electron.app.setName(productName);
+
+    const userDataPath = electron.app.getPath('userData');
+    console.log('Electron userData path:', userDataPath);
+
     try {
-        await seedFromJson({ seedDataPath });
+        await seedFromJson({ seedDataPath, userDataPath });
         return 0;
     } catch (error) {
         console.error('Error during seeding:', error);
@@ -745,10 +759,6 @@ export async function runSeedFromJsonCli(argv = process.argv.slice(2)) {
     }
 }
 
-const isDirectExecution = Boolean(process.argv[1])
-    && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-
-if (isDirectExecution) {
-    const exitCode = await runSeedFromJsonCli();
-    process.exit(exitCode);
-}
+// This file is a CLI-only entrypoint; run unconditionally when executed via `yarn db:seed`
+const exitCode = await runSeedFromJsonCli();
+electron.app.exit(exitCode);

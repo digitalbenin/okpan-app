@@ -5,11 +5,11 @@ import fsPromises from 'fs/promises';
 import yazl from 'yazl';
 import { and, inArray, eq } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
-import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
-import { resolveLogicalAssetPath } from './assetPaths.js';
+import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../utils/exportUtils.js';
+import { ensureDir } from '../utils/fsUtils.js';
+import { resolveLogicalAssetPath } from '../utils/assetPaths.js';
 
 const SEP = ' || ';
-const ensureDir = (p) => fsPromises.mkdir(p, { recursive: true });
 const csvEsc = (v) => {
   if (v === null || v === undefined) return '';
   const s = String(v);

@@ -23,7 +23,11 @@ const commonFields = {
 
 // ─── Translations ─────────────────────────────────────────────────────────────
 
-// Per-project languages (formerly project_languages)
+/**
+ * Per-project languages (formerly project_languages).
+ * @constant
+ * @memberof db.schema
+ */
 export const languages = sqliteTable('languages', {
     ...commonFields,
     project_id: text('project_id')
@@ -43,6 +47,11 @@ export const languagesRelations = relations(languages, ({ one, many }) => ({
     translations: many(translations)
 }));
 
+/**
+ * Multi-language text entries.
+ * @constant
+ * @memberof db.schema
+ */
 export const texts = sqliteTable('texts', {
     ...commonFields,
     content: text('content').notNull(),
@@ -60,6 +69,11 @@ export const textsRelations = relations(texts, ({ one, many }) => ({
     translations: many(translations)
 }));
 
+/**
+ * Translations of text entries into a specific language.
+ * @constant
+ * @memberof db.schema
+ */
 export const translations = sqliteTable('translations', {
     ...commonFields,
     text_id: text('text_id')
@@ -84,12 +98,22 @@ export const translationsRelations = relations(translations, ({ one }) => ({
 
 // ─── Interface translations ───────────────────────────────────────────────────
 
+/**
+ * Supported interface (UI) languages.
+ * @constant
+ * @memberof db.schema
+ */
 export const interface_languages = sqliteTable('interface_languages', {
     ...commonFields,
     code: text('code').notNull().unique(), // e.g., 'en', 'es', 'fr'
     name: text('name').notNull() // e.g., 'English', 'Spanish', 'French'
 });
 
+/**
+ * Translated strings for the application interface.
+ * @constant
+ * @memberof db.schema
+ */
 export const interface_translations = sqliteTable('interface_translations', {
     ...commonFields,
     locale: text('locale')
@@ -107,7 +131,11 @@ export const interfaceTranslationsRelations = relations(interface_translations, 
     })
 }));
 
-// Auxiliary table used to enforce a unique constraint on (locale, namespace, key)
+/**
+ * Auxiliary table enforcing a unique constraint on (locale, namespace, key).
+ * @constant
+ * @memberof db.schema
+ */
 export const interfaceTranslationsIndex = sqliteTable('interface_translations_idx', {
     id: text('id').primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
     locale_namespace_key: text('locale_namespace_key').notNull().unique()
@@ -115,6 +143,11 @@ export const interfaceTranslationsIndex = sqliteTable('interface_translations_id
 
 // ─── Project ──────────────────────────────────────────────────────────────────
 
+/**
+ * Core project record.
+ * @constant
+ * @memberof db.schema
+ */
 export const project = sqliteTable('project', {
     ...commonFields,
     title_id: text('title_id').references(() => texts.id),
@@ -149,6 +182,11 @@ export const projectRelations = relations(project, ({ many, one }) => ({
 
 // ─── Institutions ─────────────────────────────────────────────────────────────
 
+/**
+ * Institutions (museums, libraries, etc.) belonging to a project.
+ * @constant
+ * @memberof db.schema
+ */
 export const institutions = sqliteTable('institutions', {
     ...commonFields,
     name_id: text('name_id').notNull().references(() => texts.id),
@@ -194,6 +232,11 @@ export const institutionsRelations = relations(institutions, ({ one, many }) => 
     })
 }));
 
+/**
+ * Per-project P2P and sync settings.
+ * @constant
+ * @memberof db.schema
+ */
 export const settings = sqliteTable('settings', {
     ...commonFields,
     username: text('username'),
@@ -213,6 +256,11 @@ export const settingsRelations = relations(settings, ({ one }) => ({
 
 // ─── Objects ──────────────────────────────────────────────────────────────────
 
+/**
+ * Museum/collection objects belonging to an institution.
+ * @constant
+ * @memberof db.schema
+ */
 export const objects = sqliteTable('objects', {
     ...commonFields,
     status: text('status').default('in progress'),
@@ -241,7 +289,11 @@ export const objectsRelations = relations(objects, ({ one, many }) => ({
     objectsDatasources: many(objects_datasources)
 }));
 
-// Configures which fields are shown in object list views
+/**
+ * Configures which fields are shown in object list views.
+ * @constant
+ * @memberof db.schema
+ */
 export const object_display_fields = sqliteTable('object_display_fields', {
     ...commonFields,
     project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
@@ -267,6 +319,11 @@ export const objectDisplayFieldsRelations = relations(object_display_fields, ({ 
 
 // ─── Ontology fields ──────────────────────────────────────────────────────────
 
+/**
+ * Ontology fields defining structured metadata for objects.
+ * @constant
+ * @memberof db.schema
+ */
 export const ontology_fields = sqliteTable('ontology_fields', {
     ...commonFields,
     name_id: text('name_id').references(() => texts.id),
@@ -298,6 +355,11 @@ export const ontologyFieldsRelations = relations(ontology_fields, ({ many, one }
     })
 }));
 
+/**
+ * Ontology field values assigned to objects.
+ * @constant
+ * @memberof db.schema
+ */
 export const objects_ontology_fields = sqliteTable('objects_ontology_fields', {
     ...commonFields,
     label: text('label'),
@@ -330,6 +392,11 @@ export const objectsOntologyFieldsRelations = relations(objects_ontology_fields,
 
 // ─── Research fields & vocabularies ───────────────────────────────────────────
 
+/**
+ * Research fields with optional controlled vocabularies.
+ * @constant
+ * @memberof db.schema
+ */
 export const research_fields = sqliteTable('research_fields', {
     ...commonFields,
     name_id: text('name_id').notNull().references(() => texts.id),
@@ -362,6 +429,11 @@ export const researchFieldsRelations = relations(research_fields, ({ one, many }
     })
 }));
 
+/**
+ * Controlled vocabulary options for research fields.
+ * @constant
+ * @memberof db.schema
+ */
 export const vocabularies = sqliteTable('vocabularies', {
     ...commonFields,
     option_id: text('option_id').references(() => texts.id),
@@ -393,6 +465,11 @@ export const vocabulariesRelations = relations(vocabularies, ({ one, many }) => 
     vocabulariesGenericAssets: many(vocabularies_generic_assets)
 }));
 
+/**
+ * Junction table linking vocabulary entries to generic assets.
+ * @constant
+ * @memberof db.schema
+ */
 export const vocabularies_generic_assets = sqliteTable('vocabularies_generic_assets', {
     ...commonFields,
     vocabulary_id: text('vocabulary_id').references(() => vocabularies.id, { onDelete: 'cascade' }),
@@ -411,6 +488,11 @@ export const vocabulariesGenericAssetsRelations = relations(vocabularies_generic
     })
 }));
 
+/**
+ * Research field values assigned to objects.
+ * @constant
+ * @memberof db.schema
+ */
 export const objects_research_fields = sqliteTable('objects_research_fields', {
     ...commonFields,
     object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
@@ -442,6 +524,11 @@ export const objectsResearchFieldsRelations = relations(objects_research_fields,
 
 // ─── Assets ───────────────────────────────────────────────────────────────────
 
+/**
+ * Media assets linked to an institution and project, with P2P torrent metadata.
+ * @constant
+ * @memberof db.schema
+ */
 export const assets = sqliteTable('assets', {
     ...commonFields,
     filename: text('filename'),
@@ -478,7 +565,11 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
     })
 }));
 
-// For assets not linked to institutions, but to projects and other entities like vocabularies
+/**
+ * Project-level assets not tied to a specific institution (e.g. vocabulary images).
+ * @constant
+ * @memberof db.schema
+ */
 export const genericAssets = sqliteTable('generic_assets', {
     ...commonFields,
     filename: text('filename'),
@@ -512,6 +603,11 @@ export const genericAssetsRelations = relations(genericAssets, ({ one, many }) =
     })
 }));
 
+/**
+ * Junction table linking assets to institutions with an access rule.
+ * @constant
+ * @memberof db.schema
+ */
 export const assets_institutions = sqliteTable('assets_institutions', {
     ...commonFields,
     asset_id: text('asset_id').references(() => assets.id, { onDelete: 'cascade' }),
@@ -530,6 +626,11 @@ export const assetsInstitutionsRelations = relations(assets_institutions, ({ one
     })
 }));
 
+/**
+ * Junction table linking assets to objects (ordered).
+ * @constant
+ * @memberof db.schema
+ */
 export const objects_assets = sqliteTable('objects_assets', {
     ...commonFields,
     asset_id: text('asset_id').references(() => assets.id, { onDelete: 'cascade' }),
@@ -552,7 +653,11 @@ export const objectsAssetsRelations = relations(objects_assets, ({ one }) => ({
     })
 }));
 
-// Machine-local download/seed state — not synced via Yjs
+/**
+ * Machine-local download and seed state for institution assets (not synced via Yjs).
+ * @constant
+ * @memberof db.schema
+ */
 export const asset_local_state = sqliteTable('asset_local_state', {
     asset_id: text('asset_id').primaryKey().notNull().references(() => assets.id, { onDelete: 'cascade' }),
     sync_status: text('sync_status').default('missing'), // missing|downloading|available|seeding|error
@@ -570,6 +675,11 @@ export const assetLocalStateRelations = relations(asset_local_state, ({ one }) =
     })
 }));
 
+/**
+ * Machine-local download and seed state for generic assets (not synced via Yjs).
+ * @constant
+ * @memberof db.schema
+ */
 export const generic_asset_local_state = sqliteTable('generic_asset_local_state', {
     generic_asset_id: text('generic_asset_id').primaryKey().notNull().references(() => genericAssets.id, { onDelete: 'cascade' }),
     sync_status: text('sync_status').default('missing'),
@@ -589,7 +699,11 @@ export const genericAssetLocalStateRelations = relations(generic_asset_local_sta
 
 // ─── Imports & datasources ────────────────────────────────────────────────────
 
-// Standalone table — stores raw import data before it is mapped to datasources
+/**
+ * Raw import data before it is mapped to datasources.
+ * @constant
+ * @memberof db.schema
+ */
 export const imports = sqliteTable('imports', {
     ...commonFields,
     filename: text('filename'),
@@ -600,6 +714,11 @@ export const importsRelations = relations(imports, ({ many }) => ({
     datasources: many(datasources)
 }));
 
+/**
+ * Documented sources of object data.
+ * @constant
+ * @memberof db.schema
+ */
 export const datasources = sqliteTable('datasources', {
     ...commonFields,
     name_id: text('name_id').references(() => texts.id),
@@ -639,6 +758,11 @@ export const datasourcesRelations = relations(datasources, ({ one, many }) => ({
     })
 }));
 
+/**
+ * Import templates mapping source fields to schema fields.
+ * @constant
+ * @memberof db.schema
+ */
 export const templates = sqliteTable('templates', {
     ...commonFields,
     name: text('name'),
@@ -660,7 +784,11 @@ export const templatesRelations = relations(templates, ({ one, many }) => ({
     objectsDatasources: many(objects_datasources)
 }));
 
-// Junction table — tracks which datasources contributed to an object and which template was used
+/**
+ * Junction table tracking which datasources contributed to an object and which template was used.
+ * @constant
+ * @memberof db.schema
+ */
 export const objects_datasources = sqliteTable('objects_datasources', {
     ...commonFields,
     object_id: text('object_id').references(() => objects.id, { onDelete: 'cascade' }),
@@ -690,6 +818,11 @@ export const objectsDatasourcesRelations = relations(objects_datasources, ({ one
 
 // ─── Website ──────────────────────────────────────────────────────────────────
 
+/**
+ * Website export configuration per project.
+ * @constant
+ * @memberof db.schema
+ */
 export const websiteSettings = sqliteTable('website_settings', {
     ...commonFields,
     title_id: text('title_id').references(() => texts.id),
@@ -722,6 +855,11 @@ export const websiteSettingsRelations = relations(websiteSettings, ({ one }) => 
 
 // ─── Project activity ─────────────────────────────────────────────────────────
 
+/**
+ * Audit log of user and sync actions within a project.
+ * @constant
+ * @memberof db.schema
+ */
 export const project_activity = sqliteTable('project_activity', {
     ...commonFields,
     project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
@@ -766,7 +904,11 @@ export const projectActivityRelations = relations(project_activity, ({ one }) =>
 // ─── Sync ─────────────────────────────────────────────────────────────────────
 // These tables support deterministic ingestion, updates transport, and snapshotting.
 
-// Canonical change log written by SQLite triggers
+/**
+ * Canonical change log written by SQLite triggers.
+ * @constant
+ * @memberof db.schema
+ */
 export const change_log = sqliteTable(
     'change_log',
     {
@@ -786,7 +928,11 @@ export const change_log = sqliteTable(
     })
 );
 
-// Append-only stream of Yjs update bytes derived from change_log
+/**
+ * Append-only stream of Yjs update bytes derived from the change log.
+ * @constant
+ * @memberof db.schema
+ */
 export const yjs_updates = sqliteTable('yjs_updates', {
     ...commonFields,
     project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
@@ -795,7 +941,11 @@ export const yjs_updates = sqliteTable('yjs_updates', {
     update_bytes: blob('update_bytes').notNull()
 });
 
-// Periodic full-state Yjs snapshots with precise watermark
+/**
+ * Periodic full-state Yjs snapshots with a precise change-log watermark.
+ * @constant
+ * @memberof db.schema
+ */
 export const yjs_snapshots = sqliteTable('yjs_snapshots', {
     ...commonFields,
     project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }),
@@ -804,7 +954,11 @@ export const yjs_snapshots = sqliteTable('yjs_snapshots', {
     state_vector: blob('state_vector')
 });
 
-// Tracks the last processed change_log watermark per project
+/**
+ * Tracks the last processed change-log watermark per project.
+ * @constant
+ * @memberof db.schema
+ */
 export const ingestion_state = sqliteTable('ingestion_state', {
     ...commonFields,
     project_id: text('project_id').notNull().references(() => project.id, { onDelete: 'cascade' }).unique(),
@@ -813,7 +967,11 @@ export const ingestion_state = sqliteTable('ingestion_state', {
 
 // ─── App settings ─────────────────────────────────────────────────────────────
 
-// Singleton table — only one row ever (id is always 1)
+/**
+ * Application-wide singleton settings; always a single row with id = 1.
+ * @constant
+ * @memberof db.schema
+ */
 export const globalSettings = sqliteTable('global_settings', {
     id: integer('id').primaryKey().notNull().default(1),
     client_id: text('client_id').notNull().unique(),
@@ -825,6 +983,11 @@ export const globalSettings = sqliteTable('global_settings', {
         .default(sql`CURRENT_TIMESTAMP`)
 });
 
+/**
+ * Application log entries (errors, warnings, info).
+ * @constant
+ * @memberof db.schema
+ */
 export const logs = sqliteTable('logs', {
     ...commonFields,
     level: text('level').notNull().default('error'), // e.g., 'error', 'warn', 'info', 'debug'

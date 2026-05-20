@@ -1,3 +1,9 @@
+/**
+ * In-memory project cache service for Yjs documents and active project state.
+ *
+ * @namespace backend.services.projectCacheService
+ * @memberof backend.services
+ */
 // Simple in-memory project ID cache for single-user Electron app
 import * as Y from 'yjs';
 

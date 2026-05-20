@@ -1,97 +1,24 @@
-import * as fs from 'fs';
-import sharp from 'sharp';
-import crypto from 'crypto';
-import { db } from '../../db/init.js';
-import { assets, genericAssets } from '../../db/schema.js';
-import { eq } from 'drizzle-orm';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { seedAsset, scheduleAssetReconcile } from '../services/assetTorrentManager.js';
-import {
-    resolveAssetBasePath,
-    resolveLogicalAssetPath,
-    resolveProjectAssetPath,
-    toLogicalAssetFormats
-} from '../services/assetPaths.js';
-
-const sm = 300
-const md = 1400
-// const assetPath = "./src/assets/project_assets"
-
-// MIME type map for P2P torrent metadata
-const MIME_BY_EXT = {
-  '.avif': 'image/avif',
-  '.mp4':  'video/mp4',
-  '.webm': 'video/webm',
-  '.mov':  'video/quicktime',
-  '.mp3':  'audio/mpeg',
-  '.ogg':  'audio/ogg',
-};
-
 /**
- * Compute SHA-256 hex of a file for integrity verification.
+ * IPC handlers for asset import operations.
+ * @namespace backend.handlers.assetHandlers
+ * @memberof backend.handlers
  */
-async function computeFileSha256(filePath) {
-  return new Promise((resolve, reject) => {
-    const hash = crypto.createHash('sha256');
-    const stream = fs.createReadStream(filePath);
-    stream.on('data', (chunk) => hash.update(chunk));
-    stream.on('end', () => resolve(hash.digest('hex')));
-    stream.on('error', reject);
-  });
-}
-
-// Configuration object for file types and limits
-const assetConfig = {
-    image: {
-        formats: ["png", "jpg", "jpeg", "webp", "gif", "avif"],
-        maxSize: 5000000, // 5MB
-        maxSizeLabel: "5MB"
-    },
-    video: {
-        formats: ["mp4", "webm", "mov"],
-        maxSize: 5242880000, // 50MB
-        maxSizeLabel: "5GB"
-    },
-    audio: {
-        formats: ["mp3", "ogg"],
-        maxSize: 10485760, // 10MB
-        maxSizeLabel: "10MB"
-    }
-}
-
-const imagesFormats = assetConfig.image.formats
-const videoFormats = assetConfig.video.formats
-const audioFormats = assetConfig.audio.formats
-
-
-
-const getCroppedUUID = () => {
-    return uuidv4().slice(0, 8);
-}
+import * as fs from 'fs';
+import path from 'path';
+import { scheduleAssetReconcile } from '../services/assetTorrentManagerService.js';
+import { resolveAssetBasePath, resolveProjectAssetPath } from '../utils/assetPaths.js';
+import { processAssetFile, buildSeededAssetRecord, saveAssetToDb } from '../services/assetImportService.js';
 
 const getProgress = (progress, total) => {
     return Math.round((progress / total) * 100)
 }
-
-
-const checkAssetType = (filePath) => {
-
-    //check by file extension
-    const ext = path.extname(filePath).toLowerCase().slice(1)
-    if (imagesFormats.includes(ext)) {
-        return "image"
-    }
-    if (videoFormats.includes(ext)) {
-        return "video"
-    }
-    if (audioFormats.includes(ext)) {
-        return "audio"
-    }
-    return "unknown"
-}
-
-
+/**
+ * Import one or more asset files into the current project.
+ * @memberof backend.handlers.assetHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} data - Import payload.
+ * @returns {Promise<Object>} Result with `errors`, `createdAssets`, and `files`.
+ */
 const handleImportAssets = async (event, data) => {
     let errors = []
     let createdAssets = []; // Array to store created assets
@@ -109,7 +36,7 @@ const handleImportAssets = async (event, data) => {
 
 
     //check if folder with projectid is present, otherwise create it
-    const basePath = resolveAssetBasePath();
+    const basePath = resolveAssetBasePath({ userDataPath: data.userDataPath });
     const projectFolder = resolveProjectAssetPath(data.projectId, { assetBasePath: basePath });
     if (!fs.existsSync(projectFolder)) {
         fs.mkdirSync(projectFolder, { recursive: true });
@@ -203,156 +130,6 @@ const handleImportAssets = async (event, data) => {
         createdAssets,
         files: importedFilePaths
     }
-}
-
-const makeAVIF = async (imagePath, destPath) => {
-    const image = sharp(imagePath)
-    const metadata = await image.metadata()
-    const format = metadata.format
-    const fileName = path.basename(imagePath);
-    const fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
-    const uuid = getCroppedUUID();
-    const newFileName = `${fileNameWithoutExt}_${uuid}`;
-    destPath = path.join(destPath, newFileName);
-    const origSize = metadata.size;
-    if (origSize > assetConfig.image.maxSize) {
-        throw new Error(`Image file is too large (max ${assetConfig.image.maxSizeLabel})`);
-    }
-    if (format === "avif") {
-        await image.resize(sm).toFile(`${destPath}_sm.avif`);
-        await image.resize(md).toFile(`${destPath}_md.avif`);
-        fs.copyFileSync(imagePath, `${destPath}.avif`);
-    }
-    else {
-        await image.avif({ quality: 70, effort: 2, smartSubsample: true }).resize(sm).toFile(`${destPath}_sm.avif`);
-        await image.avif({ quality: 70, effort: 2, smartSubsample: true }).resize(md).toFile(`${destPath}_md.avif`);
-        await image.avif({ quality: 70, effort: 2, smartSubsample: true }).toFile(`${destPath}.avif`);
-    }
-
-    // Return the paths for the asset object
-    return {
-        sm: `${destPath}_sm.avif`,
-        md: `${destPath}_md.avif`,
-        original: `${destPath}.avif`
-    };
-}
-
-// Generic processor for media files (video and audio)
-const processMediaFile = async (filePath, destPath, assetType) => {
-    const config = assetConfig[assetType];
-    if (!config) {
-        throw new Error(`Unsupported asset type: ${assetType}`);
-    }
-
-    const stats = fs.statSync(filePath);
-    const fileSizeInBytes = stats.size;
-
-    if (fileSizeInBytes > config.maxSize) {
-        throw new Error(`${assetType.charAt(0).toUpperCase() + assetType.slice(1)} file is too large (max ${config.maxSizeLabel})`);
-    }
-
-    const fileName = path.basename(filePath);
-    const fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
-    const fileExt = fileName.substring(fileName.lastIndexOf('.'));
-    const uuid = getCroppedUUID();
-    const newFileName = `${fileNameWithoutExt}_${uuid}${fileExt}`;
-    const finalPath = path.join(destPath, newFileName);
-
-    // Simply copy the media file for now - no processing
-    fs.copyFileSync(filePath, finalPath);
-
-    return {
-        original: finalPath
-    };
-}
-
-// Unified file processor that handles all asset types
-const processAssetFile = async (filePath, projectFolder, data, basePath) => {
-    const assetType = checkAssetType(filePath);
-    let formats = null;
-
-    if (assetType === "image") {
-        formats = await makeAVIF(filePath, projectFolder);
-    } else if (assetType === "video" || assetType === "audio") {
-        formats = await processMediaFile(filePath, projectFolder, assetType);
-    } else {
-        console.warn(`Unsupported asset type: ${assetType} for file: ${filePath}`);
-        return null;
-    }
-
-    const logicalFormats = toLogicalAssetFormats(formats, { assetBasePath: basePath });
-
-    return {
-        project_id: data?.projectId,
-        institution_id: data.isGenericAsset ? undefined : data?.institutionId,
-        path: logicalFormats.original,
-        filename: path.basename(filePath),
-        type: assetType,
-        formats: logicalFormats
-    };
-}
-
-const saveAssetToDb = async (assetData, isGeneric) => {
-    const table = isGeneric ? genericAssets : assets;
-    const [newAsset] = await db.insert(table).values({
-        ...assetData,
-        id: assetData.id || uuidv4(),
-        // Ensure institution_id is explicitly set to null if it's undefined and not a generic asset
-        // For generic assets, institution_id should not be part of assetData passed here if schema doesn't have it
-        institution_id: isGeneric ? undefined : (assetData.institution_id || null),
-    }).returning();
-    return newAsset;
-}
-
-/**
- * Build the final asset record, including torrent metadata, before inserting
- * it into the shared asset table. This avoids syncing rows that point at a
- * logical asset path but still have no downloadable torrent metadata.
- */
-async function buildSeededAssetRecord(assetData, isGeneric, disableP2P = false) {
-    const filePath = resolveLogicalAssetPath(assetData.path);
-    if (!filePath || !fs.existsSync(filePath)) {
-        throw new Error(`Imported asset file not found: ${filePath}`);
-    }
-
-    const assetId = assetData.id || uuidv4();
-    const torrentMeta = await seedAsset({
-        projectId: assetData.project_id,
-        assetId,
-        filePath,
-        isGeneric,
-        enableSignaling: !disableP2P
-    });
-
-    if (!torrentMeta?.infoHash) {
-        throw new Error(`Failed to create torrent metadata for imported asset ${assetId}`);
-    }
-
-    let sha256 = null;
-    try {
-        sha256 = await computeFileSha256(filePath);
-    } catch (err) {
-        console.warn('[assetHandlers] SHA-256 computation failed:', err?.message);
-    }
-
-    const ext = path.extname(filePath).toLowerCase();
-    const mime = MIME_BY_EXT[ext] || 'application/octet-stream';
-
-    const torrentFields = {
-        torrent_info_hash:   torrentMeta.infoHash,
-        torrent_name:        torrentMeta.name,
-        torrent_length:      torrentMeta.length,
-        torrent_piece_length: torrentMeta.pieceLength,
-        asset_content_mime:  mime,
-        asset_content_ext:   ext,
-        asset_content_sha256: sha256,
-    };
-
-    return {
-        ...assetData,
-        id: assetId,
-        ...torrentFields,
-    };
 }
 
 export { handleImportAssets, getProgress }

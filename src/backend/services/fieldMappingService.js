@@ -3,17 +3,8 @@ import { ontology_fields, texts } from '../../db/schema.js';
 import { eq, sql, isNotNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import { embeddingService } from '../services/embeddingService.js';
-import { getCurrentProjectId } from '../services/projectCache.js';
+import { getCurrentProjectId } from '../services/projectCacheService.js';
 
-/**
- * Suggests ontology field mappings for CSV/JSON field names using semantic similarity
- * @param {Array<string>} csvFieldNames - Array of field names from CSV/JSON import
- * @param {Object} options - Configuration options
- * @param {number} [options.maxSuggestions=3] - Maximum suggestions per CSV field
- * @param {number} [options.threshold=0.65] - Minimum similarity threshold (0-1)
- * @param {Array<string>} [options.excludeFieldIds] - Ontology field IDs to exclude
- * @returns {Array} Array of objects with CSV field and suggested ontology field matches
- */
 /**
  * Suggest ontology mappings for import fields, scoped to the active project.
  * If no projectId is passed, it will be resolved from the backend project cache.

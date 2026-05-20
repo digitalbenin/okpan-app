@@ -4,9 +4,9 @@ import { eq, inArray, or } from 'drizzle-orm';
 import { GraphQLBoolean, GraphQLInt, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema.js';
 import { stopP2PForProject } from '../../backend/services/p2pService.js';
-import { clearCurrentProjectId, disposeProjectDoc, getCurrentProjectId } from '../../backend/services/projectCache.js';
+import { clearCurrentProjectId, disposeProjectDoc, getCurrentProjectId } from '../../backend/services/projectCacheService.js';
 import { deleteProjectRecoverySnapshots } from '../../backend/services/recoverySnapshotService.js';
-import { resolveProjectAssetPath } from '../../backend/services/assetPaths.js';
+import { resolveProjectAssetPath } from '../../backend/utils/assetPaths.js';
 import { isSharedProject } from '../../lib/utils/projectSharing.js';
 
 const normalizeIdList = (values) => {

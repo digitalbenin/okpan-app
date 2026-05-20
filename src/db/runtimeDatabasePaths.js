@@ -7,7 +7,17 @@ const DEFAULT_DEV_DB_RELATIVE_PATH = 'src/db/local.db';
 const DEFAULT_PACKAGED_DB_DIRECTORY = 'db';
 const DEFAULT_PACKAGED_DB_FILE_NAME = 'local.db';
 
+/**
+ * Media protocol alias used to serve the current database file.
+ * @constant
+ * @memberof db
+ */
 export const DATABASE_MEDIA_ALIAS = 'app-db/current.db';
+/**
+ * Full `media://` URL constructed from {@link DATABASE_MEDIA_ALIAS}.
+ * @constant
+ * @memberof db
+ */
 export const DATABASE_MEDIA_URL = `media://${DATABASE_MEDIA_ALIAS}`;
 
 /**
@@ -15,6 +25,7 @@ export const DATABASE_MEDIA_URL = `media://${DATABASE_MEDIA_ALIAS}`;
  * In a packaged Electron app, uses `app.getAppPath()` or falls back to `resourcesPath`.
  * In development, returns `process.cwd()`.
  *
+ * @memberof db
  * @returns {string} Absolute path to the application root.
  */
 export function resolveApplicationRoot() {
@@ -33,7 +44,8 @@ export function resolveApplicationRoot() {
  * instead of reading from the Electron `app` singleton. Useful when the caller
  * has already resolved these values from the IPC context.
  *
- * @param {{ appPath?: string, resourcesPath?: string, isPackaged?: boolean }} params
+ * @param {Object} [params={}] - Options: appPath, resourcesPath, isPackaged.
+ * @memberof db
  * @returns {string} Absolute path to the application root.
  */
 export function resolveAppRootFromParams({ appPath, resourcesPath, isPackaged } = {}) {
@@ -48,6 +60,7 @@ export function resolveAppRootFromParams({ appPath, resourcesPath, isPackaged } 
  * Resolves the absolute path to the SQLite database file.
  * Resolution order: `DB_FILE_NAME` env var → Electron `userData` dir (packaged) → local dev path.
  *
+ * @memberof db
  * @returns {string} Absolute path to the database file.
  */
 export function resolveDatabasePath() {

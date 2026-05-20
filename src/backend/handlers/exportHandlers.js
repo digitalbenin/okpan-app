@@ -1,5 +1,11 @@
+/**
+ * IPC handlers for export and import flows.
+ * @namespace backend.handlers.exportHandlers
+ * @memberof backend.handlers
+ */
 import { dialog } from 'electron';
-import { sql, eq, inArray, and, or, notInArray } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { db } from '../../db/init.js';
 import * as dbSchema from '../../db/schema.js';
 import { exportProjectJson } from '../services/exportJsonService.js';
 import { exportProjectSql } from '../services/exportSqlService.js';
@@ -8,75 +14,17 @@ import { exportConnectionsJson } from '../services/exportConnectionsJsonService.
 import { importConnectionsJson } from '../services/importConnectionsJsonService.js';
 import { exportConnectionTypeCsv } from '../services/exportConnectionTypeCsvService.js';
 import { importConnectionTypeCsv } from '../services/importConnectionTypeCsvService.js';
+import { sanitizeFilename } from '../utils/exportUtils.js';
+export { buildCounts, makeExportResult, buildObjectSearchConditions } from '../utils/exportUtils.js';
 
-function sanitizeFilenamePart(value, fallback = 'connection-type') {
-  const normalized = String(value || '')
-    .trim()
-    .replace(/[<>:"/\\|?*]+/g, '-')
-    .replace(/\s+/g, ' ')
-    .replace(/^\.+|\.+$/g, '');
-  return normalized || fallback;
-}
-
-export function buildCounts({
-  objects = [],
-  assets = [],
-  institutions = [],
-} = {}) {
-  return {
-    objects: objects.length,
-    assets: assets.length,
-    institutions: institutions.length,
-  };
-}
-
-export function makeExportResult({ filePath, zipped, counts, fallbackMode }) {
-  return { filePath, mode: zipped ? 'zip' : fallbackMode, counts };
-}
-
-export function buildObjectSearchConditions(args) {
-  const { project_id, institutionIds, status, ontologyQuery, ontologyFieldIds, researchFieldFilters, excludeObjectIds } = args || {};
-  const conditions = [eq(dbSchema.objects.project_id, project_id)];
-  if (institutionIds && institutionIds.length > 0) conditions.push(inArray(dbSchema.objects.institution_id, institutionIds));
-  if (status) conditions.push(eq(dbSchema.objects.status, status));
-  if (ontologyQuery && ontologyQuery.trim()) {
-    const q = `%${ontologyQuery.trim().toLowerCase()}%`;
-    if (ontologyFieldIds && ontologyFieldIds.length > 0) {
-      const existsPerField = ontologyFieldIds.map((fid) => sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof WHERE oof.object_id = ${dbSchema.objects.id} AND oof.field_id = ${fid} AND LOWER(oof.value) LIKE ${q})`);
-      conditions.push(existsPerField.length === 1 ? existsPerField[0] : or(...existsPerField));
-    } else {
-      conditions.push(sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_ontology_fields} oof WHERE oof.object_id = ${dbSchema.objects.id} AND LOWER(oof.value) LIKE ${q})`);
-    }
-  }
-
-  const rfFilters = Array.isArray(researchFieldFilters)
-    ? researchFieldFilters.map((f) => { try { return typeof f === 'string' ? JSON.parse(f) : f; } catch { return f; } })
-    : [];
-  if (rfFilters.length > 0) {
-    const rfConds = [];
-    for (const filter of rfFilters) {
-      const fieldConds = [];
-      if (filter?.query && String(filter.query).trim()) {
-        const rq = `%${String(filter.query).trim().toLowerCase()}%`;
-        fieldConds.push(sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_research_fields} orf WHERE orf.object_id = ${dbSchema.objects.id} AND orf.field_id = ${filter.fieldId} AND LOWER(orf.value) LIKE ${rq})`);
-      }
-      if (filter?.vocabularyIds && filter.vocabularyIds.length > 0) {
-        const vocOr = filter.vocabularyIds.map((vid) => sql`EXISTS (SELECT 1 FROM ${dbSchema.objects_research_fields} orf WHERE orf.object_id = ${dbSchema.objects.id} AND orf.field_id = ${filter.fieldId} AND orf.vocabulary_id = ${vid})`);
-        fieldConds.push(vocOr.length === 1 ? vocOr[0] : or(...vocOr));
-      }
-      if (fieldConds.length > 0) rfConds.push(fieldConds.length === 1 ? fieldConds[0] : and(...fieldConds));
-    }
-    if (rfConds.length > 0) conditions.push(rfConds.length === 1 ? rfConds[0] : and(...rfConds));
-  }
-
-  // Exclude specific object IDs if provided
-  if (excludeObjectIds && excludeObjectIds.length > 0) {
-    const ex = excludeObjectIds.filter(Boolean);
-    if (ex.length > 0) conditions.push(notInArray(dbSchema.objects.id, ex));
-  }
-  return conditions;
-}
-
+/**
+ * Export the current project as SQL, JSON, or CSV.
+ * @memberof backend.handlers.exportHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Export options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise<Object>}
+ */
 export async function handleExportProject(event, options, { db }) {
     try {
         const {
@@ -153,6 +101,14 @@ export async function handleExportProject(event, options, { db }) {
     }
 }
 
+/**
+ * Export all connections for a project as a JSON archive.
+ * @memberof backend.handlers.exportHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Export options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise<Object>}
+ */
 export async function handleExportConnections(event, options, { db }) {
   try {
     const {
@@ -186,6 +142,14 @@ export async function handleExportConnections(event, options, { db }) {
   }
 }
 
+/**
+ * Import connections from a JSON archive.
+ * @memberof backend.handlers.exportHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Import options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise<Object>}
+ */
 export async function handleImportConnections(event, options, { db }) {
   try {
     const { filePath: inputFilePath, projectId } = options || {};
@@ -212,6 +176,14 @@ export async function handleImportConnections(event, options, { db }) {
   }
 }
 
+/**
+ * Export a specific connection type as a CSV file.
+ * @memberof backend.handlers.exportHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Export options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise<Object>}
+ */
 export async function handleExportConnectionTypeCsv(event, options, { db }) {
   try {
     const {
@@ -248,7 +220,7 @@ export async function handleExportConnectionTypeCsv(event, options, { db }) {
     if (!filePath) {
       const result = await dialog.showSaveDialog({
         title: 'Save Connection Type CSV Export',
-        defaultPath: `${sanitizeFilenamePart(connectionType.name)}.csv`,
+        defaultPath: `${sanitizeFilename(connectionType.name, 'connection-type')}.csv`,
         filters: [{ name: 'CSV', extensions: ['csv'] }]
       });
       if (result.canceled) return { canceled: true };
@@ -266,6 +238,14 @@ export async function handleExportConnectionTypeCsv(event, options, { db }) {
   }
 }
 
+/**
+ * Import a specific connection type from a CSV file.
+ * @memberof backend.handlers.exportHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Import options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise<Object>}
+ */
 export async function handleImportConnectionTypeCsv(event, options, { db }) {
   try {
     const {
@@ -295,6 +275,33 @@ export async function handleImportConnectionTypeCsv(event, options, { db }) {
     return await importConnectionTypeCsv({ filePath, projectId, connectionTypeName }, { db });
   } catch (error) {
     console.error('Error in handleImportConnectionTypeCsv:', error);
+    throw error;
+  }
+}
+
+/**
+ * Export the project as a static website.
+ * @memberof backend.handlers.exportHandlers
+ * @param {Electron.IpcMainInvokeEvent} _event - IPC event.
+ * @param {Object} options - Export options.
+ * @param {Object} options.app - Electron app instance.
+ * @returns {Promise<Object>}
+ */
+export async function handleExportStaticWebsite(_event, options, { app }) {
+  try {
+    const { exportStaticWebsite } = await import('../services/websiteExportService.js');
+    return await exportStaticWebsite(options.projectId, options.outputPath, {
+      db,
+      filters: options.filters,
+      appPath: app.getAppPath(),
+      resourcesPath: process.resourcesPath,
+      userDataPath: app.getPath('userData'),
+      isPackaged: app.isPackaged,
+      basePath: options.basePath,
+      locale: options.locale
+    });
+  } catch (error) {
+    console.error('Error exporting static website:', error);
     throw error;
   }
 }

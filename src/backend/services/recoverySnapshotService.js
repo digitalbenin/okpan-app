@@ -12,8 +12,8 @@ import * as dbSchema from '../../db/schema.js';
 import { createProjectBackup, restoreProjectBackup } from './backupService.js';
 import { ingestOnceForProject } from './changeLogTailerService.js';
 import { hydrateProjectFromDatabase } from './snapshotService.js';
-import { removePathRobust, WINDOWS_FS_RETRY_OPTIONS } from './fsUtils.js';
-import { resolveProjectAssetPath } from './assetPaths.js';
+import { ensureDir, readJsonFile, removePathQuietly, removePathRobust, writeJsonFile } from '../utils/fsUtils.js';
+import { resolveProjectAssetPath } from '../utils/assetPaths.js';
 
 const SNAPSHOT_ROOT_DIR = 'project-recovery-snapshots';
 const DEFAULT_SNAPSHOT_LIMIT = 10;
@@ -64,25 +64,14 @@ async function withProjectLock(projectId, work) {
 }
 
 async function ensureProjectSnapshotDir(projectId) {
-  await fsPromises.mkdir(getProjectSnapshotDir(projectId), { recursive: true });
+  await ensureDir(getProjectSnapshotDir(projectId));
 }
 
 async function removeSnapshotFiles(projectId, snapshotId) {
   await Promise.allSettled([
-    fsPromises.rm(getSnapshotArchivePath(projectId, snapshotId), {
-      force: true,
-      ...WINDOWS_FS_RETRY_OPTIONS,
-    }),
-    fsPromises.rm(getSnapshotManifestPath(projectId, snapshotId), {
-      force: true,
-      ...WINDOWS_FS_RETRY_OPTIONS,
-    }),
+    removePathRobust(getSnapshotArchivePath(projectId, snapshotId)),
+    removePathRobust(getSnapshotManifestPath(projectId, snapshotId)),
   ]);
-}
-
-async function readManifest(filePath) {
-  const raw = await fsPromises.readFile(filePath, 'utf-8');
-  return JSON.parse(raw);
 }
 
 async function loadProjectSnapshotManifests(projectId) {
@@ -101,7 +90,7 @@ async function loadProjectSnapshotManifests(projectId) {
 
     const manifestPath = path.join(dirPath, entry.name);
     try {
-      const manifest = await readManifest(manifestPath);
+      const manifest = await readJsonFile(manifestPath);
       const archivePath = getSnapshotArchivePath(projectId, manifest.id);
       if (!fs.existsSync(archivePath)) {
         continue;
@@ -145,11 +134,7 @@ export async function deleteProjectRecoverySnapshots(projectId) {
   }
 
   return withProjectLock(projectId, async () => {
-    await fsPromises.rm(getProjectSnapshotDir(projectId), {
-      recursive: true,
-      force: true,
-      ...WINDOWS_FS_RETRY_OPTIONS,
-    });
+    await removePathRobust(getProjectSnapshotDir(projectId), { recursive: true });
 
     return { deleted: true };
   });
@@ -453,8 +438,8 @@ function toPublicManifest(manifest) {
 }
 
 async function createSnapshotCloneFromLiveDb(targetDbPath) {
-  await fsPromises.mkdir(path.dirname(targetDbPath), { recursive: true });
-  await fsPromises.rm(targetDbPath, { force: true });
+  await ensureDir(path.dirname(targetDbPath));
+  await removePathRobust(targetDbPath);
 
   const escapedTargetPath = targetDbPath.replace(/\\/g, '/').replace(/'/g, "''");
 
@@ -479,17 +464,16 @@ function openSnapshotCloneDb(cloneDbPath) {
 }
 
 async function cleanupStagedSnapshotClone(stagingBaseDir, projectId) {
-  try {
-    await removePathRobust(stagingBaseDir, {
-      recursive: true,
-      maxAttempts: 30,
-      retryDelayMs: 200,
-    });
-  } catch (error) {
+  const removed = await removePathQuietly(stagingBaseDir, {
+    recursive: true,
+    maxAttempts: 30,
+    retryDelayMs: 200,
+  });
+
+  if (!removed) {
     console.warn('[RecoverySnapshot] Failed to remove staged snapshot clone', {
       projectId,
       stagingBaseDir,
-      error: error?.message,
     });
   }
 }
@@ -520,7 +504,7 @@ async function finalizeSnapshotFromDb(projectId, options = {}, sourceDb) {
     metadata: backupResult.metadata,
   };
 
-  await fsPromises.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+  await writeJsonFile(manifestPath, manifest);
   await pruneProjectSnapshots(projectId, options.keepCount || DEFAULT_SNAPSHOT_LIMIT);
 
   return toPublicManifest(manifest);
@@ -549,7 +533,7 @@ export async function prepareSessionOpenRecoverySnapshot(projectId, options = {}
 
   return withProjectLock(projectId, async () => {
     const stagingRootDir = getSnapshotStagingRootDir();
-    await fsPromises.mkdir(stagingRootDir, { recursive: true });
+    await ensureDir(stagingRootDir);
     const stagingBaseDir = await fsPromises.mkdtemp(path.join(stagingRootDir, `${projectId}-`));
     const cloneDbPath = path.join(stagingBaseDir, path.basename(dbPath || 'snapshot-clone.db'));
 
@@ -600,7 +584,7 @@ export async function restoreRecoverySnapshot(projectId, snapshotId) {
       throw new Error('Requested recovery snapshot was not found');
     }
 
-    const manifest = await readManifest(manifestPath);
+    const manifest = await readJsonFile(manifestPath);
     if (manifest.projectId !== projectId) {
       throw new Error('Snapshot does not belong to the requested project');
     }
@@ -640,7 +624,7 @@ export async function deleteRecoverySnapshot(projectId, snapshotId) {
       throw new Error('Requested recovery snapshot was not found');
     }
 
-    const manifest = await readManifest(manifestPath);
+    const manifest = await readJsonFile(manifestPath);
     if (manifest.projectId !== projectId) {
       throw new Error('Snapshot does not belong to the requested project');
     }

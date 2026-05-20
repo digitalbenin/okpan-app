@@ -8,10 +8,10 @@ import * as Y from 'yjs'
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/init.js'
 import { project } from '../../db/schema.js'
-import { getProjectDoc } from './projectCache.js'
-import { ingestRemoteUpdate } from '../handlers/remoteIngestionHandler.js'
+import { getProjectDoc } from './projectCacheService.js'
+import { ingestRemoteUpdate } from './remoteIngestionService.js'
 import { hydrateProjectFromDatabase } from './snapshotService.js'
-import { scheduleAssetReconcile, resetErroredAssets } from './assetTorrentManager.js'
+import { scheduleAssetReconcile, resetErroredAssets } from './assetTorrentManagerService.js'
 import { getGlobalProfile } from '../../db/queries/globalSettings.js'
 
 // Helper: count tables and rows in a Y.Doc's `tables` map

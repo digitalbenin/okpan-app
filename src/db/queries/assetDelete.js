@@ -1,58 +1,7 @@
-import { promises as fs } from 'fs';
-import path from 'path';
 import { eq } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema.js';
-
-const normalizeFormats = (value) => {
-    if (!value) return {};
-    if (typeof value === 'string') {
-        try {
-            return JSON.parse(value);
-        } catch {
-            return {};
-        }
-    }
-    if (typeof value === 'object') {
-        return value;
-    }
-    return {};
-};
-
-const resolveFilePath = (filePath) => {
-    if (!filePath || typeof filePath !== 'string') return null;
-    const trimmed = filePath.trim();
-    if (!trimmed) return null;
-    return path.isAbsolute(trimmed) ? trimmed : path.join(process.cwd(), trimmed);
-};
-
-async function removeAssetFilesFromDisk(assetRow) {
-    const fileErrors = [];
-    const files = new Set();
-
-    const mainPath = resolveFilePath(assetRow.path);
-    if (mainPath) files.add(mainPath);
-
-    const formats = normalizeFormats(assetRow.formats);
-    Object.values(formats || {}).forEach((formatPath) => {
-        const resolved = resolveFilePath(formatPath);
-        if (resolved) files.add(resolved);
-    });
-
-    for (const filePath of files) {
-        try {
-            await fs.unlink(filePath);
-        } catch (error) {
-            if (error?.code === 'ENOENT') continue;
-            fileErrors.push({
-                path: filePath,
-                error: error?.message || 'Unknown error'
-            });
-        }
-    }
-
-    return fileErrors;
-}
+import { removeAssetFilesFromDisk } from '../../backend/utils/fsUtils.js';
 
 function ensureDeleteTypes(drizzleResult) {
     if (!drizzleResult.schema._typeMap.AssetDeleteFileError) {

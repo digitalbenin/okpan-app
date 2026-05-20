@@ -2,7 +2,7 @@ import * as Y from 'yjs';
 import { db } from '../../db/init.js';
 import { getGlobalProfile, updateGlobalUsername } from '../../db/queries/globalSettings.js';
 import { eq, and, or, gt, sql } from 'drizzle-orm';
-import { FK_ORDER } from './projectScope.js';
+import { FK_ORDER } from '../utils/projectScope.js';
 import {
   change_log,
   yjs_updates,
@@ -37,7 +37,7 @@ import {
   deleteRow,
   getCurrentProjectId,
   hasCurrentProjectId,
-} from './projectCache.js';
+} from './projectCacheService.js';
 import { recordProjectActivityFromSyncEvent } from './syncActivityService.js';
 
 const DEFAULT_INGEST_BATCH_SIZE = 200;

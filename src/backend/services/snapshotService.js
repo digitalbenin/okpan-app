@@ -3,8 +3,8 @@ import { db } from '../../db/init.js';
 import { eq, and, gt, desc, sql, inArray, or } from 'drizzle-orm';
 import { yjs_snapshots, yjs_updates, change_log, ingestion_state } from '../../db/schema.js';
 import * as schema from '../../db/schema.js';
-import { getProjectDoc, ensureTableMap, replaceProjectDoc } from './projectCache.js';
-import { scheduleAssetReconcile } from './assetTorrentManager.js';
+import { getProjectDoc, ensureTableMap, replaceProjectDoc } from './projectCacheService.js';
+import { scheduleAssetReconcile } from './assetTorrentManagerService.js';
 
 // Minimal compatibility: ensure parent table maps exist before applying updates
 const TABLES = [

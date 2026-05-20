@@ -1,11 +1,16 @@
-// IPC handler to provide ISO 639-1 languages using countries-list
-// Returns languages in their native form
+/**
+ * IPC handlers for language metadata.
+ * @namespace backend.handlers.languagesHandlers
+ * @memberof backend.handlers
+ */
 import { languages as countriesLanguages } from 'countries-list';
 
 /**
- * Returns an array of { code, name } for ISO 639-1 languages
- * @param {Object} event - IPC event
- * @param {Object} options - { lang?: string }
+ * Return ISO 639-1 language metadata in native form.
+ * @memberof backend.handlers.languagesHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Handler options.
+ * @returns {Promise<Object>} Result object with `success`, `result`, or `error`.
  */
 export async function handleListLanguages(event, options = {}) {
   try {

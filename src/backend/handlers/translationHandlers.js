@@ -1,3 +1,8 @@
+/**
+ * IPC handlers for interface translation import and export.
+ * @namespace backend.handlers.translationHandlers
+ * @memberof backend.handlers
+ */
 import { dialog } from 'electron';
 import fs from 'fs/promises';
 import { eq, and } from 'drizzle-orm';
@@ -5,12 +10,13 @@ import { eq, and } from 'drizzle-orm';
 import { interface_languages, interface_translations } from '../../db/schema.js';
 
 /**
- * Handler for exporting translations to a JSON file
- * @param {Object} event - The IPC event
- * @param {string} filePath - Optional file path to save to
- * @param {Object} options - Additional options
- * @param {Object} options.db - Database connection
- * @returns {Promise<Object>} Result of the export operation
+ * Export interface translations to a JSON file.
+ * @memberof backend.handlers.translationHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {string} filePath - Path to save to; triggers a save dialog if omitted.
+ * @param {Object} options - Handler options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise<Object>} Result of the export operation.
  */
 export const handleExportTranslations = async (event, filePath, { db }) => {
     try {
@@ -55,12 +61,13 @@ export const handleExportTranslations = async (event, filePath, { db }) => {
 };
 
 /**
- * Handler for importing translations from a JSON file
- * @param {Object} event - The IPC event
- * @param {string} filePath - Optional file path to import from
- * @param {Object} options - Additional options
- * @param {Object} options.db - Database connection
- * @returns {Promise<Object>} Result of the import operation
+ * Import interface translations from a JSON file.
+ * @memberof backend.handlers.translationHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {string} filePath - Path to read from; triggers an open dialog if omitted.
+ * @param {Object} options - Handler options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise<Object>} Result of the import operation.
  */
 export const handleImportTranslations = async (event, filePath, { db }) => {
     try {

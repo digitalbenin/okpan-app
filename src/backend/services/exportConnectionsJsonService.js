@@ -1,19 +1,10 @@
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
-import fsPromises from 'fs/promises';
 import yazl from 'yazl';
 import { eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
-
-async function ensureDir(dirPath) {
-  await fsPromises.mkdir(dirPath, { recursive: true });
-}
-
-async function writeJson(filePath, obj) {
-  await ensureDir(path.dirname(filePath));
-  await fsPromises.writeFile(filePath, JSON.stringify(obj, null, 2), 'utf-8');
-}
+import { ensureDir, writeJsonFile } from '../utils/fsUtils.js';
 
 async function createZipFromFolder(folderPath, zipPath) {
   await ensureDir(path.dirname(zipPath));
@@ -228,7 +219,7 @@ export async function exportConnectionsJson(options, { db }) {
     });
   }
 
-  await writeJson(path.join(outRoot, 'connections.json'), {
+  await writeJsonFile(path.join(outRoot, 'connections.json'), {
     type: 'connections-export',
     version: 1,
     exported_at: new Date().toISOString(),

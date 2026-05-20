@@ -1,6 +1,19 @@
+/**
+ * IPC handlers for project backup and restore operations.
+ * @namespace backend.handlers.backupHandler
+ * @memberof backend.handlers
+ */
 import { dialog } from 'electron';
-import { createProjectBackup, restoreProjectBackup, checkProjectExists } from '../services/backupService.js';
+import { createProjectBackup, restoreProjectBackup, checkProjectExists, inspectBackupFile } from '../services/backupService.js';
 
+/**
+ * Create a backup file for a project.
+ * @memberof backend.handlers.backupHandler
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Backup options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise<Object>}
+ */
 export async function handleCreateBackup(event, options, { db }) {
   try {
     const { project_id } = options || {};
@@ -9,6 +22,7 @@ export async function handleCreateBackup(event, options, { db }) {
       throw new Error('project_id is required');
     }
 
+    // open save dialog to select backup file path
     const result = await dialog.showSaveDialog({
       title: 'Save Project Backup',
       defaultPath: `backup-${project_id}-${Date.now()}.dctx`,
@@ -23,6 +37,7 @@ export async function handleCreateBackup(event, options, { db }) {
       return { canceled: true };
     }
 
+    // create backup file
     const backupResult = await createProjectBackup(
       { project_id, filePath: result.filePath },
       { db }
@@ -38,6 +53,12 @@ export async function handleCreateBackup(event, options, { db }) {
   }
 }
 
+/**
+ * Open a file picker for selecting a backup archive.
+ * @memberof backend.handlers.backupHandler
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @returns {Promise<Object>}
+ */
 export async function handleSelectBackupFile(event) {
   try {
     const result = await dialog.showOpenDialog({
@@ -63,75 +84,37 @@ export async function handleSelectBackupFile(event) {
   }
 }
 
+/**
+ * Inspect a backup file and return its validation details.
+ * @memberof backend.handlers.backupHandler
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Inspection options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise<Object>}
+ */
 export async function handleCheckBackupFile(event, options, { db }) {
+  const { filePath } = options || {};
+
+  if (!filePath) {
+    throw new Error('filePath is required');
+  }
+
   try {
-    const { filePath } = options || {};
-
-    if (!filePath) {
-      throw new Error('filePath is required');
-    }
-
-    const fs = await import('fs');
-    const path = await import('path');
-
-    if (!fs.existsSync(filePath)) {
-      throw new Error('Backup file not found');
-    }
-
-    const yauzl = await import('yauzl');
-    
-    return new Promise((resolve, reject) => {
-      yauzl.open(filePath, { lazyEntries: true }, (err, zipfile) => {
-        if (err) return reject(err);
-
-        let metadataContent = null;
-        
-        zipfile.readEntry();
-        
-        zipfile.on('entry', (entry) => {
-          if (entry.fileName === 'metadata.json') {
-            zipfile.openReadStream(entry, (err, readStream) => {
-              if (err) return reject(err);
-              
-              const chunks = [];
-              readStream.on('data', (chunk) => chunks.push(chunk));
-              readStream.on('end', async () => {
-                try {
-                  metadataContent = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
-                  const projectExists = await checkProjectExists(metadataContent.project_id, { db });
-                  
-                  zipfile.close();
-                  
-                  resolve({
-                    success: true,
-                    metadata: metadataContent,
-                    projectExists
-                  });
-                } catch (parseErr) {
-                  reject(parseErr);
-                }
-              });
-            });
-          } else {
-            zipfile.readEntry();
-          }
-        });
-        
-        zipfile.on('end', () => {
-          if (!metadataContent) {
-            reject(new Error('Invalid backup file: missing metadata.json'));
-          }
-        });
-        
-        zipfile.on('error', reject);
-      });
-    });
+    return await inspectBackupFile(filePath, { db });
   } catch (error) {
     console.error('Error checking backup file:', error);
     throw error;
   }
 }
 
+/**
+ * Restore a project backup using the selected merge strategy.
+ * @memberof backend.handlers.backupHandler
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Restore options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise<Object>}
+ */
 export async function handleRestoreBackup(event, options, { db }) {
   try {
     const { filePath, strategy = 'merge' } = options || {};

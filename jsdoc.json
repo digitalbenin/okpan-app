@@ -1,7 +1,15 @@
 {
   "source": {
     "include": [
+      "src/backend",
+      "src/db",
       "src/preload"
+    ],
+    "exclude": [
+      "src/backend/services",
+      "src/db/queries",
+      "src/db/graphqlDefs.js",
+      "src/db/seed_from_json.js"
     ],
     "includePattern": "\\.js$"
   },
@@ -12,7 +20,9 @@
     "readme": "README.md"
   },
   "templates": {
-    "useLongnameInNav": true
+    "default": {
+      "useLongnameInNav": true
+    }
   },
   "docdash": {
     "static": false,

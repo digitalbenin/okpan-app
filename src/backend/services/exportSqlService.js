@@ -3,10 +3,10 @@ import * as dbSchema from '../../db/schema.js';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
-import fsPromises from 'fs/promises';
 import yazl from 'yazl';
-import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
-import { resolveLogicalAssetPath } from './assetPaths.js';
+import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../utils/exportUtils.js';
+import { copyFileIfExists, ensureDir } from '../utils/fsUtils.js';
+import { resolveLogicalAssetPath } from '../utils/assetPaths.js';
 
 // Utility: escape single quotes for SQL
 const sqlEscape = (val) => String(val).replace(/'/g, "''");
@@ -240,8 +240,6 @@ const generateSchemaDDL = () => {
   return ddls.join('\n') + '\n';
 };
 
-async function ensureDir(dirPath) { await fsPromises.mkdir(dirPath, { recursive: true }); }
-async function copyFileIfExists(src, dest) { try { await ensureDir(path.dirname(dest)); await fsPromises.copyFile(src, dest); return true; } catch { return false; } }
 async function createZipFromFolder(folderPath, zipPath) {
   await ensureDir(path.dirname(zipPath));
   return new Promise(async (resolve, reject) => {

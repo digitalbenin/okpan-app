@@ -1,17 +1,23 @@
+/**
+ * IPC handlers for general system operations.
+ * @namespace backend.handlers.systemHandlers
+ * @memberof backend.handlers
+ */
 import { dialog } from 'electron';
 import { parse } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
 import fs from 'fs/promises';
 import path from 'path';
 import { XMLParser } from 'fast-xml-parser';
-import { setCurrentProjectId, getCurrentProjectId, clearCurrentProjectId } from '../services/projectCache.js';
+import { setCurrentProjectId, getCurrentProjectId, clearCurrentProjectId } from '../services/projectCacheService.js';
 import { stopP2PForProject } from '../services/p2pService.js';
-import { stopProjectTorrents } from '../services/assetTorrentManager.js';
+import { stopProjectTorrents } from '../services/assetTorrentManagerService.js';
 import { applyImportPreset, describeImportPresets } from '../services/importPresets/index.js';
 
 /**
- * Handler for ping requests
- * @returns {string} 'pong' response
+ * Respond to a ping request.
+ * @memberof backend.handlers.systemHandlers
+ * @returns {string}
  */
 export const handlePing = () => {
     console.log('pong');
@@ -50,6 +56,13 @@ async function listFilesRecursively(dirPath) {
     return results;
 }
 
+/**
+ * Open a file or directory picker and return the selected files.
+ * @memberof backend.handlers.systemHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Dialog options.
+ * @returns {Promise<Object>}
+ */
 export const handleFileDialog = async (event, options) => {
     const imageFilters = [
         { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'] },
@@ -108,6 +121,13 @@ export const handleFileDialog = async (event, options) => {
     }
 };
 
+/**
+ * Open or parse a structured data file for import.
+ * @memberof backend.handlers.systemHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Import options.
+ * @returns {Promise<Object>}
+ */
 export const handleStructuredDataImport = async (event, options = {}) => {
     const filters = [
         { name: 'All Supported', extensions: ['json', 'jsonld', 'json-ld', 'csv', 'tsv', 'xlsx', 'xls', 'xml'] },
@@ -298,10 +318,11 @@ async function finalizeParsedData(parsedData, selectedPreset) {
 }
 
 /**
- * Handler for setting the current project ID in cache
- * @param {Event} event - The IPC event
- * @param {string} projectId - The project ID to cache
- * @returns {Object} Success response
+ * Store the current project ID in the local cache.
+ * @memberof backend.handlers.systemHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {string} projectId - Project ID to cache.
+ * @returns {Object}
  */
 export const handleSetCurrentProject = (event, projectId) => {
     try {
@@ -314,9 +335,10 @@ export const handleSetCurrentProject = (event, projectId) => {
 };
 
 /**
- * Handler for getting the current cached project ID
- * @param {Event} event - The IPC event
- * @returns {Object} Response with current project ID
+ * Read the current cached project ID.
+ * @memberof backend.handlers.systemHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @returns {Object}
  */
 export const handleGetCurrentProject = (event) => {
     try {
@@ -329,12 +351,11 @@ export const handleGetCurrentProject = (event) => {
 };
 
 /**
- * Handler for parsing a specific sheet from an Excel file
- * @param {Event} event - The IPC event
- * @param {Object} options - Options for sheet parsing
- * @param {string} options.filePath - Path to the Excel file
- * @param {string} options.sheetName - Name of the sheet to parse
- * @returns {Promise<Object>} Result with parsed data or error
+ * Parse a selected worksheet from an Excel file.
+ * @memberof backend.handlers.systemHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Sheet selection options.
+ * @returns {Promise<Object>}
  */
 export const handleExcelSheetSelection = async (event, options) => {
     const { filePath, sheetName } = options;
@@ -398,9 +419,10 @@ export const handleExcelSheetSelection = async (event, options) => {
 };
 
 /**
- * Handler for clearing the current project ID cache
- * @param {Event} event - The IPC event
- * @returns {Object} Success response
+ * Clear the cached project ID and stop related sync processes.
+ * @memberof backend.handlers.systemHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @returns {Promise<Object>}
  */
 export const handleClearCurrentProject = async (event) => {
     try {
@@ -416,3 +438,23 @@ export const handleClearCurrentProject = async (event) => {
         return { success: false, error: error.message };
     }
 };
+
+/**
+ * Read a file from disk as UTF-8 text.
+ * @memberof backend.handlers.systemHandlers
+ * @param {Electron.IpcMainInvokeEvent} _event - IPC event.
+ * @param {string} filePath - Absolute file path.
+ * @returns {Promise<string>}
+ */
+export async function handleReadFile(_event, filePath) {
+  if (!filePath || typeof filePath !== 'string') {
+    throw new Error('Invalid file path provided.');
+  }
+
+  try {
+    return await fs.readFile(filePath, 'utf-8');
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error);
+    throw new Error(`Failed to read file: ${error.message}`);
+  }
+}

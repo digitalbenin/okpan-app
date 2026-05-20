@@ -1,8 +1,18 @@
+/**
+ * Project-scoped constants and helpers shared by sync and snapshot flows.
+ *
+ * @namespace backend.utils.projectScope
+ * @memberof backend.utils
+ */
 import { db } from '../../db/init.js';
 import { change_log, ingestion_state, project } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 
-// Central FK order used for SQLite-safe insert/update/delete sequences
+/**
+ * Foreign-key-safe table ordering used by project-scoped sync and restore flows.
+ * @memberof backend.utils.projectScope
+ * @constant {string[]}
+ */
 export const FK_ORDER = [
   'project',
   'languages',
@@ -29,7 +39,12 @@ export const FK_ORDER = [
   'website_settings'
 ];
 
-// Snapshot manifest for a project closure, including counts and sync watermarks
+/**
+ * Build the snapshot manifest used when closing or exporting a project state.
+ * @memberof backend.utils.projectScope
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<Object>}
+ */
 export async function getProjectSnapshotManifest(projectId) {
   if (!projectId) throw new Error('getProjectSnapshotManifest requires projectId');
 

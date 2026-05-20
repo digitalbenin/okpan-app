@@ -92,7 +92,7 @@ npm start
    To see help for the seed script, including the `--data-path` option:
 
    ```bash
-   node src/db/seed_from_json.js -h
+   npm run db:seed -- --help
    ```
 
    Note that this process will create a folder of images for the project. In case you need to reset, this image folder must be deleted manually.

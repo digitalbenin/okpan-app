@@ -15,7 +15,7 @@ import { eq } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
-import { setGlobalClientIdNumber } from '../backend/services/projectCache.js';
+import { setGlobalClientIdNumber } from '../backend/services/projectCacheService.js';
 import { resolveApplicationRoot, resolveDatabasePath } from './runtimeDatabasePaths.js';
 import { populateInstitutionsSearchIndex } from './scripts/populateInstitutionsSearch.js';
 import { populateObjectSearchIndexes } from './scripts/populateObjectSearchIndexes.js';
@@ -447,6 +447,7 @@ const initializeGlobalSettings = async () => {
  * and initialises global settings. Safe to call multiple times — subsequent
  * calls reuse the same in-flight promise.
  *
+ * @function
  * @memberOf db
  * @returns {Promise<void>}
  */

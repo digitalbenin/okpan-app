@@ -276,10 +276,7 @@ function findMatches(fuse, searchQuery, maxSuggestions, minConfidence) {
         .slice(0, maxSuggestions);
 }
 
-// Export only the suggestion function
-export default {
-    suggestObjectMatches
-};
+
 
 /**
  * Fetch full objects (assets, ontology fields, research fields) by IDs

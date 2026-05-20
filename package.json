@@ -21,7 +21,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
-    "db:seed": "electron src/backend/seedCli.js",
+    "db:seed": "electron src/db/seed_from_json.js",
     "docs:schema": "node docs/scripts/generateSchema.js",
     "docs:generate": "npm run docs:schema && spectaql docs/spectaql.config.yml -t docs/dist",
     "docs:jsdoc": "jsdoc -c jsdoc.json",

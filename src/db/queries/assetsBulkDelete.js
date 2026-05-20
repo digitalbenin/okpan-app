@@ -1,30 +1,7 @@
-import { promises as fs } from 'fs';
-import path from 'path';
 import { inArray } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema.js';
-
-const normalizeFormats = (value) => {
-    if (!value) return {};
-    if (typeof value === 'string') {
-        try {
-            return JSON.parse(value);
-        } catch {
-            return {};
-        }
-    }
-    if (typeof value === 'object') {
-        return value;
-    }
-    return {};
-};
-
-const resolveFilePath = (filePath) => {
-    if (!filePath || typeof filePath !== 'string') return null;
-    const trimmed = filePath.trim();
-    if (!trimmed) return null;
-    return path.isAbsolute(trimmed) ? trimmed : path.join(process.cwd(), trimmed);
-};
+import { removeAssetFilesFromDisk } from '../../backend/utils/fsUtils.js';
 
 export const createAssetsBulkDeleteMutation = (db, drizzleResult) => {
     const AssetFileRemovalError = new GraphQLObjectType({
@@ -95,29 +72,13 @@ export const createAssetsBulkDeleteMutation = (db, drizzleResult) => {
             const fileErrors = [];
 
             for (const asset of assetsToDelete) {
-                const files = new Set();
-
-                const mainPath = resolveFilePath(asset.path);
-                if (mainPath) files.add(mainPath);
-
-                const formats = normalizeFormats(asset.formats);
-                Object.values(formats || {}).forEach((formatPath) => {
-                    const resolved = resolveFilePath(formatPath);
-                    if (resolved) files.add(resolved);
+                const assetFileErrors = await removeAssetFilesFromDisk(asset);
+                assetFileErrors.forEach((fileError) => {
+                    fileErrors.push({
+                        asset_id: asset.id,
+                        ...fileError
+                    });
                 });
-
-                for (const filePath of files) {
-                    try {
-                        await fs.unlink(filePath);
-                    } catch (error) {
-                        if (error?.code === 'ENOENT') continue; // already gone
-                        fileErrors.push({
-                            asset_id: asset.id,
-                            path: filePath,
-                            error: error?.message || 'Unknown error'
-                        });
-                    }
-                }
             }
 
             return { deletedIds, missingIds, fileErrors };

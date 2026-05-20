@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { and, eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
-import { buildObjectSearchConditions } from '../handlers/exportHandlers.js';
+import { buildObjectSearchConditions } from '../utils/exportUtils.js';
 import { resolveAppRootFromParams } from '../../db/runtimeDatabasePaths.js';
 
 function sanitizeExportFolderName(value, fallback = 'website-export') {

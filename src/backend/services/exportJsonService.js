@@ -1,15 +1,12 @@
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
-import fsPromises from 'fs/promises';
 import yazl from 'yazl';
 import { eq, inArray, and } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
-import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../handlers/exportHandlers.js';
-import { resolveLogicalAssetPath } from './assetPaths.js';
-
-async function ensureDir(dirPath) { await fsPromises.mkdir(dirPath, { recursive: true }); }
-async function writeJson(filePath, obj) { await ensureDir(path.dirname(filePath)); await fsPromises.writeFile(filePath, JSON.stringify(obj, null, 2), 'utf-8'); }
+import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../utils/exportUtils.js';
+import { ensureDir, writeJsonFile } from '../utils/fsUtils.js';
+import { resolveLogicalAssetPath } from '../utils/assetPaths.js';
 
 // Helper to clean objects by removing timestamps and IDs
 function cleanEntity(table, obj) {
@@ -382,7 +379,7 @@ export async function exportProjectJson(options, { db }) {
 
   // Write a single consolidated objects file
   const outPath = path.join(dataDir, 'objects.json');
-  await writeJson(outPath, objectsOut);
+  await writeJsonFile(outPath, objectsOut);
 
   // Optionally copy binary assets referenced by these objects next to JSON files
   if (includeAssets) {

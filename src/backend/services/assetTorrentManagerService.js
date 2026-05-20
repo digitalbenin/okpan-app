@@ -1,3 +1,10 @@
+/**
+ * Asset torrent manager service for P2P seeding, downloading, and reconcile
+ * scheduling of project assets.
+ *
+ * @namespace backend.services.assetTorrentManagerService
+ * @memberof backend.services
+ */
 // Manages WebTorrent seeding/downloading for asset P2P sync.
 // Local-state tables (asset_local_state / generic_asset_local_state) are never
 // Yjs-synced, preventing write-back loops. Torrent metadata on assets/generic_assets
@@ -19,7 +26,7 @@ import {
   resolveLogicalAssetPath,
   resolveProjectAssetPath,
   toLogicalStoredAssetPath,
-} from './assetPaths.js';
+} from '../utils/assetPaths.js';
 
 const MAX_CONCURRENT_DOWNLOADS_PER_PROJECT = 3;
 const MAX_RETRIES = 5;

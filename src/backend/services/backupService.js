@@ -6,12 +6,12 @@ import yazl from 'yazl';
 import yauzl from 'yauzl';
 import { eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';
-import { removePathRobust } from './fsUtils.js';
+import { copyFileIfExists, ensureDir, readJsonFile, removePathQuietly, removePathRobust, writeJsonFile } from '../utils/fsUtils.js';
 import {
-  LOGICAL_ASSET_ROOT,
+  normalizeProjectAssetRow,
+  normalizeProjectAssetRows,
   resolveProjectAssetPath,
-  toLogicalStoredAssetPath,
-} from './assetPaths.js';
+} from '../utils/assetPaths.js';
 
 const sqlEscape = (val) => String(val).replace(/'/g, "''");
 
@@ -98,73 +98,26 @@ const formatValue = (val) => {
   return `'${sqlEscape(String(val))}'`;
 };
 
-function normalizeAssetPathReference(filePath, projectId) {
-  if (!filePath || typeof filePath !== 'string') {
-    return filePath;
-  }
-
-  const normalizedPath = toLogicalStoredAssetPath(filePath);
-  if (typeof normalizedPath === 'string' && normalizedPath.startsWith(LOGICAL_ASSET_ROOT)) {
-    return normalizedPath;
-  }
-
-  const fileName = path.basename(filePath);
-  if (!fileName) {
-    return normalizedPath;
-  }
-
-  return `${LOGICAL_ASSET_ROOT}/${projectId}/${fileName}`;
-}
-
-function normalizeAssetFormats(formats, projectId) {
-  if (!formats || typeof formats !== 'object') {
-    return formats;
-  }
-
-  const normalizedFormats = {};
-  for (const [key, value] of Object.entries(formats)) {
-    normalizedFormats[key] = normalizeAssetPathReference(value, projectId);
-  }
-
-  return normalizedFormats;
-}
-
-function normalizeAssetRowsForBackup(rows, projectId) {
-  return rows.map((row) => ({
-    ...row,
-    path: normalizeAssetPathReference(row.path, projectId),
-    formats: normalizeAssetFormats(row.formats, projectId),
-  }));
-}
-
-async function normalizeRestoredAssetRows(projectId, { db }) {
-  const assetRows = await db.select().from(dbSchema.assets)
-    .where(eq(dbSchema.assets.project_id, projectId))
+async function normalizeRestoredAssetTableRows(table, projectId, { db }) {
+  const assetRows = await db.select().from(table)
+    .where(eq(table.project_id, projectId))
     .execute();
 
   for (const assetRow of assetRows) {
-    await db.update(dbSchema.assets)
+    const normalizedAssetRow = normalizeProjectAssetRow(assetRow, projectId);
+    await db.update(table)
       .set({
-        path: normalizeAssetPathReference(assetRow.path, projectId),
-        formats: normalizeAssetFormats(assetRow.formats, projectId),
+        path: normalizedAssetRow.path,
+        formats: normalizedAssetRow.formats,
       })
-      .where(eq(dbSchema.assets.id, assetRow.id))
+      .where(eq(table.id, assetRow.id))
       .execute();
   }
+}
 
-  const genericAssetRows = await db.select().from(dbSchema.genericAssets)
-    .where(eq(dbSchema.genericAssets.project_id, projectId))
-    .execute();
-
-  for (const assetRow of genericAssetRows) {
-    await db.update(dbSchema.genericAssets)
-      .set({
-        path: normalizeAssetPathReference(assetRow.path, projectId),
-        formats: normalizeAssetFormats(assetRow.formats, projectId),
-      })
-      .where(eq(dbSchema.genericAssets.id, assetRow.id))
-      .execute();
-  }
+async function normalizeRestoredAssetRows(projectId, { db }) {
+  await normalizeRestoredAssetTableRows(dbSchema.assets, projectId, { db });
+  await normalizeRestoredAssetTableRows(dbSchema.genericAssets, projectId, { db });
 }
 
 const generateInsertStatements = (tableName, rows) => {
@@ -460,27 +413,6 @@ const generateSchemaDDL = () => {
   return ddls.join('\n') + '\n';
 };
 
-async function ensureDir(dirPath) {
-  await fsPromises.mkdir(dirPath, { recursive: true });
-}
-
-async function removePathIfExists(targetPath, options = {}) {
-  await removePathRobust(targetPath, {
-    force: true,
-    recursive: options.recursive === true,
-  });
-}
-
-async function copyFileIfExists(src, dest) {
-  try {
-    await ensureDir(path.dirname(dest));
-    await fsPromises.copyFile(src, dest);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function createZipFromFolder(folderPath, zipPath) {
   await ensureDir(path.dirname(zipPath));
   return new Promise(async (resolve, reject) => {
@@ -687,7 +619,7 @@ export async function createProjectBackup(options, { db }) {
   const assets = await db.select().from(dbSchema.assets)
     .where(eq(dbSchema.assets.project_id, project_id))
     .execute();
-  const normalizedAssets = normalizeAssetRowsForBackup(assets, project_id);
+  const normalizedAssets = normalizeProjectAssetRows(assets, project_id);
   const assetIds = assets.map(a => a.id);
 
   // Assets institutions junction
@@ -701,7 +633,7 @@ export async function createProjectBackup(options, { db }) {
   const genericAssets = await db.select().from(dbSchema.genericAssets)
     .where(eq(dbSchema.genericAssets.project_id, project_id))
     .execute();
-  const normalizedGenericAssets = normalizeAssetRowsForBackup(genericAssets, project_id);
+  const normalizedGenericAssets = normalizeProjectAssetRows(genericAssets, project_id);
 
   // Texts and translations
   const textIdsArray = Array.from(textIds);
@@ -814,11 +746,7 @@ export async function createProjectBackup(options, { db }) {
       translations: translations.length,
     }
   };
-  await fsPromises.writeFile(
-    path.join(tmpBase, 'metadata.json'),
-    JSON.stringify(metadata, null, 2),
-    'utf-8'
-  );
+  await writeJsonFile(path.join(tmpBase, 'metadata.json'), metadata);
 
   const projectAssetsFolder = resolveProjectAssetPath(project_id);
   let copiedAssets = 0;
@@ -836,9 +764,7 @@ export async function createProjectBackup(options, { db }) {
 
   await createZipFromFolder(tmpBase, backupPath);
 
-  try {
-    await fsPromises.rm(tmpBase, { recursive: true, force: true });
-  } catch { }
+  await removePathQuietly(tmpBase, { recursive: true });
 
   return {
     success: true,
@@ -893,6 +819,61 @@ export async function checkProjectExists(project_id, { db }) {
   return projects && projects.length > 0;
 }
 
+/**
+ * Open a .dctx backup file, read its metadata.json, and check if the project
+ * it belongs to already exists in the local database.
+ */
+export async function inspectBackupFile(filePath, { db }) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error('Backup file not found');
+  }
+
+  return new Promise((resolve, reject) => {
+    yauzl.open(filePath, { lazyEntries: true }, (err, zipfile) => {
+      if (err) return reject(err);
+
+      let metadataContent = null;
+
+      zipfile.readEntry();
+
+      zipfile.on('entry', (entry) => {
+        if (entry.fileName === 'metadata.json') {
+          zipfile.openReadStream(entry, (err, readStream) => {
+            if (err) return reject(err);
+
+            const chunks = [];
+            readStream.on('data', (chunk) => chunks.push(chunk));
+            readStream.on('end', async () => {
+              try {
+                metadataContent = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+                const projectExists = await checkProjectExists(metadataContent.project_id, { db });
+                zipfile.close();
+                resolve({
+                  success: true,
+                  metadata: metadataContent,
+                  projectExists
+                });
+              } catch (parseErr) {
+                reject(parseErr);
+              }
+            });
+          });
+        } else {
+          zipfile.readEntry();
+        }
+      });
+
+      zipfile.on('end', () => {
+        if (!metadataContent) {
+          reject(new Error('Invalid backup file: missing metadata.json'));
+        }
+      });
+
+      zipfile.on('error', reject);
+    });
+  });
+}
+
 export async function restoreProjectBackup(options, { db }) {
   const { filePath, strategy = 'merge', preserveProjectRow = false } = options || {};
   
@@ -914,7 +895,7 @@ export async function restoreProjectBackup(options, { db }) {
       throw new Error('Invalid backup file: missing metadata.json');
     }
 
-    const metadata = JSON.parse(await fsPromises.readFile(metadataPath, 'utf-8'));
+    const metadata = await readJsonFile(metadataPath);
     const { project_id } = metadata;
 
     if (!project_id) {
@@ -968,7 +949,7 @@ export async function restoreProjectBackup(options, { db }) {
       const assetsDestDir = resolveProjectAssetPath(project_id);
       
       if (strategy === 'overwrite' && fs.existsSync(assetsDestDir)) {
-        await removePathIfExists(assetsDestDir, { recursive: true });
+        await removePathRobust(assetsDestDir, { recursive: true });
       }
       
       await ensureDir(assetsDestDir);
@@ -986,9 +967,7 @@ export async function restoreProjectBackup(options, { db }) {
 
     await normalizeRestoredAssetRows(project_id, { db });
 
-    try {
-      await fsPromises.rm(tmpBase, { recursive: true, force: true });
-    } catch { }
+    await removePathQuietly(tmpBase, { recursive: true });
 
     return {
       success: true,
@@ -999,9 +978,7 @@ export async function restoreProjectBackup(options, { db }) {
       strategy
     };
   } catch (error) {
-    try {
-      await fsPromises.rm(tmpBase, { recursive: true, force: true });
-    } catch { }
+    await removePathQuietly(tmpBase, { recursive: true });
     throw error;
   }
 }
