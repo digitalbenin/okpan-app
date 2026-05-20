@@ -12,21 +12,23 @@
 
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import sharp from 'sharp';
-import { joinRoom } from 'trystero';
-import { RTCPeerConnection } from 'node-datachannel/polyfill';
-import SimplePeer from '@thaunknown/simple-peer';
 import { db } from '../../db/init.js';
 import { assets, genericAssets, asset_local_state, generic_asset_local_state } from '../../db/schema.js';
 import { eq, and, isNotNull, inArray, sql } from 'drizzle-orm';
 import {
-  LOGICAL_ASSET_ROOT,
-  resolveAssetBasePath,
   resolveLogicalAssetPath,
   resolveProjectAssetPath,
   toLogicalStoredAssetPath,
 } from '../utils/assetPaths.js';
+import { computeFileSha256, getAssetContentInfo } from '../utils/assetMetadata.js';
+import {
+  cleanupAssetSignalingPeer,
+  createDownloaderSignalPeer,
+  destroyAssetSignaling,
+  ensureProjectAssetSignaling,
+  stopProjectAssetSignaling,
+} from './assetTorrentSignalingService.js';
 
 const MAX_CONCURRENT_DOWNLOADS_PER_PROJECT = 3;
 const MAX_RETRIES = 5;
@@ -35,17 +37,32 @@ const RECONCILE_INTERVAL_MS = 90_000;
 const RECONCILE_DEBOUNCE_MS = 600;
 const BACKOFF_SEQUENCE_MS = [5_000, 15_000, 30_000, 60_000, 120_000];
 
-const WEBRTC_CONFIG = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun.cloudflare.com:3478' },
-  ],
-};
-
 let _WebTorrentModule = null;
 let _wtClient = null;
 let _webContents = null;
+
+const ASSET_TABLE_VARIANTS = [
+  {
+    isGeneric: false,
+    assetTable: assets,
+    stateTable: asset_local_state,
+    stateIdCol: asset_local_state.asset_id,
+    stateIdKey: 'asset_id',
+    otherAssetTable: genericAssets,
+  },
+  {
+    isGeneric: true,
+    assetTable: genericAssets,
+    stateTable: generic_asset_local_state,
+    stateIdCol: generic_asset_local_state.generic_asset_id,
+    stateIdKey: 'generic_asset_id',
+    otherAssetTable: assets,
+  },
+];
+
+function getAssetTableVariant(isGeneric) {
+  return isGeneric ? ASSET_TABLE_VARIANTS[1] : ASSET_TABLE_VARIANTS[0];
+}
 
 function resolveReadableAssetPath(filePath) {
   const candidates = [filePath, resolveLogicalAssetPath(filePath)]
@@ -66,8 +83,6 @@ const reconcileDebounce = new Map(); // projectId → Timeout
 const reconcileRunning  = new Set();
 const seededHashes      = new Set();
 const projectSeededHashes = new Map(); // projectId → Set<infoHash>
-const signalingActions  = new Map(); // projectId → { room, sendRequest, sendSignal, seederPeers }
-const pendingPeerSignals= new Map(); // `${projectId}:${infoHash}:${attemptId}` → { key, projectId, infoHash, attemptId, peer, seederId, createdAt }
 
 
 async function getWtClient() {
@@ -82,96 +97,24 @@ async function getWtClient() {
   return _wtClient;
 }
 
+async function getProjectTorrent(infoHash) {
+  const client = await getWtClient();
+  return client.get(infoHash);
+}
+
+function ensureProjectSignaling(projectId) {
+  return ensureProjectAssetSignaling(projectId, { getTorrent: getProjectTorrent });
+}
+
 function getOrSet(map, key, factory) {
   if (!map.has(key)) map.set(key, factory());
   return map.get(key);
-}
-
-function normalizeAttemptId(attemptId) {
-  return typeof attemptId === 'string' && attemptId.length > 0 ? attemptId : null;
-}
-
-function getPendingPeerSignalKey(projectId, infoHash, attemptId) {
-  return `${projectId}:${infoHash}:${attemptId}`;
-}
-
-function getSeederPeerKey(infoHash, requesterId, attemptId) {
-  return `${infoHash}:${requesterId}:${attemptId}`;
-}
-
-function destroyPeer(peer) {
-  try { peer?.destroy(); } catch (_) {}
-}
-
-function removePendingPeerSignalEntry(key, { destroy = true } = {}) {
-  const entry = pendingPeerSignals.get(key);
-  if (!entry) return null;
-  if (destroy) destroyPeer(entry.peer);
-  pendingPeerSignals.delete(key);
-  return entry;
-}
-
-function clearPendingPeerSignalsForAsset(projectId, infoHash, keepAttemptId = null) {
-  for (const [key, entry] of pendingPeerSignals) {
-    if (entry?.projectId !== projectId || entry?.infoHash !== infoHash) continue;
-    if (keepAttemptId && entry.attemptId === keepAttemptId) continue;
-    removePendingPeerSignalEntry(key);
-  }
-}
-
-function findPendingPeerSignalEntry(projectId, infoHash, attemptId = null, senderId = null) {
-  const normalizedAttemptId = normalizeAttemptId(attemptId);
-  if (normalizedAttemptId) {
-    return pendingPeerSignals.get(getPendingPeerSignalKey(projectId, infoHash, normalizedAttemptId)) || null;
-  }
-
-  let latestEntry = null;
-  for (const entry of pendingPeerSignals.values()) {
-    if (entry?.projectId !== projectId || entry?.infoHash !== infoHash) continue;
-    if (senderId && entry.seederId && entry.seederId !== senderId) continue;
-    if (!latestEntry || (entry.createdAt ?? 0) > (latestEntry.createdAt ?? 0)) {
-      latestEntry = entry;
-    }
-  }
-  return latestEntry;
-}
-
-function clearSeederPeersForRequest(seederPeers, infoHash, requesterId, keepAttemptId = null) {
-  for (const [key, entry] of seederPeers) {
-    if (entry?.infoHash !== infoHash || entry?.requesterId !== requesterId) continue;
-    if (keepAttemptId && entry.attemptId === keepAttemptId) continue;
-    destroyPeer(entry.peer);
-    seederPeers.delete(key);
-  }
-}
-
-function findSeederPeerEntry(seederPeers, infoHash, requesterId, attemptId = null) {
-  const normalizedAttemptId = normalizeAttemptId(attemptId);
-  if (normalizedAttemptId) {
-    return seederPeers.get(getSeederPeerKey(infoHash, requesterId, normalizedAttemptId)) || null;
-  }
-
-  let latestEntry = null;
-  for (const entry of seederPeers.values()) {
-    if (entry?.infoHash !== infoHash || entry?.requesterId !== requesterId) continue;
-    if (!latestEntry || (entry.createdAt ?? 0) > (latestEntry.createdAt ?? 0)) {
-      latestEntry = entry;
-    }
-  }
-  return latestEntry;
 }
 
 function recordSeededHash(projectId, infoHash) {
   if (!projectId || !infoHash) return;
   seededHashes.add(infoHash);
   getOrSet(projectSeededHashes, projectId, () => new Set()).add(infoHash);
-}
-
-function clearProjectPendingSignals(projectId) {
-  for (const [key, entry] of pendingPeerSignals) {
-    if (entry?.projectId !== projectId) continue;
-    removePendingPeerSignalEntry(key);
-  }
 }
 
 function clearProjectSeededHashes(projectId) {
@@ -280,13 +223,13 @@ function isReadableTorrentStore(torrent) {
 async function persistTorrentMetadataForAsset(assetId, isGeneric, meta) {
   if (!meta?.infoHash) return;
 
-  const table = isGeneric ? genericAssets : assets;
-  await db.update(table).set({
+  const { assetTable } = getAssetTableVariant(isGeneric);
+  await db.update(assetTable).set({
     torrent_info_hash: meta.infoHash,
     torrent_name: meta.name,
     torrent_length: meta.length,
     torrent_piece_length: meta.pieceLength,
-  }).where(eq(table.id, assetId)).execute();
+  }).where(eq(assetTable.id, assetId)).execute();
 }
 
 function hasCompleteLocalFile(filePath, expectedLength = null) {
@@ -314,25 +257,12 @@ function classifyError(err) {
   return 'UNKNOWN';
 }
 
-async function computeSha256(filePath) {
-  return new Promise((resolve) => {
-    try {
-      const hash = crypto.createHash('sha256');
-      const stream = fs.createReadStream(filePath);
-      stream.on('data', (c) => hash.update(c));
-      stream.on('end',  () => resolve(hash.digest('hex')));
-      stream.on('error', () => resolve(null));
-    } catch { resolve(null); }
-  });
-}
-
 async function queryAssetRowPresence(assetId, isGeneric) {
-  const expectedTable = isGeneric ? genericAssets : assets;
-  const otherTable = isGeneric ? assets : genericAssets;
+  const { assetTable, otherAssetTable } = getAssetTableVariant(isGeneric);
 
   const [expectedRows, otherRows] = await Promise.all([
-    db.select({ id: expectedTable.id }).from(expectedTable).where(eq(expectedTable.id, assetId)).limit(1).execute(),
-    db.select({ id: otherTable.id }).from(otherTable).where(eq(otherTable.id, assetId)).limit(1).execute(),
+    db.select({ id: assetTable.id }).from(assetTable).where(eq(assetTable.id, assetId)).limit(1).execute(),
+    db.select({ id: otherAssetTable.id }).from(otherAssetTable).where(eq(otherAssetTable.id, assetId)).limit(1).execute(),
   ]);
 
   if (expectedRows.length > 0) return 'expected';
@@ -353,9 +283,7 @@ function emitSyncProgress(assetId, isGeneric, status, progress = 0, error = null
 
 
 async function upsertLocalState(assetId, isGeneric, fields) {
-  const table = isGeneric ? generic_asset_local_state : asset_local_state;
-  const pkCol = isGeneric ? table.generic_asset_id : table.asset_id;
-  const pkKey = isGeneric ? 'generic_asset_id' : 'asset_id';
+  const { stateTable, stateIdCol, stateIdKey } = getAssetTableVariant(isGeneric);
 
   const presence = await queryAssetRowPresence(assetId, isGeneric);
   if (presence === 'other') {
@@ -373,8 +301,8 @@ async function upsertLocalState(assetId, isGeneric, fields) {
   }
 
   try {
-    await db.insert(table).values({ [pkKey]: assetId, ...fields })
-      .onConflictDoUpdate({ target: pkCol, set: fields }).execute();
+    await db.insert(stateTable).values({ [stateIdKey]: assetId, ...fields })
+      .onConflictDoUpdate({ target: stateIdCol, set: fields }).execute();
     return true;
   } catch (err) {
     console.error(`[AssetTorrent] upsertLocalState failed for ${assetId}:`, err?.message);
@@ -383,226 +311,13 @@ async function upsertLocalState(assetId, isGeneric, fields) {
 }
 
 async function getLocalState(assetId, isGeneric) {
-  const table = isGeneric ? generic_asset_local_state : asset_local_state;
-  const pkCol = isGeneric ? table.generic_asset_id : table.asset_id;
+  const { stateTable, stateIdCol } = getAssetTableVariant(isGeneric);
   try {
-    const rows = await db.select().from(table).where(eq(pkCol, assetId)).limit(1).execute();
+    const rows = await db.select().from(stateTable).where(eq(stateIdCol, assetId)).limit(1).execute();
     return rows[0] || null;
   } catch (err) {
     console.warn(`[AssetTorrent] getLocalState failed for ${assetId}:`, err?.message);
     return null;
-  }
-}
-
-// Joins a dedicated room per project (`project-assets-{projectId}`) and sets up
-// two actions: peerRequest (downloader → all) and peerSignal (SDP/ICE relay).
-// Seeder: responds to peerRequest by creating an initiator SimplePeer and
-// injecting it into the live torrent via torrent.addPeer().
-// Downloader: creates a non-initiator SimplePeer, registers it in
-// pendingPeerSignals, and broadcasts a peerRequest.
-
-async function setupSignalingForProject(projectId) {
-  if (signalingActions.has(projectId)) return;
-
-  let room;
-  try {
-    const appId = process.env.TRYSTERO_APP_ID || 'db-conn-tool';
-    room = joinRoom({ appId, rtcPolyfill: RTCPeerConnection }, `project-assets-${projectId}`);
-  } catch (err) {
-    console.error('[AssetTorrent] signaling room creation failed:', err?.message);
-    return;
-  }
-
-  const [sendRequest, receiveRequest] = room.makeAction('peerRequest');
-  const [sendSignal,  receiveSignal]  = room.makeAction('peerSignal');
-
-  // seederPeers: `${infoHash}:${requesterId}:${attemptId}` ? { peer, ... }
-  // Needed so incoming signals from the downloader can be routed back to the
-  // correct initiator peer to complete the WebRTC handshake.
-  const seederPeers = new Map();
-  signalingActions.set(projectId, { room, sendRequest, sendSignal, seederPeers });
-
-  // When a new peer joins the room, re-broadcast any pending download requests
-  // that haven't been answered yet.  This handles the case where the downloader
-  // started before the seeder was visible in the Trystero room (the initial
-  // broadcast at startup went to nobody; the seeder joined later).
-  room.onPeerJoin((peerId) => {
-    for (const entry of pendingPeerSignals.values()) {
-      if (entry?.projectId !== projectId || entry.seederId) continue;
-      if (entry.infoHash) {
-        //console.log(`[AssetTorrent] [Signaling] New peer ${peerId} � re-sending request for ${infoHash}`);
-        sendRequest({ infoHash: entry.infoHash, attemptId: entry.attemptId }, [peerId]);
-      }
-    }
-  });
-
-  room.onPeerLeave((peerId) => {
-    resetPendingSeederForPeer(projectId, peerId).catch((err) => {
-      console.warn('[AssetTorrent] failed to reset pending seeder on leave:', err?.message);
-    });
-  });
-
-  receiveRequest(async ({ infoHash, attemptId }, requesterId) => {
-    const client  = await getWtClient();
-    const torrent = await client.get(infoHash);
-    if (!torrent) return;
-
-    const normalizedAttemptId = normalizeAttemptId(attemptId) || `legacy-${requesterId}`;
-
-    let peer;
-    try { peer = new SimplePeer({ initiator: true, trickle: true, config: WEBRTC_CONFIG }); }
-    catch (err) { console.error('[AssetTorrent] seeder SimplePeer failed:', err?.message); return; }
-    // Assign .id so WebTorrent's _peers Map can track this peer properly
-    // (SimplePeer only exposes ._id privately; conn.id would be undefined).
-    peer.id = `seed-${infoHash}-${normalizedAttemptId}`;
-
-    const key = getSeederPeerKey(infoHash, requesterId, normalizedAttemptId);
-    // Destroy any stale peer for this requester/infoHash before replacing it.
-    clearSeederPeersForRequest(seederPeers, infoHash, requesterId, normalizedAttemptId);
-    seederPeers.set(key, {
-      key,
-      infoHash,
-      requesterId,
-      attemptId: normalizedAttemptId,
-      createdAt: Date.now(),
-      peer,
-    });
-    peer.on('signal', (signal) => sendSignal({ infoHash, attemptId: normalizedAttemptId, signal }, [requesterId]));
-    peer.on('error',  (err)    => { console.warn(`[AssetTorrent] seeder peer error ${infoHash}:`, err?.message); seederPeers.delete(key); });
-    peer.on('close',  ()       => seederPeers.delete(key));
-    try {
-      torrent.addPeer(peer);
-    } catch (err) {
-      console.warn('[AssetTorrent] seeder torrent.addPeer failed:', err?.message);
-      peer.destroy();
-      seederPeers.delete(key);
-    }
-  });
-
-  receiveSignal(({ infoHash, attemptId, signal }, senderId) => {
-    // Path A: signal is from a downloader back to the seeder's initiator peer
-    const seederEntry = findSeederPeerEntry(seederPeers, infoHash, senderId, attemptId);
-    if (seederEntry?.peer) {
-      // The node-datachannel WebRTC polyfill has two bugs in the answer SDP it
-      // produces for the non-initiator peer:
-      //   1. type is incorrectly set to 'offer' instead of 'answer'
-      //   2. a=setup:actpass is illegal in an answer (must be active/passive)
-      // Both are corrected here before forwarding to the seeder's initiator peer.
-      const corrected = (signal?.type === 'offer' && signal.sdp)
-        ? { ...signal, type: 'answer', sdp: signal.sdp.replace(/a=setup:actpass/g, 'a=setup:active') }
-        : signal;
-      //console.log(`[AssetTorrent] [Signaling] Seeder received back-signal for ${infoHash} type=${signal?.type || 'candidate'} (corrected=${corrected?.type || 'candidate'})`);
-      try { seederEntry.peer.signal(corrected); }
-      catch (err) { console.warn(`[AssetTorrent] seeder peer.signal error ${infoHash}:`, err?.message); }
-      return;
-    }
-    // Path B: signal is from the seeder to the downloader's non-initiator peer
-    const entry = findPendingPeerSignalEntry(projectId, infoHash, attemptId, senderId);
-    if (!entry) return;
-    if (!entry.seederId) {
-      entry.seederId = senderId;
-      //console.log(`[AssetTorrent] [Signaling] Seeder ${senderId} answered ${infoHash}`);
-    } else if (entry.seederId !== senderId) {
-      //console.log(`[AssetTorrent] [Signaling] Ignoring signal from unexpected seeder ${senderId} for ${infoHash}; locked to ${entry.seederId}`);
-      return;
-    }
-    try { entry.peer.signal(signal); }
-    catch (err) { console.warn(`[AssetTorrent] peer.signal error ${infoHash}:`, err?.message); }
-  });
-}
-
-function cleanupSignalingPeer(projectId, infoHash, attemptId = null) {
-  const normalizedAttemptId = normalizeAttemptId(attemptId);
-  if (normalizedAttemptId) {
-    removePendingPeerSignalEntry(getPendingPeerSignalKey(projectId, infoHash, normalizedAttemptId));
-    return;
-  }
-  clearPendingPeerSignalsForAsset(projectId, infoHash);
-}
-
-function createDownloaderSignalPeer({ projectId, infoHash, torrent, sig }) {
-  if (!sig || !torrent) return false;
-
-  const attemptId = crypto.randomUUID();
-
-  let sigPeer;
-  try { sigPeer = new SimplePeer({ initiator: false, trickle: true, config: WEBRTC_CONFIG }); }
-  catch (err) {
-    console.warn(`[AssetTorrent] downloader SimplePeer failed ${infoHash}:`, err?.message);
-    return false;
-  }
-  // SimplePeer exposes ._id (private) but not .id.  WebTorrent keys its
-  // _peers Map on conn.id, which remains undefined and breaks duplicate
-  // detection.  Assign a stable .id so addPeer() bookkeeping works.
-  sigPeer.id = `dl-${infoHash}-${attemptId}`;
-
-  clearPendingPeerSignalsForAsset(projectId, infoHash);
-
-  const key = getPendingPeerSignalKey(projectId, infoHash, attemptId);
-  const entry = {
-    key,
-    projectId,
-    infoHash,
-    attemptId,
-    peer: sigPeer,
-    seederId: null,
-    createdAt: Date.now(),
-  };
-
-  sigPeer.on('signal', (signal) => {
-    const currentEntry = pendingPeerSignals.get(key);
-    if (currentEntry?.seederId) {
-      //console.log(`[AssetTorrent] [Signaling] Downloader sending back-signal for ${infoHash} type=${signal?.type || 'candidate'}`);
-      sig.sendSignal({ infoHash, attemptId, signal }, [currentEntry.seederId]);
-    } else {
-      console.warn(`[AssetTorrent] [Signaling] Downloader sigPeer signal fired but seederId not yet set for ${infoHash}`);
-    }
-  });
-
-  // @thaunknown/simple-peer emits 'connect' TWICE inside _maybeReady()
-  // (lines 723 and 748 of lite.js).  Use .once() so the second emission
-  // does not call addPeer() again — which would try to re-pipe the same
-  // stream and throw "Can only pipe to one destination" from streamx.
-  sigPeer.once('connect', () => {
-    try {
-      torrent.addPeer(sigPeer);
-    }
-    catch (err) { console.warn('[AssetTorrent] downloader torrent.addPeer failed:', err?.message); }
-  });
-
-  sigPeer.on('error', (err) => console.warn(`[AssetTorrent] downloader peer error ${infoHash}:`, err?.message));
-  sigPeer.on('close', () => {
-    const currentEntry = pendingPeerSignals.get(key);
-    if (currentEntry?.peer === sigPeer && !torrent.done) {
-      console.warn(`[AssetTorrent] [Signaling] Downloader peer closed for ${infoHash}; awaiting a fresh seeder response`);
-      currentEntry.seederId = null;
-    }
-  });
-
-  pendingPeerSignals.set(key, entry);
-  //console.log(`[AssetTorrent] [Signaling] Broadcasting peerRequest for ${infoHash}`);
-  sig.sendRequest({ infoHash, attemptId });
-  return true;
-}
-
-async function resetPendingSeederForPeer(projectId, peerId) {
-  if (!projectId || !peerId) return;
-
-  const client = await getWtClient();
-  const sig = signalingActions.get(projectId);
-  if (!sig) return;
-
-  for (const entry of pendingPeerSignals.values()) {
-    if (entry?.projectId !== projectId || entry.seederId !== peerId) continue;
-
-    const torrent = await client.get(entry.infoHash);
-    if (!torrent || torrent.done) {
-      cleanupSignalingPeer(projectId, entry.infoHash, entry.attemptId);
-      continue;
-    }
-
-    console.warn(`[AssetTorrent] [Signaling] Seeder ${peerId} left during ${entry.infoHash}; rebuilding downloader peer`);
-    createDownloaderSignalPeer({ projectId, infoHash: entry.infoHash, torrent, sig });
   }
 }
 
@@ -636,8 +351,8 @@ function resolveCandidateAssetPaths(projectId, row) {
   };
 }
 
-async function repairAssetStateTable({ projectId, assetTable, stateTable, isGeneric }) {
-  const stateIdCol = isGeneric ? stateTable.generic_asset_id : stateTable.asset_id;
+async function repairAssetStateTable({ projectId, variant }) {
+  const { assetTable, stateTable, stateIdCol, stateIdKey, isGeneric } = variant;
   const assetRows = await db
     .select({
       id: assetTable.id,
@@ -654,7 +369,7 @@ async function repairAssetStateTable({ projectId, assetTable, stateTable, isGene
   if (!assetRows.length) return { repaired: 0 };
 
   const stateRows = await db.select().from(stateTable).where(inArray(stateIdCol, assetRows.map((row) => row.id))).execute();
-  const stateMap = new Map(stateRows.map((state) => [state[isGeneric ? 'generic_asset_id' : 'asset_id'], state]));
+  const stateMap = new Map(stateRows.map((state) => [state[stateIdKey], state]));
   const active = getOrSet(activeDownloads, projectId, () => new Set());
   let repaired = 0;
 
@@ -690,10 +405,9 @@ async function repairAssetStateTable({ projectId, assetTable, stateTable, isGene
 async function repairProjectAssetStates(projectId) {
   if (!projectId) return { repaired: 0 };
 
-  const results = await Promise.all([
-    repairAssetStateTable({ projectId, assetTable: assets, stateTable: asset_local_state, isGeneric: false }),
-    repairAssetStateTable({ projectId, assetTable: genericAssets, stateTable: generic_asset_local_state, isGeneric: true }),
-  ]);
+  const results = await Promise.all(
+    ASSET_TABLE_VARIANTS.map((variant) => repairAssetStateTable({ projectId, variant }))
+  );
 
   const repaired = results.reduce((sum, result) => sum + (result?.repaired || 0), 0);
   if (repaired > 0) {
@@ -702,6 +416,24 @@ async function repairProjectAssetStates(projectId) {
   }
 
   return { repaired };
+}
+
+function reseedExistingAsset({ projectId, row, filePath, isGeneric }) {
+  return seedAsset({
+    projectId,
+    assetId: row.id,
+    filePath,
+    isGeneric,
+    expectedInfoHash: row.torrent_info_hash,
+    expectedLength: row.torrent_length,
+  })
+    .then((meta) => {
+      if (meta?.infoHash && meta.infoHash !== row.torrent_info_hash) {
+        return persistTorrentMetadataForAsset(row.id, isGeneric, meta);
+      }
+      return null;
+    })
+    .catch(() => {});
 }
 
 
@@ -723,7 +455,7 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
         //console.log(`[AssetTorrent] Seeding: assetId=${assetId} infoHash=${torrent.infoHash}`);
         recordSeededHash(projectId, torrent.infoHash);
         if (enableSignaling) {
-          setupSignalingForProject(projectId).catch(() => {});
+          ensureProjectSignaling(projectId).catch(() => {});
         }
         upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, last_success_at: Date.now(), download_progress: 100 }).catch(() => {});
         emitSyncProgress(assetId, isGeneric, 'seeding', 100);
@@ -738,7 +470,7 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
         if (existing?.done && hasCompleteLocalFile(filePath, expectedLength) && await isReadableTorrentStore(existing)) {
           recordSeededHash(projectId, existing.infoHash);
           if (enableSignaling) {
-            setupSignalingForProject(projectId).catch(() => {});
+            ensureProjectSignaling(projectId).catch(() => {});
           }
           upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, download_progress: 100 }).catch(() => {});
           emitSyncProgress(assetId, isGeneric, 'seeding', 100);
@@ -765,7 +497,7 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
 // images, generate 300-px (sm) and 1400-px (md) variants.  Fully non-blocking.
 async function persistDownloadedAsset(assetId, isGeneric, originalPath) {
   const ext   = path.extname(originalPath).toLowerCase();
-  const table = isGeneric ? genericAssets : assets;
+  const { assetTable } = getAssetTableVariant(isGeneric);
   const logicalOriginalPath = toLogicalStoredAssetPath(originalPath);
 
   if (ext === '.avif') {
@@ -784,13 +516,13 @@ async function persistDownloadedAsset(assetId, isGeneric, originalPath) {
       //console.log(`[AssetTorrent] Image variants generated for ${assetId}`);
     }
 
-    await db.update(table).set({
+    await db.update(assetTable).set({
       path: logicalOriginalPath,
       formats: { original: logicalOriginalPath, sm: logicalSmPath, md: logicalMdPath },
-    }).where(eq(table.id, assetId)).execute();
+    }).where(eq(assetTable.id, assetId)).execute();
   } else {
     // Video / audio: just update the local path so the frontend can find it.
-    await db.update(table).set({ path: logicalOriginalPath }).where(eq(table.id, assetId)).execute();
+    await db.update(assetTable).set({ path: logicalOriginalPath }).where(eq(assetTable.id, assetId)).execute();
   }
 }
 
@@ -835,7 +567,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
     const abortDownload = async () => {
       active.delete(assetId);
-      cleanupSignalingPeer(projectId, infoHash);
+      cleanupAssetSignalingPeer(projectId, infoHash);
       const staleT = await client.get(infoHash);
       if (staleT) await new Promise((res) => client.remove(infoHash, { destroyStore: false }, res));
       settle({ success: false, reason: 'aborted' });
@@ -844,7 +576,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
     const timeoutFn = async () => {
       active.delete(assetId);
-      cleanupSignalingPeer(projectId, infoHash);
+      cleanupAssetSignalingPeer(projectId, infoHash);
       drainQueue(projectId);
       await handleDownloadError({ projectId, assetId, isGeneric, errCode: 'TIMEOUT' });
       settle({ success: false, reason: 'timeout' });
@@ -861,11 +593,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
         if (!torrent) throw new Error('client.add returned null');
 
         // Set up Trystero signaling for tracker-free peer discovery.
-        await setupSignalingForProject(projectId);
-        const sig = signalingActions.get(projectId);
-        if (sig) {
-          createDownloaderSignalPeer({ projectId, infoHash, torrent, sig });
-        }
+        if (await ensureProjectSignaling(projectId)) createDownloaderSignalPeer({ projectId, infoHash, torrent });
 
         torrent.on('warning', (w) => console.warn(`[AssetTorrent] warning ${assetId}:`, w?.message || w));
         // torrent.on('noPeers', (t) => console.warn(`[AssetTorrent] no peers ${assetId} (${t})`)); // Removed to prevent log spam when seeding
@@ -878,7 +606,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
         torrent.on('done', async () => {
           active.delete(assetId);
-          cleanupSignalingPeer(projectId, infoHash);
+          cleanupAssetSignalingPeer(projectId, infoHash);
           try {
             const actualPath = resolveDownloadedFilePath(expected, torrent);
             if (!actualPath) {
@@ -905,7 +633,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
         torrent.on('error', async (err) => {
           active.delete(assetId);
-          cleanupSignalingPeer(projectId, infoHash);
+          cleanupAssetSignalingPeer(projectId, infoHash);
           console.error(`[AssetTorrent] torrent error ${assetId}:`, err?.message);
           await handleDownloadError({ projectId, assetId, isGeneric, errCode: classifyError(err) });
           drainQueue(projectId);
@@ -914,7 +642,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
       } catch (err) {
         active.delete(assetId);
-        cleanupSignalingPeer(projectId, infoHash);
+        cleanupAssetSignalingPeer(projectId, infoHash);
         console.error(`[AssetTorrent] download setup error ${assetId}:`, err?.message);
         handleDownloadError({ projectId, assetId, isGeneric, errCode: classifyError(err) }).catch(() => {});
         drainQueue(projectId);
@@ -962,16 +690,13 @@ function drainQueue(projectId) {
 
 
 async function seedUnseededLocalAssets(projectId) {
-  const tables = [
-    { table: assets,        isGeneric: false },
-    { table: genericAssets, isGeneric: true  },
-  ];
-  for (const { table, isGeneric } of tables) {
+  for (const variant of ASSET_TABLE_VARIANTS) {
+    const { assetTable, isGeneric } = variant;
     try {
       const rows = await db
-        .select({ id: table.id, path: table.path })
-        .from(table)
-        .where(and(eq(table.project_id, projectId), sql`${table.torrent_info_hash} IS NULL`, isNotNull(table.path)))
+        .select({ id: assetTable.id, path: assetTable.path })
+        .from(assetTable)
+        .where(and(eq(assetTable.project_id, projectId), sql`${assetTable.torrent_info_hash} IS NULL`, isNotNull(assetTable.path)))
         .execute();
 
       for (const row of rows) {
@@ -980,11 +705,10 @@ async function seedUnseededLocalAssets(projectId) {
         const meta = await seedAsset({ projectId, assetId: row.id, filePath, isGeneric });
         if (!meta?.infoHash) continue;
 
-        const sha256 = await computeSha256(filePath);
-        const ext    = path.extname(filePath).toLowerCase();
-        const mime   = { '.avif': 'image/avif', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg' }[ext] || 'application/octet-stream';
+        const sha256 = await computeFileSha256(filePath, { swallowErrors: true });
+        const { ext, mime } = getAssetContentInfo(filePath);
 
-        await db.update(table).set({
+        await db.update(assetTable).set({
           torrent_info_hash:    meta.infoHash,
           torrent_name:         meta.name,
           torrent_length:       meta.length,
@@ -992,7 +716,7 @@ async function seedUnseededLocalAssets(projectId) {
           asset_content_ext:    ext,
           asset_content_mime:   mime,
           asset_content_sha256: sha256,
-        }).where(eq(table.id, row.id)).execute();
+        }).where(eq(assetTable.id, row.id)).execute();
 
         //console.log(`[AssetTorrent] Seeded unseeded asset ${row.id} infoHash=${meta.infoHash}`);
       }
@@ -1021,8 +745,9 @@ async function reconcileProject(projectId, specificAssetId = null) {
   try {
     await repairProjectAssetStates(projectId);
     if (!specificAssetId) await seedUnseededLocalAssets(projectId);
-    await reconcileTable({ projectId, isGeneric: false, specificAssetId });
-    await reconcileTable({ projectId, isGeneric: true,  specificAssetId });
+    for (const variant of ASSET_TABLE_VARIANTS) {
+      await reconcileTable({ projectId, variant, specificAssetId });
+    }
   } catch (err) {
     console.error('[AssetTorrent] reconcileProject error:', err);
   } finally {
@@ -1030,10 +755,8 @@ async function reconcileProject(projectId, specificAssetId = null) {
   }
 }
 
-async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
-  const assetTable = isGeneric ? genericAssets : assets;
-  const stateTable = isGeneric ? generic_asset_local_state : asset_local_state;
-  const stateIdCol = isGeneric ? stateTable.generic_asset_id : stateTable.asset_id;
+async function reconcileTable({ projectId, variant, specificAssetId }) {
+  const { assetTable, stateTable, stateIdCol, stateIdKey, isGeneric } = variant;
 
   try {
     const conditions = [eq(assetTable.project_id, projectId), isNotNull(assetTable.torrent_info_hash)];
@@ -1046,7 +769,7 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
     if (!assetRows.length) return;
 
     const localStates = await db.select().from(stateTable).where(inArray(stateIdCol, assetRows.map((r) => r.id))).execute();
-    const stateMap    = new Map(localStates.map((s) => [s[isGeneric ? 'generic_asset_id' : 'asset_id'], s]));
+    const stateMap    = new Map(localStates.map((s) => [s[stateIdKey], s]));
 
     for (const row of assetRows) {
       const state    = stateMap.get(row.id);
@@ -1066,24 +789,12 @@ async function reconcileTable({ projectId, isGeneric, specificAssetId }) {
 
       if ((status === 'seeding' || status === 'available') && hasFile) {
         if (!seededHashes.has(row.torrent_info_hash)) {
-          seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash, expectedLength: row.torrent_length })
-            .then((meta) => {
-              if (meta?.infoHash && meta.infoHash !== row.torrent_info_hash) {
-                return persistTorrentMetadataForAsset(row.id, isGeneric, meta);
-              }
-            })
-            .catch(() => {});
+          reseedExistingAsset({ projectId, row, filePath, isGeneric });
         }
         continue;
       }
       if (hasFile && (status === null || status === 'missing')) {
-        seedAsset({ projectId, assetId: row.id, filePath, isGeneric, expectedInfoHash: row.torrent_info_hash, expectedLength: row.torrent_length })
-          .then((meta) => {
-            if (meta?.infoHash && meta.infoHash !== row.torrent_info_hash) {
-              return persistTorrentMetadataForAsset(row.id, isGeneric, meta);
-            }
-          })
-          .catch(() => {});
+        reseedExistingAsset({ projectId, row, filePath, isGeneric });
         continue;
       }
       if ((status === 'seeding' || status === 'available') && !hasFile) {
@@ -1127,14 +838,8 @@ export async function stopProjectTorrents(projectId) {
   }
   const iv = reconcileIntervals.get(projectId); if (iv) { clearInterval(iv); reconcileIntervals.delete(projectId); }
   const dv = reconcileDebounce.get(projectId);  if (dv) { clearTimeout(dv);  reconcileDebounce.delete(projectId); }
-  const sig = signalingActions.get(projectId);
-  if (sig) {
-    for (const entry of sig.seederPeers.values()) destroyPeer(entry?.peer);
-    try { sig.room?.leave?.(); } catch (err) { console.warn('[AssetTorrent] signaling room leave failed:', err?.message); }
-    signalingActions.delete(projectId);
-  }
+  stopProjectAssetSignaling(projectId);
   await removeProjectClientTorrents(projectId);
-  clearProjectPendingSignals(projectId);
   clearProjectSeededHashes(projectId);
   downloadQueues.delete(projectId);
   activeDownloads.delete(projectId);
@@ -1144,20 +849,14 @@ export async function stopProjectTorrents(projectId) {
 export function destroyTorrentManager() {
   for (const t of reconcileIntervals.values()) clearInterval(t);
   for (const t of reconcileDebounce.values())  clearTimeout(t);
-  for (const sig of signalingActions.values()) {
-    for (const entry of sig.seederPeers.values()) destroyPeer(entry?.peer);
-    try { sig.room?.leave?.(); } catch (err) { console.warn('[AssetTorrent] signaling room leave failed:', err?.message); }
-  }
-  for (const entry of pendingPeerSignals.values()) destroyPeer(entry?.peer);
+  destroyAssetSignaling();
   reconcileIntervals.clear();
   reconcileDebounce.clear();
-  signalingActions.clear();
   activeDownloads.clear();
   downloadQueues.clear();
   downloadAbortFuncs.clear();
   stoppedProjects.clear();
   reconcileRunning.clear();
-  pendingPeerSignals.clear();
   projectSeededHashes.clear();
   seededHashes.clear();
   if (_wtClient && !_wtClient.destroyed) {
@@ -1184,20 +883,21 @@ export async function getProjectSyncStatus(projectId) {
   if (!projectId) return null;
   try {
     await repairProjectAssetStates(projectId);
-    const assetRows = await db.select({ id: assets.id }).from(assets)
-      .where(and(eq(assets.project_id, projectId), isNotNull(assets.torrent_info_hash))).execute();
-    const gaRows = await db.select({ id: genericAssets.id }).from(genericAssets)
-      .where(and(eq(genericAssets.project_id, projectId), isNotNull(genericAssets.torrent_info_hash))).execute();
+    const statusSets = await Promise.all(ASSET_TABLE_VARIANTS.map(async ({ assetTable, stateTable, stateIdCol }) => {
+      const assetRows = await db.select({ id: assetTable.id }).from(assetTable)
+        .where(and(eq(assetTable.project_id, projectId), isNotNull(assetTable.torrent_info_hash))).execute();
 
-    const states = assetRows.length
-      ? await db.select().from(asset_local_state).where(inArray(asset_local_state.asset_id, assetRows.map((r) => r.id))).execute() : [];
-    const gaStates = gaRows.length
-      ? await db.select().from(generic_asset_local_state).where(inArray(generic_asset_local_state.generic_asset_id, gaRows.map((r) => r.id))).execute() : [];
+      const states = assetRows.length
+        ? await db.select().from(stateTable).where(inArray(stateIdCol, assetRows.map((row) => row.id))).execute()
+        : [];
 
-    const all = [...states, ...gaStates];
+      return { total: assetRows.length, states };
+    }));
+
+    const all = statusSets.flatMap((statusSet) => statusSet.states);
     const count = (s) => all.filter((x) => x.sync_status === s).length;
     return {
-      total:           assetRows.length + gaRows.length,
+      total:           statusSets.reduce((sum, statusSet) => sum + statusSet.total, 0),
       seeding:         count('seeding'),
       available:       count('available'),
       downloading:     count('downloading'),

@@ -1,25 +1,15 @@
 import * as fs from 'fs';
 import sharp from 'sharp';
-import crypto from 'crypto';
 import { db } from '../../db/init.js';
 import { assets, genericAssets } from '../../db/schema.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { seedAsset } from './assetTorrentManagerService.js';
 import { resolveLogicalAssetPath, toLogicalAssetFormats } from '../utils/assetPaths.js';
+import { computeFileSha256, getAssetContentInfo } from '../utils/assetMetadata.js';
 
 const sm = 300;
 const md = 1400;
-
-// MIME type map for P2P torrent metadata
-export const MIME_BY_EXT = {
-  '.avif': 'image/avif',
-  '.mp4':  'video/mp4',
-  '.webm': 'video/webm',
-  '.mov':  'video/quicktime',
-  '.mp3':  'audio/mpeg',
-  '.ogg':  'audio/ogg',
-};
 
 export const assetConfig = {
     image: {
@@ -44,19 +34,6 @@ const videoFormats = assetConfig.video.formats;
 const audioFormats = assetConfig.audio.formats;
 
 export const getCroppedUUID = () => uuidv4().slice(0, 8);
-
-/**
- * Compute SHA-256 hex of a file for integrity verification.
- */
-export async function computeFileSha256(filePath) {
-    return new Promise((resolve, reject) => {
-        const hash = crypto.createHash('sha256');
-        const stream = fs.createReadStream(filePath);
-        stream.on('data', (chunk) => hash.update(chunk));
-        stream.on('end', () => resolve(hash.digest('hex')));
-        stream.on('error', reject);
-    });
-}
 
 export const checkAssetType = (filePath) => {
     const ext = path.extname(filePath).toLowerCase().slice(1);
@@ -187,8 +164,7 @@ export async function buildSeededAssetRecord(assetData, isGeneric, disableP2P = 
         console.warn('[assetImportService] SHA-256 computation failed:', err?.message);
     }
 
-    const ext = path.extname(filePath).toLowerCase();
-    const mime = MIME_BY_EXT[ext] || 'application/octet-stream';
+    const { ext, mime } = getAssetContentInfo(filePath);
 
     const torrentFields = {
         torrent_info_hash:    torrentMeta.infoHash,
