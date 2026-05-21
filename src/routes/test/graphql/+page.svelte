@@ -1,8 +1,11 @@
 <script>
     import GraphQLExplorer from "$lib/components/test/GraphQlExplorer.svelte";
+    import GraphqlSchemaExporter from "$lib/components/test/GraphqlSchemaExporter.svelte";
 </script>
 
 <div class="container py-4">
+    <GraphqlSchemaExporter />
+
     <!--<div class="mb-5">
         <h2 class="text-xl font-semibold mb-3">GraphQL Test Pages</h2>
         <div class="list-group">

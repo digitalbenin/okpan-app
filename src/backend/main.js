@@ -50,7 +50,7 @@ import { createGraphQLSchema } from '../db/graphqlDefs.js';
 
 // Handlers
 import { handleExportTranslations, handleImportTranslations } from './handlers/translationHandlers.js';
-import { handleGraphQL } from './handlers/graphqlHandler.js';
+import { handleGraphQL, handleExportGraphQLSchema } from './handlers/graphqlHandler.js';
 import { handlePing, handleFileDialog, handleStructuredDataImport, handleSetCurrentProject, handleGetCurrentProject, handleClearCurrentProject, handleExcelSheetSelection, handleReadFile } from './handlers/systemHandlers.js';
 import { handleImportAssets } from './handlers/assetHandlers.js';
 import { handleSuggestTemplateReuse } from './handlers/templateMatchingHandler.js';
@@ -300,6 +300,7 @@ function registerProjectIpcHandlers() {
 
 function registerDataIpcHandlers() {
   ipcMain.handle('execute-graphql', withGraphQLContext(handleGraphQL));
+  ipcMain.handle('export-graphql-schema', withGraphQLContext(handleExportGraphQLSchema));
   ipcMain.handle('export-translations', withGraphQLContext(handleExportTranslations));
   ipcMain.handle('import-translations', withGraphQLContext(handleImportTranslations));
   ipcMain.handle('import-assets', handleImportAssets);
@@ -469,11 +470,11 @@ function registerPowerMonitorHandlers() {
 // ── App lifecycle ───────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
+  await ensureDatabaseReady();
   registerIpcHandlers();
   registerPowerMonitorHandlers();
   registerMediaProtocol();
   registerWebsiteProtocol();
-  await ensureDatabaseReady();
   createWindow();
 });
 

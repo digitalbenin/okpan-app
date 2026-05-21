@@ -21,15 +21,17 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
             institutions: { type: new GraphQLList(FacetItem) },
             statuses: { type: new GraphQLList(FacetItem) },
             researchFields: {
-                type: new GraphQLList(new GraphQLObjectType({
-                    name: 'ResearchFieldFacet',
-                    fields: () => ({
-                        fieldId: { type: GraphQLString },
-                        fieldName: { type: GraphQLString },
-                        options: { type: new GraphQLList(FacetItem) }
-                    })
-                }))
+                type: new GraphQLList(ResearchFieldFacet)
             }
+        })
+    });
+
+    const ResearchFieldFacet = new GraphQLObjectType({
+        name: 'ResearchFieldFacet',
+        fields: () => ({
+            fieldId: { type: GraphQLString },
+            fieldName: { type: GraphQLString },
+            options: { type: new GraphQLList(FacetItem) }
         })
     });
 
@@ -45,6 +47,7 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
 
     // Add types to schema
     drizzleResult.schema._typeMap.FacetItem = FacetItem;
+    drizzleResult.schema._typeMap.ResearchFieldFacet = ResearchFieldFacet;
     drizzleResult.schema._typeMap.Facets = Facets;
     drizzleResult.schema._typeMap.ObjectSearchResult = ObjectSearchResult;
 

@@ -57,6 +57,14 @@ contextBridge.exposeInMainWorld('api', {
     executeGraphQL: (query, variables, context) => ipcRenderer.invoke('execute-graphql', { query, variables, context }),
 
     /**
+     * Returns the active GraphQL schema as SDL and optionally writes it to disk.
+     * @memberOf preload
+     * @param {string} [outputPath] - Optional path to write the schema file to.
+     * @returns {Promise<{ success: boolean, data?: { schema: string, outputPath?: string }, error?: string }>}
+     */
+    exportGraphQLSchema: (outputPath) => ipcRenderer.invoke('export-graphql-schema', { outputPath }),
+
+    /**
      * Checks whether the main process is reachable.
      * @memberOf preload
      * @returns {Promise<boolean>}

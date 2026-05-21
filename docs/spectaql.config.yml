@@ -1,10 +1,21 @@
+spectaql:
+  targetDir: ./docs/graphql
+  themeDir: spectaql
+  oneFile: true
+
 introspection:
-  schemaFile: docs/schema.graphql
+  schemaFile: ./docs/graphql/schema.graphql
+  removeTrailingPeriodFromDescriptions: false
+  fieldExpansionDepth: 0
+  hideUnusedTypes: true
+
+extensions:
+  graphqlScalarExamples: false
 
 info:
-  title: Database Connection Tool API
-  description: GraphQL API Documentation
-
-servers:
-  - url: http://localhost:3000/graphql
-    description: Development Server 
+  title: GraphQL API Reference
+  x-htmlTitle: GraphQL API Reference
+  description: Generated from the exported SDL in docs/graphql/schema.graphql.
+  x-hideIntroItems: true
+  x-hidePoweredBy: true
+  x-url: ipc://execute-graphql

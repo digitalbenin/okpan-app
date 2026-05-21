@@ -35,12 +35,13 @@ import {
  * with all custom queries, mutations, and scalar types.
  *
  * @param {import('drizzle-orm/libsql').LibSQLDatabase} db - Drizzle database instance.
+ * @param {{ relationsDepthLimit?: number }} [options] - Optional schema generation overrides.
  * @returns {{ schema: import('graphql').GraphQLSchema, resolvers: object }}
  */
-export function createGraphQLSchema(db) {
+export function createGraphQLSchema(db, options = {}) {
     // Get the schema from drizzle-graphql
     const drizzleResult = buildSchema(db, {
-        relationsDepthLimit: 4
+        relationsDepthLimit: typeof options.relationsDepthLimit === 'number' ? options.relationsDepthLimit : 4
     });
 
     // Store the drizzle type mappings in the schema for later use

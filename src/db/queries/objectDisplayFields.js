@@ -32,6 +32,8 @@ export const createObjectDisplayFieldsTransformedQuery = (db, drizzleResult) => 
             name: { type: TextWithTranslationsType }
         })
     });
+    drizzleResult.schema._typeMap.Translation = TranslationType;
+    drizzleResult.schema._typeMap.TextWithTranslations = TextWithTranslationsType;
     drizzleResult.schema._typeMap.ObjectDisplayFieldTransformed = ObjectDisplayFieldTransformed;
 
     return {

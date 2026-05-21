@@ -3,7 +3,21 @@
  * @namespace backend.handlers.graphqlHandler
  * @memberof backend.handlers
  */
-import { graphql } from 'graphql';
+import fs from 'fs';
+import path from 'path';
+import { GraphQLSchema, graphql, printSchema } from 'graphql';
+import { createGraphQLSchema } from '../../db/graphqlDefs.js';
+
+const createReachableSchema = (sourceSchema) => new GraphQLSchema({
+    description: sourceSchema.description,
+    query: sourceSchema.getQueryType(),
+    mutation: sourceSchema.getMutationType(),
+    subscription: sourceSchema.getSubscriptionType(),
+    directives: sourceSchema.getDirectives(),
+    astNode: sourceSchema.astNode,
+    extensionASTNodes: sourceSchema.extensionASTNodes,
+    extensions: sourceSchema.extensions
+});
 
 /**
  * Execute a GraphQL query against the provided schema and resolvers.
@@ -31,6 +45,47 @@ export const handleGraphQL = async (_event, { query, variables }, { schema, reso
         return { success: true, data: result.data };
     } catch (error) {
         console.error('Error executing GraphQL:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Export the active GraphQL schema as SDL.
+ * When `outputPath` is provided, the SDL is also written to disk.
+ *
+ * @memberof backend.handlers.graphqlHandler
+ * @param {Electron.IpcMainInvokeEvent} _event - IPC event.
+ * @param {{ outputPath?: string, mode?: 'docs' | 'full', relationsDepthLimit?: number }} [payload] - Optional export payload.
+ * @param {{ schema: import('graphql').GraphQLSchema, db?: import('drizzle-orm/libsql').LibSQLDatabase }} context - GraphQL context.
+ * @returns {Promise<{ success: boolean, data?: { schema: string, outputPath?: string }, error?: string }>}
+ */
+export const handleExportGraphQLSchema = async (_event, payload = {}, { schema, db }) => {
+    try {
+        const exportMode = payload?.mode === 'full' ? 'full' : 'docs';
+        const relationsDepthLimit = Number.isInteger(payload?.relationsDepthLimit) ? payload.relationsDepthLimit : 0;
+        const exportSchema = exportMode === 'full' || !db
+            ? schema
+            : createReachableSchema(createGraphQLSchema(db, { relationsDepthLimit }).schema);
+        const sdl = printSchema(exportSchema);
+        const requestedPath = typeof payload?.outputPath === 'string' ? payload.outputPath.trim() : '';
+
+        if (!requestedPath) {
+            return { success: true, data: { schema: sdl } };
+        }
+
+        const resolvedPath = path.resolve(requestedPath);
+        fs.mkdirSync(path.dirname(resolvedPath), { recursive: true });
+        fs.writeFileSync(resolvedPath, sdl);
+
+        return {
+            success: true,
+            data: {
+                schema: sdl,
+                outputPath: resolvedPath
+            }
+        };
+    } catch (error) {
+        console.error('Error exporting GraphQL schema:', error);
         return { success: false, error: error.message };
     }
 };
