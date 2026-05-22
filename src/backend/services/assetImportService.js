@@ -105,7 +105,6 @@ export const makeAVIF = async (imagePath, destPath) => {
     };
 };
 
-// Generic processor for media files (video and audio)
 /**
  * Copy a video or audio file into the project asset folder.
  * @memberof backend.services.assetImportService
@@ -139,7 +138,7 @@ export const processMediaFile = async (filePath, destPath, assetType) => {
     return { original: finalPath };
 };
 
-// Unified file processor that routes to the correct processor by asset type
+
 /**
  * Process a single asset file and return the normalized asset payload.
  * @memberof backend.services.assetImportService

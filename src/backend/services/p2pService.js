@@ -164,20 +164,12 @@ export function setPresenceNotifier(notifier) {
 }
 
 // Ensure Node/Electron main has WebSocket globals for Trystero matchmaking.
-// WE NO LONGER POLLUTE globalThis.RTCPeerConnection because doing so tricks WebTorrent
-// into detecting WebRTC and crashing `node-datachannel`'s delicate C++ N-API lifecycle!
-// Trystero receives RTCPeerConnection explicitly via `joinRoom` anyway.
+// Trystero receives RTCPeerConnection explicitly via `joinRoom`.
 if (typeof globalThis.WebSocket === 'undefined') {
   globalThis.WebSocket = WebSocket
 }
 
-/**
- * Start a Trystero-backed Yjs provider for the given project.
- * Uses the shared Y.Doc from projectCache.
- * @param {string} projectId
- * @param {Object} options
- * @param {Function} [options.onDataChange] Callback when remote data is ingested
- */
+
 /**
  * Start a Trystero-backed Yjs provider for a project.
  * @memberof backend.services.p2pService
@@ -394,9 +386,7 @@ export async function startP2PForProject(projectId, options = {}) {
   return provider
 }
 
-/**
- * Stop and remove the provider for the given project.
- */
+
 /**
  * Stop the Trystero-backed Yjs provider for a project.
  * @memberof backend.services.p2pService
@@ -440,9 +430,7 @@ export async function stopP2PForProject(projectId) {
   emitProjectPresence(projectId)
 }
 
-/**
- * Get the provider instance for a project.
- */
+
 /**
  * Get the current P2P provider for a project.
  * @memberof backend.services.p2pService
@@ -453,9 +441,7 @@ export function getP2PProvider(projectId) {
   return providers.get(projectId)?.provider || null
 }
 
-/**
- * Get the number of connected peers for a project.
- */
+
 /**
  * Get the current peer count for a project.
  * @memberof backend.services.p2pService

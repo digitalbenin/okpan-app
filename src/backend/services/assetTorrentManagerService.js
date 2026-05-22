@@ -1,14 +1,14 @@
 /**
  * Asset torrent manager service for P2P seeding, downloading, and reconcile
  * scheduling of project assets.
+ * Local-state tables (asset_local_state / generic_asset_local_state) are never
+ * Yjs-synced, preventing write-back loops. Torrent metadata on assets/generic_assets
+ * is written once by the seeder and is immutable after that.
  *
  * @namespace backend.services.assetTorrentManagerService
  * @memberof backend.services
  */
-// Manages WebTorrent seeding/downloading for asset P2P sync.
-// Local-state tables (asset_local_state / generic_asset_local_state) are never
-// Yjs-synced, preventing write-back loops. Torrent metadata on assets/generic_assets
-// is written once by the seeder and is immutable after that.
+
 
 import fs from 'fs';
 import path from 'path';
