@@ -42,6 +42,7 @@ import { sendToAllWindows, notifyProjectDataChanged, notifyProjectPresence } fro
 import { broadcastNetworkStatus, getCurrentNetworkStatus, setNetworkStatus, startConnectivityProbe, stopConnectivityProbe } from './services/connectivityService.js';
 import { registerMediaProtocol } from './protocols/media.js';
 import { registerWebsiteProtocol } from './protocols/website.js';
+import log from 'electron-log/main'; 
 
 // Database
 import { db, ensureDatabaseReady } from '../db/init.js';
@@ -86,6 +87,7 @@ import { setDataChangeNotifier } from './services/changeLogTailerService.js';
 import { bootstrapProjectRuntime } from './services/projectRuntimeService.js';
 import { setMainWindowContents, destroyTorrentManager } from './services/assetTorrentManagerService.js';
 
+
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const MIN_WINDOW_WIDTH = 800;
@@ -127,6 +129,14 @@ const PRIVILEGED_SCHEMES = [
     }
   }
 ];
+
+// -- Log initialisation ─────────────────────────────────────────────────────────────
+
+// configure electron-log to write to a file and the console, with different levels for each
+log.transports.file.level = 'warn'; 
+log.transports.console.level = 'debug';
+
+Object.assign(console, log.functions);
 
 // ── Protocol scheme registration ───────────────────────────────────────────
 
