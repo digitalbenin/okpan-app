@@ -135,7 +135,8 @@ const findAssetPath = async (assetName, seedDataPath, subfolders = ['images', 'e
  * Expected files in `seedDataPath`: `institutions.json`, `objects.json`,
  * `data_sources.json`, `edo_designations.json`.
  *
- * @param {{ seedDataPath?: string }} [options]
+ * @param {Object} [options]
+ * @param {string} [options.seedDataPath] - Optional path to the seed data directory.
  * @returns {Promise<void>}
  * @ignore
  */

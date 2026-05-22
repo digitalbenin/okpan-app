@@ -12,7 +12,7 @@ import { findMatchingTemplates } from '../services/templateMatchingService.js';
  * @param {Array<string>} inputHeaders - Column headers to match against.
  * @param {string} projectId - Target project ID.
  * @param {string|null} [institutionId] - Optional institution scope filter.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{success: boolean, matchingTemplates: Array.<Object>, inputHeaders: Array.<string>, projectId: string, institutionId: (string|null), totalMatches: number, error: (string|undefined)}>}
  */
 export async function handleSuggestTemplateReuse(event, inputHeaders, projectId, institutionId = null) {
     try {

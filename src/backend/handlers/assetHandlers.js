@@ -14,10 +14,11 @@ const getProgress = (progress, total) => {
 }
 /**
  * Import one or more asset files into the current project.
+ * @function handleImportAssets
  * @memberof backend.handlers.assetHandlers
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} data - Import payload.
- * @returns {Promise<Object>} Result with `errors`, `createdAssets`, and `files`.
+ * @returns {Promise.<{errors: Array.<Object>, createdAssets: Array.<Object>, files: Array.<string>}>}
  */
 const handleImportAssets = async (event, data) => {
     let errors = []

@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for assetsList related database queries and mutations.
+ *
+ * @namespace db.customQueries.assetsList
+ */
 import { sql, eq, aliasedTable, countDistinct } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLInt } from 'graphql';
 import * as dbSchema from '../schema.js';

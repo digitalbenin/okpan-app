@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for institutionsBulkUpdate related database queries and mutations.
+ *
+ * @namespace db.customQueries.institutionsBulkUpdate
+ */
 import { eq } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema.js';
@@ -50,3 +55,4 @@ export const createInstitutionsBulkUpdateMutation = (db, drizzleResult) => {
         }
     };
 };
+

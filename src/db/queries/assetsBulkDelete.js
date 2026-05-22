@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for assetsBulkDelete related database queries and mutations.
+ *
+ * @namespace db.customQueries.assetsBulkDelete
+ */
 import { inArray } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema.js';
@@ -85,3 +90,4 @@ export const createAssetsBulkDeleteMutation = (db, drizzleResult) => {
         }
     };
 };
+

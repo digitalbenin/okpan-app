@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for projectCreate related database queries and mutations.
+ *
+ * @namespace db.customQueries.projectCreate
+ */
 import { and, eq, gt, sql } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema.js';

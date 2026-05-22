@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for objectImport related database queries and mutations.
+ *
+ * @namespace db.customQueries.objectImport
+ */
 import { sql, eq } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString, GraphQLInt } from 'graphql';
 import * as dbSchema from '../schema.js';

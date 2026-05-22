@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for entitySearch related database queries and mutations.
+ *
+ * @namespace db.customQueries.entitySearch
+ */
 import { sql, eq, aliasedTable, or } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema.js';

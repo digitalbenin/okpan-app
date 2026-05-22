@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for objectSearch related database queries and mutations.
+ *
+ * @namespace db.customQueries.objectSearch
+ */
 import { sql, eq, aliasedTable, countDistinct, inArray, and, or } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLInt, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema.js';
@@ -638,3 +643,4 @@ export const createObjectSearchQuery = (db, drizzleResult) => {
         }
     };
 };
+

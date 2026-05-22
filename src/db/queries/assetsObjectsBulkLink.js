@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for assetsObjectsBulkLink related database queries and mutations.
+ *
+ * @namespace db.customQueries.assetsObjectsBulkLink
+ */
 import { and, eq } from 'drizzle-orm';
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLString, GraphQLInputObjectType } from 'graphql';
 import * as dbSchema from '../schema.js';

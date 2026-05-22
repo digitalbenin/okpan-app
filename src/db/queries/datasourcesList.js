@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for datasourcesList related database queries and mutations.
+ *
+ * @namespace db.customQueries.datasourcesList
+ */
 import { sql, eq, aliasedTable } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema.js';

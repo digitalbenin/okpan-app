@@ -16,6 +16,7 @@ import { applyImportPreset, describeImportPresets } from '../services/importPres
 
 /**
  * Respond to a ping request.
+ * @function handlePing
  * @memberof backend.handlers.systemHandlers
  * @returns {string}
  */
@@ -58,10 +59,11 @@ async function listFilesRecursively(dirPath) {
 
 /**
  * Open a file or directory picker and return the selected files.
+ * @function handleFileDialog
  * @memberof backend.handlers.systemHandlers
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Dialog options.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{canceled: boolean, filePaths: Array.<string>, files: (Array.<{path: string, name: string, size: number}>|undefined)}>}
  */
 export const handleFileDialog = async (event, options) => {
     const imageFilters = [
@@ -123,10 +125,11 @@ export const handleFileDialog = async (event, options) => {
 
 /**
  * Open or parse a structured data file for import.
+ * @function handleStructuredDataImport
  * @memberof backend.handlers.systemHandlers
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Import options.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{success: boolean, canceled: boolean, data: (Object|Array.<Object>|null), error: (string|undefined)}>}
  */
 export const handleStructuredDataImport = async (event, options = {}) => {
     const filters = [
@@ -319,10 +322,11 @@ async function finalizeParsedData(parsedData, selectedPreset) {
 
 /**
  * Store the current project ID in the local cache.
+ * @function handleSetCurrentProject
  * @memberof backend.handlers.systemHandlers
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {string} projectId - Project ID to cache.
- * @returns {Object}
+ * @returns {{success: boolean, projectId: (string|undefined), error: (string|undefined)}}
  */
 export const handleSetCurrentProject = (event, projectId) => {
     try {
@@ -336,9 +340,10 @@ export const handleSetCurrentProject = (event, projectId) => {
 
 /**
  * Read the current cached project ID.
+ * @function handleGetCurrentProject
  * @memberof backend.handlers.systemHandlers
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
- * @returns {Object}
+ * @returns {{success: boolean, projectId: (string|null|undefined), error: (string|undefined)}}
  */
 export const handleGetCurrentProject = (event) => {
     try {
@@ -352,10 +357,11 @@ export const handleGetCurrentProject = (event) => {
 
 /**
  * Parse a selected worksheet from an Excel file.
+ * @function handleExcelSheetSelection
  * @memberof backend.handlers.systemHandlers
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Sheet selection options.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{success: boolean, format: (string|undefined), multiPage: (boolean|undefined), data: (Array.<Object>|null), error: (string|null|undefined), selectedSheet: (string|undefined)}>}
  */
 export const handleExcelSheetSelection = async (event, options) => {
     const { filePath, sheetName } = options;
@@ -420,9 +426,10 @@ export const handleExcelSheetSelection = async (event, options) => {
 
 /**
  * Clear the cached project ID and stop related sync processes.
+ * @function handleClearCurrentProject
  * @memberof backend.handlers.systemHandlers
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
  */
 export const handleClearCurrentProject = async (event) => {
     try {

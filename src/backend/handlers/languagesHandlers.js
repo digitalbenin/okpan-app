@@ -10,7 +10,7 @@ import { languages as countriesLanguages } from 'countries-list';
  * @memberof backend.handlers.languagesHandlers
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Handler options.
- * @returns {Promise<Object>} Result object with `success`, `result`, or `error`.
+ * @returns {Promise.<{success: boolean, result: (Array.<{code: string, name: string, native: string, englishName: string, rtl: boolean}>|undefined), error: (string|undefined)}>}
  */
 export async function handleListLanguages(event, options = {}) {
   try {

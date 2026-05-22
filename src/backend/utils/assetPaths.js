@@ -20,6 +20,7 @@ export const LOGICAL_ASSET_ROOT = 'src/assets/project_assets';
 
 /**
  * Convert a filesystem path to forward-slash form for stable comparisons.
+ * @function toPosixPath
  * @memberof backend.utils.assetPaths
  * @param {string} filePath - Path to normalize.
  * @returns {string}
@@ -30,9 +31,10 @@ export function toPosixPath(filePath) {
 
 /**
  * Normalize a stored asset formats payload into an object.
+ * @function normalizeAssetFormats
  * @memberof backend.utils.assetPaths
  * @param {Object|string|null|undefined} value - Raw formats payload.
- * @returns {Object}
+ * @returns {Object.<string, *>}
  */
 export function normalizeAssetFormats(value) {
   if (!value) {
@@ -64,6 +66,7 @@ function normalizeAssetBasePath({ assetBasePath, userDataPath } = {}) {
 
 /**
  * Resolve the absolute base directory that stores project assets.
+ * @function resolveAssetBasePath
  * @memberof backend.utils.assetPaths
  * @param {Object} [options={}] - Path resolution options.
  * @param {string} [options.userDataPath] - Explicit Electron user data path.
@@ -86,6 +89,7 @@ export function resolveAssetBasePath({ userDataPath } = {}) {
 
 /**
  * Resolve the absolute asset directory for a specific project.
+ * @function resolveProjectAssetPath
  * @memberof backend.utils.assetPaths
  * @param {string} projectId - Project identifier.
  * @param {Object} [options={}] - Path resolution options.
@@ -99,6 +103,7 @@ export function resolveProjectAssetPath(projectId, options = {}) {
 
 /**
  * Resolve a logical or relative asset reference to an absolute file path.
+ * @function resolveLogicalAssetPath
  * @memberof backend.utils.assetPaths
  * @param {string} filePath - Stored asset path reference.
  * @param {Object} [options={}] - Path resolution options.
@@ -126,6 +131,7 @@ export function resolveLogicalAssetPath(filePath, options = {}) {
 
 /**
  * Resolve an asset file reference with a caller-provided path resolver.
+ * @function resolveAssetFilePath
  * @memberof backend.utils.assetPaths
  * @param {string} filePath - Stored asset path reference.
  * @param {Function} [resolvePath=resolveLogicalAssetPath] - Path resolver.
@@ -146,6 +152,7 @@ export function resolveAssetFilePath(filePath, resolvePath = resolveLogicalAsset
 
 /**
  * Collect the primary asset file and all derived format files for a row.
+ * @function collectAssetFilePaths
  * @memberof backend.utils.assetPaths
  * @param {Object} assetRow - Asset database row or equivalent payload.
  * @param {Function} [resolvePath=resolveLogicalAssetPath] - Path resolver.
@@ -172,6 +179,7 @@ export function collectAssetFilePaths(assetRow, resolvePath = resolveLogicalAsse
 
 /**
  * Normalize a single stored asset path into a project-scoped logical reference.
+ * @function normalizeProjectAssetPathReference
  * @memberof backend.utils.assetPaths
  * @param {string} filePath - Stored asset path reference.
  * @param {string} projectId - Project identifier.
@@ -204,11 +212,12 @@ export function normalizeProjectAssetPathReference(filePath, projectId, options 
 
 /**
  * Normalize all derived asset format paths for a project-scoped asset row.
+ * @function normalizeProjectAssetFormats
  * @memberof backend.utils.assetPaths
  * @param {Object} formats - Asset formats map.
  * @param {string} projectId - Project identifier.
  * @param {Object} [options={}] - Path normalization options.
- * @returns {Object}
+ * @returns {Object.<string, (string|null|undefined)>}
  */
 export function normalizeProjectAssetFormats(formats, projectId, options = {}) {
   if (!formats || typeof formats !== 'object') {
@@ -225,6 +234,7 @@ export function normalizeProjectAssetFormats(formats, projectId, options = {}) {
 
 /**
  * Normalize the path fields of a single asset row for project export/restore.
+ * @function normalizeProjectAssetRow
  * @memberof backend.utils.assetPaths
  * @param {Object} assetRow - Asset database row or equivalent payload.
  * @param {string} projectId - Project identifier.
@@ -245,6 +255,7 @@ export function normalizeProjectAssetRow(assetRow, projectId, options = {}) {
 
 /**
  * Normalize the path fields of multiple asset rows for a single project.
+ * @function normalizeProjectAssetRows
  * @memberof backend.utils.assetPaths
  * @param {Object[]} rows - Asset rows to normalize.
  * @param {string} projectId - Project identifier.
@@ -259,6 +270,7 @@ export function normalizeProjectAssetRows(rows, projectId, options = {}) {
 
 /**
  * Convert an absolute asset path into the logical path stored by the app.
+ * @function toLogicalStoredAssetPath
  * @memberof backend.utils.assetPaths
  * @param {string} filePath - Absolute or logical asset path.
  * @param {Object} [options={}] - Path normalization options.
@@ -289,10 +301,11 @@ export function toLogicalStoredAssetPath(filePath, options = {}) {
 
 /**
  * Convert every asset format path in a map into logical stored form.
+ * @function toLogicalAssetFormats
  * @memberof backend.utils.assetPaths
  * @param {Object} formats - Asset formats map.
  * @param {Object} [options={}] - Path normalization options.
- * @returns {Object}
+ * @returns {Object.<string, (string|null|undefined)>}
  */
 export function toLogicalAssetFormats(formats, options = {}) {
   const normalizedFormats = formats && typeof formats === 'object' ? formats : {};

@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for institutionsBulkDelete related database queries and mutations.
+ *
+ * @namespace db.customQueries.institutionsBulkDelete
+ */
 import { inArray } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema.js';
@@ -51,3 +56,4 @@ export const createInstitutionsBulkDeleteMutation = (db, drizzleResult) => {
         }
     };
 };
+

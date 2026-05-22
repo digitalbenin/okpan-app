@@ -22,6 +22,7 @@ import { clearDelayedReconcileStart, scheduleDelayedReconcileStart } from '../se
  * @memberof backend.handlers.snapshotHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {string} projectId
+ * @returns {Promise.<{success: boolean, result: (Object|undefined), error: (string|undefined)}>}
  */
 export async function handleCreateSnapshot(_event, projectId) {
   try {
@@ -42,6 +43,7 @@ export async function handleCreateSnapshot(_event, projectId) {
  * @memberof backend.handlers.snapshotHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {string} projectId
+ * @returns {Promise.<{success: boolean, result: (Object|undefined), error: (string|undefined)}>}
  */
 export async function handleHydrateSnapshot(_event, projectId) {
   try {
@@ -72,6 +74,7 @@ export async function handleHydrateSnapshot(_event, projectId) {
  * @memberof backend.handlers.snapshotHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {string} projectId
+ * @returns {Promise.<{success: boolean, snapshots: (Array.<Object>|undefined), error: (string|undefined)}>}
  */
 export async function handleListRecoverySnapshots(_event, projectId) {
   try {
@@ -92,6 +95,7 @@ export async function handleListRecoverySnapshots(_event, projectId) {
  * @memberof backend.handlers.snapshotHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {string|Object} payload - Project ID or payload containing `projectId` and optional `reason`.
+ * @returns {Promise.<{success: boolean, snapshot: (Object|undefined), error: (string|undefined)}>}
  */
 export async function handleCreateRecoverySnapshot(_event, payload) {
   try {
@@ -122,6 +126,7 @@ export async function handleCreateRecoverySnapshot(_event, payload) {
  * @param {Object} payload - Payload containing `projectId` and `snapshotId`.
  * @param {Object} notifiers - Notification callbacks injected from the main process.
  *   BrowserWindow-dependent callback injected from the main process.
+ * @returns {Promise.<{success: boolean, result: (Object|undefined), error: (string|undefined)}>}
  */
 export async function handleRestoreRecoverySnapshot(event, payload, { notifyProjectDataChanged }) {
   try {
@@ -163,6 +168,7 @@ export async function handleRestoreRecoverySnapshot(event, payload, { notifyProj
  * @memberof backend.handlers.snapshotHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {Object} payload - Payload containing `projectId` and `snapshotId`.
+ * @returns {Promise.<{success: boolean, result: (Object|undefined), error: (string|undefined)}>}
  */
 export async function handleDeleteRecoverySnapshot(_event, payload) {
   try {
@@ -188,6 +194,7 @@ export async function handleDeleteRecoverySnapshot(_event, payload) {
  * @memberof backend.handlers.snapshotHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {string} projectId
+ * @returns {Promise.<{success: boolean, status: (Object|undefined), error: (string|undefined)}>}
  */
 export async function handleGetAssetSyncStatus(_event, projectId) {
   try {
@@ -208,6 +215,7 @@ export async function handleGetAssetSyncStatus(_event, projectId) {
  * @memberof backend.handlers.snapshotHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {string|Object} payload - Project ID or payload containing `projectId` and optional `assetId`.
+ * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
  */
 export async function handleTriggerAssetReconcile(_event, payload) {
   try {

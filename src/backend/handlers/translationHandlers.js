@@ -11,12 +11,13 @@ import { interface_languages, interface_translations } from '../../db/schema.js'
 
 /**
  * Export interface translations to a JSON file.
+ * @function handleExportTranslations
  * @memberof backend.handlers.translationHandlers
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {string} filePath - Path to save to; triggers a save dialog if omitted.
  * @param {Object} options - Handler options.
  * @param {Object} options.db - Database connection.
- * @returns {Promise<Object>} Result of the export operation.
+ * @returns {Promise.<{success: boolean, message: (string|undefined), filePath: (string|undefined), error: (string|undefined)}>}
  */
 export const handleExportTranslations = async (event, filePath, { db }) => {
     try {
@@ -62,12 +63,13 @@ export const handleExportTranslations = async (event, filePath, { db }) => {
 
 /**
  * Import interface translations from a JSON file.
+ * @function handleImportTranslations
  * @memberof backend.handlers.translationHandlers
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {string} filePath - Path to read from; triggers an open dialog if omitted.
  * @param {Object} options - Handler options.
  * @param {Object} options.db - Database connection.
- * @returns {Promise<Object>} Result of the import operation.
+ * @returns {Promise.<{success: boolean, message: (string|undefined), stats: ({imported: number, updated: number, errors: number, total: number}|undefined), error: (string|undefined)}>}
  */
 export const handleImportTranslations = async (event, filePath, { db }) => {
     try {

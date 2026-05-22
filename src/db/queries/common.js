@@ -5,9 +5,9 @@ import * as dbSchema from '../schema.js';
 /**
  * @typedef {Object} ResolverDefinition
  * @property {string} name - The GraphQL field name registered in the schema
- * @property {import('graphql').GraphQLOutputType} type - The return type
- * @property {Array<{name: string, type: import('graphql').GraphQLInputType, description: string}>} args
- * @property {function(*, {[key: string]: *}): Promise<*>} resolve - Async resolver; only declare context/info if actually used
+ * @property {Object} type - The GraphQL return type
+ * @property {Array<Object>} args - Field arguments passed to the resolver definition
+ * @property {Function} resolve - Async resolver; only declare context/info if actually used
  */
 
 // Custom GraphQL JSON scalar that serialises DB strings to objects and
@@ -74,7 +74,7 @@ export const GraphQLJSON = new GraphQLScalarType({
  * @param {object} drizzleResult - Object returned by `buildSchema`.
  * @param {string} typeName - Name of the GraphQL object type to patch (e.g. `'InstitutionsSelectItem'`).
  * @param {string} fieldName - Name of the new count field to add.
- * @param {import('graphql').GraphQLOutputType} [type] - GraphQL type for the field; defaults to `Int`.
+ * @param {Object} [type] - GraphQL type for the field; defaults to `Int`.
  */
 export const addCountField = (drizzleResult, typeName, fieldName, type = drizzleResult.schema._typeMap.Int) => {
     drizzleResult.schema._typeMap[typeName]._fields[fieldName] = {
@@ -91,7 +91,7 @@ export const addCountField = (drizzleResult, typeName, fieldName, type = drizzle
  * @param {object} table - Drizzle table to count rows from.
  * @param {string} foreignKeyField - Column name used as the GROUP BY key (e.g. `'institution_id'`).
  * @param {string} countAlias - Alias applied to both the subquery and the count column.
- * @returns {import('drizzle-orm').Subquery}
+ * @returns {Object}
  */
 export const createCountSubquery = (db, table, foreignKeyField, countAlias) => {
     return db

@@ -21,11 +21,12 @@ const createReachableSchema = (sourceSchema) => new GraphQLSchema({
 
 /**
  * Execute a GraphQL query against the provided schema and resolvers.
+ * @function handleGraphQL
  * @memberof backend.handlers.graphqlHandler
  * @param {Electron.IpcMainInvokeEvent} _event - IPC event.
  * @param {Object} payload - Query payload with `query` and optional `variables`.
  * @param {Object} context - Execution context.
- * @returns {Promise<Object>} Result object containing either `data` or `errors`.
+ * @returns {Promise.<{success: boolean, data: (Object|undefined), errors: (Array.<Object>|undefined), error: (string|undefined)}>}
  */
 export const handleGraphQL = async (_event, { query, variables }, { schema, resolvers, db }) => {
     try {
@@ -53,11 +54,17 @@ export const handleGraphQL = async (_event, { query, variables }, { schema, reso
  * Export the active GraphQL schema as SDL.
  * When `outputPath` is provided, the SDL is also written to disk.
  *
+ * @function handleExportGraphQLSchema
  * @memberof backend.handlers.graphqlHandler
  * @param {Electron.IpcMainInvokeEvent} _event - IPC event.
- * @param {{ outputPath?: string, mode?: 'docs' | 'full', relationsDepthLimit?: number }} [payload] - Optional export payload.
- * @param {{ schema: import('graphql').GraphQLSchema, db?: import('drizzle-orm/libsql').LibSQLDatabase }} context - GraphQL context.
- * @returns {Promise<{ success: boolean, data?: { schema: string, outputPath?: string }, error?: string }>}
+ * @param {Object} [payload] - Optional export payload.
+ * @param {string} [payload.outputPath] - Optional target path for writing the SDL file.
+ * @param {'docs'|'full'} [payload.mode] - Export mode (`docs` for reachable schema, `full` for full schema).
+ * @param {number} [payload.relationsDepthLimit] - Maximum relation depth when generating docs schema.
+ * @param {Object} context - GraphQL context.
+ * @param {GraphQLSchema} context.schema - GraphQL schema instance.
+ * @param {Object} [context.db] - Optional database instance used to build docs schema.
+ * @returns {Promise.<{success: boolean, data: ({schema: string, outputPath: (string|undefined)}|undefined), error: (string|undefined)}>}
  */
 export const handleExportGraphQLSchema = async (_event, payload = {}, { schema, db }) => {
     try {

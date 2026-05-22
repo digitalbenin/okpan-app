@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for projectsList related database queries and mutations.
+ *
+ * @namespace db.customQueries.projectsList
+ */
 import { sql, eq, aliasedTable, isNotNull } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema.js';

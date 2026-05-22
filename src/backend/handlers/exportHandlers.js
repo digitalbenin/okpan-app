@@ -23,7 +23,7 @@ export { buildCounts, makeExportResult, buildObjectSearchConditions } from '../u
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Export options.
  * @param {Object} options.db - Database connection.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{canceled: (boolean|undefined), success: (boolean|undefined), error: (string|undefined)}>}
  */
 export async function handleExportProject(event, options, { db }) {
     try {
@@ -107,7 +107,7 @@ export async function handleExportProject(event, options, { db }) {
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Export options.
  * @param {Object} options.db - Database connection.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{canceled: (boolean|undefined), success: (boolean|undefined), error: (string|undefined)}>}
  */
 export async function handleExportConnections(event, options, { db }) {
   try {
@@ -148,7 +148,7 @@ export async function handleExportConnections(event, options, { db }) {
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Import options.
  * @param {Object} options.db - Database connection.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{canceled: (boolean|undefined), success: (boolean|undefined), error: (string|undefined)}>}
  */
 export async function handleImportConnections(event, options, { db }) {
   try {
@@ -182,7 +182,7 @@ export async function handleImportConnections(event, options, { db }) {
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Export options.
  * @param {Object} options.db - Database connection.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{canceled: (boolean|undefined), success: (boolean|undefined), error: (string|undefined)}>}
  */
 export async function handleExportConnectionTypeCsv(event, options, { db }) {
   try {
@@ -244,7 +244,7 @@ export async function handleExportConnectionTypeCsv(event, options, { db }) {
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Import options.
  * @param {Object} options.db - Database connection.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{canceled: (boolean|undefined), success: (boolean|undefined), error: (string|undefined)}>}
  */
 export async function handleImportConnectionTypeCsv(event, options, { db }) {
   try {
@@ -285,7 +285,7 @@ export async function handleImportConnectionTypeCsv(event, options, { db }) {
  * @param {Electron.IpcMainInvokeEvent} _event - IPC event.
  * @param {Object} options - Export options.
  * @param {Object} options.app - Electron app instance.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{success: (boolean|undefined), error: (string|undefined)}>}
  */
 export async function handleExportStaticWebsite(_event, options, { app }) {
   try {

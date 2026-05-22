@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for projectById related database queries and mutations.
+ *
+ * @namespace db.customQueries.projectById
+ */
 import { sql, eq, aliasedTable } from 'drizzle-orm';
 import * as dbSchema from '../schema.js';
 import { addCountField, createCountSubquery, createTextFieldWithTranslations, processTranslations } from './common.js';

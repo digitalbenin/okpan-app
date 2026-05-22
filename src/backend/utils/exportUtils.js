@@ -9,6 +9,7 @@ import * as dbSchema from '../../db/schema.js';
 
 /**
  * Sanitize a user-visible filename for filesystem-safe export output.
+ * @function sanitizeFilename
  * @memberof backend.utils.exportUtils
  * @param {string} value - Proposed filename.
  * @param {string} [fallback='export'] - Fallback value when the input is empty.
@@ -26,6 +27,7 @@ export function sanitizeFilename(value, fallback = 'export') {
 
 /**
  * Build item counts for export result payloads.
+ * @function buildCounts
  * @memberof backend.utils.exportUtils
  * @param {Object} [options={}] - Count sources.
  * @param {Object[]} [options.objects=[]] - Exported objects.
@@ -47,13 +49,14 @@ export function buildCounts({
 
 /**
  * Create the standard export response returned by export handlers/services.
+ * @function makeExportResult
  * @memberof backend.utils.exportUtils
  * @param {Object} options - Export result fields.
  * @param {string} options.filePath - Written file path.
  * @param {boolean} options.zipped - Whether the export was archived.
  * @param {Object} options.counts - Exported entity counts.
  * @param {string} options.fallbackMode - Non-zip mode label.
- * @returns {{filePath:string, mode:string, counts:Object}}
+ * @returns {{filePath: string, mode: string, counts: {objects: number, assets: number, institutions: number}}}
  */
 export function makeExportResult({ filePath, zipped, counts, fallbackMode }) {
   return { filePath, mode: zipped ? 'zip' : fallbackMode, counts };
@@ -61,6 +64,7 @@ export function makeExportResult({ filePath, zipped, counts, fallbackMode }) {
 
 /**
  * Build Drizzle conditions for project object export queries.
+ * @function buildObjectSearchConditions
  * @memberof backend.utils.exportUtils
  * @param {Object} args - Search filters.
  * @param {string} args.project_id - Project identifier.
@@ -70,7 +74,7 @@ export function makeExportResult({ filePath, zipped, counts, fallbackMode }) {
  * @param {string[]} [args.ontologyFieldIds] - Ontology fields to search.
  * @param {Array<Object|string>} [args.researchFieldFilters] - Research field filters.
  * @param {string[]} [args.excludeObjectIds] - Object ids to exclude.
- * @returns {Array}
+ * @returns {Array.<*>}
  */
 export function buildObjectSearchConditions(args) {
   const { project_id, institutionIds, status, ontologyQuery, ontologyFieldIds, researchFieldFilters, excludeObjectIds } = args || {};

@@ -27,6 +27,7 @@ import {
  * @memberof backend.handlers.projectHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {Object} payload - Payload containing `projectId` and `password`.
+ * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
  */
 export async function handleSetProjectPassword(_event, { projectId, password }) {
   try {
@@ -45,6 +46,7 @@ export async function handleSetProjectPassword(_event, { projectId, password }) 
  * @memberof backend.handlers.projectHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {Object} payload - Payload containing `projectId` and optional `password`.
+ * @returns {Promise.<{success: boolean, projectId: (string|undefined), error: (string|undefined)}>}
  */
 export async function handleJoinP2P(_event, { projectId, password }) {
   try {
@@ -65,6 +67,7 @@ export async function handleJoinP2P(_event, { projectId, password }) {
  * @memberof backend.handlers.projectHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {string} projectId
+ * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
  */
 export async function handleSuspendP2P(_event, projectId) {
   try {
@@ -94,6 +97,7 @@ export async function handleSuspendP2P(_event, projectId) {
  * @param {string|Object} payload - Project ID or payload containing `projectId` and optional `password`.
  * @param {Object} notifiers - Notification callbacks injected from the main process.
  *   BrowserWindow-dependent callbacks injected from the main process.
+ * @returns {Promise.<{success: boolean, projectId: (string|undefined), skipped: (boolean|undefined), reason: (string|undefined), error: (string|undefined)}>}
  */
 export async function handleReconnectP2P(event, payload, { notifyProjectDataChanged, notifyProjectPresence }) {
   const projectId = typeof payload === 'string' ? payload : payload?.projectId;

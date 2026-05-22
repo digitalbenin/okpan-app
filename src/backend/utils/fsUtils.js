@@ -55,6 +55,7 @@ async function ensureWritable(targetPath) {
 
 /**
  * Ensure a directory exists before writing files into it.
+ * @function ensureDir
  * @memberof backend.utils.fsUtils
  * @param {string} dirPath - Directory path to create.
  * @returns {Promise<void>}
@@ -65,6 +66,7 @@ export async function ensureDir(dirPath) {
 
 /**
  * Write a JSON value to disk with pretty formatting.
+ * @function writeJsonFile
  * @memberof backend.utils.fsUtils
  * @param {string} filePath - Destination JSON file path.
  * @param {*} value - Serializable JSON value.
@@ -77,9 +79,10 @@ export async function writeJsonFile(filePath, value) {
 
 /**
  * Read and parse a JSON file from disk.
+ * @function readJsonFile
  * @memberof backend.utils.fsUtils
  * @param {string} filePath - JSON file path.
- * @returns {Promise<*>}
+ * @returns {Promise.<(Object|Array.<*>|string|number|boolean|null)>}
  */
 export async function readJsonFile(filePath) {
   const raw = await fsPromises.readFile(filePath, 'utf-8');
@@ -88,6 +91,7 @@ export async function readJsonFile(filePath) {
 
 /**
  * Copy a file if it exists, creating the destination directory when needed.
+ * @function copyFileIfExists
  * @memberof backend.utils.fsUtils
  * @param {string} sourcePath - Source file path.
  * @param {string} destinationPath - Destination file path.
@@ -105,10 +109,11 @@ export async function copyFileIfExists(sourcePath, destinationPath) {
 
 /**
  * Delete the primary and derived asset files referenced by an asset row.
+ * @function removeAssetFilesFromDisk
  * @memberof backend.utils.fsUtils
  * @param {Object} assetRow - Asset database row or equivalent payload.
  * @param {Function} resolvePath - Resolver that maps stored paths to disk paths.
- * @returns {Promise<Object[]>}
+ * @returns {Promise.<Array.<{path: string, error: string}>>}
  */
 export async function removeAssetFilesFromDisk(assetRow, resolvePath) {
   const fileErrors = [];
@@ -130,6 +135,7 @@ export async function removeAssetFilesFromDisk(assetRow, resolvePath) {
 
 /**
  * Remove a file or directory and suppress any thrown cleanup error.
+ * @function removePathQuietly
  * @memberof backend.utils.fsUtils
  * @param {string} targetPath - File or directory to remove.
  * @param {Object} [options={}] - Removal options.
@@ -146,6 +152,7 @@ export async function removePathQuietly(targetPath, options = {}) {
 
 /**
  * Remove a file or directory with retries for transient Windows lock errors.
+ * @function removePathRobust
  * @memberof backend.utils.fsUtils
  * @param {string} targetPath - File or directory to remove.
  * @param {Object} [options={}] - Removal options.

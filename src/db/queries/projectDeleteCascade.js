@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for projectDeleteCascade related database queries and mutations.
+ *
+ * @namespace db.customQueries.projectDeleteCascade
+ */
 import { promises as fs } from 'fs';
 import path from 'path';
 import { eq, inArray, or } from 'drizzle-orm';
@@ -486,3 +491,4 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
         }
     };
 };
+

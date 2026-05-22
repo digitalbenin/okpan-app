@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for researchFieldObjectsCount related database queries and mutations.
+ *
+ * @namespace db.customQueries.researchFieldObjectsCount
+ */
 import { sql, eq } from 'drizzle-orm';
 import * as dbSchema from '../schema.js';
 
@@ -22,3 +27,4 @@ export const createResearchFieldObjectsCountQuery = (db, drizzleResult) => {
         }
     };
 };
+

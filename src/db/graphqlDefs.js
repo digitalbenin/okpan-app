@@ -34,9 +34,10 @@ import {
  * Builds the full GraphQL schema by extending the auto-generated drizzle-graphql base
  * with all custom queries, mutations, and scalar types.
  *
- * @param {import('drizzle-orm/libsql').LibSQLDatabase} db - Drizzle database instance.
- * @param {{ relationsDepthLimit?: number }} [options] - Optional schema generation overrides.
- * @returns {{ schema: import('graphql').GraphQLSchema, resolvers: object }}
+ * @param {Object} db - Drizzle database instance.
+ * @param {Object} [options] - Optional schema generation overrides.
+ * @param {number} [options.relationsDepthLimit] - Relation depth used by drizzle-graphql.
+ * @returns {Object} Object containing `schema` and `resolvers`.
  */
 export function createGraphQLSchema(db, options = {}) {
     // Get the schema from drizzle-graphql

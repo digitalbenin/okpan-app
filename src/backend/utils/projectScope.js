@@ -41,9 +41,10 @@ export const FK_ORDER = [
 
 /**
  * Build the snapshot manifest used when closing or exporting a project state.
+ * @function getProjectSnapshotManifest
  * @memberof backend.utils.projectScope
  * @param {string} projectId - Project identifier.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{projectId: string, watermarkId: (string|null), createdAppVersion: (string|null)}>}
  */
 export async function getProjectSnapshotManifest(projectId) {
   if (!projectId) throw new Error('getProjectSnapshotManifest requires projectId');

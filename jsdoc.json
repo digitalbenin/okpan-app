@@ -20,13 +20,18 @@
   },
   "templates": {
     "default": {
-      "useLongnameInNav": true
+      "useLongnameInNav": true,
+      "staticFiles": {
+        "include": [
+          "docs/jsdoc-theme.css"
+        ]
+      }
     }
   },
   "docdash": {
     "static": false,
     "sort": true,
-    "scripts": ["../jsdoc-theme.css"],
+    "scripts": ["jsdoc-theme.css"],
     "sectionOrder": [
       "Namespaces",
       "Modules",

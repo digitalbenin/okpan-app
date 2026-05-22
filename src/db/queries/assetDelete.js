@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for assetDelete related database queries and mutations.
+ *
+ * @namespace db.customQueries.assetDelete
+ */
 import { eq } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from 'graphql';
 import * as dbSchema from '../schema.js';

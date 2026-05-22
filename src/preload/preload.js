@@ -1,5 +1,5 @@
-/**
- * Preload script — runs in a privileged context between the main and renderer processes.
+﻿/**
+ * Preload script - runs in a privileged context between the main and renderer processes.
  * Exposes a curated API to the renderer via `contextBridge` so the renderer never
  * needs direct access to Node.js or Electron internals.
  *
@@ -12,47 +12,15 @@
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
-/**
- * Standard result shape returned by most IPC handlers.
- * @typedef {Object} preload.IpcResult
- * @property {boolean} success - Whether the operation succeeded.
- * @property {string} [error] - Error message if the operation failed.
- */
-
-/**
- * Current user's identity as stored in global settings.
- * @typedef {Object} preload.GlobalProfile
- * @property {string|null} clientId - Unique device identifier (UUID).
- * @property {string|null} username - Display name.
- */
-
-/**
- * App-wide global settings snapshot.
- * @typedef {Object} preload.GlobalSettings
- * @property {string|null} clientId - Unique device identifier (UUID).
- * @property {string|null} interfaceLanguage - BCP 47 locale code (e.g. `'en'`, `'it'`).
- * @property {string|null} appVersion - Running application version string.
- */
-
-/**
- * Progress event emitted during an asset import operation.
- * @typedef {Object} preload.ImportProgressEvent
- * @property {'start'|'progress'|'complete'} status - Stage of the import.
- * @property {number} [total] - Total number of assets to import.
- * @property {number} [processed] - Number of assets processed so far.
- * @property {number} [percent] - Completion percentage (0–100).
- */
-
 contextBridge.exposeInMainWorld('api', {
-    // ─── Core ─────────────────────────────────────────────────────────────────
-
+    // --- Core ---
     /**
      * Executes a GraphQL query or mutation against the local database.
      * @memberOf preload
      * @param {string} query - GraphQL query or mutation string.
      * @param {Object} [variables] - GraphQL variables.
      * @param {Object} [context] - Additional context passed to the resolver.
-     * @returns {Promise<Object>} GraphQL execution result `{ data, errors }`.
+        * @returns {Promise.<{success: boolean, data: (Object|undefined), errors: (Array.<Object>|undefined), error: (string|undefined)}>}
      */
     executeGraphQL: (query, variables, context) => ipcRenderer.invoke('execute-graphql', { query, variables, context }),
 
@@ -60,7 +28,7 @@ contextBridge.exposeInMainWorld('api', {
      * Returns the active GraphQL schema as SDL and optionally writes it to disk.
      * @memberOf preload
      * @param {string} [outputPath] - Optional path to write the schema file to.
-     * @returns {Promise<{ success: boolean, data?: { schema: string, outputPath?: string }, error?: string }>}
+        * @returns {Promise.<{success: boolean, data: ({schema: string, outputPath: (string|undefined)}|undefined), error: (string|undefined)}>}
      */
     exportGraphQLSchema: (outputPath) => ipcRenderer.invoke('export-graphql-schema', { outputPath }),
 
@@ -74,15 +42,14 @@ contextBridge.exposeInMainWorld('api', {
     /**
      * Returns OS and application version information.
      * @memberOf preload
-     * @returns {Promise<Object>}
+        * @returns {Promise.<{arch: string, platform: string, isDev: boolean}>}
      */
     getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
 
-    // ─── File operations ──────────────────────────────────────────────────────
-
+    // --- File operations ---
     /**
      * Returns the native filesystem path for a File object.
-     * Synchronous — uses `webUtils`, not IPC.
+     * Synchronous - uses `webUtils`, not IPC.
      * @memberOf preload
      * @param {File} file
      * @returns {string}
@@ -105,13 +72,12 @@ contextBridge.exposeInMainWorld('api', {
      */
     readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
 
-    // ─── Import / Export ──────────────────────────────────────────────────────
-
+    // --- Import / Export ---
     /**
      * Imports asset files (images, media) into the project.
      * @memberOf preload
      * @param {Object} data - Import options including `projectId`, `institutionId`, and `files`.
-     * @returns {Promise<{createdAssets: Array<Object>}>}
+        * @returns {Promise.<{errors: Array.<Object>, createdAssets: Array.<Object>, files: Array.<string>}>}
      */
     importAssets: (data) => ipcRenderer.invoke('import-assets', data),
 
@@ -119,7 +85,7 @@ contextBridge.exposeInMainWorld('api', {
      * Imports translations from a file into the database.
      * @memberOf preload
      * @param {string} filePath
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     importTranslations: (filePath) => ipcRenderer.invoke('import-translations', filePath),
 
@@ -127,7 +93,7 @@ contextBridge.exposeInMainWorld('api', {
      * Exports translations from the database to a file.
      * @memberOf preload
      * @param {string} filePath
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     exportTranslations: (filePath) => ipcRenderer.invoke('export-translations', filePath),
 
@@ -135,7 +101,7 @@ contextBridge.exposeInMainWorld('api', {
      * Imports structured data (e.g. CSV, JSON) into the project.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<Object>}
+        * @returns {Promise.<{success: boolean, canceled: boolean, data: (Object|Array.<Object>|null), error: (string|undefined)}>}
      */
     importStructuredData: (options) => ipcRenderer.invoke('import-structured-data', options),
 
@@ -143,7 +109,7 @@ contextBridge.exposeInMainWorld('api', {
      * Opens a sheet-selection dialog for a multi-sheet Excel file.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<Object>}
+        * @returns {Promise.<{success: boolean, format: (string|undefined), multiPage: (boolean|undefined), data: (Array.<Object>|null|undefined), error: (string|null|undefined), selectedSheet: (string|undefined)}>}
      */
     excelSheetSelection: (options) => ipcRenderer.invoke('excel-sheet-selection', options),
 
@@ -151,7 +117,7 @@ contextBridge.exposeInMainWorld('api', {
      * Exports the full project to a portable archive.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     exportProject: (options) => ipcRenderer.invoke('export-project', options),
 
@@ -159,7 +125,7 @@ contextBridge.exposeInMainWorld('api', {
      * Exports the project's connection records to a file.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     exportConnections: (options) => ipcRenderer.invoke('export-connections', options),
 
@@ -167,7 +133,7 @@ contextBridge.exposeInMainWorld('api', {
      * Imports connection records from a file into the project.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     importConnections: (options) => ipcRenderer.invoke('import-connections', options),
 
@@ -175,7 +141,7 @@ contextBridge.exposeInMainWorld('api', {
      * Exports all connections of a given type to a CSV file.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     exportConnectionTypeCsv: (options) => ipcRenderer.invoke('export-connection-type-csv', options),
 
@@ -183,17 +149,16 @@ contextBridge.exposeInMainWorld('api', {
      * Imports connections from a CSV file for a specific connection type.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     importConnectionTypeCsv: (options) => ipcRenderer.invoke('import-connection-type-csv', options),
 
-    // ─── Backup ───────────────────────────────────────────────────────────────
-
+    // --- Backup ---
     /**
      * Creates a full backup of the project database.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     createBackup: (options) => ipcRenderer.invoke('backup-create', options),
 
@@ -208,7 +173,7 @@ contextBridge.exposeInMainWorld('api', {
      * Validates a backup file before restoring.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     checkBackupFile: (options) => ipcRenderer.invoke('backup-check-file', options),
 
@@ -216,12 +181,11 @@ contextBridge.exposeInMainWorld('api', {
      * Restores the database from a backup file.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     restoreBackup: (options) => ipcRenderer.invoke('backup-restore', options),
 
-    // ─── AI suggestions ───────────────────────────────────────────────────────
-
+    // --- AI suggestions ---
     /**
      * Suggests matching existing objects for a set of assets using AI embeddings.
      * @memberOf preload
@@ -245,12 +209,11 @@ contextBridge.exposeInMainWorld('api', {
      * @memberOf preload
      * @param {Array<string>} inputHeaders
      * @param {string} projectId
-     * @returns {Promise<Object>}
+        * @returns {Promise.<{success: boolean, matchingTemplates: Array.<Object>, inputHeaders: Array.<string>, projectId: string, institutionId: (string|null|undefined), totalMatches: number, error: (string|undefined)}>}
      */
     suggestTemplateReuse: (inputHeaders, projectId) => ipcRenderer.invoke('suggest-template-reuse', inputHeaders, projectId),
 
-    // ─── Settings & profile ───────────────────────────────────────────────────
-
+    // --- Settings & profile ---
     /**
      * Returns the list of available interface languages.
      * @memberOf preload
@@ -262,7 +225,7 @@ contextBridge.exposeInMainWorld('api', {
     /**
      * Returns the app-wide global settings.
      * @memberOf preload
-     * @returns {Promise<preload.GlobalSettings>}
+        * @returns {Promise.<{clientId: (string|null), interfaceLanguage: (string|null), appVersion: (string|null)}>}
      */
     getGlobalSettings: () => ipcRenderer.invoke('global-settings:get'),
 
@@ -270,14 +233,14 @@ contextBridge.exposeInMainWorld('api', {
      * Persists the preferred UI locale.
      * @memberOf preload
      * @param {string} locale - BCP 47 language tag (e.g. `'en'`, `'it'`).
-     * @returns {Promise<preload.GlobalSettings>}
+        * @returns {Promise.<{clientId: (string|null), interfaceLanguage: (string|null), appVersion: (string|null)}>}
      */
     updateGlobalInterfaceLanguage: (locale) => ipcRenderer.invoke('global-settings:update-interface-language', locale),
 
     /**
      * Returns the current user's profile (clientId and username).
      * @memberOf preload
-     * @returns {Promise<preload.GlobalProfile>}
+        * @returns {Promise.<{clientId: (string|null), username: (string|null)}>}
      */
     getGlobalProfile: () => ipcRenderer.invoke('global-profile:get'),
 
@@ -286,49 +249,46 @@ contextBridge.exposeInMainWorld('api', {
      * Falls back to a randomly generated username when `username` is blank.
      * @memberOf preload
      * @param {string} username
-     * @returns {Promise<preload.GlobalProfile>}
+        * @returns {Promise.<{clientId: (string|null), username: (string|null)}>}
      */
     updateGlobalUsername: (username) => ipcRenderer.invoke('global-profile:update', username),
 
-    // ─── Embeddings ───────────────────────────────────────────────────────────
-
+    // --- Embeddings ---
     /**
      * Triggers computation of AI embeddings for all records that are missing them.
      * @memberOf preload
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<number>}
      */
     computeAllMissingEmbeddings: () => ipcRenderer.invoke('compute-all-missing-embeddings'),
 
-    // ─── Project session ──────────────────────────────────────────────────────
-
+    // --- Project session ---
     /**
      * Marks a project as the currently active one in the main process.
      * @memberOf preload
      * @param {string} projectId
-     * @returns {Promise<void>}
+        * @returns {Promise.<{success: boolean, projectId: (string|undefined), hydrated: (boolean|undefined), error: (string|undefined)}>}
      */
     setCurrentProject: (projectId) => ipcRenderer.invoke('set-current-project', projectId),
 
     /**
      * Returns the ID of the currently active project, or `null` if none is open.
      * @memberOf preload
-     * @returns {Promise<string|null>}
+        * @returns {Promise.<{success: boolean, projectId: (string|null|undefined), error: (string|undefined)}>}
      */
     getCurrentProject: () => ipcRenderer.invoke('get-current-project'),
 
     /**
      * Clears the currently active project from the main process cache.
      * @memberOf preload
-     * @returns {Promise<void>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     clearCurrentProject: () => ipcRenderer.invoke('clear-current-project'),
 
-    // ─── P2P & networking ─────────────────────────────────────────────────────
-
+    // --- P2P & networking ---
     /**
      * Returns the current local network status (online/offline, IP addresses, etc.).
      * @memberOf preload
-     * @returns {Promise<Object>}
+        * @returns {Promise.<{online: boolean, source: string, ts: number, netOnline: (boolean|null)}>}
      */
     getNetworkStatus: () => ipcRenderer.invoke('network-status:get'),
 
@@ -336,7 +296,7 @@ contextBridge.exposeInMainWorld('api', {
      * Returns the list of peers currently connected to a shared project.
      * @memberOf preload
      * @param {string} projectId
-     * @returns {Promise<Array<Object>>}
+        * @returns {Promise.<number>}
      */
     getProjectPeers: (projectId) => ipcRenderer.invoke('get-project-peers', projectId),
 
@@ -344,7 +304,7 @@ contextBridge.exposeInMainWorld('api', {
      * Returns the presence state (online users) for a shared project.
      * @memberOf preload
      * @param {string} projectId
-     * @returns {Promise<Object>}
+        * @returns {Promise.<{peers: Array.<Object>, count: number}>}
      */
     getProjectPresence: (projectId) => ipcRenderer.invoke('project-presence:get', projectId),
 
@@ -353,7 +313,7 @@ contextBridge.exposeInMainWorld('api', {
      * @memberOf preload
      * @param {string} projectId
      * @param {string} password
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     setProjectPassword: (projectId, password) => ipcRenderer.invoke('project-set-password', { projectId, password }),
 
@@ -362,7 +322,7 @@ contextBridge.exposeInMainWorld('api', {
      * @memberOf preload
      * @param {string} projectId
      * @param {string} password
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, projectId: (string|undefined), error: (string|undefined)}>}
      */
     joinP2PProject: (projectId, password) => ipcRenderer.invoke('project-join-p2p', { projectId, password }),
 
@@ -370,7 +330,7 @@ contextBridge.exposeInMainWorld('api', {
      * Pauses P2P sync for a project without removing it.
      * @memberOf preload
      * @param {string} projectId
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     suspendP2PProject: (projectId) => ipcRenderer.invoke('project-suspend-p2p', projectId),
 
@@ -379,17 +339,16 @@ contextBridge.exposeInMainWorld('api', {
      * @memberOf preload
      * @param {string} projectId
      * @param {string} [password]
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, skipped: (boolean|undefined), reason: (string|undefined), error: (string|undefined)}>}
      */
     reconnectP2PProject: (projectId, password) => ipcRenderer.invoke('project-reconnect-p2p', { projectId, password }),
 
-    // ─── Snapshots ────────────────────────────────────────────────────────────
-
+    // --- Snapshots ---
     /**
      * Creates a Yjs snapshot of the project's CRDT state.
      * @memberOf preload
      * @param {string} projectId
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, result: (Object|undefined), error: (string|undefined)}>}
      */
     createSnapshot: (projectId) => ipcRenderer.invoke('snapshot-create', projectId),
 
@@ -397,7 +356,7 @@ contextBridge.exposeInMainWorld('api', {
      * Hydrates the local database from an existing Yjs snapshot.
      * @memberOf preload
      * @param {string} projectId
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, result: (Object|undefined), error: (string|undefined)}>}
      */
     hydrateFromSnapshot: (projectId) => ipcRenderer.invoke('snapshot-hydrate', projectId),
 
@@ -405,7 +364,7 @@ contextBridge.exposeInMainWorld('api', {
      * Lists all recovery snapshots for a project.
      * @memberOf preload
      * @param {string} projectId
-     * @returns {Promise<Array<Object>>}
+        * @returns {Promise.<{success: boolean, snapshots: (Array.<Object>|undefined), error: (string|undefined)}>}
      */
     listRecoverySnapshots: (projectId) => ipcRenderer.invoke('recovery-snapshots-list', projectId),
 
@@ -414,7 +373,7 @@ contextBridge.exposeInMainWorld('api', {
      * @memberOf preload
      * @param {string} projectId
      * @param {string|null} [reason=null] - Human-readable reason for the snapshot.
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, snapshot: (Object|undefined), error: (string|undefined)}>}
      */
     createRecoverySnapshot: (projectId, reason = null) => ipcRenderer.invoke('recovery-snapshots-create', { projectId, reason }),
 
@@ -423,7 +382,7 @@ contextBridge.exposeInMainWorld('api', {
      * @memberOf preload
      * @param {string} projectId
      * @param {string} snapshotId
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, result: (Object|undefined), error: (string|undefined)}>}
      */
     restoreRecoverySnapshot: (projectId, snapshotId) => ipcRenderer.invoke('recovery-snapshots-restore', { projectId, snapshotId }),
 
@@ -432,17 +391,16 @@ contextBridge.exposeInMainWorld('api', {
      * @memberOf preload
      * @param {string} projectId
      * @param {string} snapshotId
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, result: (Object|undefined), error: (string|undefined)}>}
      */
     deleteRecoverySnapshot: (projectId, snapshotId) => ipcRenderer.invoke('recovery-snapshots-delete', { projectId, snapshotId }),
 
-    // ─── Asset P2P sync ───────────────────────────────────────────────────────
-
+    // --- Asset P2P sync ---
     /**
      * Returns the current P2P sync status for all assets in a project.
      * @memberOf preload
      * @param {string} projectId
-     * @returns {Promise<Object>}
+        * @returns {Promise.<{success: boolean, status: (Object|undefined), error: (string|undefined)}>}
      */
     getAssetSyncStatus: (projectId) => ipcRenderer.invoke('asset-sync-status', projectId),
 
@@ -452,23 +410,22 @@ contextBridge.exposeInMainWorld('api', {
      * @memberOf preload
      * @param {string} projectId
      * @param {string|null} [assetId=null] - Target a specific asset, or `null` for a full project reconcile.
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     triggerAssetReconcile: (projectId, assetId = null) => ipcRenderer.invoke('asset-sync-reconcile', { projectId, assetId }),
 
-    // ─── Website export ───────────────────────────────────────────────────────
-
+    // --- Website export ---
     /**
      * Exports the project as a static website archive.
      * @memberOf preload
      * @param {Object} options
-     * @returns {Promise<preload.IpcResult>}
+        * @returns {Promise.<{success: boolean, error: (string|undefined)}>}
      */
     exportStaticWebsite: (options) => ipcRenderer.invoke('export-static-website', options),
 
     /**
      * Opens the built-in preview window for a project.
-     * Uses `ipcRenderer.send` (fire-and-forget) — the preview window is
+     * Uses `ipcRenderer.send` (fire-and-forget)  the preview window is
      * owned and managed entirely by the main process.
      * @memberOf preload
      * @param {string} projectId
@@ -476,17 +433,16 @@ contextBridge.exposeInMainWorld('api', {
      */
     openPreview: (projectId) => ipcRenderer.send('open-preview', projectId),
 
-    // ─── Debug ────────────────────────────────────────────────────────────────
-
+    // --- Debug ---
     /**
      * Dumps the raw Yjs document state for debugging.
      * @memberOf preload
      * @param {string} projectId
-     * @returns {Promise<Object>}
+        * @returns {Promise.<{meta: Object, tables: Object, guid: string, rowCounts: Object, totalRows: number}>}
      */
     inspectYDoc: (projectId) => ipcRenderer.invoke('ydoc-dump', projectId),
 
-    // ─── Event listeners ──────────────────────────────────────────────────────
+    // --- Event listeners ---
     // Each subscription returns an unsubscribe function for cleanup.
     // The Electron `event` object is stripped before forwarding to the callback.
 
@@ -505,7 +461,7 @@ contextBridge.exposeInMainWorld('api', {
     /**
      * Subscribes to global profile change events (username or clientId updated).
      * @memberOf preload
-     * @param {function(preload.GlobalProfile): void} callback
+     * @param {function(Object): void} callback - Receives payload with shape: <code>{ clientId: string|null, username: string|null }</code>.
      * @returns {function(): void} Unsubscribe function.
      */
     onGlobalProfileChanged: (callback) => {
@@ -541,7 +497,7 @@ contextBridge.exposeInMainWorld('api', {
     /**
      * Subscribes to progress events during an asset import operation.
      * @memberOf preload
-     * @param {function(preload.ImportProgressEvent): void} callback
+     * @param {function(Object): void} callback - Receives payload with shape: <code>{ status: 'start'|'progress'|'complete', total?: number, processed?: number, percent?: number }</code>.
      * @returns {function(): void} Unsubscribe function.
      */
     onImportProgress: (callback) => {
@@ -562,3 +518,7 @@ contextBridge.exposeInMainWorld('api', {
         return () => ipcRenderer.removeListener('asset-sync-progress', subscription);
     }
 });
+
+
+
+

@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for institutionsList related database queries and mutations.
+ *
+ * @namespace db.customQueries.institutionsList
+ */
 import { sql, eq, aliasedTable, and } from 'drizzle-orm';
 import { GraphQLList, GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema.js';

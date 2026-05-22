@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for templatePropagate related database queries and mutations.
+ *
+ * @namespace db.customQueries.templatePropagate
+ */
 import { eq, inArray } from 'drizzle-orm';
 import { GraphQLNonNull, GraphQLObjectType } from 'graphql';
 import * as dbSchema from '../schema.js';
@@ -262,3 +267,4 @@ export const createDeleteTemplateAndCleanupMutation = (db, drizzleResult) => {
         }
     };
 };
+

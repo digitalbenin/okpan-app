@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for objectsOntologyFieldsUnlink related database queries and mutations.
+ *
+ * @namespace db.customQueries.objectsOntologyFieldsUnlink
+ */
 import { and, eq } from 'drizzle-orm';
 import { GraphQLNonNull } from 'graphql';
 import * as dbSchema from '../schema.js';
@@ -40,3 +45,4 @@ export const createObjectsOntologyFieldsUnlinkMutation = (db, drizzleResult) => 
         }
     };
 };
+

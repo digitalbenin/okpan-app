@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for institutionsCount related database queries and mutations.
+ *
+ * @namespace db.customQueries.institutionsCount
+ */
 import { sql, eq, and } from 'drizzle-orm';
 import * as dbSchema from '../schema.js';
 import { buildSafeFtsAndPrefixQuery } from './common.js';

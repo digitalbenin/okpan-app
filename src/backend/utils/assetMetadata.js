@@ -24,9 +24,10 @@ export const MIME_BY_EXT = {
 
 /**
  * Derive the normalized extension and MIME type for an asset file.
+ * @function getAssetContentInfo
  * @memberof backend.utils.assetMetadata
  * @param {string} filePath - Asset file path.
- * @returns {{ext:string, mime:string}}
+ * @returns {{ext: string, mime: string}}
  */
 export function getAssetContentInfo(filePath) {
   const ext = path.extname(filePath).toLowerCase();
@@ -35,11 +36,12 @@ export function getAssetContentInfo(filePath) {
 
 /**
  * Compute the SHA-256 checksum of a file.
+ * @function computeFileSha256
  * @memberof backend.utils.assetMetadata
  * @param {string} filePath - File path to hash.
  * @param {Object} [options={}] - Hashing options.
  * @param {boolean} [options.swallowErrors=false] - Resolve with `null` instead of rejecting on read errors.
- * @returns {Promise<string|null>}
+ * @returns {Promise.<(string|null)>}
  */
 export async function computeFileSha256(filePath, { swallowErrors = false } = {}) {
   return new Promise((resolve, reject) => {

@@ -12,7 +12,7 @@ import { createProjectBackup, restoreProjectBackup, checkProjectExists, inspectB
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Backup options.
  * @param {Object} options.db - Database connection.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{canceled: (boolean|undefined), success: (boolean|undefined), error: (string|undefined)}>}
  */
 export async function handleCreateBackup(event, options, { db }) {
   try {
@@ -57,7 +57,7 @@ export async function handleCreateBackup(event, options, { db }) {
  * Open a file picker for selecting a backup archive.
  * @memberof backend.handlers.backupHandler
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{canceled: (boolean|undefined), success: (boolean|undefined), filePath: (string|undefined), error: (string|undefined)}>}
  */
 export async function handleSelectBackupFile(event) {
   try {
@@ -90,7 +90,7 @@ export async function handleSelectBackupFile(event) {
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Inspection options.
  * @param {Object} options.db - Database connection.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{success: (boolean|undefined), error: (string|undefined)}>}
  */
 export async function handleCheckBackupFile(event, options, { db }) {
   const { filePath } = options || {};
@@ -113,7 +113,7 @@ export async function handleCheckBackupFile(event, options, { db }) {
  * @param {Electron.IpcMainInvokeEvent} event - IPC event.
  * @param {Object} options - Restore options.
  * @param {Object} options.db - Database connection.
- * @returns {Promise<Object>}
+ * @returns {Promise.<{success: (boolean|undefined), error: (string|undefined)}>}
  */
 export async function handleRestoreBackup(event, options, { db }) {
   try {

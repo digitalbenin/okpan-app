@@ -1,3 +1,8 @@
+﻿/**
+ * Custom GraphQL resolver factories for objectDisplayFields related database queries and mutations.
+ *
+ * @namespace db.customQueries.objectDisplayFields
+ */
 import { GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLString } from 'graphql';
 import { eq } from 'drizzle-orm';
 import * as dbSchema from '../schema.js';
