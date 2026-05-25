@@ -3,7 +3,8 @@
     "include": [
       "src/backend",
       "src/db",
-      "src/preload"
+      "src/preload",
+      "src/lib/utils"
     ],
     "exclude": [
       "src/db/queries",

@@ -171,8 +171,6 @@
         {form}
         {validator}
         {createFieldValidator}
-        entity={"websiteSettings"}
-        operation={operationName}
         {languages}
         translatableFields={["title", "about"]}
         translationsValidator={getValidator("translations", "create")}

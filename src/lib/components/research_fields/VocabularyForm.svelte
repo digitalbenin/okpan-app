@@ -14,7 +14,7 @@
     import { flip } from "svelte/animate";
     import { dndzone } from "svelte-dnd-action";
     import { DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
-    import { getObjectIdentifier } from "$lib/utils/objects.js";
+    import { getObjectIdentifier } from "$lib/stores/ObjectsUtils.js";
 
     let { 
         data, 

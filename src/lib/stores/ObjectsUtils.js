@@ -1,6 +1,18 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
 import { invalidate, invalidateAll } from "$app/navigation";
+import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+
+/**
+ * Returns the primary identifier label for an object.
+ * @param {object} object Object-like record.
+ * @returns {string} Primary identifier text or a translated fallback.
+ */
+export function getObjectIdentifier(object) {
+    const { t } = getTranslationStore();
+    return object?.objectsOntologyFields?.find((f) => f.primary)?.value
+        || t("common.identifier-not-set", { fallback: "Identifier not set" });
+}
 
 // Get validation store
 const { getSchema, validate } = getValidationStore();

@@ -8,7 +8,6 @@
 import { db } from '../../db/init.js';
 import { project } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
-import { isSharedProject as checkIsSharedProject } from '../../lib/utils/projectSharing.js';
 import { startP2PForProject, stopP2PForProject, getP2PProvider } from './p2pService.js';
 import { startReconcileLoop, stopProjectTorrents } from './assetTorrentManagerService.js';
 import { startChangeLogTailer } from './changeLogTailerService.js';
@@ -104,7 +103,8 @@ export async function isProjectShared(projectId) {
     .limit(1)
     .execute();
 
-  return checkIsSharedProject(rows[0]);
+  const row = rows[0];
+  return row != null && (row.is_shared === 1 || row.is_shared === true);
 }
 
 // ─── Session-open recovery snapshot ──────────────────────────────────────────

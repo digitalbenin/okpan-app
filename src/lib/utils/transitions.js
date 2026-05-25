@@ -1,5 +1,11 @@
 import { cubicInOut } from "svelte/easing";
 
+/**
+ * Creates a top-down curtain style overlay transition.
+ * @param {HTMLElement} node Transition target node.
+ * @param {{delay: (number|undefined), duration: (number|undefined), easing: (Function|undefined), y: (number|undefined), opacity: (number|undefined), scale: (number|undefined)}} [params={}] Transition parameters.
+ * @returns {{delay: number, duration: number, easing: Function, css: Function}} Svelte transition config.
+ */
 export function topCurtainOverlay(node, params = {}) {
     const {
         delay = 0,

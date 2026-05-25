@@ -9,8 +9,7 @@
   import { deleteDatasource, getObjectsByDatasource } from "$lib/stores/DatasourcesUtils.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
   import { goto } from "$app/navigation";
-  import { back } from "$lib/utils/navigation.js";
-  import { getObjectIdentifier } from "$lib/utils/objects.js";
+  import { getObjectIdentifier } from "$lib/stores/ObjectsUtils.js";
 
   const translationStore = getTranslationStore();
   const t = $derived(translationStore.t);
@@ -91,7 +90,7 @@
     {
       text: t("common.back"),
       class: "btn btn-outline-secondary",
-      onClick: back,
+      onClick: () => window.history.back(),
     },
       {
       text: t("common.delete"),
@@ -118,7 +117,7 @@
           <button
             class="btn btn-link text-decoration-none px-0"
             aria-label={t("common.back")}
-            onclick={back}
+            onclick={() => window.history.back()}
           >
             <i class="bi bi-arrow-left"></i>
             {data.institution?.name?.content}

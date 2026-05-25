@@ -1,7 +1,6 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { getObjectIdentifier } from "$lib/utils/objects.js";
-  import { getConnectionFieldColor } from "$lib/stores/ObjectsUtils.js";
+  import { getObjectIdentifier, getConnectionFieldColor } from "$lib/stores/ObjectsUtils.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import { getAssetImageUrl } from "$lib/utils/media.js";
   import BaseImage from "$lib/components/base/BaseImage.svelte";

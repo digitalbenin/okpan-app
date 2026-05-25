@@ -372,7 +372,7 @@
         {/if}
 
         <div class="row"><div class="col-12">
-            <AutoForm {form} {validator} {createFieldValidator} entity="research_fields" operation={validatorOperationName} {languages} translatableFields={TRANSLATABLE_FIELDS} defaultColSize={6} translationsValidator={getValidator("translations", validatorOperationName)} fieldOrder={["type", "vocabularies"]} {uiSchema} hiddenValueProviders={{ projectId: () => projectId, languageId: () => defaultLanguage?.id || "", type: () => selectedType }} />
+            <AutoForm {form} {validator} {createFieldValidator} {languages} translatableFields={TRANSLATABLE_FIELDS} defaultColSize={6} translationsValidator={getValidator("translations", validatorOperationName)} fieldOrder={["type", "vocabularies"]} {uiSchema} hiddenValueProviders={{ projectId: () => projectId, languageId: () => defaultLanguage?.id || "", type: () => selectedType }} />
         </div></div>
     </PageActionFooter>
 </form>

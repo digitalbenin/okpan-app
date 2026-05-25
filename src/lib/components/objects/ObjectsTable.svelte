@@ -5,7 +5,7 @@
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
-  import { getObjectIdentifier } from "$lib/utils/objects.js";
+  import { getObjectIdentifier } from "$lib/stores/ObjectsUtils.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
 
   let {

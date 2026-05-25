@@ -187,8 +187,6 @@
             {form}
             {validator}
             {createFieldValidator}
-            entity="datasources"
-            operation="create"
             {languages}
             translatableFields={TRANSLATABLE_FIELDS}
             {translationsValidator}

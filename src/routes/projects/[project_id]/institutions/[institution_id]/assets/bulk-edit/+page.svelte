@@ -7,8 +7,12 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { updateAsset, getAssetById } from "$lib/stores/AssetsUtils.js";
-  import { z } from "zod";
   import { createFieldValidator } from "$lib/stores/formValidationUtils.js";
+  import {
+    buildTranslationsFromValue,
+    createMetadataValidator,
+    mergeTranslations,
+  } from "$lib/utils/assetMetadataUtils.js";
 
   // Read params and data from layout
   const project_id = $state($page.params.project_id);
@@ -23,46 +27,7 @@
     languages?.find((l) => l.is_default) || languages?.[0],
   );
 
-  // Schema for metadata fields
-  const metadataSchema = z.object({
-    description: z.string().optional(),
-    copyright: z.string().optional(),
-    author: z.string().optional(),
-    // Secondary language fields follow naming: translations_<langId>_<field>
-  });
-
-  const validator = {
-    schema: metadataSchema,
-    requiredFields: new Set([]),
-    validate: (data) => metadataSchema.safeParse(data),
-  };
-
-  // Helper to merge new translations into existing properties
-  function mergeTranslations(existingProps, newTranslations) {
-    const existing = typeof existingProps === "string"
-      ? (() => {
-          try { return JSON.parse(existingProps); } catch { return {}; }
-        })()
-      : (existingProps || {});
-
-    const merged = {
-      description: { ...(existing.description || {}) },
-      copyright: { ...(existing.copyright || {}) },
-      author: { ...(existing.author || {}) },
-    };
-
-    for (const key of ["description", "copyright", "author"]) {
-      if (newTranslations[key]) {
-        for (const [langCode, content] of Object.entries(newTranslations[key])) {
-          if (typeof content === "string" && content.trim() !== "") {
-            merged[key][langCode] = content;
-          }
-        }
-      }
-    }
-
-    return JSON.stringify(merged);
-  }
+  const validator = createMetadataValidator();
 
   const form = createForm(() => {
     const defaultValues = {};
@@ -81,23 +46,7 @@
       validators: { onChange: validator.schema },
       onSubmit: async ({ value }) => {
         try {
-          // Build translations object from form values
-          const translations = { description: {}, copyright: {}, author: {} };
-          const defaultCode = defaultLanguage?.code;
-          if (defaultCode) {
-            if (value.description?.trim()) translations.description[defaultCode] = value.description;
-            if (value.copyright?.trim()) translations.copyright[defaultCode] = value.copyright;
-            if (value.author?.trim()) translations.author[defaultCode] = value.author;
-          }
-
-          for (const lang of languages.filter((l) => !l.is_default)) {
-            for (const field of ["description", "copyright", "author"]) {
-              const key = `translations_${lang.id}_${field}`;
-              if (value[key]?.trim()) {
-                translations[field][lang.code] = value[key];
-              }
-            }
-          }
+          const translations = buildTranslationsFromValue(value, languages, defaultLanguage);
 
   // Update each asset: merge existing properties with new translations
           for (const id of (assetsCtx?.getSelected?.() || [])) {

@@ -284,8 +284,6 @@
           {form}
           {validator}
           {createFieldValidator}
-          entity={"institutions"}
-          operation={operationName}
           {languages}
           translatableFields={TRANSLATABLE_FIELDS}
           defaultColSize={7}

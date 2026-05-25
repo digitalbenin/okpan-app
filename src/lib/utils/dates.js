@@ -113,6 +113,13 @@ function epochToYYYYMMDD(epoch) {
     }
 }
 
+/**
+ * Formats a date-like value using the provided locale.
+ * @param {number | string | Date} date The date value to format.
+ * @param {string} [locale="en"] Locale passed to toLocaleDateString.
+ * @param {boolean} [showTime=false] Whether to include UTC time fields.
+ * @returns {string} The localized date string.
+ */
 function formatDate(date, locale = "en", showTime = false) {
     const options = {
         year: "numeric",

@@ -1,6 +1,5 @@
 <script>
   import InstitutionForm from "$lib/components/institutions/InstitutionForm.svelte";
-  import { back } from "$lib/utils/navigation.js";
 
   let { data } = $props();
 
@@ -8,4 +7,4 @@
   const { languages } = data;
 </script>
 
-<InstitutionForm mode="create" {languages} onCancel={back} />
+<InstitutionForm mode="create" {languages} onCancel={() => window.history.back()} />

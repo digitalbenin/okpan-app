@@ -169,8 +169,6 @@
     {validator}
     {createFieldValidator}
     {languages}
-    entity="datasources"
-    operation="update"
     translatableFields={TRANSLATABLE_FIELDS}
     {translationsValidator}
     {hiddenStaticValues}

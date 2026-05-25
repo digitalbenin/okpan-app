@@ -3,7 +3,7 @@
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import MatchPreview from "./MatchPreview/MatchPreview.svelte";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
-  import { getObjectIdentifier } from "$lib/utils/objects.js";
+  import { getObjectIdentifier } from "$lib/stores/ObjectsUtils.js";
 
   let { ontologyFields = [] } = $props();
 

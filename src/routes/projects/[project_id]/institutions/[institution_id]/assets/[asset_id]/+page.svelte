@@ -10,7 +10,6 @@
     import { createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
     import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
     import { linkAssetToObject, unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
-    import { back } from "$lib/utils/navigation.js";
     import { getObjectImageUrl } from "$lib/utils/media.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { z } from "zod";
@@ -185,7 +184,7 @@
         isDeleting = true;
         try {
             const res = await deleteAsset(asset.id);
-            res?.error ? console.error("Failed to delete asset:", res.error) : back();
+            res?.error ? console.error("Failed to delete asset:", res.error) : window.history.back();
         } catch (err) {
             console.error("Error deleting asset:", err);
         } finally {
@@ -210,7 +209,7 @@
         linkedObjects = linkedObjects.filter(oa => !objectIds.includes(String(oa.object_id)));
     };
 
-    const handleCancel = () => back();
+    const handleCancel = () => window.history.back();
     const handleSave = () => form?.handleSubmit();
     const cancelDelete = () => (showDeleteModal = false);
 </script>

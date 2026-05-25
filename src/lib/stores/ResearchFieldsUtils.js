@@ -1,7 +1,6 @@
 import { executeQuery } from "$lib/stores/GraphqlUtils.js";
 import { invalidate } from "$app/navigation";
 import { searchObjects } from "$lib/stores/ObjectsUtils.js";
-import { isElectronApiAvailable } from "$lib/utils/electronApi.js";
 // Note: Replace 'researchFields', 'list', 'getById', etc., with your actual GraphQL section and operation names.
 
 // Fetch objects linked to a specific connection option (vocabulary) for a research field
@@ -17,7 +16,7 @@ export async function fetchLinkedObjectsByVocabularyOption({
     }
 
     // Avoid triggering GraphQL/toasts when not running in Electron.
-    if (!isElectronApiAvailable()) {
+    if (!window?.api?.executeGraphQL) {
         return { items: [], totalCount: 0 };
     }
 

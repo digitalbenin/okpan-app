@@ -6,7 +6,6 @@
     import ObjectBasicInfo from "$lib/components/objects/ObjectBasicInfo.svelte";
     import ObjectHeader from "$lib/components/objects/ObjectHeader.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { back } from "$lib/utils/navigation.js";
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
     import { createObject } from "$lib/stores/ObjectsUtils.js";
@@ -81,7 +80,7 @@
             goto(`/projects/${projectId}/institutions/${selectedInstitutionId}`);
             return;
         }
-        back();
+        window.history.back();
     }
 
     // Object name input (default language only for now)

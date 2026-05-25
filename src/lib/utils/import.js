@@ -1,3 +1,11 @@
+/**
+ * Creates a tree node representation for nested import preview data.
+ * @param {*} value Value stored at the current node.
+ * @param {string|number|null} [key=null] Key or index for the current node.
+ * @param {number} [depth=0] Current nesting depth.
+ * @param {Array<string|number>} [path=[]] Ancestor path segments.
+ * @returns {{key: string|number|null, value: *, type: string, depth: number, path: Array<string|number>, pathString: string, expanded: boolean, isExpandable: boolean, children: Array<object>|null, size: number|null}}
+ */
 export function createTreeNode(value, key = null, depth = 0, path = []) {
   const type = getType(value);
   const currentPath = key !== null ? [...path, key] : path;
@@ -43,139 +51,12 @@ function getType(value) {
   return typeof value;
 }
 
-// export function createTreeMapping(value, key = null, depth = 0, path = []) {
-//   const type = getType(value);
-//   const currentPath = key !== null ? [...path, key] : path;
-
-//   if (type === "array" && value.length > 0) {
-//     // Check if array contains primitives
-//     if (isPrimitive(value[0])) {
-//       // Flatten and get first 10 unique primitive values
-//       const uniqueValues = [...new Set(value)].slice(0, 10);
-
-//       return {
-//         key,
-//         value,
-//         type,
-//         depth,
-//         path: currentPath,
-//         pathString: currentPath.join("."),
-//         expanded: false,
-//         isExpandable: false,
-//         children: null,
-//         size: value.length,
-//         uniqueKeys: [{ key: null, values: uniqueValues }],
-//       };
-//     }
-//     // Array contains objects - process recursively
-//     else if (
-//       typeof value[0] === "object" &&
-//       value[0] !== null &&
-//       !Array.isArray(value[0])
-//     ) {
-//       const allKeys = new Set();
-//       const keyValues = {};
-
-//       // Collect all unique keys from array objects
-//       value.forEach((obj) => {
-//         Object.keys(obj).forEach((objKey) => {
-//           const objValue = obj[objKey];
-
-//           allKeys.add(objKey);
-
-//           if (!keyValues[objKey]) {
-//             keyValues[objKey] = [];
-//           }
-
-//           // Recursively process the value
-//           const processedValue = createTreeMapping(
-//             objValue,
-//             objKey,
-//             depth + 1,
-//             [...currentPath, objKey]
-//           );
-
-//           // Only store first 10 processed values
-//           if (keyValues[objKey].length < 10) {
-//             keyValues[objKey].push(processedValue);
-//           }
-//         });
-//       });
-
-//       const uniqueKeys = Array.from(allKeys).map((keyName) => ({
-//         key: keyName,
-//         values: keyValues[keyName],
-//       }));
-
-//       return {
-//         key,
-//         value,
-//         type,
-//         depth,
-//         path: currentPath,
-//         pathString: currentPath.join("."),
-//         expanded: false,
-//         isExpandable: false,
-//         children: null,
-//         size: value.length,
-//         uniqueKeys,
-//       };
-//     }
-//   }
-
-//   // Handle objects recursively
-//   if (type === "object") {
-//     const processedChildren = {};
-//     Object.entries(value).forEach(([objKey, objValue]) => {
-//       processedChildren[objKey] = createTreeMapping(
-//         objValue,
-//         objKey,
-//         depth + 1,
-//         currentPath
-//       );
-//     });
-
-//     return {
-//       key,
-//       value,
-//       type,
-//       depth,
-//       path: currentPath,
-//       pathString: currentPath.join("."),
-//       expanded: false,
-//       isExpandable: true,
-//       children: processedChildren,
-//       size: Object.keys(value).length,
-//     };
-//   }
-
-//   // Handle primitives
-//   return {
-//     key,
-//     value,
-//     type,
-//     depth,
-//     path: currentPath,
-//     pathString: currentPath.join("."),
-//     expanded: false,
-//     isExpandable: false,
-//     children: null,
-//     size: null,
-//   };
-// }
-
-// function isPrimitive(value) {
-//   const type = getType(value);
-//   return (
-//     type === "string" ||
-//     type === "number" ||
-//     type === "boolean" ||
-//     type === "date" ||
-//     type === "null" ||
-//     type === "undefined"
-//   );
-// }
-
+/**
+ * Analyzes the structure of imported JSON data for field mapping.
+ * @param {*} jsonValue Parsed JSON root value.
+ * @param {number} [maxSamples=100] Maximum number of array items to sample.
+ * @returns {object} A normalized analysis tree describing the input shape.
+ */
 export function analyzeJsonStructure(jsonValue, maxSamples = 100) {
   if (Array.isArray(jsonValue)) {
     return walkJsonStructure(jsonValue, null, 0, [], maxSamples);
@@ -645,14 +526,6 @@ function createNode(key, value, type, depth, path, pathString, analysis, size) {
   };
 }
 
-// function getType(value) {
-//   if (value === null) return "null";
-//   if (value === undefined) return "undefined";
-//   if (Array.isArray(value)) return "array";
-//   if (value instanceof Date) return "date";
-//   return typeof value;
-// }
-
 function isPrimitive(value) {
   const type = getType(value);
   return (
@@ -693,6 +566,11 @@ function safeParse(valueStr) {
   }
 }
 
+/**
+ * Extracts all leaf paths from an analyzed import structure.
+ * @param {object} treeNode Analysis tree created by analyzeJsonStructure.
+ * @returns {string[]} Flat list of leaf path strings.
+ */
 export function extractLeafPaths(treeNode) {
   function traverseNode(node) {
     // If this is a leaf node, return its path
@@ -713,6 +591,13 @@ export function extractLeafPaths(treeNode) {
   return traverseNode(treeNode);
 }
 
+/**
+ * Projects imported records to the selected field mapping.
+ * @param {Array<Record<string, any>>} data Parsed source records.
+ * @param {Array<{headerField: string}>} mapping Selected mapping definitions.
+ * @param {string} format Source format identifier.
+ * @returns {Array<Record<string, any>>} Transformed records matching the selected mapping.
+ */
 export function parseData(data, mapping, format) {
   const output = data.map((item) => {
     if (format === "json" || format === "xml") {

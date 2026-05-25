@@ -7,7 +7,6 @@
   import ObjectHeader from "$lib/components/objects/ObjectHeader.svelte";
   import ObjectDeleteModal from "$lib/components/objects/ObjectDeleteModal.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { back } from "$lib/utils/navigation.js";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { updateObjectInstitution, deleteObject, updateObjectStatus, updateObjectName } from "$lib/stores/ObjectsUtils.js";
@@ -264,7 +263,7 @@
       } else {
         markPageClean();
         // Navigate back to the previous page
-        back();
+        window.history.back();
       }
     } catch (err) {
       console.error("Error deleting object:", err);

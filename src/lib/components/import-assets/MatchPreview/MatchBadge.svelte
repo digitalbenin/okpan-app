@@ -1,6 +1,6 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { getObjectIdentifier } from "$lib/utils/objects.js";
+  import { getObjectIdentifier } from "$lib/stores/ObjectsUtils.js";
 
   let { mappedObjects = $bindable([]) } = $props();
   const { t } = getTranslationStore();

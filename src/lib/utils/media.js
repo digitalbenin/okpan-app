@@ -1,3 +1,8 @@
+/**
+ * Adds the custom media protocol prefix to an asset path when needed.
+ * @param {string|null|undefined} url Asset path or URL.
+ * @returns {string|undefined} URL prefixed with media:// when applicable.
+ */
 export function addImageProtocolPrefix(url) {
     if (!url) return;
     if (typeof url === 'string' && url.startsWith('media://')) return url;
@@ -54,12 +59,7 @@ export function getMediaType(assetOrFilename) {
     return "unknown";
 }
 
-/**
- * Gets file extensions for specified media types
- * @param {string[]} types - Array of media types ('image', 'audio', 'video')
- * @returns {string[]} Array of file extensions
- */
-export function getExtensionsForTypes(types) {
+function getExtensionsForTypes(types) {
     const extensions = [];
     for (const type of types) {
         if (MEDIA_EXTENSIONS[type]) {
@@ -129,6 +129,26 @@ export function parseAssetFormats(formats) {
     }
 }
 
+function getPreferredAssetSource(asset, preferredSize = "sm") {
+    if (!asset) return null;
+
+    const formats = parseAssetFormats(asset.formats);
+    if (!formats) {
+        return asset.path || null;
+    }
+
+    return (
+        formats[preferredSize] ||
+        formats.sm ||
+        formats.md ||
+        formats.lg ||
+        formats.thumbnail ||
+        formats.original ||
+        asset.path ||
+        null
+    );
+}
+
 /**
  * Gets the best image URL from an object's assets
  * @param {object} obj - Object with objectsAssets array
@@ -138,24 +158,7 @@ export function parseAssetFormats(formats) {
  */
 export function getObjectImageUrl(obj, preferredSize = 'sm', addProtocol = true) {
     const asset = obj?.objectsAssets?.[0]?.asset;
-    if (!asset) return null;
-
-    const formats = parseAssetFormats(asset.formats);
-    let src = null;
-
-    if (formats) {
-        // Try preferred size first, then fallback to other sizes
-        src = formats[preferredSize] || 
-              formats.sm || 
-              formats.md || 
-              formats.lg || 
-              formats.thumbnail || 
-              formats.original || 
-              asset.path;
-    } else {
-        src = asset.path;
-    }
-
+    const src = getPreferredAssetSource(asset, preferredSize);
     if (!src) return null;
     return addProtocol ? addImageProtocolPrefix(src) : src;
 }
@@ -168,23 +171,7 @@ export function getObjectImageUrl(obj, preferredSize = 'sm', addProtocol = true)
  * @returns {string|null} Image URL with protocol or null if no image found
  */
 export function getAssetImageUrl(asset, preferredSize = 'sm', addProtocol = true) {
-    if (!asset) return null;
-
-    const formats = parseAssetFormats(asset.formats);
-    let src = null;
-
-    if (formats) {
-        src = formats[preferredSize] || 
-              formats.sm || 
-              formats.md || 
-              formats.lg || 
-              formats.thumbnail || 
-              formats.original || 
-              asset.path;
-    } else {
-        src = asset.path;
-    }
-
+    const src = getPreferredAssetSource(asset, preferredSize);
     if (!src) return null;
     return addProtocol ? addImageProtocolPrefix(src) : src;
 }

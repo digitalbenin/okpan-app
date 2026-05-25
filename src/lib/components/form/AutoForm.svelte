@@ -2,7 +2,6 @@
     import { tick } from "svelte";
     import { watch } from "runed";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { API_SECTIONS } from "$lib/queries/index.js";
     import { createDirtyTracker } from "$lib/stores/DirtyTracker.svelte.js";
     import DirtyNavigationGuard from "$lib/components/navigation/DirtyNavigationGuard.svelte";
     import LanguageSelector from "./LanguageSelector.svelte";
@@ -12,8 +11,6 @@
         form = null,
         validator = null,
         createFieldValidator = null,
-        entity = null,
-        operation = null,
         languages = [],
         translatableFields = null,
         translationsValidator = null,
@@ -54,13 +51,16 @@
 
     let lastFormRef = $state(null);
 
-    $effect(() => {
-        if (form === lastFormRef) return;
-        lastFormRef = form;
-        dirtyTracker = null;
-        trackerInitialized = false;
-        hydrationPristineScheduled = false;
-    });
+    watch(
+        () => form,
+        (nextForm) => {
+            if (nextForm === lastFormRef) return;
+            lastFormRef = nextForm;
+            dirtyTracker = null;
+            trackerInitialized = false;
+            hydrationPristineScheduled = false;
+        }
+    );
 
     // Initialize tracker once form values are available
     watch(
@@ -145,6 +145,7 @@
     };
 
     const isRequired = (fieldName) => Boolean(validator?.requiredFields?.has(fieldName));
+    const VALIDATE_ON_CHANGE_OPTIONS = { validateOnChange: true };
 
     // Form submission tracking
     const formSubmitted = $derived(Boolean(formStore?.current?.isSubmitted || formStore?.current?.submitCount > 0));
@@ -163,26 +164,7 @@
     // Derive fields
     const schemaFields = $derived(Object.keys(validator?.schema?.shape || {}));
 
-    const deriveTranslatableFields = () => {
-        if (Array.isArray(translatableFields)) return translatableFields;
-        try {
-            const opDef = entity && operation ? API_SECTIONS?.[entity]?.operations?.[operation] : null;
-            if (!opDef?.mutations) return [];
-            const resultSet = new Set();
-            const re = /content\s*:\s*\$(\w+)/g;
-            opDef.mutations.forEach((m) => {
-                let match;
-                while ((match = re.exec(m?.query || ""))) {
-                    if (schemaFields.includes(match[1])) resultSet.add(match[1]);
-                }
-            });
-            return Array.from(resultSet);
-        } catch {
-            return [];
-        }
-    };
-
-    const derivedTranslatable = $derived(deriveTranslatableFields());
+    const derivedTranslatable = $derived(Array.isArray(translatableFields) ? translatableFields : []);
 
     const orderedFields = $derived.by(() => {
         const nonTranslatable = schemaFields.filter((f) => !derivedTranslatable.includes(f));
@@ -217,52 +199,65 @@
 
     const getCurrentFormValue = (fieldName) => formStore?.current?.values?.[fieldName];
 
+    const marginClass = $derived(`m-${Math.min(Math.max(Number(margin) || 0, 0), 5)}`);
+
     let lastHiddenStatic = $state({});
     let lastHiddenProvided = $state({});
 
-    $effect(() => {
+    const syncHiddenValues = (entries, lastAppliedValues, resolveValue) => {
         const setter = form?.setFieldValue || form?.setValue;
-        if (!setter) return;
-        let mutated = false;
-        Object.entries(hiddenStaticValues || {}).forEach(([name, value]) => {
-            const currentValue = getCurrentFormValue(name);
-            const hasValueChanged = !valuesEqual(value, lastHiddenStatic[name]);
-            const differsFromForm = !valuesEqual(value, currentValue);
-            if (differsFromForm) {
-                try {
-                    setter(name, value);
-                    mutated = true;
-                } catch {}
-            }
-            if (hasValueChanged || differsFromForm) {
-                lastHiddenStatic[name] = value;
-            }
-        });
-        if (mutated) scheduleHydrationPristineSync();
-    });
+        if (!setter || entries.length === 0) return false;
 
-    $effect(() => {
-        const setter = form?.setFieldValue || form?.setValue;
-        if (!setter) return;
         let mutated = false;
-        Object.entries(hiddenValueProviders || {}).forEach(([name, provide]) => {
+
+        entries.forEach(([name, source]) => {
             try {
-                const next = typeof provide === "function" ? provide() : undefined;
-                if (next === undefined) return;
+                const nextValue = resolveValue(source);
+                if (nextValue === undefined) return;
+
                 const currentValue = getCurrentFormValue(name);
-                const hasValueChanged = !valuesEqual(next, lastHiddenProvided[name]);
-                const differsFromForm = !valuesEqual(next, currentValue);
+                const hasValueChanged = !valuesEqual(nextValue, lastAppliedValues[name]);
+                const differsFromForm = !valuesEqual(nextValue, currentValue);
+
                 if (differsFromForm) {
-                    setter(name, next);
+                    setter(name, nextValue);
                     mutated = true;
                 }
+
                 if (hasValueChanged || differsFromForm) {
-                    lastHiddenProvided[name] = next;
+                    lastAppliedValues[name] = nextValue;
                 }
             } catch {}
         });
-        if (mutated) scheduleHydrationPristineSync();
-    });
+
+        return mutated;
+    };
+
+    watch(
+        [() => form, () => formStore?.current?.values, () => hiddenStaticValues],
+        () => {
+            const mutated = syncHiddenValues(
+                Object.entries(hiddenStaticValues || {}),
+                lastHiddenStatic,
+                (value) => value
+            );
+            if (mutated) scheduleHydrationPristineSync();
+        },
+        { immediate: true }
+    );
+
+    watch(
+        [() => form, () => formStore?.current?.values, () => hiddenValueProviders],
+        () => {
+            const mutated = syncHiddenValues(
+                Object.entries(hiddenValueProviders || {}),
+                lastHiddenProvided,
+                (provide) => (typeof provide === "function" ? provide() : undefined)
+            );
+            if (mutated) scheduleHydrationPristineSync();
+        },
+        { immediate: true }
+    );
 
     // Log form errors
     watch(
@@ -285,15 +280,16 @@
         {#if activeLanguageCode === "default"}
             <div class="pt-2 row">
                 {#each derivedTranslatable as fieldName}
-                    <div class={`col-md-${Math.min(Math.max(getFieldConfig(fieldName).colSize, 1), 12)}`}>
+                    {@const config = getFieldConfig(fieldName)}
+                    <div class={`col-md-${Math.min(Math.max(config.colSize, 1), 12)}`}>
                         <form.Field
                             name={fieldName}
-                            validators={createFieldValidator?.(fieldName, validator, form, { validateOnChange: true })}
+                            validators={createFieldValidator?.(fieldName, validator, form, VALIDATE_ON_CHANGE_OPTIONS)}
                         >
                             {#snippet children(field)}
                                 <FormField
                                     {field}
-                                    config={getFieldConfig(fieldName)}
+                                    {config}
                                     isRequired={isRequired(fieldName)}
                                     languageCode={defaultLanguage?.code || "default"}
                                     {shouldShowError}
@@ -313,15 +309,16 @@
             {#if activeLanguageCode === lang.id}
                 <div class="pt-2 row">
                     {#each derivedTranslatable as baseField}
-                        <div class={`col-md-${Math.min(Math.max(getFieldConfig(baseField).colSize, 1), 12)}`}>
+                        {@const config = getFieldConfig(baseField)}
+                        <div class={`col-md-${Math.min(Math.max(config.colSize, 1), 12)}`}>
                             <form.Field
                                 name={`translations_${lang.id}_${baseField}`}
-                                validators={translationsValidator && createFieldValidator?.(`translations_${lang.id}_${baseField}`, translationsValidator, form, { validateOnChange: true })}
+                                validators={translationsValidator && createFieldValidator?.(`translations_${lang.id}_${baseField}`, translationsValidator, form, VALIDATE_ON_CHANGE_OPTIONS)}
                             >
                                 {#snippet children(field)}
                                     <FormField
                                         {field}
-                                        config={getFieldConfig(baseField)}
+                                        {config}
                                         languageCode={lang.code}
                                         {shouldShowError}
                                         {formatErrors}
@@ -339,19 +336,20 @@
 {/if}
 
 <!-- Non-translatable fields -->
-<div class="m-{margin}">
+<div class={marginClass}>
     <div class="row">
         {#each orderedFields as fieldName}
-            {#if !getFieldConfig(fieldName).hidden && !derivedTranslatable.includes(fieldName)}
-                <div class={`col-md-${Math.min(Math.max(getFieldConfig(fieldName).colSize, 1), 12)}`}>
+            {@const config = getFieldConfig(fieldName)}
+            {#if !config.hidden && !derivedTranslatable.includes(fieldName)}
+                <div class={`col-md-${Math.min(Math.max(config.colSize, 1), 12)}`}>
                     <form.Field
                         name={fieldName}
-                        validators={createFieldValidator?.(fieldName, validator, form, { validateOnChange: true })}
+                        validators={createFieldValidator?.(fieldName, validator, form, VALIDATE_ON_CHANGE_OPTIONS)}
                     >
                         {#snippet children(field)}
                             <FormField
                                 {field}
-                                config={getFieldConfig(fieldName)}
+                                {config}
                                 isRequired={isRequired(fieldName)}
                                 {shouldShowError}
                                 {formatErrors}

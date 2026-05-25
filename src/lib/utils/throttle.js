@@ -1,6 +1,9 @@
-// Simple throttle utility: invokes immediately, then ignores further calls
-// until the wait window passes. The last call during the window is invoked
-// once the window ends.
+/**
+ * Creates a throttled function that runs immediately and replays the last queued call.
+ * @param {Function} fn Function to throttle.
+ * @param {number} [wait=300] Minimum interval between invocations in milliseconds.
+ * @returns {Function} Throttled function.
+ */
 export function throttle(fn, wait = 300) {
   let inThrottle = false;
   let lastArgs = null;
@@ -31,6 +34,12 @@ export function throttle(fn, wait = 300) {
   };
 }
 
+/**
+ * Creates a debounced function with a cancel helper.
+ * @param {Function} fn Function to debounce.
+ * @param {number} [wait=300] Delay before invocation in milliseconds.
+ * @returns {Function} Debounced function with a cancel method.
+ */
 export function debounce(fn, wait = 300) {
   let timeoutId = null;
   let lastArgs = null;
