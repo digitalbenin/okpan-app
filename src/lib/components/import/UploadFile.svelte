@@ -2,7 +2,7 @@
   import { page } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
-  import { selectParseFile } from "$lib/stores/ImportUtils.js";
+  import { selectParseFile } from "$lib/api/ImportApi.js";
   import TablePreview from "./TablePreview.svelte";
   import RootSelection from "./RootSelection.svelte";
   import MultiSheetsSelection from "./MultiSheetsSelection.svelte";

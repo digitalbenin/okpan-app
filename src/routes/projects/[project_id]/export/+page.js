@@ -1,5 +1,5 @@
-import { getProjectInstitutions } from '$lib/stores/InstitutionsUtils.js';
-import { getResearchFields } from '$lib/stores/ResearchFieldsUtils.js';
+import { getProjectInstitutions } from '$lib/api/InstitutionsApi.js';
+import { getResearchFields } from '$lib/api/ResearchFieldsApi.js';
 
 export async function load({ params, fetch }) {
     const { project_id } = params;

@@ -1,4 +1,4 @@
-import { executeQuery } from "$lib/stores/GraphqlUtils.js";
+import { executeQuery } from "$lib/api/graphqlClient.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
 import { invalidate } from "$app/navigation";
 

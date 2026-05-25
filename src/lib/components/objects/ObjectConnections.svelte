@@ -3,7 +3,7 @@
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import VocabularySelectionModal from "./VocabularySelectionModal.svelte";
-    import { updateObjectResearchFields, getConnectionFieldColor } from "$lib/stores/ObjectsUtils.js";
+    import { updateObjectResearchFields, getConnectionFieldColor } from "$lib/api/ObjectsApi.js";
     import { invalidate } from "$app/navigation";
 
     // Props

@@ -1,7 +1,7 @@
 // import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte";
 // import { getProjectStore } from "$lib/stores/ProjectStore.svelte";
 import { browser } from "$app/environment";
-import { getProjects } from "$lib/stores/ProjectsUtils";
+import { getProjects } from "$lib/api/ProjectsApi.js";
 
 export const load = async ({ depends }) => {
     depends('app:projects');

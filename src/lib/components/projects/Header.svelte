@@ -8,7 +8,7 @@
 
   import { page } from "$app/state";
   import { goto, invalidateAll } from "$app/navigation";
-  import { deleteProject } from "$lib/stores/ProjectsUtils.js";
+  import { deleteProject } from "$lib/api/ProjectsApi.js";
 
   const { t } = getTranslationStore();
   const project = $derived(page.data.project);

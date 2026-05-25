@@ -1,9 +1,9 @@
 <script>
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { createForm } from "@tanstack/svelte-form";
-  import { getValidator, createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
+  import { getValidator, createFieldValidator, getFormConfig } from "$lib/utils/formValidation.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { createDatasource, updateDatasource, getDatasource } from "$lib/stores/DatasourcesUtils.js";
+  import { createDatasource, updateDatasource, getDatasource } from "$lib/api/DatasourcesApi.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import { queryParameters, ssp } from "sveltekit-search-params";

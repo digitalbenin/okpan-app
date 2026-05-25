@@ -3,7 +3,7 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseModal from "$lib/components/base/BaseModal.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
-    import { addVocabulary as addVocabularyAPI } from "$lib/stores/ResearchFieldsUtils.js";
+    import { addVocabulary as addVocabularyAPI } from "$lib/api/ResearchFieldsApi.js";
 
     // Props
     let {

@@ -1,6 +1,6 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { updateObjectResearchFields } from "$lib/stores/ObjectsUtils.js";
+    import { updateObjectResearchFields } from "$lib/api/ObjectsApi.js";
     import { invalidate } from "$app/navigation";
     // Props
     const {

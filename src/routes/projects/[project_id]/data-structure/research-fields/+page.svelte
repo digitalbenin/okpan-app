@@ -9,7 +9,7 @@
     deleteResearchField,
     countObjectsUsingResearchField,
     updateResearchField,
-  } from "$lib/stores/ResearchFieldsUtils.js";
+  } from "$lib/api/ResearchFieldsApi.js";
   import { invalidateAll } from "$app/navigation";
   import { goto } from "$app/navigation";
   const { data } = $props();

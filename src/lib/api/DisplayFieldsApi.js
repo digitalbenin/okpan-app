@@ -1,4 +1,4 @@
-import { executeQuery } from "$lib/stores/GraphqlUtils.js";
+import { executeQuery } from "$lib/api/graphqlClient.js";
 
 export const getDisplayFields = async (params = {}) => {
     const response = await executeQuery('object_display_fields', 'list', params);

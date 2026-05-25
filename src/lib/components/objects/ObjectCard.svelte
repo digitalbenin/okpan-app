@@ -2,7 +2,7 @@
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { getObjectIdentifier } from "$lib/stores/ObjectsUtils.js";
+  import { getObjectIdentifier } from "$lib/api/ObjectsApi.js";
   import { formatDate } from "$lib/utils/dates";
   import Swiper from "swiper";
   import { Navigation } from "swiper/modules";

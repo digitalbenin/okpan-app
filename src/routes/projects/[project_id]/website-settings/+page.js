@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { getWebsiteSettings } from '$lib/stores/WebsiteSettingsUtils.js';
+import { getWebsiteSettings } from '$lib/api/WebsiteSettingsApi.js';
 
 /** @type {import('./$types').PageLoad} */
 export async function load({ params }) {

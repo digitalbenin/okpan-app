@@ -1,8 +1,8 @@
 <script>
     import { createForm } from "@tanstack/svelte-form";
-    import { getValidator, createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
+    import { getValidator, createFieldValidator, getFormConfig } from "$lib/utils/formValidation.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { createResearchField, updateResearchField } from "$lib/stores/ResearchFieldsUtils.js";
+    import { createResearchField, updateResearchField } from "$lib/api/ResearchFieldsApi.js";
     import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import { goto } from "$app/navigation";
     import AutoForm from "$lib/components/form/AutoForm.svelte";

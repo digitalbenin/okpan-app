@@ -1,6 +1,6 @@
 <script>
   import { page } from "$app/state";
-  import { getObjects } from "$lib/stores/ObjectsUtils.js";
+  import { getObjects } from "$lib/api/ObjectsApi.js";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import ChipObject from "./ChipObject.svelte";

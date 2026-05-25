@@ -5,7 +5,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import InstitutionsGrid from "$lib/components/institutions/InstitutionsGrid.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
-  import { updateInstitutionsStatusBulk } from "$lib/stores/InstitutionsUtils.js";
+  import { updateInstitutionsStatusBulk } from "$lib/api/InstitutionsApi.js";
   import { topCurtainOverlay } from "$lib/utils/transitions.js";
 
   const { t } = getTranslationStore();

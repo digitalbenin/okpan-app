@@ -6,8 +6,8 @@
     searchObjects,
     linkAssetToObject,
     getObjectById,
-  } from "$lib/stores/ObjectsUtils.js";
-  import { getAssetById } from "$lib/stores/AssetsUtils.js";
+  } from "$lib/api/ObjectsApi.js";
+  import { getAssetById } from "$lib/api/AssetsApi.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   // Note: we'll derive primary identifier locally to avoid fallback text

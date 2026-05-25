@@ -3,7 +3,7 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { goto } from "$app/navigation";
-  import { updateInstitutionStatus } from "$lib/stores/InstitutionsUtils.js";
+  import { updateInstitutionStatus } from "$lib/api/InstitutionsApi.js";
 
   const { institution } = $props();
   const { t } = getTranslationStore();

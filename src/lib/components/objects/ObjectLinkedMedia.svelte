@@ -6,7 +6,7 @@
     import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
     import MediaModal from "$lib/components/research_fields/MediaModal.svelte";
     import LinkMediaModal from "$lib/components/objects/LinkMediaModal.svelte";
-    import { unlinkAssetFromObject, reorderAssets, linkAssetToObject } from "$lib/stores/ObjectsUtils.js";
+    import { unlinkAssetFromObject, reorderAssets, linkAssetToObject } from "$lib/api/ObjectsApi.js";
     import { invalidate } from "$app/navigation";
     import { dragHandleZone, dragHandle } from "svelte-dnd-action";
     import { flip } from "svelte/animate";

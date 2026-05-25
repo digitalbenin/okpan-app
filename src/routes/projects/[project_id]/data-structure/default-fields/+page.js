@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { getOntologyFields } from '$lib/stores/OntologyFieldsUtils.js';
+import { getOntologyFields } from '$lib/api/OntologyFieldsApi.js';
 
 /** @type {import('./$types').PageLoad} */
 export async function load({ params, depends, parent }) {

@@ -1,4 +1,4 @@
-import { executeQuery } from "$lib/stores/GraphqlUtils.js";
+import { executeQuery } from "$lib/api/graphqlClient.js";
 import { invalidate } from "$app/navigation";
 
 // Fetch all data sources for a specific institution within a project

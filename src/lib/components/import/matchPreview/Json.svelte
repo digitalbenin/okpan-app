@@ -7,7 +7,7 @@
   import {
     suggestFieldMappings,
     suggestTemplateReuse,
-  } from "$lib/stores/ImportUtils.js";
+  } from "$lib/api/ImportApi.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   const { data } = $props();

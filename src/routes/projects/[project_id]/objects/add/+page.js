@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
-import { getProjectInstitutions } from "$lib/stores/InstitutionsUtils.js";
-import { getResearchFields } from "$lib/stores/ResearchFieldsUtils.js";
-import { getOntologyFields } from "$lib/stores/OntologyFieldsUtils.js";
+import { getProjectInstitutions } from "$lib/api/InstitutionsApi.js";
+import { getResearchFields } from "$lib/api/ResearchFieldsApi.js";
+import { getOntologyFields } from "$lib/api/OntologyFieldsApi.js";
 
 export const load = async ({ params, depends }) => {
     if (!browser) return;

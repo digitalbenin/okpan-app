@@ -8,7 +8,7 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import ConnectionVocabularyChip from "$lib/components/research_fields/ConnectionVocabularyChip.svelte";
     import EditConnectionTypeModal from "$lib/components/research_fields/EditConnectionTypeModal.svelte";
-    import { addVocabulary, deleteVocabulary, deleteResearchField, updateResearchField } from "$lib/stores/ResearchFieldsUtils.js";
+    import { addVocabulary, deleteVocabulary, deleteResearchField, updateResearchField } from "$lib/api/ResearchFieldsApi.js";
     import { DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
 
     const { data } = $props();

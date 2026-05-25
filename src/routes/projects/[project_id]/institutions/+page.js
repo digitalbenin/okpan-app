@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { getProjectInstitutions } from "$lib/stores/InstitutionsUtils.js";
+import { getProjectInstitutions } from "$lib/api/InstitutionsApi.js";
 
 export const load = async ({ params, url, depends }) => {
     depends('app:institutions');

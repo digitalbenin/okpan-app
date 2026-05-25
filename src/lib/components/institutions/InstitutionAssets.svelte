@@ -6,7 +6,7 @@
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import BulkDeleteAssetsModal from "$lib/components/assets/BulkDeleteAssetsModal.svelte";
   import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
-  import { linkAssetsToObjectsBulk } from "$lib/stores/ObjectsUtils.js";
+  import { linkAssetsToObjectsBulk } from "$lib/api/ObjectsApi.js";
   import Table from "$lib/components/base/table/Table.svelte";
   import TableImagePreview from "$lib/components/base/table/TableImagePreview.svelte";
   import TableLink from "$lib/components/base/table/TableLink.svelte";

@@ -3,7 +3,7 @@
   import BottomToolbar from "$lib/components/import/BottomToolbar.svelte";
   import { createImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import { onDestroy } from "svelte";
-  import { deleteDatasource } from "$lib/stores/DatasourcesUtils.js";
+  import { deleteDatasource } from "$lib/api/DatasourcesApi.js";
   import DirtyNavigationGuard from "$lib/components/navigation/DirtyNavigationGuard.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 

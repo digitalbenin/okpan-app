@@ -4,7 +4,7 @@
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
-  import { deleteProject } from "$lib/stores/ProjectsUtils.js";
+  import { deleteProject } from "$lib/api/ProjectsApi.js";
 
 
   const { project } = $props();

@@ -1,6 +1,6 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { updateVocabulary, updateVocabularyAssets } from "$lib/stores/ResearchFieldsUtils.js";
+    import { updateVocabulary, updateVocabularyAssets } from "$lib/api/ResearchFieldsApi.js";
     import { goto } from "$app/navigation";
     import VocabularyForm from "$lib/components/research_fields/VocabularyForm.svelte";
 

@@ -9,7 +9,7 @@
     deleteProjectRecoverySnapshot,
     getRecoverySnapshots,
     restoreProjectRecoverySnapshot,
-  } from "$lib/stores/RecoverySnapshotsUtils.js";
+  } from "$lib/api/RecoverySnapshotsApi.js";
 
   let { projectId = null } = $props();
 

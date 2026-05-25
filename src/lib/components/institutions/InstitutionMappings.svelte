@@ -4,8 +4,8 @@
   import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
-  import { executeQuery } from "$lib/stores/GraphqlUtils.js";
-  import { createTemplate, updateTemplateAndPropagate, deleteTemplateAndCleanup } from "$lib/stores/TemplatesUtils.js";
+  import { executeQuery } from "$lib/api/graphqlClient.js";
+  import { createTemplate, updateTemplateAndPropagate, deleteTemplateAndCleanup } from "$lib/api/TemplatesApi.js";
   import { page } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 

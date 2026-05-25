@@ -1,4 +1,4 @@
-import { executeQuery } from "$lib/stores/GraphqlUtils.js";
+import { executeQuery } from "$lib/api/graphqlClient.js";
 
 export const getSearch = async (options) => {
     // Entity search requires a query parameter, use empty string if not provided

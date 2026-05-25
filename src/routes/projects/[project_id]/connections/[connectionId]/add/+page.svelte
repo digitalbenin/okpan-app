@@ -3,7 +3,7 @@
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import VocabularyForm from "$lib/components/research_fields/VocabularyForm.svelte";
-    import { addVocabulary, updateVocabularyAssets } from "$lib/stores/ResearchFieldsUtils.js";
+    import { addVocabulary, updateVocabularyAssets } from "$lib/api/ResearchFieldsApi.js";
 
     let { data } = $props();
     const { t } = getTranslationStore();

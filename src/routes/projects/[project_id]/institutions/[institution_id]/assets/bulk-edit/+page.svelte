@@ -6,8 +6,8 @@
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { updateAsset, getAssetById } from "$lib/stores/AssetsUtils.js";
-  import { createFieldValidator } from "$lib/stores/formValidationUtils.js";
+  import { updateAsset, getAssetById } from "$lib/api/AssetsApi.js";
+  import { createFieldValidator } from "$lib/utils/formValidation.js";
   import {
     buildTranslationsFromValue,
     createMetadataValidator,

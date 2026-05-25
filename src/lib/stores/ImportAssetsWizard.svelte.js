@@ -1,6 +1,6 @@
 import { getContext, setContext } from 'svelte';
-import { getObjectIdentifier } from '$lib/stores/ObjectsUtils.js';
-import { deleteAssetsBulk } from '$lib/stores/AssetsUtils.js';
+import { getObjectIdentifier } from '$lib/api/ObjectsApi.js';
+import { deleteAssetsBulk } from '$lib/api/AssetsApi.js';
 
 const IMPORT_WIZARD_KEY = 'importAssetsWizard';
 

@@ -1,12 +1,12 @@
 import { browser } from '$app/environment';
 import {
     getObjectById,
-} from "$lib/stores/ObjectsUtils.js";
-import { getResearchFields } from "$lib/stores/ResearchFieldsUtils.js";
-import { getProjectInstitutions } from "$lib/stores/InstitutionsUtils.js";
-import { getDatasourcesByObject } from "$lib/stores/DatasourcesUtils.js";
-import { getTemplatesByInstitution } from "$lib/stores/TemplatesUtils.js";
-import { getOntologyFields } from "$lib/stores/OntologyFieldsUtils.js";
+} from "$lib/api/ObjectsApi.js";
+import { getResearchFields } from "$lib/api/ResearchFieldsApi.js";
+import { getProjectInstitutions } from "$lib/api/InstitutionsApi.js";
+import { getDatasourcesByObject } from "$lib/api/DatasourcesApi.js";
+import { getTemplatesByInstitution } from "$lib/api/TemplatesApi.js";
+import { getOntologyFields } from "$lib/api/OntologyFieldsApi.js";
 
 export const load = async ({ params, depends }) => {
     // Invalidate when institutions are updated elsewhere

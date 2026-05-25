@@ -1,8 +1,8 @@
 import { browser } from '$app/environment';
-import { getAssets } from "$lib/stores/AssetsUtils.js";
-import { getObjects } from "$lib/stores/ObjectsUtils.js";
-import { getDatasources } from '$lib/stores/DatasourcesUtils.js';
-import { getTemplatesByInstitution } from "$lib/stores/TemplatesUtils.js";
+import { getAssets } from "$lib/api/AssetsApi.js";
+import { getObjects } from "$lib/api/ObjectsApi.js";
+import { getDatasources } from '$lib/api/DatasourcesApi.js';
+import { getTemplatesByInstitution } from "$lib/api/TemplatesApi.js";
 // import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
 export const load = async ({ params, depends, url }) => {

@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { getResearchFieldById, fetchLinkedObjectsByVocabularyOption } from '$lib/stores/ResearchFieldsUtils.js';
+import { getResearchFieldById, fetchLinkedObjectsByVocabularyOption } from '$lib/api/ResearchFieldsApi.js';
 import { error } from '@sveltejs/kit';
 
 function isNotFoundError(value) {

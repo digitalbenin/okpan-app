@@ -3,8 +3,8 @@
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import VocabularyMediaManager from "$lib/components/research_fields/VocabularyMediaManager.svelte";
-    import { addVocabulary as addVocabularyAPI, updateVocabulary as updateVocabularyAPI, deleteVocabulary as deleteVocabularyAPI } from "$lib/stores/ResearchFieldsUtils.js";
-    import { executeQuery } from "$lib/stores/GraphqlUtils.js";
+    import { addVocabulary as addVocabularyAPI, updateVocabulary as updateVocabularyAPI, deleteVocabulary as deleteVocabularyAPI } from "$lib/api/ResearchFieldsApi.js";
+    import { executeQuery } from "$lib/api/graphqlClient.js";
 
     const translationStore = getTranslationStore();
     const t = $derived(translationStore.t);

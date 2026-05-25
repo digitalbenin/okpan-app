@@ -12,7 +12,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { topCurtainOverlay } from "$lib/utils/transitions.js";
   import { queryParameters, ssp } from "sveltekit-search-params";
-  import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/stores/ObjectsUtils.js";
+  import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/api/ObjectsApi.js";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import { watch } from "runed";

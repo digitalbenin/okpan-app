@@ -1,9 +1,9 @@
 import { browser } from '$app/environment';
-import { getProject } from "$lib/stores/ProjectsUtils.js";
-import { getProjectInstitutions } from "$lib/stores/InstitutionsUtils.js";
-import { getDisplayFields } from '$lib/stores/DisplayFieldsUtils.js';
-import { getResearchFields } from '$lib/stores/ResearchFieldsUtils.js';
-import { getOntologyFields } from '$lib/stores/OntologyFieldsUtils.js';
+import { getProject } from "$lib/api/ProjectsApi.js";
+import { getProjectInstitutions } from "$lib/api/InstitutionsApi.js";
+import { getDisplayFields } from '$lib/api/DisplayFieldsApi.js';
+import { getResearchFields } from '$lib/api/ResearchFieldsApi.js';
+import { getOntologyFields } from '$lib/api/OntologyFieldsApi.js';
 import { getContentLanguageStore } from '$lib/stores/ContentLanguageStore.svelte.js';
 
 // Disable prerendering for this layout as it loads dynamic data

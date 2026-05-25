@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { getInstitution } from "$lib/stores/InstitutionsUtils.js";
+import { getInstitution } from "$lib/api/InstitutionsApi.js";
 
 export const load = async ({ params, depends }) => {
     if (!browser) return;

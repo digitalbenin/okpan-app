@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { getResearchFieldById } from '$lib/stores/ResearchFieldsUtils.js';
+import { getResearchFieldById } from '$lib/api/ResearchFieldsApi.js';
 import { error } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageLoad} */

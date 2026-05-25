@@ -8,7 +8,7 @@
   import {
     getObjectById,
     updateObjectResearchFields,
-  } from "$lib/stores/ObjectsUtils.js";
+  } from "$lib/api/ObjectsApi.js";
 
   const { t } = getTranslationStore();
 

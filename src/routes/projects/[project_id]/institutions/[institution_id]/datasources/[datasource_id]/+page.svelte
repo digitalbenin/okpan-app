@@ -6,10 +6,10 @@
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import DatasourceEditForm from "$lib/components/datasources/DatasourceEditForm.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
-  import { deleteDatasource, getObjectsByDatasource } from "$lib/stores/DatasourcesUtils.js";
+  import { deleteDatasource, getObjectsByDatasource } from "$lib/api/DatasourcesApi.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
   import { goto } from "$app/navigation";
-  import { getObjectIdentifier } from "$lib/stores/ObjectsUtils.js";
+  import { getObjectIdentifier } from "$lib/api/ObjectsApi.js";
 
   const translationStore = getTranslationStore();
   const t = $derived(translationStore.t);

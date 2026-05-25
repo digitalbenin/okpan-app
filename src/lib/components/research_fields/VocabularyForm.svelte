@@ -1,7 +1,7 @@
 <script>
     import { createForm } from "@tanstack/svelte-form";
     import { z } from "zod";
-    import { createFieldValidator } from "$lib/stores/formValidationUtils.js";
+    import { createFieldValidator } from "$lib/utils/formValidation.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { getMediaType, createMediaFilters } from "$lib/utils/media.js";
     import { goto } from "$app/navigation";
@@ -14,7 +14,7 @@
     import { flip } from "svelte/animate";
     import { dndzone } from "svelte-dnd-action";
     import { DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
-    import { getObjectIdentifier } from "$lib/stores/ObjectsUtils.js";
+    import { getObjectIdentifier } from "$lib/api/ObjectsApi.js";
 
     let { 
         data, 

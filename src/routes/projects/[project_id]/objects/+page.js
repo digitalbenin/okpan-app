@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { searchObjects } from "$lib/stores/ObjectsUtils.js";
+import { searchObjects } from "$lib/api/ObjectsApi.js";
 
 export const load = async ({ params, depends, url }) => {
     if (!browser) return;

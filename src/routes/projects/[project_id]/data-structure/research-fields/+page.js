@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { getResearchFields } from '$lib/stores/ResearchFieldsUtils.js';
+import { getResearchFields } from '$lib/api/ResearchFieldsApi.js';
 
 /** @type {import('./$types').PageLoad} */
 export async function load({ params, depends }) {

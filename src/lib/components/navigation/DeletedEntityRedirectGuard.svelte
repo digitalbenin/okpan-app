@@ -3,10 +3,10 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
-  import { getInstitution } from "$lib/stores/InstitutionsUtils.js";
-  import { getObjectById } from "$lib/stores/ObjectsUtils.js";
-  import { getAssetById } from "$lib/stores/AssetsUtils.js";
-  import { getResearchFieldById, getVocabularyById } from "$lib/stores/ResearchFieldsUtils.js";
+  import { getInstitution } from "$lib/api/InstitutionsApi.js";
+  import { getObjectById } from "$lib/api/ObjectsApi.js";
+  import { getAssetById } from "$lib/api/AssetsApi.js";
+  import { getResearchFieldById, getVocabularyById } from "$lib/api/ResearchFieldsApi.js";
 
   const ENTITY_LABELS = {
     institution: "institution",

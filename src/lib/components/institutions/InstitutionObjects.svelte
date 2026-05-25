@@ -14,7 +14,7 @@
   import { afterNavigate, goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { resource } from "runed";
-  import { updateObjectsStatusBulk, updateObjectsInstitutionBulk, searchObjects } from "$lib/stores/ObjectsUtils.js";
+  import { updateObjectsStatusBulk, updateObjectsInstitutionBulk, searchObjects } from "$lib/api/ObjectsApi.js";
 
   let { institution, ontologyFields, researchFields, displayFields, params = $bindable() } = $props();
 

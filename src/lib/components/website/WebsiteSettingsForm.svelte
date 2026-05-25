@@ -2,9 +2,9 @@
   import { createForm } from "@tanstack/svelte-form";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import FileUpload from "$lib/components/base/FileUpload.svelte";
-  import { getValidator, createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
+  import { getValidator, createFieldValidator, getFormConfig } from "$lib/utils/formValidation.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { createWebsiteSettings, updateWebsiteSettings } from "$lib/stores/WebsiteSettingsUtils.js";
+  import { createWebsiteSettings, updateWebsiteSettings } from "$lib/api/WebsiteSettingsApi.js";
   import { page } from "$app/stores";
 
   const translationStore = getTranslationStore();

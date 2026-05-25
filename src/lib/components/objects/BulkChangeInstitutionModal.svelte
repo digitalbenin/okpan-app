@@ -4,7 +4,7 @@
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { getSearch } from "$lib/stores/SearchUtils.js";
+  import { getSearch } from "$lib/api/SearchApi.js";
   import { throttle } from "$lib/utils/throttle.js";
   import { onMount } from "svelte";
   

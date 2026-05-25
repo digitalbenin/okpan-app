@@ -9,12 +9,12 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
-  import { updateObjectInstitution, deleteObject, updateObjectStatus, updateObjectName } from "$lib/stores/ObjectsUtils.js";
+  import { updateObjectInstitution, deleteObject, updateObjectStatus, updateObjectName } from "$lib/api/ObjectsApi.js";
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
   import { createForm } from "@tanstack/svelte-form";
   import { z } from "zod";
-  import { createFieldValidator } from "$lib/stores/formValidationUtils.js";
+  import { createFieldValidator } from "$lib/utils/formValidation.js";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import { watch } from "runed";
 

@@ -1,7 +1,7 @@
 <script>
 	import { page } from '$app/stores';
 	import { watch } from 'runed';
-	import { searchObjects } from '$lib/stores/ObjectsUtils.js';
+	import { searchObjects } from '$lib/api/ObjectsApi.js';
 	import PreviewTable from '$lib/components/export/PreviewTable.svelte';
 	import StatusFilter from '$lib/components/export/StatusFilter.svelte';
 	import InstitutionFilter from '$lib/components/export/InstitutionFilter.svelte';

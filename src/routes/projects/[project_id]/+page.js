@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
-import { getProjectInstitutions } from "$lib/stores/InstitutionsUtils.js";
-import { getObjects } from "$lib/stores/ObjectsUtils.js";
-import { getProjectActivity } from "$lib/stores/ProjectActivityUtils.js";
+import { getProjectInstitutions } from "$lib/api/InstitutionsApi.js";
+import { getObjects } from "$lib/api/ObjectsApi.js";
+import { getProjectActivity } from "$lib/api/ProjectActivityApi.js";
 
 export const load = async ({ params, url, depends }) => {
     if (!browser) return;

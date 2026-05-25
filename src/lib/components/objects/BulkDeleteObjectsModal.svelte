@@ -2,7 +2,7 @@
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { deleteObjectsBulk } from "$lib/stores/ObjectsUtils.js";
+  import { deleteObjectsBulk } from "$lib/api/ObjectsApi.js";
   import { createEventDispatcher } from "svelte";
 
   const dispatch = createEventDispatcher();

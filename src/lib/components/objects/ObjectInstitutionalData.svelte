@@ -14,7 +14,7 @@
     createDatasource,
     deleteDatasourceFromObject,
     saveOntologyFieldsForDatasource,
-  } from "$lib/stores/DatasourcesUtils.js";
+  } from "$lib/api/DatasourcesApi.js";
 
   const {
     object,

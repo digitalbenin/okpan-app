@@ -6,7 +6,7 @@
   import {
     deleteDisplayField,
     createDisplayField,
-  } from "$lib/stores/DisplayFieldsUtils.js";
+  } from "$lib/api/DisplayFieldsApi.js";
 
   const {
     displayFields,

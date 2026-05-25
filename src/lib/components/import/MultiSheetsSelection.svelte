@@ -1,7 +1,7 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
-  import { spreadSheetSelection } from "$lib/stores/ImportUtils.js";
+  import { spreadSheetSelection } from "$lib/api/ImportApi.js";
   import BaseRadioGroup from "$lib/components/base/BaseRadioGroup.svelte";
 
   const { filePath, sheets } = $props();

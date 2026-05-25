@@ -1,4 +1,4 @@
-import { performQuery } from "$lib/stores/GraphqlUtils.js";
+import { performQuery } from "$lib/api/graphqlClient.js";
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 import { assetsOperations } from "$lib/queries/assets.js";
 

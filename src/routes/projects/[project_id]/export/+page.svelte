@@ -2,7 +2,7 @@
     import { page } from "$app/stores";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
-    import { searchObjects } from "$lib/stores/ObjectsUtils.js";
+    import { searchObjects } from "$lib/api/ObjectsApi.js";
     import { onMount } from "svelte";
     import PreviewTable from "$lib/components/export/PreviewTable.svelte";
     import StatusFilter from "$lib/components/export/StatusFilter.svelte";

@@ -3,7 +3,7 @@
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { createFetcher } from "$lib/stores/useFetcher.svelte.js";
-  import { importObjectsAndTemplate } from "$lib/stores/ObjectsUtils.js";
+  import { importObjectsAndTemplate } from "$lib/api/ObjectsApi.js";
   import { parseData } from "$lib/utils/import.js";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import { goto } from "$app/navigation";

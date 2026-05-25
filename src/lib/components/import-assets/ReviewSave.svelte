@@ -4,7 +4,7 @@
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { createFetcher } from "$lib/stores/useFetcher.svelte.js";
-  import { bulkLinkAssetsToObjects } from "$lib/stores/AssetsUtils.js";
+  import { bulkLinkAssetsToObjects } from "$lib/api/AssetsApi.js";
   import { goto } from "$app/navigation";
   import TableMatchPreview from "./TableMatchPreview.svelte";
   import { onMount, onDestroy } from "svelte";

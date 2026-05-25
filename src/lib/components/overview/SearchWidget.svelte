@@ -3,7 +3,7 @@
   import { Combobox } from "bits-ui";
   import { fade } from "svelte/transition";
   import { goto } from "$app/navigation";
-  import { getSearch } from "$lib/stores/SearchUtils.js";
+  import { getSearch } from "$lib/api/SearchApi.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
 

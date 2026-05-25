@@ -11,7 +11,7 @@
   import BaseBadge from "$lib/components/base/BaseBadge.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import IndeterminateCheckbox from "$lib/components/table/IntermediateCheckbox.svelte";
-  import { deleteInstitution } from "$lib/stores/InstitutionsUtils.js";
+  import { deleteInstitution } from "$lib/api/InstitutionsApi.js";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 

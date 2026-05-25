@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { createProject } from "$lib/stores/ProjectsUtils.js";
+  import { createProject } from "$lib/api/ProjectsApi.js";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte"; // Corrected path
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte"; // Corrected path

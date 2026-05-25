@@ -9,14 +9,14 @@
     getValidator,
     createFieldValidator,
     getFormConfig,
-  } from "$lib/stores/formValidationUtils.js";
+  } from "$lib/utils/formValidation.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
   import {
     createInstitution,
     updateInstitution,
     deleteInstitution,
-  } from "$lib/stores/InstitutionsUtils.js";
+  } from "$lib/api/InstitutionsApi.js";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
 

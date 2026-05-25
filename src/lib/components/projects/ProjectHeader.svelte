@@ -5,7 +5,7 @@
     updateProject,
     getProject,
     getProjectLanguages,
-  } from "$lib/stores/ProjectsUtils.js";
+  } from "$lib/api/ProjectsApi.js";
   import { Tabs } from "melt/builders";
   import { goto } from "$app/navigation";
 

@@ -7,9 +7,9 @@
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
     import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
-    import { createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
-    import { updateAsset, deleteAsset } from "$lib/stores/AssetsUtils.js";
-    import { linkAssetToObject, unlinkAssetFromObject } from "$lib/stores/ObjectsUtils.js";
+    import { createFieldValidator, getFormConfig } from "$lib/utils/formValidation.js";
+    import { updateAsset, deleteAsset } from "$lib/api/AssetsApi.js";
+    import { linkAssetToObject, unlinkAssetFromObject } from "$lib/api/ObjectsApi.js";
     import { getObjectImageUrl } from "$lib/utils/media.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { z } from "zod";

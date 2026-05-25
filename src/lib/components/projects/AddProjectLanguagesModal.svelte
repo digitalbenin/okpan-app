@@ -5,7 +5,7 @@
   import {
     addLanguageToProject,
     removeLanguageFromProject,
-  } from "$lib/stores/ProjectsUtils.js";
+  } from "$lib/api/ProjectsApi.js";
 
   const { t } = getTranslationStore();
 

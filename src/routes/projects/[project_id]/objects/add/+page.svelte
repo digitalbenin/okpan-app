@@ -8,15 +8,15 @@
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
-    import { createObject } from "$lib/stores/ObjectsUtils.js";
-    import { getTemplatesByInstitution } from "$lib/stores/TemplatesUtils.js";
+    import { createObject } from "$lib/api/ObjectsApi.js";
+    import { getTemplatesByInstitution } from "$lib/api/TemplatesApi.js";
     import { queryParameters, ssp } from "sveltekit-search-params";
     import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
     import { watch } from "runed";
     import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
     import { createForm } from "@tanstack/svelte-form";
     import { z } from "zod";
-    import { createFieldValidator } from "$lib/stores/formValidationUtils.js";
+    import { createFieldValidator } from "$lib/utils/formValidation.js";
     import AutoForm from "$lib/components/form/AutoForm.svelte";
 
     const { data } = $props();

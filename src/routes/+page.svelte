@@ -10,7 +10,7 @@
   import { page } from "$app/stores";
   import { watch } from "runed";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
-  import { getProjects } from "$lib/stores/ProjectsUtils.js";
+  import { getProjects } from "$lib/api/ProjectsApi.js";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
   import { onMount } from "svelte";
 

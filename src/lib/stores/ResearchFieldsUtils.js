@@ -1,6 +1,6 @@
-import { executeQuery } from "$lib/stores/GraphqlUtils.js";
+import { executeQuery } from "$lib/api/graphqlClient.js";
 import { invalidate } from "$app/navigation";
-import { searchObjects } from "$lib/stores/ObjectsUtils.js";
+import { searchObjects } from "$lib/api/ObjectsApi.js";
 // Note: Replace 'researchFields', 'list', 'getById', etc., with your actual GraphQL section and operation names.
 
 // Fetch objects linked to a specific connection option (vocabulary) for a research field

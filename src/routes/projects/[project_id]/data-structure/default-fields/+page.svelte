@@ -3,7 +3,7 @@
     import BaseCheckBox from "$lib/components/base/BaseCheckBox.svelte";
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { updateOntologyField } from "$lib/stores/OntologyFieldsUtils.js";
+    import { updateOntologyField } from "$lib/api/OntologyFieldsApi.js";
 
     const { data } = $props();
     const { t } = getTranslationStore();

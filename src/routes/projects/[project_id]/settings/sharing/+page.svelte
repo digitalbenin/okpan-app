@@ -4,7 +4,7 @@
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
-  import { updateProjectSharingSettings } from "$lib/stores/ProjectsUtils.js";
+  import { updateProjectSharingSettings } from "$lib/api/ProjectsApi.js";
 
 
   const { t } = getTranslationStore();

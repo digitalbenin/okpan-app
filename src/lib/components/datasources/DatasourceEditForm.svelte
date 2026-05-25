@@ -3,8 +3,8 @@
   import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import { createForm } from "@tanstack/svelte-form";
-  import { getValidator, createFieldValidator, getFormConfig } from "$lib/stores/formValidationUtils.js";
-  import { updateDatasource } from "$lib/stores/DatasourcesUtils.js";
+  import { getValidator, createFieldValidator, getFormConfig } from "$lib/utils/formValidation.js";
+  import { updateDatasource } from "$lib/api/DatasourcesApi.js";
 
   let { 
     datasource = {}, 

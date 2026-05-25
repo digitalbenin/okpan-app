@@ -1,5 +1,5 @@
 <script>
-  import { getObjectIdentifier } from "$lib/stores/ObjectsUtils.js";
+  import { getObjectIdentifier } from "$lib/api/ObjectsApi.js";
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   const { object } = $props();

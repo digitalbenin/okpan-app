@@ -1,5 +1,5 @@
 <script>
-  import { updateProject, removeLanguageFromProject } from "$lib/stores/ProjectsUtils.js";
+  import { updateProject, removeLanguageFromProject } from "$lib/api/ProjectsApi.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import AddProjectLanguagesModal from "$lib/components/projects/AddProjectLanguagesModal.svelte";
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";

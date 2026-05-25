@@ -5,7 +5,7 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import ConnectionFieldsSelector from "$lib/components/research_fields/ConnectionFieldsSelector.svelte";
   import { CONNECTION_TEMPLATES, DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
-  import { createResearchField } from "$lib/stores/ResearchFieldsUtils.js";
+  import { createResearchField } from "$lib/api/ResearchFieldsApi.js";
 
   let { projectId, languages = [], buttonClass = "btn btn-secondary text-white" } = $props();
 

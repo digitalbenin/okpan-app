@@ -3,7 +3,7 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BasePagination from "$lib/components/base/BasePagination.svelte";
-    import { getAssets } from "$lib/stores/AssetsUtils.js";
+    import { getAssets } from "$lib/api/AssetsApi.js";
 
     let {
         isOpen = false,

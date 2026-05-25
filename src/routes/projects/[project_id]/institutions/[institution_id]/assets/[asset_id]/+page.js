@@ -1,8 +1,8 @@
 import { browser } from '$app/environment';
 import { error } from '@sveltejs/kit';
-import { getAssetById } from '$lib/stores/AssetsUtils.js';
-import { getObjectById } from '$lib/stores/ObjectsUtils.js';
-import { getDisplayFields } from '$lib/stores/DisplayFieldsUtils.js';
+import { getAssetById } from '$lib/api/AssetsApi.js';
+import { getObjectById } from '$lib/api/ObjectsApi.js';
+import { getDisplayFields } from '$lib/api/DisplayFieldsApi.js';
 
 export async function load({ params, depends }) {
     if (!browser) return;

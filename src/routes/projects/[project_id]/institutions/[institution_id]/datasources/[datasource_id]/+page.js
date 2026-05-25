@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { getDatasource, getObjectsByDatasource } from '$lib/stores/DatasourcesUtils.js';
+import { getDatasource, getObjectsByDatasource } from '$lib/api/DatasourcesApi.js';
 
 export const load = async ({ params, depends }) => {
     if (!browser) return;

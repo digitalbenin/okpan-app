@@ -1,7 +1,7 @@
-import { getProjectInstitutions } from '$lib/stores/InstitutionsUtils.js';
-import { getResearchFields } from '$lib/stores/ResearchFieldsUtils.js';
+import { getProjectInstitutions } from '$lib/api/InstitutionsApi.js';
+import { getResearchFields } from '$lib/api/ResearchFieldsApi.js';
 import { browser } from '$app/environment';
-import { executeQuery } from '$lib/stores/GraphqlUtils.js';
+import { executeQuery } from '$lib/api/graphqlClient.js';
 
 export async function load({ params, fetch }) {
     const { project_id } = params;
