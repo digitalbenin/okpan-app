@@ -1,12 +1,9 @@
-<script>
+﻿<script>
   import { watch } from "runed";
-  import SetMatch from "$lib/components/import/matchPreview/SetMatch.svelte";
-  import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
-  import { executeQuery } from "$lib/api/graphqlClient.js";
-  import { createTemplate, updateTemplateAndPropagate, deleteTemplateAndCleanup } from "$lib/api/TemplatesApi.js";
-  import { page } from "$app/state";
+  import TemplateMappingEditor from "$lib/components/institutions/TemplateMappingEditor.svelte";
+  import { createTemplate, updateTemplateAndPropagate, deleteTemplateAndCleanup, countObjectsUsingTemplate } from "$lib/api/TemplatesApi.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   let { institution, mappingTemplates = [], ontologyFields = [] } = $props();
@@ -16,32 +13,22 @@
   const projectId = $derived(institution?.project_id);
   const institutionId = $derived(institution?.id);
 
-  const allOntologyFields = $derived(
-    ontologyFields?.result || ontologyFields || page.data.ontologyFields?.result || []
-  );
+  function titleForTemplate(tpl, idx) {
+    const title = tpl?.name;
+    if (typeof title === "string" && title.trim()) return title.trim();
+    return `Template ${idx + 1}`;
+  }
 
-  const ontologyLabelById = $derived.by(() => {
-    const map = new Map();
-    for (const f of allOntologyFields || []) {
-      if (!f?.id) continue;
-      const label = f?.name?.content;
-      if (typeof label === "string" && label.trim()) {
-        map.set(f.id, label);
-      }
-    }
-    return map;
-  });
+  function coercePrimaryBool(val) {
+    return val === true || val === 1 || val === "1" || val === "true";
+  }
 
   function safeParseMapping(raw) {
     if (!raw) return [];
     const norm = (e) => {
       if (!e) return null;
       if (typeof e === "string") {
-        try {
-          return JSON.parse(e);
-        } catch {
-          return null;
-        }
+        try { return JSON.parse(e); } catch { return null; }
       }
       return typeof e === "object" ? e : null;
     };
@@ -53,31 +40,6 @@
     } catch {
       return [];
     }
-  }
-
-  function titleForTemplate(tpl, idx) {
-    const title = tpl?.name;
-    if (typeof title === "string" && title.trim()) return title.trim();
-    return `Template ${idx + 1}`;
-  }
-
-  function ontologyName(fieldId) {
-    if (!fieldId) return "";
-    return ontologyLabelById.get(fieldId) || "";
-  }
-
-  function isObjectIdField(fieldId) {
-    if (!fieldId) return false;
-    const name = ontologyLabelById.get(fieldId) || "";
-    return name.toLowerCase() === "object id";
-  }
-
-  function rowHasObjectIdField(row) {
-    return row.mappedFields.some(fieldId => isObjectIdField(fieldId));
-  }
-
-  function coercePrimaryBool(val) {
-    return val === true || val === 1 || val === "1" || val === "true";
   }
 
   // Option B storage: [{ headerField, mappedField, primary: 0|1 }, ...]
@@ -93,12 +55,7 @@
 
       let group = groups.get(headerField);
       if (!group) {
-        group = {
-          rowId: crypto.randomUUID(),
-          institutionField: headerField,
-          mappedFields: [],
-          primary: false,
-        };
+        group = { rowId: crypto.randomUUID(), institutionField: headerField, mappedFields: [], primary: false };
         groups.set(headerField, group);
         ordered.push(group);
       }
@@ -107,9 +64,7 @@
 
       const ids = Array.isArray(entry?.mappedFields)
         ? entry.mappedFields.filter(Boolean)
-        : entry?.mappedField != null
-          ? [entry.mappedField]
-          : [];
+        : entry?.mappedField != null ? [entry.mappedField] : [];
 
       for (const id of ids) {
         if (!group.mappedFields.includes(id)) group.mappedFields = [...group.mappedFields, id];
@@ -121,9 +76,6 @@
 
   let templates = $state(mappingTemplates || []);
   let selectedTemplateId = $state(null);
-
-  const EMPTY_FIELD_LABEL = t("common.institution-field");
-
   let templateTitle = $state("");
   let rows = $state([]);
 
@@ -134,14 +86,7 @@
 
     let nextRows = groupTemplateMappingToRows(safeParseMapping(tpl?.mapping));
     if (!nextRows.length) {
-      nextRows = [
-        {
-          rowId: crypto.randomUUID(),
-          institutionField: "",
-          mappedFields: [],
-          primary: true,
-        },
-      ];
+      nextRows = [{ rowId: crypto.randomUUID(), institutionField: "", mappedFields: [], primary: true }];
     }
 
     const firstPrimary = nextRows.findIndex((r) => r.primary);
@@ -165,9 +110,7 @@
         selectedTemplateId = templates[0].id;
       }
 
-      // Initialize editor state when selection OR templates change
-      const shouldInit = selectedTemplateId !== prevSelectedId || nextTemplates !== prevTemplates;
-      if (shouldInit) {
+      if (selectedTemplateId !== prevSelectedId || nextTemplates !== prevTemplates) {
         initEditorState();
       }
     }
@@ -175,57 +118,15 @@
 
   const canEdit = $derived(Boolean(selectedTemplateId));
 
-  function setPrimary(rowId) {
-    rows = rows.map((r) => ({ ...r, primary: r.rowId === rowId }));
-  }
-
-  function addRow() {
-    rows = [
-      ...rows,
-      {
-        rowId: crypto.randomUUID(),
-        institutionField: "",
-        mappedFields: [],
-        primary: rows.length === 0,
-      },
-    ];
-  }
-
-  function removeRow(rowId) {
-    const next = rows.filter((r) => r.rowId !== rowId);
-    const hadPrimary = rows.find((r) => r.rowId === rowId)?.primary;
-    rows = next;
-    if (hadPrimary && rows.length) {
-      rows = rows.map((r, idx) => ({ ...r, primary: idx === 0 }));
-    }
-  }
-
-  function removeMappedField(rowId, fieldId) {
-    rows = rows.map((r) =>
-      r.rowId === rowId
-        ? { ...r, mappedFields: r.mappedFields.filter((id) => id !== fieldId) }
-        : r
-    );
-  }
-
-  function addMappedField(rowId, fieldId) {
-    if (!fieldId) return;
-    rows = rows.map((r) => {
-      if (r.rowId !== rowId) return r;
-      if (r.mappedFields.includes(fieldId)) return r;
-      return { ...r, mappedFields: [...r.mappedFields, fieldId] };
-    });
-  }
-
+  // Serialize rows into the flat Option B format expected by the backend.
   const mappingPayload = $derived.by(() => {
     const cleaned = rows
       .map((r) => {
         const headerField = (r.institutionField || "").trim();
         if (!headerField) return null;
-        const mappedFields = (r.mappedFields || []).filter(Boolean);
         return {
           headerField,
-          mappedFields,
+          mappedFields: (r.mappedFields || []).filter(Boolean),
           primary: Boolean(r.primary),
         };
       })
@@ -235,8 +136,8 @@
 
     // Ensure exactly one primary header field row
     const primaryRowIndex = Math.max(0, cleaned.findIndex((r) => r.primary));
-
     const expanded = [];
+
     for (let i = 0; i < cleaned.length; i++) {
       const r = cleaned[i];
       const primary01 = i === primaryRowIndex ? 1 : 0;
@@ -259,12 +160,11 @@
     if (!projectId || !institutionId || creating) return;
     creating = true;
     try {
-      const nextTitle = `Template ${templates.length + 1}`;
       const res = await createTemplate({
         mapping: [],
         projectId,
         institutionId,
-        title: nextTitle,
+        title: `Template ${templates.length + 1}`,
       });
       const created = res?.result?.insertIntoTemplates?.[0] || res?.result?.[0];
       if (created?.id) {
@@ -282,28 +182,16 @@
     if (!selectedTemplateId || saving) return;
     saving = true;
     try {
-      // Use the new mutation that propagates changes to all affected objects
       const res = await updateTemplateAndPropagate(selectedTemplateId, {
         mapping: mappingPayload,
         institutionId,
         title: (templateTitle || "").trim() || null,
       });
-      
       const updated = res?.result?.updatedTemplate || null;
-      const affectedObjects = res?.result?.affectedObjects || 0;
-      const updatedFields = res?.result?.updatedFields || 0;
-      
       if (updated?.id) {
         templates = templates.map((t) => (t.id === updated.id ? { ...t, ...updated } : t));
-        
-        // Show feedback to user
-        if (affectedObjects > 0 || updatedFields > 0) {
-          console.log(`Template saved and propagated to ${affectedObjects} objects (${updatedFields} fields updated)`);
-        } else {
-          console.log('Template saved (no objects affected)');
-        }
       } else {
-        // optimistic update fallback
+        // Optimistic update fallback
         templates = templates.map((t) =>
           t.id === selectedTemplateId
             ? { ...t, mapping: mappingPayload, name: (templateTitle || "").trim() }
@@ -324,13 +212,10 @@
   async function promptDeleteTemplate() {
     if (!selectedTemplateId) return;
     try {
-      const query = `query getCount($templateId: String!) { result:objects_datasources(where: { template_id: { eq: $templateId } }) { object_id } }`;
-      const countRes = await window.api.executeGraphQL(query, { templateId: selectedTemplateId });
-      const objectsUsingIt = countRes?.data?.result || [];
-      const uniqueObjects = new Set(objectsUsingIt.map(o => o.object_id)).size;
-      objectCountUsingTemplate = uniqueObjects;
-    } catch(err) {
-      console.error("Failed to count template usage", err);
+      const objectRows = await countObjectsUsingTemplate(selectedTemplateId);
+      objectCountUsingTemplate = new Set((objectRows || []).map((o) => o.object_id)).size;
+    } catch (err) {
+      console.error("Failed to count template usage:", err);
       objectCountUsingTemplate = 0;
     }
     deleteModalOpen = true;
@@ -340,64 +225,16 @@
     if (!selectedTemplateId || deletingTemplate) return;
     deletingTemplate = true;
     try {
-      const res = await deleteTemplateAndCleanup(selectedTemplateId);
-      const deletedId = res?.result?.deletedTemplateId;
-      console.log(`Deleted template. Affected objects: ${res?.result?.affectedObjects}, Deleted fields: ${res?.result?.deletedFields}`);
-      
-      templates = templates.filter(t => t.id !== selectedTemplateId);
+      await deleteTemplateAndCleanup(selectedTemplateId);
+      templates = templates.filter((t) => t.id !== selectedTemplateId);
       selectedTemplateId = templates.length > 0 ? templates[0].id : null;
       deleteModalOpen = false;
-    } catch(err) {
+    } catch (err) {
       console.error("Failed to delete template:", err);
     } finally {
       deletingTemplate = false;
     }
   }
-
-  // Reusable picker modal state (suggestions shown ONLY inside the modal)
-  let pickerOpen = $state(false);
-  let pickerRowId = $state(null);
-  let pickerFieldName = $state("");
-  let pickerSuggestions = $state([]);
-  let pickerMatched = $state(null);
-
-  function openPicker(row) {
-    pickerRowId = row.rowId;
-    pickerFieldName = (row.institutionField || "").trim() || EMPTY_FIELD_LABEL;
-    pickerSuggestions = [];
-    pickerMatched = null;
-    pickerOpen = true;
-  }
-
-  watch(
-    () => pickerOpen,
-    async (nextOpen) => {
-      if (!nextOpen) return;
-      const raw = (pickerFieldName || "").trim();
-      if (!raw || raw === EMPTY_FIELD_LABEL) {
-        pickerSuggestions = [];
-        return;
-      }
-      try {
-        const res = await window.api.suggestFieldMappings([raw], {
-          maxSuggestions: 3,
-          threshold: 0.2,
-        });
-        pickerSuggestions = res?.[0]?.suggestions || [];
-      } catch (err) {
-        console.warn("Failed to load mapping suggestions:", err);
-        pickerSuggestions = [];
-      }
-    }
-  );
-
-  watch(
-    () => pickerMatched,
-    (nextMatched) => {
-      if (!nextMatched?.id || !pickerRowId) return;
-      addMappedField(pickerRowId, nextMatched.id);
-    }
-  );
 </script>
 
 <div class="container-fluid">
@@ -466,123 +303,7 @@
             <h5 class="mb-3">
               {t("common.template-mapping")}
             </h5>
-
-            <table class="table table-sm align-middle">
-              <thead>
-                <tr>
-                  <th style="width: 60px;">{t("common.id")}</th>
-                  <th>{t("common.institution-field")}</th>
-                  <th>{t("common.project-field")}</th>
-                  <th style="width: 36px;"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each rows as row (row.rowId)}
-                  <tr>
-                    <td class="text-center">
-                      <BaseTooltip rootProps={{ side: "right", align: "center" }}>
-                        {#snippet trigger(props)}
-                          <span class="d-inline-flex" {...(({ type, ...rest }) => rest)(props)}>
-                            <input
-                              type="checkbox"
-                              class="form-check-input"
-                              checked={row.primary}
-                              onchange={() => setPrimary(row.rowId)}
-                              disabled={!canEdit || row.primary}
-                            />
-                          </span>
-                        {/snippet}
-                        {t("common.primary-id-tooltip")}
-                      </BaseTooltip>
-                    </td>
-                    <td>
-                      <input
-                        class="form-control form-control-sm"
-                        placeholder=""
-                        bind:value={row.institutionField}
-                        disabled={!canEdit}
-                      />
-                    </td>
-                    <td>
-                      <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <i class="bi bi-arrow-right text-muted"></i>
-
-                        {#each row.mappedFields as fieldId (fieldId)}
-                          <span
-                            class="badge text-bg-light border d-inline-flex align-items-center gap-1"
-                          >
-                            {ontologyName(fieldId) || fieldId}
-                            <button
-                              type="button"
-                              class="btn btn-sm border-0 p-0"
-                              onclick={() => removeMappedField(row.rowId, fieldId)}
-                              disabled={!canEdit}
-                              aria-label={t("common.remove-mapping")}
-                            >
-                              <i class="bi bi-x"></i>
-                            </button>
-                          </span>
-                        {/each}
-
-                        <button
-                          type="button"
-                          class="btn btn-secondary btn-sm rounded-circle d-inline-flex align-items-center justify-content-center p-0 px-1"
-                          onclick={() => openPicker(row)}
-                          disabled={!canEdit}
-                          aria-label={t("common.add-mapped-field")}
-                        >
-                          <i class="bi bi-plus"></i>
-                        </button>
-                      </div>
-                    </td>
-                    <td class="text-end">
-                      {#if rowHasObjectIdField(row)}
-                        <BaseTooltip rootProps={{ side: "left", align: "start" }}>
-                          {#snippet trigger(props)}
-                            <div class="d-inline-block" {...(({ type, ...rest }) => rest)(props)}>
-                              <button
-                                type="button"
-                                class="btn btn-link text-danger p-0"
-                                onclick={() => removeRow(row.rowId)}
-                                disabled={true}
-                                aria-label={t("common.delete-row")}
-                              >
-                                <i class="bi bi-dash-circle-fill"></i>
-                              </button>
-                            </div>
-                          {/snippet}
-                          {t("common.object-id-field-cannot-be-deleted")}
-                        </BaseTooltip>
-                      {:else}
-                        <button
-                          type="button"
-                          class="btn btn-link text-danger p-0"
-                          onclick={() => removeRow(row.rowId)}
-                          disabled={!canEdit}
-                          aria-label={t("common.delete-row")}
-                        >
-                          <i class="bi bi-dash-circle-fill"></i>
-                        </button>
-                      {/if}
-                    </td>
-                  </tr>
-                {/each}
-
-                <tr>
-                  <td colspan="4">
-                    <button
-                      type="button"
-                      class="btn btn-link text-success p-0"
-                      onclick={addRow}
-                      disabled={!canEdit}
-                    >
-                      <i class="bi bi-plus-circle me-1"></i>
-                      {t("export.add-field")}
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <TemplateMappingEditor bind:rows {ontologyFields} {canEdit} />
           </div>
         </div>
 
@@ -608,15 +329,6 @@
   </div>
 </div>
 
-<!-- Hidden-trigger reusable modal for ontology field selection -->
-<SetMatch
-  field={pickerFieldName}
-  suggestions={pickerSuggestions}
-  bind:fieldMatched={pickerMatched}
-  bind:open={pickerOpen}
-  triggerVariant="add"
-  buttonProps={{ class: "d-none" }}
-/>
 
 <BaseModal bind:isOpen={deleteModalOpen}>
   {#snippet header()}
@@ -650,4 +362,3 @@
     />
   {/snippet}
 </BaseModal>
-

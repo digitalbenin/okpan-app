@@ -11,7 +11,7 @@
     type = "single",
     size,
     as = "select",
-    onValueChange = null,
+    onValueChange = undefined,
     searchable = false,
     searchPlaceholder = "Search...",
     children,

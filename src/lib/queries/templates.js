@@ -257,5 +257,20 @@ export const templatesOperations = {
         deletedFields
       }
     }`
+  },
+
+  // Count objects currently using a specific template
+  countObjects: {
+    type: "query",
+    name: "Count Objects Using Template",
+    description: "Returns all objects_datasources rows for a template so the caller can count unique objects.",
+    variables: {
+      templateId: "ID of the template"
+    },
+    query: `query CountObjectsUsingTemplate($templateId: String!) {
+      result: objects_datasources(where: { template_id: { eq: $templateId } }) {
+        object_id
+      }
+    }`
   }
 }; 

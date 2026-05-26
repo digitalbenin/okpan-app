@@ -64,6 +64,13 @@ export const deleteTemplateAndCleanup = async (templateId) => {
   return result;
 };
 
+export const countObjectsUsingTemplate = async (templateId) => {
+  if (!templateId) {
+    throw new Error("Template ID is required");
+  }
+  return await executeQuery("templates", "countObjects", { templateId });
+};
+
 export const updateTemplateAndPropagate = async (templateId, { mapping, institutionId, title }) => {
   if (!templateId) {
     throw new Error("Template ID is required to update a template");
@@ -79,11 +86,7 @@ export const updateTemplateAndPropagate = async (templateId, { mapping, institut
     institutionId,
   };
 
-  console.log('updateTemplateAndPropagate called with:', variables);
-
   const result = await executeQuery("templates", "updateAndPropagate", variables);
-  
-  console.log('updateTemplateAndPropagate result:', result);
   
   // Invalidate to refresh all related data
   invalidate("app:templates");

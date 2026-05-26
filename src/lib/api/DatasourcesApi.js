@@ -127,7 +127,9 @@ export const createDatasource = async (params) => {
     if (!response) {
         return { result: null, error: "Failed to create datasource" };
     }
-    return { result: response, error: null };
+    // Multi-step mutation returns merged results from all steps; the created datasource is at response.result[0]
+    const created = Array.isArray(response?.result) ? response.result[0] : response;
+    return { result: created, error: null };
 };
 
 // Version that throws errors for useFetcher compatibility

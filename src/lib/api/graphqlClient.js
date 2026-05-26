@@ -216,6 +216,10 @@ export async function executeMultiStepMutation(mutations, params) {
             results[mutation.name] = result;
             Object.assign(finalResults, result);
         } catch (error) {
+            if (mutation.continueOnError) {
+                console.warn(`Step ${mutation.name} failed (continuing):`, error.message);
+                continue;
+            }
             console.error(`Error in mutation step ${mutation.name}:`, error);
             throw error;
         }

@@ -761,6 +761,7 @@ export const datasourcesOperations = {
     mutations: [
       {
         name: "ensureJunction",
+        continueOnError: true,
         query: `mutation EnsureObjectDatasourceJunction($objectId: String!, $datasourceId: String!, $templateId: String) {
   insertIntoObjects_datasources(
     values: [{
