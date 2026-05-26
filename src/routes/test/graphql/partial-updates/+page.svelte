@@ -149,7 +149,7 @@
             });
 
             queryResult = { success: true };
-            projectWithCounts = result.result;
+            projectWithCounts = result;
         } catch (error) {
             console.error("Failed to get project:", error);
             queryResult = { success: false, error: error.message };
@@ -176,8 +176,8 @@
                 direction: "asc",
             });
 
-            institutions = result.result || [];
-            totalInstitutions = result.count || 0;
+            institutions = result.items || [];
+            totalInstitutions = result.totalCount || 0;
         } catch (error) {
             console.error("Failed to get institutions:", error);
             alert(`Error: ${error.message}`);
@@ -306,7 +306,7 @@
                 projectId: projectId,
             });
 
-            objectsList = result.result || [];
+            objectsList = result.items || [];
             totalObjects = objectsList.length;
         } catch (error) {
             console.error("Failed to get objects:", error);

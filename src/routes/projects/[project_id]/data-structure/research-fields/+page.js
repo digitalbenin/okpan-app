@@ -8,7 +8,7 @@ export async function load({ params, depends }) {
     const researchFieldsResponse = await getResearchFields(projectId);
 
     // Filter to only include non-vocabulary fields (free text)
-    const filteredFields = (researchFieldsResponse.result || []).filter(
+    const filteredFields = (researchFieldsResponse || []).filter(
         (field) => (field.type || '').toLowerCase() !== 'vocabulary'
     );
 

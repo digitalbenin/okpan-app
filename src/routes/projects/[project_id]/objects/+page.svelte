@@ -74,7 +74,7 @@
   const ontologyFieldsList = $derived.by(() => [
     { value: "name", label: t("common.name", { fallback: "Name" }) },
     { value: "all", label: t("common.all", { fallback: "All" }) },
-    ...data.ontologyFields.result.map((f) => ({ value: f.id, label: f.name.content })),
+    ...data.ontologyFields.map((f) => ({ value: f.id, label: f.name.content })),
   ]);
 
   const statuses = $derived([

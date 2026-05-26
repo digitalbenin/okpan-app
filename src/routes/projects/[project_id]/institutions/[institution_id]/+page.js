@@ -95,7 +95,7 @@ export const load = async ({ params, depends, url }) => {
         // projectId,
         // institutionId,
         datasources: datasourcesData,
-        mappingTemplates: templatesData?.result || [],
+        mappingTemplates: templatesData || [],
         //projectLanguages: projectLanguages?.result || projectLanguages || [] // Adjust as per getAvaliableLocalesForProject's return
     };
     return res;

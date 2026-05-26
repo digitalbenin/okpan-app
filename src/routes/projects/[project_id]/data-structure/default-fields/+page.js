@@ -10,6 +10,6 @@ export async function load({ params, depends, parent }) {
     const ontologyFieldsResponse = await getOntologyFields(params.project_id);
 
     return {
-        ontologyFields: ontologyFieldsResponse.result || []
+        ontologyFields: ontologyFieldsResponse || []
     };
 }

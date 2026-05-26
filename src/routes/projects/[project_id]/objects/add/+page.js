@@ -21,7 +21,7 @@ export const load = async ({ params, depends }) => {
 
     return {
         institutions: institutionItems,
-        researchFields: researchFieldsResponse.result || [],
-        ontologyFields: ontologyFieldsResponse?.result || []
+        researchFields: researchFieldsResponse || [],
+        ontologyFields: ontologyFieldsResponse || []
     };
 };

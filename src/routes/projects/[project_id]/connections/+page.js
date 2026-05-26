@@ -8,7 +8,7 @@ export async function load({ params, depends }) {
     const researchFieldsResponse = await getResearchFields(projectId);
     
     // Filter to only include vocabulary type fields
-    const vocabularyFields = (researchFieldsResponse.result || []).filter(
+    const vocabularyFields = (researchFieldsResponse || []).filter(
         (field) => (field.type || '').toLowerCase() === 'vocabulary'
     );
     

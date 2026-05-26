@@ -11,7 +11,7 @@ export async function load({ params }) {
     try {
         const response = await getWebsiteSettings(projectId);
         // Optional chaining to avoid undefined access; default to empty array
-        const settings = response?.result ?? [];
+        const settings = response ?? [];
         return { websiteSettings: settings };
     } catch (error) {
         console.error('Failed to load website settings:', error);

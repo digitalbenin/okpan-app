@@ -71,11 +71,8 @@
            return false;
         }
 
-        // Logic to extract ID from result. 
-        // Typically result.result contains the data.
-        // check specific structure for addVocabulary
-        const mutationResult = result.result;
-        const newVocabulary = mutationResult?.insertIntoVocabularies?.[0];
+        // Logic to extract ID from result.
+        const newVocabulary = result.result?.[0];
         const newVocabularyId = newVocabulary?.id;
         const optionTextId = newVocabulary?.option_id;
         const descriptionTextId = newVocabulary?.description_id;

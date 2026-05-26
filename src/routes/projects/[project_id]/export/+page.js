@@ -19,7 +19,7 @@ export async function load({ params, fetch }) {
 
     // Load research fields
     const researchFieldsResponse = await getResearchFields(project_id);
-    const allResearchFields = researchFieldsResponse?.result || [];
+    const allResearchFields = researchFieldsResponse || [];
 
     // Separate research fields by type
     const connectionFields = allResearchFields.filter(

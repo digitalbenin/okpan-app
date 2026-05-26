@@ -22,7 +22,7 @@ export async function load({ params, fetch }) {
         : [];
 
     const researchFieldsResponse = await getResearchFields(project_id);
-    const allResearchFields = researchFieldsResponse?.result || [];
+    const allResearchFields = researchFieldsResponse || [];
 
     const connectionFields = allResearchFields.filter(
         (field) => (field.type || '').toLowerCase() === 'vocabulary'
@@ -38,7 +38,7 @@ export async function load({ params, fetch }) {
             const languageResponse = await executeQuery('languages', 'listByProject', {
                 projectId: project_id
             });
-            contentLanguages = Array.isArray(languageResponse?.result) ? languageResponse.result : [];
+            contentLanguages = Array.isArray(languageResponse) ? languageResponse : [];
         } catch (error) {
             console.error('Failed to load content languages for website export:', error);
             contentLanguages = [];

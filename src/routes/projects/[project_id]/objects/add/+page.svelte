@@ -57,7 +57,7 @@
         async (institutionId) => {
             if (institutionId) {
                 const response = await getTemplatesByInstitution(institutionId);
-                templates = response?.result || [];
+                templates = response || [];
             } else {
                 templates = [];
             }

@@ -8,6 +8,6 @@ export async function load({ params, depends }) {
   const projectId = params.project_id;
   const researchFieldsResponse = await getResearchFields(projectId);
   return {
-    researchFields: researchFieldsResponse.result || [],
+    researchFields: researchFieldsResponse || [],
   };
 }

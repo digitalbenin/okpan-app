@@ -15,11 +15,11 @@ export async function load({ params, depends }) {
         // Get the asset details
         const assetResult = await getAssetById(asset_id);
 
-        if (!assetResult?.result?.[0]) {
+        if (!assetResult?.[0]) {
             throw error(404, 'Asset not found');
         }
 
-        const asset = assetResult.result[0];
+        const asset = assetResult[0];
 
         // Verify the asset belongs to the correct institution
         if (asset.institution_id !== institution_id) {
@@ -28,7 +28,7 @@ export async function load({ params, depends }) {
 
         // Load display fields configuration for the project
         const displayFieldsResult = await getDisplayFields({ projectId: project_id });
-        const displayFields = displayFieldsResult?.result || [];
+        const displayFields = displayFieldsResult || [];
 
         // Fetch linked objects with their ontology fields
         let linkedObjects = [];

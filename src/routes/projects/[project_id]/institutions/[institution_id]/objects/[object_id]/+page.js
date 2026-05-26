@@ -35,11 +35,11 @@ export const load = async ({ params, depends }) => {
     depends("custom:object");
     return {
         object: objectResponse.result,
-        researchFields: researchFieldsResponse.result || [],
+        researchFields: researchFieldsResponse || [],
         institutions: institutionItems,
         datasources: datasourcesResponse.items || [],
-        templates: templatesResponse?.result || [],
-        ontologyFields: ontologyFieldsResponse?.result || []
+        templates: templatesResponse || [],
+        ontologyFields: ontologyFieldsResponse || []
     }
 };
 

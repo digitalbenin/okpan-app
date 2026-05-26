@@ -52,7 +52,7 @@
           for (const id of (assetsCtx?.getSelected?.() || [])) {
             try {
               const assetRes = await getAssetById(id);
-              const asset = Array.isArray(assetRes?.result) ? assetRes.result[0] : null;
+              const asset = Array.isArray(assetRes) ? assetRes[0] : null;
               const mergedProps = mergeTranslations(asset?.properties, translations);
               await updateAsset(id, { properties: mergedProps });
             } catch (e) {
