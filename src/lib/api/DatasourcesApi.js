@@ -127,8 +127,10 @@ export const createDatasource = async (params) => {
     if (!response) {
         return { result: null, error: "Failed to create datasource" };
     }
-    // Multi-step mutation returns merged results from all steps; the created datasource is at response.result[0]
-    const created = Array.isArray(response?.result) ? response.result[0] : response;
+    // Normalize the create response to a single datasource object for all callers.
+    const created = Array.isArray(response?.result)
+        ? response.result[0]
+        : (response?.result ?? response);
     return { result: created, error: null };
 };
 

@@ -125,7 +125,14 @@
               console.error("Error creating datasource:", result.error);
               return;
             }
-            wizard.datasourceId = result.result[0].id;
+            const createdDatasourceId = result?.result?.id;
+
+            if (!createdDatasourceId) {
+              console.error("Error creating datasource: missing datasource id in response", result);
+              return;
+            }
+
+            wizard.datasourceId = createdDatasourceId;
           } else {
             const updateResult = await updateDatasource(wizard.datasourceId, finalPayload);
             if (updateResult?.error) {

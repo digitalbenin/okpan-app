@@ -8,7 +8,7 @@
 
   const id = $derived.by(() => {
     //ontologyFields
-    return ontologyFields.result.find((f) => f.name.content === "object id")
+    return (ontologyFields?.result || []).find((f) => f.name.content === "object id")
       ?.id;
   }); //Find a better way to get this dynamically
 
@@ -21,7 +21,7 @@
         const firstMapped = (wizard.mapping || []).find(
           (e) => e?.headerField === headerField && e?.mappedField
         )?.mappedField;
-        const ontologyField = ontologyFields.result.find((f) => f.id === firstMapped);
+        const ontologyField = (ontologyFields?.result || []).find((f) => f.id === firstMapped);
         groups.set(headerField, {
           headerField,
           mappedField: firstMapped || null,

@@ -1,14 +1,8 @@
 <script>
 	import { page } from '$app/stores';
-	import { watch } from 'runed';
-	import { searchObjects } from '$lib/api/ObjectsApi.js';
-	import PreviewTable from '$lib/components/export/PreviewTable.svelte';
-	import StatusFilter from '$lib/components/export/StatusFilter.svelte';
-	import InstitutionFilter from '$lib/components/export/InstitutionFilter.svelte';
-	import ConnectionFilters from '$lib/components/export/ConnectionFilters.svelte';
-	import ResearchFieldFilters from '$lib/components/export/ResearchFieldFilters.svelte';
-	import PageActionFooter from '$lib/components/common/PageActionFooter.svelte';
 	import BaseAlertDialog from '$lib/components/base/BaseAlertDialog.svelte';
+	import ExportPreviewSection from '$lib/components/export/ExportPreviewSection.svelte';
+	import PageActionFooter from '$lib/components/common/PageActionFooter.svelte';
 	import { getTranslationStore } from '$lib/stores/InterfaceTranslationStore.svelte.js';
 
 	const WEBSITE_LOCALE_MODULES = import.meta.glob('../../../../website/src/lib/i18n/*.json', {
@@ -24,46 +18,30 @@
 
 	function resolveWebsiteLocale(locale, availableLanguages) {
 		const normalized = normalizeLocale(locale);
-		if (!normalized) {
-			return '';
-		}
-
-		const exactMatch = availableLanguages.find((language) => language.code === normalized);
-		if (exactMatch) {
-			return exactMatch.code;
-		}
-
-		const baseMatch = availableLanguages.find(
-			(language) => language.code === normalized.split('-')[0]
-		);
+		if (!normalized) return '';
+		const exactMatch = availableLanguages.find((lang) => lang.code === normalized);
+		if (exactMatch) return exactMatch.code;
+		const baseMatch = availableLanguages.find((lang) => lang.code === normalized.split('-')[0]);
 		return baseMatch?.code || '';
 	}
 
 	function setOptionalContentLanguageEnabled(code, enabled) {
 		const normalizedCode = normalizeLocale(code);
-		if (!normalizedCode) {
-			return;
-		}
-
+		if (!normalizedCode) return;
 		if (enabled) {
 			excludedOptionalContentLanguageCodes = excludedOptionalContentLanguageCodes.filter(
-				(existingCode) => existingCode !== normalizedCode
+				(c) => c !== normalizedCode
 			);
 			return;
 		}
-
 		if (!excludedOptionalContentLanguageCodes.includes(normalizedCode)) {
-			excludedOptionalContentLanguageCodes = [
-				...excludedOptionalContentLanguageCodes,
-				normalizedCode
-			];
+			excludedOptionalContentLanguageCodes = [...excludedOptionalContentLanguageCodes, normalizedCode];
 		}
 	}
 
 	let projectId = $derived($page.params.project_id);
 	let isExporting = $state(false);
-	let isLoading = $state(false);
-	let exportStatus = $state(null); // null | 'success' | 'error'
+	let exportStatus = $state(null);
 	let exportMessage = $state('');
 	let exportPath = $state('');
 	let exportResultDialogOpen = $state(false);
@@ -72,113 +50,71 @@
 	let websiteLocalePreference = $state('');
 	let excludedOptionalContentLanguageCodes = $state([]);
 
-	let selectedStatus = $state('all');
-	let selectedInstitutions = $state([]);
-	let connectionFilters = $state([]);
-	let freeTextFilters = $state([]);
-
-	let currentPage = $state(1);
-	let pageSize = $state(10);
-	let objects = $state([]);
-	let totalCount = $state(0);
 	let deselectedObjectIds = $state(new Set());
-	let facets = $state({ institutions: [], statuses: [], researchFields: [] });
+	let totalCount = $state(0);
+	let isLoading = $state(false);
+	let filtersPayload = $state({});
 
-	let websiteLocaleOptions = $derived.by(() => {
+	const websiteLocaleOptions = $derived.by(() => {
 		const seen = new Set();
-
 		return Object.values(WEBSITE_LOCALE_MODULES)
 			.map((module) => module?.default ?? module)
 			.map((bundle) => {
 				const code = normalizeLocale(bundle?.code);
-				if (!code || seen.has(code)) {
-					return null;
-				}
-
+				if (!code || seen.has(code)) return null;
 				seen.add(code);
-				return {
-					code,
-					name: bundle?.name || code
-				};
+				return { code, name: bundle?.name || code };
 			})
 			.filter(Boolean);
 	});
 
-	let contentLanguageOptions = $derived.by(() => {
+	const contentLanguageOptions = $derived.by(() => {
 		const fromData = Array.isArray(data?.contentLanguages) ? data.contentLanguages : [];
 		const normalized = fromData
-			.map((language) => {
-				const code = normalizeLocale(language?.code);
+			.map((lang) => {
+				const code = normalizeLocale(lang?.code);
 				if (!code) return null;
-
-				return {
-					code,
-					name: language?.name || code,
-					isDefault: Number(language?.is_default) === 1
-				};
+				return { code, name: lang?.name || code, isDefault: Number(lang?.is_default) === 1 };
 			})
 			.filter(Boolean);
-
 		normalized.sort((a, b) => {
-			if (a.isDefault === b.isDefault) {
-				return a.code.localeCompare(b.code);
-			}
-
+			if (a.isDefault === b.isDefault) return a.code.localeCompare(b.code);
 			return a.isDefault ? -1 : 1;
 		});
-
 		return normalized;
 	});
 
-	const defaultContentLanguage = $derived.by(
-		() =>
-			contentLanguageOptions.find((language) => language.isDefault) ||
-			contentLanguageOptions[0] ||
-			null
+	const defaultContentLanguage = $derived(
+		contentLanguageOptions.find((lang) => lang.isDefault) || contentLanguageOptions[0] || null
 	);
 
-	const optionalContentLanguages = $derived.by(() => {
-		if (!defaultContentLanguage) {
-			return contentLanguageOptions;
-		}
+	const optionalContentLanguages = $derived(
+		defaultContentLanguage
+			? contentLanguageOptions.filter((lang) => lang.code !== defaultContentLanguage.code)
+			: contentLanguageOptions
+	);
 
-		return contentLanguageOptions.filter((language) => language.code !== defaultContentLanguage.code);
-	});
-
-	const showContentLanguageSelection = $derived.by(() => optionalContentLanguages.length > 0);
+	const showContentLanguageSelection = $derived(optionalContentLanguages.length > 0);
 
 	const selectedOptionalContentLanguages = $derived.by(() => {
 		const excludedCodes = new Set(
 			excludedOptionalContentLanguageCodes.map((code) => normalizeLocale(code))
 		);
-
-		return optionalContentLanguages
-			.map((language) => language.code)
-			.filter((code) => !excludedCodes.has(code));
+		return optionalContentLanguages.map((lang) => lang.code).filter((code) => !excludedCodes.has(code));
 	});
 
 	const selectedContentLanguageCodes = $derived.by(() => {
 		const selectedCodes = new Set();
-
-		if (defaultContentLanguage?.code) {
-			selectedCodes.add(defaultContentLanguage.code);
-		}
-
+		if (defaultContentLanguage?.code) selectedCodes.add(defaultContentLanguage.code);
 		selectedOptionalContentLanguages.forEach((code) => {
-			const normalizedCode = normalizeLocale(code);
-			if (normalizedCode) {
-				selectedCodes.add(normalizedCode);
-			}
+			const normalized = normalizeLocale(code);
+			if (normalized) selectedCodes.add(normalized);
 		});
-
 		return [...selectedCodes];
 	});
 
 	const selectedWebsiteLocale = $derived.by(() => {
-		if (websiteLocaleOptions.length === 0) {
-			return '';
-		}
-
+		if (websiteLocaleOptions.length === 0) return '';
 		return (
 			resolveWebsiteLocale(websiteLocalePreference, websiteLocaleOptions) ||
 			resolveWebsiteLocale(translationState.currentLocale, websiteLocaleOptions) ||
@@ -187,192 +123,6 @@
 		);
 	});
 
-	watch(() => currentPage, () => {
-		performSearch();
-	}, { immediate: true });
-
-	let connectionFields = $derived.by(() => {
-		const fields = data.connectionFields;
-		if (Array.isArray(fields)) return fields;
-		return [];
-	});
-
-	let freeTextFields = $derived.by(() => {
-		const fields = data.freeTextFields;
-		if (Array.isArray(fields)) return fields;
-		return [];
-	});
-
-	let connectionFieldOptions = $derived.by(() => {
-		return connectionFields.map((field) => {
-			const name = field?.name;
-			const label =
-				typeof name === 'string'
-					? name
-					: (name?.content ??
-						(Array.isArray(name?.translations) && name.translations[0]?.content) ??
-						String(field.id));
-
-			return {
-				value: field.id,
-				label,
-				group: field?.project?.title?.content ?? t('common.connections'),
-				vocabOptions: Array.isArray(field?.vocabularies)
-					? field.vocabularies.map((v) => ({
-							value: v.id,
-							label: v?.option?.content ?? v.id
-						}))
-					: []
-			};
-		});
-	});
-
-	let freeTextFieldOptions = $derived.by(() => {
-		return freeTextFields.map((field) => {
-			const name = field?.name;
-			const label =
-				typeof name === 'string'
-					? name
-					: (name?.content ??
-						(Array.isArray(name?.translations) && name.translations[0]?.content) ??
-						String(field.id));
-
-			return {
-				value: field.id,
-				label,
-				group: field?.project?.title?.content ?? t('filters.research-fields')
-			};
-		});
-	});
-
-	function sanitizeConnectionFilters(filters) {
-		if (!Array.isArray(filters) || filters.length === 0) return [];
-
-		return filters.map((filter) => {
-			const allowed = (
-				connectionFieldOptions.find((option) => option.value === filter.fieldId)?.vocabOptions || []
-			).map((option) => option.value);
-
-			const vocabularyIds = (
-				Array.isArray(filter.vocabularyIds) ? filter.vocabularyIds : []
-			).filter((id) => allowed.includes(id));
-
-			return {
-				fieldId: filter.fieldId,
-				vocabularyIds
-			};
-		});
-	}
-
-	function sanitizeFreeTextFilters(filters) {
-		if (!Array.isArray(filters) || filters.length === 0) return [];
-
-		return filters
-			.filter((filter) => filter.query && filter.query.trim())
-			.map((filter) => ({
-				fieldId: filter.fieldId,
-				query: filter.query.trim()
-			}));
-	}
-
-	function buildCommonFilters() {
-		const filters = {
-			project_id: projectId,
-			...(selectedStatus !== 'all' && { status: selectedStatus }),
-			...(selectedInstitutions.length > 0 && { institutionIds: [...selectedInstitutions] })
-		};
-
-		const allResearchFieldFilters = [
-			...sanitizeConnectionFilters(connectionFilters),
-			...sanitizeFreeTextFilters(freeTextFilters)
-		];
-
-		if (allResearchFieldFilters.length > 0) {
-			filters.researchFieldFilters = allResearchFieldFilters;
-		}
-
-		return filters;
-	}
-
-	function buildSearchParams() {
-		const params = {
-			projectId,
-			page: currentPage - 1,
-			pageSize,
-			...(selectedStatus !== 'all' && { status: selectedStatus }),
-			...(selectedInstitutions.length > 0 && { institutionIds: [...selectedInstitutions] })
-		};
-
-		const allResearchFieldFilters = [
-			...sanitizeConnectionFilters(connectionFilters),
-			...sanitizeFreeTextFilters(freeTextFilters)
-		];
-
-		if (allResearchFieldFilters.length > 0) {
-			params.researchFieldFilters = allResearchFieldFilters;
-		}
-
-		return params;
-	}
-
-	async function performSearch() {
-		isLoading = true;
-		try {
-			const response = await searchObjects(buildSearchParams());
-			if (response.error) {
-				objects = [];
-				totalCount = 0;
-				facets = { institutions: [], statuses: [], researchFields: [] };
-			} else {
-				objects = response.items || [];
-				totalCount = response.totalCount || 0;
-				facets = response.facets || { institutions: [], statuses: [], researchFields: [] };
-			}
-		} catch {
-			objects = [];
-			totalCount = 0;
-			facets = { institutions: [], statuses: [], researchFields: [] };
-		} finally {
-			isLoading = false;
-		}
-	}
-
-	function onStatusChanged(newStatus) {
-		selectedStatus = newStatus;
-		if (currentPage !== 1) {
-			currentPage = 1;
-			return;
-		}
-		performSearch();
-	}
-
-	function onInstitutionsChanged(newInstitutions) {
-		selectedInstitutions = Array.isArray(newInstitutions) ? newInstitutions : [];
-		if (currentPage !== 1) {
-			currentPage = 1;
-			return;
-		}
-		performSearch();
-	}
-
-	function onConnectionFiltersChanged(newFilters) {
-		connectionFilters = Array.isArray(newFilters) ? newFilters : [];
-		if (currentPage !== 1) {
-			currentPage = 1;
-			return;
-		}
-		performSearch();
-	}
-
-	function onFreeTextFiltersChanged(newFilters) {
-		freeTextFilters = Array.isArray(newFilters) ? newFilters : [];
-		if (currentPage !== 1) {
-			currentPage = 1;
-			return;
-		}
-		performSearch();
-	}
-
 	async function handleExport() {
 		isExporting = true;
 		exportStatus = null;
@@ -380,35 +130,31 @@
 		exportPath = '';
 
 		try {
-			// Open folder picker
 			const result = await window.api.openFileDialog({
 				title: t('export-website.select-folder'),
 				properties: ['openDirectory', 'createDirectory']
 			});
 
-			if (!result || result.canceled || !result.filePaths || result.filePaths.length === 0) {
+			if (!result || result.canceled || !result.filePaths?.length) {
 				isExporting = false;
 				return;
 			}
 
 			const outputPath = result.filePaths[0];
 			exportPath = outputPath;
-			const excludeIds = Array.from(deselectedObjectIds);
 
-			// Call export API
 			const exportResult = await window.api.exportStaticWebsite({
 				projectId,
 				outputPath,
 				locale: selectedWebsiteLocale,
 				filters: {
-					...buildCommonFilters(),
+					...filtersPayload,
 					contentLanguageCodes: selectedContentLanguageCodes,
-					...(excludeIds.length > 0 && { excludeObjectIds: excludeIds })
+					...(deselectedObjectIds.size > 0 && { excludeObjectIds: [...deselectedObjectIds] })
 				}
 			});
 
 			exportPath = exportResult?.outputPath || outputPath;
-
 			exportStatus = 'success';
 			exportMessage = t('export-website.success');
 			exportResultDialogOpen = true;
@@ -421,19 +167,9 @@
 		}
 	}
 
-	let exportSummary = $derived(t('export.summary', { count: totalCount }));
-	let completedCount = $derived(
-		facets?.statuses?.find((status) => (status.id ?? status.name) === 'completed')?.count || 0
-	);
-	let inProgressCount = $derived(
-		facets?.statuses?.find((status) => (status.id ?? status.name) === 'in progress')?.count || 0
-	);
-
 	const exportDisabledReason = $derived.by(() => {
 		if (isLoading) return '';
-		if (websiteLocaleOptions.length === 0) {
-			return t('export-website.interface-language-empty');
-		}
+		if (websiteLocaleOptions.length === 0) return t('export-website.interface-language-empty');
 		if (totalCount === 0) return t('export.no-objects-match');
 		if (totalCount - deselectedObjectIds.size <= 0) return t('export.no-objects-selected');
 		return '';
@@ -454,9 +190,6 @@
 </script>
 
 <PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons}>
-	
-	
-
 	<div class="row mb-4">
 		<div class="col-12">
 			<h1 class="h3 mb-0">{t('export-website.title')}</h1>
@@ -467,9 +200,7 @@
 			<div class="card shadow-sm mb-4">
 				<div class="card-body">
 					<h5 class="card-title mb-3">{t('export-website.subtitle')}</h5>
-
 					<p class="card-text text-muted mb-4">{t('export-website.description')}</p>
-
 					<div class="mb-0">
 						<h6 class="fw-semibold mb-2">{t('export-website.what-included')}</h6>
 						<ul class="text-muted mb-0">
@@ -483,128 +214,94 @@
 			</div>
 
 			<div class="mb-4">
-				<div class="mb-4">
-					<h5 class="card-title mb-3">{t('export-website.languages-title')}</h5>
+				<h5 class="card-title mb-3">{t('export-website.languages-title')}</h5>
 
-					<h6 class="fw-semibold mb-2">{t('export-website.interface-language-title')}</h6>
-					<p class="small mb-2">{t('export-website.interface-language-description')}</p>
-					<label class="form-label" for="website-export-language-select">
-						{t('export-website.interface-language-label')}
-					</label>
-					<select
-						id="website-export-language-select"
-						class="form-select"
-						value={selectedWebsiteLocale}
-						onchange={(event) => {
-							websiteLocalePreference = event.currentTarget.value;
-						}}
-						disabled={websiteLocaleOptions.length === 0}
-					>
-						{#each websiteLocaleOptions as language (language.code)}
-							<option value={language.code}>{language.name}</option>
-						{/each}
-					</select>
-					{#if websiteLocaleOptions.length === 0}
-						<p class="small mt-2 mb-0">{t('export-website.interface-language-empty')}</p>
-					{/if}
+				<h6 class="fw-semibold mb-2">{t('export-website.interface-language-title')}</h6>
+				<p class="small mb-2">{t('export-website.interface-language-description')}</p>
+				<label class="form-label" for="website-export-language-select">
+					{t('export-website.interface-language-label')}
+				</label>
+				<select
+					id="website-export-language-select"
+					class="form-select"
+					value={selectedWebsiteLocale}
+					onchange={(event) => { websiteLocalePreference = event.currentTarget.value; }}
+					disabled={websiteLocaleOptions.length === 0}
+				>
+					{#each websiteLocaleOptions as language (language.code)}
+						<option value={language.code}>{language.name}</option>
+					{/each}
+				</select>
+				{#if websiteLocaleOptions.length === 0}
+					<p class="small mt-2 mb-0">{t('export-website.interface-language-empty')}</p>
+				{/if}
 
-					{#if showContentLanguageSelection}
-						<div class="mt-4">
-							<h6 class="fw-semibold mb-2">{t('export-website.content-languages-title')}</h6>
-							<p class="small mb-2">{t('export-website.content-languages-description')}</p>
+				{#if showContentLanguageSelection}
+					<div class="mt-4">
+						<h6 class="fw-semibold mb-2">{t('export-website.content-languages-title')}</h6>
+						<p class="small mb-2">{t('export-website.content-languages-description')}</p>
 
+						<div class="form-check mb-2">
+							<input
+								id="default-content-language"
+								class="form-check-input"
+								type="checkbox"
+								checked={true}
+								disabled={true}
+							/>
+							<label class="form-check-label" for="default-content-language">
+								{t('export-website.default-content-language-label', {
+									name: defaultContentLanguage?.name || defaultContentLanguage?.code || ''
+								})}
+							</label>
+						</div>
+
+						{#each optionalContentLanguages as language (language.code)}
 							<div class="form-check mb-2">
 								<input
-									id="default-content-language"
+									id={`content-language-${language.code}`}
 									class="form-check-input"
 									type="checkbox"
-									checked={true}
-									disabled={true}
+									checked={selectedOptionalContentLanguages.includes(language.code)}
+									onchange={(event) => {
+										setOptionalContentLanguageEnabled(language.code, event.currentTarget.checked);
+									}}
 								/>
-								<label class="form-check-label" for="default-content-language">
-									{t('export-website.default-content-language-label', {
-										name: defaultContentLanguage?.name || defaultContentLanguage?.code || ''
-									})}
+								<label class="form-check-label" for={`content-language-${language.code}`}>
+									{language.name}
 								</label>
 							</div>
-
-							{#each optionalContentLanguages as language (language.code)}
-								<div class="form-check mb-2">
-									<input
-										id={`content-language-${language.code}`}
-										class="form-check-input"
-										type="checkbox"
-										checked={selectedOptionalContentLanguages.includes(language.code)}
-										onchange={(event) => {
-											setOptionalContentLanguageEnabled(
-												language.code,
-												event.currentTarget.checked
-											);
-										}}
-									/>
-									<label class="form-check-label" for={`content-language-${language.code}`}>
-										{language.name}
-									</label>
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</div>
-
-				<div class="baspath-section mb-4">
-					<h5 class="card-title mb-3">{t('export-website.base-path-title')}</h5>
-					<p class="text-muted small">{t('export-website.base-path-description')}</p>
-					<div class="input-group">
-						<span class="input-group-text" id="basepath-addon">{t('export-website.base-path-label')}</span>
-						<input type="text" class="form-control" placeholder="/" aria-label={t('export-website.base-path-label')} aria-describedby="basepath-addon" bind:value={basePathInput}>
+						{/each}
 					</div>
-				</div>
-
-				<h5 class="h5 mb-3">{t('export.filter-content')}</h5>
-
-				<StatusFilter
-					bind:selectedStatus
-					{completedCount}
-					{inProgressCount}
-					onChange={onStatusChanged}
-				/>
-
-				<InstitutionFilter
-					items={data.institutions}
-					bind:selectedInstitutions
-					onChange={onInstitutionsChanged}
-				/>
-
-				<ConnectionFilters
-					{connectionFieldOptions}
-					bind:connectionFilters
-					onChange={onConnectionFiltersChanged}
-				/>
-
-				<ResearchFieldFilters
-					{freeTextFieldOptions}
-					bind:freeTextFilters
-					onChange={onFreeTextFiltersChanged}
-				/>
+				{/if}
 			</div>
 
-			<div class="results-section mt-4 mb-4">
-				<div class="summary d-flex align-items-center justify-content-between mb-3">
-					<div class="summary-left">
-						<div class="summary-text text-body">{exportSummary}</div>
-					</div>
+			<div class="mb-4">
+				<h5 class="card-title mb-3">{t('export-website.base-path-title')}</h5>
+				<p class="text-muted small">{t('export-website.base-path-description')}</p>
+				<div class="input-group">
+					<span class="input-group-text" id="basepath-addon">{t('export-website.base-path-label')}</span>
+					<input
+						type="text"
+						class="form-control"
+						placeholder="/"
+						aria-label={t('export-website.base-path-label')}
+						aria-describedby="basepath-addon"
+						bind:value={basePathInput}
+					/>
 				</div>
-
-				<PreviewTable
-					{objects}
-					bind:deselectedObjectIds
-					bind:page={currentPage}
-					{pageSize}
-					count={totalCount}
-				/>
 			</div>
 
-			
+			<h5 class="h5 mb-3">{t('export.filter-content')}</h5>
+
+			<ExportPreviewSection
+				{projectId}
+				{data}
+				bind:deselectedObjectIds
+				bind:totalCount
+				bind:isLoading
+				bind:filtersPayload
+			/>
 		</div>
 	</div>
 </PageActionFooter>
