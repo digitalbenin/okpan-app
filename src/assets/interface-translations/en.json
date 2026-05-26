@@ -3332,6 +3332,181 @@
                              "namespace":  "institutions",
                              "key":  "type-exact-name-to-delete",
                              "value":  "Enter \"{{name}}\" exactly to enable deletion."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "unknown-date",
+                             "value":  "Unknown date"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.title",
+                             "value":  "Recovery snapshots"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.description",
+                             "value":  "Automatic snapshots are captured before the first sync after opening a project in each app session. Automatic snapshots keep the 10 most recent entries. Manual snapshots are always kept until you remove them."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.loading",
+                             "value":  "Loading recovery snapshots..."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.automatic",
+                             "value":  "Automatic"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.no-automatic",
+                             "value":  "No automatic snapshots yet."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.manual",
+                             "value":  "Manual"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.no-manual",
+                             "value":  "No manual snapshots yet."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.create-action",
+                             "value":  "Create snapshot"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restoring-title",
+                             "value":  "Restoring snapshot..."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restoring-description",
+                             "value":  "The project will briefly disconnect while the rollback is applied and republished."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.load-error",
+                             "value":  "Failed to load recovery snapshots."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.create-error",
+                             "value":  "Failed to create recovery snapshot."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.created-title",
+                             "value":  "Recovery snapshot created"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.created-description",
+                             "value":  "A manual rollback point is now available for this project."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-error",
+                             "value":  "Failed to restore recovery snapshot."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restored-title",
+                             "value":  "Project restored"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restored-description",
+                             "value":  "The selected snapshot has been restored and will be published to connected peers."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-error",
+                             "value":  "Failed to delete recovery snapshot."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.deleted-title",
+                             "value":  "Recovery snapshot deleted"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.deleted-description",
+                             "value":  "The selected rollback point has been removed."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.create-dialog.title",
+                             "value":  "Create recovery snapshot"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.create-dialog.description",
+                             "value":  "Add an optional description for this manual snapshot."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.create-dialog.placeholder",
+                             "value":  "What makes this snapshot worth keeping?"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-dialog.title",
+                             "value":  "Delete recovery snapshot"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-dialog.description",
+                             "value":  "Delete the snapshot from {{date}}?"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-dialog.description-generic",
+                             "value":  "Delete the selected recovery snapshot?"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-dialog.warning",
+                             "value":  "This permanently removes the stored rollback point and cannot be undone."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-action",
+                             "value":  "Delete snapshot"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-dialog.title",
+                             "value":  "Restore recovery snapshot"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-dialog.description",
+                             "value":  "Restore the snapshot from {{date}}?"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-dialog.description-generic",
+                             "value":  "Restore the selected recovery snapshot?"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-dialog.warning",
+                             "value":  "This will replace the current local project state and re-share the restored state with connected peers."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-action",
+                             "value":  "Restore snapshot"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restoring-btn",
+                             "value":  "Restoring..."
                          }
                      ]
 }

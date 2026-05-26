@@ -3316,6 +3316,181 @@
                              "namespace":  "institutions",
                              "key":  "type-exact-name-to-delete",
                              "value":  "Digita esattamente \"{{name}}\" per abilitare l'eliminazione."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "unknown-date",
+                             "value":  "Data sconosciuta"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.title",
+                             "value":  "Snapshot di recupero"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.description",
+                             "value":  "Gli snapshot automatici vengono acquisiti prima della prima sincronizzazione all'apertura di un progetto in ogni sessione. Gli snapshot automatici conservano le 10 voci più recenti. Gli snapshot manuali vengono conservati finché non vengono rimossi."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.loading",
+                             "value":  "Caricamento snapshot di recupero..."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.automatic",
+                             "value":  "Automatici"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.no-automatic",
+                             "value":  "Nessuno snapshot automatico disponibile."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.manual",
+                             "value":  "Manuali"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.no-manual",
+                             "value":  "Nessuno snapshot manuale disponibile."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.create-action",
+                             "value":  "Crea snapshot"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restoring-title",
+                             "value":  "Ripristino in corso..."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restoring-description",
+                             "value":  "Il progetto si disconnetterà brevemente mentre il ripristino viene applicato e ripubblicato."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.load-error",
+                             "value":  "Impossibile caricare gli snapshot di recupero."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.create-error",
+                             "value":  "Impossibile creare lo snapshot di recupero."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.created-title",
+                             "value":  "Snapshot di recupero creato"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.created-description",
+                             "value":  "Un punto di ripristino manuale è ora disponibile per questo progetto."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-error",
+                             "value":  "Impossibile ripristinare lo snapshot di recupero."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restored-title",
+                             "value":  "Progetto ripristinato"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restored-description",
+                             "value":  "Lo snapshot selezionato è stato ripristinato e verrà pubblicato ai peer connessi."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-error",
+                             "value":  "Impossibile eliminare lo snapshot di recupero."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.deleted-title",
+                             "value":  "Snapshot di recupero eliminato"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.deleted-description",
+                             "value":  "Il punto di ripristino selezionato è stato rimosso."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.create-dialog.title",
+                             "value":  "Crea snapshot di recupero"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.create-dialog.description",
+                             "value":  "Aggiungi una descrizione opzionale per questo snapshot manuale."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.create-dialog.placeholder",
+                             "value":  "Perché vale la pena conservare questo snapshot?"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-dialog.title",
+                             "value":  "Elimina snapshot di recupero"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-dialog.description",
+                             "value":  "Eliminare lo snapshot del {{date}}?"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-dialog.description-generic",
+                             "value":  "Eliminare lo snapshot di recupero selezionato?"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-dialog.warning",
+                             "value":  "Questa operazione rimuove definitivamente il punto di ripristino e non può essere annullata."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.delete-action",
+                             "value":  "Elimina snapshot"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-dialog.title",
+                             "value":  "Ripristina snapshot di recupero"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-dialog.description",
+                             "value":  "Ripristinare lo snapshot del {{date}}?"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-dialog.description-generic",
+                             "value":  "Ripristinare lo snapshot di recupero selezionato?"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-dialog.warning",
+                             "value":  "Questa operazione sostituirà lo stato locale del progetto e ricondividerà lo stato ripristinato con i peer connessi."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restore-action",
+                             "value":  "Ripristina snapshot"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "recovery-snapshots.restoring-btn",
+                             "value":  "Ripristino..."
                          }
                      ]
 }

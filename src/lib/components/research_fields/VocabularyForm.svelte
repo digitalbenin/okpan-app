@@ -11,10 +11,12 @@
     import AutoForm from "$lib/components/form/AutoForm.svelte";
     import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
     import AssetPreview from "$lib/components/research_fields/AssetPreview.svelte";
+    import { untrack } from "svelte";
     import { flip } from "svelte/animate";
     import { dndzone } from "svelte-dnd-action";
     import { DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
     import { getObjectIdentifier } from "$lib/api/ObjectsApi.js";
+    import { watch } from "runed";
 
     let { 
         data, 
@@ -76,7 +78,6 @@
 
     // Validated form store
     let form = $state(null);
-    let lastDefaultsSignature = $state("");
     const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
     const formReady = $derived(Boolean(form));
 
@@ -85,34 +86,24 @@
     let assetsByType = $state(buildAssetsByType([]));
     const flipDurationMs = 200;
 
-    $effect(() => {
-        const values = defaultValues;
-        const signature = JSON.stringify(values);
-
+    watch(() => defaultValues, (values) => {
         if (!form) {
             mainAsset = values.mainAsset || null;
             assetsByType = buildAssetsByType(getInitialOtherAssets(values));
             form = createForm(() => ({
                 defaultValues: values,
+                validators: { onChange: vocabularySchema },
                 onSubmit: async ({ value }) => {
                     const otherAssetIds = [...assetsByType.image, ...assetsByType.video, ...assetsByType.audio].map((asset) => asset.id);
                     await onSubmit(value, mainAsset?.id || null, otherAssetIds);
                 },
-                validatorAdapter: (schema) => (value) => {
-                    const result = schema.safeParse(value);
-                    return result.success ? null : result.error.errors.map((error) => error.message).join(", ");
-                }
             }));
-            lastDefaultsSignature = signature;
             return;
         }
 
-        if (signature !== lastDefaultsSignature) {
-            form.reset(values);
-            mainAsset = values.mainAsset || null;
-            assetsByType = buildAssetsByType(getInitialOtherAssets(values));
-            lastDefaultsSignature = signature;
-        }
+        form.reset(values);
+        mainAsset = values.mainAsset || null;
+        assetsByType = buildAssetsByType(getInitialOtherAssets(values));
     });
 
     // Unified asset handlers
@@ -154,6 +145,8 @@
     const handleDndConsider = (e, type) => { assetsByType[type] = e.detail.items; };
     const handleDndFinalize = (e, type) => { assetsByType[type] = e.detail.items; };
 
+    const resolvedSubmitLabel = $derived(submitLabel || t("common.save", { fallback: "Save" }));
+
     const rightActionButtons = $derived([
         {
             id: "save-vocabulary",
@@ -174,8 +167,6 @@
         }
     ]);
 
-    const resolvedSubmitLabel = $derived(submitLabel || t("common.save", { fallback: "Save" }));
-
     const mediaSections = $derived([
         { type: 'image', icon: 'images', emptyIcon: 'images', size: 150, label: t("common.images", {fallback: "Images"}), addLabel: t("common.add-images", {fallback: "Add Images"}), emptyText: t("common.drag-upload-images", {fallback: "No images"}), visible: visibleFields.images },
         { type: 'video', icon: 'camera-video', emptyIcon: 'camera-video', size: 200, label: t("common.videos", {fallback: "Videos"}), addLabel: t("common.add-videos", {fallback: "Add Videos"}), emptyText: t("common.no-videos", {fallback: "No videos. Click to add."}), visible: visibleFields.videos },
@@ -183,10 +174,9 @@
     ]);
 
     // Linked objects pagination
-    let loPage = $state(linkedObjectsPage);
-    let loPageSize = $state(linkedObjectsPageSize);
-    let lastNavigated = $state({ page: linkedObjectsPage, pageSize: linkedObjectsPageSize });
-    let navReady = $state(false);
+    let loPage = $state(untrack(() => linkedObjectsPage));
+    let loPageSize = $state(untrack(() => linkedObjectsPageSize));
+    let lastNavigated = $state({ page: untrack(() => linkedObjectsPage), pageSize: untrack(() => linkedObjectsPageSize) });
 
     const pageSizeOptions = [12, 24, 48, 96].map((n) => ({ value: n, label: String(n) }));
     const getObjectDisplayName = (obj) => obj?.name?.content?.trim() || (typeof obj?.name === "string" ? obj.name.trim() : null) || getObjectIdentifier(obj);
@@ -209,19 +199,14 @@
         }
     };
 
-    $effect(() => {
-        loPage = linkedObjectsPage;
-        loPageSize = linkedObjectsPageSize;
+    watch(() => [linkedObjectsPage, linkedObjectsPageSize], ([page, pageSize]) => {
+        loPage = page;
+        loPageSize = pageSize;
     });
 
-    $effect(() => { navReady = true; });
-
-    // Navigate on pagination change
-    $effect(() => {
-        if (!navReady) return;
-
-        const page = Math.max(1, Math.floor(Number(loPage) || 1));
-        const pageSize = Math.max(1, Math.floor(Number(loPageSize) || 24));
+    watch(() => [loPage, loPageSize], ([page, pageSize]) => {
+        page = Math.max(1, Math.floor(Number(page) || 1));
+        pageSize = Math.max(1, Math.floor(Number(pageSize) || 24));
 
         if (pageSize !== lastNavigated.pageSize && page !== 1) {
             loPage = 1;
