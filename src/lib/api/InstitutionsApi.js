@@ -15,7 +15,7 @@ export const getProjectInstitutions = async (options) => {
 export const getInstitution = async (institutionId, fetchFn) => {
     const result = await executeQuery('institutions', 'getById', { institutionId }, fetchFn);
 
-    return result.result;
+    return result;
 };
 
 // Update institution status and invalidate caches
@@ -36,7 +36,7 @@ export const updateInstitutionStatus = async (institutionId, status) => {
     // Invalidate both the detail and listings
     await invalidateAll();
 
-    const updated = result?.result || result?.updateInstitutions || [{ id: institutionId, status }];
+    const updated = result || [{ id: institutionId, status }];
     return { result: updated, error: null };
 };
 
@@ -58,7 +58,7 @@ export const updateInstitutionsStatusBulk = async (institutionIds, status) => {
     await invalidateAll();
 
     return {
-        result: result?.result?.bulkUpdateInstitutions || result?.bulkUpdateInstitutions || [],
+        result: result?.bulkUpdateInstitutions || [],
         errors: []
     };
 };
@@ -110,13 +110,13 @@ export const updateInstitution = async (institutionId, updatedData) => {
 
 
     await invalidateAll();
-    return { result: result.result, error: null };
+    return { result, error: null };
 };
 
 export const deleteInstitution = async (institutionId) => {
     // First, fetch and delete related assets to ensure physical files are removed
     const assetsListResponse = await executeQuery('assets', 'list', { institutionId, pageSize: 1000 });
-    const relatedAssets = assetsListResponse?.result?.items || [];
+    const relatedAssets = assetsListResponse?.items || [];
     
     if (relatedAssets.length > 0) {
         const assetIds = relatedAssets.map(asset => asset.id);
@@ -139,6 +139,8 @@ export const createInstitution = async (institutionData) => {
     }
 
     // Extract all relevant IDs and institution from the institution object
+    // The create mutation is multi-step; final result merges all step responses.
+    // The institution row comes from the last step's `result: insertIntoInstitutions(...)` alias.
     const institution = result?.result?.[0];
 
     if (!institution) {

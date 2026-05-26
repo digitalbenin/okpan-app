@@ -17,7 +17,7 @@ export const getOntologyFields = async (projectId, page, pageSize) => {
 export const getOntologyFieldById = async (fieldId) => {
     // Assuming 'ontology_fields' is the section and 'getById' is the operation
     const result = await executeQuery('ontology_fields', 'getById', { fieldId });
-    return result.result; // Adjust if executeQuery returns differently
+    return result;
 };
 
 export const createOntologyField = async (fieldData) => {

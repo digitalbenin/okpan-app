@@ -99,7 +99,7 @@
       }
 
       const res = await getAssetById(String(assetId));
-      const asset = Array.isArray(res?.result) ? res.result[0] : res?.result;
+      const asset = Array.isArray(res) ? res[0] : null;
       const linkedIds = asset?.objectsAssets?.map(oa => normalizeId(oa.object_id)).filter(Boolean) ?? [];
       const pendingSet = new Set((pendingUnlinks || []).map(normalizeId));
       const validIds = linkedIds.filter(id => !pendingSet.has(id));

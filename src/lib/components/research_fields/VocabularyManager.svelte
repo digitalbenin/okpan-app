@@ -200,7 +200,7 @@
                     console.error("Error managing vocabulary assets:", error);
                 }
             } else {
-                const createdVocab = result.result.insertIntoVocabularies?.[0];
+                const createdVocab = result.result?.[0];
                 if (createdVocab && otherAssetIds.length > 0) {
                     await linkVocabularyAssets(createdVocab.id, otherAssetIds);
                 }

@@ -4,10 +4,10 @@ import { invalidate, invalidateAll } from "$app/navigation";
 
 export const getAssets = async (options) => {
     const result = await executeQuery('assets', 'list', options);
-    if (result && result.result) {
-        return { items: result.result.items || [], totalCount: result.result.totalCount || 0 };
+    if (result) {
+        return { items: result.items || [], totalCount: result.totalCount || 0 };
     }
-    return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch assets or unexpected response structure") };
+    return { items: [], totalCount: 0, error: new Error("Failed to fetch assets or unexpected response structure") };
 };
 
 
@@ -16,10 +16,10 @@ export const getTotalAssetsForInstitution = async (projectId, institutionId) => 
     // The GraphQL query for 'list' in assets.js already includes totalCount
     // We pass only essential filters for an unfiltered count for the institution.
     const result = await executeQuery('assets', 'list', { projectId, institutionId, pageSize: 1, page: 0 }); // pageSize/page are technically not needed by totalCount query but good practice for a list call
-    if (result && result.result && typeof result.result.totalCount === 'number') {
-        return { totalCount: result.result.totalCount };
+    if (result && typeof result.totalCount === 'number') {
+        return { totalCount: result.totalCount };
     }
-    return { totalCount: 0, error: result?.error || new Error("Failed to fetch total assets count or unexpected response structure") };
+    return { totalCount: 0, error: new Error("Failed to fetch total assets count or unexpected response structure") };
 };
 
 export const updateAsset = async (assetId, data) => {
@@ -48,7 +48,7 @@ export const deleteAssetsBulk = async (assetIds) => {
     }
 
     const response = await executeQuery('assets', 'deleteBulk', { ids: assetIds });
-    const payload = response?.result || {};
+    const payload = response || {};
     const successes = payload.deletedIds || [];
     const missingIds = payload.missingIds || [];
     const fileErrors = payload.fileErrors || [];
@@ -82,14 +82,13 @@ export const bulkLinkAssetsToObjects = async (links) => {
     await invalidateAll();
 
     // Normalize response
-    if (result && result.result) {
-        const payload = result.result;
+    if (result) {
         return {
-            successes: payload.successes || [],
-            skippedDuplicates: payload.skippedDuplicates || [],
-            errors: payload.errors || []
+            successes: result.successes || [],
+            skippedDuplicates: result.skippedDuplicates || [],
+            errors: result.errors || []
         };
     }
 
-    return { successes: [], skippedDuplicates: [], errors: [], error: result?.error || new Error("Bulk link failed or unexpected response structure") };
+    return { successes: [], skippedDuplicates: [], errors: [], error: new Error("Bulk link failed or unexpected response structure") };
 };

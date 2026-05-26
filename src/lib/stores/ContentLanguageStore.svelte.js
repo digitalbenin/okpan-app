@@ -37,7 +37,7 @@ export function getContentLanguageStore() {
     const fetchLanguages = async () => {
         setLoading(true);
         const result = await executeQuery('languages', 'list');
-        contentLanguageState.languages = result?.result || [];
+        contentLanguageState.languages = result || [];
         setLoading(false);
         return contentLanguageState.languages;
     };
@@ -67,13 +67,13 @@ export function getContentLanguageStore() {
         const result = await executeQuery('languages', 'create', { code, name, nativeName, direction, flag });
         await fetchLanguages();
         setLoading(false);
-        return result.insertIntoLanguages[0];
+        return result[0];
     };
 
     const getAvaliableLocalesForProject = async (projectId) => {
         const result = await executeQuery('languages', 'listByProject', { projectId });
-        contentLanguageState.projectLanguages = result.result;
-        return result.result;
+        contentLanguageState.projectLanguages = result;
+        return result;
     };
 
     // Add a new translation for a text in a specific language
@@ -118,7 +118,7 @@ export function getContentLanguageStore() {
         setLoading(true);
         const result = await executeQuery('translations', 'getByTextId', { textId });
         setLoading(false);
-        return result?.result || [];
+        return result || [];
     };
 
     // Helper functions for entity translations

@@ -36,7 +36,7 @@
 
   let value = $derived(fieldMatched ? fieldMatched.id : null);
   const items = $derived.by(() => {
-    return page.data.ontologyFields.result
+    return page.data.ontologyFields
       .map((s) => ({
         value: s.id,
         label: s.name.content,
@@ -50,7 +50,7 @@
   });
 
   function updateMatch() {
-    fieldMatched = page.data.ontologyFields.result
+    fieldMatched = page.data.ontologyFields
       .filter((f) => f.id === value)
       .map((f) => ({
         name: f.name.content,

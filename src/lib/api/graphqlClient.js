@@ -1,6 +1,8 @@
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 import { addToast } from "$lib/components/base/BaseToast.svelte";
 import { API_SECTIONS } from "$lib/queries/index.js";
+import { translationsOperations } from "$lib/queries/translations.js";
+import { languagesOperations } from "$lib/queries/languages.js";
 
 const { error: logError } = getLogStore();
 
@@ -84,8 +86,6 @@ export async function executeMultiStepMutation(mutations, params) {
         throw new Error("Invalid mutation chain");
     }
 
-
-
     // Generate workflow ID for this multi-step operation
     const workflowId = crypto.randomUUID();
 
@@ -95,7 +95,6 @@ export async function executeMultiStepMutation(mutations, params) {
 
     for (let i = 0; i < mutations.length; i++) {
         const mutation = mutations[i];
-
 
         // Handle translation processing step
         if (mutation.processTranslations) {
@@ -203,8 +202,6 @@ export async function executeMultiStepMutation(mutations, params) {
             }
         }
 
-
-
         // Execute this step with workflow context
         try {
             const context = {
@@ -238,8 +235,6 @@ export async function executeMultiStepMutation(mutations, params) {
 async function processTranslationStep(mutation, params, results, context) {
     const { processTranslations } = mutation;
     const { textIdPath, textIdPaths, translationsParam } = processTranslations;
-
-
 
     // Get the text ID from previous results
     const resolvePath = (path) => {
@@ -291,7 +286,7 @@ async function processTranslationStep(mutation, params, results, context) {
             if (translationId) {
                 // Update existing translation
                 const result = await performQuery(
-                    { name: 'updateTranslation', query: getUpdateTranslationQuery() },
+                    translationsOperations.update,
                     { id: translationId, content },
                     context
                 );
@@ -299,7 +294,7 @@ async function processTranslationStep(mutation, params, results, context) {
             } else if (content && language_code) {
                 // Create new translation - need to convert language_code to language_id
                 const languageResult = await performQuery(
-                    { name: 'getLanguageByCode', query: getLanguageByCodeQuery() },
+                    languagesOperations.getByCode,
                     { code: language_code },
                     context
                 );
@@ -307,7 +302,7 @@ async function processTranslationStep(mutation, params, results, context) {
                 if (languageResult?.result && languageResult.result.length > 0) {
                     const languageId = languageResult.result[0].id;
                     const result = await performQuery(
-                        { name: 'createTranslation', query: getCreateTranslationQuery() },
+                        translationsOperations.create,
                         { textId, languageId, content },
                         context
                     );
@@ -329,245 +324,8 @@ async function processTranslationStep(mutation, params, results, context) {
     return result;
 }
 
-/**
- * Get the update translation query
- */
-function getUpdateTranslationQuery() {
-    return `mutation UpdateTranslation($id: String!, $content: String!) {
-  updateTranslations(
-    set: { content: $content }
-    where: { id: { eq: $id } }
-  ) {
-    id
-    content
-    language_id
-    text_id
-  }
-}`;
-}
-
-/**
- * Get the create translation query
- */
-function getCreateTranslationQuery() {
-    return `mutation CreateTranslation($textId: String!, $languageId: String!, $content: String!) {
-  insertIntoTranslations(
-    values: [
-      {
-        text_id: $textId
-        language_id: $languageId
-        content: $content
-      }
-    ]
-  ) {
-    id
-    content
-    language_id
-    text_id
-  }
-}`;
-}
-
-/**
- * Get the language by code query
- */
-function getLanguageByCodeQuery() {
-    return `query GetLanguageByCode($code: String!) {
-  result: languages(where: { code: { eq: $code } }) {
-    id
-    code
-    name
-  }
-}`;
-}
-
-/**
- * Perform a partial update (PATCH-style) on an entity
- * @param {Object} query - Original update query definition
- * @param {Object} params - Parameters including only fields to update
- * @returns {Promise<Object>} Operation result
- */
-export async function performPartialUpdate(query, params) {
-    if (!query) {
-        throw new Error("Invalid query definition");
-    }
-
-    // If the query uses multi-step mutations, use the executeMultiStepMutation function
-    if (query.mutations && Array.isArray(query.mutations)) {
-        return executeMultiStepMutation(query.mutations, params);
-    }
-
-    // Fall back to original implementation for single-query updates
-    if (!query.query) {
-        throw new Error("Query has no query string or mutations");
-    }
-
-    // Extract operation blocks from the original query
-    const operationBlocks = [];
-    const originalQuery = query.query;
-    const providedParams = Object.keys(params);
-
-    // Match each update operation in the query
-    const updateRegex = /(\w+):\s*update(\w+)\(\s*set:\s*\{\s*([^}]+)\}\s*where:/g;
-    let match;
-
-    while ((match = updateRegex.exec(originalQuery)) !== null) {
-        const operationName = match[1];
-        const entityName = match[2];
-        const setClause = match[3];
-
-        // Check if this operation updates fields we're providing
-        const fieldsInOperation = setClause.split(',')
-            .map(fieldPair => fieldPair.trim().split(':')[0].trim())
-            .filter(field => providedParams.includes(field));
-
-        if (fieldsInOperation.length > 0) {
-            // Find the complete operation block
-            const opStart = match.index;
-            let opEnd = opStart;
-            let braceCount = 0;
-            let startFound = false;
-
-            for (let i = opStart; i < originalQuery.length; i++) {
-                if (originalQuery[i] === '{') {
-                    braceCount++;
-                    startFound = true;
-                } else if (originalQuery[i] === '}') {
-                    braceCount--;
-                    if (startFound && braceCount === 0) {
-                        opEnd = i + 1;
-                        break;
-                    }
-                }
-            }
-
-            operationBlocks.push({
-                name: operationName,
-                entity: entityName,
-                fields: fieldsInOperation,
-                operation: originalQuery.substring(opStart, opEnd)
-            });
-        }
-    }
-
-    // If no matching operations, return null
-    if (operationBlocks.length === 0) {
-        return null;
-    }
-
-    // Extract the required parameters (e.g., ID) from the original query
-    const mutationMatch = originalQuery.match(/mutation\s+\w+\(([^)]+)\)/);
-    if (!mutationMatch) {
-        throw new Error("Unable to parse mutation signature");
-    }
-
-    const requiredParams = mutationMatch[1].split(',')
-        .filter(param => param.includes('!'))
-        .map(param => {
-            const paramMatch = param.match(/\$(\w+):/);
-            return paramMatch ? paramMatch[1] : null;
-        })
-        .filter(Boolean);
-
-    // Build a new query with only the needed operations
-    const newQueryName = `Partial${query.name.replace(/\s/g, '')}`;
-    const variableDeclarations = [
-        ...requiredParams.map(param => {
-            const typeMatch = originalQuery.match(new RegExp(`\\$${param}:\\s*(\\w+)!`));
-            return `$${param}: ${typeMatch ? typeMatch[1] : 'String'}!`;
-        }),
-        ...operationBlocks.flatMap(op =>
-            op.fields.map(field => {
-                const typeMatch = originalQuery.match(new RegExp(`\\$${field}:\\s*(\\w+)`));
-                return `$${field}: ${typeMatch ? typeMatch[1] : 'String'}`;
-            })
-        )
-    ];
-
-    const newQuery = {
-        name: query.name,
-        query: `mutation ${newQueryName}(${variableDeclarations.join(', ')}) {
-  ${operationBlocks.map(op => op.operation).join('\n  ')}
-}`
-    };
-
-    // Execute the modified query with only the provided parameters
-    return performQuery(newQuery, params);
-}
-
-/**
- * Perform bulk updates on multiple items
- * @param {Object} query - Original update query definition
- * @param {Array} items - Array of items to update
- * @returns {Promise<Object>} Bulk operation results
- */
-export async function performBulkUpdate(query, items) {
-    if (!items || !Array.isArray(items) || items.length === 0) {
-        return null;
-    }
-
-    // Group items by what fields they're updating
-    const groups = [];
-
-    items.forEach(item => {
-        // Create a pattern based on provided fields (excluding ID)
-        const idField = Object.keys(item).find(key => key.toLowerCase().includes('id'));
-        const fieldPattern = Object.keys(item)
-            .filter(key => key !== idField)
-            .sort()
-            .join('|');
-
-        let group = groups.find(g => g.pattern === fieldPattern);
-        if (!group) {
-            group = { pattern: fieldPattern, items: [] };
-            groups.push(group);
-        }
-
-        group.items.push(item);
-    });
-
-    // Process each group with a tailored partial update
-    const results = [];
-
-    for (const group of groups) {
-        // For each group, create an optimized partial update
-        const itemResults = await Promise.all(
-            group.items.map(item => performPartialUpdate(query, item))
-        );
-
-        results.push({
-            pattern: group.pattern,
-            results: itemResults
-        });
-    }
-
-    return { bulkResults: results };
-}
-
-/**
- * Perform a delete operation on an entity
- * @param {Object} query - Delete query definition
- * @param {Object} params - Parameters for the delete operation (e.g. ID)
- * @returns {Promise<Object>} Operation result
- */
-export async function performDelete(query, params) {
-    if (!query) {
-        throw new Error("Invalid query definition");
-    }
-
-    // Multi-step delete operation (for complex deletions that require cleanup)
-    if (query.mutations && Array.isArray(query.mutations)) {
-        return executeMultiStepMutation(query.mutations, params);
-    }
-
-    // Simple delete
-    if (!query.query) {
-        throw new Error("Query has no query string or mutations");
-    }
-
-    // Use enhanced query execution that properly checks for GraphQL errors
-    return performQuery(query, params);
-}
+// --- Dev / test utilities ---
+// These functions support admin and test pages, and are exposed via useGraphQL().
 
 /**
  * Perform bulk delete operations on multiple items
@@ -614,23 +372,25 @@ export async function bulkDelete(section, items) {
  * @returns {Promise<Object>} Grouped results of the update operations
  */
 export async function bulkUpdate(section, operation, items) {
-    if (!items || !Array.isArray(items) || items.length === 0) {
-        return [];
-    }
-
-    if (!API_SECTIONS[section]) {
-        throw new Error(`Section ${section} not found`);
-    }
+    if (!items || !Array.isArray(items) || items.length === 0) return [];
+    if (!API_SECTIONS[section]) throw new Error(`Section ${section} not found`);
 
     const queryDef = API_SECTIONS[section].operations[operation];
-    if (!queryDef) {
-        throw new Error(`Operation ${operation} not found in section ${section}`);
-    }
+    if (!queryDef) throw new Error(`Operation ${operation} not found in section ${section}`);
 
-    // performBulkUpdate uses performPartialUpdate which uses performQuery
-    // Error handling happens at the performQuery level
-    const results = await performBulkUpdate(queryDef, items);
-    return results;
+    const results = await Promise.allSettled(
+        items.map(item => queryDef.mutations
+            ? executeMultiStepMutation(queryDef.mutations, item)
+            : performQuery(queryDef, item)
+        )
+    );
+
+    return results.map((result, index) => ({
+        item: items[index],
+        success: result.status === 'fulfilled',
+        data: result.status === 'fulfilled' ? result.value : null,
+        error: result.status === 'rejected' ? result.reason : null
+    }));
 }
 
 /**
@@ -671,21 +431,15 @@ export async function deleteEntity(section, params = {}) {
  * @returns {Promise<Object>} Update operation result
  */
 export async function partialUpdate(section, operation, params = {}) {
-    if (!section || !operation) {
-        throw new Error('Missing section or operation');
-    }
-
-    if (!API_SECTIONS[section]) {
-        throw new Error(`Section ${section} not found`);
-    }
+    if (!section || !operation) throw new Error('Missing section or operation');
+    if (!API_SECTIONS[section]) throw new Error(`Section ${section} not found`);
 
     const queryDef = API_SECTIONS[section].operations[operation];
-    if (!queryDef) {
-        throw new Error(`Operation ${operation} not found in section ${section}`);
-    }
+    if (!queryDef) throw new Error(`Operation ${operation} not found in section ${section}`);
 
-    // performPartialUpdate uses performQuery internally which handles errors
-    return performPartialUpdate(queryDef, params);
+    return queryDef.mutations
+        ? executeMultiStepMutation(queryDef.mutations, params)
+        : performQuery(queryDef, params);
 }
 
 /**
@@ -721,7 +475,12 @@ export async function executeQuery(section, operation, params = {}, context = nu
 
     // Otherwise, perform a single query
     // performQuery already handles errors, logging, and notifications
-    return performQuery(queryDef, params, context);
+    // Unwrap the `result:` alias only when it is the sole field in the response.
+    // Queries that bundle multiple aliases (e.g. `result:` + `count:`) are returned as-is
+    // so callers can access every field without losing sibling data.
+    const data = await performQuery(queryDef, params, context);
+    const keys = data && typeof data === 'object' ? Object.keys(data) : [];
+    return keys.length === 1 && keys[0] === 'result' ? data.result : data;
 }
 
 /**

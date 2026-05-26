@@ -9,11 +9,12 @@
     import VocabularyManager from "$lib/components/research_fields/VocabularyManager.svelte";
     import TypeSelector from "$lib/components/research_fields/TypeSelector.svelte";
     import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
+    import { watch } from "runed";
 
     const translationStore = getTranslationStore();
     const contentLanguageStore = getContentLanguageStore();
     const t = $derived(translationStore.t);
-    const { addTranslation, setProjectLanguages } = contentLanguageStore;
+    const { setProjectLanguages, getTranslationContent, buildTranslationFormValues, processEntityTranslations } = contentLanguageStore;
 
     // Props
     let {
@@ -40,24 +41,20 @@
 
     // --- minimal debug (plain text) ---
     const dbg = (msg) => console.log(`[ResearchFieldForm] ${msg}`);
-    let didLogLoad = $state(false);
+    let didLogLoad = false;
 
     // Ensure ContentLanguageStore can resolve language codes -> IDs when saving translations
-    $effect(() => {
-        if (languages?.length) setProjectLanguages(languages);
+    watch(() => languages, (curr) => {
+        if (curr?.length) setProjectLanguages(curr);
     });
 
     // Log once when edit data is available (helps verify visualization inputs)
-    $effect(() => {
-        if (didLogLoad) return;
-        if (!languages?.length) return;
-        if (mode !== "edit") return;
-        if (!initialData?.id) return;
+    watch(() => [languages, initialData], () => {
+        if (didLogLoad || !languages?.length || mode !== "edit" || !initialData?.id) return;
 
         const langSummary = languages
             .map((l) => `${l.code}:${l.id}${l.is_default ? ":default" : ""}`)
             .join(" |");
-
         const nameTrans = initialData?.name?.translations || [];
         const descTrans = initialData?.description?.translations || [];
         dbg(`LOAD mode=${mode} id=${initialData.id} type=${initialData.type} langs=${langSummary}`);
@@ -69,16 +66,10 @@
 
     // State
     const effectiveFixedType = $derived(isEditMode && initialData?.type ? initialData.type : fixedType);
+    const normalizeType = (type) => (type === "free text" || type === "free_text") ? "freetext" : type;
     let vocabularyProcessingFunction = null;
-    let mutableType = $state((mode === "edit" && initialData?.type) ? initialData.type : "freetext");
+    let mutableType = $state(normalizeType(mode === "edit" && initialData?.type ? initialData.type : "freetext"));
     const selectedType = $derived(effectiveFixedType || mutableType);
-
-    // Normalize legacy values
-    $effect(() => {
-        if (mutableType === "free text" || mutableType === "free_text") {
-            mutableType = "freetext";
-        }
-    });
 
     // Helpers
     const processAsset = (asset) => asset ? {
@@ -89,11 +80,6 @@
         type: "file",
         formats: asset.formats,
     } : null;
-
-    const getTranslationContent = (textObj, lang) =>
-        textObj?.translations?.find((t) =>
-            t.language_id === lang?.id || t.language?.code === lang?.code
-        )?.content || "";
 
     const processVocabulariesForEdit = () => (initialData.vocabularies || []).map((vocab) => {
         const processedVocab = {
@@ -106,8 +92,8 @@
         };
 
         secondaryLanguages.forEach((lang) => {
-            processedVocab[`option_${lang.id}`] = getTranslationContent(vocab.option, lang);
-            processedVocab[`description_${lang.id}`] = getTranslationContent(vocab.description, lang);
+            processedVocab[`option_${lang.id}`] = getTranslationContent(vocab.option, lang.code);
+            processedVocab[`description_${lang.id}`] = getTranslationContent(vocab.description, lang.code);
         });
 
         return processedVocab;
@@ -126,16 +112,7 @@
             vocabularies: processVocabulariesForEdit(),
         };
 
-        // Add main field translations
-        secondaryLanguages.forEach((lang) => {
-            values[`translations_${lang.id}_name`] = 
-                getTranslationContent(initialData.name, lang) ||
-                initialData.nameTranslations?.find((t) => t.language_id === lang.id)?.content || "";
-            values[`translations_${lang.id}_description`] =
-                getTranslationContent(initialData.description, lang) ||
-                initialData.descriptionTranslations?.find((t) => t.language_id === lang.id)?.content || "";
-        });
-
+        Object.assign(values, buildTranslationFormValues(initialData, secondaryLanguages, TRANSLATABLE_FIELDS));
         return values;
     };
 
@@ -156,7 +133,7 @@
             label: t("common.field-type"),
             renderer: TypeSelector,
             colSize: 7,
-            rendererProps: { onTypeChange: (newType) => mutableType = newType },
+            rendererProps: { onTypeChange: (newType) => mutableType = normalizeType(newType) },
             hidden: !!effectiveFixedType
         },
         vocabularies: {
@@ -177,34 +154,22 @@
 
     // Helper to prepare translations from form values
     const prepareTranslations = (value) => {
+        const toTranslation = (field, content, lang) => {
+            if (content == null || !String(content).trim()) return null;
+            const existing = initialData?.[field]?.translations?.find(
+                (t) => t.language_id === lang.id || t.language?.code === lang.code
+            );
+            return { language_code: lang.code, content: String(content).trim(), id: existing?.id };
+        };
+
         const nameTranslations = [];
         const descriptionTranslations = [];
 
         secondaryLanguages.forEach((lang) => {
-            const nameContent = value[`translations_${lang.id}_name`];
-            const descriptionContent = value[`translations_${lang.id}_description`];
-
-            if (nameContent !== undefined && nameContent !== null && String(nameContent).trim()) {
-                const existing = initialData?.name?.translations?.find((t) =>
-                    t.language_id === lang.id || t.language?.code === lang.code
-                );
-                nameTranslations.push({
-                    language_code: lang.code,
-                    content: String(nameContent).trim(),
-                    id: existing?.id,
-                });
-            }
-
-            if (descriptionContent !== undefined && descriptionContent !== null && String(descriptionContent).trim()) {
-                const existing = initialData?.description?.translations?.find((t) =>
-                    t.language_id === lang.id || t.language?.code === lang.code
-                );
-                descriptionTranslations.push({
-                    language_code: lang.code,
-                    content: String(descriptionContent).trim(),
-                    id: existing?.id,
-                });
-            }
+            const name = toTranslation("name", value[`translations_${lang.id}_name`], lang);
+            if (name) nameTranslations.push(name);
+            const desc = toTranslation("description", value[`translations_${lang.id}_description`], lang);
+            if (desc) descriptionTranslations.push(desc);
         });
 
         return { nameTranslations, descriptionTranslations };
@@ -221,17 +186,8 @@
             defaultValues: getDefaultValues(),
             onSubmit: async ({ value }) => {
                 try {
-                    // Minimal save debug: show translation keys present in form + payload summary
-                    const translationKeys = Object.keys(value || {})
-                        .filter((k) => k.startsWith("translations_"))
-                        .sort();
-                    dbg(`SAVE mode=${mode} id=${initialData?.id || "(new)"} type=${value?.type} translationKeys=${translationKeys.join("|")}`);
-                    const translations = prepareTranslations(value);
-                    dbg(`SAVE nameTranslations.count=${translations.nameTranslations?.length || 0} descriptionTranslations.count=${translations.descriptionTranslations?.length || 0}`);
-                    (translations.nameTranslations || []).forEach((tr, i) => dbg(`SAVE name.tr[${i}] lang_code=${tr.language_code} id=${tr.id || ""} content=${String(tr.content ?? "")}`));
-                    (translations.descriptionTranslations || []).forEach((tr, i) => dbg(`SAVE desc.tr[${i}] lang_code=${tr.language_code} id=${tr.id || ""} content=${String(tr.content ?? "")}`));
-                    const result = mode === "create" ? await handleCreate(value, translations) : await handleUpdate(value, translations);
-                    
+                    dbg(`SAVE mode=${mode} id=${initialData?.id || "(new)"} type=${value?.type}`);
+                    const result = mode === "create" ? await handleCreate(value) : await handleUpdate(value);
                     if (onSuccess) {
                         onSuccess(result);
                     } else {
@@ -249,25 +205,19 @@
     const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
 
     // Handle create mode
-    const handleCreate = async (value, { nameTranslations, descriptionTranslations }) => {
+    const handleCreate = async (value) => {
         const result = await createResearchField({
             projectId: value.projectId || projectId,
             languageId: value.languageId || defaultLanguage?.id,
             name: value.name ?? "",
             description: value.description ?? "",
             type: value.type,
-            nameTranslations: nameTranslations.length > 0 ? nameTranslations : undefined,
-            descriptionTranslations: descriptionTranslations.length > 0 ? descriptionTranslations : undefined,
         });
-        
-        if (!result?.result) throw new Error("Failed to create research field");
 
-        const researchFieldId = result.result[0]?.id;
-        const nameId = result.result[0]?.name_id;
-        const descriptionId = result.result[0]?.description_id;
+        if (!result?.length) throw new Error("Failed to create research field");
 
-        await createTranslations(nameTranslations, nameId);
-        await createTranslations(descriptionTranslations, descriptionId);
+        const { id: researchFieldId, name_id: nameId, description_id: descriptionId } = result[0];
+        await processEntityTranslations(null, secondaryLanguages, TRANSLATABLE_FIELDS, value, { name: nameId, description: descriptionId });
 
         if (value.type === "vocabulary" && value.vocabularies?.length > 0 && vocabularyProcessingFunction) {
             await vocabularyProcessingFunction(researchFieldId, value.projectId || projectId, value.languageId || defaultLanguage?.id, "create");
@@ -277,15 +227,16 @@
     };
 
     // Handle update mode
-    const handleUpdate = async (value, { nameTranslations, descriptionTranslations }) => {
+    const handleUpdate = async (value) => {
+        const { nameTranslations, descriptionTranslations } = prepareTranslations(value);
         const result = await updateResearchField(initialData.id, {
             type: value.type,
             name: value.name,
             description: value.description,
-            nameTranslations: nameTranslations.length > 0 ? nameTranslations : undefined,
-            descriptionTranslations: descriptionTranslations.length > 0 ? descriptionTranslations : undefined,
+            nameTranslations: nameTranslations.length ? nameTranslations : undefined,
+            descriptionTranslations: descriptionTranslations.length ? descriptionTranslations : undefined,
         });
-        
+
         if (!result || result.error) throw new Error(result?.error || "Failed to update research field");
 
         if (value.type === "vocabulary" && value.vocabularies && vocabularyProcessingFunction) {
@@ -295,27 +246,8 @@
         return result;
     };
 
-    // Helper to create translations for a text field
-    const createTranslations = async (translations, textId) => {
-        if (!translations?.length || !textId) return;
-        
-        for (const translation of translations) {
-            const languageCode = translation.language_code || secondaryLanguages.find((l) => l.id === translation.language_id)?.code;
-            if (!languageCode) {
-                console.error("Language code not found for translation:", translation);
-                continue;
-            }
-            try {
-                await addTranslation(textId, languageCode, translation.content);
-            } catch (error) {
-                console.error("Error creating translation:", error);
-            }
-        }
-    };
-
     // Determine title and description - Dynamic based on type
-    const isConnection = $derived(selectedType === "vocabulary");
-    const itemLabel = $derived(isConnection ? t("common.connection") : t("common.research-field"));
+    const itemLabel = $derived(selectedType === "vocabulary" ? t("common.connection") : t("common.research-field"));
     
     // Labels
     const title = $derived(customTitle || (

@@ -326,7 +326,7 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
 
 
     invalidate("app:research-fields");
-    return { result: result.result, error: null };
+    return { result, error: null };
 };
 
 export const updateVocabularyAssets = async (vocabularyId, assetIds) => {
@@ -456,7 +456,7 @@ export const deleteVocabulary = async (vocabularyId) => {
     }
 
     invalidate("app:research-fields");
-    return { result: result.result || result, error: null };
+    return { result, error: null };
 };
 
 // Count objects that contain values from a specific research field
@@ -474,6 +474,6 @@ export const countObjectsUsingResearchField = async (fieldId) => {
         return { result: null, error: response.error?.message || response.error || "Failed to count objects: GraphQL error" };
     }
 
-    const count = response.result || 0;
+    const count = response || 0;
     return { result: count, error: null };
 };

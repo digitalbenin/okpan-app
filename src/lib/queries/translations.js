@@ -26,7 +26,7 @@ export const translationsOperations = {
       content: "Translated content"
     },
     query: `mutation CreateTranslation($textId: String!, $languageId: String!, $content: String!) {
-  insertIntoTranslations(
+  result: insertIntoTranslations(
     values: [
       {
         text_id: $textId
@@ -51,7 +51,7 @@ export const translationsOperations = {
       content: "New translated content"
     },
     query: `mutation UpdateTranslation($id: String!, $content: String) {
-  updateTranslations(
+  result: updateTranslations(
     set: { content: $content }
     where: { id: { eq: $id } }
   ) {
@@ -70,7 +70,7 @@ export const translationsOperations = {
       translationId: "ID of the translation to delete"
     },
     query: `mutation DeleteTranslation($translationId: String!) {
-  deleteFromTranslations(where: { id: { eq: $translationId } }) {
+  result: deleteFromTranslations(where: { id: { eq: $translationId } }) {
     id
     language_id
     text_id

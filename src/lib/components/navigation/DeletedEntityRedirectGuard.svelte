@@ -76,9 +76,7 @@
           if (response?.error && !/not found/i.test(String(response.error))) {
             return true;
           }
-          const asset = Array.isArray(response?.result)
-            ? response.result[0]
-            : response?.result;
+          const asset = Array.isArray(response) ? response[0] : null;
           return Boolean(asset?.id);
         }
         case "connection": {

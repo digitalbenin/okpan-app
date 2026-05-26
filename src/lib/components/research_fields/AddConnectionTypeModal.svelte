@@ -104,15 +104,7 @@
       const result = await createResearchField(params);
       if (result && !result.error) {
         isModalOpen = false;
-        const newId = result.id || result.result?.id;
-        if (newId) {
-          await invalidateAll();
-          goto(`/projects/${projectId}/connections/${newId}`);
-        } else {
-          await invalidateAll();
-        }
-      } else {
-        console.error("Error creating connection type", result?.error);
+        const newId = result.id || result[0]?.id;
       }
     } catch (e) {
       console.error("Error creating connection type", e);
@@ -162,7 +154,7 @@
 
       if (result && !result.error) {
         isModalOpen = false;
-        const newId = result.id || result.result?.id;
+        const newId = result.id || result[0]?.id;
         if (newId) {
           await invalidateAll();
           goto(`/projects/${projectId}/connections/${newId}`);

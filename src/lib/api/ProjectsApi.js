@@ -12,16 +12,16 @@ const projectUpdateSchema = getSchema('project', 'update');
 
 export const getProjects = async () => {
     const result = await executeQuery('projects', 'list');
-    return result.result;
+    return result;
 };
 
 export const getProject = async (projectId) => {
     const result = await executeQuery('projects', 'getById', { projectId });
 
     // Make sure we add title_id and description_id to the result for easier access
-    if (result && result.result) {
+    if (result) {
         // Try to extract directly from existing fields
-        const project = result.result;
+        const project = result;
 
         //console.log("Processing project data:", JSON.stringify(project, null, 2));
 
@@ -67,12 +67,12 @@ export const getProject = async (projectId) => {
         }
     }
 
-    return result.result;
+    return result;
 };
 
 export const getProjectLanguages = async (projectId) => {
     const result = await executeQuery('languages', 'listByProject', { projectId });
-    return result.result || [];
+    return result || [];
 };
 
 export const createProject = async (project) => {
@@ -98,7 +98,7 @@ export const createProject = async (project) => {
         password 
     });
 
-    const result = response?.result;
+    const result = response;
     const projectId = result?.project?.id || result?.id || null;
     const titleId = result?.project?.title_id || result?.titleText?.id || null;
     const descriptionId = result?.project?.description_id || result?.descriptionText?.id || null;
@@ -164,7 +164,7 @@ export const updateProject = async (projectId, updatedData) => {
 
 
     invalidate("app:projects");
-    return { result: result.result, error: null };
+    return { result, error: null };
 };
 
 export const updateProjectSharingSettings = async (projectId, { isShared, password } = {}) => {
@@ -210,7 +210,7 @@ export const deleteProject = async (projectId) => {
         return { success: false, error: response.error };
     }
     
-    const result = response?.result;
+    const result = response;
     invalidate("app:projects");
     
     return {

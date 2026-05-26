@@ -31,11 +31,16 @@
 
   const withQuery = (url) => (listQuery ? `${url}${listQuery}` : url);
 
+  const sortedAssets = $derived.by(() => {
+    if (!object?.objectsAssets || object.objectsAssets.length === 0) return [];
+    return [...object.objectsAssets].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  });
+
   const attachSwiper = (element) => {
     const swiperInstance = new Swiper(element, {
       slidesPerView: 1,
       spaceBetween: 10,
-      loop: true,
+      loop: sortedAssets.length > 1,
       modules: [Navigation],
       navigation: {
         nextEl: `#object-card-${object.id} .next`,
@@ -48,13 +53,8 @@
     };
   };
 
-  const sortedAssets = $derived.by(() => {
-    if (!object?.objectsAssets || object.objectsAssets.length === 0) return [];
-    return [...object.objectsAssets].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  });
-
   const parsedFields = $derived.by(() => {
-    const fields = displayFields?.result || [];
+    const fields = displayFields || [];
     return fields.map((field) => {
       if (field.type === "object_property") {
         return {

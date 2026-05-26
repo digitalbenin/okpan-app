@@ -32,7 +32,7 @@
   const mappedFieldMatches = $derived.by(() => {
     if (!mappedFieldIds.length) return [];
     return mappedFieldIds
-      .map((id) => page.data.ontologyFields.result.find((f) => f.id === id))
+      .map((id) => page.data.ontologyFields.find((f) => f.id === id))
       .filter(Boolean)
       .map((ontologyField) => ({
         name: ontologyField.name.content,

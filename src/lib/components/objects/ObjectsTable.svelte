@@ -90,7 +90,7 @@
   });
 
   const optionalColumns = $derived.by(() => {
-    const fields = displayFields?.result || [];
+    const fields = displayFields || [];
     return fields.map((field) => {
       if (field.type === "object_property") {
         return {

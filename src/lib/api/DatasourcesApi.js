@@ -4,10 +4,10 @@ import { invalidate } from "$app/navigation";
 // Fetch all data sources for a specific institution within a project
 export const getDatasources = async (options) => {
     const result = await executeQuery('datasources', 'list', options);
-    if (result && result.result) {
-        return { items: result.result || [], totalCount: result.result.length || 0 };
+    if (result) {
+        return { items: result || [], totalCount: result.length || 0 };
     }
-    return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch data sources or unexpected response structure") };
+    return { items: [], totalCount: 0, error: new Error("Failed to fetch data sources or unexpected response structure") };
 };
 
 // Fetch datasources linked to a specific object
@@ -22,10 +22,10 @@ export const getDatasourcesByObject = async (objectId) => {
         pageSize: 100 // Get all datasources for the object
     });
     
-    if (result && result.result) {
-        return { items: result.result || [], totalCount: result.result.length || 0 };
+    if (result) {
+        return { items: result || [], totalCount: result.length || 0 };
     }
-    return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch data sources for object") };
+    return { items: [], totalCount: 0, error: new Error("Failed to fetch data sources for object") };
 };
 
 // Unlink a datasource from an object by removing ontology field associations
@@ -55,10 +55,10 @@ export const getDatasource = async (datasourceId) => {
     const variables = { datasourceId };
     const response = await executeQuery('datasources', 'getById', variables);
 
-    if (!response || response.error || !response.result) {
-        return { result: null, error: response?.error || "Failed to fetch datasource" };
+    if (!response) {
+        return { result: null, error: "Failed to fetch datasource" };
     }
-    return { result: response.result, error: null };
+    return { result: response, error: null };
 };
 
 // Get template(s) used by a datasource via objects_datasources junction
@@ -68,13 +68,13 @@ export const getTemplateByDatasource = async (datasourceId) => {
     }
     const response = await executeQuery('templates', 'getByDatasource', { datasourceId });
     
-    if (!response || response.error) {
-        return { result: null, error: response?.error || "Failed to fetch template" };
+    if (!response) {
+        return { result: null, error: "Failed to fetch template" };
     }
     
     // Extract unique templates from junction records
-    if (response.result?.length > 0) {
-        const uniqueTemplates = response.result
+    if (response?.length > 0) {
+        const uniqueTemplates = response
             .filter(od => od.template_id && od.template)
             .map(od => od.template);
         // Return the first template found (could be enhanced to return all if needed)
@@ -114,8 +114,8 @@ export const getObjectsByDatasource = async (options) => {
 
     const result = await executeQuery('datasources', 'objectsByDatasource', params);
 
-    const items = result?.result?.items ?? [];
-    const totalCount = result?.result?.totalCount ?? items.length;
+    const items = result?.items ?? [];
+    const totalCount = result?.totalCount ?? items.length;
 
     return { items, totalCount, error: result?.error || null };
 };
@@ -124,10 +124,10 @@ export const getObjectsByDatasource = async (options) => {
 export const createDatasource = async (params) => {
     const response = await executeQuery('datasources', 'create', params);
 
-    if (!response || response.error || !response.result) {
-        return { result: null, error: response?.error || "Failed to create datasource" };
+    if (!response) {
+        return { result: null, error: "Failed to create datasource" };
     }
-    return { result: response.result, error: null };
+    return { result: response, error: null };
 };
 
 // Version that throws errors for useFetcher compatibility
@@ -288,7 +288,8 @@ export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, te
             templateId: templateId || null,
         });
 
-        // The query returns with the alias 'result', not the step name 'getExistingFields'
+        // saveOntologyFields is multi-step; getExistingFields step uses `result:` alias,
+        // so the array is at result.result in the merged finalResults object.
         const existingFields = result?.result || [];
 
         // Build maps for quick lookup and identify duplicates

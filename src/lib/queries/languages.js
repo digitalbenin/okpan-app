@@ -10,7 +10,7 @@ export const languagesOperations = {
       isDefault: "Whether this is the default language for the project (optional, defaults to 0)"
     },
     query: `mutation CreateContentLanguage($projectId: String!, $code: String!, $name: String!, $isDefault: Int = 0) {
-  insertIntoLanguages(values: [{ 
+  result: insertIntoLanguages(values: [{ 
     project_id: $projectId,
     code: $code, 
     name: $name,
@@ -32,7 +32,7 @@ export const languagesOperations = {
       languageId: "Language ID to delete"
     },
     query: `mutation DeleteContentLanguage($languageId: String!) {
-  deleteFromLanguages(where: { id: { eq: $languageId } }) {
+  result: deleteFromLanguages(where: { id: { eq: $languageId } }) {
     id
     code
     name
@@ -66,6 +66,21 @@ export const languagesOperations = {
     code
     name
     is_default
+  }
+}`
+  },
+  getByCode: {
+    type: "query",
+    name: "Get Language By Code",
+    description: "Retrieves a language by its code",
+    variables: {
+      code: "Language code (e.g., 'en', 'es')"
+    },
+    query: `query GetLanguageByCode($code: String!) {
+  result: languages(where: { code: { eq: $code } }) {
+    id
+    code
+    name
   }
 }`
   }

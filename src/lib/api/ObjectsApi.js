@@ -21,11 +21,11 @@ const { getSchema, validate } = getValidationStore();
 export const getObjects = async (options) => {
     const result = await executeQuery('objects', 'list', options);
     // console.log(result, "result")
-    if (result && result.result) {
-        return { items: result.result.items || [], totalCount: result.result.totalCount || 0 };
+    if (result) {
+        return { items: result.items || [], totalCount: result.totalCount || 0 };
     }
 
-    return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch objects or unexpected response structure") };
+    return { items: [], totalCount: 0, error: new Error("Failed to fetch objects or unexpected response structure") };
 };
 
 // Function to search objects with advanced filtering and faceted results
@@ -39,11 +39,11 @@ export const searchObjects = async (options) => {
         safeOptions = { ...(options || {}) };
     }
     const result = await executeQuery('object_search', 'search', safeOptions);
-    if (result && result.result) {
+    if (result) {
         return {
-            items: result.result.items || [],
-            totalCount: result.result.totalCount || 0,
-            facets: result.result.facets || { institutions: [], statuses: [], researchFields: [] }
+            items: result.items || [],
+            totalCount: result.totalCount || 0,
+            facets: result.facets || { institutions: [], statuses: [], researchFields: [] }
         };
     }
 
@@ -51,7 +51,7 @@ export const searchObjects = async (options) => {
         items: [],
         totalCount: 0,
         facets: { institutions: [], statuses: [], researchFields: [] },
-        error: result?.error || new Error("Failed to search objects or unexpected response structure")
+        error: new Error("Failed to search objects or unexpected response structure")
     };
 };
 
@@ -59,10 +59,10 @@ export const searchObjects = async (options) => {
 export const getTotalObjectsForInstitution = async (projectId, institutionId) => {
     const result = await executeQuery('objects', 'list', { projectId, institutionId, pageSize: 1, page: 0 });
 
-    if (result && result.result && typeof result.result.totalCount === 'number') {
-        return { totalCount: result.result.totalCount };
+    if (result && typeof result.totalCount === 'number') {
+        return { totalCount: result.totalCount };
     }
-    return { totalCount: 0, error: result?.error || new Error("Failed to fetch total objects count or unexpected response structure") };
+    return { totalCount: 0, error: new Error("Failed to fetch total objects count or unexpected response structure") };
 };
 
 // Function to get a single object by ID with complete data including research fields
@@ -73,16 +73,12 @@ export const getObjectById = async (objectId) => {
 
     const result = await executeQuery('objects', 'getById', { objectId });
 
-    if (result.error) {
-        return { error: result.error };
-    }
-
-    if (!result.result || !result.result.length) {
+    if (!result || !result.length) {
         return { error: "Object not found" };
     }
 
     // Return the first (and should be only) result
-    return { result: result.result[0], error: null };
+    return { result: result[0], error: null };
 };
 
 export const createObject = async (
@@ -284,19 +280,12 @@ export const updateObjectResearchFields = async (objectId, changes) => {
             errors.push(`Failed to process field change: ${response.error}`);
         } else {
             let fieldResult = null;
-            if (response.result && Array.isArray(response.result) && response.result.length > 0) {
-                // Handle the case where the result is directly in an array under response.result
-                fieldResult = response.result[0];
-            } else {
-                // Fallback to previous checks if the structure is different
-                fieldResult = response.result?.updateObjects_research_fields ||
-                    response.result?.insertIntoObjects_research_fields?.[0] ||
-                    response.result?.deleteFromObjects_research_fields?.[0] ||
-                    response.result?.result ||
-                    response.updateObjects_research_fields ||
-                    response.insertIntoObjects_research_fields?.[0] ||
-                    response.deleteFromObjects_research_fields?.[0] ||
-                    null;
+            if (Array.isArray(response) && response.length > 0) {
+                // objectUpdateResearchField has result: alias → unwrapped to array
+                fieldResult = response[0];
+            } else if (response?.insertIntoObjects_research_fields?.length > 0) {
+                // objectAssignResearchField has no result: alias → { insertIntoObjects_research_fields: [...] }
+                fieldResult = response.insertIntoObjects_research_fields[0];
             }
 
             if (fieldResult) {

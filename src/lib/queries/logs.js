@@ -61,7 +61,7 @@ export const logsOperations = {
             message: "Log message content"
         },
         query: `mutation CreateLog($level: String!, $action: String!, $message: String!) {
-  insertIntoLogs(
+  result: insertIntoLogs(
     values: [
       { level: $level, action: $action, message: $message }
     ]
@@ -82,7 +82,7 @@ export const logsOperations = {
             id: "ID of the log to delete"
         },
         query: `mutation DeleteLog($id: String!) {
-  deleteFromLogs(where: { id: { eq: $id } }) {
+  result: deleteFromLogs(where: { id: { eq: $id } }) {
     id
   }
 }`
@@ -103,7 +103,7 @@ export const logsOperations = {
   $fromDate: String
   $toDate: String
 ) {
-  deleteFromLogs(
+  result: deleteFromLogs(
     where: {
       level: { eq: $level }
       action: { eq: $action }

@@ -11,9 +11,9 @@ export const getSearch = async (options) => {
     };
     
     const result = await executeQuery('entity_search', 'search', searchOptions);
-    const items = result?.result?.results ?? [];
-    if (result && result.result) {
+    const items = result?.results ?? [];
+    if (result && result.results) {
         return { items, totalCount: items.length };
     }
-    return { items: [], totalCount: 0, error: result?.error || new Error("Failed to fetch search or unexpected response structure") };
+    return { items: [], totalCount: 0, error: new Error("Failed to fetch search or unexpected response structure") };
 };

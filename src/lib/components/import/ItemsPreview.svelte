@@ -76,7 +76,7 @@
 
   function getOntologyLabel(id) {
     console.log(id, pageData?.data?.ontologyFields);
-    const ontologyField = pageData.data.ontologyFields.result.find(
+    const ontologyField = pageData.data.ontologyFields.find(
       (f) => f.id === id,
     );
     console.log("ontologyField", ontologyField);
