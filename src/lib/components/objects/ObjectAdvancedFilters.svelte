@@ -3,6 +3,8 @@
   import { debounce } from "$lib/utils/throttle.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { onDestroy } from "svelte";
+  import FilterDetailView from "./FilterDetailView.svelte";
+  import FilterTextSearchView from "./FilterTextSearchView.svelte";
 
   let {
     advancedFilters = $bindable({}),
@@ -67,34 +69,23 @@
     return fields.sort((a, b) => (a.label || "").localeCompare(b.label || ""));
   });
 
-  const textResearchFields = $derived.by(() =>
-    (researchFields || []).filter((f) => (f.type || "").toLowerCase() !== "vocabulary")
+  const visibleTextResearchFields = $derived(
+    (researchFields || []).filter((f) => f?.id && (f.type || "").toLowerCase() !== "vocabulary")
   );
 
-  const connectionResearchFields = $derived.by(() =>
-    (researchFields || []).filter((f) => (f.type || "").toLowerCase() === "vocabulary")
-  );
-
-  const visibleTextResearchFields = $derived.by(() =>
-    textResearchFields.filter((field) => field?.id)
-  );
-
-  const visibleConnectionResearchFields = $derived.by(() =>
-    connectionResearchFields.filter(
-      (field) => field?.id && vocabularies.some((vocabulary) => String(vocabulary.field_id) === String(field.id))
+  const visibleConnectionResearchFields = $derived(
+    (researchFields || []).filter(
+      (f) => f?.id &&
+        (f.type || "").toLowerCase() === "vocabulary" &&
+        vocabularies.some((v) => String(v.field_id) === String(f.id))
     )
   );
 
   // Helpers
-  const getFieldKey = () => selectedField?.type === "institutions" ? "institutions" : selectedField?.id;
+  const fieldKey = $derived(selectedField?.type === "institutions" ? "institutions" : selectedField?.id);
   
-  const ensureFiltersObject = () => {
-    if (!advancedFilters || typeof advancedFilters !== "object") advancedFilters = {};
-    return advancedFilters;
-  };
-
   const ensureTextFiltersArray = () => {
-    ensureFiltersObject();
+    if (!advancedFilters || typeof advancedFilters !== "object") advancedFilters = {};
     if (!Array.isArray(advancedFilters.__textFilters)) advancedFilters.__textFilters = [];
     return advancedFilters.__textFilters;
   };
@@ -118,15 +109,10 @@
     return 0;
   };
 
-  const getFieldLabel = (kind, fieldId, fieldsList) => {
-    const field = fieldsList.find((f) => String(f.id) === String(fieldId));
-    return field?.name?.content || field?.name || t("filters.unknown-field", { fallback: "Unknown field" });
-  };
-
   const getTextFieldLabel = (tf) => {
-    return tf?.kind === "ontology"
-      ? getFieldLabel("ontology", tf.fieldId, ontologyFields)
-      : getFieldLabel("research", tf.fieldId, researchFields);
+    const fieldsList = tf?.kind === "ontology" ? ontologyFields : researchFields;
+    const field = fieldsList.find((f) => String(f.id) === String(tf.fieldId));
+    return field?.name?.content || field?.name || t("filters.unknown-field", { fallback: "Unknown field" });
   };
 
   const getCurrentTextQuery = (kind, fieldId) => {
@@ -170,46 +156,28 @@
 
   // Filter actions
   const toggleFilter = (itemId) => {
-    if (!selectedField) return;
-    const count = getFacetCountForItem({ id: itemId });
-    if (count === 0 && !isSelected(itemId)) return;
-    ensureFiltersObject();
-    const fieldKey = getFieldKey();
-    
-    // Get current array or create new one
-    const currentArray = Array.isArray(advancedFilters[fieldKey]) 
-      ? [...advancedFilters[fieldKey]] 
-      : [];
-    
+    if (!selectedField || !fieldKey) return;
+    if (getFacetCountForItem({ id: itemId }) === 0 && !isSelected(itemId)) return;
+
+    const currentArray = Array.isArray(advancedFilters?.[fieldKey]) ? [...advancedFilters[fieldKey]] : [];
     const idx = currentArray.findIndex((id) => String(id) === String(itemId));
-    
-    if (idx > -1) {
-      currentArray.splice(idx, 1);
-    } else {
-      currentArray.push(itemId);
-    }
-    
-    // Update with spread to trigger reactivity
-    advancedFilters = {
-      ...advancedFilters,
-      [fieldKey]: currentArray
-    };
-    
+    if (idx > -1) currentArray.splice(idx, 1);
+    else currentArray.push(itemId);
+
+    advancedFilters = { ...advancedFilters, [fieldKey]: currentArray };
     onFiltersChange(advancedFilters);
   };
 
   const resetFilter = () => {
-    if (!selectedField) return;
-    advancedFilters = { ...advancedFilters, [getFieldKey()]: [] };
+    if (!selectedField || !fieldKey) return;
+    advancedFilters = { ...advancedFilters, [fieldKey]: [] };
     onFiltersChange(advancedFilters);
   };
 
   const isSelected = (itemId) => {
-    const arr = Array.isArray(advancedFilters?.[getFieldKey()]) ? advancedFilters[getFieldKey()] : [];
+    const arr = Array.isArray(advancedFilters?.[fieldKey]) ? advancedFilters[fieldKey] : [];
     return arr.some((id) => String(id) === String(itemId));
   };
-
-  const isDisabledFilterItem = (item) => getFacetCountForItem(item) === 0 && !isSelected(item.id);
 
   // Text filter actions
   const upsertOrRemoveTextFilter = () => {
@@ -400,94 +368,27 @@
   {/if}
 
   {#if activeView === "detail" && selectedField}
-    <div class="p-3 d-flex flex-column gap-3 overflow-auto">
-      <div class="d-flex align-items-center justify-content-between">
-        <button class="btn btn-link text-decoration-none" onclick={showMain}>
-          <i class="bi bi-arrow-left"></i>
-          {t("nav.back", { fallback: "Back" })}
-        </button>
-        <button class="btn btn-outline-secondary btn-sm" onclick={resetFilter}
-          >{t("common.reset", { fallback: "Reset" })}</button
-        >
-      </div>
-
-      <div class="position-relative">
-        <input
-          type="text"
-          class="form-control"
-          placeholder={t("filters.search", { fallback: "Search..." })}
-          bind:value={searchTerm}
-        />
-      </div>
-
-      <div class="list-group list-group-flush">
-        {#each filteredItems as item (item.id)}
-          <div class="list-group-item" class:opacity-50={isDisabledFilterItem(item)}>
-            <div class="d-flex align-items-center gap-2">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                id={`filter-${selectedField.id}-${item.id}`}
-                checked={isSelected(item.id)}
-                disabled={isDisabledFilterItem(item)}
-                onchange={() => toggleFilter(item.id)}
-              />
-              <label
-                class="form-check-label"
-                class:pe-none={isDisabledFilterItem(item)}
-                for={`filter-${selectedField.id}-${item.id}`}
-              >
-                <span class="fw-semibold">{item.name}</span>
-                <span class="text-muted fs-7">
-                  ({getFacetCountForItem(item)})</span
-                >
-              </label>
-            </div>
-          </div>
-        {/each}
-        {#if filteredItems.length === 0}
-          <div class="text-muted text-center py-3">{t("filters.no-items", { fallback: "No items" })}</div>
-        {/if}
-      </div>
-    </div>
+    <FilterDetailView
+      items={filteredItems}
+      {selectedField}
+      bind:searchTerm
+      {isSelected}
+      getFacetCount={getFacetCountForItem}
+      onToggle={toggleFilter}
+      onReset={resetFilter}
+      onBack={showMain}
+    />
   {/if}
 
   {#if activeView === "addText"}
-    <div class="p-3 d-flex flex-column gap-3 overflow-auto">
-      <div class="d-flex align-items-center justify-content-between">
-        <button class="btn btn-link text-decoration-none" onclick={showMain}>
-          <i class="bi bi-arrow-left"></i>
-          {t("nav.back", { fallback: "Back" })}
-        </button>
-      </div>
-
-      <div class="mb-2">{t("filters.select-a-field", { fallback: "Select a field" })}</div>
-      <select
-        class="form-select"
-        bind:value={textSelectedFieldId}
-        onchange={upsertOrRemoveTextFilter}
-      >
-        <option value="">{t("filters.choose", { fallback: "Choose..." })}</option>
-        {#each selectableTextFields as f (f.key)}
-          <option value={f.key}>{f.label}</option>
-        {/each}
-      </select>
-
-      <div class="mb-2">{t("filters.enter-query", { fallback: "Enter query" })}</div>
-      <input
-        type="text"
-        class="form-control"
-        placeholder={t("filters.type-to-search", { fallback: "Type to search" })}
-        bind:value={textQuery}
-        oninput={() => debouncedUpdateTextFilter()}
-      />
-    </div>
+    <FilterTextSearchView
+      bind:textSelectedFieldId
+      bind:textQuery
+      {selectableTextFields}
+      onFieldChange={upsertOrRemoveTextFilter}
+      onQueryInput={() => debouncedUpdateTextFilter()}
+      onBack={showMain}
+    />
   {/if}
 </div>
 
-<style>
-  .list-group-item {
-    border: none;
-    border-bottom: 1px solid var(--bs-border-color);
-  }
-</style>

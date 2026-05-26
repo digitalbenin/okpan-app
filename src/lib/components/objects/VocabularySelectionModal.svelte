@@ -3,6 +3,7 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseModal from "$lib/components/base/BaseModal.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
+    import { watch } from "runed";
     import { addVocabulary as addVocabularyAPI } from "$lib/api/ResearchFieldsApi.js";
 
     // Props
@@ -31,34 +32,26 @@
     let newConnectionExternalLink = $state("");
     let expandedDescriptions = $state(new Set());
 
-    // Reset search when modal opens
-    $effect(() => {
-        if (isOpen) {
-            searchQuery = "";
-            selectedFieldId = "all";
-            creationError = null;
-            isCreating = false;
-            createdVocabularies = [];
-            showCreateForm = false;
-            newConnectionType = "";
-            newConnectionTitle = "";
-            newConnectionDescription = "";
-            newConnectionExternalLink = "";
-            expandedDescriptions = new Set();
-        }
+    // Reset state whenever the modal opens
+    watch(() => isOpen, (open) => {
+        if (!open) return;
+        searchQuery = "";
+        selectedFieldId = "all";
+        creationError = null;
+        isCreating = false;
+        createdVocabularies = [];
+        showCreateForm = false;
+        newConnectionType = "";
+        newConnectionTitle = "";
+        newConnectionDescription = "";
+        newConnectionExternalLink = "";
+        expandedDescriptions = new Set();
     });
 
     // Get the currently selected field from vocabularyFields
     const currentField = $derived.by(() => 
         selectedFieldId === "all" ? null : 
         vocabularyFields.find(f => f.id === selectedFieldId) || field
-    );
-
-    // Get vocabulary IDs selected for the current field (or all if 'all' selected)
-    const selectedIdsForCurrentField = $derived.by(() => 
-        selectedFieldId === "all" ? currentSelections.map(sel => sel.vocabularyId) :
-        !currentField ? [] :
-        currentSelections.filter(sel => sel.fieldId === currentField.id).map(sel => sel.vocabularyId)
     );
 
     // Filter vocabularies based on search and selected field
@@ -101,58 +94,63 @@
     };
 
     const toggleDescription = (vocabId) => {
-        const newSet = new Set(expandedDescriptions);
-        if (newSet.has(vocabId)) {
-            newSet.delete(vocabId);
-        } else {
-            newSet.add(vocabId);
-        }
-        expandedDescriptions = newSet;
+        const next = new Set(expandedDescriptions);
+        next.has(vocabId) ? next.delete(vocabId) : next.add(vocabId);
+        expandedDescriptions = next;
     };
 
     const handleAddNewConnection = () => {
         showCreateForm = true;
     };
 
+    // Shared helper: call the API, then update vocabularyFields and selections in one place
+    const addAndSelectVocabulary = async (fieldId, option, description = "", externalLink = "") => {
+        const { result, error } = await addVocabularyAPI(fieldId, {
+            languageId: defaultLanguageId,
+            option: option.trim(),
+            description: description.trim(),
+            externalLink: externalLink.trim() || undefined,
+        });
+
+        if (error) return { error: typeof error === "string" ? error : error?.message || "Failed to create vocabulary" };
+
+        const newId = result?.insertIntoVocabularies?.[0]?.id;
+        if (!newId) return { error: "Failed to obtain new vocabulary ID." };
+
+        const newVocab = {
+            id: newId,
+            mainAsset: null,
+            vocabulariesGenericAssets: [],
+            option: { content: option.trim() },
+            description: { content: description.trim() },
+        };
+
+        const fieldIndex = vocabularyFields.findIndex(f => f.id === fieldId);
+        if (fieldIndex !== -1) {
+            vocabularyFields[fieldIndex] = {
+                ...vocabularyFields[fieldIndex],
+                vocabularies: [newVocab, ...(vocabularyFields[fieldIndex].vocabularies || [])]
+            };
+            vocabularyFields = [...vocabularyFields];
+        }
+
+        createdVocabularies = [...createdVocabularies, newVocab];
+        currentSelections = [...currentSelections, { fieldId, vocabularyId: newId }];
+
+        return {};
+    };
+
     async function createNewVocabulary() {
         const optionText = searchQuery.trim();
-        if (!optionText) return creationError = t("common.validation.value-required", { fallback: "Value is required" });
-        if (!defaultLanguageId) return creationError = t("objects.research_fields.default_language_required", { fallback: "Default language is required to create a new option." });
-        if (selectedFieldId === "all" || !currentField?.id) return creationError = t("objects.connections.select_specific_type", { fallback: "Please select a specific connection type to create a new item." });
+        if (!optionText) { creationError = t("common.validation.value-required", { fallback: "Value is required" }); return; }
+        if (!defaultLanguageId) { creationError = t("objects.research_fields.default_language_required", { fallback: "Default language is required to create a new option." }); return; }
+        if (selectedFieldId === "all" || !currentField?.id) { creationError = t("objects.connections.select_specific_type", { fallback: "Please select a specific connection type to create a new item." }); return; }
 
         creationError = null;
-
         isCreating = true;
         try {
-            const { result, error } = await addVocabularyAPI(currentField.id, {
-                languageId: defaultLanguageId,
-                option: optionText,
-                description: "",
-            });
-            if (error) return creationError = typeof error === "string" ? error : error?.message || "Failed to create vocabulary";
-
-            const newId = result?.insertIntoVocabularies?.[0]?.id;
-            if (!newId) return creationError = "Failed to obtain new vocabulary ID.";
-
-            const newVocab = {
-                id: newId,
-                mainAsset: null,
-                vocabulariesGenericAssets: [],
-                option: { content: optionText },
-                description: { content: "" },
-            };
-
-            const fieldIndex = vocabularyFields.findIndex(f => f.id === currentField.id);
-            if (fieldIndex !== -1) {
-                vocabularyFields[fieldIndex] = { 
-                    ...vocabularyFields[fieldIndex], 
-                    vocabularies: [newVocab, ...(vocabularyFields[fieldIndex].vocabularies || [])] 
-                };
-                vocabularyFields = [...vocabularyFields];
-            }
-
-            createdVocabularies = [...createdVocabularies, newVocab];
-            currentSelections = [...currentSelections, { fieldId: currentField.id, vocabularyId: newId }];
+            const { error } = await addAndSelectVocabulary(currentField.id, optionText);
+            if (error) creationError = error;
         } catch (e) {
             creationError = e?.message || "Unexpected error while creating vocabulary";
         } finally {
@@ -161,67 +159,16 @@
     }
 
     async function handleCreateConnection() {
-        if (!newConnectionTitle.trim()) {
-            creationError = t("common.validation.title-required", { fallback: "Title is required" });
-            return;
-        }
-        if (!newConnectionType) {
-            creationError = t("objects.connections.select_specific_type", { fallback: "Please select a connection type" });
-            return;
-        }
-        if (!defaultLanguageId) {
-            creationError = t("objects.research_fields.default_language_required", { fallback: "Default language is required to create a new option." });
-            return;
-        }
+        if (!newConnectionTitle.trim()) { creationError = t("common.validation.title-required", { fallback: "Title is required" }); return; }
+        if (!newConnectionType) { creationError = t("objects.connections.select_specific_type", { fallback: "Please select a connection type" }); return; }
+        if (!defaultLanguageId) { creationError = t("objects.research_fields.default_language_required", { fallback: "Default language is required to create a new option." }); return; }
 
         creationError = null;
         isCreating = true;
-
         try {
-            const selectedField = vocabularyFields.find(f => f.id === newConnectionType);
-            if (!selectedField) {
-                creationError = "Selected connection type not found";
-                return;
-            }
+            const { error } = await addAndSelectVocabulary(newConnectionType, newConnectionTitle, newConnectionDescription, newConnectionExternalLink);
+            if (error) { creationError = error; return; }
 
-            const { result, error } = await addVocabularyAPI(selectedField.id, {
-                languageId: defaultLanguageId,
-                option: newConnectionTitle.trim(),
-                description: newConnectionDescription.trim(),
-            });
-
-            if (error) {
-                creationError = typeof error === "string" ? error : error?.message || "Failed to create connection";
-                return;
-            }
-
-            const newId = result?.insertIntoVocabularies?.[0]?.id;
-            if (!newId) {
-                creationError = "Failed to obtain new connection ID.";
-                return;
-            }
-
-            const newVocab = {
-                id: newId,
-                mainAsset: null,
-                vocabulariesGenericAssets: [],
-                option: { content: newConnectionTitle.trim() },
-                description: { content: newConnectionDescription.trim() },
-            };
-
-            const fieldIndex = vocabularyFields.findIndex(f => f.id === selectedField.id);
-            if (fieldIndex !== -1) {
-                vocabularyFields[fieldIndex] = { 
-                    ...vocabularyFields[fieldIndex], 
-                    vocabularies: [newVocab, ...(vocabularyFields[fieldIndex].vocabularies || [])] 
-                };
-                vocabularyFields = [...vocabularyFields];
-            }
-
-            createdVocabularies = [...createdVocabularies, newVocab];
-            currentSelections = [...currentSelections, { fieldId: selectedField.id, vocabularyId: newId }];
-
-            // Reset form and slide back
             showCreateForm = false;
             newConnectionType = "";
             newConnectionTitle = "";

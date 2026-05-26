@@ -1,7 +1,7 @@
 <script>
-  import { invalidate, goto } from "$app/navigation";
-  import { tick, untrack } from "svelte";
-  import { invalidateAll } from '$app/navigation';
+  import { invalidate, invalidateAll } from "$app/navigation";
+  import { tick } from "svelte";
+  import { watch } from "runed";
   import ObjectInstitutionalDataSource from "./ObjectInstitutionalDataSource.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
@@ -32,23 +32,10 @@
 
   let localDatasources = $state([]);
 
-  const datasourcesArray = $derived.by(() => {
-    const combined = [...datasources];
-    // Add local datasources that are NOT in props (optimistic updates)
-    localDatasources.forEach(local => {
-       if (!combined.some(d => d.id === local.id)) {
-           combined.push(local);
-       }
-    });
-
-    const sorted = combined.sort((a, b) => {
-      // Convert string timestamps to numbers
-      const dateA = typeof a.date === 'number' ? a.date : Number(a.date) || 0;
-      const dateB = typeof b.date === 'number' ? b.date : Number(b.date) || 0;
-      return dateA - dateB; // Ascending: oldest first (left)
-    });
-    return sorted;
-  });
+  const datasourcesArray = $derived(
+    [...datasources, ...localDatasources.filter(local => !datasources.some(d => d.id === local.id))]
+      .sort((a, b) => (Number(a.date) || 0) - (Number(b.date) || 0))
+  );
   
   let creating = $state(false);
   let componentChanges = $state(new Map());
@@ -64,53 +51,37 @@
   let datasourceToEdit = $state(null);
   let editForm = $state(null);
 
-  const handleEditSuccess = (updatedDatasource) => {
+  const handleEditSuccess = () => {
       editModalOpen = false;
       datasourceToEdit = null;
       invalidate("custom:object");
   };
 
-  // Initialize active datasource – untrack the read of activeDatasourceId
-  // so the effect only re-runs when datasourcesArray changes, not when
-  // we write activeDatasourceId (avoids self-triggering cycle).
-  $effect(() => {
-    const dsArray = datasourcesArray;
-    const currentId = untrack(() => activeDatasourceId);
-    if (dsArray.length > 0 && !dsArray.some(d => d.id === currentId)) {
+  // Keep the active tab valid whenever the datasource list changes
+  watch(() => datasourcesArray, (dsArray) => {
+    if (dsArray.length > 0 && !dsArray.some(d => d.id === activeDatasourceId)) {
       activeDatasourceId = dsArray[0].id;
     }
   });
 
-  const scrollToTab = (direction) => {
-    if (tabsContainer) {
-      tabsContainer.scrollBy({ 
-        left: direction === 'left' ? -400 : 400, 
-        behavior: "smooth" 
-      });
-    }
-  };
-
   // Build maps for datasource templates and fields
-  const { datasourceTemplateMap, datasourceFieldsMap } = $derived.by(() => {
-    const templates = new Map();
-    const fields = new Map();
-    
+  const datasourceTemplateMap = $derived.by(() => {
+    const map = new Map();
     (object?.objectsDatasources || []).forEach(od => {
-      if (od.datasource_id && od.template) {
-        templates.set(od.datasource_id, od.template);
-      }
+      if (od.datasource_id && od.template) map.set(od.datasource_id, od.template);
     });
-    
+    return map;
+  });
+
+  const datasourceFieldsMap = $derived.by(() => {
+    const map = new Map();
     (object?.objectsOntologyFields || []).forEach(field => {
       if (field.datasources_id) {
-        if (!fields.has(field.datasources_id)) {
-          fields.set(field.datasources_id, []);
-        }
-        fields.get(field.datasources_id).push(field);
+        if (!map.has(field.datasources_id)) map.set(field.datasources_id, []);
+        map.get(field.datasources_id).push(field);
       }
     });
-    
-    return { datasourceTemplateMap: templates, datasourceFieldsMap: fields };
+    return map;
   });
 
   // Track changes from child components
@@ -157,61 +128,43 @@
   // Create new datasource
   const handleAddDataSource = async () => {
     if (creating) return;
-    
     creating = true;
-    
-    const timestamp = Date.now();
-    const defaultName = t("objects.institution_data.default-name", {
-      fallback: "Data source {{date}}",
-      date: epochToDate(timestamp, true),
-    });
-    
-    const { result, error } = await createDatasource({
-      name: defaultName,
-      institutionId,
-      languageId: defaultLanguageId,
-      date: new Date(timestamp).toISOString(), // ISO string format
-    });
-    
-    if (error) {
-      console.error("Failed to create datasource:", error);
-      creating = false;
-      return;
-    }
+    try {
+      const timestamp = Date.now();
+      const defaultName = t("objects.institution_data.default-name", {
+        fallback: "Data source {{date}}",
+        date: epochToDate(timestamp, true),
+      });
 
-    if (result) {
+      const { result, error } = await createDatasource({
+        name: defaultName,
+        institutionId,
+        languageId: defaultLanguageId,
+        date: new Date(timestamp).toISOString(),
+      });
+
+      if (error) {
+        console.error("Failed to create datasource:", error);
+        return;
+      }
+
       const newDatasource = Array.isArray(result) ? result[0] : result;
 
-      // Link the new datasource to the current object
-      if (object && object.id && newDatasource?.id) {
-        await saveOntologyFieldsForDatasource(
-            object.id, 
-            newDatasource.id, 
-            null, 
-            []
-        );
+      if (object?.id && newDatasource?.id) {
+        await saveOntologyFieldsForDatasource(object.id, newDatasource.id, null, []);
       }
-      
-      // Add to local state for immediate optimistic update
-      // Ensure the name is populated for immediate display in the tab
-      if (!newDatasource.name) {
-          newDatasource.name = { content: defaultName };
-      }
+
+      if (!newDatasource.name) newDatasource.name = { content: defaultName };
       localDatasources.push(newDatasource);
 
-      // Invalidate to refresh data
       await invalidateAll();
-      
-      // Select the new datasource after data is refreshed
       activeDatasourceId = newDatasource.id;
-      
-      // Scroll to end
+
       await tick();
-      if (tabsContainer) {
-          tabsContainer.scrollTo({ left: tabsContainer.scrollWidth, behavior: 'smooth' });
-      }
+      tabsContainer?.scrollTo({ left: tabsContainer.scrollWidth, behavior: "smooth" });
+    } finally {
+      creating = false;
     }
-    creating = false;
   };
 
   // Delete datasource
@@ -253,20 +206,17 @@
     if (datasourceToEdit) editModalOpen = true;
   };
 
-  const createDatasourceMenu = (ds, includeActions = false) => {
-    if (!includeActions) {
-      return { 
-        label: ds.name?.content || t("common.unnamed", { fallback: "Unnamed" }), 
-        onClick: () => activeDatasourceId = ds.id 
-      };
-    }
-    return [
-      { label: t("common.edit", { fallback: "Edit" }), icon: "pencil", onClick: () => handleEditDataSource(ds.id) },
-      { label: t("common.delete", { fallback: "Delete" }), icon: "trash", class: "text-danger", onClick: () => requestDeleteDataSource(ds.id) }
-    ];
-  };
+  const getDatasourceTab = (ds) => ({
+    label: ds.name?.content || t("common.unnamed", { fallback: "Unnamed" }),
+    onClick: () => activeDatasourceId = ds.id,
+  });
 
-  const allDatasourcesMenu = $derived(datasourcesArray.map(ds => createDatasourceMenu(ds)));
+  const getDatasourceActions = (ds) => [
+    { label: t("common.edit", { fallback: "Edit" }), icon: "pencil", onClick: () => handleEditDataSource(ds.id) },
+    { label: t("common.delete", { fallback: "Delete" }), icon: "trash", class: "text-danger", onClick: () => requestDeleteDataSource(ds.id) },
+  ];
+
+  const allDatasourcesMenu = $derived(datasourcesArray.map(getDatasourceTab));
 </script>
 
 <div class="card bg-white border-0 pb-4">
@@ -306,7 +256,7 @@
                         
                         <div onclick={(e) => e.stopPropagation()} class="d-flex align-items-center">
                             <BaseDropdownMenu
-                                items={createDatasourceMenu(datasource, true)}
+                                items={getDatasourceActions(datasource)}
                                 triggerClass="btn btn-sm btn-link text-muted border-0 bg-transparent p-0 shadow-none"
                                 side="bottom"
                                 align="end"
@@ -322,10 +272,10 @@
 
           {#if datasourcesArray.length > 1}
             <div class="d-flex border-start bg-white">
-              <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => scrollToTab('left')} aria-label={t("objects.institution_data.scroll-left", { fallback: "Scroll tabs left" })}>
+              <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => tabsContainer?.scrollBy({ left: -400, behavior: "smooth" })} aria-label={t("objects.institution_data.scroll-left", { fallback: "Scroll tabs left" })}>
                     <i class="bi bi-caret-left-fill"></i>
                 </button>
-              <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => scrollToTab('right')} aria-label={t("objects.institution_data.scroll-right", { fallback: "Scroll tabs right" })}>
+              <button class="btn btn-sm btn-link text-muted rounded-0 border-end py-2" onclick={() => tabsContainer?.scrollBy({ left: 400, behavior: "smooth" })} aria-label={t("objects.institution_data.scroll-right", { fallback: "Scroll tabs right" })}>
                     <i class="bi bi-caret-right-fill"></i>
                 </button>
                 <div class="d-flex align-items-center">
