@@ -6,6 +6,7 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
+  import { watch } from "runed";
   import { onMount } from "svelte";
   import { invalidate, invalidateAll } from "$app/navigation";
   import { page } from "$app/state";
@@ -18,7 +19,6 @@
   let usernameDialogOpen = $state(false);
   let usernameDraft = $state("");
   let isResolvingUsername = $state(false);
-  let usernamePromptReady = $state(false);
 
   async function resolveUsername(value = "") {
     if (isResolvingUsername) {
@@ -35,51 +35,56 @@
     }
   }
 
-  onMount(() => {
-    void userPresenceStore.initialize().then(() => {
+  // On initialization: sync UI to the persisted username state.
+  watch(
+    () => userPresenceState.isInitialized,
+    (initialized) => {
+      if (!initialized) return;
       usernameDraft = userPresenceState.username || "";
       usernameDialogOpen = !userPresenceState.username;
-      usernamePromptReady = true;
-    });
-
-    if (window.api && window.api.onDataChanged) {
-      const removeListener = window.api.onDataChanged((payload = {}) => {
-        const origin = payload?.origin;
-        // Keep global reactivity for peer/snapshot events only.
-        if (origin !== "p2p" && origin !== "recovery-snapshot-restore") {
-          return;
-        }
-
-        const activeProjectId = page?.params?.project_id;
-        if (payload?.projectId && activeProjectId && String(payload.projectId) !== String(activeProjectId)) {
-          return;
-        }
-
-        if (!activeProjectId) {
-          invalidate("app:projects");
-          return;
-        }
-
-        invalidateAll();
-      });
-      return removeListener;
     }
-  });
+  );
 
-  $effect(() => {
-    if (!usernamePromptReady || !userPresenceState.isInitialized) {
-      return;
-    }
-
-    if (userPresenceState.username) {
-      usernameDraft = userPresenceState.username;
+  // If the username is updated externally (e.g. P2P profile sync), reflect it.
+  watch(
+    () => userPresenceState.username,
+    (username) => {
+      if (!userPresenceState.isInitialized || !username) return;
+      usernameDraft = username;
       usernameDialogOpen = false;
-      return;
     }
+  );
 
-    if (!usernameDialogOpen && !userPresenceState.isSaving && !isResolvingUsername) {
-      void resolveUsername("");
+  // If the dialog is dismissed without choosing a name, auto-generate a random one.
+  watch(
+    () => usernameDialogOpen,
+    (open) => {
+      if (open || !userPresenceState.isInitialized || userPresenceState.username) return;
+      if (!isResolvingUsername && !userPresenceState.isSaving) {
+        void resolveUsername("");
+      }
     }
+  );
+
+  onMount(() => {
+    void userPresenceStore.initialize();
+
+    if (!window.api?.onDataChanged) return;
+
+    return window.api.onDataChanged((payload = {}) => {
+      const origin = payload?.origin;
+      // Only react to peer and snapshot-restore events — everything else is local.
+      if (origin !== "p2p" && origin !== "recovery-snapshot-restore") return;
+
+      const activeProjectId = page?.params?.project_id;
+      if (payload?.projectId && activeProjectId && String(payload.projectId) !== String(activeProjectId)) return;
+
+      if (!activeProjectId) {
+        invalidate("app:projects");
+      } else {
+        invalidateAll();
+      }
+    });
   });
 </script>
 
