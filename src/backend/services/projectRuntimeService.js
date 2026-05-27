@@ -173,7 +173,9 @@ export async function bootstrapProjectRuntime(event, projectId, options = {}, { 
     changeLogTailerStarted = true;
   }
 
-  if (captureSessionSnapshot) {
+  // Skip snapshot for remote joins: the project doesn't exist locally yet,
+  // so there is nothing to snapshot. It will be snapshotted on the next open.
+  if (captureSessionSnapshot && !isPendingRemoteJoin) {
     await ensureSessionOpenRecoverySnapshot(projectId);
   }
 

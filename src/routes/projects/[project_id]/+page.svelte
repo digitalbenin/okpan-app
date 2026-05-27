@@ -12,7 +12,7 @@
   const { data } = $props();
 
   const connectionTypesCount = $derived(
-    (data.researchFields?.result ?? []).filter((rf) => rf.type === "vocabulary").length
+    (data.researchFields?.result || data.researchFields || []).filter((rf) => rf.type === "vocabulary").length
   );
 
   const i18n = $derived.by(() => {
