@@ -49,7 +49,7 @@
                     </p>
                     <div class="mb-3">
                         <label for="edit-title" class="form-label">
-                            {t?.("common.title", { fallback: "Title" })}
+                            {t?.("project.connection-type.title", { fallback: "Connection type name" })}
                         </label>
                         <input
                             id="edit-title"

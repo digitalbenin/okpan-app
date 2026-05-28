@@ -118,6 +118,7 @@ src/db/seed_data/
 artic-dataset/
 copilot-instructions.md
 .tmp/
+.opencode/
 
 docs/api.md
 docs/jsdoc/

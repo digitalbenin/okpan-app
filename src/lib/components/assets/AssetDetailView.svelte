@@ -18,7 +18,7 @@
         buildMetadataFormValues,
         buildTranslationsFromValue,
         parseMetadata,
-    } from "$lib/utils/assetMetadataUtils.js";
+    } from "$lib/utils/assetMetadata.js";
     import { z } from "zod";
 
     let { asset: initialAsset, linkedObjects: initialLinkedObjects = [], languages = [], project_id, institution_id } = $props();

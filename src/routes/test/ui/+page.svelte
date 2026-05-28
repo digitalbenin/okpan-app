@@ -2,7 +2,7 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseInput from "$lib/components/base/BaseInput.svelte";
     import BaseModal from "$lib/components/base/BaseModal.svelte";
-    import BaseSelect from "$lib/components/base/BaseSelect.svelte";
+    import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
     import BaseRadio from "$lib/components/base/BaseRadio.svelte";
     import BaseToggle from "$lib/components/base/BaseToggle.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
@@ -125,21 +125,29 @@
     <section class="mb-5">
         <h2 class="mb-4">Selects</h2>
         <div class="d-flex flex-column gap-4">
-            <BaseSelect
-                label="Select Fruit (Label Top)"
-                options={fruits}
-                bind:value={selectedFruit}
-                class="w-auto"
-            />
+            <div>
+                <label class="form-label">Select Fruit (Single)</label>
+                <BaseSelect
+                    items={fruits.map(f => ({ value: f, label: f }))}
+                    bind:value={selectedFruit}
+                    as="select"
+                    placeholder="Select a fruit..."
+                />
+            </div>
 
-            <BaseSelect
-                label="Select Color (Multiple, Label Left)"
-                labelPosition="left"
-                icon="palette"
-                options={colors}
-                multiple={true}
-                bind:value={selectedColors}
-            />
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-palette"></i>
+                    <label class="form-label mb-0">Select Color (Multiple)</label>
+                </div>
+                <BaseSelect
+                    items={colors.map(c => ({ value: c, label: c }))}
+                    bind:value={selectedColors}
+                    type="multiple"
+                    as="select"
+                    placeholder="Select colors..."
+                />
+            </div>
         </div>
     </section>
 

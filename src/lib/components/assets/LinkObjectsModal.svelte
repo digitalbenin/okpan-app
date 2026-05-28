@@ -1,5 +1,5 @@
 <script>
-  import { resource } from "runed";
+  import { resource, watch } from "runed";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import {
@@ -164,27 +164,22 @@
     isOpen = false;
   }
 
-  $effect(() => {
-    if (isOpen) {
+  watch(() => isOpen, (newIsOpen) => {
+    if (newIsOpen) {
       preselectExisting ? preselectAlreadyLinked() : (selectedObjectIds = new Set(), initiallySelectedIds = new Set());
       currentPage = 1;
     }
   });
 
-  let lastQueryValue = "";
-  $effect(() => {
-    if (searchQuery !== lastQueryValue) {
-      lastQueryValue = searchQuery;
-      currentPage = 1;
-    }
+  watch(() => searchQuery, () => {
+    currentPage = 1;
   });
 
-  $effect(() => {
+  watch(() => totalPages, () => {
     if (currentPage > totalPages) currentPage = totalPages;
   });
 
-  $effect(() => {
-    currentPage;
+  watch(() => currentPage, () => {
     resultsContainer?.scrollTo({ top: 0, behavior: "smooth" });
   });
 

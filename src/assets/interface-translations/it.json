@@ -512,11 +512,16 @@
                              "key":  "link-assets-desc",
                              "value":  "In questo passaggio puoi collegare le risorse agli oggetti della collezione. Il collegamento automatico prova ad associare il nome file con il campo principale degli oggetti importati."
                          },
-                         {
-                             "namespace":  "settings",
-                             "key":  "application",
-                             "value":  "Impostazioni applicazione"
-                         },
+                          {
+                              "namespace":  "settings",
+                              "key":  "title",
+                              "value":  "Titolo del sito web"
+                          },
+                          {
+                              "namespace":  "settings",
+                              "key":  "application",
+                              "value":  "Impostazioni applicazione"
+                          },
                          {
                              "namespace":  "settings",
                              "key":  "application-description",
@@ -542,11 +547,16 @@
                              "key":  "application-save-error",
                              "value":  "Impossibile salvare le impostazioni dell'applicazione."
                          },
-                         {
-                             "namespace":  "project",
-                             "key":  "welcome.title",
-                             "value":  "Da dove vuoi iniziare?"
-                         },
+                          {
+                              "namespace":  "project",
+                              "key":  "connection-type.title",
+                              "value":  "Nome del tipo di connessione"
+                          },
+                          {
+                              "namespace":  "project",
+                              "key":  "welcome.title",
+                              "value":  "Da dove vuoi iniziare?"
+                          },
                          {
                              "namespace":  "project",
                              "key":  "welcome.description",

@@ -4,6 +4,7 @@
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BasePagination from "$lib/components/base/BasePagination.svelte";
     import { getAssets } from "$lib/api/AssetsApi.js";
+    import { watch } from "runed";
 
     let {
         isOpen = false,
@@ -31,8 +32,8 @@
     let uploadPercent = $state(0);
 
     // Keep selected in sync when modal re-opens with different initial values
-    $effect(() => {
-        selected = new Set(initiallySelectedIds || []);
+    watch(() => initiallySelectedIds, (newIds) => {
+        selected = new Set(newIds || []);
     });
 
     async function loadAssets() {
@@ -127,15 +128,13 @@
     }
 
     // Load when open and when page/search/filter changes
-    $effect(() => {
-        if (!isOpen) return;
-        // track dependencies for reactive reload
-        page;
-        search;
-        projectId;
-        institutionId;
-        loadAssets();
-    });
+    watch(
+        () => [isOpen, page, search, projectId, institutionId],
+        ([open]) => {
+            if (!open) return;
+            loadAssets();
+        }
+    );
 
     function toggleSelect(assetId) {
         if (selected.has(assetId)) {

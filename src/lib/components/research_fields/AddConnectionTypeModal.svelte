@@ -105,6 +105,12 @@
       if (result && !result.error) {
         isModalOpen = false;
         const newId = result.id || result[0]?.id;
+        if (newId) {
+          await invalidateAll();
+          goto(`/projects/${projectId}/connections/${newId}`);
+        } else {
+          await invalidateAll();
+        }
       }
     } catch (e) {
       console.error("Error creating connection type", e);
@@ -224,7 +230,7 @@
   {:else if step === 2}
     <div class="p-3">
       <div class="mb-3">
-        <label for="name" class="form-label">{t("common.title", { fallback: "Title" })}</label>
+        <label for="name" class="form-label">{t("project.connection-type.title", { fallback: "Connection type name" })}</label>
         <input type="text" id="name" class="form-control" bind:value={basicInfo.name} />
       </div>
       <div class="mb-3">

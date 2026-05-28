@@ -2178,11 +2178,16 @@
                              "key":  "link-assets-desc",
                              "value":  "In this step you can link assets to the objects of your collection. The automatic linking try to match the filename of the assets with the primary field of the objects you have imported."
                          },
-                         {
-                             "namespace":  "settings",
-                             "key":  "application",
-                             "value":  "Application settings"
-                         },
+                          {
+                              "namespace":  "settings",
+                              "key":  "title",
+                              "value":  "Website title"
+                          },
+                          {
+                              "namespace":  "settings",
+                              "key":  "application",
+                              "value":  "Application settings"
+                          },
                          {
                              "namespace":  "settings",
                              "key":  "application-description",
@@ -2208,11 +2213,16 @@
                              "key":  "application-save-error",
                              "value":  "Unable to save application settings."
                          },
-                         {
-                             "namespace":  "project",
-                             "key":  "welcome.title",
-                             "value":  "Where do you want to start?"
-                         },
+                          {
+                              "namespace":  "project",
+                              "key":  "connection-type.title",
+                              "value":  "Connection type name"
+                          },
+                          {
+                              "namespace":  "project",
+                              "key":  "welcome.title",
+                              "value":  "Where do you want to start?"
+                          },
                          {
                              "namespace":  "project",
                              "key":  "welcome.description",
