@@ -1,6 +1,7 @@
 <script>
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
+  import { watch } from "runed";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
 
@@ -14,19 +15,14 @@
   // Initialize with current path
   currentPath = $page.url.pathname;
 
-  // Subscribe to page changes to track history
-  $effect(() => {
-    const path = $page.url.pathname;
-
-    // Only add to history if it's a new path
+  // Track navigation history on route changes
+  watch(() => $page.url.pathname, (path) => {
     if (path !== currentPath && !navigationHistory.includes(path)) {
       navigationHistory = [...navigationHistory, currentPath];
-      // Keep only the last 10 paths in history
       if (navigationHistory.length > 10) {
         navigationHistory = navigationHistory.slice(-10);
       }
     }
-
     currentPath = path;
   });
 
