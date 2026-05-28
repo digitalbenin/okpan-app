@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const METADATA_FIELDS = ["description", "copyright", "author"];
+export const METADATA_FIELDS = ["description", "copyright", "author"];
 
 function createMetadataSchema() {
   return z.object({
@@ -83,4 +83,23 @@ export function mergeTranslations(existingProps, newTranslations) {
   }
 
   return JSON.stringify(merged);
+}
+
+export function parseMetadata(properties) {
+  if (!properties) return {};
+  if (typeof properties === "object") return properties;
+  try { return JSON.parse(properties); } catch { return {}; }
+}
+
+export function buildMetadataFormValues(metadata, defaultLanguageCode, secondaryLanguages) {
+  const values = {};
+  METADATA_FIELDS.forEach(field => {
+    values[field] = metadata?.[field]?.[defaultLanguageCode] || "";
+  });
+  secondaryLanguages.forEach(lang => {
+    METADATA_FIELDS.forEach(field => {
+      values[`translations_${lang.id}_${field}`] = metadata?.[field]?.[lang.code] || "";
+    });
+  });
+  return values;
 }
