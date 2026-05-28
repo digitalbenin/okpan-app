@@ -3,6 +3,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import { getMediaType } from "$lib/utils/media.js";
+  import { watch } from "runed";
   const wizard = getImportAssetsWizardContext();
   const { t } = getTranslationStore();
 
@@ -28,14 +29,18 @@
     });
   }
 
-  $effect(() => {
-    wizard.selectedFiles = files;
-    wizard.selectedFilePaths = filesSelected;
-    wizard.assets = buildPendingAssets(filesSelected);
-    wizard.mapping = [];
-    wizard.nextEnabled = filesSelected.length > 0;
-    wizard.hasPersistedAssets = false;
-  });
+  watch(
+    () => [files, filesSelected],
+    () => {
+      wizard.selectedFiles = files;
+      wizard.selectedFilePaths = filesSelected;
+      wizard.assets = buildPendingAssets(filesSelected);
+      wizard.mapping = [];
+      wizard.nextEnabled = filesSelected.length > 0;
+      wizard.hasPersistedAssets = false;
+    },
+    { immediate: true },
+  );
 
   async function choose(isDirectory) {
     const result = await window.api.openFileDialog({

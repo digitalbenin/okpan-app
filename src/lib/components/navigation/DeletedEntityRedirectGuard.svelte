@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { watch } from "runed";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
@@ -163,16 +164,20 @@
     };
   });
 
-  $effect(() => {
-    page.url.pathname;
-    page.params.project_id;
-    page.params.institution_id;
-    page.params.object_id;
-    page.params.asset_id;
-    page.params.connectionId;
-    page.params.vocabularyId;
-    void verifyActiveRoute();
-  });
+  watch(
+    () => [
+      page.url.pathname,
+      page.params.project_id,
+      page.params.institution_id,
+      page.params.object_id,
+      page.params.asset_id,
+      page.params.connectionId,
+      page.params.vocabularyId,
+    ],
+    () => {
+      void verifyActiveRoute();
+    },
+  );
 
   const dialogTitle = $derived(
     deletedEntityType

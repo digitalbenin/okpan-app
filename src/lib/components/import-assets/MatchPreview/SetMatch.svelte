@@ -7,7 +7,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import { getAssetImageUrl } from "$lib/utils/media.js";
-  import { resource } from "runed";
+  import { resource, watch } from "runed";
 
   let {
     asset,
@@ -22,8 +22,8 @@
   let search = $state();
   let tempMappedObjects = $state([]);
 
-  $effect(() => {
-    if (open) {
+  watch(() => open, (isOpen) => {
+    if (isOpen) {
       tempMappedObjects = [...mappedObjects];
     }
   });

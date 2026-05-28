@@ -42,13 +42,13 @@
 
   // Per-field inclusion tracking (all included by default)
   let fieldInclusion = $state({});
-  $effect(() => {
-    for (const field of fields) {
+  watch(() => fields, (currentFields) => {
+    for (const field of currentFields) {
       if (!(field in fieldInclusion)) {
         fieldInclusion[field] = true;
       }
     }
-  });
+  }, { immediate: true });
 
   const allIncluded = $derived(fields.length > 0 && fields.every((f) => fieldInclusion[f] !== false));
   const noneIncluded = $derived(fields.length > 0 && fields.every((f) => fieldInclusion[f] === false));

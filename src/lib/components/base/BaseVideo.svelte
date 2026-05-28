@@ -1,6 +1,7 @@
 <script>
     import { page } from '$app/state';
     import { onDestroy } from 'svelte';
+    import { watch } from "runed";
     import { addImageProtocolPrefix } from '$lib/utils/media.js';
 
     let {
@@ -131,37 +132,38 @@
         }
     }
 
-    $effect(() => {
-        if (videoSource && videoSource !== lastProcessedSource && !isDownloading && !error) {
-            lastProcessedSource = videoSource;
-            posterDataUrl = null;
-            
-            const vid = document.createElement('video');
-            vid.src = videoSource;
-            vid.crossOrigin = "anonymous";
-            vid.muted = true;
-            vid.playsInline = true;
-            
-            vid.addEventListener('loadeddata', () => {
-                vid.currentTime = 0.1;
-            }, { once: true });
-            
-            vid.addEventListener('seeked', () => {
-                try {
-                    if (vid.videoWidth > 0 && vid.videoHeight > 0) {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = vid.videoWidth;
-                        canvas.height = vid.videoHeight;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
-                        posterDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                    }
-                } catch (err) {
-                    console.error('Failed to extract video poster:', err);
+    watch(() => videoSource, (newSource) => {
+        if (!newSource || isDownloading || error) return;
+        if (newSource === lastProcessedSource) return;
+
+        lastProcessedSource = newSource;
+        posterDataUrl = null;
+        
+        const vid = document.createElement('video');
+        vid.src = newSource;
+        vid.crossOrigin = "anonymous";
+        vid.muted = true;
+        vid.playsInline = true;
+        
+        vid.addEventListener('loadeddata', () => {
+            vid.currentTime = 0.1;
+        }, { once: true });
+        
+        vid.addEventListener('seeked', () => {
+            try {
+                if (vid.videoWidth > 0 && vid.videoHeight > 0) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = vid.videoWidth;
+                    canvas.height = vid.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+                    posterDataUrl = canvas.toDataURL('image/jpeg', 0.8);
                 }
-            }, { once: true });
-        }
-    });
+            } catch (err) {
+                console.error('Failed to extract video poster:', err);
+            }
+        }, { once: true });
+    }, { immediate: true });
 </script>
 
 {#if isDownloading}

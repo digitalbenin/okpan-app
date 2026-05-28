@@ -6,6 +6,7 @@
     addLanguageToProject,
     removeLanguageFromProject,
   } from "$lib/api/ProjectsApi.js";
+  import { watch } from "runed";
 
   const { t } = getTranslationStore();
 
@@ -35,9 +36,8 @@
       null,
   );
 
-  $effect(() => {
-    // Fetch when first opened
-    if (isOpen && worldLanguages.length === 0 && !isLoading) {
+  watch(() => isOpen, (open) => {
+    if (open && worldLanguages.length === 0 && !isLoading) {
       loadWorldLanguages();
     }
   });

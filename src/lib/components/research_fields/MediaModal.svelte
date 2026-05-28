@@ -1,5 +1,6 @@
 <script>
     import { onDestroy } from 'svelte';
+    import { watch } from "runed";
     import { getMediaType, parseAssetFormats, addImageProtocolPrefix } from '$lib/utils/media.js';
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     
@@ -128,12 +129,11 @@
     const isImage = $derived(mediaType === "image");
     const isVideo = $derived(mediaType === "video");
 
-    $effect(() => {
-        if (isOpen) {
+    watch(() => isOpen, (open) => {
+        if (open) {
             document.body.style.overflow = "hidden";
             document.addEventListener("keydown", handleKeydown);
             
-            // Open viewer for images
             if (isImage) {
                 requestAnimationFrame(() => openViewer());
             }
@@ -141,14 +141,11 @@
             document.body.style.overflow = "";
             document.removeEventListener("keydown", handleKeydown);
         }
-
-        return () => {
-            document.body.style.overflow = "";
-            document.removeEventListener("keydown", handleKeydown);
-        };
     });
 
     onDestroy(() => {
+        document.body.style.overflow = "";
+        document.removeEventListener("keydown", handleKeydown);
         if (osdViewer) {
             osdViewer.destroy();
             osdViewer = null;
