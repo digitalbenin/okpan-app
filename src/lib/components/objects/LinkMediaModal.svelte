@@ -23,6 +23,7 @@
     let isLoading = $state(false);
     let items = $state([]);
     let totalCount = $state(0);
+    // svelte-ignore state_referenced_locally
     let selected = $state(new Set(initiallySelectedIds || []));
     // Cache of assets we've seen while paginating/searching, so we can return full objects on Save
     let selectedAssetsMap = new Map();

@@ -110,8 +110,8 @@
     institutionId: String(institutionId || datasource?.institution_id || ""),
   });
   
-  // Create form
-  const _form = $derived(createForm(() =>
+  // Create form once — tanstack form subscribes to reactive defaultValues internally
+  form = createForm(() =>
     getFormConfig("datasources", "update", {
       defaultValues,
       onSubmit: async ({ value }) => {
@@ -130,42 +130,16 @@
         };
         const { error, result } = await updateDatasource(datasource.id, payload);
         if (!error) {
-             _form.reset();
-             // Build the updated datasource object with the new values
-             // The API result doesn't return the complete datasource, so we construct it
-             const updatedDatasource = {
-                ...datasource,
-                date: value.date,
-                language: value.language,
-                contact: value.contact,
-                copyright: value.copyright,
-                name: { 
-                    ...datasource.name,
-                    content: value.name 
-                },
-                method: value.method ? { 
-                    ...datasource.method,
-                    content: value.method 
-                } : datasource.method,
-                notes: value.notes ? { 
-                    ...datasource.notes,
-                    content: value.notes 
-                } : datasource.notes
-             };
-             if (onSuccess) onSuccess(updatedDatasource);
+             if (onSuccess) onSuccess();
         }
       },
     }),
-  ));
-
-  $effect(() => {
-    form = _form;
-  });
+  );
 
 </script>
 
 <AutoForm
-    form={_form}
+    {form}
     {validator}
     {createFieldValidator}
     {languages}

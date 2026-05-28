@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { watch } from "runed";
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
   import { getAssetSyncStore } from "$lib/stores/AssetSyncStore.svelte.js";
@@ -85,15 +86,15 @@
     return index === 0 ? "" : "margin-left: -0.55rem;";
   }
 
-  $effect(() => {
-    if (!projectId) {
+  watch(() => projectId, (newProjectId) => {
+    if (!newProjectId) {
       void userPresenceStore.setCurrentProject(null);
       return;
     }
 
-    void userPresenceStore.setCurrentProject(projectId);
-    void syncStore.init(projectId);
-  });
+    void userPresenceStore.setCurrentProject(newProjectId);
+    void syncStore.init(newProjectId);
+  }, { immediate: true });
 
   const syncIcon = $derived(
     !isOnline ? "bi-cloud-slash" :
@@ -102,17 +103,20 @@
     "bi-cloud-check"
   );
 
-  $effect(() => {
-    console.log('[UserPresenceSummary] icon state', {
-      projectId,
-      isOnline,
-      networkSource: networkStatusState.source,
-      lastChangedAt: networkStatusState.lastChangedAt,
-      syncIcon,
-      isDataSyncing,
-      isDownloadingAssets
-    });
-  });
+/**watch(
+    () => [projectId, isOnline, syncIcon, isDataSyncing, isDownloadingAssets],
+    () => {
+      console.log('[UserPresenceSummary] icon state', {
+        projectId,
+        isOnline,
+        networkSource: networkStatusState.source,
+        lastChangedAt: networkStatusState.lastChangedAt,
+        syncIcon,
+        isDataSyncing,
+        isDownloadingAssets
+      });
+    }
+  );*/
 </script>
 
 <div class="pe-3 d-flex justify-content-end align-items-center gap-2 flex-wrap position-relative">

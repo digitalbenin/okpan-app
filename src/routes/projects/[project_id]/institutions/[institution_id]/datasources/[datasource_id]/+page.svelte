@@ -6,6 +6,7 @@
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import DatasourceEditForm from "$lib/components/datasources/DatasourceEditForm.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
+  import { invalidate } from "$app/navigation";
   import { deleteDatasource, getObjectsByDatasource } from "$lib/api/DatasourcesApi.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
   import { goto } from "$app/navigation";
@@ -142,6 +143,7 @@
               {languages}
               {institutionId}
               bind:form
+              onSuccess={() => invalidate('app:datasources')}
             />
           </div>
         </div>
