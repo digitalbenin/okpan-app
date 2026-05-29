@@ -95,7 +95,7 @@
         if (!res.error) {
             const assetsRes = await updateVocabularyAssets(vocabulary.id, otherAssetIds);
             if (!assetsRes.error) {
-                goto(`/projects/${project.id}/connections`);
+                await goto(`/projects/${project.id}/connections/${researchField.id}`);
             }
         }
     }

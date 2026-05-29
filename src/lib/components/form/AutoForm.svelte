@@ -30,6 +30,11 @@
 
     // Dirty tracking setup
     const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
+    const dirtyGuardEnabled = $derived(
+        enableDirtyTracking &&
+        !!dirtyTracker &&
+        !formStore?.current?.isSubmitting
+    );
     
     let dirtyTracker = $state(null);
     let trackerInitialized = $state(false);
@@ -377,6 +382,6 @@
 
 <DirtyNavigationGuard 
     dirtyTracker={dirtyTracker} 
-    enabled={enableDirtyTracking && !!dirtyTracker}
+    enabled={dirtyGuardEnabled}
     message={dirtyTrackingMessage || t("form.unsaved-changes")}
 />

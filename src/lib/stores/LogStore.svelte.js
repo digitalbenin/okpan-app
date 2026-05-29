@@ -1,3 +1,5 @@
+import { fetchLogs as apiFetchLogs, createLog as apiCreateLog, deleteLog as apiDeleteLog, clearLogs as apiClearLogs } from "$lib/api/LogsApi.js";
+
 // Create a singleton instance
 let storeInstance = null;
 
@@ -31,90 +33,6 @@ export function getLogStore() {
             search: null
         }
     });
-
-    // Define queries directly in the file
-    const logsList = {
-        type: "query",
-        name: "List Logs",
-        description: "Retrieves logs with pagination and filtering",
-        query: `query ListLogs($page: Int!, $pageSize: Int!, $level: String, $action: String, $fromDate: String, $toDate: String, $search: String) {
-  result: logs(
-    limit: $pageSize
-    offset: $page
-    where: {
-      level: { eq: $level }
-      action: { eq: $action }
-      created_at: { gte: $fromDate, lte: $toDate }
-      message: { like: $search }
-    }
-  ) {
-    id
-    created_at
-    level
-    action
-    message
-  }
-  
-  # Get total count for pagination
-  count: logs(
-    where: {
-      level: { eq: $level }
-      action: { eq: $action }
-      created_at: { gte: $fromDate, lte: $toDate }
-      message: { like: $search }
-    }
-  ) {
-    id
-  }
-}`
-    };
-
-    const logsCreate = {
-        type: "mutation",
-        name: "Create Log",
-        description: "Creates a new log entry",
-        query: `mutation CreateLog($level: String!, $action: String!, $message: String!) {
-  insertIntoLogs(values: [{
-    level: $level,
-    action: $action,
-    message: $message
-  }]) {
-    id
-    created_at
-    level
-    action
-    message
-  }
-}`
-    };
-
-    const logsDelete = {
-        type: "mutation",
-        name: "Delete Log",
-        description: "Deletes a log entry by ID",
-        query: `mutation DeleteLog($id: String!) {
-  deleteFromLogs(where: { id: { eq: $id } }) {
-    id
-  }
-}`
-    };
-
-    const logsClear = {
-        type: "mutation",
-        name: "Clear Logs",
-        description: "Clears logs based on filters",
-        query: `mutation ClearLogs($level: String, $action: String, $fromDate: String, $toDate: String) {
-  deleteFromLogs(
-    where: {
-      level: { eq: $level }
-      action: { eq: $action }
-      created_at: { gte: $fromDate, lte: $toDate }
-    }
-  ) {
-    id
-  }
-}`
-    };
 
     // Initialize the store
     const initialize = async () => {
@@ -162,14 +80,11 @@ export function getLogStore() {
         };
 
         try {
-            // Execute GraphQL query directly
-            const response = await window.api.executeGraphQL(logsList.query, variables);
-
-            // Extract data from response
-            const result = response.data;
+            // Execute GraphQL query via LogsApi
+            const data = await apiFetchLogs(variables);
 
             // Update state with fetched logs
-            logState.logs = result.result.map(log => {
+            logState.logs = data.result.map(log => {
                 // Parse JSON details if it exists and the field exists in the schema
                 if (log.details && typeof log.details === 'string') {
                     try {
@@ -182,7 +97,7 @@ export function getLogStore() {
             });
 
             // Update pagination info
-            const totalLogs = result.count ? result.count.length : 0;
+            const totalLogs = data.count ? data.count.length : 0;
             logState.pagination.totalLogs = totalLogs;
             logState.pagination.totalPages = Math.ceil(totalLogs / pageSize);
 
@@ -218,15 +133,15 @@ export function getLogStore() {
         };
 
         try {
-            // Execute GraphQL mutation
-            const response = await window.api.executeGraphQL(logsCreate.query, variables);
+            // Execute GraphQL mutation via LogsApi
+            const result = await apiCreateLog(variables);
 
             // Update logs after creating new entry if in browser
             if (isBrowser) {
                 await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
             }
 
-            return response.data.insertIntoLogs[0];
+            return result[0];
         } catch (error) {
             logState.error = error.message;
             return null;
@@ -240,19 +155,14 @@ export function getLogStore() {
             return null;
         }
 
-        // Prepare variables for GraphQL mutation
-        const variables = {
-            id: id
-        };
-
         try {
-            // Execute GraphQL mutation
-            const response = await window.api.executeGraphQL(logsDelete.query, variables);
+            // Execute GraphQL mutation via LogsApi
+            const data = await apiDeleteLog({ id });
 
             // Update logs after deleting entry
             await fetchLogs(logState.pagination.page, logState.pagination.pageSize);
 
-            return response.data;
+            return data;
         } catch (error) {
             logState.error = error.message;
             return null;
@@ -282,15 +192,15 @@ export function getLogStore() {
         };
 
         try {
-            // Execute GraphQL mutation
-            const response = await window.api.executeGraphQL(logsClear.query, variables);
+            // Execute GraphQL mutation via LogsApi
+            const data = await apiClearLogs(variables);
 
             // Update logs after clearing
             await fetchLogs(1, logState.pagination.pageSize);
 
             return {
                 success: true,
-                deleted: response.data.deleteFromLogs.length
+                deleted: data.length
             };
         } catch (error) {
             logState.error = error.message;
