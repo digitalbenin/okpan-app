@@ -1,5 +1,5 @@
 <script>
-  import Header from "$lib/components/Header.svelte";
+  import Header from "$lib/components/test/Header.svelte";
   import { goto } from "$app/navigation";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
