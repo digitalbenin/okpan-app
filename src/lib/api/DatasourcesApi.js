@@ -1,7 +1,17 @@
 import { executeQuery } from "$lib/api/graphqlClient.js";
 import { invalidate } from "$app/navigation";
 
-// Fetch all data sources for a specific institution within a project
+/**
+ * @namespace frontend.api.DatasourcesApi
+ */
+
+/**
+ * Returns all data sources for an institution within a project.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {Object} options - Query filters (projectId, institutionId, page, pageSize, objectId, orderBy, direction).
+ * @returns {Promise.<{items: Array.<Object>, totalCount: number, error: (Error|undefined)}>}
+ */
 export const getDatasources = async (options) => {
     const result = await executeQuery('datasources', 'list', options);
     if (result) {
@@ -10,7 +20,13 @@ export const getDatasources = async (options) => {
     return { items: [], totalCount: 0, error: new Error("Failed to fetch data sources or unexpected response structure") };
 };
 
-// Fetch datasources linked to a specific object
+/**
+ * Returns data sources linked to a specific object.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @returns {Promise.<{items: Array.<Object>, totalCount: number, error: (string|Error|undefined)}>}
+ */
 export const getDatasourcesByObject = async (objectId) => {
     if (!objectId) {
         return { items: [], totalCount: 0, error: "Missing object ID" };
@@ -28,7 +44,14 @@ export const getDatasourcesByObject = async (objectId) => {
     return { items: [], totalCount: 0, error: new Error("Failed to fetch data sources for object") };
 };
 
-// Unlink a datasource from an object by removing ontology field associations
+/**
+ * Unlinks a data source from an object by removing ontology field associations.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {string} datasourceId - The data source ID.
+ * @returns {Promise.<{deletedCount: number, error: (string|Error|null)}>}
+ */
 export const unlinkDatasourceFromObject = async (objectId, datasourceId) => {
     if (!objectId || !datasourceId) {
         return { deletedCount: 0, error: "Missing object or datasource ID" };
@@ -47,7 +70,13 @@ export const unlinkDatasourceFromObject = async (objectId, datasourceId) => {
     }
 };
 
-// Get a single datasource by ID
+/**
+ * Returns a single data source by ID.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {string} datasourceId - The data source ID.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const getDatasource = async (datasourceId) => {
     if (!datasourceId) {
         return { result: null, error: "Missing Datasource ID" };
@@ -61,7 +90,13 @@ export const getDatasource = async (datasourceId) => {
     return { result: response, error: null };
 };
 
-// Get template(s) used by a datasource via objects_datasources junction
+/**
+ * Returns the import template used by a data source.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {string} datasourceId - The data source ID.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const getTemplateByDatasource = async (datasourceId) => {
     if (!datasourceId) {
         return { result: null, error: "Missing Datasource ID" };
@@ -84,7 +119,21 @@ export const getTemplateByDatasource = async (datasourceId) => {
     return { result: null, error: null };
 };
 
-// Get distinct objects linked to a datasource
+/**
+ * Returns distinct objects linked to a data source.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {Object} [options] - Query filters.
+ * @param {string} options.datasourceId - The data source ID (required).
+ * @param {string} [options.projectId] - The project ID.
+ * @param {string} [options.institutionId] - The institution ID.
+ * @param {string} [options.status] - Object status filter.
+ * @param {number} [options.page=0] - Page index (0-based).
+ * @param {number} [options.pageSize=25] - Items per page.
+ * @param {string} [options.orderBy] - Sort field.
+ * @param {string} [options.direction] - Sort direction (asc/desc).
+ * @returns {Promise.<{items: Array.<Object>, totalCount: number, error: (string|null)}>}
+ */
 export const getObjectsByDatasource = async (options) => {
     const {
         datasourceId,
@@ -120,7 +169,13 @@ export const getObjectsByDatasource = async (options) => {
     return { items, totalCount, error: result?.error || null };
 };
 
-// Get a single datasource by ID
+/**
+ * Creates a new data source.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {Object} params - Data source properties (name, institutionId, languageId, date, contact, copyright, method, notes).
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const createDatasource = async (params) => {
     const response = await executeQuery('datasources', 'create', params);
 
@@ -134,7 +189,14 @@ export const createDatasource = async (params) => {
     return { result: created, error: null };
 };
 
-// Version that throws errors for useFetcher compatibility
+/**
+ * Creates a new data source and throws on error (for useFetcher compatibility).
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {Object} params - Data source properties.
+ * @returns {Promise.<Object>} The created data source record (unwrapped, not { result }).
+ * @throws {Error} On creation failure.
+ */
 export const createDatasourceWithThrow = async (params) => {
     const response = await executeQuery('datasources', 'create', params);
     if (!response) {
@@ -148,7 +210,14 @@ export const createDatasourceWithThrow = async (params) => {
 };
 
 
-// Function to update a datasource, including translations orchestration
+/**
+ * Updates a data source, including translation orchestration.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {string} datasourceId - The data source ID.
+ * @param {Object} updatedData - Updated fields (language, contact, copyright, date, name, method, notes, languageId, nameTranslations, methodTranslations, notesTranslations).
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const updateDatasource = async (datasourceId, updatedData) => {
     if (!datasourceId) {
         return { result: null, error: "Missing Datasource ID" };
@@ -226,7 +295,13 @@ export const updateDatasource = async (datasourceId, updatedData) => {
     }
 };
 
-// Function to delete a datasource
+/**
+ * Deletes a data source by ID.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {string} datasourceId - The data source ID.
+ * @returns {Promise.<Object>} Delete result.
+ */
 export const deleteDatasource = async (datasourceId) => {
     if (!datasourceId) {
         return { error: "Invalid datasource ID for deleteDatasource" };
@@ -237,7 +312,16 @@ export const deleteDatasource = async (datasourceId) => {
     return result;
 };
 
-// Create a datasource for an object with auto-generated name
+/**
+ * Creates a new data source with an auto-generated name for an object context.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {Object} params - Required context.
+ * @param {string} params.institutionId - The institution ID.
+ * @param {string} params.projectId - The project ID.
+ * @param {string} params.languageId - The default language ID.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const createDatasourceForObject = async ({ institutionId, projectId, languageId }) => {
     if (!institutionId || !projectId || !languageId) {
         return { result: null, error: "Missing required parameters: institutionId, projectId, languageId" };
@@ -259,7 +343,14 @@ export const createDatasourceForObject = async ({ institutionId, projectId, lang
     return await createDatasource(params);
 };
 
-// Delete datasource from object: removes ontology fields and junction relation
+/**
+ * Deletes a data source from an object: removes ontology fields and junction relation.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {string} datasourceId - The data source ID.
+ * @returns {Promise.<{success: boolean, error: (string|Error|null)}>}
+ */
 export const deleteDatasourceFromObject = async (objectId, datasourceId) => {
     if (!objectId || !datasourceId) {
         return { error: "Missing object or datasource ID" };
@@ -277,8 +368,16 @@ export const deleteDatasourceFromObject = async (objectId, datasourceId) => {
     }
 };
 
-// Save or update ontology fields for a datasource
-// This intelligently updates existing rows instead of deleting and recreating
+/**
+ * Saves or updates ontology field values for a data source, intelligently updating existing rows.
+ * @memberOf frontend.api.DatasourcesApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {string} datasourceId - The data source ID.
+ * @param {string} templateId - The template ID for field context.
+ * @param {Array.<{label: string, value: string, field_id: (string|null), primary: number}>} fields - Field definitions to save.
+ * @returns {Promise.<{success: boolean, error: (Error|null), result: (null|Error)}>}
+ */
 export const saveOntologyFieldsForDatasource = async (objectId, datasourceId, templateId, fields) => {
     if (!objectId || !datasourceId) {
         return { error: "Missing object or datasource ID" };

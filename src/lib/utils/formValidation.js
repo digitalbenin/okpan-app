@@ -8,7 +8,7 @@ const validationCache = new Map();
  * Registers a Zod validator for a specific entity field.
  * @param {string} entityName
  * @param {string} fieldName
- * @param {{ validator: Function|ZodType, required?: boolean, defaultValue?: any, structuredErrors?: boolean }} config
+ * @param {{ validator: (Function|Object), required: boolean=, defaultValue: *=, structuredErrors: boolean= }} config
  */
 export const registerCustomValidator = (entityName, fieldName, config) => {
     if (!validatorsRegistry.has(entityName)) validatorsRegistry.set(entityName, new Map());
@@ -68,7 +68,7 @@ export const generateDefaultValues = (entityName) => {
  * @param {string} fieldName
  * @param {{ schema: ZodObject, complexFields: Set }} validator
  * @param {*} _form - Form instance (reserved for future use)
- * @param {{ validateOnChange?: boolean }} options
+ * @param {{ validateOnChange: boolean= }} options
  * @returns {Object} TanStack Form validator config
  */
 export const createFieldValidator = (fieldName, validator, _form, options = {}) => {

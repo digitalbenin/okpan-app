@@ -7,12 +7,18 @@ import { languagesOperations } from "$lib/queries/languages.js";
 const { error: logError } = getLogStore();
 
 /**
- * Executes a GraphQL query with enhanced error handling
- * @param {Object} query - Query definition with query string and name
- * @param {Object} params - Parameters for the query
- * @param {Object} context - Optional context for workflow tracking
- * @returns {Promise<Object>} Query result
- * @throws {Error} If the query fails or contains GraphQL errors
+ * @namespace frontend.api.graphqlClient
+ */
+
+/**
+ * Executes a GraphQL query with enhanced error handling.
+ * @memberOf frontend.api.graphqlClient
+ * @method
+ * @param {Object} query - Query definition with query string and name.
+ * @param {Object} params - Parameters for the query.
+ * @param {Object} context - Optional context for workflow tracking.
+ * @returns {Promise.<Object>} Query result.
+ * @throws {Error} If the query fails or contains GraphQL errors.
  */
 export const performQuery = async (query, params, context) => {
     let result = null;
@@ -76,10 +82,11 @@ export const performQuery = async (query, params, context) => {
 }
 
 /**
- * Execute a chain of mutations in sequence
- * @param {Array} mutations - Array of mutation definitions
- * @param {Object} params - Parameters for the mutations
- * @returns {Promise<Object>} Final operation result
+ * Executes a chain of mutations in sequence.
+ * @memberOf frontend.api.graphqlClient
+ * @param {Array.<Object>} mutations - Array of mutation definitions.
+ * @param {Object} params - Parameters for the mutations.
+ * @returns {Promise.<Object>} Final operation result.
  */
 export async function executeMultiStepMutation(mutations, params) {
     if (!mutations || !Array.isArray(mutations) || mutations.length === 0) {
@@ -229,12 +236,13 @@ export async function executeMultiStepMutation(mutations, params) {
 }
 
 /**
- * Process a translation step by handling an array of translations
- * @param {Object} mutation - The translation processing step configuration
- * @param {Object} params - Original parameters
- * @param {Object} results - Results from previous steps
- * @param {Object} context - Workflow context for this multi-step operation
- * @returns {Promise<Object|null>} Translation processing results
+ * Processes a translation step by handling an array of translations.
+ * @memberOf frontend.api.graphqlClient
+ * @param {Object} mutation - The translation processing step configuration.
+ * @param {Object} params - Original parameters.
+ * @param {Object} results - Results from previous steps.
+ * @param {Object} context - Workflow context for this multi-step operation.
+ * @returns {Promise.<Object|null>} Translation processing results.
  */
 async function processTranslationStep(mutation, params, results, context) {
     const { processTranslations } = mutation;
@@ -332,10 +340,11 @@ async function processTranslationStep(mutation, params, results, context) {
 // These functions support admin and test pages, and are exposed via useGraphQL().
 
 /**
- * Perform bulk delete operations on multiple items
- * @param {string} section - API section name
- * @param {Array} items - Array of items to delete (usually just IDs)
- * @returns {Promise<Array>} Array of delete operation results with success/error information
+ * Performs bulk delete operations on multiple items.
+ * @memberOf frontend.api.graphqlClient
+ * @param {string} section - API section name.
+ * @param {Array.<*>} items - Array of items to delete (usually just IDs).
+ * @returns {Promise.<Array.<{item: *, success: boolean, data: (Object|null), error: (*|null)}>>} Array of delete operation results.
  */
 export async function bulkDelete(section, items) {
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -369,11 +378,12 @@ export async function bulkDelete(section, items) {
 }
 
 /**
- * Perform bulk updates on multiple items
- * @param {string} section - API section name
- * @param {string} operation - Update operation name
- * @param {Array} items - Array of items to update
- * @returns {Promise<Object>} Grouped results of the update operations
+ * Performs bulk updates on multiple items.
+ * @memberOf frontend.api.graphqlClient
+ * @param {string} section - API section name.
+ * @param {string} operation - Update operation name.
+ * @param {Array.<Object>} items - Array of items to update.
+ * @returns {Promise.<Array.<{item: *, success: boolean, data: (Object|null), error: (*|null)}>>} Grouped results of the update operations.
  */
 export async function bulkUpdate(section, operation, items) {
     if (!items || !Array.isArray(items) || items.length === 0) return [];
@@ -398,10 +408,11 @@ export async function bulkUpdate(section, operation, items) {
 }
 
 /**
- * Execute a complex multi-step delete operation based on the configured mutations
- * @param {string} section - API section name
- * @param {Object} params - Delete parameters
- * @returns {Promise<Object>} Delete operation result
+ * Executes a complex multi-step delete operation based on the configured mutations.
+ * @memberOf frontend.api.graphqlClient
+ * @param {string} section - API section name.
+ * @param {Object} params - Delete parameters.
+ * @returns {Promise.<Object>} Delete operation result.
  */
 export async function deleteEntity(section, params = {}) {
     if (!section) {
@@ -428,11 +439,12 @@ export async function deleteEntity(section, params = {}) {
 }
 
 /**
- * Perform a partial update on one entity
- * @param {string} section - API section name
- * @param {string} operation - Update operation name within the section
- * @param {Object} params - Parameters for the update
- * @returns {Promise<Object>} Update operation result
+ * Performs a partial update on one entity.
+ * @memberOf frontend.api.graphqlClient
+ * @param {string} section - API section name.
+ * @param {string} operation - Update operation name within the section.
+ * @param {Object} params - Parameters for the update.
+ * @returns {Promise.<Object>} Update operation result.
  */
 export async function partialUpdate(section, operation, params = {}) {
     if (!section || !operation) throw new Error('Missing section or operation');
@@ -447,12 +459,13 @@ export async function partialUpdate(section, operation, params = {}) {
 }
 
 /**
- * Performs an operation based on the API_SECTIONS configuration
- * @param {string} section - API section name
- * @param {string} operation - Operation name within the section
- * @param {Object} params - Parameters for the operation
- * @param {Object} context - Optional context for workflow tracking
- * @returns {Promise<Object>} Operation result
+ * Performs an operation based on the API_SECTIONS configuration.
+ * @memberOf frontend.api.graphqlClient
+ * @param {string} section - API section name.
+ * @param {string} operation - Operation name within the section.
+ * @param {Object} params - Parameters for the operation.
+ * @param {Object} context - Optional context for workflow tracking.
+ * @returns {Promise.<Object>} Operation result.
  */
 export async function executeQuery(section, operation, params = {}, context = null) {
     if (!section || !operation) {
@@ -488,8 +501,9 @@ export async function executeQuery(section, operation, params = {}, context = nu
 }
 
 /**
- * Returns a store with GraphQL utility functions
- * @returns {Object} Object containing GraphQL utility functions
+ * Returns a store with GraphQL utility functions.
+ * @memberOf frontend.api.graphqlClient
+ * @returns {Object} Object containing all GraphQL utility functions (executeQuery, partialUpdate, bulkUpdate, deleteEntity, bulkDelete, performQuery).
  */
 export function useGraphQL() {
     return {

@@ -10,11 +10,28 @@ const projectUpdateSchema = getSchema('project', 'update');
 
 // Initialize the project store
 
+/**
+ * @namespace frontend.api.ProjectsApi
+ */
+
+/**
+ * Returns all projects.
+ * @memberOf frontend.api.ProjectsApi
+ * @method
+ * @returns {Promise.<Array.<Object>>} Array of project records.
+ */
 export const getProjects = async () => {
     const result = await executeQuery('projects', 'list');
     return result;
 };
 
+/**
+ * Returns a single project by ID, with enriched title/description references.
+ * @memberOf frontend.api.ProjectsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @returns {Promise.<Object>} The project record with title_id, description_id, and parsed translations.
+ */
 export const getProject = async (projectId) => {
     const result = await executeQuery('projects', 'getById', { projectId });
 
@@ -70,11 +87,31 @@ export const getProject = async (projectId) => {
     return result;
 };
 
+/**
+ * Returns all languages enabled for a project.
+ * @memberOf frontend.api.ProjectsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @returns {Promise.<Array.<{code: string, name: string}>>} Array of language records.
+ */
 export const getProjectLanguages = async (projectId) => {
     const result = await executeQuery('languages', 'listByProject', { projectId });
     return result || [];
 };
 
+/**
+ * Creates a new project with initial localised title and description.
+ * @memberOf frontend.api.ProjectsApi
+ * @method
+ * @param {Object} project - Project data.
+ * @param {string} project.title - Project title.
+ * @param {string} [project.description=''] - Project description.
+ * @param {{code: string, name: string}} project.defaultLanguage - Default language.
+ * @param {boolean} [project.isShared=false] - Whether the project is P2P shared.
+ * @param {string|null} [project.password=null] - P2P password if shared.
+ * @returns {Promise.<{id: (string|null), title_id: (string|null), description_id: (string|null)}>}
+ * @throws {Error} If title or defaultLanguage.code is missing.
+ */
 export const createProject = async (project) => {
     // Expect: { title: string, description: string, defaultLanguage: { code, name } }
     if (!project?.title || !project?.defaultLanguage?.code) {
@@ -126,7 +163,14 @@ async function performCustomMutation(mutation, params) {
     return await executeQuery('custom', 'mutation', { query: queryObj, params });
 }
 
-// Function to update a project, including translations orchestration
+/**
+ * Updates a project's title and description, including translation orchestration.
+ * @memberOf frontend.api.ProjectsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {Object} updatedData - Updated fields (title, description, titleTranslations, descriptionTranslations).
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const updateProject = async (projectId, updatedData) => {
     if (!projectId) {
         return { result: null, error: "Missing Project ID" };
@@ -167,6 +211,16 @@ export const updateProject = async (projectId, updatedData) => {
     return { result, error: null };
 };
 
+/**
+ * Updates P2P sharing settings for a project.
+ * @memberOf frontend.api.ProjectsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {Object} [options] - Sharing options.
+ * @param {boolean} [options.isShared] - Whether sharing is enabled.
+ * @param {string|null} [options.password] - Sharing password.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const updateProjectSharingSettings = async (projectId, { isShared, password } = {}) => {
     if (!projectId) {
         return { result: null, error: "Missing Project ID" };
@@ -202,6 +256,13 @@ export const updateProjectSharingSettings = async (projectId, { isShared, passwo
     }
 };
 
+/**
+ * Deletes a project (database record and associated files).
+ * @memberOf frontend.api.ProjectsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @returns {Promise.<{success: boolean, projectId: (string|undefined), assetsFolderRemoved: (boolean|undefined), snapshotsFolderRemoved: (boolean|undefined), counts: (Object|undefined), error: (string|undefined)}>}
+ */
 export const deleteProject = async (projectId) => {
     // Use executeQuery which handles errors, logging, and notifications
     const response = await executeQuery('projects', 'delete', { projectId });
@@ -222,6 +283,16 @@ export const deleteProject = async (projectId) => {
     };
 };
 
+/**
+ * Adds a language to a project.
+ * @memberOf frontend.api.ProjectsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {string} languageCode - BCP 47 language code.
+ * @param {string} languageName - Human-readable language name.
+ * @param {number} [isDefault=0] - Whether this is the default language (1/0).
+ * @returns {Promise.<Object>} Operation result.
+ */
 export const addLanguageToProject = async (projectId, languageCode, languageName, isDefault = 0) => {
     const normalizedCode = String(languageCode || '').trim().toLowerCase();
     if (!projectId || !normalizedCode) {
@@ -244,6 +315,13 @@ export const addLanguageToProject = async (projectId, languageCode, languageName
     return result;
 };
 
+/**
+ * Removes a language from a project.
+ * @memberOf frontend.api.ProjectsApi
+ * @method
+ * @param {string} languageId - The language assignment ID.
+ * @returns {Promise.<Object>} Operation result.
+ */
 export const removeLanguageFromProject = async (languageId) => {
     // Use executeQuery which handles errors, logging, and notifications
     const result = await executeQuery('projects', 'removeLanguage', { languageId });
@@ -251,6 +329,14 @@ export const removeLanguageFromProject = async (languageId) => {
     return result;
 };
 
+/**
+ * Sets a language as the default for a project.
+ * @memberOf frontend.api.ProjectsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {string} languageId - The language assignment ID to set as default.
+ * @returns {Promise.<Object>} Operation result.
+ */
 export const setLanguageAsDefault = async (projectId, languageId) => {
     // Use executeQuery which handles errors, logging, and notifications
     const result = await executeQuery('projects', 'setDefaultLanguage', { projectId, languageId });

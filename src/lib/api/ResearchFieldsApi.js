@@ -1,9 +1,23 @@
 import { executeQuery } from "$lib/api/graphqlClient.js";
 import { invalidate } from "$app/navigation";
 import { searchObjects } from "$lib/api/ObjectsApi.js";
-// Note: Replace 'researchFields', 'list', 'getById', etc., with your actual GraphQL section and operation names.
 
-// Fetch objects linked to a specific connection option (vocabulary) for a research field
+/**
+ * @namespace frontend.api.ResearchFieldsApi
+ */
+
+/**
+ * Returns objects linked to a specific vocabulary option for a research field.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {Object} options - Search parameters.
+ * @param {string} options.projectId - The project ID.
+ * @param {string} options.fieldId - The research field ID.
+ * @param {string} options.vocabularyId - The vocabulary/option ID.
+ * @param {number} [options.page=1] - Page number (1-based).
+ * @param {number} [options.pageSize=24] - Items per page.
+ * @returns {Promise.<{items: Array.<Object>, totalCount: number}>}
+ */
 export async function fetchLinkedObjectsByVocabularyOption({
     projectId,
     fieldId,
@@ -40,7 +54,15 @@ export async function fetchLinkedObjectsByVocabularyOption({
     };
 }
 
-// Fetch all research fields for a specific project
+/**
+ * Returns all research fields for a project, including vocabularies.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {number} [page] - Page index (0-based).
+ * @param {number} [pageSize] - Items per page.
+ * @returns {Promise.<{items: Array.<Object>, totalCount: number}>} Paginated research fields.
+ */
 export const getResearchFields = async (projectId, page, pageSize) => {
     // Assuming 'research_fields' is the section and 'list' is the operation
     const params = {
@@ -53,7 +75,13 @@ export const getResearchFields = async (projectId, page, pageSize) => {
     return response; // Or response.result depending on executeQuery's return structure
 };
 
-// Get a single research field by ID
+/**
+ * Returns a single research field by ID, including vocabularies.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {string} fieldId - The research field ID.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const getResearchFieldById = async (fieldId) => {
     if (!fieldId) {
         return { result: null, error: "Missing fieldId" };
@@ -82,6 +110,13 @@ export const getResearchFieldById = async (fieldId) => {
     return { result: researchFieldsResult[0], error: null };
 };
 
+/**
+ * Returns a single vocabulary option by ID.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {string} vocabularyId - The vocabulary ID.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const getVocabularyById = async (vocabularyId) => {
     if (!vocabularyId) {
         return { result: null, error: "Missing vocabularyId" };
@@ -118,7 +153,13 @@ async function deleteGenericAssetById(assetId) {
     }
 }
 
-// Create a new research field (initial implementation, may need translation handling)
+/**
+ * Creates a new research field.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {Object} fieldData - Field data (projectId, name, type, description, fieldsConfig, private, onwebsite, languageId).
+ * @returns {Promise.<Object>} The created research field record.
+ */
 export const createResearchField = async (fieldData) => {
     // Set default values for new boolean fields if not provided
     const params = {
@@ -135,7 +176,14 @@ export const createResearchField = async (fieldData) => {
     return result;
 };
 
-// Update a research field, including translations orchestration
+/**
+ * Updates a research field, including translation orchestration.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {string} fieldId - The research field ID.
+ * @param {Object} updateData - Updated fields (name, description, type, private, onwebsite, fieldsConfig, nameTranslations, descriptionTranslations).
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const updateResearchField = async (fieldId, updateData) => {
     if (!fieldId) {
         return { result: null, error: "Missing Research Field ID" };
@@ -209,7 +257,13 @@ export const updateResearchField = async (fieldId, updateData) => {
     }
 };
 
-// Delete a research field
+/**
+ * Deletes a research field, its vocabularies, and associated generic assets.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {string} fieldId - The research field ID.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const deleteResearchField = async (fieldId) => {
     if (!fieldId) {
         return { result: null, error: "Missing Research Field ID" };
@@ -266,7 +320,14 @@ export const deleteResearchField = async (fieldId) => {
     }
 };
 
-// Function to update a vocabulary, including translations orchestration
+/**
+ * Updates a vocabulary option, including translation orchestration and asset clean-up.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {string} vocabularyId - The vocabulary ID.
+ * @param {Object} updatedData - Updated fields (option, description, mainAsset, otherAssets, externalLink, optionTranslations, descriptionTranslations).
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const updateVocabulary = async (vocabularyId, updatedData) => {
     if (!vocabularyId) {
         return { result: null, error: "Missing Vocabulary ID" };
@@ -329,6 +390,14 @@ export const updateVocabulary = async (vocabularyId, updatedData) => {
     return { result, error: null };
 };
 
+/**
+ * Replaces the generic assets linked to a vocabulary.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {string} vocabularyId - The vocabulary ID.
+ * @param {Array.<string>} assetIds - Array of generic asset IDs to link.
+ * @returns {Promise.<{result: (boolean|null), error: (string|null)}>}
+ */
 export const updateVocabularyAssets = async (vocabularyId, assetIds) => {
     let previousAssetIds = [];
     try {
@@ -370,7 +439,14 @@ export const updateVocabularyAssets = async (vocabularyId, assetIds) => {
     return { result: true, error: null };
 };
 
-// Create a vocabulary for a research field (supports translations on create)
+/**
+ * Creates a new vocabulary option for a research field (supports translations on create).
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {string} fieldId - The research field ID.
+ * @param {Object} data - Vocabulary data (option, description, languageId, optionTranslations, descriptionTranslations, externalLink, mainAsset, otherAssets).
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const addVocabulary = async (fieldId, data) => {
     if (!fieldId) {
         return { result: null, error: "Missing Research Field ID" };
@@ -403,7 +479,13 @@ export const addVocabulary = async (fieldId, data) => {
     return { result, error: null };
 };
 
-// Delete a vocabulary by ID
+/**
+ * Deletes a vocabulary by ID, including cleanup of associated generic assets.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {string} vocabularyId - The vocabulary ID.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const deleteVocabulary = async (vocabularyId) => {
     if (!vocabularyId) {
         return { result: null, error: "Missing Vocabulary ID" };
@@ -459,7 +541,13 @@ export const deleteVocabulary = async (vocabularyId) => {
     return { result, error: null };
 };
 
-// Count objects that contain values from a specific research field
+/**
+ * Counts objects that use values from a specific research field.
+ * @memberOf frontend.api.ResearchFieldsApi
+ * @method
+ * @param {string} fieldId - The research field ID.
+ * @returns {Promise.<{result: (number|null), error: (string|null)}>}
+ */
 export const countObjectsUsingResearchField = async (fieldId) => {
     if (!fieldId) {
         return { result: null, error: "Missing Research Field ID" };

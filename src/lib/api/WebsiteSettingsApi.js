@@ -5,6 +5,17 @@ import { invalidate } from "$app/navigation";
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
+/**
+ * @namespace frontend.api.WebsiteSettingsApi
+ */
+
+/**
+ * Returns website settings for a project.
+ * @memberOf frontend.api.WebsiteSettingsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @returns {Promise.<Object>} The website settings record with nested translations.
+ */
 export const getWebsiteSettings = async (projectId) => {
     if (!projectId) {
         return { error: "Project ID is required" };
@@ -14,6 +25,13 @@ export const getWebsiteSettings = async (projectId) => {
     return response;
 };
 
+/**
+ * Creates new website settings for a project, including logo upload handling.
+ * @memberOf frontend.api.WebsiteSettingsApi
+ * @method
+ * @param {Object} data - Settings data (projectId, project_id, title, description, about, logoFile, copyright, languageId, titleTranslations, descriptionTranslations, aboutTranslations).
+ * @returns {Promise.<Object>} The created website settings record.
+ */
 export const createWebsiteSettings = async (data) => {
     // Validate the data
     const websiteSettingsSchema = getSchema('websiteSettings', 'insert');
@@ -74,6 +92,13 @@ export const createWebsiteSettings = async (data) => {
     return response;
 };
 
+/**
+ * Updates existing website settings, including logo upload handling.
+ * @memberOf frontend.api.WebsiteSettingsApi
+ * @method
+ * @param {Object} data - Updated settings data (projectId, project_id, title, description, about, logoFile, copyright, languageId, titleTranslations, descriptionTranslations, aboutTranslations).
+ * @returns {Promise.<Object>} The updated website settings record with fresh nested translations.
+ */
 export const updateWebsiteSettings = async (data) => {
     // Validate the data
     const websiteSettingsSchema = getSchema('websiteSettings', 'update');
@@ -144,6 +169,13 @@ export const updateWebsiteSettings = async (data) => {
     return response;
 };
 
+/**
+ * Deletes website settings by ID.
+ * @memberOf frontend.api.WebsiteSettingsApi
+ * @method
+ * @param {string} id - The website settings record ID.
+ * @returns {Promise.<Object>} Delete result.
+ */
 export const deleteWebsiteSettings = async (id) => {
     if (!id) {
         return { error: "Website settings ID is required" };

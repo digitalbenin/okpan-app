@@ -4,8 +4,13 @@ import { invalidate, invalidateAll } from "$app/navigation";
 import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
 /**
+ * @namespace frontend.api.ObjectsApi
+ */
+
+/**
  * Returns the primary identifier label for an object.
- * @param {object} object Object-like record.
+ * @memberOf frontend.api.ObjectsApi
+ * @param {Object} object - Object-like record.
  * @returns {string} Primary identifier text or a translated fallback.
  */
 export function getObjectIdentifier(object) {
@@ -18,6 +23,13 @@ export function getObjectIdentifier(object) {
 const { getSchema, validate } = getValidationStore();
 
 
+/**
+ * Returns paginated list of objects for a project/institution.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {Object} options - Query filters (projectId, institutionId, status, page, pageSize, orderBy, direction, search).
+ * @returns {Promise.<{items: Array.<Object>, totalCount: number, error: (Error|undefined)}>}
+ */
 export const getObjects = async (options) => {
     const result = await executeQuery('objects', 'list', options);
     // console.log(result, "result")
@@ -28,7 +40,13 @@ export const getObjects = async (options) => {
     return { items: [], totalCount: 0, error: new Error("Failed to fetch objects or unexpected response structure") };
 };
 
-// Function to search objects with advanced filtering and faceted results
+/**
+ * Searches objects with advanced filtering and faceted results.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {Object} options - Search filters (projectId, institutionId, status, researchFieldFilters, ontologyFieldFilters, search, page, pageSize, orderBy, direction).
+ * @returns {Promise.<{items: Array.<Object>, totalCount: number, facets: {institutions: Array.<Object>, statuses: Array.<Object>, researchFields: Array.<Object>}, error: (Error|undefined)}>}
+ */
 export const searchObjects = async (options) => {
     // Ensure payload is JSON-serializable for IPC/structured clone
     let safeOptions;
@@ -56,6 +74,14 @@ export const searchObjects = async (options) => {
 };
 
 
+/**
+ * Returns the total number of objects for an institution.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {string} institutionId - The institution ID.
+ * @returns {Promise.<{totalCount: number, error: (Error|undefined)}>}
+ */
 export const getTotalObjectsForInstitution = async (projectId, institutionId) => {
     const result = await executeQuery('objects', 'list', { projectId, institutionId, pageSize: 1, page: 0 });
 
@@ -65,7 +91,13 @@ export const getTotalObjectsForInstitution = async (projectId, institutionId) =>
     return { totalCount: 0, error: new Error("Failed to fetch total objects count or unexpected response structure") };
 };
 
-// Function to get a single object by ID with complete data including research fields
+/**
+ * Returns a single object by ID with complete data including research fields.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @returns {Promise.<{result: (Object|undefined), error: (string|null)}>}
+ */
 export const getObjectById = async (objectId) => {
     if (!objectId) {
         return { error: "Invalid objectId for getObjectById" };
@@ -81,6 +113,16 @@ export const getObjectById = async (objectId) => {
     return { result: result[0], error: null };
 };
 
+/**
+ * Creates a new object in a project/institution.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {string} institutionId - The institution ID.
+ * @param {string} [status='draft'] - Initial status.
+ * @param {string} [name] - Object name.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const createObject = async (
     projectId,
     institutionId,
@@ -120,7 +162,14 @@ export const createObject = async (
     };
 };
 
-// Function to update object status
+/**
+ * Updates an object's status.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {string} status - New status value.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const updateObjectStatus = async (objectId, status) => {
     if (!objectId) {
         return { error: "Invalid object ID for status update" };
@@ -153,7 +202,14 @@ export const updateObjectStatus = async (objectId, status) => {
     };
 };
 
-// Bulk update objects status
+/**
+ * Bulk updates the status of multiple objects.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {Array.<string>} objectIds - Array of object IDs.
+ * @param {string} status - New status value.
+ * @returns {Promise.<{successes: Array.<string>, errors: Array.<{objectId: string, error: string}>}>}
+ */
 export const updateObjectsStatusBulk = async (objectIds, status) => {
     if (!Array.isArray(objectIds) || objectIds.length === 0) {
         return { error: "No objects selected for status update" };
@@ -188,7 +244,14 @@ export const updateObjectsStatusBulk = async (objectIds, status) => {
     return { successes, errors };
 };
 
-// Add: Function to update object's institution
+/**
+ * Moves an object to a different institution.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {string} institutionId - The target institution ID.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const updateObjectInstitution = async (objectId, institutionId) => {
     if (!objectId) {
         return { error: "Invalid object ID for institution update" };
@@ -221,7 +284,14 @@ export const updateObjectInstitution = async (objectId, institutionId) => {
     };
 };
 
-// Function to update object research fields
+/**
+ * Updates an object's research field assignments (add, update, or remove).
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {Array.<{action: string, id: (string|null), fieldId: (string|null), value: string, vocabularyId: (string|null)}>} changes - Array of changes to apply.
+ * @returns {Promise.<{results: Array.<Object>, error: (string|null)}>}
+ */
 export const updateObjectResearchFields = async (objectId, changes) => {
     if (!objectId || !changes || changes.length === 0) {
         return { error: "Invalid parameters for updateObjectResearchFields" };
@@ -310,7 +380,13 @@ export const updateObjectResearchFields = async (objectId, changes) => {
 };
 
 
-// Function to delete an object
+/**
+ * Deletes an object by ID.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @returns {Promise.<Object>} Delete result.
+ */
 export const deleteObject = async (objectId) => {
     if (!objectId) {
         return { error: "Invalid object ID for deleteObject" };
@@ -323,7 +399,13 @@ export const deleteObject = async (objectId) => {
     return result;
 };
 
-// Bulk delete objects
+/**
+ * Bulk deletes multiple objects.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {Array.<string>} objectIds - Array of object IDs to delete.
+ * @returns {Promise.<{successes: Array.<string>, errors: Array.<{objectId: string, error: string}>}>}
+ */
 export const deleteObjectsBulk = async (objectIds) => {
     if (!Array.isArray(objectIds) || objectIds.length === 0) {
         return { error: "No objects selected for deletion" };
@@ -355,7 +437,14 @@ export const deleteObjectsBulk = async (objectIds) => {
     return { successes, errors };
 };
 
-// Function to unlink an asset from an object
+/**
+ * Unlinks an asset from an object.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {string} assetId - The asset ID.
+ * @returns {Promise.<{result: (Object|undefined), error: (string|null)}>}
+ */
 export const unlinkAssetFromObject = async (objectId, assetId) => {
     if (!objectId || !assetId) {
         return { error: "Invalid objectId or assetId for unlinkAssetFromObject" };
@@ -374,6 +463,13 @@ export const unlinkAssetFromObject = async (objectId, assetId) => {
     return { result: result.deleteFromObjects_assets, error: null };
 };
 
+/**
+ * Imports objects using a template (creates objects, ontology fields, and datasources).
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {Object} params - Import parameters (projectId, institutionId, templateId, data, mapping, languageId).
+ * @returns {Promise.<Object>} Import result.
+ */
 export const importObjectsAndTemplate = async (params) => {
     if (!params) {
         return { error: "Invalid parameters for importObjectsAndTemplate" };
@@ -388,7 +484,15 @@ export const importObjectsAndTemplate = async (params) => {
     return result;
 };
 
-// Function to update asset order in objects_assets table
+/**
+ * Updates the display order of an asset within an object's asset list.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {string} assetId - The asset ID.
+ * @param {number} order - New display order index.
+ * @returns {Promise.<{result: (Object|undefined), error: (string|null)}>}
+ */
 export const updateAssetOrder = async (objectId, assetId, order) => {
     if (!objectId || !assetId || order === undefined) {
         return { error: "Invalid parameters for updateAssetOrder" };
@@ -411,7 +515,14 @@ export const updateAssetOrder = async (objectId, assetId, order) => {
     return { result: result.updateObjects_assets, error: null };
 };
 
-// Function to reorder multiple assets at once
+/**
+ * Reorders multiple assets for an object at once.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {Array.<{assetId: string, order: number}>} assetOrders - Array of asset order updates.
+ * @returns {Promise.<{results: Array.<Object>, error: (string|null)}>}
+ */
 export const reorderAssets = async (objectId, assetOrders) => {
     if (!objectId || !assetOrders || assetOrders.length === 0) {
         return { error: "Invalid parameters for reorderAssets" };
@@ -436,7 +547,15 @@ export const reorderAssets = async (objectId, assetOrders) => {
     }
 };
 
-// Function to link an asset to an object
+/**
+ * Links an asset to an object.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {string} assetId - The asset ID.
+ * @param {number} [order] - Display order index.
+ * @returns {Promise.<{result: (Object|undefined), error: (string|null), skipped: (boolean|undefined)}>}
+ */
 export const linkAssetToObject = async (objectId, assetId, order) => {
     if (!objectId || !assetId) {
         return { error: "Invalid objectId or assetId for linkAssetToObject" };
@@ -463,8 +582,16 @@ export const linkAssetToObject = async (objectId, assetId, order) => {
     return { result: result.insertIntoObjects_assets, error: null };
 };
 
-// Bulk, additive linking of multiple assets to multiple objects
-// Skips duplicates (unique object-asset pairs) gracefully
+/**
+ * Bulk links multiple assets to multiple objects (additive, skips duplicates).
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {Array.<string>} assetIds - Array of asset IDs.
+ * @param {Array.<string>} objectIds - Array of object IDs.
+ * @param {Object} [options] - Options.
+ * @param {number} [options.order] - Display order index.
+ * @returns {Promise.<{successes: Array.<{objectId: string, assetId: string}>, skippedDuplicates: Array.<{objectId: string, assetId: string}>, errors: Array.<{objectId: string, assetId: string, error: string}>}>}
+ */
 export const linkAssetsToObjectsBulk = async (assetIds, objectIds, { order } = {}) => {
     // Validate inputs
     if (!Array.isArray(assetIds) || assetIds.length === 0) {
@@ -512,7 +639,14 @@ export const linkAssetsToObjectsBulk = async (assetIds, objectIds, { order } = {
     return { successes, skippedDuplicates, errors };
 };
 
-// Bulk update objects institution
+/**
+ * Bulk updates the institution for multiple objects.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {Array.<string>} objectIds - Array of object IDs.
+ * @param {string} institutionId - New institution ID.
+ * @returns {Promise.<{successes: Array.<string>, errors: Array.<{objectId: string, error: string}>}>}
+ */
 export const updateObjectsInstitutionBulk = async (objectIds, institutionId) => {
     if (!Array.isArray(objectIds) || objectIds.length === 0) {
         return { error: "No objects selected for institution update" };
@@ -547,7 +681,14 @@ export const updateObjectsInstitutionBulk = async (objectIds, institutionId) => 
     return { successes, errors };
 };
 
-// Function to update object name
+/**
+ * Updates an object's name.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} objectId - The object ID.
+ * @param {string} name - New name (pass empty string to clear).
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const updateObjectName = async (objectId, name) => {
     if (!objectId) {
         return { error: "Invalid object ID for name update" };
@@ -597,8 +738,11 @@ const CONNECTION_COLORS = [
 ];
 */
 /**
- * Get a consistent color for a connection field type
- * Uses a hash function to ensure the same field type always gets the same color
+ * Returns a consistent color for a connection field type using a hash function.
+ * @memberOf frontend.api.ObjectsApi
+ * @method
+ * @param {string} fieldName - The connection field type name.
+ * @returns {string} A hex color string from the palette.
  */
 export const getConnectionFieldColor = (fieldName) => {
     if (!fieldName) return CONNECTION_COLORS[0];

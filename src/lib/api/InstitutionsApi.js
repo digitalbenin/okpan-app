@@ -6,19 +6,45 @@ import { deleteAssetsBulk } from "$lib/api/AssetsApi.js";
 // Get validation store
 const { getSchema, validate } = getValidationStore();
 
+/**
+ * @namespace frontend.api.InstitutionsApi
+ */
+
+/**
+ * Returns all institutions for a project.
+ * @memberOf frontend.api.InstitutionsApi
+ * @method
+ * @param {Object} options - Query filters (projectId, status, page, pageSize, orderBy, direction, search).
+ * @returns {Promise.<{items: Array.<Object>, totalCount: number}>} Paginated institutions.
+ */
 export const getProjectInstitutions = async (options) => {
     const response = await executeQuery('institutions', 'list', options);
 
     return response;
 };
 
+/**
+ * Returns a single institution by ID.
+ * @memberOf frontend.api.InstitutionsApi
+ * @method
+ * @param {string} institutionId - The institution ID.
+ * @param {Function} [fetchFn] - Optional custom fetch function for SSR contexts.
+ * @returns {Promise.<Object>} The institution record including localised texts.
+ */
 export const getInstitution = async (institutionId, fetchFn) => {
     const result = await executeQuery('institutions', 'getById', { institutionId }, fetchFn);
 
     return result;
 };
 
-// Update institution status and invalidate caches
+/**
+ * Updates an institution's status (e.g. draft, published).
+ * @memberOf frontend.api.InstitutionsApi
+ * @method
+ * @param {string} institutionId - The institution ID.
+ * @param {string} status - New status value.
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const updateInstitutionStatus = async (institutionId, status) => {
     if (!institutionId) {
         return { result: null, error: "Missing Institution ID" };
@@ -40,6 +66,14 @@ export const updateInstitutionStatus = async (institutionId, status) => {
     return { result: updated, error: null };
 };
 
+/**
+ * Bulk updates the status of multiple institutions.
+ * @memberOf frontend.api.InstitutionsApi
+ * @method
+ * @param {Array.<string>} institutionIds - Array of institution IDs.
+ * @param {string} status - New status value.
+ * @returns {Promise.<{result: Array.<Object>, errors: Array.<{error: string}>}>}
+ */
 export const updateInstitutionsStatusBulk = async (institutionIds, status) => {
     if (!Array.isArray(institutionIds) || institutionIds.length === 0) {
         return { result: [], errors: [{ error: "No institutions selected" }] };
@@ -63,7 +97,14 @@ export const updateInstitutionsStatusBulk = async (institutionIds, status) => {
     };
 };
 
-// Function to update an institution, including translations orchestration
+/**
+ * Updates an institution, including translation orchestration.
+ * @memberOf frontend.api.InstitutionsApi
+ * @method
+ * @param {string} institutionId - The institution ID.
+ * @param {Object} updatedData - Updated fields (status, website, links, name, description, country, location, languageId, nameTranslations, descriptionTranslations, countryTranslations, locationTranslations).
+ * @returns {Promise.<{result: (Object|null), error: (string|null)}>}
+ */
 export const updateInstitution = async (institutionId, updatedData) => {
     if (!institutionId) {
         return { result: null, error: "Missing Institution ID" };
@@ -113,6 +154,13 @@ export const updateInstitution = async (institutionId, updatedData) => {
     return { result, error: null };
 };
 
+/**
+ * Deletes an institution and all its related assets (physical files included).
+ * @memberOf frontend.api.InstitutionsApi
+ * @method
+ * @param {string} institutionId - The institution ID.
+ * @returns {Promise.<Object>} Delete result.
+ */
 export const deleteInstitution = async (institutionId) => {
     // First, fetch and delete related assets to ensure physical files are removed
     const assetsListResponse = await executeQuery('assets', 'list', { institutionId, pageSize: 1000 });
@@ -129,7 +177,13 @@ export const deleteInstitution = async (institutionId) => {
     return result;
 };
 
-// Function to create an institution, including the required text entries
+/**
+ * Creates a new institution, including required localised text entries.
+ * @memberOf frontend.api.InstitutionsApi
+ * @method
+ * @param {Object} institutionData - Institution data (name, projectId, languageId, description, country, location, website, links, status).
+ * @returns {Promise.<{institution: Object, nameId: string, descriptionId: string, countryId: string, locationId: string, error: (string|null)}>}
+ */
 export const createInstitution = async (institutionData) => {
     const result = await executeQuery('institutions', 'create', institutionData);
 

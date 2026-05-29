@@ -1,3 +1,15 @@
+/**
+ * @namespace frontend.api.ImportApi
+ */
+
+/**
+ * Opens, parses and imports structured data from a file (CSV, Excel, JSON).
+ * @memberOf frontend.api.ImportApi
+ * @method
+ * @param {Object} params - Import parameters including file path, format, and project context.
+ * @returns {Promise.<Object>} Parsed data; throws on error.
+ * @throws {Error} On parse failure or import error.
+ */
 export const selectParseFile = async (params) => {
   let result = null;
   try {
@@ -46,6 +58,15 @@ export const selectParseFile = async (params) => {
   }
 };
 
+/**
+ * Suggests mappings between CSV column names and known ontology fields using AI.
+ * @memberOf frontend.api.ImportApi
+ * @method
+ * @param {Array.<string>} csvFieldNames - The CSV header column names.
+ * @param {Object} options - Additional context (projectId, institutionId).
+ * @returns {Promise.<Array.<Object>>} Array of suggested field mappings.
+ * @throws {Error} On matching failure.
+ */
 export const suggestFieldMappings = async (csvFieldNames, options) => {
   let result = null;
   try {
@@ -96,6 +117,14 @@ export const suggestFieldMappings = async (csvFieldNames, options) => {
   }
 };
 
+/**
+ * Opens a sheet-selection dialog for multi-sheet Excel files.
+ * @memberOf frontend.api.ImportApi
+ * @method
+ * @param {Object} params - Options including file path and project context.
+ * @returns {Promise.<{success: boolean, format: (string|undefined), multiPage: (boolean|undefined), data: (Array.<Object>|null|undefined), selectedSheet: (string|undefined), error: (string|null|undefined)}>}
+ * @throws {Error} On parse failure.
+ */
 export const spreadSheetSelection = async (params) => {
   let result = null;
   try {
@@ -145,6 +174,15 @@ export const spreadSheetSelection = async (params) => {
   }
 };
 
+/**
+ * Suggests whether an existing import template can be reused for new input headers.
+ * @memberOf frontend.api.ImportApi
+ * @method
+ * @param {Array.<string>} inputHeaders - The input file header column names.
+ * @param {string} projectId - The project ID.
+ * @returns {Promise.<{success: boolean, matchingTemplates: Array.<Object>, inputHeaders: Array.<string>, projectId: string, institutionId: (string|null|undefined), totalMatches: number, error: (string|undefined)}>}
+ * @throws {Error} On suggestion failure.
+ */
 export const suggestTemplateReuse = async (inputHeaders, projectId) => {
   let result = null;
   try {

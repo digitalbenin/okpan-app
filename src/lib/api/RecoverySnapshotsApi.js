@@ -1,3 +1,14 @@
+/**
+ * @namespace frontend.api.RecoverySnapshotsApi
+ */
+
+/**
+ * Lists all recovery snapshots for a project.
+ * @memberOf frontend.api.RecoverySnapshotsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @returns {Promise.<{success: boolean, snapshots: Array.<Object>, error: (string|undefined)}>}
+ */
 export const getRecoverySnapshots = async (projectId) => {
     if (!projectId) {
         return { success: false, snapshots: [], error: "Project ID is required" };
@@ -18,6 +29,14 @@ export const getRecoverySnapshots = async (projectId) => {
     };
 };
 
+/**
+ * Creates a new recovery snapshot for a project.
+ * @memberOf frontend.api.RecoverySnapshotsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {string|null} [reason=null] - Human-readable reason for the snapshot.
+ * @returns {Promise.<{success: boolean, snapshot: (Object|undefined), error: (string|undefined)}>}
+ */
 export const createProjectRecoverySnapshot = async (projectId, reason) => {
     if (!projectId) {
         return { success: false, error: "Project ID is required" };
@@ -34,6 +53,14 @@ export const createProjectRecoverySnapshot = async (projectId, reason) => {
     return result;
 };
 
+/**
+ * Restores the project database from a recovery snapshot.
+ * @memberOf frontend.api.RecoverySnapshotsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {string} snapshotId - The snapshot ID to restore.
+ * @returns {Promise.<{success: boolean, result: (Object|undefined), error: (string|undefined)}>}
+ */
 export const restoreProjectRecoverySnapshot = async (projectId, snapshotId) => {
     if (!projectId) {
         return { success: false, error: "Project ID is required" };
@@ -54,6 +81,14 @@ export const restoreProjectRecoverySnapshot = async (projectId, snapshotId) => {
     return result;
 };
 
+/**
+ * Permanently deletes a recovery snapshot.
+ * @memberOf frontend.api.RecoverySnapshotsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {string} snapshotId - The snapshot ID to delete.
+ * @returns {Promise.<{success: boolean, result: (Object|undefined), error: (string|undefined)}>}
+ */
 export const deleteProjectRecoverySnapshot = async (projectId, snapshotId) => {
     if (!projectId) {
         return { success: false, error: "Project ID is required" };

@@ -4,7 +4,7 @@
       "src/backend",
       "src/db",
       "src/preload",
-      "src/lib/utils"
+      "src/lib/api"
     ],
     "exclude": [
       "src/db/queries",
