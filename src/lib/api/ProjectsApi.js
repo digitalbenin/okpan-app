@@ -226,20 +226,6 @@ export const updateProjectSharingSettings = async (projectId, { isShared, passwo
         return { result: null, error: "Missing Project ID" };
     }
 
-    const query = {
-        name: "Update Project Sharing Settings",
-        query: `mutation UpdateProjectSharingSettings($projectId: String!, $isShared: Int!, $password: String) {
-  updateProject(
-    set: { is_shared: $isShared, password: $password }
-    where: { id: { eq: $projectId } }
-  ) {
-    id
-    is_shared
-    password
-  }
-}`
-    };
-
     const params = {
         projectId,
         isShared: isShared ? 1 : 0,
@@ -247,7 +233,7 @@ export const updateProjectSharingSettings = async (projectId, { isShared, passwo
     };
 
     try {
-        const result = await executeQuery('custom', 'mutation', { query, params });
+        const result = await executeQuery('projects', 'updateSharingSettings', params);
         invalidate("app:projects");
         return { result, error: null };
     } catch (error) {

@@ -107,6 +107,10 @@
     }
   }
 
+  function openPasswordModal() {
+    passwordDialogOpen = true;
+  }
+
   async function handleToggleSharedProject(event) {
     const checked = event.currentTarget.checked;
     if (checked === isSharedProject) return;

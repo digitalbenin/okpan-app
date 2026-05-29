@@ -391,5 +391,27 @@ export const projectsOperations = {
     is_default
   }
 }`
+  },
+
+  // Update Sharing Settings
+  updateSharingSettings: {
+    type: "mutation",
+    name: "Update Project Sharing Settings",
+    description: "Updates sharing settings for a project",
+    variables: {
+      projectId: "ID of the project",
+      isShared: "Whether sharing is enabled (1 or 0)",
+      password: "Sharing password"
+    },
+    query: `mutation UpdateProjectSharingSettings($projectId: String!, $isShared: Int!, $password: String) {
+  updateProject(
+    set: { is_shared: $isShared, password: $password }
+    where: { id: { eq: $projectId } }
+  ) {
+    id
+    is_shared
+    password
+  }
+}`
   }
 };
