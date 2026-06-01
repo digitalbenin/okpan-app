@@ -135,8 +135,8 @@
 
         // Check translations
         return secondaryLanguages.some((lang) => {
-            const originalOption = getTranslationContent(originalVocab.option, lang.id);
-            const originalDescription = getTranslationContent(originalVocab.description, lang.id);
+            const originalOption = getTranslationContent(originalVocab.option, lang.code);
+            const originalDescription = getTranslationContent(originalVocab.description, lang.code);
             const currentOption = currentVocab[`option_${lang.id}`] || "";
             const currentDescription = currentVocab[`description_${lang.id}`] || "";
             return originalOption !== currentOption || originalDescription !== currentDescription;
@@ -146,11 +146,11 @@
     const prepareTranslation = (vocab, lang, field, originalVocab) => {
         const content = vocab[`${field}_${lang.id}`];
         if (!content?.trim()) return null;
-        
-        const translation = { language_code: lang.code, content };
+
+        const translation = { language_id: lang.id, language_code: lang.code, content };
         const existingTranslation = originalVocab?.[field]?.translations?.find((t) => t.language_id === lang.id);
         if (existingTranslation) translation.id = existingTranslation.id;
-        
+
         return translation;
     };
 

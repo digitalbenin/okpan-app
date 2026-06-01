@@ -11,17 +11,16 @@
     getFormConfig,
   } from "$lib/utils/formValidation.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
+  import { processEntityTranslations, buildTranslationFormValues } from "$lib/api/TranslationsApi.js";
   import {
     createInstitution,
     updateInstitution,
     deleteInstitution,
   } from "$lib/api/InstitutionsApi.js";
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
 
   const translationStore = getTranslationStore();
-  const contentLanguageStore = getContentLanguageStore();
   const t = $derived(translationStore.t);
   
   // Props
@@ -34,7 +33,7 @@
   const validator = $derived(getValidator("institutions", operationName));
   const defaultLanguage = $derived(languages?.find((lang) => lang.is_default) || languages?.[0]);
   const secondaryLanguages = $derived(languages?.filter((lang) => !lang.is_default) || []);
-  const currentProjectId = $derived(projectId || $page.params.project_id);
+    const currentProjectId = $derived(projectId || page.params.project_id);
 
   // State
   let showDeleteModal = $state(false);
@@ -66,7 +65,7 @@
           status: institution?.status || "in progress",
           website: institution?.website || "",
           links: safeParseLinks(institution?.links || "[]"),
-          ...contentLanguageStore.buildTranslationFormValues(institution, secondaryLanguages, TRANSLATABLE_FIELDS),
+          ...buildTranslationFormValues(institution, secondaryLanguages, TRANSLATABLE_FIELDS),
         };
     return baseValues;
   });
@@ -93,7 +92,7 @@
 
         const { institution: newInstitution, nameId, descriptionId, countryId, locationId } = result;
         const textIdMap = { name: nameId, description: descriptionId, country: countryId, location: locationId };
-        await contentLanguageStore.processEntityTranslations(null, secondaryLanguages, TRANSLATABLE_FIELDS, value, textIdMap);
+        await processEntityTranslations(null, secondaryLanguages, TRANSLATABLE_FIELDS, value, languages, textIdMap);
 
         onSuccess ? onSuccess(newInstitution) : goto(`/projects/${currentProjectId}/institutions/${newInstitution.id}`);
       } else {
@@ -108,7 +107,7 @@
           languageId: defaultLanguage?.id,
         });
 
-        await contentLanguageStore.processEntityTranslations(institution, secondaryLanguages, TRANSLATABLE_FIELDS, value);
+        await processEntityTranslations(institution, secondaryLanguages, TRANSLATABLE_FIELDS, value, languages);
         if (onSuccess) onSuccess(institution);
       }
     } catch (error) {

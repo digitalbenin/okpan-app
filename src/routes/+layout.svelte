@@ -6,12 +6,28 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { watch } from "runed";
   import { onMount } from "svelte";
   import { invalidate, invalidateAll } from "$app/navigation";
   import { page } from "$app/state";
 
-  let { children } = $props();
+  let { children, data } = $props();
+
+  const translationStore = getTranslationStore();
+  // Initialize store from layout load data, and re-sync whenever invalidate() triggers a reload
+  watch(
+      () => [data?.interfaceLanguages, data?.interfaceTranslations],
+      ([languages, translations]) => {
+          if (languages && translations) {
+              translationStore.initialize({
+                  languages,
+                  translations,
+                  locale: data.interfaceLocale
+              });
+          }
+      }
+  );
 
   const userPresenceStore = getUserPresenceStore();
   const userPresenceState = userPresenceStore.state;

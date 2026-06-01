@@ -67,6 +67,18 @@ export const getAssetById = async (assetId) => {
 };
 
 /**
+ * Returns local sync states for all assets and generic assets in a project.
+ * @memberOf frontend.api.AssetsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @returns {Promise<{assets: Array, genericAssets: Array}>}
+ */
+export const getAssetLocalStates = async (projectId) => {
+    const result = await executeQuery('assets', 'getLocalStates', { projectId });
+    return result || { assets: [], genericAssets: [] };
+};
+
+/**
  * Deletes a single asset (database record and physical file).
  * @memberOf frontend.api.AssetsApi
  * @method

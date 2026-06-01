@@ -1,5 +1,6 @@
 <script>
     import { page } from '$app/stores';
+    import { invalidateAll } from '$app/navigation';
     import PageActionFooter from '$lib/components/common/PageActionFooter.svelte';
     import WebsiteSettingsForm from '$lib/components/website/WebsiteSettingsForm.svelte';
     import { getTranslationStore } from '$lib/stores/InterfaceTranslationStore.svelte.js';
@@ -26,6 +27,10 @@
             disableOnError: true,
         },
     ]);
+
+    async function handleSuccess() {
+        await invalidateAll();
+    }
 </script>
 
 <PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons} formStore={formStore}>
@@ -42,6 +47,7 @@
                 websiteSettings={currentSettings}
                 {languages}
                 {projectId}
+                onSuccess={handleSuccess}
             />
         </div>
     </div>

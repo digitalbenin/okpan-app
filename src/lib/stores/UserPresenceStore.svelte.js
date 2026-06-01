@@ -1,111 +1,96 @@
-let storeInstance = null;
-
 const isBrowser = typeof window !== 'undefined';
 
-export function getUserPresenceStore() {
-    if (storeInstance) {
-        return storeInstance;
+class UserPresenceStore {
+    isInitialized = $state(false);
+    isSaving = $state(false);
+    clientId = $state(null);
+    username = $state(null);
+    currentProjectId = $state(null);
+    peers = $state([]);
+
+    _cleanupFns = [];
+
+    constructor() {
+        this.initialize = this.initialize.bind(this);
+        this.setCurrentProject = this.setCurrentProject.bind(this);
+        this.saveUsername = this.saveUsername.bind(this);
+        this.ensureUsername = this.ensureUsername.bind(this);
+        this.destroy = this.destroy.bind(this);
     }
 
-    const state = $state({
-        isInitialized: false,
-        isSaving: false,
-        clientId: null,
-        username: null,
-        currentProjectId: null,
-        peers: []
-    });
-
-    let removeGlobalProfileListener = null;
-    let removeProjectPresenceListener = null;
-
-    function applyProfile(profile) {
-        state.clientId = profile?.clientId || null;
-        state.username = profile?.username || null;
+    get state() {
+        return this;
     }
 
-    function applyPresence(projectId, presence) {
-        if (!projectId || state.currentProjectId !== projectId) {
-            return;
-        }
-
-        state.peers = Array.isArray(presence?.peers) ? presence.peers : [];
+    applyProfile(profile) {
+        this.clientId = profile?.clientId || null;
+        this.username = profile?.username || null;
     }
 
-    const initialize = async () => {
-        if (!isBrowser || state.isInitialized) {
-            return;
-        }
+    applyPresence(projectId, presence) {
+        if (!projectId || this.currentProjectId !== projectId) return;
+        this.peers = Array.isArray(presence?.peers) ? presence.peers : [];
+    }
 
-        applyProfile(await window.api.getGlobalProfile());
+    async initialize() {
+        if (!isBrowser || this.isInitialized) return;
 
-        removeGlobalProfileListener = window.api.onGlobalProfileChanged((profile) => {
-            applyProfile(profile);
+        this.applyProfile(await window.api.getGlobalProfile());
+
+        const removeGlobalProfileListener = window.api.onGlobalProfileChanged((profile) => {
+            this.applyProfile(profile);
         });
 
-        removeProjectPresenceListener = window.api.onProjectPresenceChanged(({ projectId, presence }) => {
-            applyPresence(projectId, presence);
+        const removeProjectPresenceListener = window.api.onProjectPresenceChanged(({ projectId, presence }) => {
+            this.applyPresence(projectId, presence);
         });
 
-        state.isInitialized = true;
-    };
+        this._cleanupFns.push(removeGlobalProfileListener, removeProjectPresenceListener);
+        this.isInitialized = true;
+    }
 
-    const setCurrentProject = async (projectId) => {
-        state.currentProjectId = projectId || null;
-        state.peers = [];
+    async setCurrentProject(projectId) {
+        this.currentProjectId = projectId || null;
+        this.peers = [];
 
-        if (!isBrowser || !projectId) {
-            return;
-        }
+        if (!isBrowser || !projectId) return;
 
         const presence = await window.api.getProjectPresence(projectId);
 
-        if (state.currentProjectId === projectId) {
-            state.peers = Array.isArray(presence?.peers) ? presence.peers : [];
+        if (this.currentProjectId === projectId) {
+            this.peers = Array.isArray(presence?.peers) ? presence.peers : [];
         }
-    };
+    }
 
-    const saveUsername = async (username) => {
-        if (!isBrowser) {
-            return null;
-        }
+    async saveUsername(username) {
+        if (!isBrowser) return null;
 
-        state.isSaving = true;
-
+        this.isSaving = true;
         try {
             const profile = await window.api.updateGlobalUsername(username);
-            applyProfile(profile);
+            this.applyProfile(profile);
             return profile;
         } finally {
-            state.isSaving = false;
+            this.isSaving = false;
         }
-    };
+    }
 
-    const ensureUsername = async () => {
-        if (state.username) {
-            return state.username;
-        }
+    async ensureUsername() {
+        if (this.username) return this.username;
 
-        const profile = await saveUsername('');
+        const profile = await this.saveUsername('');
         return profile?.username || null;
-    };
+    }
 
-    const destroy = () => {
-        removeGlobalProfileListener?.();
-        removeGlobalProfileListener = null;
-        removeProjectPresenceListener?.();
-        removeProjectPresenceListener = null;
-        state.isInitialized = false;
-    };
+    destroy() {
+        this._cleanupFns.forEach((fn) => fn());
+        this._cleanupFns = [];
+        this.isInitialized = false;
+    }
+}
 
-    storeInstance = {
-        state,
-        initialize,
-        setCurrentProject,
-        saveUsername,
-        ensureUsername,
-        destroy
-    };
+export const userPresenceStore = new UserPresenceStore();
 
-    return storeInstance;
+export function getUserPresenceStore() {
+    return userPresenceStore;
 }

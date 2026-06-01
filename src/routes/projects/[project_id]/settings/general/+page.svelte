@@ -185,11 +185,11 @@
       for (const lang of secondaryLanguages) {
         const ttl = (editTitle[lang.code] ?? "").trim();
         const ttlId = getExistingTranslationId("title", lang.code);
-        if (ttl || ttlId) titleTranslations.push({ id: ttlId || undefined, language_code: lang.code, content: ttl || null });
+        if (ttl || ttlId) titleTranslations.push({ id: ttlId || undefined, language_id: lang.id, language_code: lang.code, content: ttl || null });
 
         const dsc = (editDescription[lang.code] ?? "").trim();
         const dscId = getExistingTranslationId("description", lang.code);
-        if (dsc || dscId) descriptionTranslations.push({ id: dscId || undefined, language_code: lang.code, content: dsc || null });
+        if (dsc || dscId) descriptionTranslations.push({ id: dscId || undefined, language_id: lang.id, language_code: lang.code, content: dsc || null });
       }
 
       const { error } = await updateProject(project.id, {

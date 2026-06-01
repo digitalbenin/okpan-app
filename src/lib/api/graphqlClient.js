@@ -292,7 +292,7 @@ async function processTranslationStep(mutation, params, results, context) {
 
     // Process each translation
     for (const translation of translations) {
-        const { id: translationId, language_code, content } = translation;
+        const { id: translationId, language_code, language_id, content } = translation;
 
         try {
             if (translationId) {
@@ -303,19 +303,24 @@ async function processTranslationStep(mutation, params, results, context) {
                     context
                 );
                 translationResults.push({ operation: 'update', result });
-            } else if (content && language_code) {
-                // Create new translation - need to convert language_code to language_id
-                const languageResult = await performQuery(
-                    languagesOperations.getByCode,
-                    { code: language_code },
-                    context
-                );
+            } else if (content && (language_id || language_code)) {
+                let resolvedLanguageId = language_id;
+                // Fallback: convert language_code to language_id via lookup
+                if (!resolvedLanguageId && language_code) {
+                    const languageResult = await performQuery(
+                        languagesOperations.getByCode,
+                        { code: language_code },
+                        context
+                    );
+                    if (languageResult?.result?.length > 0) {
+                        resolvedLanguageId = languageResult.result[0].id;
+                    }
+                }
 
-                if (languageResult?.result && languageResult.result.length > 0) {
-                    const languageId = languageResult.result[0].id;
+                if (resolvedLanguageId) {
                     const result = await performQuery(
                         translationsOperations.create,
-                        { textId, languageId, content },
+                        { textId, languageId: resolvedLanguageId, content },
                         context
                     );
                     translationResults.push({ operation: 'create', result });
@@ -323,7 +328,7 @@ async function processTranslationStep(mutation, params, results, context) {
             }
         } catch (err) {
             console.error(`Error processing translation:`, err);
-            errors.push(`Failed to process translation for language ${language_code}: ${err.message}`);
+            errors.push(`Failed to process translation for language ${language_code || language_id}: ${err.message}`);
         }
     }
 

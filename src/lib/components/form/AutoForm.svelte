@@ -40,6 +40,26 @@
     let trackerInitialized = $state(false);
     let hydrationPristineScheduled = $state(false);
 
+    /**
+     * Merge hidden field values into form values so the dirty tracker baseline
+     * always includes them. This prevents false-positive dirty states when
+     * TanStack injects hidden fields asynchronously after form creation.
+     */
+    const mergeHiddenFields = (values) => {
+        if (!values || typeof values !== 'object') return values;
+        const merged = { ...values };
+        Object.entries(hiddenStaticValues || {}).forEach(([name, value]) => {
+            if (!(name in merged)) merged[name] = value;
+        });
+        Object.entries(hiddenValueProviders || {}).forEach(([name, provider]) => {
+            if (!(name in merged)) {
+                const resolved = typeof provider === 'function' ? provider() : undefined;
+                if (resolved !== undefined) merged[name] = resolved;
+            }
+        });
+        return merged;
+    };
+
     const scheduleHydrationPristineSync = () => {
         if (hydrationPristineScheduled) return;
         hydrationPristineScheduled = true;
@@ -49,7 +69,7 @@
             if (!trackerInitialized || !dirtyTracker) return;
             const stabilizedValues = formStore?.current?.values;
             if (stabilizedValues) {
-                dirtyTracker.setPristine(stabilizedValues);
+                dirtyTracker.setPristine(mergeHiddenFields(stabilizedValues));
             }
         });
     };
@@ -73,13 +93,13 @@
         (newValues) => {
             const formState = formStore?.current;
             if (!trackerInitialized && newValues && enableDirtyTracking) {
-                dirtyTracker = createDirtyTracker({ initialData: newValues });
+                dirtyTracker = createDirtyTracker({ initialData: mergeHiddenFields(newValues) });
                 trackerInitialized = true;
                 scheduleHydrationPristineSync();
             } else if (dirtyTracker && newValues) {
                 dirtyTracker.update(newValues);
                 if (formState?.isDirty === false) {
-                    dirtyTracker.setPristine(newValues);
+                    dirtyTracker.setPristine(mergeHiddenFields(newValues));
                 }
             }
         }

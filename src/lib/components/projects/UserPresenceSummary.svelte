@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { watch } from "runed";
+  import { page } from "$app/state";
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
   import { getAssetSyncStore } from "$lib/stores/AssetSyncStore.svelte.js";
@@ -44,7 +45,9 @@
   onMount(() => {
     void userPresenceStore.initialize();
     void networkStatusStore.initialize();
-    
+
+    const cleanupSyncListener = syncStore.setupSyncListener();
+
     let unsubscribeDataChanged = () => {};
     let syncTimeout = null;
 
@@ -58,12 +61,13 @@
           }, 5000);
         });
       }
-      
-      return () => {
-        unsubscribeDataChanged();
-        if (syncTimeout) clearTimeout(syncTimeout);
-      };
     }
+
+    return () => {
+      cleanupSyncListener();
+      unsubscribeDataChanged();
+      if (syncTimeout) clearTimeout(syncTimeout);
+    };
   });
 
   function getInitial(username) {
@@ -93,8 +97,17 @@
     }
 
     void userPresenceStore.setCurrentProject(newProjectId);
-    void syncStore.init(newProjectId);
   }, { immediate: true });
+
+  // Initialize asset sync store from layout data
+  watch(
+    () => page.data?.assetLocalStates,
+    (assetLocalStates) => {
+      if (assetLocalStates) {
+        syncStore.initialize(assetLocalStates);
+      }
+    }
+  );
 
   const syncIcon = $derived(
     !isOnline ? "bi-cloud-slash" :

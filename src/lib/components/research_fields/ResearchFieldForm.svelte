@@ -3,7 +3,7 @@
     import { getValidator, createFieldValidator, getFormConfig } from "$lib/utils/formValidation.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { createResearchField, updateResearchField } from "$lib/api/ResearchFieldsApi.js";
-    import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
+    import { processEntityTranslations, buildTranslationFormValues, getTranslationContent } from "$lib/api/TranslationsApi.js";
     import { goto } from "$app/navigation";
     import AutoForm from "$lib/components/form/AutoForm.svelte";
     import VocabularyManager from "$lib/components/research_fields/VocabularyManager.svelte";
@@ -12,9 +12,7 @@
     import { watch } from "runed";
 
     const translationStore = getTranslationStore();
-    const contentLanguageStore = getContentLanguageStore();
     const t = $derived(translationStore.t);
-    const { setProjectLanguages, getTranslationContent, buildTranslationFormValues, processEntityTranslations } = contentLanguageStore;
 
     // Props
     let {
@@ -42,11 +40,6 @@
     // --- minimal debug (plain text) ---
     const dbg = (msg) => console.log(`[ResearchFieldForm] ${msg}`);
     let didLogLoad = false;
-
-    // Ensure ContentLanguageStore can resolve language codes -> IDs when saving translations
-    watch(() => languages, (curr) => {
-        if (curr?.length) setProjectLanguages(curr);
-    });
 
     // Log once when edit data is available (helps verify visualization inputs)
     watch(() => [languages, initialData], () => {
@@ -107,8 +100,8 @@
 
         const values = {
             type: selectedType,
-            name: initialData.name?.content || initialData.name || "",
-            description: initialData.description?.content || initialData.description || "",
+            name: initialData.name?.content ?? "",
+            description: initialData.description?.content ?? "",
             vocabularies: processVocabulariesForEdit(),
         };
 
@@ -159,7 +152,12 @@
             const existing = initialData?.[field]?.translations?.find(
                 (t) => t.language_id === lang.id || t.language?.code === lang.code
             );
-            return { language_code: lang.code, content: String(content).trim(), id: existing?.id };
+            return {
+                language_id: lang.id,
+                language_code: lang.code,
+                content: String(content).trim(),
+                id: existing?.id
+            };
         };
 
         const nameTranslations = [];
@@ -217,7 +215,7 @@
         if (!result?.length) throw new Error("Failed to create research field");
 
         const { id: researchFieldId, name_id: nameId, description_id: descriptionId } = result[0];
-        await processEntityTranslations(null, secondaryLanguages, TRANSLATABLE_FIELDS, value, { name: nameId, description: descriptionId });
+        await processEntityTranslations(null, secondaryLanguages, TRANSLATABLE_FIELDS, value, languages, { name: nameId, description: descriptionId });
 
         if (value.type === "vocabulary" && value.vocabularies?.length > 0 && vocabularyProcessingFunction) {
             await vocabularyProcessingFunction(researchFieldId, value.projectId || projectId, value.languageId || defaultLanguage?.id, "create");

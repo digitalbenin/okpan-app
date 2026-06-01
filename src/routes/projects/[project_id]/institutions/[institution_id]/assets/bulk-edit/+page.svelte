@@ -12,7 +12,7 @@
     buildTranslationsFromValue,
     createMetadataValidator,
     mergeTranslations,
-  } from "$lib/utils/assetMetadataUtils.js";
+  } from "$lib/utils/assetMetadata.js";
 
   // Read params and data from layout
   const project_id = $state($page.params.project_id);

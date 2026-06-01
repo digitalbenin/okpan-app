@@ -110,8 +110,8 @@ export const websiteSettingsOperations = {
     content
   }
 }`,
-        useVariables: ["about", "languageId"],
-        skipIf: { variableName: "about", isEmpty: true }
+  useVariables: ["about", "languageId"],
+  skipIf: { variableName: "about", isEmpty: true }
       },
       {
         name: "createWebsiteSettings",
@@ -268,8 +268,7 @@ export const websiteSettingsOperations = {
   }
 }`,
         useVariables: ["title", "languageId"],
-        onlyIf: { from: "getWebsiteSettings", path: "websiteSettings.0.title", isNull: true },
-        skipIf: { variableName: "title", isEmpty: true }
+        onlyIf: { from: "getWebsiteSettings", path: "websiteSettings.0.title", isNull: true }
       },
       {
         name: "linkNewTitleText",
@@ -296,8 +295,7 @@ export const websiteSettingsOperations = {
   }
 }`,
         useVariables: ["about", "languageId"],
-        onlyIf: { from: "getWebsiteSettings", path: "websiteSettings.0.about", isNull: true },
-        skipIf: { variableName: "about", isEmpty: true }
+        onlyIf: { from: "getWebsiteSettings", path: "websiteSettings.0.about", isNull: true }
       },
       {
         name: "linkNewAboutText",
@@ -357,14 +355,20 @@ export const websiteSettingsOperations = {
       {
         name: "processTitleTranslations",
         processTranslations: {
-          textIdPath: "getWebsiteSettings.websiteSettings.0.title.id",
+          textIdPaths: [
+            "getWebsiteSettings.websiteSettings.0.title.id",
+            "createTitleTextIfMissing.insertIntoTexts.0.id"
+          ],
           translationsParam: "titleTranslations"
         }
       },
       {
         name: "processAboutTranslations",
         processTranslations: {
-          textIdPath: "getWebsiteSettings.websiteSettings.0.about.id",
+          textIdPaths: [
+            "getWebsiteSettings.websiteSettings.0.about.id",
+            "createAboutTextIfMissing.insertIntoTexts.0.id"
+          ],
           translationsParam: "aboutTranslations"
         }
       }

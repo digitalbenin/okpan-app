@@ -3,43 +3,35 @@ import { z } from 'zod';
 import * as schema from '../../db/schema';
 import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 
-// Create a singleton instance
-let storeInstance = null;
-
 const { error: logError } = getLogStore();
 
-// Main store function that creates and returns the store
-export function getValidationStore() {
-    // If we already have an instance, return it
-    if (storeInstance) {
-        return storeInstance;
+class ValidationStore {
+    schemas = $state({});
+    customSchemas = $state({});
+    isInitialized = $state(false);
+    error = $state(null);
+
+    constructor() {
+        this.initializeSchemas();
+        this.validate = this.validate.bind(this);
+        this.getSchema = this.getSchema.bind(this);
+        this.getTableNames = this.getTableNames.bind(this);
+        this.createCustomSchema = this.createCustomSchema.bind(this);
     }
 
-    // State variables defined inside the function
-    const validationState = $state({
-        schemas: {},
-        customSchemas: {},
-        isInitialized: false,
-        error: null
-    });
-
-    // Initialize schemas for all tables
-    const initializeSchemas = () => {
-        // Get all table schemas from the schema file
-        const tables = Object.entries(schema).filter(([key, value]) =>
+    initializeSchemas() {
+        const tables = Object.entries(schema).filter(([key]) =>
             !key.includes('Relations')
         );
 
-        // Generate schemas for each table
         tables.forEach(([tableName, table]) => {
-            validationState.schemas[tableName] = {
+            this.schemas[tableName] = {
                 insert: createInsertSchema(table),
                 select: createSelectSchema(table),
                 update: createUpdateSchema(table)
             };
         });
 
-        // Add interface_translations schema with custom rules
         const namespaceSchema = z.string().min(1).max(50).regex(/^[a-z0-9_]+$/, {
             message: "Namespace can only contain lowercase letters, numbers, and underscores"
         });
@@ -48,7 +40,7 @@ export function getValidationStore() {
             message: "Key can only contain lowercase letters, numbers, underscores, and dots"
         });
 
-        validationState.schemas['interface_translations'] = {
+        this.schemas['interface_translations'] = {
             insert: createInsertSchema(schema.interface_translations).extend({
                 namespace: namespaceSchema,
                 key: translationKeySchema,
@@ -60,21 +52,19 @@ export function getValidationStore() {
                 key: translationKeySchema.optional(),
                 value: z.string().min(1).optional()
             }),
-            // Add specific schemas for namespace and key validation
             namespace: namespaceSchema,
             key: translationKeySchema
         };
 
-        validationState.isInitialized = true;
-    };
+        this.isInitialized = true;
+    }
 
-    // Validate data against a schema
-    const validate = async (data, schema) => {
-        if (!validationState.isInitialized) {
+    async validate(data, targetSchema) {
+        if (!this.isInitialized) {
             throw new Error('Validation store not initialized');
         }
 
-        const result = schema.safeParse(data);
+        const result = targetSchema.safeParse(data);
 
         if (!result.success) {
             await logError('validation_error', result.error.errors[0].message);
@@ -84,45 +74,33 @@ export function getValidationStore() {
             success: result.success,
             errors: result.success ? [] : result.error.errors.map(e => e.message)
         };
-    };
+    }
 
-    // Get a specific schema
-    const getSchema = (tableName, type = 'insert') => {
-        if (!validationState.isInitialized) {
+    getSchema(tableName, type = 'insert') {
+        if (!this.isInitialized) {
             throw new Error('Validation store not initialized');
         }
 
-        if (!validationState.schemas[tableName]) {
+        if (!this.schemas[tableName]) {
             throw new Error(`No schema found for table: ${tableName}`);
         }
 
-        return validationState.schemas[tableName][type];
-    };
-
-    // Get all available table names
-    const getTableNames = () => {
-        return Object.keys(validationState.schemas);
-    };
-
-    // Create a custom schema with additional validations
-    const createCustomSchema = (tableName, customValidations = {}, type = 'insert') => {
-        const baseSchema = getSchema(tableName, type);
-        return baseSchema.extend(customValidations);
-    };
-
-    // Initialize schemas
-    if (!validationState.isInitialized) {
-        initializeSchemas();
+        return this.schemas[tableName][type];
     }
 
-    // Create the store instance
-    storeInstance = {
-        validationState,
-        validate,
-        getSchema,
-        getTableNames,
-        createCustomSchema
-    };
+    getTableNames() {
+        return Object.keys(this.schemas);
+    }
 
-    return storeInstance;
+    createCustomSchema(tableName, customValidations = {}, type = 'insert') {
+        const baseSchema = this.getSchema(tableName, type);
+        return baseSchema.extend(customValidations);
+    }
+}
+
+export const validationStore = new ValidationStore();
+
+// Backward-compatible getter
+export function getValidationStore() {
+    return validationStore;
 }

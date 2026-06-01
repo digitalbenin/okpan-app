@@ -5,7 +5,7 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
 
   // Get the store
-  const { translationState, t, refreshTranslations } = getTranslationStore();
+  const { translationState, t } = getTranslationStore();
 </script>
 
 <Header></Header>

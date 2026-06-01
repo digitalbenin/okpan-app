@@ -1,120 +1,72 @@
-let storeInstance = null;
-
 const isBrowser = typeof window !== 'undefined';
 
-export function getNetworkStatusStore() {
-    if (storeInstance) {
-        return storeInstance;
+class NetworkStatusStore {
+    isInitialized = $state(false);
+    online = $state(true);
+    source = $state('startup');
+    lastChangedAt = $state(null);
+
+    _cleanupFns = [];
+
+    constructor() {
+        this.initialize = this.initialize.bind(this);
+        this.destroy = this.destroy.bind(this);
     }
 
-    const state = $state({
-        isInitialized: false,
-        online: true,
-        source: 'startup',
-        lastChangedAt: null
-    });
-
-    let removeNetworkStatusListener = null;
-    let removeBrowserOnlineListener = null;
-    let removeBrowserOfflineListener = null;
-
-    function applyStatus(online, source = 'unknown', ts = Date.now()) {
-        console.log('[NetworkStore] applyStatus called', {
-            online,
-            source,
-            ts,
-            currentOnline: state.online,
-            currentSource: state.source
-        });
-
-        if (typeof online !== 'boolean') {
-            console.log('[NetworkStore] ignored non-boolean online value', { online, source });
-            return;
-        }
-
-        if (state.online === online && state.source === source) {
-            console.log('[NetworkStore] ignored duplicate status', { online, source });
-            return;
-        }
-
-        state.online = online;
-        state.source = source;
-        state.lastChangedAt = ts;
-        console.log('[NetworkStore] state updated', {
-            online: state.online,
-            source: state.source,
-            lastChangedAt: state.lastChangedAt
-        });
+    get state() {
+        return this;
     }
 
-    const initialize = async () => {
-        if (!isBrowser || state.isInitialized) {
-            console.log('[NetworkStore] initialize skipped', {
-                isBrowser,
-                isInitialized: state.isInitialized
-            });
-            return;
-        }
+    applyStatus(online, source = 'unknown', ts = Date.now()) {
+        if (typeof online !== 'boolean') return;
+        if (this.online === online && this.source === source) return;
 
-        console.log('[NetworkStore] initialize start', {
-            navigatorOnline: navigator.onLine
-        });
+        this.online = online;
+        this.source = source;
+        this.lastChangedAt = ts;
+    }
 
-        applyStatus(navigator.onLine, 'navigator-bootstrap');
+    async initialize() {
+        if (!isBrowser || this.isInitialized) return;
 
-        const handleBrowserOnline = () => {
-            console.log('[NetworkStore] browser online event');
-            applyStatus(true, 'browser-event');
-        };
-        const handleBrowserOffline = () => {
-            console.log('[NetworkStore] browser offline event');
-            applyStatus(false, 'browser-event');
-        };
+        this.applyStatus(navigator.onLine, 'navigator-bootstrap');
+
+        const handleBrowserOnline = () => this.applyStatus(true, 'browser-event');
+        const handleBrowserOffline = () => this.applyStatus(false, 'browser-event');
 
         window.addEventListener('online', handleBrowserOnline);
         window.addEventListener('offline', handleBrowserOffline);
 
-        removeBrowserOnlineListener = () => window.removeEventListener('online', handleBrowserOnline);
-        removeBrowserOfflineListener = () => window.removeEventListener('offline', handleBrowserOffline);
+        this._cleanupFns.push(() => window.removeEventListener('online', handleBrowserOnline));
+        this._cleanupFns.push(() => window.removeEventListener('offline', handleBrowserOffline));
 
-        removeNetworkStatusListener = window.api?.onNetworkStatusChanged?.((status) => {
-            console.log('[NetworkStore] electron network-status-changed event', status);
-            applyStatus(status?.online, status?.source || 'electron', status?.ts || Date.now());
+        const removeNetworkStatusListener = window.api?.onNetworkStatusChanged?.((status) => {
+            this.applyStatus(status?.online, status?.source || 'electron', status?.ts || Date.now());
         }) || null;
+
+        if (removeNetworkStatusListener) {
+            this._cleanupFns.push(removeNetworkStatusListener);
+        }
 
         try {
             const status = await window.api?.getNetworkStatus?.();
-            console.log('[NetworkStore] getNetworkStatus resolved', status);
-            applyStatus(status?.online ?? navigator.onLine, status?.source || 'electron-bootstrap', status?.ts || Date.now());
+            this.applyStatus(status?.online ?? navigator.onLine, status?.source || 'electron-bootstrap', status?.ts || Date.now());
         } catch {
-            console.log('[NetworkStore] getNetworkStatus failed, using navigator fallback', {
-                navigatorOnline: navigator.onLine
-            });
-            applyStatus(navigator.onLine, 'navigator-fallback');
+            this.applyStatus(navigator.onLine, 'navigator-fallback');
         }
 
-        state.isInitialized = true;
-        console.log('[NetworkStore] initialize complete', {
-            online: state.online,
-            source: state.source
-        });
-    };
+        this.isInitialized = true;
+    }
 
-    const destroy = () => {
-        removeNetworkStatusListener?.();
-        removeNetworkStatusListener = null;
-        removeBrowserOnlineListener?.();
-        removeBrowserOnlineListener = null;
-        removeBrowserOfflineListener?.();
-        removeBrowserOfflineListener = null;
-        state.isInitialized = false;
-    };
+    destroy() {
+        this._cleanupFns.forEach((fn) => fn());
+        this._cleanupFns = [];
+        this.isInitialized = false;
+    }
+}
 
-    storeInstance = {
-        state,
-        initialize,
-        destroy
-    };
+export const networkStatusStore = new NetworkStatusStore();
 
-    return storeInstance;
+export function getNetworkStatusStore() {
+    return networkStatusStore;
 }

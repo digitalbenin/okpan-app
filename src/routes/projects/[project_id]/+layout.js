@@ -4,7 +4,8 @@ import { getProjectInstitutions } from "$lib/api/InstitutionsApi.js";
 import { getDisplayFields } from '$lib/api/DisplayFieldsApi.js';
 import { getResearchFields } from '$lib/api/ResearchFieldsApi.js';
 import { getOntologyFields } from '$lib/api/OntologyFieldsApi.js';
-import { getContentLanguageStore } from '$lib/stores/ContentLanguageStore.svelte.js';
+import { listContentLanguages, listContentLanguagesByProject } from '$lib/api/ContentLanguagesApi.js';
+import { getAssetLocalStates } from '$lib/api/AssetsApi.js';
 
 // Disable prerendering for this layout as it loads dynamic data
 export const prerender = false;
@@ -13,8 +14,8 @@ export const load = async ({ params, depends }) => {
     if (!browser) return;
     depends('app:project-shared');
     depends('app:projects');
-
-    const { getAvaliableLocalesForProject, setProjectLanguages } = getContentLanguageStore();
+    depends('app:content-languages');
+    depends('app:asset-sync');
 
     // Cache the current project ID in backend for optimized GraphQL queries
     try {
@@ -26,9 +27,10 @@ export const load = async ({ params, depends }) => {
     const project = await getProject(params.project_id);
     const displayFields = await getDisplayFields({ projectId: params.project_id });
     const researchFields = await getResearchFields(params.project_id);
-    const ontologyFields = await getOntologyFields(params.project_id)
-    const languages = await getAvaliableLocalesForProject(params.project_id);
-    setProjectLanguages(languages);
+    const ontologyFields = await getOntologyFields(params.project_id);
+    const allLanguages = await listContentLanguages();
+    const languages = await listContentLanguagesByProject(params.project_id);
+    const assetLocalStates = await getAssetLocalStates(params.project_id);
 
     // Load institutions for the project (used by filters)
     const institutions = await getProjectInstitutions({
@@ -45,6 +47,8 @@ export const load = async ({ params, depends }) => {
         researchFields,
         ontologyFields,
         languages,
-        institutions
+        allLanguages,
+        institutions,
+        assetLocalStates
     };
 };

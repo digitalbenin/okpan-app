@@ -81,7 +81,7 @@
       TRANSLATABLE_FIELDS.forEach(field => {
         const content = formValues[`translations_${lang.id}_${field}`];
         if (content) {
-          translations[field].push({ language_code: lang.code, content });
+          translations[field].push({ language_id: lang.id, language_code: lang.code, content });
         }
       });
     });

@@ -65,8 +65,9 @@
                         const existing = vocabulary?.option?.translations?.find(t => 
                             t.language_id === lang.id || t.language?.code === lang.code
                         );
-                        updateData.optionTranslations.push({ 
-                            language_code: lang.code, 
+                        updateData.optionTranslations.push({
+                            language_id: lang.id,
+                            language_code: lang.code,
                             content: content,
                             id: existing?.id
                         });
@@ -79,8 +80,9 @@
                         const existing = vocabulary?.description?.translations?.find(t => 
                             t.language_id === lang.id || t.language?.code === lang.code
                         );
-                        updateData.descriptionTranslations.push({ 
-                            language_code: lang.code, 
+                        updateData.descriptionTranslations.push({
+                            language_id: lang.id,
+                            language_code: lang.code,
                             content: content,
                             id: existing?.id
                         });

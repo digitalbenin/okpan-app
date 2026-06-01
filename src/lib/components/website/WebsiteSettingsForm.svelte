@@ -20,6 +20,11 @@
   const operationName = $derived(isEditMode ? "update" : "create");
   const validator = $derived(getValidator("websiteSettings", operationName));
 
+  const findTranslationForLanguage = (textField, lang) =>
+    textField?.translations?.find((translation) =>
+      translation?.language_id === lang.id || translation?.language?.code === lang.code
+    ) || null;
+
   // Default values
   const defaultValues = $derived.by(() => {
     const baseValues = {
@@ -46,8 +51,8 @@
 
       // Add translation fields
       secondaryLanguages.forEach((lang) => {
-        baseValues[`translations_${lang.id}_title`] = websiteSettings?.title?.translations?.find((t) => t?.language_id === lang.id)?.content || "";
-        baseValues[`translations_${lang.id}_about`] = websiteSettings?.about?.translations?.find((t) => t?.language_id === lang.id)?.content || "";
+        baseValues[`translations_${lang.id}_title`] = findTranslationForLanguage(websiteSettings?.title, lang)?.content || "";
+        baseValues[`translations_${lang.id}_about`] = findTranslationForLanguage(websiteSettings?.about, lang)?.content || "";
       });
     } else {
       // Create mode - add empty translation fields
@@ -74,9 +79,6 @@
       };
 
       // Build translation arrays
-      const existingTitleByLang = new Map((websiteSettings?.title?.translations || []).map((t) => [t.language_id, t]));
-      const existingAboutByLang = new Map((websiteSettings?.about?.translations || []).map((t) => [t.language_id, t]));
-      
       const titleTranslations = [];
       const aboutTranslations = [];
 
@@ -85,12 +87,18 @@
         const aContent = (value?.[`translations_${lang.id}_about`] || "").trim();
 
         if (tContent) {
-          const existing = existingTitleByLang.get(lang.id);
-          titleTranslations.push(existing?.id ? { id: existing.id, language_code: lang.code, content: tContent } : { language_code: lang.code, content: tContent });
+          const existing = findTranslationForLanguage(websiteSettings?.title, lang);
+          titleTranslations.push(existing?.id
+            ? { id: existing.id, language_id: lang.id, language_code: lang.code, content: tContent }
+            : { language_id: lang.id, language_code: lang.code, content: tContent }
+          );
         }
         if (aContent) {
-          const existing = existingAboutByLang.get(lang.id);
-          aboutTranslations.push(existing?.id ? { id: existing.id, language_code: lang.code, content: aContent } : { language_code: lang.code, content: aContent });
+          const existing = findTranslationForLanguage(websiteSettings?.about, lang);
+          aboutTranslations.push(existing?.id
+            ? { id: existing.id, language_id: lang.id, language_code: lang.code, content: aContent }
+            : { language_id: lang.id, language_code: lang.code, content: aContent }
+          );
         }
       });
 
@@ -108,7 +116,9 @@
       } else {
         const res = await updateWebsiteSettings({ id: websiteSettings?.id || value.id, ...payload });
         if (res?.error) throw res.error;
-        onSuccess?.(res?.websiteSettings?.[0] || websiteSettings || null);
+        // updateWebsiteSettings refetches fresh data; res.websiteSettings is the fresh array
+        const freshSettings = Array.isArray(res?.websiteSettings) ? res.websiteSettings[0] : null;
+        onSuccess?.(freshSettings || websiteSettings || null);
       }
     } catch (error) {
       console.error("WebsiteSettingsForm submit error:", error);
@@ -116,7 +126,14 @@
   };
 
   // Form instance
-  const form = $derived(createForm(() => getFormConfig("websiteSettings", operationName, { defaultValues, onSubmit: onSubmitForm })));
+  const form = $derived(createForm(() => getFormConfig("websiteSettings", operationName, {
+    // Keep dynamic translation fields like `translations_<langId>_<field>` in form values.
+    validators: {
+      onChange: validator?.schema?.passthrough ? validator.schema.passthrough() : validator.schema
+    },
+    defaultValues,
+    onSubmit: onSubmitForm
+  })));
   const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
 
   // Export functions for parent component

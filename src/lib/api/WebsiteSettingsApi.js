@@ -153,7 +153,8 @@ export const updateWebsiteSettings = async (data) => {
         if (response && !response.error && pid) {
             const fresh = await getWebsiteSettings(pid);
             if (fresh && !fresh.error) {
-                response.websiteSettings = fresh?.websiteSettings || response.websiteSettings;
+                // getWebsiteSettings returns an array directly (unwrapped from result: alias)
+                response.websiteSettings = Array.isArray(fresh) ? fresh : response.websiteSettings;
             }
         }
     } catch (e) {

@@ -457,6 +457,7 @@ function createWindow() {
       .then((online) => {
         setNetworkStatus(!!online, 'electron-initial');
         sendToAllWindows('network-status-changed', getCurrentNetworkStatus());
+        startConnectivityProbe();
       })
       .catch((err) => {
         console.warn('Failed to read initial navigator.onLine state:', err?.message || err);

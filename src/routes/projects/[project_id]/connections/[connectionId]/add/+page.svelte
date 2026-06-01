@@ -1,13 +1,12 @@
 <script>
     import { goto } from "$app/navigation";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
+    import { createTranslation } from "$lib/api/TranslationsApi.js";
     import VocabularyForm from "$lib/components/research_fields/VocabularyForm.svelte";
     import { addVocabulary, updateVocabularyAssets } from "$lib/api/ResearchFieldsApi.js";
 
     let { data } = $props();
     const { t } = getTranslationStore();
-    const { addTranslation } = getContentLanguageStore();
     const project = data.project;
     const researchField = data.researchField;
     const defaultLanguage = data.languages?.find((l) => l.is_default) || data.languages?.[0];
@@ -15,8 +14,10 @@
     const createTranslations = async (translations, textId) => {
         if (!translations?.length || !textId) return;
         for (const tr of translations) {
+            const language = data.languages?.find(l => l.code === tr.language_code);
+            if (!language) continue;
             try {
-                await addTranslation(textId, tr.language_code, tr.content);
+                await createTranslation({ textId, languageId: language.id, content: tr.content });
             } catch (e) {
                 console.error("Failed to create translation", { textId, tr, error: e });
             }
@@ -72,7 +73,7 @@
         }
 
         // Logic to extract ID from result.
-        const newVocabulary = result.result?.[0];
+        const newVocabulary = result.result?.insertIntoVocabularies?.[0];
         const newVocabularyId = newVocabulary?.id;
         const optionTextId = newVocabulary?.option_id;
         const descriptionTextId = newVocabulary?.description_id;

@@ -52,12 +52,8 @@ export function setNetworkStatus(online, source) {
  */
 export function broadcastNetworkStatus(online, source = 'electron') {
   const next = { online: !!online, source, ts: Date.now() };
-  if (currentNetworkStatus.online === next.online && currentNetworkStatus.source === next.source) {
-    console.log('[Network] status unchanged', next);
-    return;
-  }
+  if (currentNetworkStatus.online === next.online && currentNetworkStatus.source === next.source) return;
   currentNetworkStatus = next;
-  console.log('[Network] status changed', currentNetworkStatus);
   sendToAllWindows('network-status-changed', currentNetworkStatus);
 }
 
@@ -92,10 +88,6 @@ async function runProbe() {
     if (!currentNetworkStatus.online) broadcastNetworkStatus(online, 'connectivity-probe');
   } catch (error) {
     consecutiveFailures += 1;
-    console.log('[Network] connectivity probe failed', {
-      consecutiveFailures,
-      message: error?.message || error
-    });
     if (currentNetworkStatus.online && consecutiveFailures >= PROBE_FAILURE_THRESHOLD) {
       broadcastNetworkStatus(false, 'connectivity-probe');
     }

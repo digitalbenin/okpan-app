@@ -1,10 +1,10 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
+  import { getExistingTranslationId, buildTranslationFormValues } from "$lib/api/TranslationsApi.js";
+  import { updateDatasource } from "$lib/api/DatasourcesApi.js";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import { createForm } from "@tanstack/svelte-form";
   import { getValidator, createFieldValidator, getFormConfig } from "$lib/utils/formValidation.js";
-  import { updateDatasource } from "$lib/api/DatasourcesApi.js";
 
   let { 
     datasource = {}, 
@@ -15,7 +15,6 @@
   } = $props();
 
   const translationStore = getTranslationStore();
-  const contentLanguageStore = getContentLanguageStore();
   const t = $derived(translationStore.t);
 
   const defaultLanguage = $derived(languages?.find((l) => l.is_default) || languages?.[0] || null);
@@ -31,13 +30,14 @@
     secondaryLanguages.forEach(lang => {
       TRANSLATABLE_FIELDS.forEach(field => {
         const content = formValues[`translations_${lang.id}_${field}`];
-        const existingId = contentLanguageStore.getExistingTranslationId(datasource?.[field], lang.code);
+        const existingId = getExistingTranslationId(datasource?.[field], lang.code);
         
         if (content?.trim()) {
-          translations[field].push({ 
-            ...(existingId && { id: existingId }), 
-            language_code: lang.code, 
-            content: content.trim() 
+          translations[field].push({
+            ...(existingId && { id: existingId }),
+            language_id: lang.id,
+            language_code: lang.code,
+            content: content.trim()
           });
         }
       });
@@ -85,7 +85,7 @@
       baseValues[field] = datasource?.[field]?.content || "";
     });
 
-    Object.assign(baseValues, contentLanguageStore.buildTranslationFormValues(datasource, secondaryLanguages, TRANSLATABLE_FIELDS));
+    Object.assign(baseValues, buildTranslationFormValues(datasource, secondaryLanguages, TRANSLATABLE_FIELDS));
 
     return baseValues;
   });
