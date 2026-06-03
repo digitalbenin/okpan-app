@@ -13,10 +13,6 @@
   } = $props();
 
   const { t } = getTranslationStore();
-
-  const handleStatusChange = (e) => {
-    onStatusChange?.(e.detail);
-  };
 </script>
 
 <div class="container-fluid py-4 bg-light">
@@ -44,7 +40,7 @@
               <StatusBadgeDropdown
                 status={status}
                 disabled={statusDisabled}
-                on:change={handleStatusChange}
+                onchange={onStatusChange}
               />
             </div>
           {/if}

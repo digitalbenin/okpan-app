@@ -1,22 +1,26 @@
 <script>
   import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
-  import { createEventDispatcher } from "svelte";
 
-  export let status = "";
-  export let availableStatuses = ["in progress", "completed"]; // default options; override for institutions
-  export let disabled = false;
-  export let menuMinWidth = "220px";
-  export let menuClass = ""; // extra classes for menu wrapper if needed
-  export let itemClass = ""; // extra classes for items if needed
+  let {
+    status = "",
+    availableStatuses = ["in progress", "completed"],
+    disabled = false,
+    menuMinWidth = "220px",
+    menuClass = "",
+    itemClass = "",
+    onchange = undefined,
+  } = $props();
 
-  const dispatch = createEventDispatcher();
-  let showMenu = false;
+  let showMenu = $state(false);
 
   const normalized = (s) => (s || "").toLowerCase();
-  $: options = (availableStatuses || []).map((s) => ({
-    value: s,
-    label: `mark as ${s}`,
-  }));
+
+  const options = $derived(
+    (availableStatuses || []).map((s) => ({
+      value: s,
+      label: `mark as ${s}`,
+    }))
+  );
 
   function toggleMenu() {
     if (!disabled) showMenu = !showMenu;
@@ -24,7 +28,7 @@
 
   function selectStatus(next) {
     if (disabled) return;
-    dispatch("change", next);
+    onchange?.(next);
     showMenu = false;
   }
 </script>
@@ -36,7 +40,7 @@
     class="btn btn-link p-0 m-0 border-0 text-decoration-none"
     aria-haspopup="true"
     aria-expanded={showMenu}
-    on:click={toggleMenu}
+    onclick={toggleMenu}
   >
     <BaseBadgeStatus status={status} showChevron={true} className="p-2" />
   </button>
@@ -51,7 +55,7 @@
           <button
             class={`dropdown-item py-1 px-2 ${itemClass}`}
             disabled={disabled}
-            on:click={() => selectStatus(opt.value)}
+            onclick={() => selectStatus(opt.value)}
           >
             {opt.label}
           </button>

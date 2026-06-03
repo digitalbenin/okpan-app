@@ -23,8 +23,8 @@
       <button
         class="btn btn-success"
         onclick={() => {
-          wizard.reusedTemplate = $translationState.snapshot(template);
-          wizard.mapping = $translationState.snapshot(template.mapping);
+          wizard.reusedTemplate = template;
+          wizard.mapping = template.mapping;
           wizard.useMatchingTemplate = true;
         }}
       >

@@ -68,7 +68,7 @@
           <StatusBadgeDropdown
             status={institution.status}
             disabled={statusUpdating}
-            on:change={(e) => setStatus(e.detail)}
+            onchange={setStatus}
           />
           <BaseButton
             class="btn btn-outline-secondary btn border-0"

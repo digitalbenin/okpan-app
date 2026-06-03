@@ -338,7 +338,7 @@
                     type="text"
                     id="projectId"
                     value={projectId}
-                    on:input={handleProjectIdChange}
+                    oninput={handleProjectIdChange}
                     placeholder="Enter Project ID"
                     class="form-control"
                 />
@@ -365,7 +365,7 @@
                             type="text"
                             id="newTitle"
                             value={newTitle}
-                            on:input={handleTitleChange}
+                            oninput={handleTitleChange}
                             placeholder="New title"
                             class="form-control"
                         />
@@ -378,7 +378,7 @@
                         <textarea
                             id="newDescription"
                             value={newDescription}
-                            on:input={handleDescriptionChange}
+                            oninput={handleDescriptionChange}
                             placeholder="New description"
                             class="form-control"
                             rows="3"
@@ -386,7 +386,7 @@
                     </div>
 
                     <button
-                        on:click={updateProjectPartial}
+                        onclick={updateProjectPartial}
                         class="btn btn-primary"
                         disabled={loading.update}
                     >
@@ -431,7 +431,7 @@
                                     <input
                                         type="text"
                                         value={project.projectId}
-                                        on:input={(e) =>
+                                        oninput={(e) =>
                                             updateBulkProject(
                                                 i,
                                                 "projectId",
@@ -445,7 +445,7 @@
                                     <input
                                         type="text"
                                         value={project.title}
-                                        on:input={(e) =>
+                                        oninput={(e) =>
                                             updateBulkProject(
                                                 i,
                                                 "title",
@@ -459,7 +459,7 @@
                                     <input
                                         type="text"
                                         value={project.description}
-                                        on:input={(e) =>
+                                        oninput={(e) =>
                                             updateBulkProject(
                                                 i,
                                                 "description",
@@ -471,7 +471,7 @@
                                 </div>
                                 <div class="col-auto">
                                     <button
-                                        on:click={() => removeBulkProject(i)}
+                                        onclick={() => removeBulkProject(i)}
                                         class="btn btn-danger btn-sm"
                                         title="Remove"
                                     >
@@ -482,7 +482,7 @@
                         {/each}
 
                         <button
-                            on:click={addBulkProject}
+                            onclick={addBulkProject}
                             class="btn btn-outline-primary btn-sm mt-2"
                         >
                             <i class="bi bi-plus"></i> Add another project
@@ -490,7 +490,7 @@
                     </div>
 
                     <button
-                        on:click={updateProjectsBulk}
+                        onclick={updateProjectsBulk}
                         class="btn btn-primary"
                         disabled={loading.bulkUpdate}
                     >
@@ -533,7 +533,7 @@
                 </div>
                 <div class="card-body">
                     <button
-                        on:click={getProject}
+                        onclick={getProject}
                         class="btn btn-success mb-3"
                         disabled={loading.getProject}
                     >
@@ -624,7 +624,7 @@
                             <select
                                 id="pageSize"
                                 value={pageSize}
-                                on:change={handlePageSizeChange}
+                                onchange={handlePageSizeChange}
                                 class="form-select"
                             >
                                 <option value="5">5</option>
@@ -635,7 +635,7 @@
 
                         <div class="col">
                             <button
-                                on:click={getInstitutions}
+                                onclick={getInstitutions}
                                 class="btn btn-success w-100"
                                 disabled={loading.getInstitutions}
                             >
@@ -694,7 +694,7 @@
                                     >
                                         <button
                                             class="page-link"
-                                            on:click={() =>
+                                            onclick={() =>
                                                 changePage(page - 1)}
                                             disabled={page === 0}
                                         >
@@ -717,7 +717,7 @@
                                     >
                                         <button
                                             class="page-link"
-                                            on:click={() =>
+                                            onclick={() =>
                                                 changePage(page + 1)}
                                             disabled={(page + 1) * pageSize >=
                                                 totalInstitutions}
@@ -769,7 +769,7 @@
                     </div>
 
                     <button
-                        on:click={deleteInstitution}
+                        onclick={deleteInstitution}
                         class="btn btn-danger"
                         disabled={loading.deleteInstitution}
                     >
@@ -816,7 +816,7 @@
                     </div>
 
                     <button
-                        on:click={deleteObjects}
+                        onclick={deleteObjects}
                         class="btn btn-danger"
                         disabled={loading.deleteObjects}
                     >
@@ -855,7 +855,7 @@
                 >
                     <h3 class="h5 mb-0">Objects List</h3>
                     <button
-                        on:click={getObjects}
+                        onclick={getObjects}
                         class="btn btn-outline-secondary btn-sm"
                         disabled={loading.getObjects}
                     >

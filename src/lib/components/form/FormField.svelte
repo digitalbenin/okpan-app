@@ -38,8 +38,7 @@
                 {field}
                 {activeLanguageCode}
                 onChange={(v) => field.handleChange(v)}
-                on:change={(e) => field.handleChange(e.detail ?? e)}
-                on:blur={field.handleBlur}
+                onblur={field.handleBlur}
             />
         {:else if config.type === "select"}
             <select
