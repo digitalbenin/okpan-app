@@ -1,6 +1,5 @@
 <script>
   import BaseInput from "$lib/components/base/BaseInput.svelte";
-  import BaseCheckBox from "$lib/components/base/BaseCheckBox.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseBadge from "$lib/components/base/BaseBadge.svelte";
@@ -103,14 +102,6 @@
       if (error) {
         console.error(`Error updating ${fieldName}:`, error);
         // TODO: Show error message to user and revert checkbox state
-      } else {
-        // Update the local data to reflect the change
-        const fieldIndex = data.researchFields.findIndex(
-          (f) => f.id === researchField.id,
-        );
-        if (fieldIndex !== -1) {
-          data.researchFields[fieldIndex][fieldName] = newValue ? 1 : 0;
-        }
       }
     } catch (error) {
       console.error(`Error updating ${fieldName}:`, error);
@@ -191,26 +182,40 @@
             >
               {t("common.delete")}</BaseButton
             >
-            <BaseCheckBox
-              labelText={t("common.private")}
-              checked={researchField.private === 1}
-              onclick={() =>
-                handleCheckboxChange(
-                  researchField,
-                  "private",
-                  researchField.private !== 1,
-                )}
-            />
-            <BaseCheckBox
-              labelText={t("common.public-website")}
-              checked={researchField.onwebsite === 1}
-              onclick={() =>
-                handleCheckboxChange(
-                  researchField,
-                  "onwebsite",
-                  researchField.onwebsite !== 1,
-                )}
-            />
+            <div class="form-check">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id={`private-${researchField.id}`}
+                checked={researchField.private === 1}
+                onchange={() =>
+                  handleCheckboxChange(
+                    researchField,
+                    "private",
+                    researchField.private !== 1,
+                  )}
+              />
+              <label class="form-check-label text-capitalize" for={`private-${researchField.id}`}>
+                {t("common.private")}
+              </label>
+            </div>
+            <div class="form-check">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id={`onwebsite-${researchField.id}`}
+                checked={researchField.onwebsite === 1}
+                onchange={() =>
+                  handleCheckboxChange(
+                    researchField,
+                    "onwebsite",
+                    researchField.onwebsite !== 1,
+                  )}
+              />
+              <label class="form-check-label text-capitalize" for={`onwebsite-${researchField.id}`}>
+                {t("common.public-website")}
+              </label>
+            </div>
           </div>
         </div>
       </div>

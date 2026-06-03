@@ -3,6 +3,7 @@ import { getResearchFields } from '$lib/api/ResearchFieldsApi.js';
 
 /** @type {import('./$types').PageLoad} */
 export async function load({ params, depends }) {
+    depends('app:research-fields');
     if (!browser) return
     const projectId = params.project_id;
     const researchFieldsResponse = await getResearchFields(projectId);

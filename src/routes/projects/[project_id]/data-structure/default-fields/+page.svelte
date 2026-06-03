@@ -1,6 +1,5 @@
 <script>
     import BaseInput from "$lib/components/base/BaseInput.svelte";
-    import BaseCheckBox from "$lib/components/base/BaseCheckBox.svelte";
     import BaseBadge from "$lib/components/base/BaseBadge.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { updateOntologyField } from "$lib/api/OntologyFieldsApi.js";
@@ -110,15 +109,22 @@
                                 class="d-flex flex-column align-items-start gap-2"
                             >
                                
-                                <BaseCheckBox
-                                    labelText={t("common.public-website")}
-                                    checked={field.onwebsite === 1}
-                                    onclick={() =>
-                                        handleOnwebsiteChange(
-                                            field,
-                                            field.onwebsite !== 1,
-                                        )}
-                                />
+                                <div class="form-check">
+                                    <input
+                                        type="checkbox"
+                                        class="form-check-input"
+                                        id={`onwebsite-${field.id}`}
+                                        checked={field.onwebsite === 1}
+                                        onchange={() =>
+                                            handleOnwebsiteChange(
+                                                field,
+                                                field.onwebsite !== 1,
+                                            )}
+                                    />
+                                    <label class="form-check-label text-capitalize" for={`onwebsite-${field.id}`}>
+                                        {t("common.public-website")}
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
