@@ -23,14 +23,14 @@
 	async function handleExport() {
 		try {
 			if (!window?.api?.exportProject) return;
-			const result = await window.api.exportProject({
+			const result = await window.api.exportProject(JSON.parse(JSON.stringify({
 				filters: {
 					...filtersPayload,
 					...(deselectedObjectIds.size > 0 && { excludeObjectIds: [...deselectedObjectIds] })
 				},
 				includeAssets: !!includeAssets,
 				format: selectedFormat
-			});
+			})));
 			if (result.canceled) return;
 		} catch {
 			// intentionally silent

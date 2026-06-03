@@ -143,16 +143,16 @@
 			const outputPath = result.filePaths[0];
 			exportPath = outputPath;
 
-			const exportResult = await window.api.exportStaticWebsite({
+			const exportResult = await window.api.exportStaticWebsite(JSON.parse(JSON.stringify({
 				projectId,
 				outputPath,
 				locale: selectedWebsiteLocale,
 				filters: {
 					...filtersPayload,
-					contentLanguageCodes: selectedContentLanguageCodes,
+					contentLanguageCodes: [...selectedContentLanguageCodes],
 					...(deselectedObjectIds.size > 0 && { excludeObjectIds: [...deselectedObjectIds] })
 				}
-			});
+			})));
 
 			exportPath = exportResult?.outputPath || outputPath;
 			exportStatus = 'success';

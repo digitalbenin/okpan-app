@@ -8,6 +8,7 @@
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import yazl from 'yazl';
 import { eq, inArray } from 'drizzle-orm';
 import * as dbSchema from '../../db/schema.js';

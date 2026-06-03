@@ -9,6 +9,7 @@ import * as dbSchema from '../../db/schema.js';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import yazl from 'yazl';
 import { buildObjectSearchConditions, buildCounts, makeExportResult } from '../utils/exportUtils.js';
 import { copyFileIfExists, ensureDir } from '../utils/fsUtils.js';
