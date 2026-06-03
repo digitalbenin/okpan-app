@@ -2,36 +2,25 @@ import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 
 const { error: logError } = getLogStore();
 
-class AssetSyncStore {
-    assets = $state({});
-    isInitialized = $state(false);
-    isLoading = $state(false);
+let storeInstance = null;
 
-    #unsubscribeSyncProgress = null;
+export function getAssetSyncStore() {
+    if (storeInstance) return storeInstance;
 
-    constructor() {
-        this.initialize = this.initialize.bind(this);
-        this.cleanup = this.cleanup.bind(this);
-        this.getAssetStatus = this.getAssetStatus.bind(this);
-        this.setupSyncListener = this.setupSyncListener.bind(this);
-    }
+    const assetSyncState = $state({
+        assets: {},
+        isInitialized: false,
+        isLoading: false,
+    });
 
-    get state() {
-        return this;
-    }
+    let unsubscribeSyncProgress = null;
 
-    /**
-     * Initialize store from pre-loaded asset sync data.
-     * @param {Object} options
-     * @param {Array} [options.assets=[]]
-     * @param {Array} [options.genericAssets=[]]
-     */
-    initialize({ assets = [], genericAssets = [] } = {}) {
-        this.assets = {};
+    const initialize = ({ assets = [], genericAssets = [] } = {}) => {
+        assetSyncState.assets = {};
 
         for (const a of assets) {
             const ls = a.localState;
-            this.assets[a.id] = {
+            assetSyncState.assets[a.id] = {
                 status: ls?.sync_status || 'missing',
                 progress: ls?.download_progress ?? 0,
                 error: ls?.sync_error ?? null,
@@ -41,7 +30,7 @@ class AssetSyncStore {
 
         for (const g of genericAssets) {
             const ls = g.localState;
-            this.assets[g.id] = {
+            assetSyncState.assets[g.id] = {
                 status: ls?.sync_status || 'missing',
                 progress: ls?.download_progress ?? 0,
                 error: ls?.sync_error ?? null,
@@ -49,23 +38,18 @@ class AssetSyncStore {
             };
         }
 
-        this.isInitialized = true;
-    }
+        assetSyncState.isInitialized = true;
+    };
 
-    /**
-     * Set up IPC listener for real-time sync progress updates.
-     * Call this once (e.g. in a component $effect or onMount).
-     * @returns {Function} Cleanup function to unsubscribe.
-     */
-    setupSyncListener() {
-        if (this.#unsubscribeSyncProgress || !window.api?.onAssetSyncProgress) {
+    const setupSyncListener = () => {
+        if (unsubscribeSyncProgress || !window.api?.onAssetSyncProgress) {
             return () => {};
         }
 
-        this.#unsubscribeSyncProgress = window.api.onAssetSyncProgress((payload) => {
+        unsubscribeSyncProgress = window.api.onAssetSyncProgress((payload) => {
             const { assetId, isGeneric, status, progress, error } = payload;
-            if (!this.assets[assetId]) {
-                this.assets[assetId] = {
+            if (!assetSyncState.assets[assetId]) {
+                assetSyncState.assets[assetId] = {
                     status: 'missing',
                     progress: 0,
                     error: null,
@@ -73,28 +57,33 @@ class AssetSyncStore {
                 };
             }
 
-            if (status !== undefined) this.assets[assetId].status = status;
-            if (progress !== undefined) this.assets[assetId].progress = progress;
-            if (error !== undefined) this.assets[assetId].error = error;
+            if (status !== undefined) assetSyncState.assets[assetId].status = status;
+            if (progress !== undefined) assetSyncState.assets[assetId].progress = progress;
+            if (error !== undefined) assetSyncState.assets[assetId].error = error;
         });
 
-        return () => this.cleanup();
-    }
+        return () => cleanup();
+    };
 
-    cleanup() {
-        if (this.#unsubscribeSyncProgress) {
-            this.#unsubscribeSyncProgress();
-            this.#unsubscribeSyncProgress = null;
+    const cleanup = () => {
+        if (unsubscribeSyncProgress) {
+            unsubscribeSyncProgress();
+            unsubscribeSyncProgress = null;
         }
-    }
+    };
 
-    getAssetStatus(assetId) {
-        return this.assets[assetId] || { status: 'missing', progress: 0, error: null };
-    }
+    const getAssetStatus = (assetId) =>
+        assetSyncState.assets[assetId] || { status: 'missing', progress: 0, error: null };
+
+    storeInstance = {
+        get assetSyncState() { return assetSyncState; },
+        initialize,
+        setupSyncListener,
+        cleanup,
+        getAssetStatus,
+    };
+
+    return storeInstance;
 }
 
-export const assetSyncStore = new AssetSyncStore();
-
-export function getAssetSyncStore() {
-    return assetSyncStore;
-}
+export const assetSyncStore = getAssetSyncStore();

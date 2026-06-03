@@ -1,72 +1,72 @@
 const isBrowser = typeof window !== 'undefined';
 
-class NetworkStatusStore {
-    isInitialized = $state(false);
-    online = $state(true);
-    source = $state('startup');
-    lastChangedAt = $state(null);
+let storeInstance = null;
 
-    _cleanupFns = [];
+export function getNetworkStatusStore() {
+    if (storeInstance) return storeInstance;
 
-    constructor() {
-        this.initialize = this.initialize.bind(this);
-        this.destroy = this.destroy.bind(this);
-    }
+    const networkStatusState = $state({
+        isInitialized: false,
+        online: true,
+        source: 'startup',
+        lastChangedAt: null,
+    });
 
-    get state() {
-        return this;
-    }
+    let cleanupFns = [];
 
-    applyStatus(online, source = 'unknown', ts = Date.now()) {
+    const applyStatus = (online, source = 'unknown', ts = Date.now()) => {
         if (typeof online !== 'boolean') return;
-        if (this.online === online && this.source === source) return;
+        if (networkStatusState.online === online && networkStatusState.source === source) return;
+        networkStatusState.online = online;
+        networkStatusState.source = source;
+        networkStatusState.lastChangedAt = ts;
+    };
 
-        this.online = online;
-        this.source = source;
-        this.lastChangedAt = ts;
-    }
+    const initialize = async () => {
+        if (!isBrowser || networkStatusState.isInitialized) return;
 
-    async initialize() {
-        if (!isBrowser || this.isInitialized) return;
+        applyStatus(navigator.onLine, 'navigator-bootstrap');
 
-        this.applyStatus(navigator.onLine, 'navigator-bootstrap');
-
-        const handleBrowserOnline = () => this.applyStatus(true, 'browser-event');
-        const handleBrowserOffline = () => this.applyStatus(false, 'browser-event');
+        const handleBrowserOnline = () => applyStatus(true, 'browser-event');
+        const handleBrowserOffline = () => applyStatus(false, 'browser-event');
 
         window.addEventListener('online', handleBrowserOnline);
         window.addEventListener('offline', handleBrowserOffline);
 
-        this._cleanupFns.push(() => window.removeEventListener('online', handleBrowserOnline));
-        this._cleanupFns.push(() => window.removeEventListener('offline', handleBrowserOffline));
+        cleanupFns.push(() => window.removeEventListener('online', handleBrowserOnline));
+        cleanupFns.push(() => window.removeEventListener('offline', handleBrowserOffline));
 
         const removeNetworkStatusListener = window.api?.onNetworkStatusChanged?.((status) => {
-            this.applyStatus(status?.online, status?.source || 'electron', status?.ts || Date.now());
+            applyStatus(status?.online, status?.source || 'electron', status?.ts || Date.now());
         }) || null;
 
         if (removeNetworkStatusListener) {
-            this._cleanupFns.push(removeNetworkStatusListener);
+            cleanupFns.push(removeNetworkStatusListener);
         }
 
         try {
             const status = await window.api?.getNetworkStatus?.();
-            this.applyStatus(status?.online ?? navigator.onLine, status?.source || 'electron-bootstrap', status?.ts || Date.now());
+            applyStatus(status?.online ?? navigator.onLine, status?.source || 'electron-bootstrap', status?.ts || Date.now());
         } catch {
-            this.applyStatus(navigator.onLine, 'navigator-fallback');
+            applyStatus(navigator.onLine, 'navigator-fallback');
         }
 
-        this.isInitialized = true;
-    }
+        networkStatusState.isInitialized = true;
+    };
 
-    destroy() {
-        this._cleanupFns.forEach((fn) => fn());
-        this._cleanupFns = [];
-        this.isInitialized = false;
-    }
+    const destroy = () => {
+        cleanupFns.forEach((fn) => fn());
+        cleanupFns = [];
+        networkStatusState.isInitialized = false;
+    };
+
+    storeInstance = {
+        get networkStatusState() { return networkStatusState; },
+        initialize,
+        destroy,
+    };
+
+    return storeInstance;
 }
 
-export const networkStatusStore = new NetworkStatusStore();
-
-export function getNetworkStatusStore() {
-    return networkStatusStore;
-}
+export const networkStatusStore = getNetworkStatusStore();

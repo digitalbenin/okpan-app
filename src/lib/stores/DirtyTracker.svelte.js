@@ -1,16 +1,7 @@
-/**
- * Dirty Tracker - Tracks form data changes using deep equality
- * Detects when user modifies any data and provides dirty state
- */
-
 import { diff } from '@opentf/obj-diff';
 
-/**
- * Serializes data for comparison (normalizes structure)
- */
 function serializeData(data) {
     if (data == null) return null;
-
     try {
         return JSON.parse(JSON.stringify(data));
     } catch {
@@ -18,58 +9,28 @@ function serializeData(data) {
     }
 }
 
-class DirtyTracker {
-    pristineData = $state(null);
-    currentData = $state(null);
-
-    get isDirty() {
-        if (this.pristineData === null || this.currentData === null) return false;
-        return diff(this.pristineData, this.currentData).length > 0;
-    }
-
-    constructor(initialData = null) {
-        const serialized = serializeData(initialData);
-        this.pristineData = serialized;
-        this.currentData = serialized;
-    }
-
-    /**
-     * Update current data and check for changes
-     */
-    update(newData) {
-        this.currentData = serializeData(newData);
-    }
-
-    /**
-     * Mark current state as pristine (after successful save)
-     */
-    markPristine() {
-        this.pristineData = serializeData(this.currentData);
-    }
-
-    /**
-     * Reset to pristine state (revert changes)
-     */
-    reset() {
-        this.currentData = serializeData(this.pristineData);
-    }
-
-    /**
-     * Update pristine baseline without marking dirty
-     */
-    setPristine(newPristineData) {
-        const serialized = serializeData(newPristineData);
-        this.pristineData = serialized;
-        this.currentData = serialized;
-    }
-}
-
-/**
- * Creates a dirty tracker for form data
- * @param {Object} options - Configuration options
- * @param {*} options.initialData - Initial/pristine state of the data
- * @returns {DirtyTracker} Dirty tracker instance
- */
 export function createDirtyTracker(options = {}) {
-    return new DirtyTracker(options.initialData);
+    let pristineData = $state(null);
+    let currentData = $state(null);
+
+    const serialized = serializeData(options.initialData);
+    pristineData = serialized;
+    currentData = serialized;
+
+    return {
+        get pristineData() { return pristineData; },
+        get currentData() { return currentData; },
+        get isDirty() {
+            if (pristineData === null || currentData === null) return false;
+            return diff(pristineData, currentData).length > 0;
+        },
+        update(newData) { currentData = serializeData(newData); },
+        markPristine() { pristineData = serializeData(currentData); },
+        reset() { currentData = serializeData(pristineData); },
+        setPristine(newPristineData) {
+            const s = serializeData(newPristineData);
+            pristineData = s;
+            currentData = s;
+        }
+    };
 }

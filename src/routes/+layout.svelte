@@ -30,7 +30,7 @@
   );
 
   const userPresenceStore = getUserPresenceStore();
-  const userPresenceState = userPresenceStore.state;
+  const userPresenceState = userPresenceStore.userPresenceState;
 
   let usernameDialogOpen = $state(false);
   let usernameDraft = $state("");

@@ -34,14 +34,21 @@ export function getLogStore() {
         }
     });
 
-    // Initialize the store
-    const initialize = async () => {
-        if (logState.isInitialized) return;
-
-        // Only fetch logs if we're in a browser environment
-        if (isBrowser) {
-            await fetchLogs();
-        }
+    // Seed store with pre-loaded data from a layout/page load function.
+    // Callers (e.g. +layout.js) fetch logs and pass the result here.
+    const initialize = ({ logs = [], totalCount = 0, page = 1, pageSize = 50 } = {}) => {
+        logState.logs = logs.map(log => {
+            if (log.details && typeof log.details === 'string') {
+                try { log.details = JSON.parse(log.details); } catch { /* keep as-is */ }
+            }
+            return log;
+        });
+        logState.pagination = {
+            page,
+            pageSize,
+            totalLogs: totalCount,
+            totalPages: Math.max(1, Math.ceil(totalCount / pageSize))
+        };
         logState.isInitialized = true;
     };
 
@@ -276,14 +283,6 @@ export function getLogStore() {
             message
         });
     };
-
-    // Start initialization if not already initialized
-    if (!logState.isInitialized && !logState.isLoading) {
-        // Start initialization asynchronously
-        setTimeout(() => {
-            initialize();
-        }, 0);
-    }
 
     // Create the store instance
     storeInstance = {

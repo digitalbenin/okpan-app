@@ -4,7 +4,7 @@
   import Sidebar from "$lib/components/projects/Sidebar.svelte";
   import DeletedEntityRedirectGuard from "$lib/components/navigation/DeletedEntityRedirectGuard.svelte";
   import { getNetworkStatusStore } from "$lib/stores/NetworkStatusStore.svelte.js";
-  import { createP2PReconnectManager } from "$lib/stores/P2PReconnectManager.svelte.js";
+  import { createP2PReconnectManager } from "$lib/utils/P2PReconnectManager.js";
   import { page } from "$app/state";
   import { afterNavigate } from "$app/navigation";
 
@@ -12,7 +12,7 @@
   const networkStatusStore = getNetworkStatusStore();
 
   const p2pReconnect = createP2PReconnectManager(
-    networkStatusStore.state,
+    networkStatusStore.networkStatusState,
     () => page.params.project_id
   );
 

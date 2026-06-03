@@ -1,80 +1,64 @@
 const DEFAULT_CONTENT_LANGUAGE = { code: 'en', name: 'English', is_default: 1 };
 
-class ContentLanguageStore {
-    languages = $state([]);
-    projectLanguages = $state([]);
-    currentLocale = $state('en');
-    isLoading = $state(false);
-    error = $state(null);
-    isInitialized = $state(false);
-    defaultLocale = $state('en');
+let storeInstance = null;
 
-    constructor() {
-        this.initialize = this.initialize.bind(this);
-        this.setLocale = this.setLocale.bind(this);
-        this.getLanguage = this.getLanguage.bind(this);
-        this.getAvailableLocales = this.getAvailableLocales.bind(this);
-        this.setProjectLanguages = this.setProjectLanguages.bind(this);
-        this.getTranslationContent = this.getTranslationContent.bind(this);
-        this.getExistingTranslationId = this.getExistingTranslationId.bind(this);
-        this.buildTranslationFormValues = this.buildTranslationFormValues.bind(this);
-    }
+export function getContentLanguageStore() {
+    if (storeInstance) return storeInstance;
 
-    get state() {
-        return this;
-    }
+    const contentLanguageState = $state({
+        languages: [DEFAULT_CONTENT_LANGUAGE],
+        projectLanguages: [DEFAULT_CONTENT_LANGUAGE],
+        currentLocale: 'en',
+        isLoading: false,
+        error: null,
+        isInitialized: false,
+        defaultLocale: 'en',
+    });
 
-    get contentLanguageState() {
-        return this;
-    }
+    const initialize = ({ languages = [], projectLanguages = [], locale = 'en' } = {}) => {
+        contentLanguageState.languages = languages.length > 0 ? languages : [DEFAULT_CONTENT_LANGUAGE];
+        contentLanguageState.projectLanguages = projectLanguages.length > 0 ? projectLanguages : contentLanguageState.languages;
+        contentLanguageState.currentLocale = locale;
+        contentLanguageState.isInitialized = true;
+    };
 
-    /**
-     * Initialize store from pre-loaded data.
-     */
-    initialize({ languages = [], projectLanguages = [], locale = 'en' } = {}) {
-        this.languages = languages.length > 0 ? languages : [DEFAULT_CONTENT_LANGUAGE];
-        this.projectLanguages = projectLanguages.length > 0 ? projectLanguages : this.languages;
-        this.currentLocale = locale;
-        this.isInitialized = true;
-    }
+    const getLanguage = (code) => contentLanguageState.languages.find(language => language.code === code);
 
-    getLanguage(code) {
-        return this.languages.find(language => language.code === code);
-    }
+    const setLocale = (code) => { contentLanguageState.currentLocale = code; };
 
-    setLocale(code) {
-        this.currentLocale = code;
-    }
+    const getAvailableLocales = () => contentLanguageState.languages.map(language => language.code);
 
-    getAvailableLocales() {
-        return this.languages.map(language => language.code);
-    }
+    const setProjectLanguages = (langs) => { contentLanguageState.projectLanguages = langs; };
 
-    setProjectLanguages(langs) {
-        this.projectLanguages = langs;
-    }
+    const getTranslationContent = (fieldObj, langCode) =>
+        fieldObj?.translations?.find((t) => t.language?.code === langCode)?.content ?? "";
 
-    getTranslationContent(fieldObj, langCode) {
-        return fieldObj?.translations?.find((t) => t.language?.code === langCode)?.content ?? "";
-    }
+    const getExistingTranslationId = (fieldObj, langCode) =>
+        fieldObj?.translations?.find((t) => t.language?.code === langCode)?.id ?? null;
 
-    getExistingTranslationId(fieldObj, langCode) {
-        return fieldObj?.translations?.find((t) => t.language?.code === langCode)?.id ?? null;
-    }
-
-    buildTranslationFormValues(entity, secondaryLanguages, translatableFields) {
+    const buildTranslationFormValues = (entity, secondaryLanguages, translatableFields) => {
         const values = {};
         secondaryLanguages.forEach(lang => {
             translatableFields.forEach(fieldName => {
-                values[`translations_${lang.id}_${fieldName}`] = this.getTranslationContent(entity?.[fieldName], lang.code);
+                values[`translations_${lang.id}_${fieldName}`] = getTranslationContent(entity?.[fieldName], lang.code);
             });
         });
         return values;
-    }
+    };
+
+    storeInstance = {
+        get contentLanguageState() { return contentLanguageState; },
+        initialize,
+        getLanguage,
+        setLocale,
+        getAvailableLocales,
+        setProjectLanguages,
+        getTranslationContent,
+        getExistingTranslationId,
+        buildTranslationFormValues,
+    };
+
+    return storeInstance;
 }
 
-export const contentLanguageStore = new ContentLanguageStore();
-
-export function getContentLanguageStore() {
-    return contentLanguageStore;
-}
+export const contentLanguageStore = getContentLanguageStore();

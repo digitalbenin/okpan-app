@@ -10,7 +10,7 @@
   let { projectId = null } = $props();
 
   const userPresenceStore = getUserPresenceStore();
-  const userPresenceState = userPresenceStore.state;
+  const userPresenceState = userPresenceStore.userPresenceState;
   const currentUsername = $derived(userPresenceState.username || "Anonymous");
   const connectedPeers = $derived(userPresenceState.peers || []);
   const visibleConnectedPeers = $derived(connectedPeers.slice(0, 3));
@@ -20,9 +20,9 @@
   );
 
   const syncStore = getAssetSyncStore();
-  const syncState = syncStore.state;
+  const syncState = syncStore.assetSyncState;
   const networkStatusStore = getNetworkStatusStore();
-  const networkStatusState = networkStatusStore.state;
+  const networkStatusState = networkStatusStore.networkStatusState;
   const isDownloadingAssets = $derived(
     Object.values(syncState.assets || {}).some(a => a.status === 'downloading')
   );

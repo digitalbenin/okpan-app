@@ -225,11 +225,16 @@
                          {
                              "namespace":  "project",
                              "key":  "created-on",
-                             "value":  "Created on"
-                         },
-                         {
-                             "namespace":  "project",
-                             "key":  "collections",
+                              "value":  "Created on"
+                          },
+                          {
+                              "namespace":  "project",
+                              "key":  "title",
+                              "value":  "Project title"
+                          },
+                          {
+                              "namespace":  "project",
+                              "key":  "collections",
                              "value":  "Collections"
                             
                          },

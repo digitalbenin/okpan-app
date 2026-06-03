@@ -17,7 +17,7 @@
   const { data } = $props();
   const { t, translationState, setLocale } = getTranslationStore();
   const userPresenceStore = getUserPresenceStore();
-  const userPresenceState = userPresenceStore.state;
+  const userPresenceState = userPresenceStore.userPresenceState;
 
   let newProjectOpen = $state(false);
   let importProjectOpen = $state(false);

@@ -554,6 +554,11 @@
                           },
                           {
                               "namespace":  "project",
+                              "key":  "title",
+                              "value":  "Titolo del progetto"
+                          },
+                          {
+                              "namespace":  "project",
                               "key":  "welcome.title",
                               "value":  "Da dove vuoi iniziare?"
                           },

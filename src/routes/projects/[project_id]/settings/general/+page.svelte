@@ -36,7 +36,7 @@
   const i18n = $derived({
     settings: t("project.settings"),
     settingsDesc: t("project.settings-desc"),
-    title: t("common.title"),
+    title: t("project.title"),
     description: t("common.description"),
     titlePlaceholder: t("project.title.placeholder"),
     contentLanguages: t("project.content_languages"),
