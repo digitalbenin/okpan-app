@@ -1,10 +1,15 @@
-import { getLogStore } from "$lib/stores/LogStore.svelte.js";
 import { addToast } from "$lib/components/base/BaseToast.svelte";
 import { API_SECTIONS } from "$lib/queries/index.js";
 import { translationsOperations } from "$lib/queries/translations.js";
 import { languagesOperations } from "$lib/queries/languages.js";
 
-const { error: logError } = getLogStore();
+// Lazy log helper to avoid a circular dependency:
+// graphqlClient → LogStore → LogsApi → graphqlClient
+async function logError(action, message) {
+	const { getLogStore } = await import("$lib/stores/LogStore.svelte.js");
+	const { error } = getLogStore();
+	return error(action, message);
+}
 
 /**
  * @namespace frontend.api.graphqlClient
