@@ -25,6 +25,7 @@
 		const byId = Object.create(null);
 		for (const f of objectResearchFields || []) {
 			const rf = researchById.get(String(f.field_id));
+			if (rf?.onwebsite === 0) continue;
 			const researchFieldName = content(rf, 'name');
 			if (!researchFieldName) continue;
 			

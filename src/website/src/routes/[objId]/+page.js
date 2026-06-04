@@ -31,7 +31,14 @@ export async function load({ params, url, fetch }) {
             const obj = data.objects?.find(o => sameId(o.id, objId));
             
             if (!obj) return emptyResult;
-            
+
+            const visibleOntologyIds = new Set((data.ontology_fields || []).map(f => f.id));
+            const visibleResearchIds = new Set((data.research_fields || []).map(f => f.id));
+
+            // Strip hidden field values from the object
+            obj.objectOntologyFields = (obj.objectOntologyFields || []).filter(f => visibleOntologyIds.has(f.field_id));
+            obj.objectResearchFields = (obj.objectResearchFields || []).filter(f => visibleResearchIds.has(f.field_id));
+
             const pick = (arr, ids, mapper) => (arr || []).filter(x => ids.has(x.id)).map(mapper);
             const usedIds = {
                 ontology: new Set((obj.objectOntologyFields || []).map(f => f.field_id)),

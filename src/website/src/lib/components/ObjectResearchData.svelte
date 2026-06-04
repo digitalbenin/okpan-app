@@ -64,6 +64,7 @@
 	const grouped = $derived.by(() => {
 		const byId = Object.create(null);
 		for (const f of mappedFields) {
+			if (f.researchField?.onwebsite === 0) continue;
 			if (!f.fieldName) continue;
 			const dv = f.displayValue;
 			if (dv == null || dv === '') continue;

@@ -223,12 +223,16 @@ export function fetchOntologyFields(db, projectId) {
   let res;
   if (projectId) {
     res = db.exec(
-      'SELECT o.*, t.content as name FROM ontology_fields o LEFT JOIN texts t ON o.name_id = t.id WHERE o.project_id = ?',
+      `SELECT o.*, t.content as name FROM ontology_fields o
+       LEFT JOIN texts t ON o.name_id = t.id
+       WHERE o.project_id = ? AND (o.onwebsite = 1 OR o.onwebsite IS NULL)`,
       [projectId]
     );
   } else {
     res = db.exec(
-      'SELECT o.*, t.content as name FROM ontology_fields o LEFT JOIN texts t ON o.name_id = t.id'
+      `SELECT o.*, t.content as name FROM ontology_fields o
+       LEFT JOIN texts t ON o.name_id = t.id
+       WHERE (o.onwebsite = 1 OR o.onwebsite IS NULL)`
     );
   }
   const rows = results_to_objects(res);
@@ -253,7 +257,7 @@ export function fetchResearchFields(db, projectId) {
        FROM research_fields r 
        LEFT JOIN texts name_txt ON r.name_id = name_txt.id
        LEFT JOIN texts desc_txt ON r.description_id = desc_txt.id
-       WHERE r.project_id = ?`,
+       WHERE r.project_id = ? AND r.onwebsite = 1`,
       [projectId]
     );
   } else {
@@ -261,7 +265,8 @@ export function fetchResearchFields(db, projectId) {
       `SELECT r.*, name_txt.content as name, desc_txt.content as description
        FROM research_fields r 
        LEFT JOIN texts name_txt ON r.name_id = name_txt.id
-       LEFT JOIN texts desc_txt ON r.description_id = desc_txt.id`
+       LEFT JOIN texts desc_txt ON r.description_id = desc_txt.id
+       WHERE r.onwebsite = 1`
     );
   }
   const rows = results_to_objects(res);
@@ -280,7 +285,7 @@ export function fetchResearchFields(db, projectId) {
 export function fetchVocabularyDetails(db, vocabId) {
     if (!vocabId) return null;
 
-    // Fetch the main vocabulary details
+    // Fetch the main vocabulary details (only if parent research field is visible)
     const vocabRes = db.exec(
         `SELECT 
         v.*, 
@@ -289,11 +294,12 @@ export function fetchVocabularyDetails(db, vocabId) {
         ga.path as main_asset_path,
         COUNT(orf.object_id) as count
       FROM vocabularies v 
+      JOIN research_fields rf ON v.field_id = rf.id
       LEFT JOIN texts t ON v.option_id = t.id 
       LEFT JOIN texts dt ON v.description_id = dt.id 
       LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id
       LEFT JOIN objects_research_fields orf ON v.id = orf.vocabulary_id
-      WHERE v.id = ?
+      WHERE v.id = ? AND rf.onwebsite = 1
       GROUP BY v.id`,
         [vocabId]
     );
@@ -339,7 +345,7 @@ export function fetchVocabularies(db, projectId) {
       LEFT JOIN texts dt ON v.description_id = dt.id
       LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id
       LEFT JOIN objects_research_fields orf ON v.id = orf.vocabulary_id
-      WHERE rf.project_id = ?
+      WHERE rf.project_id = ? AND rf.onwebsite = 1
       GROUP BY v.id
     `,
       [projectId]
@@ -353,10 +359,12 @@ export function fetchVocabularies(db, projectId) {
         ga.path as main_asset_path,
         COUNT(orf.object_id) as count
       FROM vocabularies v 
+      JOIN research_fields rf ON v.field_id = rf.id
       LEFT JOIN texts t ON v.option_id = t.id 
       LEFT JOIN texts dt ON v.description_id = dt.id 
       LEFT JOIN generic_assets ga ON v.main_asset_id = ga.id
       LEFT JOIN objects_research_fields orf ON v.id = orf.vocabulary_id
+      WHERE rf.onwebsite = 1
       GROUP BY v.id`
     );
   }
@@ -515,7 +523,8 @@ export function fetchObjectById(db, objectId) {
         'primary', oof."primary"
       ))
       FROM objects_ontology_fields oof
-      WHERE oof.object_id = o.id
+      JOIN ontology_fields of ON oof.field_id = of.id
+      WHERE oof.object_id = o.id AND (of.onwebsite = 1 OR of.onwebsite IS NULL)
     )`,
     research: `(
       SELECT json_group_array(json_object(
@@ -525,7 +534,8 @@ export function fetchObjectById(db, objectId) {
         'vocabulary_id', orf.vocabulary_id
       ))
       FROM objects_research_fields orf
-      WHERE orf.object_id = o.id
+      JOIN research_fields rf ON orf.field_id = rf.id
+      WHERE orf.object_id = o.id AND rf.onwebsite = 1
     )`,
     datasources: `(
       SELECT json_group_array(json_object(
@@ -548,7 +558,9 @@ export function fetchObjectById(db, objectId) {
       WHERE ds.id IN (
         SELECT DISTINCT oof.datasources_id
         FROM objects_ontology_fields oof
+        JOIN ontology_fields of ON oof.field_id = of.id
         WHERE oof.object_id = o.id AND oof.datasources_id IS NOT NULL
+          AND (of.onwebsite = 1 OR of.onwebsite IS NULL)
       )
     )`,
     // Fetch template mappings via objects_datasources

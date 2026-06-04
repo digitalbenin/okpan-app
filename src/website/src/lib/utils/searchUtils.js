@@ -79,8 +79,10 @@ export async function searchObjects(options = {}) {
     searchConditions.push(`
       EXISTS (
         SELECT 1 FROM objects_ontology_fields oof
+        JOIN ontology_fields of ON oof.field_id = of.id
         WHERE oof.object_id = o.id
         ${ontologyFieldIds.length > 0 ? `AND oof.field_id IN (${ontologyFieldPlaceholders})` : ''}
+        AND (of.onwebsite = 1 OR of.onwebsite IS NULL)
         AND LOWER(oof.value) LIKE ?
       )
     `);
@@ -102,6 +104,7 @@ export async function searchObjects(options = {}) {
         JOIN research_fields rf ON orf.field_id = rf.id
         JOIN texts t_rf ON rf.name_id = t_rf.id
         WHERE orf.object_id = o.id
+        AND rf.onwebsite = 1
         AND (LOWER(orf.value) LIKE ? OR LOWER(t_rf.content) LIKE ?)
       )
     `);
@@ -131,8 +134,10 @@ export async function searchObjects(options = {}) {
       textFieldConditions.push(`
         EXISTS (
           SELECT 1 FROM objects_ontology_fields oof
+          JOIN ontology_fields of ON oof.field_id = of.id
           WHERE oof.object_id = o.id
           AND oof.field_id = ?
+          AND (of.onwebsite = 1 OR of.onwebsite IS NULL)
           AND LOWER(oof.value) LIKE ?
         )
       `);
@@ -151,7 +156,9 @@ export async function searchObjects(options = {}) {
         fieldConditions.push(`
                     EXISTS (
                         SELECT 1 FROM objects_research_fields orf
+                        JOIN research_fields rf ON orf.field_id = rf.id
                         WHERE orf.object_id = o.id
+                        AND rf.onwebsite = 1
                         AND orf.field_id = ?
                         AND LOWER(orf.value) LIKE ?
                     )
@@ -163,7 +170,9 @@ export async function searchObjects(options = {}) {
         fieldConditions.push(`
                     EXISTS (
                         SELECT 1 FROM objects_research_fields orf
+                        JOIN research_fields rf ON orf.field_id = rf.id
                         WHERE orf.object_id = o.id
+                        AND rf.onwebsite = 1
                         AND orf.field_id = ?
                         AND orf.vocabulary_id IN (${vocabPlaceholders})
                     )
@@ -191,12 +200,14 @@ export async function searchObjects(options = {}) {
     ontology: `(
       SELECT json_group_array(json_object('id', oof.id, 'value', oof.value, 'field_id', oof.field_id, 'primary', oof."primary"))
       FROM objects_ontology_fields oof
-      WHERE oof.object_id = o.id
+      JOIN ontology_fields of ON oof.field_id = of.id
+      WHERE oof.object_id = o.id AND (of.onwebsite = 1 OR of.onwebsite IS NULL)
     )`,
     research: `(
       SELECT json_group_array(json_object('id', orf.id, 'value', orf.value, 'field_id', orf.field_id, 'vocabulary_id', orf.vocabulary_id))
       FROM objects_research_fields orf
-      WHERE orf.object_id = o.id
+      JOIN research_fields rf ON orf.field_id = rf.id
+      WHERE orf.object_id = o.id AND rf.onwebsite = 1
     )`
   };
 
@@ -259,6 +270,7 @@ export async function searchObjects(options = {}) {
     ontologyWhereClauses.push('(of.project_id = ? OR of.project_id IS NULL)');
     ontologyParams.push(projectId);
   }
+  ontologyWhereClauses.push('(of.onwebsite = 1 OR of.onwebsite IS NULL)');
   const ontologyWhere = ontologyWhereClauses.length > 0 ? `WHERE ${ontologyWhereClauses.join(' AND ')}` : '';
   const ontologyFacetSql = `
      SELECT oof.field_id, oof.value, COUNT(DISTINCT o.id) as count
@@ -282,6 +294,7 @@ export async function searchObjects(options = {}) {
     researchWhereClauses.push('(rf.project_id = ? OR rf.project_id IS NULL)');
     researchParams.push(projectId);
   }
+  researchWhereClauses.push('rf.onwebsite = 1');
   const researchWhere = researchWhereClauses.length > 0 ? `WHERE ${researchWhereClauses.join(' AND ')}` : '';
   const researchFacetSql = `
     SELECT 

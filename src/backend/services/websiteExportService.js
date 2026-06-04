@@ -483,8 +483,14 @@ async function exportWebsiteData(projectId, db, filters = {}) {
           .where(inArray(dbSchema.assets.id, assetIds)).execute()
       : [];
 
-    // Fetch vocabularies for all project research fields of type 'vocabulary'
-    const vocabularyFieldIds = researchFields
+    // Keep only fields visible on the website
+    const visibleResearchFields = researchFields.filter(rf => rf.onwebsite !== 0);
+    const visibleOntologyFields = ontologyFields.filter(of => of.onwebsite !== 0);
+    const visibleResearchFieldIds = new Set(visibleResearchFields.map(rf => rf.id));
+    const visibleOntologyFieldIds = new Set(visibleOntologyFields.map(of => of.id));
+
+    // Fetch vocabularies for visible project research fields of type 'vocabulary'
+    const vocabularyFieldIds = visibleResearchFields
       .filter(rf => rf.type === 'vocabulary')
       .map(rf => rf.id);
       
@@ -635,8 +641,12 @@ async function exportWebsiteData(projectId, db, filters = {}) {
     // Transform objects with embedded data
     const transformedObjects = objects.map(obj => {
       const objAssets = objectsAssets.filter(oa => oa.object_id === obj.id);
-      const objOntologyFields = objectsOntologyFields.filter(oof => oof.object_id === obj.id);
-      const objResearchFields = objectsResearchFields.filter(orf => orf.object_id === obj.id);
+      const objOntologyFields = objectsOntologyFields.filter(
+        oof => oof.object_id === obj.id && visibleOntologyFieldIds.has(oof.field_id)
+      );
+      const objResearchFields = objectsResearchFields.filter(
+        orf => orf.object_id === obj.id && visibleResearchFieldIds.has(orf.field_id)
+      );
       
       // Get unique datasource IDs from ontology fields
       const objDatasourceIds = [...new Set(objOntologyFields.map(oof => oof.datasources_id).filter(Boolean))];
@@ -776,7 +786,7 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       website: i.website
     }));
 
-    const transformedResearchFields = researchFields.map(rf => ({
+    const transformedResearchFields = visibleResearchFields.map(rf => ({
       id: rf.id,
       name: textMap[rf.name_id],
       name_i18n: textPayloadMap[rf.name_id] || null,
@@ -787,7 +797,7 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       onwebsite: rf.onwebsite
     }));
 
-    const transformedOntologyFields = ontologyFields.map(of => ({
+    const transformedOntologyFields = visibleOntologyFields.map(of => ({
       id: of.id,
       name: textMap[of.name_id],
       name_i18n: textPayloadMap[of.name_id] || null,
@@ -798,10 +808,11 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       onwebsite: of.onwebsite
     }));
 
-    // Calculate vocabulary object counts
-    const vocabularyCounts = {}; 
+    // Calculate vocabulary object counts (only for visible vocabularies)
+    const visibleVocabularyIds = new Set(vocabularies.map(v => v.id));
+    const vocabularyCounts = {};
     objectsResearchFields.forEach(orf => {
-      if (orf.vocabulary_id) {
+      if (orf.vocabulary_id && visibleVocabularyIds.has(orf.vocabulary_id)) {
         vocabularyCounts[orf.vocabulary_id] = (vocabularyCounts[orf.vocabulary_id] || 0) + 1;
       }
     });

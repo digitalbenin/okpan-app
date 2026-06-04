@@ -6,10 +6,15 @@
 	const { content } = getWebsiteContentStore();
 
 	let mappedFields = $derived(
-		objectOntologyFields.map((e) => ({
-			...e,
-			name: content(ontologyFields.find((f) => f.id == e.field_id), 'name')
-		}))
+		objectOntologyFields
+			.filter((e) => {
+				const def = ontologyFields.find((f) => f.id == e.field_id);
+				return def && def.onwebsite !== 0;
+			})
+			.map((e) => ({
+				...e,
+				name: content(ontologyFields.find((f) => f.id == e.field_id), 'name')
+			}))
 	);
 
 	let groupedFields = $derived(
