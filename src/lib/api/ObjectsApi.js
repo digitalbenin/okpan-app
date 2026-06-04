@@ -1,5 +1,4 @@
 import { executeQuery } from "$lib/api/graphqlClient.js";
-import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
 import { invalidate, invalidateAll } from "$app/navigation";
 import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
@@ -18,9 +17,6 @@ export function getObjectIdentifier(object) {
     return object?.objectsOntologyFields?.find((f) => f.primary)?.value
         || t("common.identifier-not-set", { fallback: "Identifier not set" });
 }
-
-// Get validation store
-const { getSchema, validate } = getValidationStore();
 
 
 /**

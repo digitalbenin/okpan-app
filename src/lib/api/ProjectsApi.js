@@ -1,14 +1,5 @@
 import { executeQuery } from "$lib/api/graphqlClient.js";
-import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
 import { invalidate, invalidateAll } from "$app/navigation";
-// Get validation store
-const { getSchema, validate } = getValidationStore();
-
-// Get schemas for projects
-const projectInsertSchema = getSchema('project', 'insert');
-const projectUpdateSchema = getSchema('project', 'update');
-
-// Initialize the project store
 
 /**
  * @namespace frontend.api.ProjectsApi

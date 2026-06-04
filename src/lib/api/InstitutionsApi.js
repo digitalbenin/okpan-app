@@ -1,10 +1,6 @@
 import { executeQuery } from "$lib/api/graphqlClient.js";
-import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
 import { invalidate, invalidateAll } from "$app/navigation";
 import { deleteAssetsBulk } from "$lib/api/AssetsApi.js";
-
-// Get validation store
-const { getSchema, validate } = getValidationStore();
 
 /**
  * @namespace frontend.api.InstitutionsApi
