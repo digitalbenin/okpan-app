@@ -131,7 +131,7 @@
   ]);
 </script>
 
-<div class="sidebar h-100 border-end border-gray-400 overflow-y-auto px-4 py-3 d-flex flex-column justify-content-between">
+<div class="sidebar bg-white h-100 border-end border-gray-400 overflow-y-auto px-3 py-3 d-flex flex-column justify-content-between">
   <div class="d-flex flex-column gap-4">
     <div class="d-flex flex-column">
       <SidebarMenu items={projectLinks} pathname={page.url.pathname} />

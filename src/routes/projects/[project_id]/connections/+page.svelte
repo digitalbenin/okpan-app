@@ -15,7 +15,7 @@
   }
 </script>
 
-<div class="container-fluid h-100 bg-light">
+<div class="container-fluid h-100">
   <!-- Header Section -->
   <div class="row pt-3 pb-3 border-bottom mb-4 align-items-center">
     <div class="col">

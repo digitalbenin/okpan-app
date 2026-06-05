@@ -61,7 +61,7 @@
 </script>
 
 <div
-  class="ps-2 pe-1 py-1" 
+  class="ps-2 pe-1 py-1 m-1" 
   class:bg-green-100={isActive && !hasChildren}
   class:border={isActive && !hasChildren}
   class:border-green-200={isActive && !hasChildren}

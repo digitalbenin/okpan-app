@@ -310,7 +310,7 @@
     onStatusChange={setStatus}
   />
 
-  <div class="container-fluid bg-light">
+  <div class="container-fluid">
     <div class="row">
       <div class="col-9 mb-4">
         <div class="mt-2 mb-3 px-2">

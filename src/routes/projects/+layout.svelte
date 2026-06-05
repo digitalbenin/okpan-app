@@ -41,7 +41,7 @@
   });
 </script>
 
-<div class="d-flex flex-column vh-100">
+<div class="d-flex flex-column vh-100 bg-gray-200">
   <DeletedEntityRedirectGuard />
   <div class="flex-grow-0 flex-shrink-0">
     <Header />
@@ -54,7 +54,7 @@
       {/if}
     </div>
     <div
-      class="flex-grow-1 flex-shrink-1 overflow-y-auto position-relative"
+      class="flex-grow-1 flex-shrink-1 overflow-y-auto position-relative p-4"
       bind:this={contentContainer}
     >
       {@render children()}

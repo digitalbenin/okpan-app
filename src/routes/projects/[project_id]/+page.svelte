@@ -93,7 +93,7 @@
 {#if (data.objects?.totalCount ?? 0) === 0}
   <ProjectWelcome institutionsCount={data.project.institutionsCount ?? 0} />
 {:else}
-  <div class="p-4 min-vh-100 d-flex flex-column gap-4 bg-light">
+  <div class="p-4 min-vh-100 d-flex flex-column gap-4">
     <div class="d-flex flex-column gap-2">
       <div>{i18n.overview}</div>
       <StatsWidget {stats} />

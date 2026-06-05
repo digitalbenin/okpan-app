@@ -167,7 +167,7 @@
 </script>
 
 {#if !data.missingEntity && data.researchField}
-<div class="container-fluid h-100 bg-light d-flex flex-column">
+<div class="container-fluid h-100 d-flex flex-column">
     <!-- Header Section -->
     <div class="pt-3 pb-3 border-bottom mb-3">
         <div class="d-flex align-items-center gap-2 mb-2 text-muted">

@@ -627,11 +627,21 @@
                               "key":  "title",
                               "value":  "Titolo del progetto"
                           },
-                          {
-                              "namespace":  "project",
-                              "key":  "welcome.title",
-                              "value":  "Da dove vuoi iniziare?"
-                          },
+                           {
+                               "namespace":  "project",
+                               "key":  "welcome.title",
+                               "value":  "Da dove vorresti cominciare?"
+                           },
+                           {
+                               "namespace":  "project",
+                               "key":  "welcome.info-title",
+                               "value":  "Nuovo su Ọkpan?"
+                           },
+                           {
+                               "namespace":  "project",
+                               "key":  "welcome.info-description",
+                               "value":  "Consigliamo di iniziare aggiungendo almeno un'istituzione, e poi importare il tuo primo dataset."
+                           },
                          {
                              "namespace":  "project",
                              "key":  "welcome.description",

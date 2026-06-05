@@ -21,7 +21,7 @@
   };
 </script>
 
-<div class="card bg-white border-0">
+<div class="card  border-0">
   <div class="card-body">
    
 

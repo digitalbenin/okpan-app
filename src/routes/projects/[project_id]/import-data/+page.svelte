@@ -11,7 +11,7 @@
 </script>
 
 <div
-  class="bg-light w-100 h-100 d-flex align-items-center justify-content-center"
+  class="w-100 h-100 d-flex align-items-center justify-content-center"
 >
   <div class="bg-white rounded border w-50 p-3">
     <h2>{t("import.begin", { fallback: "Begin data import" })}</h2>

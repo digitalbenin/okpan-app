@@ -15,7 +15,7 @@
   const { t } = getTranslationStore();
 </script>
 
-<div class="container-fluid py-4 bg-light">
+<div class="container-fluid py-4 ">
   {#if onBack || (institutionName && showStatus) || showStatus}
     <div class="row mb-3">
       <div class="col-12">

@@ -2338,34 +2338,44 @@
                               "key":  "connection-type.title",
                               "value":  "Connection type name"
                           },
-                          {
-                              "namespace":  "project",
-                              "key":  "welcome.title",
-                              "value":  "Where do you want to start?"
-                          },
+                           {
+                               "namespace":  "project",
+                               "key":  "welcome-title",
+                               "value":  "Where would you like to begin?"
+                           },
+                           {
+                               "namespace":  "project",
+                               "key":  "welcome-info-title",
+                               "value":  "New to Ọkpan?"
+                           },
+                           {
+                               "namespace":  "project",
+                               "key":  "welcome-info-description",
+                               "value":  "We recommend starting by adding at least one institution, then importing your first dataset."
+                           },
                          {
                              "namespace":  "project",
-                             "key":  "welcome.description",
-                             "value":  "Start your project with the right foot. This platform helps you research and connect data about cultural objects from diverse institutions, bringing knowledge and heritage together in one place."
+                             "key":  "welcome-description",
+                             "value":  "Ọkpan helps you connect cultural objects across institutions — linking collections, vocabularies, and sources in one structured workspace."
                          },
                          {
                              "namespace":  "project",
-                             "key":  "welcome.connections-description",
-                             "value":  "Set up connections for your project so you can link objects to controlled vocabularies and shared terms."
+                             "key":  "welcome-connections-description",
+                             "value":  "Add terms, ideas and media that you want to connect to objects to give them meaning."
                          },
                          {
                              "namespace":  "project",
-                             "key":  "welcome.institution-description",
-                             "value":  "Add institutions, museums or archives where the data about your collection are coming from."
+                             "key":  "welcome-institution-description",
+                             "value":  "Register the museums, archives, or libraries where your collection data originates."
                          },
                          {
                              "namespace":  "project",
-                             "key":  "welcome.import-description",
-                             "value":  "Start batch importing data about your research objects from CSV, JSON or XML files."
+                             "key":  "welcome-import-description",
+                             "value":  "Batch-load object records from CSV, JSON, or XML files to populate your project quickly."
                          },
                          {
                              "namespace":  "project",
-                             "key":  "welcome.import-requires-institution",
+                             "key":  "welcome-import-requires-institution",
                              "value":  "Create at least one institution to import data."
                          },
                          {

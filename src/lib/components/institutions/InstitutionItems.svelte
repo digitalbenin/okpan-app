@@ -45,7 +45,7 @@
     <div class="col">
       <Tabs.Root bind:value={view}>
         <Tabs.List>
-          <div class="institution-tabs bg-light rounded-3">
+          <div class="institution-tabs rounded-3">
             <ul class="nav nav-underline mb-0">
               {#each tabsList as tab}
                 <Tabs.Trigger forceMount value={tab.value}>

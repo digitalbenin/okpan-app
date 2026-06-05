@@ -98,7 +98,7 @@
   );
 </script>
 
-<div class="bg-light">
+<div>
   <InstitutionOverview institution={data.institution} />
   <InstitutionItems
     bind:view={viewParam}
