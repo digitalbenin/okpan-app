@@ -73,7 +73,13 @@
   // Submit handler
   async function onSubmitForm({ value }) {
     try {
-      const cleanedLinks = value.links?.filter((link) => link.url?.trim() && link.label?.trim()) || [];
+      // Filter non-empty links and map to plain objects.
+      // The .map() is essential: items from Svelte 5 form state may be reactive
+      // proxies that Electron's IPC structured clone algorithm rejects.
+      const cleanedLinks = value.links
+        ?.filter((link) => link.url?.trim() && link.label?.trim())
+        .map(link => ({ url: link.url, label: link.label }))
+        || [];
 
       if (mode === "create") {
         const result = await createInstitution({
