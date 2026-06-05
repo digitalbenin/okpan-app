@@ -1310,59 +1310,74 @@
                          },
                          {
                              "namespace":  "menu",
-                             "key":  "add-institution",
-                             "value":  "Add Institution"
+                              "key":  "add-institution",
+                              "value":  "Add institution"
                          },
                          {
                              "namespace":  "menu",
-                             "key":  "add-object",
-                             "value":  "Add Object"
+                              "key":  "add-object",
+                              "value":  "Add object"
                          },
                          {
                              "namespace":  "menu",
-                             "key":  "import-data",
-                             "value":  "Import Data"
+                              "key":  "import-data",
+                              "value":  "Import data"
                          },
                          {
                              "namespace":  "menu",
-                             "key":  "import-assets",
-                             "value":  "Import Media"
+                              "key":  "import-assets",
+                              "value":  "Import media"
                          },
                          {
                              "namespace":  "menu",
-                             "key":  "export-data",
-                             "value":  "Export Data"
+                              "key":  "export-data",
+                              "value":  "Export data"
                          },
                          {
                              "namespace":  "menu",
-                             "key":  "website-settings",
-                             "value":  "Website Settings"
+                              "key":  "website-settings",
+                              "value":  "Website settings"
                          },
                          {
                              "namespace":  "menu",
-                             "key":  "export-website",
-                             "value":  "Export Website"
+                              "key":  "export-website",
+                              "value":  "Export website"
                          },
                          {
                              "namespace":  "menu",
-                             "key":  "data-structure",
-                             "value":  "Data Structure"
+                              "key":  "data-structure",
+                              "value":  "Object fields"
                          },
                          {
                              "namespace":  "menu",
                              "key":  "default-fields",
                              "value":  "Default Fields"
                          },
-                         {
-                             "namespace":  "menu",
-                             "key":  "general",
-                             "value":  "General"
-                         },
-                         {
-                             "namespace":  "menu",
-                             "key":  "sharing",
-                             "value":  "Sharing"
-                         },
+                          {
+                              "namespace":  "menu",
+                              "key":  "general",
+                              "value":  "General"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "general-settings",
+                              "value":  "General settings"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "sharing",
+                              "value":  "Sharing"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "share-project",
+                              "value":  "Share project"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "export-project",
+                              "value":  "Export project"
+                          },
                          {
                              "namespace":  "menu",
                              "key":  "other",
@@ -1383,13 +1398,43 @@
                              "key":  "settings-section",
                              "value":  "Settings"
                          },
-                         {
-                             "namespace":  "menu",
-                             "key":  "preview",
-                             "value":  "Preview"
-                         },
-                         {
-                             "namespace":  "translations",
+                          {
+                              "namespace":  "menu",
+                              "key":  "preview",
+                              "value":  "Preview"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "object-fields",
+                              "value":  "Object fields"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "mapping-fields",
+                              "value":  "Mapping fields"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "custom-fields",
+                              "value":  "Custom fields"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "project-settings",
+                              "value":  "Project settings"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "recovery-snapshots",
+                              "value":  "Back-ups"
+                          },
+                          {
+                              "namespace":  "common",
+                              "key":  "help",
+                              "value":  "Help"
+                          },
+                          {
+                              "namespace":  "translations",
                              "key":  "error_fetch_languages",
                              "value":  "Failed to fetch languages: {0}"
                          },

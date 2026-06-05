@@ -3,6 +3,8 @@
   import SidebarMenu from "$lib/components/projects/SidebarMenu.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { onMount } from "svelte";
+  import { IconHelp } from "@tabler/icons-svelte";
+
   const { t } = getTranslationStore();
 
   let systemInfo = $state({ arch: '', platform: '', isDev: false });
@@ -15,13 +17,13 @@
     {
       label: t("menu.overview", { fallback: "Overview" }),
       url: `/projects/${page.data.project.id}`,
-      icon: "house-door-fill",
+      icon: "layout-dashboard",
       exact: true,
     },
     {
       label: t("common.institutions", { fallback: "Institutions" }),
       url: `/projects/${page.data.project.id}/institutions`,
-      icon: "bank2",
+      icon: "building-bank",
       exact: true,
     },
     {
@@ -30,92 +32,97 @@
       icon: "box",
       exact: true,
     },
-     {
+    {
       label: t("common.connections", { fallback: "Connections" }),
       url: `/projects/${page.data.project.id}/connections`,
-      icon: "share-fill",
+      icon: "chart-circles",
       exact: true,
     },
   ]);
 
   const actionsLinks = $derived([
     {
-      label: t("menu.add-institution", { fallback: "Add Institution" }),
+      label: t("menu.add-institution", { fallback: "Add institution" }),
       url: `/projects/${page.data.project.id}/institutions/add`,
-      icon: "plus-lg",
+      icon: "circle-plus",
       exact: true,
     },
     {
-      label: t("menu.add-object", { fallback: "Add Object" }),
+      label: t("menu.add-object", { fallback: "Add object" }),
       url: `/projects/${page.data.project.id}/objects/add`,
-      icon: "plus-lg",
+      icon: "circle-plus",
       exact: true,
     },
     {
-      label: t("menu.import-data", { fallback: "Import Data" }),
+      label: t("menu.import-data", { fallback: "Import data" }),
       url: `/projects/${page.data.project.id}/import-data`,
-      icon: "box-arrow-in-right",
+      icon: "table-import",
     },
     {
-      label: t("menu.import-assets", { fallback: "Import Media" }),
+      label: t("menu.import-assets", { fallback: "Import media" }),
       url: `/projects/${page.data.project.id}/import-assets`,
-      icon: "box-arrow-in-right",
+      icon: "photo-up",
     },
   ]);
 
   const websiteLinks = $derived([
     {
-      label: t("menu.website-settings", { fallback: "Website Settings" }),
+      label: t("menu.website-settings", { fallback: "Website settings" }),
       url: `/projects/${page.data.project.id}/website-settings`,
-      icon: "gear",
+      icon: "world-cog",
       exact: true,
     },
     {
-      label: t("menu.export-website", { fallback: "Export Website" }),
+      label: t("menu.export-website", { fallback: "Export website" }),
       url: `/projects/${page.data.project.id}/export-website`,
-      icon: "globe",
+      icon: "world-up",
       exact: true,
     },
     {
-      label: t("menu.export-data", { fallback: "Export Data" }),
+      label: t("menu.export-data", { fallback: "Export data" }),
       url: `/projects/${page.data.project.id}/export`,
-      icon: "box-arrow-up-right",
+      icon: "table-export",
     },
   ]);
 
   const otherLinks = $derived([
     {
-      label: t("menu.data-structure", { fallback: "Data Structure" }),
-      icon: "table",
+      label: t("menu.object-fields", { fallback: "Object fields" }),
+      icon: "table-options",
       children: [
         {
-          label: t("filters.research-fields", { fallback: "Research Fields" }),
+          label: t("menu.mapping-fields", { fallback: "Mapping fields" }),
           url: `/projects/${page.data.project.id}/data-structure/research-fields`,
           icon: "",
         },
         {
-          label: t("menu.default-fields", { fallback: "Default Fields" }),
+          label: t("menu.custom-fields", { fallback: "Custom fields" }),
           url: `/projects/${page.data.project.id}/data-structure/default-fields`,
           icon: "",
         },
       ],
     },
     {
-      label: t("nav.settings", { fallback: "Settings" }),
-      icon: "gear-fill",
+      label: t("menu.project-settings", { fallback: "Project settings" }),
+      icon: "settings",
       children: [
         {
-          label: t("menu.general", { fallback: "General" }),
+          label: t("menu.general-settings", { fallback: "General settings" }),
           url: `/projects/${page.data.project.id}/settings/general`,
           icon: "",
         },
         {
-          label: t("menu.sharing", { fallback: "Sharing" }),
+          label: t("menu.share-project", { fallback: "Share project" }),
           url: `/projects/${page.data.project.id}/settings/sharing`,
           icon: "",
         },
         {
-          label: t("menu.recovery-snapshots", { fallback: "Recovery Snapshots" }),
+          label: t("menu.export-project", { fallback: "Export project" }),
+          url: `/projects/${page.data.project.id}/export`,
+          icon: "",
+        },
+        {
+          label: t("menu.recovery-snapshots", { fallback: "Back-ups" }),
           url: `/projects/${page.data.project.id}/settings/recovery-snapshots`,
           icon: "",
         },
@@ -124,28 +131,55 @@
   ]);
 </script>
 
-<div class="sidebar h-100 border-end overflow-y-auto p-3">
-  <SidebarMenu items={projectLinks} pathname={page.url.pathname} />
-  <div class="text-uppercase small fw-semibold text-secondary mt-3 mb-1 px-1">{t("menu.add-content", { fallback: "Add content" })}</div>
-  <SidebarMenu items={actionsLinks} pathname={page.url.pathname} />
-  <div class="text-uppercase small fw-semibold text-secondary mt-3 mb-1 px-1">{t("menu.publish", { fallback: "Publish" })}</div>
-  <SidebarMenu items={websiteLinks} pathname={page.url.pathname} />
-  <div class="text-uppercase small fw-semibold text-secondary mt-3 mb-1 px-1">{t("menu.settings-section", { fallback: "Settings" })}</div>
-  <SidebarMenu items={otherLinks} pathname={page.url.pathname} />
+<div class="sidebar h-100 border-end border-gray-400 overflow-y-auto px-4 py-3 d-flex flex-column justify-content-between">
+  <div class="d-flex flex-column gap-4">
+    <div class="d-flex flex-column">
+      <SidebarMenu items={projectLinks} pathname={page.url.pathname} />
+    </div>
+
+    <div class="d-flex flex-column gap-1">
+      <p class="fs-8 text-uppercase text-body m-0" style="letter-spacing: 0.24px;">
+        {t("menu.add-content", { fallback: "Add content" })}
+      </p>
+      <SidebarMenu items={actionsLinks} pathname={page.url.pathname} />
+    </div>
+
+    <div class="d-flex flex-column gap-1">
+      <p class="fs-8 text-uppercase text-body m-0" style="letter-spacing: 0.24px;">
+        {t("menu.publish", { fallback: "Publish" })}
+      </p>
+      <SidebarMenu items={websiteLinks} pathname={page.url.pathname} />
+    </div>
+
+    <div class="d-flex flex-column gap-1">
+      <p class="fs-8 text-uppercase text-body m-0" style="letter-spacing: 0.24px;">
+        {t("menu.settings-section", { fallback: "Settings" })}
+      </p>
+      <SidebarMenu items={otherLinks} pathname={page.url.pathname} />
+    </div>
+  </div>
+
   {#if systemInfo.isDev}
-    <a href="/debug" class="btn btn-link">debug</a>
-    <button
-      onclick={() => window.api.openPreview(page.data.project.id)}
-      class="btn btn-link">{t("menu.preview", { fallback: "Preview" })}</button
-    >
-    <div class="mt-3 text-muted small">
-      <div>{systemInfo.platform} ({systemInfo.arch})</div>
+    <div class="d-flex flex-column gap-1 mt-3">
+      <a href="/debug" class="btn btn-link text-start">debug</a>
+      <button
+        onclick={() => window.api.openPreview(page.data.project.id)}
+        class="btn btn-link text-start">{t("menu.preview", { fallback: "Preview" })}</button
+      >
+      <div class="text-muted small">
+        <div>{systemInfo.platform} ({systemInfo.arch})</div>
+      </div>
     </div>
   {/if}
+
+  <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2">
+    <IconHelp size={14} stroke={2} />
+    {t("common.help", { fallback: "Help" })}
+  </button>
 </div>
 
 <style>
   .sidebar {
-    width: 300px;
+    width: 236px;
   }
 </style>

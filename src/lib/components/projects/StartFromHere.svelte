@@ -37,14 +37,6 @@
       interactive: true
     },
     {
-      key: "download",
-      icon: IconDownload,
-      title: t("onboarding.download-sample", { fallback: "Download a sample project" }),
-      description: t("onboarding.download-sample-desc", { fallback: "Explore Okpan with a ready-made example project, preloaded with data." }),
-      onClick: null,
-      interactive: false
-    },
-    {
       key: "join",
       icon: IconSteam,
       title: t("onboarding.join-project", { fallback: "Join a project" }),
@@ -59,6 +51,14 @@
       description: t("onboarding.tutorials-desc", { fallback: "Step-by-step guides to help you get the most out of Okpan. Opens in your browser." }),
       onClick: null,
       interactive: false
+    },
+    {
+      key: "download",
+      icon: IconDownload,
+      title: t("onboarding.download-sample", { fallback: "Download a sample project" }),
+      description: t("onboarding.download-sample-desc", { fallback: "Explore Okpan with a ready-made example project, preloaded with data." }),
+      onClick: null,
+      interactive: false
     }
   ];
   });
@@ -71,79 +71,48 @@
       <div class="col-12 col-lg">
         {#if action.interactive}
           <button
-            class="w-100 text-start p-3 d-flex flex-column bg-white border h-100"
-            style="border-radius: 16px; border-color: #d5d6d0 !important; gap: 10px;"
+            class="w-100 text-start p-3 d-flex flex-column bg-white border border-gray-500 rounded-4 h-100 gap-2"
             onclick={action.onClick}
           >
-            <div
-              class="d-flex align-items-center justify-content-center"
-              style="width: 64px; height: 64px; background-color: #f5f5f3; border-radius: 16px; padding: 10px; color: #292927;"
-            >
+            <div class="bg-gray-200 text-secondary rounded rounded-4 p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 64px; height: 64px;">
               <Icon size={32} stroke={2} />
             </div>
-            <h3 class="m-0" style="font-family: 'Crimson Pro', serif; font-size: 28px; line-height: 1.2; letter-spacing: -0.56px; color: #292927;">
-              {action.title}
-            </h3>
-            <p class="m-0" style="font-size: 14px; line-height: 1.5; color: #292927;">
-              {action.description}
-            </p>
+            <h3 class="m-0 fw-normal" style="letter-spacing: -0.56px;">{action.title}</h3>
+            <p class="m-0 fs-7 text-body">{action.description}</p>
           </button>
         {:else}
-          <div
-            class="w-100 text-start p-3 d-flex flex-column bg-white border h-100"
-            style="border-radius: 16px; border-color: #d5d6d0 !important; gap: 10px;"
-          >
-            <div
-              class="d-flex align-items-center justify-content-center"
-              style="width: 64px; height: 64px; background-color: #f5f5f3; border-radius: 16px; padding: 10px; color: #292927;"
-            >
+          <div class="w-100 text-start p-3 d-flex flex-column bg-white border border-gray-500 rounded-4 h-100 gap-2">
+            <div class="bg-gray-200 text-secondary rounded-4 p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 64px; height: 64px;">
               <Icon size={32} stroke={2} />
             </div>
-            <h3 class="m-0" style="font-family: 'Crimson Pro', serif; font-size: 28px; line-height: 1.2; letter-spacing: -0.56px; color: #292927;">
-              {action.title}
-            </h3>
-            <p class="m-0" style="font-size: 14px; line-height: 1.5; color: #292927;">
-              {action.description}
-            </p>
+            <h3 class="m-0 fw-normal" style="letter-spacing: -0.56px;">{action.title}</h3>
+            <p class="m-0 fs-7 text-body">{action.description}</p>
           </div>
         {/if}
       </div>
     {/each}
   </div>
 {:else}
+  <!-- List variant: sidebar style  -->
   <div class="d-flex flex-column gap-2">
     {#each actions as action}
       {@const Icon = action.icon}
       {#if action.interactive}
         <button
-          class="d-flex gap-2 align-items-center p-2 text-start bg-transparent border-0 w-100"
-          style="border-radius: 16px; color: #292927;"
+          class="d-flex gap-2 align-items-center p-1 text-start bg-transparent border-0 rounded-4 w-100 text-body"
           onclick={action.onClick}
         >
-          <div
-            class="d-flex align-items-center justify-content-center flex-shrink-0"
-            style="width: 40px; height: 40px; background-color: #f5f5f3; border-radius: 16px; padding: 4px;"
-          >
+          <div class="bg-gray-200 text-secondary rounded-4 p-1 d-flex align-items-center justify-content-center flex-shrink-0">
             <Icon size={32} stroke={2} />
           </div>
-          <span style="font-family: 'Crimson Pro', serif; font-size: 24px; line-height: 1.2; letter-spacing: -0.48px;">
-            {action.title}
-          </span>
+          <span class="h4 m-0 fw-normal" style="letter-spacing: -0.48px;">{action.title}</span>
         </button>
       {:else}
-        <div
-          class="d-flex gap-2 align-items-center p-2 w-100"
-          style="border-radius: 16px; color: #292927;"
-        >
-          <div
-            class="d-flex align-items-center justify-content-center flex-shrink-0"
-            style="width: 40px; height: 40px; background-color: #f5f5f3; border-radius: 16px; padding: 4px;"
-          >
+        <div class="d-flex gap-2 align-items-center p-1 rounded-4 w-100 text-body">
+          <div class="bg-gray-200 text-secondary rounded-4 p-1 d-flex align-items-center justify-content-center flex-shrink-0">
             <Icon size={32} stroke={2} />
           </div>
-          <span style="font-family: 'Crimson Pro', serif; font-size: 24px; line-height: 1.2; letter-spacing: -0.48px;">
-            {action.title}
-          </span>
+          <span class="h4 m-0 fw-normal" style="letter-spacing: -0.48px;">{action.title}</span>
         </div>
       {/if}
     {/each}

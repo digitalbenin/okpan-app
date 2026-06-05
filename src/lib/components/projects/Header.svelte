@@ -5,13 +5,18 @@
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import UserPresenceSummary from "$lib/components/projects/UserPresenceSummary.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-
+  import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
+  import { IconChevronUp, IconChevronDown } from "@tabler/icons-svelte";
   import { page } from "$app/state";
   import { goto, invalidateAll } from "$app/navigation";
   import { deleteProject } from "$lib/api/ProjectsApi.js";
 
   const { t } = getTranslationStore();
   const project = $derived(page.data.project);
+
+  const userPresenceStore = getUserPresenceStore();
+  const userPresenceState = userPresenceStore.userPresenceState;
+  const currentUsername = $derived(userPresenceState.username || "Anonymous");
 
   let dropdownOpen = $state(false);
   let showDeleteModal = $state(false);
@@ -34,7 +39,6 @@
       label: t("project.new", { fallback: "New project" }),
       icon: "plus-circle",
       onClick: () => {
-        // Navigate to projects page with create parameter
         goto("/?create=new");
       },
     },
@@ -73,7 +77,6 @@
     if (!isDeleteEnabled) return;
     try {
       await deleteProject(project.id);
-      // Navigate back to projects list after deletion
       await goto("/");
       await invalidateAll();
     } catch (error) {
@@ -101,14 +104,19 @@
 </script>
 
 <div
-  class="header w-100 d-flex justify-content-between align-items-center py-2 bg-white border-bottom gap-2 px-1"
+  class="header w-100 d-flex justify-content-between align-items-center py-2 bg-white border-bottom border-gray-500 gap-2 px-4"
 >
-  <div class="col">
-    <div class="d-inline-flex rounded-2 p-1" style="background-color: #eaebe7;">
+  <div class="col d-flex align-items-center">
+    <div class="d-inline-flex rounded-1 p-1 px-2 align-items-center gap-1 bg-gray-300" style="height: 39px;">
+     <!-- {#if project.thumbnail}
+        <img src={project.thumbnail} alt="" class="rounded-1 flex-shrink-0" style="width: 30px; height: 30px; object-fit: cover;" />
+      {:else}
+        <div class="rounded-1 flex-shrink-0 bg-body" style="width: 30px; height: 30px;"></div>
+      {/if} -->
       <BaseDropdownMenu
         bind:open={dropdownOpen}
         items={dropdownItems}
-        triggerClass="btn btn-sm btn-link text-decoration-none link-primary d-flex align-items-center gap-1"
+        triggerClass="btn btn-sm btn-link text-decoration-none d-flex align-items-center gap-1 p-0"
         contentProps={{ style: "left: 0; min-width: 200px;" }}
         side="bottom"
         align="start"
@@ -116,19 +124,31 @@
         alignOffset={0}
       >
         {#snippet trigger()}
-          {project.title?.content || "Connecting/Downloading Project..."}
-          <i class="bi bi-chevron-{dropdownOpen ? 'up' : 'down'}"></i>
+          <span class="text-primary-emphasis">
+            {project.title?.content || "Connecting/Downloading Project..."}
+          </span>
+          {#if dropdownOpen}
+            <IconChevronUp size={14} stroke={2} class="text-primary-emphasis" />
+          {:else}
+            <IconChevronDown size={14} stroke={2} class="text-primary-emphasis" />
+          {/if}
         {/snippet}
       </BaseDropdownMenu>
     </div>
   </div>
+
   <div class="col d-flex justify-content-center">
     <HeaderSwitch />
   </div>
 
-  <div class="col text-end">
+  <div class="col d-flex justify-content-end" style="width: 204px;">
     {#if isSharedProject}
       <UserPresenceSummary projectId={project?.id} />
+    {:else}
+      <div class="btn btn-light d-flex align-items-center gap-2">
+        <i class="bi bi-cloud-check text-body d-flex align-items-center justify-content-center fs-4"></i>
+        <span class="fw-semibold text-body text-truncate" style="max-width: 140px;">{currentUsername}</span>
+      </div>
     {/if}
   </div>
 </div>
@@ -148,17 +168,12 @@
       <div class="input-group mb-3">
         <input type="text" class="form-control" value={project.id} readonly />
         <button class="btn btn-primary" onclick={handleCopySharingId}>
-          <i class={`pe-2 bi bi-${idCopied ? 'check2' : 'clipboard'}`}></i> 
-          {idCopied 
-            ? t("common.copied", { fallback: "Copied!" }) 
+          <i class={`pe-2 bi bi-${idCopied ? 'check2' : 'clipboard'}`}></i>
+          {idCopied
+            ? t("common.copied", { fallback: "Copied!" })
             : t("common.copy", { fallback: "Copy" })}
         </button>
       </div>
-      <!--{#if idCopied}
-        <p class="text-success small mb-0">
-          ID copied to your clipboard.
-        </p>
-      {/if}-->
     {/snippet}
     {#snippet footer()}
       <button class="btn btn-primary" onclick={() => (showSharingModal = false)}>
@@ -176,8 +191,8 @@
     {/snippet}
     {#snippet description()}
       <p>
-        {t("project.delete-confirmation", { 
-          fallback: "Are you sure you want to delete this project? This action cannot be undone." 
+        {t("project.delete-confirmation", {
+          fallback: "Are you sure you want to delete this project? This action cannot be undone."
         })}
       </p>
       {#if isSharedProject}
@@ -202,8 +217,8 @@
       <button class="btn btn-secondary" onclick={handleDeleteCancel}>
         {t("common.cancel", { fallback: "Cancel" })}
       </button>
-      <button 
-        class="btn btn-danger" 
+      <button
+        class="btn btn-danger"
         onclick={handleDeleteConfirm}
         disabled={!isDeleteEnabled}
       >

@@ -5,7 +5,8 @@
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { deleteProject } from "$lib/api/ProjectsApi.js";
-  import { IconUsers, IconDotsVertical, IconPhoto } from "@tabler/icons-svelte";
+  import { IconUsersGroup, IconDotsVertical, IconLock } from "@tabler/icons-svelte";
+  import BaseImage from "$lib/components/base/BaseImage.svelte";
 
   const { project } = $props();
   const { t, translationState } = getTranslationStore();
@@ -70,84 +71,70 @@
   }
 </script>
 
-<div
-  class="bg-white border d-flex align-items-center justify-content-between p-2 w-100"
-  style="border-color: #d5d6d0; border-radius: 16px;"
->
-  <div class="d-flex gap-3 align-items-center">
-    <div
-      class="d-flex align-items-center justify-content-center flex-shrink-0"
-      style="width: 64px; height: 64px; background-color: #f5f5f3; border-radius: 16px;"
-    >
-      <IconPhoto size={24} stroke={2} />
-    </div>
-    <div class="d-flex flex-column gap-1" style="width: 295px;">
+<div class="bg-white border border-gray-500 rounded-4 d-flex align-items-center justify-content-between p-2 w-100">
+  <!-- Left: thumbnail + title + meta -->
+  <div class="d-flex gap-3 align-items-center flex-fill min-w-0">
+    <!-- Thumbnail -->
+    <BaseImage
+      src={project.thumbnail || null}
+      class="rounded-4 flex-shrink-0"
+      width={64}
+      height={64}
+      objectFit="cover"
+    />
+
+    <!-- Title and meta -->
+    <div class="d-flex flex-column gap-1 min-w-0 flex-fill">
       <a
         href="/projects/{project.id}"
-        class="text-decoration-none"
-        style="font-family: 'Crimson Pro', serif; font-size: 24px; line-height: 1.2; letter-spacing: -0.48px; color: #292927;"
+        class="h4 m-0 fw-normal text-decoration-none text-body user-select-auto"
+        style="letter-spacing: -0.48px;"
       >
         {project.title?.content || "Connecting/Downloading Project..."}
       </a>
-      <div class="d-flex gap-1 align-items-center" style="font-size: 14px; line-height: 1.5; color: rgba(29,34,38,0.75);">
-        <IconUsers size={16} stroke={2} />
-        <span>
-          {#if isSharedProject}
-            {t("project.shared", { fallback: "Shared project" })}
-          {:else}
-            {t("project.private", { fallback: "Private project" })}
-          {/if}
-        </span>
+      <div class="d-flex gap-1 align-items-center fs-7 text-body-secondary">
+        {#if isSharedProject}
+          <IconUsersGroup size={16} stroke={2} />
+        {:else}
+          <IconLock size={16} stroke={2} />
+        {/if}
+        <span>{isSharedProject ? t("project.shared", { fallback: "Shared project" }) : t("project.private", { fallback: "Private project" })}</span>
         <span>&bull;</span>
-        <span>
-          {i18n.createdOn}
-          {project.created_at ? formatDate(+project.created_at, translationState.currentLocale) : '...'}
-        </span>
+        <span>{i18n.createdOn} {project.created_at ? formatDate(+project.created_at, translationState.currentLocale) : '...'}</span>
       </div>
     </div>
   </div>
 
-  <div class="d-flex gap-4 align-items-center">
+  <!-- Right: stats + menu -->
+  <div class="d-flex gap-4 align-items-center flex-shrink-0 ms-3">
     <div class="d-flex flex-column align-items-start">
-      <span class="text-uppercase" style="font-size: 12px; letter-spacing: 0.24px; line-height: 1.2; color: rgba(29,34,38,0.75);">
-        {i18n.objects}
-      </span>
-      <span style="font-size: 24px; line-height: 1.5; color: rgba(29,34,38,0.75);">
-        {project.objectsCount ?? 0}
-      </span>
+      <span class="fs-8 text-uppercase text-body-secondary" style="letter-spacing: 0.24px;">{i18n.objects}</span>
+      <span class="fs-4 text-body-secondary">{project.objectsCount ?? 0}</span>
     </div>
     <div class="d-flex flex-column align-items-start">
-      <span class="text-uppercase" style="font-size: 12px; letter-spacing: 0.24px; line-height: 1.2; color: rgba(29,34,38,0.75);">
-        {i18n.assets}
-      </span>
-      <span style="font-size: 24px; line-height: 1.5; color: rgba(29,34,38,0.75);">
-        {project.assetsCount ?? 0}
-      </span>
+      <span class="fs-8 text-uppercase text-body-secondary" style="letter-spacing: 0.24px;">{i18n.assets}</span>
+      <span class="fs-4 text-body-secondary">{project.assetsCount ?? 0}</span>
     </div>
     <div class="d-flex flex-column align-items-start">
-      <span class="text-uppercase" style="font-size: 12px; letter-spacing: 0.24px; line-height: 1.2; color: rgba(29,34,38,0.75);">
-        {i18n.institutions}
-      </span>
-      <span style="font-size: 24px; line-height: 1.5; color: rgba(29,34,38,0.75);">
-        {project.institutionsCount ?? 0}
-      </span>
+      <span class="fs-8 text-uppercase text-body-secondary" style="letter-spacing: 0.24px;">{i18n.institutions}</span>
+      <span class="fs-4 text-body-secondary">{project.institutionsCount ?? 0}</span>
     </div>
-  </div>
 
-  <BaseDropdownMenu
-    bind:open={dropdownOpen}
-    items={dropdownItems}
-    triggerClass="btn btn-link p-1 border-0"
-    contentProps={{ style: "right: 0; left: auto; min-width: 150px;" }}
-    side="bottom"
-    align="end"
-    sideOffset={4}
-    alignOffset={0}
-  >
-    {#snippet trigger()}
-      <IconDotsVertical size={16} stroke={2} />
-    {/snippet}
-  </BaseDropdownMenu>
+    <BaseDropdownMenu
+      bind:open={dropdownOpen}
+      items={dropdownItems}
+      triggerClass="btn btn-link p-1 border-0"
+      contentProps={{ style: "right: 0; left: auto; min-width: 150px;" }}
+      side="bottom"
+      align="end"
+      sideOffset={4}
+      alignOffset={0}
+    >
+      {#snippet trigger()}
+        <IconDotsVertical size={16} stroke={2} />
+      {/snippet}
+    </BaseDropdownMenu>
+  </div>
 </div>
 
 <!-- Delete confirmation modal -->
@@ -157,9 +144,7 @@
       {i18n.deleteProject}
     {/snippet}
     {#snippet description()}
-      <p>
-        {i18n.deleteConfirmation}
-      </p>
+      <p>{i18n.deleteConfirmation}</p>
       {#if isSharedProject}
         <p class="text-warning-emphasis">
           {t("project.delete-shared-warning", {
@@ -168,9 +153,7 @@
         </p>
       {/if}
       <p class="fw-bold">{project.title?.content || "Connecting..."}</p>
-      <p class="mb-2">
-        {i18n.deleteTypeName}
-      </p>
+      <p class="mb-2">{i18n.deleteTypeName}</p>
       <BaseInput
         bind:value={confirmationText}
         placeholder={project.title?.content || "Connecting..."}
@@ -180,8 +163,8 @@
       <button class="btn btn-secondary" onclick={handleDeleteCancel}>
         {i18n.cancel}
       </button>
-      <button 
-        class="btn btn-danger" 
+      <button
+        class="btn btn-danger"
         onclick={handleDeleteConfirm}
         disabled={!isDeleteEnabled}
       >

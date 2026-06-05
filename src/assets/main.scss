@@ -12,10 +12,25 @@
   font-style: italic;
 }
 
+@font-face {
+  font-family: 'Crimson Pro';
+  src: url('./fonts/CrimsonPro-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 1 999;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Crimson Pro';
+  src: url('./fonts/CrimsonPro-Italic-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 1 999;
+  font-style: italic;
+}
 
 // Import Bootstrap's source Sass files
 @import "~bootstrap/scss/functions";
 
+
+$focus-ring-opacity: .75;
 // primitive variables
 
 $blue-highlight: #005AD9; // primitive
@@ -28,16 +43,29 @@ $red: #A41F32; // primitive
 $yellow: #D3A621; // primitive
 $green-highlight: #36BE78; // primitive
 $green: #008060; // primitive
-$primary: $green;
-$success: $green;
-$info: $blue;
-$warning: $yellow;
-$danger: $red;
+$gray-100: #FFFFFB; // primitive
+$gray-200: #F5F5F3; // primitive
+$gray-300: #EAEBE7; // primitive
+$gray-400: #E0E0DC; // primitive
+$gray-500: #D5D6D0; // primitive
+$gray-600: #CBCCC4; // primitive
+$gray-700: #A2A39D; // primitive
+$gray-800: #7A7A76; // primitive
+$gray-900: #51524E; // primitive
+$black: #292927; // primitive
+$primary: $green; // primitive
+$secondary: $gray-800; // primitive
+$info: $blue; // primitive
+$dark-gray: $gray-800; // primitive
+$body-secondary-color: rgba(29, 34, 38, 0.75); // primitive
+$body-tertiary-color: rgba(29, 34, 38, 0.5); // primitive
+$border-radius: 0.4rem; // primitive
+$border-radius-sm: 0.4rem; // primitive
 $font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; // primitive
 $font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; // primitive
-$headings-font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; // primitive
+$headings-font-family: "Crimson Pro", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; // primitive
 $display-font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; // primitive
-$display-font-weight: 500; // primitive
+$display-font-weight: 400; // primitive
 $input-btn-padding-y: 0.5rem; // primitive
 $input-btn-padding-x: 1rem; // primitive
 $input-btn-padding-x-sm: 0.75rem; // primitive
@@ -49,7 +77,9 @@ $icon-btn-padding-y: 12; // primitive
 $icon-btn-padding-x: 12; // primitive
 $navbar-padding-y: 1rem; // primitive
 $navbar-padding-x: 1rem; // primitive
+$navbar-nav-link-padding-x: 0.25rem; // primitive
 $navbar-toggler-padding-x: 0.5rem; // primitive
+$navbar-light-active-color: rgba(0, 0, 0, 0.800000011920929); // primitive
 $navbar-light-toggler-border-color: transparent; // primitive
 $accordion-padding-y: 1.5rem; // primitive
 $accordion-padding-x: 0.5rem; // primitive
@@ -58,6 +88,7 @@ $badge-padding-x: 0.375em; // primitive
 $modal-inner-padding: 1.5rem; // primitive
 $carousel-indicator-width: 16px; // primitive
 $carousel-indicator-height: 6px; // primitive
+$grid-gutter-width: 1rem; // primitive
 
 $enable-dark-mode: false;
 // Required Bootstrap imports
@@ -146,10 +177,7 @@ $green-highlights: (
     "green-highlight-800": $green-highlight-800,
     "green-highlight-900": $green-highlight-900
 );
-
-$secondary: $gray-600;
-$light: $gray-100;
-$dark: $gray-900;
+$body-color: $black;
 $link-color: $primary-text-emphasis;
 $link-hover-color: $green-700;
 $input-btn-font-size-lg: $font-size-base;
@@ -188,7 +216,7 @@ $primary-shades: (
 
 // Mapped Objects
 $custom-colors: (blue-highlight: $blue-highlight, blue: $blue, indigo-highlight: $indigo-highlight, indigo: $indigo, purple: $purple, red-highlight: $red-highlight, red: $red, yellow: $yellow, green-highlight: $green-highlight, green: $green);
-$custom-theme-colors: (primary: $primary, secondary: $secondary, success: $success, info: $info, warning: $warning, danger: $danger, light: $light, dark: $dark);
+$custom-theme-colors: (primary: $primary, secondary: $secondary, info: $info);
 $custom-font-sizes: (7: 0.875rem, 8: 0.75rem);
 $colors: map-merge($colors, $custom-colors);
 $theme-colors: map-merge($theme-colors, $custom-theme-colors);
@@ -201,7 +229,22 @@ $theme-colors: map-merge($theme-colors, $primary-shades);
 @import "~bootstrap/scss/root";
 
 
-$all-colors: map-merge-multiple($blue-highlights, $blues, $indigo-highlights, $indigos, $purples, $red-highlights, $reds, $yellows, $green-highlights, $greens, $pinks, $oranges, $teals, $cyans, $grays);
+
+// Bootstrap's $grays map uses numeric keys ("100", "200"...).
+// We need "gray-100", "gray-200" keys for sensible utility class names.
+$gray-colors: (
+  "gray-100": $gray-100,
+  "gray-200": $gray-200,
+  "gray-300": $gray-300,
+  "gray-400": $gray-400,
+  "gray-500": $gray-500,
+  "gray-600": $gray-600,
+  "gray-700": $gray-700,
+  "gray-800": $gray-800,
+  "gray-900": $gray-900,
+);
+
+$all-colors: map-merge-multiple($blue-highlights, $blues, $indigo-highlights, $indigos, $purples, $red-highlights, $reds, $yellows, $green-highlights, $greens, $pinks, $oranges, $teals, $cyans, $gray-colors);
 
 
 // Optional Bootstrap components
@@ -295,15 +338,16 @@ $utilities: map-merge(
 
 // Optionally include utilities API last to generate classes based on the Sass map in `_utilities.scss`
 @import "~bootstrap/scss/utilities/api";
-@import "swiper/scss";
 
 body,
 html {
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  -moz-osx-font-smoothing: grayscale;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+            -moz-osx-font-smoothing: grayscale;
 }
 
+
+@import "swiper/scss";
 
 
 

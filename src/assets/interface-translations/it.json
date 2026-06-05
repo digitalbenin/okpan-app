@@ -2274,24 +2274,39 @@
                          },
                          {
                              "namespace":  "menu",
-                             "key":  "data-structure",
-                             "value":  "Struttura dati"
+                              "key":  "data-structure",
+                              "value":  "Campi oggetto"
                          },
                          {
                              "namespace":  "menu",
                              "key":  "default-fields",
                              "value":  "Campi predefiniti"
                          },
-                         {
-                             "namespace":  "menu",
-                             "key":  "general",
-                             "value":  "Generale"
-                         },
-                         {
-                             "namespace":  "menu",
-                             "key":  "sharing",
-                             "value":  "Condivisione"
-                         },
+                          {
+                              "namespace":  "menu",
+                              "key":  "general",
+                              "value":  "Generale"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "general-settings",
+                              "value":  "Impostazioni generali"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "sharing",
+                              "value":  "Condivisione"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "share-project",
+                              "value":  "Condividi progetto"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "export-project",
+                              "value":  "Esporta progetto"
+                          },
                          {
                              "namespace":  "menu",
                              "key":  "other",
@@ -2312,11 +2327,41 @@
                              "key":  "settings-section",
                              "value":  "Impostazioni"
                          },
-                         {
-                             "namespace":  "menu",
-                             "key":  "preview",
-                             "value":  "Anteprima"
-                         },
+                          {
+                              "namespace":  "menu",
+                              "key":  "preview",
+                              "value":  "Anteprima"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "object-fields",
+                              "value":  "Campi oggetto"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "mapping-fields",
+                              "value":  "Campi mappatura"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "custom-fields",
+                              "value":  "Campi personalizzati"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "project-settings",
+                              "value":  "Impostazioni progetto"
+                          },
+                          {
+                              "namespace":  "menu",
+                              "key":  "recovery-snapshots",
+                              "value":  "Backup"
+                          },
+                          {
+                              "namespace":  "common",
+                              "key":  "help",
+                              "value":  "Aiuto"
+                          },
                          {
                              "namespace":  "translations",
                              "key":  "error_fetch_languages",

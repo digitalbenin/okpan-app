@@ -47,18 +47,19 @@
   );
 
   // Watch for URL parameters to trigger modals
-  $effect(() => {
-    const createParam = $page.url.searchParams.get('create');
-    if (createParam === 'new') {
-      setTimeout(() => {
-        newProjectOpen = true;
-        // Remove the parameter from URL without navigation
-        const url = new URL(window.location.href);
-        url.searchParams.delete('create');
-        window.history.replaceState({}, '', url);
-      }, 100);
+  watch(
+    () => $page.url.searchParams.get('create'),
+    (createParam) => {
+      if (createParam === 'new') {
+        setTimeout(() => {
+          newProjectOpen = true;
+          const url = new URL(window.location.href);
+          url.searchParams.delete('create');
+          window.history.replaceState({}, '', url);
+        }, 100);
+      }
     }
-  });
+  );
 
   onMount(() => {
     if (!window.api?.onDataChanged) {
@@ -94,16 +95,12 @@
 
   async function handleImported({ projectId, metadata }) {
     importProjectOpen = false;
-
-    // Invalidate all data to refresh the projects list
     await invalidateAll();
 
     if (!projectId) {
       console.warn('[Projects] Missing projectId in handleImported');
       return;
     }
-
-    // Navigate to the imported project
     const path = `/projects/${projectId}`;
     try {
       await goto(path);
@@ -163,13 +160,13 @@
   }
 </script>
 
-{#if projects.length === 0}
-  <div class="min-vh-100" style="background-color: #f5f5f3;">
-    <AppHeader onSettingsClick={() => { appSettingsOpen = true; }} />
+<div class="min-vh-100 bg-gray-200">
+  <AppHeader onSettingsClick={() => { appSettingsOpen = true; }} />
 
+  {#if projects.length === 0}
     <div class="p-4 d-flex flex-column gap-5">
       <div>
-        <p class="text-uppercase mb-3" style="font-size: 12px; letter-spacing: 0.24px; color: #292927;">
+        <p class="fs-8 text-uppercase mb-3 text-body" style="letter-spacing: 0.24px;">
           {t("onboarding.start-from-here", { fallback: "Start from here" })}
         </p>
         <StartFromHere
@@ -181,27 +178,21 @@
       </div>
 
       <div>
-        <p class="text-uppercase mb-3" style="font-size: 12px; letter-spacing: 0.24px; color: #292927;">
+        <p class="fs-8 text-uppercase mb-3 text-body" style="letter-spacing: 0.24px;">
           {t("onboarding.your-projects", { fallback: "Your projects" })}
         </p>
-        <div
-          class="border border-dashed d-flex align-items-center justify-content-center w-100"
-          style="border-color: #d5d6d0; border-radius: 16px; min-height: 120px;"
-        >
-          <p class="m-0" style="font-size: 14px; color: rgba(29,34,38,0.75);">
+        <div class="border border-gray-500 border-dashed rounded-4 d-flex align-items-center justify-content-center w-100" style="min-height: 120px;">
+          <p class="m-0 fs-7 text-body-secondary">
             {t("onboarding.no-projects-yet", { fallback: "No projects yet" })}
           </p>
         </div>
       </div>
     </div>
-  </div>
-{:else}
-  <div class="min-vh-100" style="background-color: #f5f5f3;">
-    <AppHeader onSettingsClick={() => { appSettingsOpen = true; }} />
-
+  {:else}
     <div class="p-4 d-flex gap-4">
-      <div class="d-flex flex-column gap-3" style="width: 334px; flex-shrink: 0;">
-        <p class="text-uppercase m-0" style="font-size: 12px; letter-spacing: 0.24px; color: #292927;">
+      <!-- Sidebar -->
+      <div class="d-flex flex-column gap-3 flex-shrink-0" style="width: 334px;">
+        <p class="fs-8 text-uppercase m-0 text-body" style="letter-spacing: 0.24px;">
           {t("onboarding.start-from-here", { fallback: "Start from here" })}
         </p>
         <StartFromHere
@@ -212,29 +203,34 @@
         />
       </div>
 
+      <!-- Projects list -->
       <div class="d-flex flex-column gap-3 flex-fill">
+        <!-- Header row -->
         <div class="d-flex align-items-center justify-content-between">
-          <p class="text-uppercase m-0" style="font-size: 12px; letter-spacing: 0.24px; color: #292927;">
+          <p class="fs-8 text-uppercase m-0 text-body" style="letter-spacing: 0.24px;">
             {t("onboarding.your-projects", { fallback: "Your projects" })}
           </p>
-          <div class="d-flex align-items-center border" style="border-color: #d5d6d0; border-radius: 6.4px; width: 300px;">
+
+          <!-- Search -->
+          <div class="d-flex align-items-center border border-gray-500 rounded-sm overflow-hidden" style="width: 300px;">
             <input
               type="text"
               class="form-control border-0 flex-fill"
               placeholder={t("common.search", { fallback: "Search" })}
               bind:value={search}
-              style="font-size: 16px; padding: 4px 16px; border-radius: 6.4px 0 0 6.4px;"
+              style="padding: 4px 16px;"
             />
-            <button class="btn bg-white border-0 p-2" style="border-radius: 0 6.4px 6.4px 0;">
+            <span class="bg-white d-flex align-items-center justify-content-center flex-shrink-0" style="padding: 12px;">
               <IconSearch size={16} stroke={2} />
-            </button>
+            </span>
           </div>
         </div>
+
         <ProjectsList projects={filteredProjects} />
       </div>
     </div>
-  </div>
-{/if}
+  {/if}
+</div>
 
 {#if newProjectOpen}
   <BaseAlertDialog bind:open={newProjectOpen} size="lg">
