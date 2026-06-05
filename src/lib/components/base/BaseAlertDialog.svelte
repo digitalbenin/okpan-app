@@ -2,6 +2,7 @@
   import { fade } from "svelte/transition";
   import { AlertDialog } from "bits-ui";
   import { onDestroy } from 'svelte';
+  import { IconX } from '@tabler/icons-svelte';
 
   let {
     open = $bindable(false),
@@ -57,7 +58,9 @@
               <div class="modal-content">
                 <AlertDialog.Title class="modal-header">
                   <h1 class="modal-title fs-5">{@render title()}</h1>
-                  <AlertDialog.Cancel class="btn-close"></AlertDialog.Cancel>
+                  <AlertDialog.Cancel class="btn-close border-0 bg-transparent p-0 d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                    <IconX size={24} stroke={2} />
+                  </AlertDialog.Cancel>
                 </AlertDialog.Title>
                 <div class="modal-body">
                   <AlertDialog.Description>

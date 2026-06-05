@@ -3,7 +3,6 @@
   import "bootstrap-icons/font/bootstrap-icons.css";
   import BaseToast from "$lib/components/base/BaseToast.svelte";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
-  import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -15,6 +14,7 @@
   let { children, data } = $props();
 
   const translationStore = getTranslationStore();
+  const { t, translationState, setLocale } = translationStore;
   // Initialize store from layout load data, and re-sync whenever invalidate() triggers a reload
   watch(
       () => [data?.interfaceLanguages, data?.interfaceTranslations],
@@ -34,6 +34,7 @@
 
   let usernameDialogOpen = $state(false);
   let usernameDraft = $state("");
+  let interfaceLanguageDraft = $state("en");
   let isResolvingUsername = $state(false);
 
   async function resolveUsername(value = "") {
@@ -45,6 +46,7 @@
 
     try {
       await userPresenceStore.saveUsername(value);
+      await setLocale(interfaceLanguageDraft);
       usernameDialogOpen = false;
     } finally {
       isResolvingUsername = false;
@@ -57,6 +59,7 @@
     (initialized) => {
       if (!initialized) return;
       usernameDraft = userPresenceState.username || "";
+      interfaceLanguageDraft = translationState.currentLocale || translationState.languages[0]?.code || "en";
       usernameDialogOpen = !userPresenceState.username;
     }
   );
@@ -110,34 +113,63 @@
 {#if usernameDialogOpen}
   <BaseAlertDialog bind:open={usernameDialogOpen}>
     {#snippet title()}
-      Choose your name
+      {t("onboarding.before-starting", { fallback: "Before starting..." })}
     {/snippet}
     {#snippet description()}
-      <p class="mb-2">
-        This name is global for the app and will be shown to other connected users.
+      <p class="mb-4">
+        {t("settings.application-description", {
+          fallback: "Choose your username and the language used for the application interface.",
+        })}
       </p>
-      <p class="text-muted small mb-3">
-        Leave it empty if you want the app to choose a random name for you.
-      </p>
-      <BaseInput
-        bind:value={usernameDraft}
-        placeholder="Enter a username"
-        disabled={userPresenceState.isSaving || isResolvingUsername}
-      />
+      <div class="mb-3">
+        <label class="form-label mb-2" for="onboarding-username-input">
+          {t("common.username", { fallback: "Username" })}
+        </label>
+        <BaseInput
+          id="onboarding-username-input"
+          bind:value={usernameDraft}
+          placeholder={t("common.username", { fallback: "Username" })}
+          disabled={userPresenceState.isSaving || isResolvingUsername}
+        />
+      </div>
+      <div>
+        <label class="form-label mb-2" for="onboarding-language-select">
+          {t("settings.interface-language", { fallback: "Interface language" })}
+        </label>
+        <select
+          id="onboarding-language-select"
+          class="form-select"
+          bind:value={interfaceLanguageDraft}
+          disabled={translationState.isLoading || translationState.languages.length === 0}
+        >
+          {#each translationState.languages as language}
+            <option value={language.code}>
+              {language.name} ({language.code})
+            </option>
+          {/each}
+        </select>
+      </div>
     {/snippet}
     {#snippet footer()}
-      <BaseButton
-        text="Use random name"
+      <button
         class="btn btn-outline-secondary"
+        onclick={() => {
+          usernameDialogOpen = false;
+        }}
         disabled={userPresenceState.isSaving || isResolvingUsername}
-        onClick={() => resolveUsername("")}
-      />
-      <BaseButton
-        text="Continue"
+      >
+        {t("common.cancel", { fallback: "Cancel" })}
+      </button>
+      <button
         class="btn btn-primary"
-        loading={userPresenceState.isSaving || isResolvingUsername}
-        onClick={() => resolveUsername(usernameDraft)}
-      />
+        onclick={() => resolveUsername(usernameDraft)}
+        disabled={userPresenceState.isSaving || isResolvingUsername}
+      >
+        {#if userPresenceState.isSaving || isResolvingUsername}
+          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+        {/if}
+        {t("common.next", { fallback: "Next" })}
+      </button>
     {/snippet}
   </BaseAlertDialog>
 {/if}

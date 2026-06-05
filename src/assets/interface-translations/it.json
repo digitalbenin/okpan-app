@@ -522,11 +522,81 @@
                               "key":  "application",
                               "value":  "Impostazioni applicazione"
                           },
-                         {
-                             "namespace":  "settings",
-                             "key":  "application-description",
-                             "value":  "Scegli il nome utente e la lingua usata per l'interfaccia dell'applicazione."
-                         },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "before-starting",
+                               "value":  "Prima di iniziare..."
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "start-from-here",
+                               "value":  "Inizia da qui"
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "create-new-project",
+                               "value":  "Crea un nuovo progetto"
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "create-new-project-desc",
+                               "value":  "Inizia da zero con uno spazio di lavoro vuoto."
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "import-project",
+                               "value":  "Importa un progetto"
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "import-project-desc",
+                               "value":  "Riapri un file di progetto Okpan esportato da questo o un altro dispositivo."
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "download-sample",
+                               "value":  "Scarica un progetto di esempio"
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "download-sample-desc",
+                               "value":  "Esplora Okpan con un progetto di esempio pronto all'uso, pre-caricato con dati."
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "join-project",
+                               "value":  "Unisciti a un progetto"
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "join-project-desc",
+                               "value":  "Inserisci un codice invito per collaborare a un progetto esistente con il tuo team."
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "tutorials",
+                               "value":  "Tutorial"
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "tutorials-desc",
+                               "value":  "Guide passo passo per ottenere il massimo da Okpan. Si aprono nel browser."
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "your-projects",
+                               "value":  "I tuoi progetti"
+                           },
+                           {
+                               "namespace":  "onboarding",
+                               "key":  "no-projects-yet",
+                               "value":  "Nessun progetto ancora"
+                           },
+                           {
+                               "namespace":  "settings",
+                               "key":  "application-description",
+                               "value":  "Scegli il nome utente e la lingua usata per l'interfaccia dell'applicazione."
+                           },
                          {
                              "namespace":  "settings",
                              "key":  "username-description",

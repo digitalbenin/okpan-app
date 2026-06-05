@@ -5,7 +5,7 @@
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import { deleteProject } from "$lib/api/ProjectsApi.js";
-
+  import { IconUsers, IconDotsVertical, IconPhoto } from "@tabler/icons-svelte";
 
   const { project } = $props();
   const { t, translationState } = getTranslationStore();
@@ -21,9 +21,9 @@
     return {
       delete: t("common.delete", { fallback: "Delete" }),
       createdOn: t("project.created-on", { fallback: "Created on" }),
-      items: t("common.items", { fallback: "Items" }),
+      objects: t("common.objects", { fallback: "Objects" }),
       assets: t("common.assets", { fallback: "Assets" }),
-      collections: t("project.collections", { fallback: "Collections" }),
+      institutions: t("common.institutions", { fallback: "Institutions" }),
       deleteProject: t("project.delete-project", { fallback: "Delete Project" }),
       deleteConfirmation: t("project.delete-confirmation", {
         fallback: "Are you sure you want to delete this project? This action cannot be undone.",
@@ -70,24 +70,32 @@
   }
 </script>
 
-<div class="d-flex border rounded mb-4 p-3 gap-2 position-relative">
-  <div class="d-flex w-50 gap-2">
+<div
+  class="bg-white border d-flex align-items-center justify-content-between p-2 w-100"
+  style="border-color: #d5d6d0; border-radius: 16px;"
+>
+  <div class="d-flex gap-3 align-items-center">
     <div
-      class="bg-success-subtle rounded px-3 d-flex align-items-center justify-content-center"
+      class="d-flex align-items-center justify-content-center flex-shrink-0"
+      style="width: 64px; height: 64px; background-color: #f5f5f3; border-radius: 16px;"
     >
-      <i class="bi bi-file-text"></i>
+      <IconPhoto size={24} stroke={2} />
     </div>
-
-    <div class="d-flex flex-column">
-      <a href="/projects/{project.id}">
+    <div class="d-flex flex-column gap-1" style="width: 295px;">
+      <a
+        href="/projects/{project.id}"
+        class="text-decoration-none"
+        style="font-family: 'Crimson Pro', serif; font-size: 24px; line-height: 1.2; letter-spacing: -0.48px; color: #292927;"
+      >
         {project.title?.content || "Connecting/Downloading Project..."}
       </a>
-      <p class="fs-7 mb-0 text-muted d-flex align-items-center gap-2">
-        <span class="d-inline-flex align-items-center">
+      <div class="d-flex gap-1 align-items-center" style="font-size: 14px; line-height: 1.5; color: rgba(29,34,38,0.75);">
+        <IconUsers size={16} stroke={2} />
+        <span>
           {#if isSharedProject}
-            <i class="bi bi-people-fill me-1"></i> {t("project.shared", { fallback: "Shared" })}
+            {t("project.shared", { fallback: "Shared project" })}
           {:else}
-            <i class="bi bi-lock-fill me-1"></i> {t("project.private", { fallback: "Private" })}
+            {t("project.private", { fallback: "Private project" })}
           {/if}
         </span>
         <span>&bull;</span>
@@ -95,45 +103,51 @@
           {i18n.createdOn}
           {project.created_at ? formatDate(+project.created_at, translationState.currentLocale) : '...'}
         </span>
-      </p>
-    </div>
-  </div>
-  <div class="d-flex w-50">
-    <div class="col">
-      <div class="fs-7">{i18n.items}</div>
-      <div class="fs-5">{project.objectsCount}</div>
-    </div>
-    <div class="col">
-      <div class="fs-7">
-        {i18n.assets}
       </div>
-      <div class="fs-5">{project.assetsCount}</div>
-    </div>
-    <div class="col">
-      <div class="fs-7">
-        {i18n.collections}
-      </div>
-      <div class="fs-5">{project.institutionsCount}</div>
     </div>
   </div>
 
-  <!-- Three dots dropdown menu -->
-  <div class="p-2">
-    <BaseDropdownMenu
-      bind:open={dropdownOpen}
-      items={dropdownItems}
-      triggerClass="btn btn-link text-secondary p-1"
-      contentProps={{ style: "right: 0; left: auto; min-width: 150px;" }}
-      side="bottom"
-      align="end"
-      sideOffset={4}
-      alignOffset={0}
-    >
-      {#snippet trigger()}
-        <i class="bi bi-three-dots-vertical"></i>
-      {/snippet}
-    </BaseDropdownMenu>
+  <div class="d-flex gap-4 align-items-center">
+    <div class="d-flex flex-column align-items-start">
+      <span class="text-uppercase" style="font-size: 12px; letter-spacing: 0.24px; line-height: 1.2; color: rgba(29,34,38,0.75);">
+        {i18n.objects}
+      </span>
+      <span style="font-size: 24px; line-height: 1.5; color: rgba(29,34,38,0.75);">
+        {project.objectsCount ?? 0}
+      </span>
+    </div>
+    <div class="d-flex flex-column align-items-start">
+      <span class="text-uppercase" style="font-size: 12px; letter-spacing: 0.24px; line-height: 1.2; color: rgba(29,34,38,0.75);">
+        {i18n.assets}
+      </span>
+      <span style="font-size: 24px; line-height: 1.5; color: rgba(29,34,38,0.75);">
+        {project.assetsCount ?? 0}
+      </span>
+    </div>
+    <div class="d-flex flex-column align-items-start">
+      <span class="text-uppercase" style="font-size: 12px; letter-spacing: 0.24px; line-height: 1.2; color: rgba(29,34,38,0.75);">
+        {i18n.institutions}
+      </span>
+      <span style="font-size: 24px; line-height: 1.5; color: rgba(29,34,38,0.75);">
+        {project.institutionsCount ?? 0}
+      </span>
+    </div>
   </div>
+
+  <BaseDropdownMenu
+    bind:open={dropdownOpen}
+    items={dropdownItems}
+    triggerClass="btn btn-link p-1 border-0"
+    contentProps={{ style: "right: 0; left: auto; min-width: 150px;" }}
+    side="bottom"
+    align="end"
+    sideOffset={4}
+    alignOffset={0}
+  >
+    {#snippet trigger()}
+      <IconDotsVertical size={16} stroke={2} />
+    {/snippet}
+  </BaseDropdownMenu>
 </div>
 
 <!-- Delete confirmation modal -->

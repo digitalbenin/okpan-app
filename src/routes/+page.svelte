@@ -1,8 +1,10 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import ProjectsList from "$lib/components/projects/ProjectsList.svelte";
+  import AppHeader from "$lib/components/projects/AppHeader.svelte";
+  import StartFromHere from "$lib/components/projects/StartFromHere.svelte";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
-  import BaseInput from "$lib/components/base/BaseInput.svelte";
+  import AppSettingsModal from "$lib/components/projects/AppSettingsModal.svelte";
   import ProjectCreate from "$lib/components/projects/ProjectCreate.svelte";
   import ProjectImport from "$lib/components/projects/ProjectImport.svelte";
   import ProjectSync from "$lib/components/projects/ProjectSync.svelte";
@@ -13,21 +15,29 @@
   import { getProjects } from "$lib/api/ProjectsApi.js";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
   import { onMount } from "svelte";
+  import { IconSearch } from "@tabler/icons-svelte";
 
   const { data } = $props();
-  const { t, translationState, setLocale } = getTranslationStore();
+  const { t, setLocale } = getTranslationStore();
   const userPresenceStore = getUserPresenceStore();
-  const userPresenceState = userPresenceStore.userPresenceState;
 
   let newProjectOpen = $state(false);
   let importProjectOpen = $state(false);
   let syncProjectOpen = $state(false);
   let projects = $state([]);
+  let search = $state("");
   let appSettingsOpen = $state(false);
-  let usernameDraft = $state("");
-  let interfaceLanguageDraft = $state("en");
-  let isSavingAppSettings = $state(false);
-  let appSettingsError = $state("");
+
+  const filteredProjects = $derived(
+    projects.filter(
+      (project) => {
+        const titleContent = project.title?.content || "Connecting/Unknown Project";
+        const descriptionContent = project.description?.content || "";
+        return titleContent.toLowerCase().includes(search.toLowerCase()) ||
+               descriptionContent.toLowerCase().includes(search.toLowerCase());
+      }
+    ),
+  );
 
   watch(
     () => data.projects,
@@ -50,16 +60,6 @@
     }
   });
 
-  $effect(() => {
-    if (appSettingsOpen) {
-      void userPresenceStore.initialize();
-      usernameDraft = userPresenceState.username || "";
-      interfaceLanguageDraft =
-        translationState.currentLocale || translationState.languages[0]?.code || "en";
-      appSettingsError = "";
-    }
-  });
-
   onMount(() => {
     if (!window.api?.onDataChanged) {
       return;
@@ -77,36 +77,6 @@
 
     return unsubscribe;
   });
-
-  const dropdownItems = $derived([
-    {
-      label: t("project.new"),
-      icon: "plus-circle",
-      onClick: () => {
-        setTimeout(() => {
-          newProjectOpen = true;
-        }, 100);
-      }
-    },
-    {
-      label: t("project.import-from-file"),
-      icon: "file-earmark-arrow-up",
-      onClick: () => {
-        setTimeout(() => {
-          importProjectOpen = true;
-        }, 100);
-      }
-    },
-    {
-      label: t("project.sync-project", { fallback: "Sync project" }),
-      icon: "cloud-arrow-down",
-      onClick: () => {
-        setTimeout(() => {
-          syncProjectOpen = true;
-        }, 100);
-      }
-    }
-  ]);
 
   async function handleCreated({ projectId }) {
     newProjectOpen = false;
@@ -176,67 +146,95 @@
     }, 100);
   }
 
-  async function handleSaveAppSettings() {
-    isSavingAppSettings = true;
-    appSettingsError = "";
+  async function handleSaveAppSettings({ username, locale }) {
+    const normalizedDraft = username.trim();
+    const normalizedCurrent = (userPresenceStore.userPresenceState.username || "").trim();
 
-    try {
-      const normalizedUsernameDraft = usernameDraft.trim();
-      const normalizedCurrentUsername = (userPresenceState.username || "").trim();
+    if (normalizedDraft !== normalizedCurrent) {
+      await userPresenceStore.saveUsername(username);
+    }
 
-      if (normalizedUsernameDraft !== normalizedCurrentUsername) {
-        await userPresenceStore.saveUsername(usernameDraft);
-        usernameDraft = userPresenceState.username || "";
-      }
-
-      const saved = await setLocale(interfaceLanguageDraft);
-      if (!saved) {
-        appSettingsError = t("settings.interface-language-invalid", {
-          fallback: "The selected interface language is not available.",
-        });
-        return;
-      }
-
-      appSettingsOpen = false;
-    } catch (error) {
-      console.error("[App Settings] Failed to save interface language", error);
-      appSettingsError = t("settings.application-save-error", {
-        fallback: "Unable to save application settings.",
-      });
-    } finally {
-      isSavingAppSettings = false;
+    const saved = await setLocale(locale);
+    if (!saved) {
+      throw new Error(t("settings.interface-language-invalid", {
+        fallback: "The selected interface language is not available.",
+      }));
     }
   }
 </script>
 
-<div class="container-fluid">
-  <div class="row p-3">
-    <div class="col-9">
-      <h2>{t("common.projects", { fallback: "Projects" })}</h2>
-      
-      <ProjectsList 
-        {projects}
-        onNewProject={handleNewProject}
-        {dropdownItems}
-      />
-    </div>
-    <div class="col-3 vh-100 border-start">
-      <h4>{t("common.resources", { fallback: "Resources and guides" })}</h4>
-      <h5 class="text-muted">{t("common.coming-soon", { fallback: "Coming soon" })}</h5>
+{#if projects.length === 0}
+  <div class="min-vh-100" style="background-color: #f5f5f3;">
+    <AppHeader onSettingsClick={() => { appSettingsOpen = true; }} />
+
+    <div class="p-4 d-flex flex-column gap-5">
+      <div>
+        <p class="text-uppercase mb-3" style="font-size: 12px; letter-spacing: 0.24px; color: #292927;">
+          {t("onboarding.start-from-here", { fallback: "Start from here" })}
+        </p>
+        <StartFromHere
+          variant="cards"
+          onCreateProject={handleNewProject}
+          onImportProject={() => { importProjectOpen = true; }}
+          onJoinProject={() => { syncProjectOpen = true; }}
+        />
+      </div>
+
+      <div>
+        <p class="text-uppercase mb-3" style="font-size: 12px; letter-spacing: 0.24px; color: #292927;">
+          {t("onboarding.your-projects", { fallback: "Your projects" })}
+        </p>
+        <div
+          class="border border-dashed d-flex align-items-center justify-content-center w-100"
+          style="border-color: #d5d6d0; border-radius: 16px; min-height: 120px;"
+        >
+          <p class="m-0" style="font-size: 14px; color: rgba(29,34,38,0.75);">
+            {t("onboarding.no-projects-yet", { fallback: "No projects yet" })}
+          </p>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+{:else}
+  <div class="min-vh-100" style="background-color: #f5f5f3;">
+    <AppHeader onSettingsClick={() => { appSettingsOpen = true; }} />
 
-<button
-  class="btn btn-outline-secondary position-fixed bottom-0 start-0 m-4 d-flex align-items-center gap-2 shadow-sm"
-  style="z-index: 10;"
-  onclick={() => {
-    appSettingsOpen = true;
-  }}
->
-  <i class="bi bi-sliders"></i>
-  {t("settings.application", { fallback: "Application settings" })}
-</button>
+    <div class="p-4 d-flex gap-4">
+      <div class="d-flex flex-column gap-3" style="width: 334px; flex-shrink: 0;">
+        <p class="text-uppercase m-0" style="font-size: 12px; letter-spacing: 0.24px; color: #292927;">
+          {t("onboarding.start-from-here", { fallback: "Start from here" })}
+        </p>
+        <StartFromHere
+          variant="list"
+          onCreateProject={handleNewProject}
+          onImportProject={() => { importProjectOpen = true; }}
+          onJoinProject={() => { syncProjectOpen = true; }}
+        />
+      </div>
+
+      <div class="d-flex flex-column gap-3 flex-fill">
+        <div class="d-flex align-items-center justify-content-between">
+          <p class="text-uppercase m-0" style="font-size: 12px; letter-spacing: 0.24px; color: #292927;">
+            {t("onboarding.your-projects", { fallback: "Your projects" })}
+          </p>
+          <div class="d-flex align-items-center border" style="border-color: #d5d6d0; border-radius: 6.4px; width: 300px;">
+            <input
+              type="text"
+              class="form-control border-0 flex-fill"
+              placeholder={t("common.search", { fallback: "Search" })}
+              bind:value={search}
+              style="font-size: 16px; padding: 4px 16px; border-radius: 6.4px 0 0 6.4px;"
+            />
+            <button class="btn bg-white border-0 p-2" style="border-radius: 0 6.4px 6.4px 0;">
+              <IconSearch size={16} stroke={2} />
+            </button>
+          </div>
+        </div>
+        <ProjectsList projects={filteredProjects} />
+      </div>
+    </div>
+  </div>
+{/if}
 
 {#if newProjectOpen}
   <BaseAlertDialog bind:open={newProjectOpen} size="lg">
@@ -249,80 +247,7 @@
   </BaseAlertDialog>
 {/if}
 
-{#if appSettingsOpen}
-  <BaseAlertDialog bind:open={appSettingsOpen}>
-    {#snippet title()}
-      {t("settings.application", { fallback: "Application settings" })}
-    {/snippet}
-    {#snippet description()}
-      <p class="text-muted mb-3">
-        {t("settings.application-description", {
-          fallback: "Choose your username and the language used for the application interface.",
-        })}
-      </p>
-      <div class="mb-3">
-        <label class="form-label" for="application-username-input">
-          {t("common.username", { fallback: "Username" })}
-        </label>
-        <p class="text-muted small mb-2">
-          {t("settings.username-description", {
-            fallback: "Leave it empty if you want the app to choose a random name for you.",
-          })}
-        </p>
-        <BaseInput
-          id="application-username-input"
-          bind:value={usernameDraft}
-          placeholder={t("common.username", { fallback: "Username" })}
-          disabled={isSavingAppSettings}
-        />
-      </div>
-      <div class="mb-3">
-        <label class="form-label" for="interface-language-select">
-          {t("settings.interface-language", {
-            fallback: "Interface language",
-          })}
-        </label>
-        <select
-          id="interface-language-select"
-          class="form-select"
-          bind:value={interfaceLanguageDraft}
-          disabled={translationState.isLoading || translationState.languages.length === 0}
-        >
-          {#each translationState.languages as language}
-            <option value={language.code}>
-              {language.name} ({language.code})
-            </option>
-          {/each}
-        </select>
-      </div>
-
-      {#if appSettingsError}
-        <div class="alert alert-danger py-2 mb-0">{appSettingsError}</div>
-      {/if}
-    {/snippet}
-    {#snippet footer()}
-      <button
-        class="btn btn-secondary"
-        onclick={() => {
-          appSettingsOpen = false;
-        }}
-        disabled={isSavingAppSettings}
-      >
-        {t("common.cancel", { fallback: "Cancel" })}
-      </button>
-      <button
-        class="btn btn-primary"
-        onclick={handleSaveAppSettings}
-        disabled={isSavingAppSettings || !interfaceLanguageDraft}
-      >
-        {#if isSavingAppSettings}
-          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-        {/if}
-        {t("common.save", { fallback: "Save" })}
-      </button>
-    {/snippet}
-  </BaseAlertDialog>
-{/if}
+<AppSettingsModal bind:open={appSettingsOpen} onSave={handleSaveAppSettings} />
 
 {#if importProjectOpen}
   <BaseAlertDialog bind:open={importProjectOpen} size="lg">

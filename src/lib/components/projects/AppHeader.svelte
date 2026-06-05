@@ -1,0 +1,24 @@
+<script>
+  import { IconSettings } from "@tabler/icons-svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import okpanLogo from "../../../assets/okpan_logo.svg";
+
+  const { onSettingsClick } = $props();
+  const { t } = getTranslationStore();
+</script>
+
+<div class="bg-white border-bottom px-4 py-2 d-flex align-items-center justify-content-between">
+  <div class="d-flex align-items-center gap-2">
+    <img src={okpanLogo} alt="Okpan" width="42" height="42" />
+    <span style="font-family: 'Crimson Text', serif; font-size: 32px; color: #292927;">
+      Ọkpan
+    </span>
+  </div>
+  <button
+    class="btn btn-outline-secondary d-flex align-items-center gap-2"
+    onclick={onSettingsClick}
+  >
+    <IconSettings size={16} stroke={2} />
+    {t("settings.application", { fallback: "App Settings" })}
+  </button>
+</div>

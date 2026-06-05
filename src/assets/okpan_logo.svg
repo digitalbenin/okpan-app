@@ -1,0 +1,13 @@
+<svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="42" height="42" rx="10" fill="#D3A621"/>
+<circle cx="20.8919" cy="20.8919" r="6.08644" stroke="white" stroke-width="3"/>
+<circle cx="20.8918" cy="33.255" r="2.52881" fill="white"/>
+<circle cx="20.8918" cy="8.52881" r="2.52881" fill="white"/>
+<circle cx="33.2549" cy="20.8919" r="2.52881" transform="rotate(-90 33.2549 20.8919)" fill="white"/>
+<circle cx="8.52881" cy="20.8919" r="2.52881" transform="rotate(-90 8.52881 20.8919)" fill="white"/>
+<circle cx="29.6338" cy="12.1499" r="2.52881" transform="rotate(-135 29.6338 12.1499)" fill="white"/>
+<circle cx="12.1499" cy="29.6339" r="2.52881" transform="rotate(-135 12.1499 29.6339)" fill="white"/>
+<circle cx="12.1498" cy="12.1499" r="2.52881" transform="rotate(135 12.1498 12.1499)" fill="white"/>
+<circle cx="29.6339" cy="29.6339" r="2.52881" transform="rotate(135 29.6339 29.6339)" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M22.2303 31.1095C21.5513 30.6858 21.0133 28.8483 23.2912 28.0889H18.4922C20.7701 28.8483 20.2321 30.6858 19.5531 31.1095H22.2303Z" fill="white"/>
+</svg>
