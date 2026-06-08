@@ -13,10 +13,10 @@ import {IconProgress, IconCheck} from "@tabler/icons-svelte";
         <div class="d-flex justify-content-between align-items-center mb-2">
           <div class="display-5 fw-normal lh-1">{stat.value}</div>
           <div
-            class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-            style="width: 4rem; height: 4rem; background-color: {stat.iconBgColor};"
+            class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 {stat.iconBgClass}"
+            style="width: 4rem; height: 4rem;"
           >
-            <stat.icon style="color: {stat.iconColor}; width: 2rem; height: 2rem;" />
+            <stat.icon class={stat.iconColorClass} size={32} />
           </div>
         </div>
         <div class="mb-3">{stat.label}</div>

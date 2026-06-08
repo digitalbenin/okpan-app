@@ -11,6 +11,7 @@
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { topCurtainOverlay } from "$lib/utils/transitions.js";
+  import { IconBox } from "@tabler/icons-svelte";
   import { afterNavigate, goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/api/ObjectsApi.js";
@@ -198,7 +199,9 @@
   <div class="row pt-3 pb-3 border-bottom mb-4 align-items-center">
     <div class="col">
       <h2 class="m-0 d-flex align-items-center gap-2">
-        <i class="bi bi-box text-muted"></i>
+      <div class="rounded-4 bg-purple-100 p-2 d-flex align-items-center justify-content-center">
+        <IconBox size={24} class="text-purple-400" />
+        </div>
         {t("common.objects", { fallback: "Objects" })}
       </h2>
     </div>

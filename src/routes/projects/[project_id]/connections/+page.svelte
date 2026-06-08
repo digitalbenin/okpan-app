@@ -1,6 +1,7 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { goto } from "$app/navigation";
+  import { IconChartCircles } from "@tabler/icons-svelte";
   import AddConnectionTypeModal from "$lib/components/research_fields/AddConnectionTypeModal.svelte";
   import ConnectionTypeImportModal from "$lib/components/research_fields/ConnectionTypeImportModal.svelte";
 
@@ -20,7 +21,9 @@
   <div class="row pt-3 pb-3 border-bottom mb-4 align-items-center">
     <div class="col">
       <h2 class="m-0 d-flex align-items-center gap-2">
-        <i class="bi bi-share-fill text-muted"></i>
+      <div class="rounded-4 bg-orange-100 p-2 d-flex align-items-center justify-content-center">
+        <IconChartCircles size={24} class="text-orange-400" />
+        </div>
         {t("project.connection-types", { fallback: "Connection types" })}
       </h2>
     </div>
