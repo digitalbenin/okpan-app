@@ -6,11 +6,11 @@
   const wizard = getImportWizardContext();
   const { ontologyFields } = $props();
 
+  const fields = $derived(ontologyFields || []);
+
   const id = $derived.by(() => {
-    //ontologyFields
-    return (ontologyFields?.result || []).find((f) => f.name.content === "object id")
-      ?.id;
-  }); //Find a better way to get this dynamically
+    return fields.find((f) => f.name.content === "object id")?.id;
+  });
 
   const headerOptions = $derived.by(() => {
     const groups = new Map();
@@ -21,7 +21,7 @@
         const firstMapped = (wizard.mapping || []).find(
           (e) => e?.headerField === headerField && e?.mappedField
         )?.mappedField;
-        const ontologyField = (ontologyFields?.result || []).find((f) => f.id === firstMapped);
+        const ontologyField = fields.find((f) => f.id === firstMapped);
         groups.set(headerField, {
           headerField,
           mappedField: firstMapped || null,
