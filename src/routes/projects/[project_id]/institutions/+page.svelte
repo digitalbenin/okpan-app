@@ -1,13 +1,16 @@
 <script>
   import { queryParameters } from "sveltekit-search-params";
-  import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
+  import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import InstitutionsGrid from "$lib/components/institutions/InstitutionsGrid.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import { updateInstitutionsStatusBulk } from "$lib/api/InstitutionsApi.js";
   import { topCurtainOverlay } from "$lib/utils/transitions.js";
-  import { IconBuildingBank} from "@tabler/icons-svelte";
+  import { IconBuildingBank, IconSearch, IconPlus, IconSortAscendingLetters, IconSortDescendingLetters, IconSortAscendingNumbers, IconSortDescendingNumbers, IconSortAscending, IconSortDescending } from "@tabler/icons-svelte";
+  import PageHeader from "$lib/components/base/PageHeader.svelte";
+  import { goto } from "$app/navigation";
+
   const { t } = getTranslationStore();
 
   const params = queryParameters({
@@ -46,32 +49,23 @@
   const { data } = $props();
   let selectedInstitutions = $state([]);
   let bulkStatusValue = $state("");
+  let sortOpen = $state(false);
 
-  const orderBy = $derived([
-    { value: "name", label: t("common.name") },
-    {
-      value: "created_at",
-      label: t("common.created-at"),
-    },
-    {
-      value: "updated_at",
-      label: t("common.updated-at"),
-    },
+  const sortOptions = $derived([
+    { label: t("common.sort-by-date", { fallback: "Sort by date" }), icon: IconSortDescendingNumbers, orderBy: "created_at", direction: "desc" },
+    { label: t("common.sort-by-date", { fallback: "Sort by date" }), icon: IconSortAscendingNumbers, orderBy: "created_at", direction: "asc" },
+    { label: t("common.sort-by-name", { fallback: "Sort by name" }), icon: IconSortDescendingLetters, orderBy: "name", direction: "desc" },
+    { label: t("common.sort-by-name", { fallback: "Sort by name" }), icon: IconSortAscendingLetters, orderBy: "name", direction: "asc" },
+    { label: t("common.sort-by-objects", { fallback: "Sort by objects" }), icon: IconSortDescending, orderBy: "objectsCount", direction: "desc" },
+    { label: t("common.sort-by-objects", { fallback: "Sort by objects" }), icon: IconSortAscending, orderBy: "objectsCount", direction: "asc" },
   ]);
 
+  const currentSort = $derived(sortOptions.find(o => o.orderBy === params.orderBy && o.direction === params.direction) ?? sortOptions[0]);
+
   const statuses = $derived([
-    {
-      value: "all",
-      label: t("common.all"),
-    },
-    {
-      value: "in progress",
-      label: t("common.in-progress"),
-    },
-    {
-      value: "completed",
-      label: t("common.completed"),
-    },
+    { value: "all", label: t("common.all") },
+    { value: "in progress", label: t("common.in-progress") },
+    { value: "completed", label: t("common.completed") },
   ]);
 
   const clearSelection = () => {
@@ -89,96 +83,105 @@
   };
 </script>
 
-<div class="container-fluid" style="min-height: 100%;">
-  <div class="row pt-3 pb-3 border-bottom mb-4 align-items-center">
-    <div class="col">
-      <h2 class="m-0 d-flex align-items-center gap-2">
-        <div class="rounded-4 bg-blue-100 p-2 d-flex align-items-center justify-content-center">
-          <IconBuildingBank size={24} class="text-blue-400" />
-        </div>
-        {t("common.institutions")}
-      </h2>
-    </div>
-    <div class="col-auto">
-      <a
-        class="btn btn-primary btn-sm"
-        href="/projects/{data.project.id}/institutions/add"
-      >
-        <i class="bi bi-plus-lg"></i>
-        {t("menu.add-institution")}
-      </a>
-    </div>
-  </div>
-  <div class="position-relative mb-3">
-    <div class="row align-items-center">
-      <div class="col-3">
-        <BaseInput
-          icon="search"
-          placeholder={t("common.search")}
-          clearable
-          size="sm"
-          bind:value={params.search}
-        />
-      </div>
-      <div class="col-9 d-flex justify-content-end gap-3 align-items-center mb-1">
-        <div class="d-flex align-items-center gap-2">
-          <div class="col-auto fs-7">
-            {t("common.order-by")}
-          </div>
-          <BaseSelect items={orderBy} bind:value={params.orderBy} size="sm"
-          ></BaseSelect>
-        </div>
+<PageHeader
+  icon={IconBuildingBank}
+  iconBgClass="bg-blue-100"
+  iconColorClass="text-blue-400"
+  title={t("common.institutions")}
+  description={t("institutions.page-description", { fallback: "The museums, archives, and libraries where your objects come from." })}
+/>
 
-        <div class="d-flex align-items-center gap-2">
-          <div class="col-auto fs-7">
-            {t("common.status")}
-          </div>
-          <BaseSelect items={statuses} bind:value={params.status} size="sm"
-          ></BaseSelect>
-        </div>
-      </div>
-    </div>
-
-    {#if selectedInstitutions.length > 0}
-      <div
-        transition:topCurtainOverlay={{ y: -20, duration: 220 }}
-        class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-light"
-      >
-        <div class="row align-items-center h-100">
-          <div class="col-12 d-flex gap-3 align-items-center mt-1 mb-0">
-            <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
-              <span>{t("common.clear-selection", { fallback: "Clear selection" })}</span>
-              <i class="bi bi-x-circle"></i>
-            </button>
-            <BulkActionsStatusSelect
-              items={statuses.filter((status) => status.value !== "all")}
-              bind:value={bulkStatusValue}
-              onValueChange={applyBulkStatus}
-            />
-          </div>
-        </div>
-      </div>
-    {/if}
-  </div>
-  {#if data.institutions?.count}
-    <div class="border-bottom mb-3">
-      {data.institutions.count}
-      {#if data.institutions.count > 1}
-        {t("common.institutions")}
-      {:else}
-        {t("common.institution")}
-      {/if}
-    </div>
-    <InstitutionsGrid
-      institutions={data.institutions.result}
-      bind:selected={selectedInstitutions}
-      bind:page={params.page}
-      pageSize={params.pageSize}
-      count={data.institutions.count}
+<div class="d-flex justify-content-between align-items-center pb-3 mt-4">
+  <div class="input-group" style="width: 300px;">
+    <input
+      type="text"
+      class="form-control border-end-0 border-white"
+      placeholder={t("common.search")}
+      bind:value={params.search}
     />
-  {:else}
-    <div class="text-center fst-italic text-muted mt-5">
-      {t("common.no-institutions-found")}
+    <span class="input-group-text bg-white relative border-white" style="left: -1px; border-left: none;">
+      <IconSearch size={18} class="text-body-secondary" />
+    </span>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/projects/{data.project.id}/institutions/add" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+      <IconPlus size={16} />
+      {t("menu.add-institution")}
+    </a>
+  </div>
+</div>
+
+<div class="position-relative mb-3">
+  <div class="d-flex justify-content-end gap-3 align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <BaseDropdownMenu 
+      bind:open={sortOpen} 
+        contentProps={{ style: "right: 0; left: auto;" }}
+        side="bottom"
+        align="end"
+        triggerClass="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+        {#snippet trigger()}
+          {currentSort.label}
+          <i class="bi bi-chevron-down"></i>
+        {/snippet}
+        {#snippet children()}
+          {#each sortOptions as option}
+            <button
+              class="dropdown-item rounded px-2 py-1 d-flex align-items-center gap-2"
+              class:active={params.orderBy === option.orderBy && params.direction === option.direction}
+              onclick={() => { params.orderBy = option.orderBy; params.direction = option.direction; sortOpen = false; }}
+            >
+              <option.icon size={16} class="text-body-secondary" />
+              <span class="flex-grow-1">{option.label}</span>
+            </button>
+          {/each}
+        {/snippet}
+      </BaseDropdownMenu>
+    </div>
+  </div>
+
+  {#if selectedInstitutions.length > 0}
+    <div
+      transition:topCurtainOverlay={{ y: -20, duration: 220 }}
+      class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-light"
+    >
+      <div class="row align-items-center h-100">
+        <div class="col-12 d-flex gap-3 align-items-center mt-1 mb-0">
+          <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
+            <span>{t("common.clear-selection", { fallback: "Clear selection" })}</span>
+            <i class="bi bi-x-circle"></i>
+          </button>
+          <BulkActionsStatusSelect
+            items={statuses.filter((status) => status.value !== "all")}
+            bind:value={bulkStatusValue}
+            onValueChange={applyBulkStatus}
+          />
+        </div>
+      </div>
     </div>
   {/if}
 </div>
+
+{#if data.institutions?.count}
+  <div class="border-bottom mb-3">
+    {data.institutions.count}
+    {#if data.institutions.count > 1}
+      {t("common.institutions")}
+    {:else}
+      {t("common.institution")}
+    {/if}
+  </div>
+  <InstitutionsGrid
+    institutions={data.institutions.result}
+    bind:selected={selectedInstitutions}
+    bind:page={params.page}
+    pageSize={params.pageSize}
+    count={data.institutions.count}
+  />
+{:else}
+  <div class="border border-dashed rounded-4 d-flex flex-column align-items-center justify-content-center" style="height: 120px;">
+    <p class="text-body-secondary fs-7 mb-0">
+      {t("institutions.no-institutions-yet", { fallback: "No institutions yet. Add one by clicking on \"Add institution\"." })}
+    </p>
+  </div>
+{/if}

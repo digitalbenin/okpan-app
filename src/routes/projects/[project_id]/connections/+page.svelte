@@ -4,6 +4,7 @@
   import { IconChartCircles } from "@tabler/icons-svelte";
   import AddConnectionTypeModal from "$lib/components/research_fields/AddConnectionTypeModal.svelte";
   import ConnectionTypeImportModal from "$lib/components/research_fields/ConnectionTypeImportModal.svelte";
+  import PageHeader from "$lib/components/base/PageHeader.svelte";
 
   const { data } = $props();
   const { t } = getTranslationStore();
@@ -16,27 +17,20 @@
   }
 </script>
 
-<div class="container-fluid h-100">
-  <!-- Header Section -->
-  <div class="row pt-3 pb-3 border-bottom mb-4 align-items-center">
-    <div class="col">
-      <h2 class="m-0 d-flex align-items-center gap-2">
-      <div class="rounded-4 bg-orange-100 p-2 d-flex align-items-center justify-content-center">
-        <IconChartCircles size={24} class="text-orange-400" />
-        </div>
-        {t("project.connection-types", { fallback: "Connection types" })}
-      </h2>
-    </div>
-    <div class="col-auto">
-      <div class="d-flex align-items-center gap-2">
-        <ConnectionTypeImportModal projectId={data.project.id} languages={data.languages} />
-        <AddConnectionTypeModal projectId={data.project.id} languages={data.languages} />
-      </div>
-    </div>
-  </div>
+<PageHeader
+  icon={IconChartCircles}
+  iconBgClass="bg-orange-100"
+  iconColorClass="text-orange-400"
+  title={t("project.connection-types", { fallback: "Connection types" })}
+  description={t("project.connection-types-description", { fallback: "The types of relationships you can define between the objects in your collection." })}
+/>
 
-  <!-- Cards Grid -->
-  <div class="row g-4 mx-2">
+<div class="d-flex justify-content-end gap-2 mt-4 mb-3">
+  <ConnectionTypeImportModal projectId={data.project.id} languages={data.languages} />
+  <AddConnectionTypeModal projectId={data.project.id} languages={data.languages} />
+</div>
+
+<div class="row g-4">
     {#each data.researchFields || [] as field (field.id)}
       <div class="col-md-4">
         <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -68,10 +62,9 @@
         </div>
       </div>
     {/each}
-    {#if (!data.researchFields || data.researchFields.length === 0)}
-        <div class="col-12 text-center text-muted mt-4">
-            {t("common.no-connections-found", { fallback: "No connection types found." })}
-        </div>
-    {/if}
-  </div>
+  {#if (!data.researchFields || data.researchFields.length === 0)}
+    <div class="col-12 text-center text-muted mt-4">
+      {t("common.no-connections-found", { fallback: "No connection types found." })}
+    </div>
+  {/if}
 </div>

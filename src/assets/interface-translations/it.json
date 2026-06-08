@@ -1839,6 +1839,16 @@
                          },
                          {
                              "namespace":  "project",
+                             "key":  "connection-types-description",
+                             "value":  "I tipi di relazioni che puoi definire tra gli oggetti della tua collezione."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "page-description",
+                             "value":  "Gli elementi culturali che stai ricercando e documentando nelle istituzioni."
+                         },
+                         {
+                             "namespace":  "project",
                              "key":  "import_connection_type_csv",
                              "value":  "Importa CSV del tipo di connessione"
                          },
@@ -2686,6 +2696,11 @@
                              "namespace":  "institutions",
                              "key":  "no-project-languages",
                              "value":  "Nessuna lingua disponibile. Aggiungi prima le lingue al tuo progetto."
+                         },
+                         {
+                             "namespace":  "institutions",
+                             "key":  "page-description",
+                             "value":  "I musei, gli archivi e le biblioteche da cui provengono i tuoi oggetti."
                          },
                          {
                              "namespace":  "common",

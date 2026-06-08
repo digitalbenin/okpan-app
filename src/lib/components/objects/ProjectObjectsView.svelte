@@ -12,6 +12,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { topCurtainOverlay } from "$lib/utils/transitions.js";
   import { IconBox } from "@tabler/icons-svelte";
+  import PageHeader from "$lib/components/base/PageHeader.svelte";
   import { afterNavigate, goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/api/ObjectsApi.js";
@@ -195,17 +196,15 @@
   </button>
 {/snippet}
 
-<div class="container-fluid" style="min-height: 100%;">
-  <div class="row pt-3 pb-3 border-bottom mb-4 align-items-center">
-    <div class="col">
-      <h2 class="m-0 d-flex align-items-center gap-2">
-      <div class="rounded-4 bg-purple-100 p-2 d-flex align-items-center justify-content-center">
-        <IconBox size={24} class="text-purple-400" />
-        </div>
-        {t("common.objects", { fallback: "Objects" })}
-      </h2>
-    </div>
-  </div>
+<PageHeader
+  icon={IconBox}
+  iconBgClass="bg-purple-100"
+  iconColorClass="text-purple-400"
+  title={t("common.objects", { fallback: "Objects" })}
+  description={t("objects.page-description", { fallback: "The cultural items you are researching and documenting across institutions." })}
+/>
+
+<div class="container-fluid mt-4 px-0" style="min-height: 100%;">
 
   <div class="position-relative mb-3">
     <div class="row align-items-center">

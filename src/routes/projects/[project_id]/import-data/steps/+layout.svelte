@@ -9,6 +9,7 @@
 
   const { data, children } = $props();
   const { t } = getTranslationStore();
+  // svelte-ignore state_referenced_locally
   const wizard = createImportWizardContext({ projectId: data.project.id });
 
   const dirtyTracker = {

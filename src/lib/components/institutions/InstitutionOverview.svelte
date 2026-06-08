@@ -1,5 +1,4 @@
 <script>
-  import StatusBadgeDropdown from "$lib/components/common/StatusBadgeDropdown.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { goto } from "$app/navigation";
@@ -51,7 +50,7 @@
   }
 </script>
 
-<div class="container-fluid py-3" style="overflow: visible;">
+<div class="container-fluid pb-3" style="overflow: visible;">
   <div class="row">
     <div class="col-12">
       <div class="d-flex align-items-center justify-content-between" style="overflow: visible;">
@@ -65,11 +64,7 @@
         </button>
 
         <div class="d-flex align-items-center gap-2" style="overflow: visible;">
-          <StatusBadgeDropdown
-            status={institution.status}
-            disabled={statusUpdating}
-            onchange={setStatus}
-          />
+        
           <BaseButton
             class="btn btn-outline-secondary btn border-0"
             onClick={handleEdit}

@@ -146,8 +146,10 @@ export const createTextFieldWithTranslations = (textTable, translationsTable, la
 
 /**
  * Converts a free-text search string into a safe SQLite FTS5 query expression.
- * Each whitespace-separated token becomes a prefix query (`token*`) for word characters,
- * or a phrase query (`"token"`) for tokens containing special characters.
+ * Each whitespace-separated token is reduced to searchable word parts.
+ * Single-part tokens become prefix queries (`token*`); multi-part tokens become
+ * phrase queries (`"part one"`) so punctuation such as `-` or `*` does not leak
+ * into the final FTS expression.
  * Tokens are joined with `AND` so all terms must match.
  *
  * @param {string} input - Raw search string from the user.
@@ -167,10 +169,14 @@ export const buildSafeFtsAndPrefixQuery = (input) => {
             const normalizedToken = token.replace(/^"+|"+$/g, '').trim();
             if (!normalizedToken) return '';
 
-            const escapedToken = normalizedToken.replace(/"/g, '""');
-            const isPrefixSafeToken = /^[\p{L}\p{N}_-]+$/u.test(normalizedToken);
+            const searchableParts = normalizedToken.match(/[\p{L}\p{N}_]+/gu) ?? [];
+            if (searchableParts.length === 0) return '';
 
-            return isPrefixSafeToken ? `${escapedToken}*` : `"${escapedToken}"`;
+            if (searchableParts.length === 1) {
+                return `${searchableParts[0]}*`;
+            }
+
+            return `"${searchableParts.join(' ')}"`;
         })
         .filter(Boolean)
         .join(' AND ');
