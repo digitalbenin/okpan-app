@@ -161,6 +161,13 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                 .execute();
             const genericAssetIds = normalizeIdList(genericAssets.map((row) => row.id));
 
+            const objects = await db
+                .select({ id: dbSchema.objects.id })
+                .from(dbSchema.objects)
+                .where(eq(dbSchema.objects.project_id, projectId))
+                .execute();
+            const objectIds = normalizeIdList(objects.map((row) => row.id));
+
             const ontologyFields = await db
                 .select({
                     id: dbSchema.ontology_fields.id,
@@ -254,142 +261,152 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                         .where(eq(dbSchema.project.id, projectId))
                         .execute();
 
+                    // 0. Delete junction/child tables first to avoid FK violations
+                    console.log('[DELETE CASCADE] Deleting junction tables...');
+
+                    if (institutionIds.length > 0) {
+                        await tx.delete(dbSchema.project_activity)
+                            .where(inArray(dbSchema.project_activity.institution_id, institutionIds))
+                            .execute();
+                    }
+
+                    if (objectIds.length > 0) {
+                        await tx.delete(dbSchema.objects_ontology_fields)
+                            .where(inArray(dbSchema.objects_ontology_fields.object_id, objectIds))
+                            .execute();
+
+                        await tx.delete(dbSchema.objects_research_fields)
+                            .where(inArray(dbSchema.objects_research_fields.object_id, objectIds))
+                            .execute();
+
+                        await tx.delete(dbSchema.objects_assets)
+                            .where(inArray(dbSchema.objects_assets.object_id, objectIds))
+                            .execute();
+
+                        await tx.delete(dbSchema.objects_datasources)
+                            .where(inArray(dbSchema.objects_datasources.object_id, objectIds))
+                            .execute();
+                    }
+
+                    if (institutionIds.length > 0) {
+                        await tx.delete(dbSchema.assets_institutions)
+                            .where(inArray(dbSchema.assets_institutions.institution_id, institutionIds))
+                            .execute();
+                    }
+
+                    if (researchFieldIds.length > 0) {
+                        await tx.delete(dbSchema.vocabularies_generic_assets)
+                            .where(inArray(dbSchema.vocabularies_generic_assets.vocabulary_id,
+                                tx.select({ id: dbSchema.vocabularies.id })
+                                    .from(dbSchema.vocabularies)
+                                    .where(inArray(dbSchema.vocabularies.field_id, researchFieldIds))
+                            ))
+                            .execute();
+                    }
+
+                    if (genericAssetIds.length > 0) {
+                        await tx.delete(dbSchema.vocabularies_generic_assets)
+                            .where(inArray(dbSchema.vocabularies_generic_assets.generic_asset_id, genericAssetIds))
+                            .execute();
+                    }
+
+                    console.log('[DELETE CASCADE] Junction tables deleted.');
+
                     // 1. Delete sync tables (change_log and Yjs tables)
-                    await tx
-                        .delete(dbSchema.yjs_updates)
-                        .where(eq(dbSchema.yjs_updates.project_id, projectId))
-                        .execute();
+                    console.log('[CASCADE] step 1: sync tables...');
+                    await tx.delete(dbSchema.yjs_updates).where(eq(dbSchema.yjs_updates.project_id, projectId)).execute();
+                    await tx.delete(dbSchema.yjs_snapshots).where(eq(dbSchema.yjs_snapshots.project_id, projectId)).execute();
+                    await tx.delete(dbSchema.ingestion_state).where(eq(dbSchema.ingestion_state.project_id, projectId)).execute();
+                    await tx.delete(dbSchema.change_log).where(eq(dbSchema.change_log.project_id, projectId)).execute();
+                    console.log('[CASCADE] step 1: done');
 
-                    await tx
-                        .delete(dbSchema.yjs_snapshots)
-                        .where(eq(dbSchema.yjs_snapshots.project_id, projectId))
-                        .execute();
-
-                    await tx
-                        .delete(dbSchema.ingestion_state)
-                        .where(eq(dbSchema.ingestion_state.project_id, projectId))
-                        .execute();
-
-                    await tx
-                        .delete(dbSchema.change_log)
-                        .where(eq(dbSchema.change_log.project_id, projectId))
-                        .execute();
-
-                    // 2. Delete objects (before assets/institutions since junction tables reference it)
-                    const deletedObjects = await tx
-                        .delete(dbSchema.objects)
-                        .where(eq(dbSchema.objects.project_id, projectId))
-                        .returning({ id: dbSchema.objects.id })
-                        .execute();
+                    // 2. Delete objects
+                    console.log('[CASCADE] step 2: objects...');
+                    const deletedObjects = await tx.delete(dbSchema.objects).where(eq(dbSchema.objects.project_id, projectId)).returning({ id: dbSchema.objects.id }).execute();
                     counts.objects = deletedObjects.length;
+                    console.log('[CASCADE] step 2: done', deletedObjects.length);
 
-                    // 3. Delete assets (now that objects are gone)
-                    const deletedAssets = await tx
-                        .delete(dbSchema.assets)
-                        .where(eq(dbSchema.assets.project_id, projectId))
-                        .returning({ id: dbSchema.assets.id })
-                        .execute();
+                    // 3. Delete assets
+                    console.log('[CASCADE] step 3: assets...');
+                    const deletedAssets = await tx.delete(dbSchema.assets).where(eq(dbSchema.assets.project_id, projectId)).returning({ id: dbSchema.assets.id }).execute();
                     counts.assets = deletedAssets.length;
+                    console.log('[CASCADE] step 3: done', deletedAssets.length);
 
                     // 4. Delete templates
-                    const deletedTemplates = await tx
-                        .delete(dbSchema.templates)
-                        .where(eq(dbSchema.templates.project_id, projectId))
-                        .returning({ id: dbSchema.templates.id })
-                        .execute();
+                    console.log('[CASCADE] step 4: templates...');
+                    const deletedTemplates = await tx.delete(dbSchema.templates).where(eq(dbSchema.templates.project_id, projectId)).returning({ id: dbSchema.templates.id }).execute();
                     counts.templates = deletedTemplates.length;
+                    console.log('[CASCADE] step 4: done', deletedTemplates.length);
 
-                    // 4b. Delete datasources explicitly (before institutions to ensure triggers resolve project_id)
-                    // Datasources rely on institution lookup for project_id interpretation
+                    // 4b. Delete datasources
                     if (institutionIds.length > 0) {
-                        const deletedDatasources = await tx
-                             .delete(dbSchema.datasources)
-                             .where(inArray(dbSchema.datasources.institution_id, institutionIds))
-                             .returning({ id: dbSchema.datasources.id })
-                             .execute();
-                        // counts.datasources = deletedDatasources.length; // Add if we track this count later
+                        console.log('[CASCADE] step 4b: datasources...');
+                        await tx.delete(dbSchema.datasources).where(inArray(dbSchema.datasources.institution_id, institutionIds)).execute();
+                        console.log('[CASCADE] step 4b: done');
                     }
 
-                    // 5. Delete institutions (this cascades to datasources)
-                    const deletedInstitutions = await tx
-                        .delete(dbSchema.institutions)
-                        .where(eq(dbSchema.institutions.project_id, projectId))
-                        .returning({ id: dbSchema.institutions.id })
-                        .execute();
+                    // 5. Delete institutions
+                    console.log('[CASCADE] step 5: institutions...');
+                    const deletedInstitutions = await tx.delete(dbSchema.institutions).where(eq(dbSchema.institutions.project_id, projectId)).returning({ id: dbSchema.institutions.id }).execute();
                     counts.institutions = deletedInstitutions.length;
+                    console.log('[CASCADE] step 5: done', deletedInstitutions.length);
 
-            // 5b. Delete vocabularies explicitly (before research fields/generic assets)
-                    // Vocabularies rely on parent lookup triggers
+                    // 5b. Delete vocabularies
                     if (researchFieldIds.length > 0) {
-                         await tx.delete(dbSchema.vocabularies)
-                           .where(inArray(dbSchema.vocabularies.field_id, researchFieldIds))
-                           .execute();
+                        console.log('[CASCADE] step 5b: vocabularies by field...');
+                        await tx.delete(dbSchema.vocabularies).where(inArray(dbSchema.vocabularies.field_id, researchFieldIds)).execute();
+                        console.log('[CASCADE] step 5b: done');
                     }
                     if (genericAssetIds.length > 0) {
-                         await tx.delete(dbSchema.vocabularies)
-                           .where(inArray(dbSchema.vocabularies.main_asset_id, genericAssetIds))
-                           .execute();
+                        console.log('[CASCADE] step 5b: vocabularies by main_asset...');
+                        await tx.delete(dbSchema.vocabularies).where(inArray(dbSchema.vocabularies.main_asset_id, genericAssetIds)).execute();
+                        console.log('[CASCADE] step 5b: done');
                     }
 
-                    // 6. Delete research fields (this cascades to vocabularies but we deleted them safely)
-                    const deletedResearchFields = await tx
-                        .delete(dbSchema.research_fields)
-                        .where(eq(dbSchema.research_fields.project_id, projectId))
-                        .returning({ id: dbSchema.research_fields.id })
-                        .execute();
+                    // 6. Delete research fields
+                    console.log('[CASCADE] step 6: research_fields...');
+                    const deletedResearchFields = await tx.delete(dbSchema.research_fields).where(eq(dbSchema.research_fields.project_id, projectId)).returning({ id: dbSchema.research_fields.id }).execute();
                     counts.researchFields = deletedResearchFields.length;
+                    console.log('[CASCADE] step 6: done', deletedResearchFields.length);
 
-                    // 7. Delete genericAssets (after research fields/vocabularies)
-                    const deletedGenericAssets = await tx
-                        .delete(dbSchema.genericAssets)
-                        .where(eq(dbSchema.genericAssets.project_id, projectId))
-                        .returning({ id: dbSchema.genericAssets.id })
-                        .execute();
-                    counts.genericAssets = deletedGenericAssets.length;
-
-                    // 8. Delete ontology fields
-                    const deletedOntologyFields = await tx
-                        .delete(dbSchema.ontology_fields)
-                        .where(eq(dbSchema.ontology_fields.project_id, projectId))
-                        .returning({ id: dbSchema.ontology_fields.id })
-                        .execute();
-                    counts.ontologyFields = deletedOntologyFields.length;
-
-                    // 8. Delete object display fields
-                    const deletedObjectDisplayFields = await tx
-                        .delete(dbSchema.object_display_fields)
-                        .where(eq(dbSchema.object_display_fields.project_id, projectId))
-                        .returning({ id: dbSchema.object_display_fields.id })
-                        .execute();
-                    counts.objectDisplayFields = deletedObjectDisplayFields.length;
-
-                    // 9. Delete website settings
-                    const deletedWebsiteSettings = await tx
-                        .delete(dbSchema.websiteSettings)
-                        .where(eq(dbSchema.websiteSettings.project_id, projectId))
-                        .returning({ id: dbSchema.websiteSettings.id })
-                        .execute();
+                    // 7. Delete website settings (before genericAssets: logo_id FK)
+                    console.log('[CASCADE] step 7: website_settings...');
+                    const deletedWebsiteSettings = await tx.delete(dbSchema.websiteSettings).where(eq(dbSchema.websiteSettings.project_id, projectId)).returning({ id: dbSchema.websiteSettings.id }).execute();
                     counts.websiteSettings = deletedWebsiteSettings.length;
+                    console.log('[CASCADE] step 7: done', deletedWebsiteSettings.length);
 
-                    // 10. Delete settings
-                    const deletedSettings = await tx
-                        .delete(dbSchema.settings)
-                        .where(eq(dbSchema.settings.project_id, projectId))
-                        .returning({ id: dbSchema.settings.id })
-                        .execute();
+                    // 8. Delete genericAssets
+                    console.log('[CASCADE] step 8: generic_assets...');
+                    const deletedGenericAssets = await tx.delete(dbSchema.genericAssets).where(eq(dbSchema.genericAssets.project_id, projectId)).returning({ id: dbSchema.genericAssets.id }).execute();
+                    counts.genericAssets = deletedGenericAssets.length;
+                    console.log('[CASCADE] step 8: done', deletedGenericAssets.length);
+
+                    // 9. Delete ontology fields
+                    console.log('[CASCADE] step 9: ontology_fields...');
+                    const deletedOntologyFields = await tx.delete(dbSchema.ontology_fields).where(eq(dbSchema.ontology_fields.project_id, projectId)).returning({ id: dbSchema.ontology_fields.id }).execute();
+                    counts.ontologyFields = deletedOntologyFields.length;
+                    console.log('[CASCADE] step 9: done', deletedOntologyFields.length);
+
+                    // 10. Delete object display fields
+                    console.log('[CASCADE] step 10: object_display_fields...');
+                    const deletedObjectDisplayFields = await tx.delete(dbSchema.object_display_fields).where(eq(dbSchema.object_display_fields.project_id, projectId)).returning({ id: dbSchema.object_display_fields.id }).execute();
+                    counts.objectDisplayFields = deletedObjectDisplayFields.length;
+                    console.log('[CASCADE] step 10: done', deletedObjectDisplayFields.length);
+
+                    // 11. Delete settings
+                    console.log('[CASCADE] step 11: settings...');
+                    const deletedSettings = await tx.delete(dbSchema.settings).where(eq(dbSchema.settings.project_id, projectId)).returning({ id: dbSchema.settings.id }).execute();
                     counts.settings = deletedSettings.length;
+                    console.log('[CASCADE] step 11: done', deletedSettings.length);
 
-                    // 11. Delete imports
-                    const deletedImports = await deleteWhereIn(
-                        tx,
-                        dbSchema.imports,
-                        dbSchema.imports.id,
-                        importIds,
-                        { id: dbSchema.imports.id }
-                    );
+                    // 12. Delete imports
+                    console.log('[CASCADE] step 12: imports...');
+                    const deletedImports = await deleteWhereIn(tx, dbSchema.imports, dbSchema.imports.id, importIds, { id: dbSchema.imports.id });
                     counts.imports = deletedImports.length;
+                    console.log('[CASCADE] step 12: done', deletedImports.length);
 
-                    // 12. Delete translations first
+                    // 13. Delete translations
+                    console.log('[CASCADE] step 13: translations...');
                     if (textIds.length || languageIds.length) {
                         let whereClause = null;
                         if (textIds.length && languageIds.length) {
@@ -413,7 +430,10 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                         }
                     }
 
-                    // 14. Delete texts (before languages, to remove FK from texts.original_language_id to languages)
+                    console.log('[CASCADE] step 13: done', counts.translations);
+
+                    // 14. Delete texts
+                    console.log('[CASCADE] step 14: texts...');
                     
                     let textsWhereClause = null;
                     if (textIds.length && languageIds.length) {
@@ -437,24 +457,25 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                         deletedTextsCount = deletedTexts.length;
                     }
                     counts.texts = deletedTextsCount;
+                    console.log('[CASCADE] step 14: done', deletedTextsCount);
 
-                    // 15. Delete languages last (nothing references them anymore)
-                    const deletedLanguages = await tx
-                        .delete(dbSchema.languages)
-                        .where(eq(dbSchema.languages.project_id, projectId))
-                        .returning({ id: dbSchema.languages.id })
-                        .execute();
+                    // 15. Delete languages
+                    console.log('[CASCADE] step 15: languages...');
+                    const deletedLanguages = await tx.delete(dbSchema.languages).where(eq(dbSchema.languages.project_id, projectId)).returning({ id: dbSchema.languages.id }).execute();
                     counts.languages = deletedLanguages.length;
+                    console.log('[CASCADE] step 15: done', deletedLanguages.length);
 
-                    // 15. Delete the project last
+                    // 16. Delete the project
+                    console.log('[CASCADE] step 16: project...');
                     const deletedProject = await tx
                         .delete(dbSchema.project)
                         .where(eq(dbSchema.project.id, projectId))
                         .returning({ id: dbSchema.project.id })
                         .execute();
                     counts.project = deletedProject.length;
+                    console.log('[CASCADE] step 16: done', deletedProject.length);
                 } catch (error) {
-                    console.error('[DELETE CASCADE] Transaction failed:', error);
+                    console.error('[DELETE CASCADE] Transaction failed at last step:', error);
                     throw error;
                 }
             });
