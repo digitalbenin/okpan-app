@@ -54,7 +54,7 @@
       {/if}
     </div>
     <div
-      class="flex-grow-1 flex-shrink-1 overflow-y-auto position-relative p-4"
+      class="flex-grow-1 flex-shrink-1 overflow-y-auto position-relative pt-4 px-4 pb-0"
       bind:this={contentContainer}
     >
       {@render children()}

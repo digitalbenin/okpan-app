@@ -7,7 +7,7 @@
 
 <a
   href="/projects/{institution.project_id}/institutions/{institution.id}"
-  class="card border text-decoration-none text-reset h-100 rounded-2 overflow-hidden"
+  class="card border text-decoration-none text-reset h-100 rounded-4 overflow-hidden"
 >
   <div class="bg-light overflow-hidden institution-image-strip">
     {#if institution.previewImages && institution.previewImages.length > 0}

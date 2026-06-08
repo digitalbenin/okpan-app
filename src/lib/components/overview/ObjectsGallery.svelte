@@ -24,12 +24,18 @@
     <a href={url}>{i18n.viewAll}</a>
   </div>
 
-  <div class="row row-cols-5 g-3">
-    {#each visibleObjects as object}
-      <div class="col">
+  <div class="row row-cols-2 row-cols-lg-3 row-cols-xl-5 g-3">
+    {#each visibleObjects as object, index}
+      <div 
+        class="col" 
+        class:d-none={index >= 2} 
+        class:d-lg-block={index === 2} 
+        class:d-xl-block={index >= 3}
+      >
         <ObjectCard {object} />
       </div>
     {/each}
+    
     {#if objects.length === 0}
       <div class="col">
         <ObjectCardEmpty />

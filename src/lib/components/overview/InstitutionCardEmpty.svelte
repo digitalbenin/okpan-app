@@ -5,7 +5,7 @@
 </script>
 
 <div
-  class="cardInstitution d-flex bg-white border rounded mb-2 p-2 gap-2 position-relative"
+  class="cardInstitution d-flex bg-white border rounded-4 mb-2 p-2 gap-2 position-relative"
 >
   <div
     class="imgWrapper flex-shrink-0 flex-grow-0 h-100 rounded overflow-hidden d-flex border"

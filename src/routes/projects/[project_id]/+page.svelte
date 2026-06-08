@@ -7,6 +7,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { onMount } from "svelte";
   import { invalidate } from "$app/navigation";
+  import { IconBox, IconPhoto, IconChartCircles, IconBuildingBank } from "@tabler/icons-svelte";
 
   const { t, translationState } = getTranslationStore();
   const { data } = $props();
@@ -37,7 +38,7 @@
       value: data.project.objectsCount,
       percentage: data.project.completedObjectsCount,
       labelPercentage: i18n.objectsPercentage,
-      icon: "box",
+      icon: IconBox,
       iconBgColor: "rgba(111, 66, 193, 0.12)",
       iconColor: "#6f42c1",
     },
@@ -47,21 +48,21 @@
       percentage: data.project.linkedAssetsCount,
       labelPercentage: i18n.assetsPercentage,
       labelComplete: i18n.assetsAllLinked,
-      icon: "images",
+      icon: IconPhoto,
       iconBgColor: "rgba(214, 51, 132, 0.12)",
       iconColor: "#d63384",
     },
     {
       label: i18n.institutions,
       value: data.project.institutionsCount,
-      icon: "bank2",
+      icon: IconBuildingBank,
       iconBgColor: "rgba(13, 110, 253, 0.12)",
       iconColor: "#0d6efd",
     },
     {
       label: i18n.relations,
       value: connectionTypesCount,
-      icon: "share-fill",
+      icon: IconChartCircles,
       iconBgColor: "rgba(253, 126, 20, 0.12)",
       iconColor: "#fd7e14",
     },
@@ -93,7 +94,7 @@
 {#if (data.objects?.totalCount ?? 0) === 0}
   <ProjectWelcome institutionsCount={data.project.institutionsCount ?? 0} />
 {:else}
-  <div class="p-4 min-vh-100 d-flex flex-column gap-4">
+  <div class="min-vh-100 d-flex flex-column gap-4">
     <div class="d-flex flex-column gap-2">
       <div>{i18n.overview}</div>
       <StatsWidget {stats} />

@@ -2,6 +2,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import ActivityTimeAgo from "./ActivityTimeAgo.svelte";
   import { formatActivityMessageFallback, resolveActivityMessageKey } from "$lib/constants/activityFeedDefinitions.js";
+  import { IconRefresh, IconTrash, IconFileImport } from "@tabler/icons-svelte";
 
   const { t } = getTranslationStore();
   const { activities = [] } = $props();
@@ -41,7 +42,7 @@
   }
 </script>
 
-<div class="bg-white rounded-2 border d-flex flex-column p-4 gap-4">
+<div class="bg-white rounded-4 border d-flex flex-column p-4 gap-4">
   <div class="text-uppercase fw-normal small" style="letter-spacing: 0.04em;">
     {t("activity.title", { fallback: "Recent activity" })}
   </div>
@@ -52,7 +53,13 @@
           class="rounded-circle bg-secondary  border d-flex align-items-center justify-content-center flex-shrink-0"
           style="width: 30px; height: 30px;"
         >
-          <i class="bi bi-{getActivityIcon(activity)} text-white" style="font-size: 12px;"></i>
+          {#if getActivityIcon(activity) === "plus-lg"}
+            <IconFileImport class="fs-4 text-white" style="width: 1rem; height: 1rem;" />
+          {:else if getActivityIcon(activity) === "trash"}
+            <IconTrash class="fs-4 text-white" style="width: 1rem; height: 1rem;" />
+          {:else if getActivityIcon(activity) === "pencil"}
+            <IconRefresh class="fs-4 text-white" style="width: 1rem; height: 1rem;" />
+          {/if}
         </div>
         <div>
           <div class="lh-sm small">{getActivityMessage(activity)}</div>

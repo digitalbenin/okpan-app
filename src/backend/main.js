@@ -414,6 +414,7 @@ function createWindow() {
     height: 1080,
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
+    autoHideMenuBar: true,
     icon: path.join(app.getAppPath(), 'src/assets/logo_wip.png'),
     webPreferences: {
       preload: path.join(app.getAppPath(), '.vite/preload.js'),

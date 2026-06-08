@@ -47,13 +47,13 @@
 
   const hasAnyErrors = $derived(hasFormStoreErrors || hasStructuredErrors);
 </script>
-<div class={`d-flex flex-column ${containerClass}`.trim()} style="min-height: calc(100vh - 60px);">
-  <div class={`flex-grow-1 w-100 ${contentClass}`.trim()}>
+<div class={`d-flex flex-column ${containerClass}`.trim()} style="min-height: calc(100vh - 60px - 1.5rem);">
+  <div class={`flex-grow-1 w-100 pb-4 ${contentClass}`.trim()}>
     {@render children?.()}
   </div>
 
   <footer
-    class={`${footerPositionClass} mt-auto bg-white border-top border-light-subtle z-3 ${footerClass}`.trim()}
+    class={`${footerPositionClass} mt-auto bg-white border-top border-light-subtle z-3 mx-n4 ${footerClass}`.trim()}
     style="z-index: 1030;"
   >
     <div class={`${footerContainerClass} py-2`}>

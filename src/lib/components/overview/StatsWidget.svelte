@@ -1,8 +1,9 @@
 <script>
+import {IconProgress, IconCheck} from "@tabler/icons-svelte";
   const { stats } = $props();
 </script>
 
-<div class="bg-white rounded-2 border overflow-hidden">
+<div class="bg-white rounded-4 border overflow-hidden">
   <div class="row g-0 align-items-stretch">
     {#each stats as stat, i}
       {@const pct = stat.percentage !== undefined && stat.value > 0
@@ -15,7 +16,7 @@
             class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
             style="width: 4rem; height: 4rem; background-color: {stat.iconBgColor};"
           >
-            <i class="bi bi-{stat.icon} fs-2" style="color: {stat.iconColor};"></i>
+            <stat.icon style="color: {stat.iconColor}; width: 2rem; height: 2rem;" />
           </div>
         </div>
         <div class="mb-3">{stat.label}</div>
@@ -34,12 +35,12 @@
             </div>
             <div class="d-flex align-items-center gap-1">
               {#if pct >= 100}
-                <i class="bi bi-check text-success"></i>
+                <IconCheck class="fs-4 text-success" style="width: 1rem; height: 1rem;" />
                 <span class="small fw-semibold text-success">
                   {stat.labelComplete ?? `${pct}% ${stat.labelPercentage}`}
                 </span>
               {:else}
-                <i class="bi bi-circle-half text-secondary"></i>
+                <IconProgress class="fs-4 text-secondary" style="width: 1rem; height: 1rem;" />
                 <span class="small fw-semibold text-secondary">{pct}% {stat.labelPercentage}</span>
               {/if}
             </div>

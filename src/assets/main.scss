@@ -91,6 +91,7 @@ $carousel-indicator-height: 6px; // primitive
 $grid-gutter-width: 1rem; // primitive
 
 $enable-dark-mode: false;
+$enable-negative-margins: true;
 // Required Bootstrap imports
 @import "~bootstrap/scss/variables";
 @import "~bootstrap/scss/variables-dark";
@@ -348,7 +349,6 @@ html {
 
 
 @import "swiper/scss";
-
 
 
 .cursor-pointer {

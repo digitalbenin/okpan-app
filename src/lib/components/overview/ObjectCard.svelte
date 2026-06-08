@@ -14,7 +14,7 @@
   const image = $derived(object.objectsAssets[0]?.asset);
 </script>
 
-<div class="card-object position-relative bg-white border rounded-2 overflow-hidden d-flex flex-column">
+<div class="card-object position-relative bg-white border rounded-4 overflow-hidden d-flex flex-column">
   <div class="flex-grow-1 bg-light d-flex align-items-center justify-content-center overflow-hidden">
     {#if image}
       <BaseImage
