@@ -1,15 +1,11 @@
 <script>
   import { queryParameters } from "sveltekit-search-params";
-  import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
+  import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import InstitutionsGrid from "$lib/components/institutions/InstitutionsGrid.svelte";
-  import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
-  import { updateInstitutionsStatusBulk } from "$lib/api/InstitutionsApi.js";
-  import { topCurtainOverlay } from "$lib/utils/transitions.js";
-  import { IconBuildingBank, IconSearch, IconPlus, IconSortAscendingLetters, IconSortDescendingLetters, IconSortAscendingNumbers, IconSortDescendingNumbers, IconSortAscending, IconSortDescending } from "@tabler/icons-svelte";
+  import { IconBuildingBank, IconPlus, IconSortAscendingLetters, IconSortDescendingLetters, IconSortAscendingNumbers, IconSortDescendingNumbers, IconSortAscending, IconSortDescending } from "@tabler/icons-svelte";
   import PageHeader from "$lib/components/base/PageHeader.svelte";
-  import { goto } from "$app/navigation";
 
   const { t } = getTranslationStore();
 
@@ -39,16 +35,9 @@
       decode: (value) => value,
       defaultValue: undefined,
     },
-    status: {
-      encode: (value) => (value === "all" ? undefined : value),
-      decode: (value) => (value ? value : "all"),
-      defaultValue: undefined,
-    },
   });
 
   const { data } = $props();
-  let selectedInstitutions = $state([]);
-  let bulkStatusValue = $state("");
   let sortOpen = $state(false);
 
   const sortOptions = $derived([
@@ -61,26 +50,6 @@
   ]);
 
   const currentSort = $derived(sortOptions.find(o => o.orderBy === params.orderBy && o.direction === params.direction) ?? sortOptions[0]);
-
-  const statuses = $derived([
-    { value: "all", label: t("common.all") },
-    { value: "in progress", label: t("common.in-progress") },
-    { value: "completed", label: t("common.completed") },
-  ]);
-
-  const clearSelection = () => {
-    selectedInstitutions = [];
-  };
-
-  const applyBulkStatus = async () => {
-    if (!bulkStatusValue || selectedInstitutions.length === 0) return;
-    const { errors } = await updateInstitutionsStatusBulk(selectedInstitutions, bulkStatusValue);
-    if (errors?.length) {
-      return;
-    }
-    selectedInstitutions = [];
-    bulkStatusValue = "";
-  };
 </script>
 
 <PageHeader
@@ -91,28 +60,15 @@
   description={t("institutions.page-description", { fallback: "The museums, archives, and libraries where your objects come from." })}
 />
 
-<div class="d-flex justify-content-between align-items-center pb-3 mt-4">
-  <div class="input-group" style="width: 300px;">
-    <input
-      type="text"
-      class="form-control border-end-0 border-white"
-      placeholder={t("common.search")}
-      bind:value={params.search}
-    />
-    <span class="input-group-text bg-white relative border-white" style="left: -1px; border-left: none;">
-      <IconSearch size={18} class="text-body-secondary" />
-    </span>
-  </div>
-  <div class="d-flex gap-2">
+<BaseSearchBar bind:search={params.search} placeholder={t("common.search")}>
+  {#snippet children()}
     <a href="/projects/{data.project.id}/institutions/add" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
       <IconPlus size={16} />
       {t("menu.add-institution")}
     </a>
-  </div>
-</div>
-
-<div class="position-relative mb-3">
-  <div class="d-flex justify-content-end gap-3 align-items-center">
+  {/snippet}
+  {#snippet toolbar()}
+    <div></div>
     <div class="d-flex align-items-center gap-2">
       <BaseDropdownMenu 
       bind:open={sortOpen} 
@@ -138,29 +94,8 @@
         {/snippet}
       </BaseDropdownMenu>
     </div>
-  </div>
-
-  {#if selectedInstitutions.length > 0}
-    <div
-      transition:topCurtainOverlay={{ y: -20, duration: 220 }}
-      class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-light"
-    >
-      <div class="row align-items-center h-100">
-        <div class="col-12 d-flex gap-3 align-items-center mt-1 mb-0">
-          <button class="btn btn-secondary btn-sm d-flex align-items-center gap-2" onclick={clearSelection}>
-            <span>{t("common.clear-selection", { fallback: "Clear selection" })}</span>
-            <i class="bi bi-x-circle"></i>
-          </button>
-          <BulkActionsStatusSelect
-            items={statuses.filter((status) => status.value !== "all")}
-            bind:value={bulkStatusValue}
-            onValueChange={applyBulkStatus}
-          />
-        </div>
-      </div>
-    </div>
-  {/if}
-</div>
+  {/snippet}
+</BaseSearchBar>
 
 {#if data.institutions?.count}
   <div class="border-bottom mb-3">
@@ -173,7 +108,6 @@
   </div>
   <InstitutionsGrid
     institutions={data.institutions.result}
-    bind:selected={selectedInstitutions}
     bind:page={params.page}
     pageSize={params.pageSize}
     count={data.institutions.count}

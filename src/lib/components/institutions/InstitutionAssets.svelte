@@ -1,5 +1,5 @@
 <script>
-  import BaseInput from "$lib/components/base/BaseInput.svelte";
+  import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import BaseLinkedStatus from "$lib/components/base/BaseLinkedStatus.svelte";
@@ -26,22 +26,7 @@
   let isLinkModalOpen = $state(false);
   let linkAssetId = $state(null);
 
-  const viewAsOptions = $derived([
-    { value: "grid", label: t("common.grid-view") },
-    { value: "table", label: t("common.table-view") },
-  ]);
-
-  const orderBy = $derived([
-    // { value: "name", label: t("common.name", { fallback: "Name" }) },
-    {
-      value: "created_at",
-      label: t("common.created-at"),
-    },
-    {
-      value: "updated_at",
-      label: t("common.updated-at"),
-    },
-  ]);
+  const assetItems = $derived(assets.items || []);
 
   const statuses = $derived([
     {
@@ -57,8 +42,6 @@
       label: t("common.not-linked"),
     },
   ]);
-
-  const assetItems = $derived(assets.items || []);
 
   watch(
     () => params?.aLinked,
@@ -165,54 +148,48 @@
 </script>
 
 <div class="w-100 mb-3">
-  <div class="row align-items-center mb-3 py-2">
-    <div class="col-4">
-      <BaseInput
-        icon="search"
-        placeholder={t("common.search")}
-        size="sm"
-        bind:value={params.aSearch}
-      />
+<BaseSearchBar bind:search={params.aSearch} placeholder={t("common.search")} border="border-gray-800">
+  {#snippet children()}
+    <a
+      class="btn btn-primary btn-sm"
+      href="/projects/{institution.project_id}/import-assets/steps?institution_id={institution.id}"
+      ><i class="bi bi-plus-lg"></i>
+      {t("menu.import-assets")}</a
+    >
+  {/snippet}
+  {#snippet toolbar()}
+    <div class="col-auto fs-7">
+      {assets.totalCount}
+      {assets.totalCount === 1 ? t("common.media", { fallback: "media" }) : t("common.media", { fallback: "media" })}
     </div>
-    <div class="col-8 d-flex justify-content-end gap-3 align-items-center">
-      <!-- <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.order-by", { fallback: "Order by" })}
-        </div>
-        <BaseSelect items={orderBy} bind:value={params.oOrderBy} size="sm"
-        ></BaseSelect>
-      </div> -->
-
-      <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.status")}
-        </div>
-        <BaseSelect
-          items={statuses}
-          bind:value={params.aLinked}
-          size="sm"
-          placeholder={t("common.all")}
-        ></BaseSelect>
+    <div class="d-flex justify-content-end gap-2 flex-wrap">
+      <BaseSelect items={statuses} bind:value={params.aLinked} as="button" inputClass="btn-light btn-sm border">
+        <i class="bi bi-chevron-down"></i>
+      </BaseSelect>
+      <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as")}>
+        <button
+          type="button"
+          class="btn btn-light border"
+          class:active={viewAs === "grid"}
+          onclick={() => (viewAs = "grid")}
+          aria-label={t("common.grid-view")}
+        >
+          <i class="bi bi-grid-3x3-gap"></i>
+        </button>
+        <button
+          type="button"
+          class="btn btn-light border"
+          class:active={viewAs === "table"}
+          onclick={() => (viewAs = "table")}
+          aria-label={t("common.table-view")}
+        >
+          <i class="bi bi-list"></i>
+        </button>
       </div>
-      <div class="d-flex align-items-center gap-2">
-        <div class="col-auto fs-7">
-          {t("common.view-as")}
-        </div>
-        <BaseSelect items={viewAsOptions} bind:value={viewAs} size="sm"
-        ></BaseSelect>
-      </div>
-      <a
-        class="btn btn-secondary btn-sm"
-        href="/projects/{institution.project_id}/import-assets/steps?institution_id={institution.id}"
-        ><i class="bi bi-plus-lg"></i>
-        {t("menu.import-assets")}</a
-      >
     </div>
-  </div>
-  {#if selectedAssets.length > 0}
-    <div transition:topCurtainFly={{ y: -24, duration: 240 }} class="mb-0">
-      <div class="row pb-3">
-        <div class="col-12 d-flex align-items-center gap-2 flex-wrap py-2">
+    {#if selectedAssets.length > 0}
+      <div transition:topCurtainFly={{ y: -24, duration: 240 }} class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-light">
+        <div class="d-flex align-items-center gap-2 flex-wrap py-2 h-100">
           <button
             class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
             onclick={clearSelection}
@@ -251,8 +228,9 @@
           </button>
         </div>
       </div>
-    </div>
-  {/if}
+    {/if}
+  {/snippet}
+</BaseSearchBar>
   {#if assetItems.length > 0}
     {#if viewAs === "grid"}
       <div class="row">

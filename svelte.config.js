@@ -25,6 +25,7 @@ export default {
         },
         alias: {
             '~bootstrap': 'node_modules/bootstrap',
+             '$assets': 'src/assets',
             '~bootstrap-icons': 'node_modules/bootstrap-icons'
         }
     }

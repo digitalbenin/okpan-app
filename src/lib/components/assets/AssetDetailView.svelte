@@ -4,6 +4,7 @@
     import AutoForm from "$lib/components/form/AutoForm.svelte";
     import BaseModal from "$lib/components/base/BaseModal.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import BaseBreadcrumb from "$lib/components/base/BaseBreadcrumb.svelte";
     import LinkObjectsModal from "$lib/components/assets/LinkObjectsModal.svelte";
     import AssetMediaDisplay from "$lib/components/assets/AssetMediaDisplay.svelte";
     import LinkedObjectsPanel from "$lib/components/assets/LinkedObjectsPanel.svelte";
@@ -12,6 +13,7 @@
     import { updateAsset, deleteAsset } from "$lib/api/AssetsApi.js";
     import { linkAssetToObject, unlinkAssetFromObject } from "$lib/api/ObjectsApi.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+    import { IconPhoto } from "@tabler/icons-svelte";
     import {
         METADATA_FIELDS,
         createMetadataValidator,
@@ -23,6 +25,13 @@
 
     let { asset: initialAsset, linkedObjects: initialLinkedObjects = [], languages = [], project_id, institution_id } = $props();
     const { t } = getTranslationStore();
+
+    const institutionName = $derived($page.data?.institution?.name?.content || "");
+    const breadcrumbItems = $derived([
+      { label: t("common.institutions"), href: `/projects/${project_id}/institutions` },
+      { label: institutionName, href: `/projects/${project_id}/institutions/${institution_id}` },
+      { label: asset.filename || initialAsset.filename },
+    ]);
 
     const LINKED_IDS_FIELD = "linkedIdsSignature";
 
@@ -135,19 +144,13 @@
 
 <PageActionFooter {formStore} leftButtons={leftButtons} rightButtons={rightButtons}>
     <div class="container-fluid px-4 py-3">
-        <div class="d-flex align-items-center mb-4">
-            <button type="button" aria-label={t("common.back")} class="btn btn-link p-0 me-3 text-muted" onclick={() => window.history.back()}>
-                <i class="bi bi-arrow-left fs-5"></i>
-            </button>
-            <div>
-                <div class="text-muted small">{$page.data?.institution?.name?.content || institution_id}</div>
-                <h1 class="h4 mb-0">{asset.filename}</h1>
-            </div>
+        <div class="d-flex align-items-center">
+            <BaseBreadcrumb icon={IconPhoto} items={breadcrumbItems} />
         </div>
 
         <div class="row">
             <div class="col-lg-8">
-                <h5 class="mb-3">{t("common.media")}</h5>
+                <h1 class="mb-3">{t("common.media")}</h1>
                 <AssetMediaDisplay {asset} />
 
                 <h5 class="mb-3">{t("media.media-metadata")}</h5>

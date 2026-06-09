@@ -302,11 +302,12 @@
   {formStore}
 >
   <ObjectHeader
+    {projectId}
+    institutionId={currentInstitutionIdParam}
     institutionName={institution.name.content}
     title={displayTitle}
     status={object.status}
     statusDisabled={statusUpdating}
-    onBack={() => goto(`/projects/${projectId}/institutions/${currentInstitutionIdParam}${listQuery}`)}
     onStatusChange={setStatus}
   />
 

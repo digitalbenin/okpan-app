@@ -1,31 +1,16 @@
 <script>
-  import BaseBadgeStatus from "$lib/components/base/BaseBadgeStatus.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import { IconMapPin, IconBox, IconPhoto } from "@tabler/icons-svelte";
+  import imgSm from "$assets/img_sm.png";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   const { t } = getTranslationStore();
-  let {
-    institution,
-    selected = $bindable([]),
-    selectable = false,
-  } = $props();
 
-  let isSelected = $derived(selectable && selected.includes(institution.id));
-
-  function handleCheckboxChange(event) {
-    event.stopPropagation();
-    if (isSelected) {
-      selected = selected.filter((id) => id !== institution.id);
-    } else {
-      selected = [...selected, institution.id];
-    }
-  }
+  let { institution } = $props();
 </script>
 
 <div
   class="w-100 h-100 position-relative d-flex flex-column rounded-4 overflow-hidden bg-white border"
-  class:border-primary={isSelected}
 >
   <div class="w-100 flex-shrink-0 d-flex" style="height: 196px;">
     {#if institution.previewImages && institution.previewImages.length > 0}
@@ -61,25 +46,11 @@
         </div>
       {/if}
     {:else}
-      <div class="flex-grow-1 h-100 bg-light d-flex align-items-center justify-content-center">
-        <IconPhoto size={32} class="text-secondary" />
+      <div class="flex-grow-1 h-100 bg-light">
+        <img src={imgSm} alt="" class="w-100 h-100" style="object-fit: cover;" />
       </div>
     {/if}
   </div>
-
-  
-  {#if selectable}
-    <div class="position-absolute top-0 end-0 m-2" style="z-index: 2">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        checked={isSelected}
-        onchange={handleCheckboxChange}
-        onclick={(event) => event.stopPropagation()}
-        aria-label={t("common.select-institution", { fallback: "Select institution" })}
-      />
-    </div>
-  {/if}
 
   <div class="px-2 pt-1 pb-2 d-flex flex-column justify-content-between flex-grow-1 gap-3">
    

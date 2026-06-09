@@ -1,6 +1,5 @@
 <script>
-  import BaseInput from "$lib/components/base/BaseInput.svelte";
-  import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
+  import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import DatasourceCard from "$lib/components/datasources/DatasourceCard.svelte";
   import Table from "$lib/components/base/table/Table.svelte";
@@ -14,23 +13,6 @@
 
   let viewAs = $state("table");
 
-  const viewAsOptions = $derived([
-    { value: "grid", label: t("common.grid-view") },
-    { value: "table", label: t("common.table-view") },
-  ]);
-
-  const orderBy = $derived([
-    { value: "name", label: t("common.name") },
-    {
-      value: "date",
-      label: t("common.date"),
-    },
-    {
-      value: "objectsCount",
-      label: t("common.objects-count"),
-    },
-  ]);
-
   const projectId = $derived(pageData.params.project_id);
   const institutionId = $derived(pageData.params.institution_id);
   const importDataHref = $derived(
@@ -39,22 +21,14 @@
 </script>
 
 <div class="w-100">
-  <div class="row align-items-center mb-3 g-2 py-2">
-    <div class="col-12 col-md-6">
-      <BaseInput
-        icon="search"
-        placeholder={t("common.search")}
-        size="sm"
-        bind:value={params.sSearch}
-      />
-    </div>
-    <div class="col-12 col-md-6 d-flex justify-content-md-end">
-      <a class="btn btn-secondary btn-sm" href={importDataHref}>
-        <i class="bi bi-plus-lg"></i>
-        {t("common.import-data")}
-      </a>
-    </div>
-  </div>
+<BaseSearchBar bind:search={params.sSearch} placeholder={t("common.search")} border="border-gray-800">
+  {#snippet children()}
+    <a class="btn btn-primary btn-sm" href={importDataHref}>
+      <i class="bi bi-plus-lg"></i>
+      {t("common.import-data")}
+    </a>
+  {/snippet}
+</BaseSearchBar>
   
   {#if datasources.items.length > 0}
     {#if viewAs === "grid"}

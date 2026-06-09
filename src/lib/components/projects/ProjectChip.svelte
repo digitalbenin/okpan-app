@@ -11,6 +11,15 @@
   const { project } = $props();
   const { t, translationState } = getTranslationStore();
 
+  const titleContent = $derived(project.title?.content || "");
+  const firstLetter = $derived(titleContent.charAt(0).toUpperCase());
+  const websiteLogoAsset = $derived.by(() => {
+    if (project.websiteLogoFormats && Object.keys(project.websiteLogoFormats).length > 0) {
+      return { formats: project.websiteLogoFormats };
+    }
+    return null;
+  });
+
   let dropdownOpen = $state(false);
   let showDeleteModal = $state(false);
   let confirmationText = $state("");
@@ -75,13 +84,20 @@
   <!-- Left: thumbnail + title + meta -->
   <div class="d-flex gap-3 align-items-center flex-fill min-w-0">
     <!-- Thumbnail -->
-    <BaseImage
-      src={project.thumbnail || null}
-      class="rounded-4 flex-shrink-0"
-      width={64}
-      height={64}
-      objectFit="cover"
-    />
+    {#if websiteLogoAsset}
+      <BaseImage
+        asset={websiteLogoAsset}
+        class="rounded-4 flex-shrink-0"
+        width={64}
+        height={64}
+        objectFit="cover"
+        preferredFormat="sm"
+      />
+    {:else}
+      <div class="d-flex align-items-center justify-content-center rounded-4 flex-shrink-0 bg-secondary-subtle text-secondary fw-bold" style="width: 64px; height: 64px; font-size: 28px;">
+        {firstLetter}
+      </div>
+    {/if}
 
     <!-- Title and meta -->
     <div class="d-flex flex-column gap-1 min-w-0 flex-fill">

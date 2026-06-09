@@ -5,6 +5,7 @@
   import InstitutionObjects from "./InstitutionObjects.svelte";
   import InstitutionDatasources from "./InstitutionDatasources.svelte";
   import InstitutionMappings from "./InstitutionMappings.svelte";
+  import { IconBox, IconPhoto, IconTable, IconExchange } from "@tabler/icons-svelte";
 
   let { view = $bindable(), params = $bindable(), ...restProps } = $props();
   const { t } = getTranslationStore();
@@ -13,25 +14,25 @@
     {
       value: "objects",
       label: t("common.objects"),
-      icon: "bi-box",
+      icon: IconBox,
       count: restProps.institution?.objectsCount ?? restProps.objects?.totalCount ?? 0,
     },
     {
       value: "assets",
       label: t("common.media"),
-      icon: "bi-image",
+      icon: IconPhoto,
       count: restProps.institution?.assetsCount ?? restProps.assets?.totalCount ?? 0,
     },
     {
       value: "mappings",
       label: t("common.data-mapping"),
-      icon: "bi-arrow-left-right",
+      icon: IconExchange,
       count: restProps.mappingTemplates?.length ?? 0,
     },
     {
       value: "datasources",
       label: t("common.data-sources"),
-      icon: "bi-table",
+      icon: IconTable,
       count:
         restProps.institution?.datasourcesCount ??
         restProps.datasources?.totalCount ??
@@ -56,7 +57,12 @@
                         class:active={view === tab.value}
                       >
                         {#if tab.icon}
-                          <i class={"bi " + tab.icon}></i>
+                        <div 
+                        class="d-flex align-items-center justify-content-center rounded-circle"
+                        class:bg-primary-subtle={view === tab.value} 
+                        style="width: 24px; height: 24px;">
+                           <tab.icon size={16} />
+                        </div>
                         {/if}
                         <span>{tab.label}</span>
                         <span class="text-secondary opacity-50 ms-1">{tab.count}</span>

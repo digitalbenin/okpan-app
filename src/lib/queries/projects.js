@@ -301,6 +301,7 @@ export const projectsOperations = {
     institutionsCount
     objectsCount
     assetsCount
+    websiteLogoFormats
   }
 }`
   },

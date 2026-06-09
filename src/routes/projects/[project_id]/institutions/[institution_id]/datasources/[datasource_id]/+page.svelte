@@ -3,9 +3,11 @@
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import BaseBreadcrumb from "$lib/components/base/BaseBreadcrumb.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import DatasourceEditForm from "$lib/components/datasources/DatasourceEditForm.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
+  import { IconDatabase } from "@tabler/icons-svelte";
   import { invalidate } from "$app/navigation";
   import { deleteDatasource, getObjectsByDatasource } from "$lib/api/DatasourcesApi.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
@@ -24,6 +26,12 @@
   const datasourceId = $derived(data.datasourceId);
   const datasource = $derived(Array.isArray(data.datasource) ? data.datasource[0] || {} : data.datasource || {});
   const languages = $derived(data.languages || []);
+
+  const breadcrumbItems = $derived([
+    { label: t("common.institutions"), href: `/projects/${projectId}/institutions` },
+    { label: data.institution?.name?.content || institutionId, href: `/projects/${projectId}/institutions/${institutionId}` },
+    { label: datasource?.name?.content || t("common.unnamed") },
+  ]);
 
   // Pagination state
   let page = $state(1);
@@ -115,14 +123,7 @@
     <div class="row mb-2">
       <div class="col-12">
         <div class="d-flex align-items-center justify-content-between mt-4" style="overflow: visible;">
-          <button
-            class="btn btn-link text-decoration-none px-0"
-            aria-label={t("common.back")}
-            onclick={() => window.history.back()}
-          >
-            <i class="bi bi-arrow-left"></i>
-            {data.institution?.name?.content}
-          </button>
+          <BaseBreadcrumb icon={IconDatabase} items={breadcrumbItems} />
         </div>
 
         <div class="mt-2">

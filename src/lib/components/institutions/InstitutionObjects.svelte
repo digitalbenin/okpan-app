@@ -1,8 +1,8 @@
 <script>
-  import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import BasePagination from "$lib/components/base/BasePagination.svelte";
-  import ObjectCard from "$lib/components/objects/ObjectCard.svelte";
+  import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
+  import ObjectCard from "$lib/components/overview/ObjectCard.svelte";
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -245,92 +245,78 @@
 {/snippet}
 
 {#snippet toolbarButton(icon, text, onClick)}
-  <a class="btn btn-secondary btn-sm" href={onClick}>
+  <a class="btn btn-primary btn-sm" href={onClick}>
     <i class="bi bi-{icon}"></i>
     {text}
   </a>
 {/snippet}
 
 <div class="w-100">
-  <div class="mb-3">
-    <div class="row align-items-center g-2 py-2">
-      <div class="col-4">
-        <BaseInput
-          icon="search"
-          placeholder={t("common.search")}
-          size="sm"
-          bind:value={params.oSearch}
-        />
-      </div>
-      <div class="col-8 d-flex justify-content-end gap-2 align-items-center">
-        {@render toolbarButton("plus-lg", t("menu.add-object"), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`)}
-        {@render toolbarButton("plus-lg", t("menu.import-data"), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`)}
-      </div>
+<BaseSearchBar bind:search={params.oSearch} placeholder={t("common.search")} border="border-gray-700">
+  {#snippet children()}
+  {@render toolbarButton("plus-lg", t("menu.import-data"), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`)}  
+  {@render toolbarButton("plus-lg", t("menu.add-object"), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`)}
+  {/snippet}
+  {#snippet toolbar()}
+    <div class="col-auto">
+      {objectsData.totalCount}
+      {objectsData.totalCount === 1 ? t("common.object") : t("common.objects")}
     </div>
-
-    <div class="position-relative">
-      <div class="row align-items-center g-2 pb-2 mt-2">
-        <div class="col-auto">
-          {objectsData.totalCount}
-          {objectsData.totalCount === 1 ? t("common.object") : t("common.objects")}
-        </div>
-        <div class="col d-flex justify-content-end gap-2 flex-wrap">
-          <BaseSelect items={statuses} bind:value={params.oStatus} as="button" inputClass="btn-light btn-sm border">
-            <i class="bi bi-chevron-down"></i>
-          </BaseSelect>
-          <BaseSelect items={sortOptions} bind:value={params.oOrderBy} as="button" inputClass="btn-light btn-sm border">
-            <i class="bi bi-chevron-down"></i>
-          </BaseSelect>
-          <InstitutionObjectsFields
-            {displayFields}
-            {ontologyFields}
-            {researchFields}
-            projectId={institution.project_id}
-            as="button"
-            inputClass="btn-light btn-sm border"
-          />
-          <button type="button" class="btn btn-light btn-sm border" onclick={() => (showAdvancedFilters = true)}>
-            <i class="bi bi-filter"></i>
-            {t("common.filter")}
+    <div class="d-flex justify-content-end gap-2 flex-wrap">
+      <BaseSelect items={statuses} bind:value={params.oStatus} as="button" inputClass="btn-light btn-sm border">
+        <i class="bi bi-chevron-down"></i>
+      </BaseSelect>
+      <BaseSelect items={sortOptions} bind:value={params.oOrderBy} as="button" inputClass="btn-light btn-sm border">
+        <i class="bi bi-chevron-down"></i>
+      </BaseSelect>
+      <InstitutionObjectsFields
+        {displayFields}
+        {ontologyFields}
+        {researchFields}
+        projectId={institution.project_id}
+        as="button"
+        inputClass="btn-light btn-sm border"
+      />
+      <button type="button" class="btn btn-light btn-sm border" onclick={() => (showAdvancedFilters = true)}>
+        <i class="bi bi-filter"></i>
+        {t("common.filter")}
+      </button>
+      <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as")}>
+        {#each [{ val: "grid", icon: "grid-3x3-gap", label: t("common.grid-view") }, { val: "table", icon: "list", label: t("common.table-view") }] as view}
+          <button
+            type="button"
+            class="btn btn-light border"
+            class:active={viewAs === view.val}
+            onclick={() => (params.oViewAs = view.val)}
+            aria-label={view.label}
+          >
+            <i class="bi bi-{view.icon}"></i>
           </button>
-          <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as")}>
-            {#each [{ val: "grid", icon: "grid-3x3-gap", label: t("common.grid-view") }, { val: "table", icon: "list", label: t("common.table-view") }] as view}
-              <button
-                type="button"
-                class="btn btn-light border"
-                class:active={viewAs === view.val}
-                onclick={() => (params.oViewAs = view.val)}
-                aria-label={view.label}
-              >
-                <i class="bi bi-{view.icon}"></i>
-              </button>
-            {/each}
+        {/each}
+      </div>
+    </div>
+    {#if selectedObjects.length}
+      <div
+        transition:topCurtainOverlay={{ y: -20, duration: 220 }}
+        class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-white"
+      >
+        <div class="row align-items-center g-2 pb-2 mt-2 h-100">
+          <div class="col d-flex align-items-center gap-2 flex-wrap">
+            {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
+            {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
+            <BulkActionsStatusSelect
+              items={statuses.filter((s) => s.value !== "all")}
+              bind:value={bulkStatusValue}
+              onValueChange={applyBulkStatus}
+            />
+            {@render actionButton("pencil", t("common.edit-info"), openBulkEdit)}
+            {@render actionButton("trash", t("common.delete"), () => (showBulkDeleteModal = true), "danger")}
           </div>
         </div>
       </div>
-
-      {#if selectedObjects.length}
-        <div
-          transition:topCurtainOverlay={{ y: -20, duration: 220 }}
-          class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-white"
-        >
-          <div class="row align-items-center g-2 pb-2 mt-2 h-100">
-            <div class="col d-flex align-items-center gap-2 flex-wrap">
-              {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
-              {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
-              <BulkActionsStatusSelect
-                items={statuses.filter((s) => s.value !== "all")}
-                bind:value={bulkStatusValue}
-                onValueChange={applyBulkStatus}
-              />
-              {@render actionButton("pencil", t("common.edit-info"), openBulkEdit)}
-              {@render actionButton("trash", t("common.delete"), () => (showBulkDeleteModal = true), "danger")}
-            </div>
-          </div>
-        </div>
-      {/if}
-    </div>
-  </div>
+    {/if}
+  {/snippet}
+</BaseSearchBar>
 
   {#if hasAppliedFilters}
     <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
@@ -348,7 +334,7 @@
   {#if objectsData.totalCount}
     {#key displayFields}
       {#if viewAs === "grid"}
-        <div class="row">
+        <div class="row g-3">
           {#each objectsData.items as object (object.id)}
             <div class="col-3"><ObjectCard {object} {displayFields} bind:selected={selectedObjects} listQuery={listQuery} /></div>
           {/each}

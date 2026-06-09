@@ -22,19 +22,21 @@
 </script>
 
 <div 
-  class="w-100 d-flex flex-column rounded bg-white border mb-3 position-relative"
+  class="w-100 d-flex flex-column rounded bg-white border border-white mb-3 position-relative"
   class:border-primary={isSelected}
+  class:border-white={!isSelected}
   class:border-2={isSelected}
 >
   <input
     type="checkbox"
     class="form-check-input position-absolute top-0 end-0 m-2 z-1"
+    style="border: 1px solid var(--bs-gray-800);"
     checked={isSelected}
     onchange={handleCheckboxChange}
     onclick={(e) => e.stopPropagation()}
     aria-label="Select asset"
   />
-  <div class="bg-light rounded ratio ratio-1x1 mb-3">
+  <div class="rounded ratio ratio-1x1 mb-3" style="background-color: var(--bs-gray-400);">
     <div>
       <BaseImage
         class="w-100 h-100"

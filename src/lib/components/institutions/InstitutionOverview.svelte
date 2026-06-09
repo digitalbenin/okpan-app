@@ -1,8 +1,10 @@
 <script>
   import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import BaseBreadcrumb from "$lib/components/base/BaseBreadcrumb.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { goto } from "$app/navigation";
   import { updateInstitutionStatus } from "$lib/api/InstitutionsApi.js";
+  import { IconBuildingBank } from "@tabler/icons-svelte";
 
   const { institution } = $props();
   const { t } = getTranslationStore();
@@ -20,9 +22,10 @@
     };
   });
 
-  const handleBack = () => {
-    goto(`/projects/${institution.project_id}/institutions`);
-  };
+  const breadcrumbItems = $derived([
+    { label: t("common.institutions"), href: `/projects/${institution.project_id}/institutions` },
+    { label: institution.name.content },
+  ]);
 
   const handleEdit = () => {
     goto(
@@ -50,20 +53,13 @@
   }
 </script>
 
-<div class="container-fluid pb-3" style="overflow: visible;">
+<div class="container-fluid pt-0 pb-3" style="overflow: visible;">
   <div class="row">
     <div class="col-12">
       <div class="d-flex align-items-center justify-content-between" style="overflow: visible;">
-        <button
-          class="btn btn-link text-decoration-none px-0"
-          aria-label={t("common.institutions")}
-          onclick={handleBack}
-        >
-          <i class="bi bi-arrow-left"></i>
-          {t("common.institutions")}
-        </button>
+        <BaseBreadcrumb icon={IconBuildingBank} items={breadcrumbItems} />
 
-        <div class="d-flex align-items-center gap-2" style="overflow: visible;">
+        <div class="d-flex align-items-center gap-2 flex-shrink-0" style="overflow: visible;">
         
           <BaseButton
             class="btn btn-outline-secondary btn border-0"

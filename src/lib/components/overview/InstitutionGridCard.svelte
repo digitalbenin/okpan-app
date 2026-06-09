@@ -1,6 +1,7 @@
 <script>
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import imgSm from "$assets/img_sm.png";
   const { t } = getTranslationStore();
   const { institution } = $props();
 </script>
@@ -40,8 +41,8 @@
         {/if}
       </div>
     {:else}
-      <div class="d-flex align-items-center justify-content-center h-100">
-        <i class="bi bi-image fs-2 text-secondary"></i>
+      <div class="h-100">
+        <img src={imgSm} alt="" class="w-100 h-100" style="object-fit: cover;" />
       </div>
     {/if}
   </div>

@@ -3,7 +3,6 @@
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   let {
     institutions = [],
-    selected = $bindable([]),
     page = $bindable(),
     pageSize,
     count,
@@ -13,12 +12,12 @@
 <div class="row">
   {#each institutions as institution (institution.id)}
     <div class="col-4 mb-3">
-      <InstitutionCard {institution} bind:selected selectable={true} />
+      <InstitutionCard {institution} />
     </div>
   {/each}
 </div>
 {#if count > pageSize}
-  <div class="row">
+  <div class="row mb-4 justify-content-end">
     <div class="col-auto">
       <BasePagination bind:page {pageSize} {count} size="sm" />
     </div>
