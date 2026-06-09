@@ -70,7 +70,7 @@
         </div>
       </div>
 
-      <div class="mt-2">
+      <div>
         <h1 class="mb-1">{institution.name.content}</h1>
 
         {#if countryContent || locationContent || primaryLink}

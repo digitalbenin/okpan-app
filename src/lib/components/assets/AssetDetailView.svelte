@@ -30,6 +30,7 @@
     const breadcrumbItems = $derived([
       { label: t("common.institutions"), href: `/projects/${project_id}/institutions` },
       { label: institutionName, href: `/projects/${project_id}/institutions/${institution_id}` },
+      { label: t("common.media"), href: `/projects/${project_id}/institutions/${institution_id}?view=assets` },
       { label: asset.filename || initialAsset.filename },
     ]);
 

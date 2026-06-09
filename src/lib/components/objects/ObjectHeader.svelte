@@ -20,11 +20,12 @@
   const breadcrumbItems = $derived([
     { label: t("common.institutions"), href: `/projects/${projectId}/institutions` },
     { label: institutionName, href: `/projects/${projectId}/institutions/${institutionId}` },
+    { label: t("common.objects"), href: `/projects/${projectId}/institutions/${institutionId}?view=objects` },
     { label: title },
   ]);
 </script>
 
-<div class="container-fluid px-0 pt-0 py-4 ">
+<div class="container-fluid px-0 pt-0 pb-3">
   {#if institutionName || showStatus}
     <div class="row">
       <div class="col-12">
@@ -45,7 +46,7 @@
     </div>
   {/if}
 
-  <div class="row px-3">
+  <div class="row">
     <div class="col-12">
       <h2 class="mb-0">{title}</h2>
     </div>

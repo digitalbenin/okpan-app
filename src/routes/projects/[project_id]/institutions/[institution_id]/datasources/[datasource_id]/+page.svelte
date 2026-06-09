@@ -30,6 +30,7 @@
   const breadcrumbItems = $derived([
     { label: t("common.institutions"), href: `/projects/${projectId}/institutions` },
     { label: data.institution?.name?.content || institutionId, href: `/projects/${projectId}/institutions/${institutionId}` },
+    { label: t("common.data-sources"), href: `/projects/${projectId}/institutions/${institutionId}?view=datasources` },
     { label: datasource?.name?.content || t("common.unnamed") },
   ]);
 
@@ -122,11 +123,11 @@
   <div class="container-fluid">
     <div class="row mb-2">
       <div class="col-12">
-        <div class="d-flex align-items-center justify-content-between mt-4" style="overflow: visible;">
+        <div class="d-flex align-items-center justify-content-between" style="overflow: visible;">
           <BaseBreadcrumb icon={IconDatabase} items={breadcrumbItems} />
         </div>
 
-        <div class="mt-2">
+        <div>
           <h1 class="mb-1">
             {datasource?.name?.content || t("common.unnamed")}
           </h1>

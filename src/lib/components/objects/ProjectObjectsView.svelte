@@ -208,7 +208,7 @@
 
 <BaseSearchBar bind:search={params.search} placeholder={t("common.search", { fallback: "Search" })} oninput={() => { params.searchField = "all"; params.page = 1; }}>
   {#snippet children()}
-    <a class="btn btn-secondary btn-sm" href="/projects/{project.id}/objects/add">
+    <a class="btn btn-primary btn-sm" href="/projects/{project.id}/objects/add">
       <i class="bi bi-plus-lg"></i>
       {t("menu.add-object", { fallback: "Add Object" })}
     </a>

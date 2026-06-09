@@ -311,10 +311,10 @@
     onStatusChange={setStatus}
   />
 
-  <div class="container-fluid">
+  <div class="container-fluid px-0">
     <div class="row">
       <div class="col-9 mb-4">
-        <div class="mt-2 mb-3 px-2">
+        <div class="mt-2 mb-3">
           <ObjectBasicInfo
             bind:objectName
             {selectedInstitutionId}
@@ -334,10 +334,10 @@
             />
           </ObjectBasicInfo>
         </div>
-        <div class="mt-2 mb-3 px-2">
+        <div class="mt-2 mb-3">
           <ObjectLinkedMedia {object} onChangesUpdate={handleComponentChanges} />
         </div>
-        <div class="mt-2 mb-3 px-2">
+        <div class="mt-2 mb-3">
           <ObjectResearchFields
             {object}
             {researchFields}
@@ -345,7 +345,7 @@
             onChangesUpdate={handleComponentChanges}
           />
         </div>
-        <div class="mt-2 mb-3 px-2">
+        <div class="mt-2 mb-3">
           <ObjectConnections
             {object}
             {researchFields}
@@ -353,7 +353,7 @@
             onChangesUpdate={handleComponentChanges}
           />
         </div>
-        <div class="mt-2 mb-3 px-2 pb-4">
+        <div class="mt-2 mb-3 pb-4">
           <ObjectInstitutionalData
             {object}
             {datasources}
