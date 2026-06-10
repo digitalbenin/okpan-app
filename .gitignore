@@ -119,6 +119,7 @@ artic-dataset/
 copilot-instructions.md
 .tmp/
 .opencode/
+.codesight/
 
 docs/api.md
 docs/jsdoc/

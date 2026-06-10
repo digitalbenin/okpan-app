@@ -5,6 +5,7 @@
   import TemplateMappingEditor from "$lib/components/institutions/TemplateMappingEditor.svelte";
   import { createTemplate, updateTemplateAndPropagate, deleteTemplateAndCleanup, countObjectsUsingTemplate } from "$lib/api/TemplatesApi.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { IconDeviceFloppy, IconTrash, IconPlus, IconMinus } from "@tabler/icons-svelte";
 
   let { institution, mappingTemplates = [], ontologyFields = [] } = $props();
 
@@ -241,11 +242,11 @@
   <div class="row">
     <div class="col-12 d-flex justify-content-end mb-2">
       <button
-        class="btn btn-secondary btn-sm"
+        class="btn btn-primary btn-sm"
         onclick={onAddTemplate}
         disabled={creating || !projectId || !institutionId}
       >
-      <i class="bi bi-plus"></i>
+        <IconPlus size={16} />
         {t("common.add-template")}
       </button>
     </div>
@@ -267,8 +268,11 @@
           {#each templates as tpl, idx (tpl.id)}
             <button
               type="button"
-              class="list-group-item list-group-item-action border-0 text-truncate"
-              class:bg-light={tpl.id === selectedTemplateId}
+              class="list-group-item list-group-item-action rounded-0 border-0 text-truncate"
+              class:bg-gray-200={tpl.id === selectedTemplateId}
+              class:border-start={tpl.id === selectedTemplateId}
+              class:border-3={tpl.id === selectedTemplateId}
+              class:border-primary={tpl.id === selectedTemplateId}
               onclick={() => (selectedTemplateId = tpl.id)}
             >
               {titleForTemplate(tpl, idx)}
@@ -307,20 +311,22 @@
           </div>
         </div>
 
-        <div class="card-footer bg-transparent border-0 d-flex justify-content-end gap-2">
+        <div class="card-footer bg-transparent border-0 d-flex justify-content-between gap-2">
           <button
             class="btn btn-outline-danger"
             onclick={promptDeleteTemplate}
             disabled={!canEdit || saving || creating || deletingTemplate}
           >
-            {t("common.delete-template", { fallback: "Delete template" })}
+            <IconTrash size={16} />
+             {t("common.delete-template")}
           </button>
 
           <button
             class="btn btn-success"
             onclick={onSaveTemplate}
             disabled={!canEdit || saving || creating || deletingTemplate}
-          >
+          > 
+            <IconDeviceFloppy size={16} />
             {t("common.save-template")}
           </button>
         </div>

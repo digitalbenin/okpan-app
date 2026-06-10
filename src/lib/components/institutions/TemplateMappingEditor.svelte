@@ -4,6 +4,7 @@
   import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
   import { page } from "$app/state";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { IconPlus, IconArrowRight, IconMinus, IconX } from "@tabler/icons-svelte";
 
   let { rows = $bindable([]), ontologyFields = [], canEdit = false } = $props();
 
@@ -157,7 +158,7 @@
         </td>
         <td>
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <i class="bi bi-arrow-right text-muted"></i>
+            <IconArrowRight size={16} class="text-muted" />
 
             {#each row.mappedFields as fieldId (fieldId)}
               <span class="badge text-bg-light border d-inline-flex align-items-center gap-1">
@@ -169,19 +170,19 @@
                   disabled={!canEdit}
                   aria-label={t("common.remove-mapping")}
                 >
-                  <i class="bi bi-x"></i>
+                  <IconX size={16} />
                 </button>
               </span>
             {/each}
 
             <button
               type="button"
-              class="btn btn-secondary btn-sm rounded-circle d-inline-flex align-items-center justify-content-center p-0 px-1"
+              class="btn btn-secondary btn-sm rounded-circle d-inline-flex align-items-center justify-content-center p-0"
               onclick={() => openPicker(row)}
               disabled={!canEdit}
               aria-label={t("common.add-mapped-field")}
             >
-              <i class="bi bi-plus"></i>
+                <IconPlus size={16} />
             </button>
           </div>
         </td>
@@ -189,15 +190,15 @@
           {#if rowHasObjectIdField(row)}
             <BaseTooltip rootProps={{ side: "left", align: "start" }}>
               {#snippet trigger(props)}
-                <div class="d-inline-block" {...(({ type, ...rest }) => rest)(props)}>
+                <div {...(({ type, ...rest }) => rest)(props)}>
                   <button
                     type="button"
-                    class="btn btn-link text-danger p-0"
+                    class="btn btn-danger rounded-circle d-flex align-items-center justify-content-center p-0"
                     onclick={() => removeRow(row.rowId)}
                     disabled={true}
                     aria-label={t("common.delete-row")}
                   >
-                    <i class="bi bi-dash-circle-fill"></i>
+                    <IconMinus size={16} />
                   </button>
                 </div>
               {/snippet}
@@ -206,12 +207,12 @@
           {:else}
             <button
               type="button"
-              class="btn btn-link text-danger p-0"
+              class="btn btn-danger rounded-circle d-flex align-items-center justify-content-center p-0"
               onclick={() => removeRow(row.rowId)}
               disabled={!canEdit}
               aria-label={t("common.delete-row")}
             >
-              <i class="bi bi-dash-circle-fill"></i>
+              <IconMinus size={16} />
             </button>
           {/if}
         </td>
@@ -222,11 +223,11 @@
       <td colspan="4">
         <button
           type="button"
-          class="btn btn-link text-success p-0"
+          class="btn btn-link text-success p-0 d-flex align-items-center gap-1"
           onclick={addRow}
           disabled={!canEdit}
         >
-          <i class="bi bi-plus-circle me-1"></i>
+          <IconPlus size={16} class="me-1" />
           {t("export.add-field")}
         </button>
       </td>

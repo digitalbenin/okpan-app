@@ -98,7 +98,7 @@
 </BaseSearchBar>
 
 {#if data.institutions?.count}
-  <div class="border-bottom mb-3">
+  <div class="mb-3">
     {data.institutions.count}
     {#if data.institutions.count > 1}
       {t("common.institutions")}
