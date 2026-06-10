@@ -37,6 +37,7 @@
     const currentProjectId = $derived(projectId || page.params.project_id);
 
   // State
+  let autoFormDirtyTracker = $state(null);
   let showDeleteModal = $state(false);
   let isDeleting = $state(false);
   let deleteConfirmationName = $state("");
@@ -222,6 +223,7 @@
       iconComponent: IconDeviceFloppy,
       type: "submit",
       disableOnError: true,
+      disableWhenClean: isEditMode,
     },
   ]);
 
@@ -267,6 +269,7 @@
     leftButtons={leftActionButtons}
     rightButtons={rightActionButtons}
     formStore={formStore}
+    dirtyTracker={isEditMode ? autoFormDirtyTracker : null}
   >
     <div class="row mb-4 mx-n4 px-0 pb-4 border-bottom">
       <div class="col-12">
@@ -298,6 +301,7 @@
           {hiddenStaticValues}
           {hiddenValueProviders}
           margin={0}
+          bind:dirtyTracker={autoFormDirtyTracker}
         />
       </div>
     </div>

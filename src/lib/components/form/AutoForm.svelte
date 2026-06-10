@@ -26,6 +26,7 @@
         margin = 4,
         hideLanguageSelector = false,
         activeLanguageCode = $bindable("default"),
+        dirtyTracker: externalDirtyTracker = $bindable(null),
     } = $props();
 
     const { t } = getTranslationStore();
@@ -41,6 +42,8 @@
     let dirtyTracker = $state(null);
     let trackerInitialized = $state(false);
     let hydrationPristineScheduled = $state(false);
+
+    watch(() => dirtyTracker, (tracker) => { externalDirtyTracker = tracker; });
 
     /**
      * Merge hidden field values into form values so the dirty tracker baseline
