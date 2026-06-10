@@ -209,6 +209,27 @@ registerCustomValidator('datasources', 'date', {
     defaultValue: new Date().toISOString()
 });
 
+// Language validator - optional text field
+registerCustomValidator('datasources', 'language', {
+    validator: () => z.string().optional(),
+    required: false,
+    defaultValue: ''
+});
+
+// Contact validator - optional text field
+registerCustomValidator('datasources', 'contact', {
+    validator: () => z.string().optional(),
+    required: false,
+    defaultValue: ''
+});
+
+// Copyright validator - optional text field
+registerCustomValidator('datasources', 'copyright', {
+    validator: () => z.string().optional(),
+    required: false,
+    defaultValue: ''
+});
+
 // =============================================================================
 // RESEARCH FIELDS VALIDATORS
 // =============================================================================

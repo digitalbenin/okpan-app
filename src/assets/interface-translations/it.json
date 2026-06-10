@@ -2625,7 +2625,7 @@
                          {
                              "namespace":  "institutions",
                              "key":  "links",
-                             "value":  "Collegamenti"
+                             "value":  "Altri collegamenti"
                          },
                          {
                              "namespace":  "institutions",
@@ -3235,7 +3235,7 @@
                          {
                              "namespace":  "common",
                              "key":  "edit-info",
-                             "value":  "Modifica info"
+                             "value":  "Modifica istituzione"
                          },
                          {
                              "namespace":  "common",
@@ -3281,6 +3281,11 @@
                              "namespace":  "common",
                              "key":  "template-mapping",
                              "value":  "Mappatura template"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "connected-objects",
+                             "value":  "Oggetti collegati"
                          },
                          {
                              "namespace":  "common",

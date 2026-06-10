@@ -1,5 +1,6 @@
 <script>
     import BaseButton from "./BaseButton.svelte";
+    import { IconPlus, IconTrash } from "@tabler/icons-svelte";
     let {
         value = $bindable([]),
         itemFields = [],
@@ -109,7 +110,7 @@
     <!-- Array Items -->
     {#each arrayValue as item, index}
         <div class="mb-3">
-            <div class="row g-2 align-items-end">
+            <div class="row g-2 d-flex align-items-end">
                 {#each itemFields as fieldConfig}
                     <div class="col-{fieldConfig.colSize || 6}">
                         {#if index === 0}
@@ -195,8 +196,8 @@
                     {#if arrayValue.length > minItems}
                         <BaseButton
                             type="button"
-                            class="btn btn-sm btn-outline-danger ms-1"
-                            icon="trash"
+                            class="btn btn-sm btn-outline-danger p-2 ms-2 mb-1"
+                            IconComponent={IconTrash}
                             text=""
                             title={deleteButtonTitle}
                             onClick={() => removeItem(index)}
@@ -229,9 +230,8 @@
 
     <!-- Add Button -->
     {#if !maxItems || arrayValue.length < maxItems}
-        <button type="button" class="btn btn-outline-primary" onclick={addItem}>
-            <i class="bi bi-plus"></i>
-            {addButtonText}
+        <button type="button" class="btn btn-secondary d-flex align-items-center gap-2" onclick={addItem}>
+            <IconPlus size={16} /> {addButtonText}
         </button>
     {/if}
 

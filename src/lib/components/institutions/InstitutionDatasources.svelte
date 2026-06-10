@@ -4,6 +4,7 @@
   import DatasourceCard from "$lib/components/datasources/DatasourceCard.svelte";
   import Table from "$lib/components/base/table/Table.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { IconCirclePlus } from "@tabler/icons-svelte";
   import { formatDate } from "$lib/utils/dates.js";
   import { page as pageData } from "$app/state";
 
@@ -23,8 +24,8 @@
 <div class="w-100">
 <BaseSearchBar bind:search={params.sSearch} placeholder={t("common.search")} border="border-gray-800">
   {#snippet children()}
-    <a class="btn btn-primary btn-sm" href={importDataHref}>
-      <i class="bi bi-plus-lg"></i>
+    <a class="btn btn-primary btn-sm d-flex align-items-center gap-1" href={importDataHref}>
+      <IconCirclePlus size={16} />
       {t("common.import-data")}
     </a>
   {/snippet}

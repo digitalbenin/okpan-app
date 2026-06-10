@@ -12,6 +12,7 @@
   import TableLink from "$lib/components/base/table/TableLink.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates.js";
+  import { IconCirclePlus, IconChevronDown } from "@tabler/icons-svelte";
   import { cubicInOut } from "svelte/easing";
   import { watch } from "runed";
 
@@ -153,7 +154,7 @@
     <a
       class="btn btn-primary btn-sm"
       href="/projects/{institution.project_id}/import-assets/steps?institution_id={institution.id}"
-      ><i class="bi bi-plus-lg"></i>
+      ><IconCirclePlus size={16} />
       {t("menu.import-assets")}</a
     >
   {/snippet}
@@ -164,7 +165,7 @@
     </div>
     <div class="d-flex justify-content-end gap-2 flex-wrap">
       <BaseSelect items={statuses} bind:value={params.aLinked} as="button" inputClass="btn-light btn-sm border">
-        <i class="bi bi-chevron-down"></i>
+        <IconChevronDown size={16} />
       </BaseSelect>
       <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as")}>
         <button

@@ -18,15 +18,24 @@
     const labelText = $derived(
         languageCode ? `${config.label} (${languageCode})` : config.label
     );
+
+    const charLimit = $derived(config.charLimit ?? 150);
+    const charCount = $derived(typeof field.state.value === 'string' ? field.state.value.length : 0);
+    const showCharCount = $derived(charLimit > 0 && (config.type === 'text' || config.type === 'textarea'));
 </script>
 
 {#if config.hidden}
     <input type="hidden" name={field.name} value={field.state.value} />
 {:else}
     <div class="mb-3">
-        <p class="form-label" for={field.name}>
-            {labelText}
-            {#if isRequired}<span class="text-danger">*</span>{/if}
+        <p class="form-label d-flex justify-content-between align-items-center" for={field.name}>
+            <span>
+                {labelText}
+                {#if isRequired}<span class="text-danger">*</span>{/if}
+            </span>
+            {#if showCharCount}
+                <span class="text-muted" style="font-size: 0.75rem;">{charCount}/{charLimit}</span>
+            {/if}
         </p>
 
         {#if config.renderer}
@@ -34,6 +43,7 @@
             <Renderer
                 bind:value={field.state.value}
                 {...config.rendererProps}
+                colSize={config.colSize}
                 errors={field.state.meta.errors}
                 {field}
                 {activeLanguageCode}

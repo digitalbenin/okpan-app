@@ -2,13 +2,14 @@
   let {
     text,
     icon,
+    IconComponent = null,
     iconPosition = "left",
     disabled = $bindable(),
     loading = $bindable(),
     onClick = $bindable(),
-    class: customClass = "", // Add class prop with default empty string
-    style: customStyle = "", // Add style prop with default empty string
-    type = "button", // Add type prop with default button
+    class: customClass = "",
+    style: customStyle = "",
+    type = "button",
     title = "",
   } = $props();
 </script>
@@ -28,12 +29,20 @@
       aria-hidden="true"
     ></span>
   {:else}
-    {#if icon && iconPosition === "left"}
-      <i class={`bi bi-${icon}`}></i>
+    {#if (icon || IconComponent) && iconPosition === "left"}
+      {#if IconComponent}
+        <IconComponent size={16} />
+      {:else}
+        <i class={`bi bi-${icon}`}></i>
+      {/if}
     {/if}
     {text}
-    {#if icon && iconPosition === "right"}
-      <i class={`bi bi-${icon}`}></i>
+    {#if (icon || IconComponent) && iconPosition === "right"}
+      {#if IconComponent}
+        <IconComponent size={16} />
+      {:else}
+        <i class={`bi bi-${icon}`}></i>
+      {/if}
     {/if}
   {/if}
 </button>

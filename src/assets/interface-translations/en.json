@@ -1691,7 +1691,7 @@
                          {
                              "namespace":  "institutions",
                              "key":  "links",
-                             "value":  "Links"
+                             "value":  "Other Links"
                          },
                          {
                              "namespace":  "institutions",
@@ -3251,7 +3251,7 @@
                          {
                              "namespace":  "common",
                              "key":  "edit-info",
-                             "value":  "Edit info"
+                             "value":  "Edit institution"
                          },
                          {
                              "namespace":  "common",
@@ -3297,6 +3297,11 @@
                              "namespace":  "common",
                              "key":  "template-mapping",
                              "value":  "Template mapping"
+                         },
+                          {
+                             "namespace":  "common",
+                             "key":  "connected-objects",
+                             "value":  "Connected objects"
                          },
                          {
                              "namespace":  "common",

@@ -4,7 +4,7 @@
   import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import InstitutionsGrid from "$lib/components/institutions/InstitutionsGrid.svelte";
-  import { IconBuildingBank, IconPlus, IconSortAscendingLetters, IconSortDescendingLetters, IconSortAscendingNumbers, IconSortDescendingNumbers, IconSortAscending, IconSortDescending } from "@tabler/icons-svelte";
+  import { IconBuildingBank, IconCirclePlus, IconChevronDown, IconSortAscendingLetters, IconSortDescendingLetters, IconSortAscendingNumbers, IconSortDescendingNumbers, IconSortAscending, IconSortDescending } from "@tabler/icons-svelte";
   import PageHeader from "$lib/components/base/PageHeader.svelte";
 
   const { t } = getTranslationStore();
@@ -63,7 +63,7 @@
 <BaseSearchBar bind:search={params.search} placeholder={t("common.search")}>
   {#snippet children()}
     <a href="/projects/{data.project.id}/institutions/add" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
-      <IconPlus size={16} />
+      <IconCirclePlus size={16} />
       {t("menu.add-institution")}
     </a>
   {/snippet}
@@ -78,7 +78,7 @@
         triggerClass="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
         {#snippet trigger()}
           {currentSort.label}
-          <i class="bi bi-chevron-down"></i>
+          <IconChevronDown size={16} />
         {/snippet}
         {#snippet children()}
           {#each sortOptions as option}

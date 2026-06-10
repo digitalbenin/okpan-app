@@ -63,6 +63,7 @@
             <BaseButton
               text={button?.text}
               icon={button?.icon}
+              IconComponent={button?.iconComponent}
               iconPosition={button?.iconPosition}
               disabled={button?.disabled}
               loading={button?.loading}
@@ -84,6 +85,7 @@
             <BaseButton
               text={button?.text}
               icon={button?.icon}
+              IconComponent={button?.iconComponent}
               iconPosition={button?.iconPosition}
               disabled={button?.disabled || (button?.disableOnError && hasAnyErrors)}
               loading={button?.loading}

@@ -1,18 +1,21 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import BasePagination from "$lib/components/base/BasePagination.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseBreadcrumb from "$lib/components/base/BaseBreadcrumb.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
+  import BasePagination from "$lib/components/base/BasePagination.svelte";
   import DatasourceEditForm from "$lib/components/datasources/DatasourceEditForm.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
+  import DetailSidebar from "$lib/components/common/DetailSidebar.svelte";
+  import LanguageSelector from "$lib/components/form/LanguageSelector.svelte";
   import { IconDatabase } from "@tabler/icons-svelte";
   import { invalidate } from "$app/navigation";
   import { deleteDatasource, getObjectsByDatasource } from "$lib/api/DatasourcesApi.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
   import { goto } from "$app/navigation";
   import { getObjectIdentifier } from "$lib/api/ObjectsApi.js";
+  import { timeAgo } from "$lib/utils/dates";
 
   const translationStore = getTranslationStore();
   const t = $derived(translationStore.t);
@@ -62,6 +65,9 @@
   // Form instance binding
   let form = $state(null);
   const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
+
+  // Language selection state (shared with form)
+  let activeLanguageCode = $state("default");
 
   // Delete state and handlers
   let deleting = $state(false);
@@ -120,11 +126,12 @@
     },
   ]}
 >
-  <div class="container-fluid">
+  <div class="container-fluid p-0">
     <div class="row mb-2">
       <div class="col-12">
         <div class="d-flex align-items-center justify-content-between" style="overflow: visible;">
           <BaseBreadcrumb icon={IconDatabase} items={breadcrumbItems} />
+          <LanguageSelector {languages} bind:activeLanguageCode usePortal={false} class="ms-auto" />
         </div>
 
         <div>
@@ -145,6 +152,8 @@
               {languages}
               {institutionId}
               bind:form
+              bind:activeLanguageCode
+              hideLanguageSelector={true}
               onSuccess={() => invalidate('app:datasources')}
             />
           </div>
@@ -152,37 +161,58 @@
 
       </div>
 
-      <!-- Right column: imported objects list -->
-      <div class="col-12 col-lg-4">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <h2 class="h5 mb-0">{t("common.imported-objects")} ({totalCount})</h2>
+      <!-- Right column: detail sidebar -->
+      <DetailSidebar>
+        <div class="mb-4">
+          <p class="mb-2 text-uppercase">{t("common.activity")}</p>
+          <div class="small text-muted">
+            {#if datasource?.created_at}
+              <div class="mb-1">
+                {t("common.created")}: {timeAgo(datasource.created_at)}
+              </div>
+            {/if}
+            {#if datasource?.updated_at}
+              <div>
+                {t("common.last-update")}: {timeAgo(datasource.updated_at)}
+              </div>
+            {/if}
+            {#if !datasource?.created_at && !datasource?.updated_at}
+              <div class="text-center py-2">{t("common.no-recent-activity")}</div>
+            {/if}
+          </div>
         </div>
 
-        <div class="list-group rounded-3">
+        <div>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <p class="text-uppercase mb-0">{t("common.connected-objects")} ({totalCount})</p>
+          </div>
+
           {#if isLoadingObjects}
-            <div class="text-center py-4 text-muted">{t("common.loading")}</div>
+            <div class="text-center py-4 text-muted small">{t("common.loading")}</div>
           {:else if objects.length === 0}
-            <div class="text-center py-4 text-muted">{t("common.no-results")}</div>
+            <div class="text-center py-4 text-muted small">{t("common.no-results")}</div>
           {:else}
-            {#each objects as obj}
-              <div class="list-group-item list-group-item-action py-2">
-                <div class="d-flex align-items-center gap-3">
-                  <BaseImage src={getObjectImageUrl(obj)} alt={getObjectIdentifier(obj) || "Object"} width={60} height={60} class="rounded border" />
-                  <div class="flex-grow-1 text-truncate">
-                    <div class="fw-semibold text-truncate">{getObjectIdentifier(obj)}</div>
+            <div class="list-group rounded-3">
+              {#each objects as obj}
+                <div class="list-group-item list-group-item-action py-2">
+                  <div class="d-flex align-items-center gap-3">
+                    <BaseImage src={getObjectImageUrl(obj)} alt={getObjectIdentifier(obj) || "Object"} width={52} height={52} class="rounded border" />
+                    <div class="flex-grow-1 text-truncate">
+                      <div class="fw-semibold text-truncate">{getObjectIdentifier(obj)}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            {/each}
+              {/each}
+            </div>
+          {/if}
+
+          {#if totalPages > 1}
+            <div class="d-flex justify-content-end mt-3">
+              <BasePagination bind:page {pageSize} count={totalCount} size="sm" />
+            </div>
           {/if}
         </div>
-
-        {#if totalPages > 1}
-          <div class="d-flex justify-content-end mt-3">
-            <BasePagination bind:page {pageSize} count={totalCount} size="sm" />
-          </div>
-        {/if}
-      </div>
+      </DetailSidebar>
     </div>
   </div>
 </PageActionFooter>

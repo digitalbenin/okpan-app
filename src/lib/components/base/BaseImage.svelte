@@ -132,8 +132,8 @@
 
 {#if isDownloading}
     <div
-        class={`${customClass} bg-light d-flex align-items-center justify-content-center overflow-hidden`}
-        style={`${ratio ? `aspect-ratio: ${ratio};` : ''} ${width ? `width: ${width}px;` : ''} ${height ? `height: ${height}px;` : ''} ${customStyle}`}
+        class={`${customClass} d-flex align-items-center justify-content-center overflow-hidden`}
+        style={`${ratio ? `aspect-ratio: ${ratio};` : ''} ${width ? `width: ${width}px;` : ''} ${height ? `height: ${height}px;` : ''} ${customStyle} background-color: #e9eef1;`}
     >
         <div class="d-flex flex-column align-items-center justify-content-center gap-2 w-100 px-4 text-center">
             <div class={`spinner-border text-secondary ${smallPlaceholder ? 'spinner-border-sm' : ''}`} role="status">
@@ -146,8 +146,8 @@
     </div>
 {:else if error}
     <div
-        class={`${customClass} bg-light d-flex align-items-center justify-content-center overflow-hidden`}
-        style={`${ratio ? `aspect-ratio: ${ratio};` : ''} ${width ? `width: ${width}px;` : ''} ${height ? `height: ${height}px;` : ''} ${customStyle}`}
+        class={`${customClass}  d-flex align-items-center justify-content-center overflow-hidden`}
+        style={`${ratio ? `aspect-ratio: ${ratio};` : ''} ${width ? `width: ${width}px;` : ''} ${height ? `height: ${height}px;` : ''} ${customStyle} background-color: #e9eef1;`}
     >
         <div class="d-flex flex-column align-items-center justify-content-center gap-2 opacity-50 text-center">
             <i class={`bi bi-exclamation-circle ${smallPlaceholder ? 'fs-3' : 'fs-1'}`}></i>
@@ -170,8 +170,8 @@
     />
 {:else}
     <div
-        class={`${customClass} bg-light d-flex align-items-center justify-content-center overflow-hidden`}
-        style={`${ratio ? `aspect-ratio: ${ratio};` : ''} ${width ? `width: ${width}px;` : ''} ${height ? `height: ${height}px;` : ''} ${customStyle}`}
+        class={`${customClass} d-flex align-items-center justify-content-center overflow-hidden`}
+        style={`${ratio ? `aspect-ratio: ${ratio};` : ''} ${width ? `width: ${width}px;` : ''} ${height ? `height: ${height}px;` : ''} ${customStyle} background-color: #e9eef1;`}
     >
         <div class="d-flex flex-column align-items-center justify-content-center gap-2 opacity-50 text-center">
             <i class={`bi bi-image ${smallPlaceholder ? 'fs-3' : 'fs-1'}`}></i>

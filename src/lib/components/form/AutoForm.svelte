@@ -7,7 +7,7 @@
     import LanguageSelector from "./LanguageSelector.svelte";
     import FormField from "./FormField.svelte";
 
-    const {
+    let {
         form = null,
         validator = null,
         createFieldValidator = null,
@@ -24,6 +24,8 @@
         dirtyTrackingMessage = null,
         usePortal = true,
         margin = 4,
+        hideLanguageSelector = false,
+        activeLanguageCode = $bindable("default"),
     } = $props();
 
     const { t } = getTranslationStore();
@@ -132,9 +134,6 @@
     const defaultLanguage = $derived(languages?.find((l) => l.is_default) || languages?.[0] || null);
     const secondaryLanguages = $derived(languages?.filter((l) => !l.is_default) || []);
 
-    // Active language state
-    let activeLanguageCode = $state("default");
-
     // Helpers
     const getFieldConfig = (fieldName) => {
         const base = uiSchema?.[fieldName] || {};
@@ -144,6 +143,7 @@
             type: base.type ?? inferTypeFromSchema(fieldName),
             hidden: base.hidden ?? hiddenFields.includes(fieldName),
             colSize: base.colSize ?? defaultColSize,
+            charLimit: base.charLimit ?? 150,
             renderer: base.renderer ?? null,
             rendererProps: base.rendererProps ?? {},
             options: base.options ?? [],
@@ -296,10 +296,12 @@
 </script>
 
 {#if derivedTranslatable.length > 0 && defaultLanguage}
-    <div class="mx-4 mb-4">
+    <div class="mb-2">
+        {#if !hideLanguageSelector}
         <div class="d-flex justify-content-end mb-3">
             <LanguageSelector {languages} bind:activeLanguageCode {usePortal} />
         </div>
+        {/if}
 
         <!-- Default language -->
         {#if activeLanguageCode === "default"}
@@ -361,7 +363,7 @@
 {/if}
 
 <!-- Non-translatable fields -->
-<div class={marginClass}>
+<div class="{marginClass} mt-2">
     <div class="row">
         {#each orderedFields as fieldName}
             {@const config = getFieldConfig(fieldName)}

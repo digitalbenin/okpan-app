@@ -19,6 +19,7 @@
   } from "$lib/api/InstitutionsApi.js";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
+  import { IconDeviceFloppy, IconTrash, IconArrowLeft, IconComponents } from "@tabler/icons-svelte";
 
   const translationStore = getTranslationStore();
   const t = $derived(translationStore.t);
@@ -73,25 +74,26 @@
   // Submit handler
   async function onSubmitForm({ value }) {
     try {
-      // Filter non-empty links and map to plain objects.
-      // The .map() is essential: items from Svelte 5 form state may be reactive
-      // proxies that Electron's IPC structured clone algorithm rejects.
       const cleanedLinks = value.links
         ?.filter((link) => link.url?.trim() && link.label?.trim())
         .map(link => ({ url: link.url, label: link.label }))
         || [];
 
+      const payload = {
+        name: value.name,
+        description: value.description,
+        country: value.country,
+        location: value.location,
+        website: value.website,
+        status: value.status,
+      };
+
       if (mode === "create") {
         const result = await createInstitution({
           project_id: currentProjectId,
           languageId: defaultLanguage?.id,
-          name: value.name,
-          description: value.description,
-          country: value.country,
-          location: value.location,
-          website: value.website,
           links: cleanedLinks,
-          status: value.status,
+          ...payload,
         });
 
         if (!result?.institution) throw new Error("Failed to create institution");
@@ -103,14 +105,9 @@
         onSuccess ? onSuccess(newInstitution) : goto(`/projects/${currentProjectId}/institutions/${newInstitution.id}`);
       } else {
         await updateInstitution(institution.id, {
-          status: value.status,
-          name: value.name,
-          description: value.description,
-          country: value.country,
-          location: value.location,
-          website: value.website,
           links: JSON.stringify(cleanedLinks),
           languageId: defaultLanguage?.id,
+          ...payload,
         });
 
         await processEntityTranslations(institution, secondaryLanguages, TRANSLATABLE_FIELDS, value, languages);
@@ -160,15 +157,16 @@
         maxItems: 10,
         deleteColSize: 2,
       },
+      colSize: 9
     },
     name: {
       label: t("institutions.institution-name"),
-      colSize: 7,
+      colSize: 9,
     },
-    description: { type: "textarea", label: t("common.description"), colSize: 7 },
-    country: { label: t("institutions.country") },
-    location: { label: t("institutions.location") },
-    website: { label: t("common.website") },
+    description: { type: "textarea", label: t("common.description"), colSize: 9 },
+    country: { label: t("institutions.country"), colSize: 9 },
+    location: { label: t("institutions.location"), colSize: 9 },
+    website: { label: t("common.website"), colSize: 9 },
   });
 
   // Hidden value providers & static values
@@ -179,7 +177,7 @@
   });
 
   const hiddenStaticValues = $derived(mode === "create" ? { status: "in progress" } : {});
-  const fieldOrder = $derived(mode === "create" ? ["website", "links"] : ["links"]);
+  const fieldOrder = $derived(["website", "links"]);
   const institutionDisplayName = $derived(institution?.name?.content || "");
   const deleteImpactCounts = $derived.by(() => ({
     objects: Number(institution?.objectsCount || 0),
@@ -197,6 +195,7 @@
       buttons.push({
         id: "back-institution",
         text: t("common.back"),
+        iconComponent: IconArrowLeft,
         class: "btn btn-outline-secondary",
         onClick: onCancel,
       });
@@ -207,7 +206,7 @@
         id: "delete-institution",
         text: t("common.delete"),
         class: "btn btn-outline-danger",
-        icon: "trash",
+        iconComponent: IconTrash,
         onClick: openDeleteModal,
       });
     }
@@ -220,6 +219,7 @@
       id: "confirm-institution",
       text: t("common.confirm"),
       class: "btn btn-success",
+      iconComponent: IconDeviceFloppy,
       type: "submit",
       disableOnError: true,
     },
@@ -263,20 +263,20 @@
   }}
 >
   <PageActionFooter
-    contentClass="container-fluid py-4"
+    contentClass="container-fluid pb-4"
     leftButtons={leftActionButtons}
     rightButtons={rightActionButtons}
     formStore={formStore}
   >
-    <div class="row mb-4">
+    <div class="row mb-4 mx-n4 px-0 pb-4 border-bottom">
       <div class="col-12">
-        <h1 class="h3 mb-0">
+        <h2 class="mb-0 px-3">
           {isEditMode
             ? t("institutions.edit-institution")
             : t("institutions.add-new-institution")}
-        </h1>
+        </h2>
         {#if !isEditMode}
-          <p class="text-muted mt-2 mb-0">
+          <p class="text-muted mt-2 mb-0 px-3">
             {t("institutions.add-new-institution-desc")}
           </p>
         {/if}
@@ -297,6 +297,7 @@
           {uiSchema}
           {hiddenStaticValues}
           {hiddenValueProviders}
+          margin={0}
         />
       </div>
     </div>

@@ -1,6 +1,7 @@
 <script>
   import { Portal } from "bits-ui";
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
+  import { IconLanguage } from "@tabler/icons-svelte";
 
   let {
     languages = [],
@@ -58,7 +59,7 @@
         alignOffset={0}
       >
         {#snippet trigger()}
-          <i class="bi bi-translate"></i>
+          <IconLanguage size={16} />
           <span>{currentLanguage?.name || "Language"}</span>
           <i class="bi bi-chevron-down small"></i>
         {/snippet}

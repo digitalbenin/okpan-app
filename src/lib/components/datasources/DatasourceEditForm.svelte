@@ -11,7 +11,9 @@
     languages = [], 
     institutionId = null,
     form = $bindable(), 
-    onSuccess 
+    onSuccess,
+    hideLanguageSelector = false,
+    activeLanguageCode = $bindable("default"),
   } = $props();
 
   const translationStore = getTranslationStore();
@@ -102,6 +104,9 @@
     method: { label: t("import.method", { fallback: "Method" }), type: "textarea", placeholder: t("import.method", { fallback: "Describe method" }) },
     notes: { label: t("common.notes", { fallback: "Notes" }), type: "textarea", placeholder: t("common.notes", { fallback: "Notes" }) },
     date: { label: t("common.date", { fallback: "Date" }), type: "date" },
+    language: { label: t("common.language", { fallback: "Language" }), type: "text", placeholder: t("common.language", { fallback: "Language" }) },
+    contact: { label: t("common.contact", { fallback: "Contact" }), type: "text", placeholder: t("common.contact", { fallback: "Contact" }) },
+    copyright: { label: t("common.copyright", { fallback: "Copyright" }), type: "text", placeholder: t("common.copyright", { fallback: "Copyright" }) },
   });
 
   const hiddenStaticValues = $derived({
@@ -149,4 +154,6 @@
     fieldOrder={["date"]}
     {uiSchema}
     usePortal={false}
+    {hideLanguageSelector}
+    bind:activeLanguageCode
 />

@@ -5,6 +5,7 @@
   import { goto } from "$app/navigation";
   import { updateInstitutionStatus } from "$lib/api/InstitutionsApi.js";
   import { IconBuildingBank } from "@tabler/icons-svelte";
+  import { IconPencil } from "@tabler/icons-svelte";
 
   const { institution } = $props();
   const { t } = getTranslationStore();
@@ -62,10 +63,11 @@
         <div class="d-flex align-items-center gap-2 flex-shrink-0" style="overflow: visible;">
         
           <BaseButton
-            class="btn btn-outline-secondary btn border-0"
+            class="btn btn-outline-secondary btn"
             onClick={handleEdit}
             text={t("common.edit-info")}
-            icon="pencil"
+            IconComponent={IconPencil}
+
           ></BaseButton>
         </div>
       </div>

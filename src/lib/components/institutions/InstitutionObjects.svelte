@@ -6,6 +6,7 @@
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { IconCirclePlus, IconChevronDown, IconTableImport } from "@tabler/icons-svelte";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
@@ -244,9 +245,9 @@
   </button>
 {/snippet}
 
-{#snippet toolbarButton(icon, text, onClick)}
-  <a class="btn btn-primary btn-sm" href={onClick}>
-    <i class="bi bi-{icon}"></i>
+{#snippet toolbarButton(text, onClick, Icon)}
+  <a class="btn btn-primary btn-sm d-flex align-items-center gap-1" href={onClick}>
+    <Icon size={16} />
     {text}
   </a>
 {/snippet}
@@ -254,8 +255,8 @@
 <div class="w-100">
 <BaseSearchBar bind:search={params.oSearch} placeholder={t("common.search")} border="border-gray-700">
   {#snippet children()}
-  {@render toolbarButton("plus-lg", t("menu.import-data"), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`)}  
-  {@render toolbarButton("plus-lg", t("menu.add-object"), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`)}
+  {@render toolbarButton(t("menu.import-data"), `/projects/${institution.project_id}/import-data?institution_id=${institution.id}`, IconTableImport)}  
+  {@render toolbarButton(t("menu.add-object"), `/projects/${institution.project_id}/objects/add?institution_id=${institution.id}`, IconCirclePlus)}
   {/snippet}
   {#snippet toolbar()}
     <div class="col-auto">
@@ -264,10 +265,10 @@
     </div>
     <div class="d-flex justify-content-end gap-2 flex-wrap">
       <BaseSelect items={statuses} bind:value={params.oStatus} as="button" inputClass="btn-light btn-sm border">
-        <i class="bi bi-chevron-down"></i>
+        <IconChevronDown size={16} />
       </BaseSelect>
       <BaseSelect items={sortOptions} bind:value={params.oOrderBy} as="button" inputClass="btn-light btn-sm border">
-        <i class="bi bi-chevron-down"></i>
+        <IconChevronDown size={16} />
       </BaseSelect>
       <InstitutionObjectsFields
         {displayFields}

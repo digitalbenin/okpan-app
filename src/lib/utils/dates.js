@@ -136,5 +136,34 @@ function formatDate(date, locale = "en", showTime = false) {
     return new Date(date).toLocaleDateString(locale, options);
 }
 
-export { epochToDate, epochToYYYYMMDD, formatDate };
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+dayjs.extend(relativeTime);
+
+function normalizeTimestamp(value) {
+    if (typeof value !== "string") {
+        return value;
+    }
+
+    const trimmedValue = value.trim();
+
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(trimmedValue)) {
+        return `${trimmedValue.replace(" ", "T")}Z`;
+    }
+
+    return value;
+}
+
+/**
+ * Returns a human-readable relative time string (e.g. "2 days ago").
+ * @param {number|string|Date} timestamp
+ * @param {string} [locale="en"]
+ * @returns {string}
+ */
+function timeAgo(timestamp, locale = "en") {
+    return dayjs(normalizeTimestamp(timestamp)).locale(locale).fromNow();
+}
+
+export { epochToDate, epochToYYYYMMDD, formatDate, normalizeTimestamp, timeAgo };
 

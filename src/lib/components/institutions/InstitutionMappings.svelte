@@ -5,7 +5,7 @@
   import TemplateMappingEditor from "$lib/components/institutions/TemplateMappingEditor.svelte";
   import { createTemplate, updateTemplateAndPropagate, deleteTemplateAndCleanup, countObjectsUsingTemplate } from "$lib/api/TemplatesApi.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { IconDeviceFloppy, IconTrash, IconPlus, IconMinus } from "@tabler/icons-svelte";
+  import { IconDeviceFloppy, IconTrash, IconCirclePlus, IconMinus } from "@tabler/icons-svelte";
 
   let { institution, mappingTemplates = [], ontologyFields = [] } = $props();
 
@@ -246,7 +246,7 @@
         onclick={onAddTemplate}
         disabled={creating || !projectId || !institutionId}
       >
-        <IconPlus size={16} />
+        <IconCirclePlus size={16} />
         {t("common.add-template")}
       </button>
     </div>
@@ -254,7 +254,7 @@
 
   <div class="row">
     <!-- Left: template list -->
-    <div class="col-2">
+    <div class="col-2 border-end border-1 border-dark-subtle pe-3">
       <div class="text-muted mb-2">
         {t("common.mapping-templates")}
       </div>
