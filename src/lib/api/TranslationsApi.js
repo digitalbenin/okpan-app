@@ -90,21 +90,20 @@ export function buildTranslationFormValues(entity, secondaryLanguages, translata
  * @returns {Promise<Object|null>}
  */
 export async function handleFieldTranslation(fieldObj, langCode, content, languages, textId = null) {
-    if (!content?.trim()) return null;
-
+    const trimmed = content?.trim() ?? "";
     const existingId = getExistingTranslationId(fieldObj, langCode);
     const mainId = fieldObj?.id || textId;
 
     if (existingId) {
-        return await updateTranslation({ id: existingId, content });
+        return await updateTranslation({ id: existingId, content: trimmed });
     }
 
-    if (mainId) {
+    if (mainId && trimmed) {
         const language = languages.find(lang => lang.code === langCode);
         if (!language) {
             throw new Error(`Language with code "${langCode}" not found`);
         }
-        return await createTranslation({ textId: mainId, languageId: language.id, content: content.trim() });
+        return await createTranslation({ textId: mainId, languageId: language.id, content: trimmed });
     }
 
     return null;
@@ -124,7 +123,7 @@ export async function processEntityTranslations(entity, secondaryLanguages, tran
     const promises = secondaryLanguages.flatMap(lang =>
         translatableFields.map(fieldName => {
             const content = formValues[`translations_${lang.id}_${fieldName}`];
-            return content?.trim()
+            return content !== undefined && content !== null
                 ? handleFieldTranslation(entity?.[fieldName], lang.code, content, languages, textIdMap?.[fieldName])
                 : null;
         })

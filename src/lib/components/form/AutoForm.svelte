@@ -146,7 +146,7 @@
             type: base.type ?? inferTypeFromSchema(fieldName),
             hidden: base.hidden ?? hiddenFields.includes(fieldName),
             colSize: base.colSize ?? defaultColSize,
-            charLimit: base.charLimit ?? 150,
+            charLimit: base.charLimit ?? null,
             renderer: base.renderer ?? null,
             rendererProps: base.rendererProps ?? {},
             options: base.options ?? [],
@@ -314,7 +314,7 @@
                     <div class={`col-md-${Math.min(Math.max(config.colSize, 1), 12)}`}>
                         <form.Field
                             name={fieldName}
-                            validators={createFieldValidator?.(fieldName, validator, form, VALIDATE_ON_CHANGE_OPTIONS)}
+                            validators={createFieldValidator?.(fieldName, validator, form, { ...VALIDATE_ON_CHANGE_OPTIONS, maxLength: config.charLimit })}
                         >
                             {#snippet children(field)}
                                 <FormField
@@ -343,7 +343,7 @@
                         <div class={`col-md-${Math.min(Math.max(config.colSize, 1), 12)}`}>
                             <form.Field
                                 name={`translations_${lang.id}_${baseField}`}
-                                validators={translationsValidator && createFieldValidator?.(`translations_${lang.id}_${baseField}`, translationsValidator, form, VALIDATE_ON_CHANGE_OPTIONS)}
+                                validators={translationsValidator && createFieldValidator?.(`translations_${lang.id}_${baseField}`, translationsValidator, form, { ...VALIDATE_ON_CHANGE_OPTIONS, maxLength: config.charLimit })}
                             >
                                 {#snippet children(field)}
                                     <FormField
@@ -374,7 +374,7 @@
                 <div class={`col-md-${Math.min(Math.max(config.colSize, 1), 12)}`}>
                     <form.Field
                         name={fieldName}
-                        validators={createFieldValidator?.(fieldName, validator, form, VALIDATE_ON_CHANGE_OPTIONS)}
+                        validators={createFieldValidator?.(fieldName, validator, form, { ...VALIDATE_ON_CHANGE_OPTIONS, maxLength: config.charLimit })}
                     >
                         {#snippet children(field)}
                             <FormField

@@ -19,9 +19,10 @@
         languageCode ? `${config.label} (${languageCode})` : config.label
     );
 
-    const charLimit = $derived(config.charLimit ?? 150);
+    const charLimit = $derived(config.charLimit ?? null);
     const charCount = $derived(typeof field.state.value === 'string' ? field.state.value.length : 0);
-    const showCharCount = $derived(charLimit > 0 && (config.type === 'text' || config.type === 'textarea'));
+    const showCharCount = $derived(charLimit != null && (config.type === 'text' || config.type === 'textarea') && !config.renderer);
+    const maxLength = $derived(charLimit != null ? charLimit : null);
 </script>
 
 {#if config.hidden}
@@ -82,6 +83,7 @@
                 rows="3"
                 placeholder={config.placeholder}
                 value={field.state.value}
+                maxlength={maxLength}
                 oninput={(e) => field.handleChange(e.target.value)}
                 onblur={field.handleBlur}
             ></textarea>
@@ -114,6 +116,7 @@
                 class={"form-control " + (shouldShowError(field.state.meta) ? "is-invalid" : "")}
                 placeholder={config.placeholder}
                 value={field.state.value}
+                maxlength={maxLength}
                 oninput={(e) => field.handleChange(e.target.value)}
                 onblur={field.handleBlur}
             />

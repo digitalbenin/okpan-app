@@ -105,7 +105,7 @@
     {/each}
   {#if (data.researchFields.length === 0) }
    <div class="border border-dark-subtle  dashed rounded-4 d-flex align-items-center justify-content-center col-12 text-center text-muted mt-4" style="height:150px;">
-      {t("connections.no-connections-present", { fallback: "No connection types present." })}
+      {t("connections.no-connections-types-present", { fallback: "No connection types present." })}
     </div>
     
   {:else if (filteredFields.length === 0)}

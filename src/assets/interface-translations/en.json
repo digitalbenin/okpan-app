@@ -295,8 +295,13 @@
                          },
                          {
                                 "namespace":  "connections",
-                                "key":  "no-connections-present",
-                                "value":  "No institutions yet. Add one by clicking on “Add connection type”."
+                                "key":  "no-connections-types-present",
+                                "value":  "No connection types yet. Add one by clicking on “Add connection type”."
+                         },
+                         {
+                                "namespace":  "connections",
+                                "key":  "no-connections--present",
+                                "value":  "No connections yet. Add one by clicking on “Add connection”."
                          },
                          {
                              "namespace":  "test",
@@ -1062,6 +1067,31 @@
                               "namespace":  "connections",
                               "key":  "section.media",
                               "value":  "Media"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "section.what-fields-included",
+                              "value":  "What fields are included"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "delete-permanently-title",
+                              "value":  "Delete permanently"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "delete-permanently-description",
+                              "value":  "This action cannot be undone. All vocabularies and associated data will be permanently removed."
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "type-name-to-delete",
+                              "value":  "Type the connection type name to confirm deletion"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "type-exact-name-to-delete",
+                              "value":  "Type \"{name}\" to confirm."
                           },
                           {
                               "namespace":  "objects",

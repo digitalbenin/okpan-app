@@ -222,10 +222,15 @@
                              "key":  "import",
                              "value":  "Importa connessioni"
                          },
-                          {
+                         {
+                                "namespace":  "connections",
+                                "key":  "no-connections-types-present",
+                                "value":  "Nessun tipo di connessione presente. Aggiungine uno facendo clic su “Aggiungi tipo di connessione”."
+                         },
+                         {
                                 "namespace":  "connections",
                                 "key":  "no-connections-present",
-                                "value":  "Nessuna connessione presente. Aggiungine una facendo clic su “Aggiungi tipo di connessione”."
+                                "value":  "Nessuna connessione presente. Aggiungine una facendo clic su “Aggiungi connessione”."
                          },
                          {
                              "namespace":  "nav",

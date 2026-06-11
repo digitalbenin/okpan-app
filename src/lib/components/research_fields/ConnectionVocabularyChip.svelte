@@ -11,38 +11,38 @@
     duplicateLabel = "Duplicate",
     deleteLabel = "Delete",
     imageAltFallback = "Connection image",
+    borderStartClass = "border-light",
   } = $props();
 </script>
 
 <button
   type="button"
-  class="card h-100 shadow-sm w-100 border-0 p-0 text-start"
+  class="card h-100 w-100 border-0 border-start border-3 {borderStartClass} p-2 text-start rounded-4"
   style="cursor: pointer; background: white;"
   onclick={() => onOpen(vocabulary?.id)}
 >
-  <div class="card-body d-flex align-items-center justify-content-between gap-3 w-100 p-3">
-    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; flex-shrink: 0;">
-      {#if vocabulary?.mainAsset}
-        <BaseImage
-          asset={vocabulary.mainAsset}
-          preferredFormat="sm"
-          alt={vocabulary.option?.content || imageAltFallback}
-          class="rounded-circle w-100 h-100"
-          objectFit="cover"
-          compact={true}
-        />
-      {:else}
-        <i class="bi bi-image text-muted" style="font-size: 1.5rem;"></i>
-      {/if}
-    </div>
-
-    <div class="flex-grow-1 min-w-0 overflow-hidden">
-      <p class="card-title mb-0 text-truncate" title={vocabulary?.option?.content}>
+  <div class="d-flex align-items-center justify-content-between w-100">
+    <div class="d-flex align-items-center gap-2 min-w-0">
+      <div class="bg-light rounded-5 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 41px; height: 41px;">
+        {#if vocabulary?.mainAsset}
+          <BaseImage
+            asset={vocabulary.mainAsset}
+            preferredFormat="sm"
+            alt={vocabulary.option?.content || imageAltFallback}
+            class="rounded-5 w-100 h-100"
+            objectFit="cover"
+            compact={true}
+          />
+        {:else}
+          <i class="bi bi-image text-muted" style="font-size: 1.25rem;"></i>
+        {/if}
+      </div>
+      <p class="mb-0 text-truncate fw-semibold" style="font-size: 14px;" title={vocabulary?.option?.content}>
         {vocabulary?.option?.content || untitledLabel}
       </p>
     </div>
 
-    <div class="flex-shrink-0 ms-auto" role="presentation" onclick={(event) => event.stopPropagation()}>
+    <div class="flex-shrink-0" role="presentation" onclick={(event) => event.stopPropagation()}>
       <BaseDropdownMenu
         align="end"
         side="bottom"

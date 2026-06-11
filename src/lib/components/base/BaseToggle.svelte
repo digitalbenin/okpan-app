@@ -13,7 +13,7 @@
     // Handle value changes
     function handleChange(event) {
         if (onChange) {
-            onChange(event);
+            onChange(event.target.checked);
         }
     }
 </script>

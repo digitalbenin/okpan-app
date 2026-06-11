@@ -68,13 +68,17 @@ export const generateDefaultValues = (entityName) => {
  * @param {string} fieldName
  * @param {{ schema: ZodObject, complexFields: Set }} validator
  * @param {*} _form - Form instance (reserved for future use)
- * @param {{ validateOnChange: boolean= }} options
+ * @param {{ validateOnChange: boolean=, maxLength: number= }} options
  * @returns {Object} TanStack Form validator config
  */
 export const createFieldValidator = (fieldName, validator, _form, options = {}) => {
-    const { validateOnChange = false } = options;
+    const { validateOnChange = false, maxLength = null } = options;
 
     const validateField = ({ value, fieldApi }) => {
+        if (maxLength != null && typeof value === 'string' && value.length > maxLength) {
+            return `Maximum ${maxLength} characters allowed`;
+        }
+
         const fieldSchema = validator.schema.shape?.[fieldName];
         if (!fieldSchema) return undefined;
 

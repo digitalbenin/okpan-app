@@ -1,35 +1,53 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { goto, invalidate, invalidateAll } from "$app/navigation";
+    import { goto, invalidateAll } from "$app/navigation";
     import { addToast } from "$lib/components/base/BaseToast.svelte";
     import BasePagination from "$lib/components/base/BasePagination.svelte";
     import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
     import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import BaseBreadcrumb from "$lib/components/base/BaseBreadcrumb.svelte";
+    import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
     import ConnectionVocabularyChip from "$lib/components/research_fields/ConnectionVocabularyChip.svelte";
-    import EditConnectionTypeModal from "$lib/components/research_fields/EditConnectionTypeModal.svelte";
-    import { addVocabulary, deleteVocabulary, deleteResearchField, updateResearchField } from "$lib/api/ResearchFieldsApi.js";
-    import { DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
+    import { getTemplateColorClasses } from "$lib/constants/connectionTemplates.js";
+    import { addVocabulary, deleteVocabulary, deleteResearchField } from "$lib/api/ResearchFieldsApi.js";
+    import {
+        IconChartCircles,
+        IconPencil,
+        IconEye,
+        IconEyeOff,
+        IconPlus,
+        IconDotsVertical,
+        IconDownload,
+        IconTrash,
+    } from "@tabler/icons-svelte";
 
     const { data } = $props();
     const { t } = getTranslationStore();
 
-    // State
     let searchTerm = $state("");
     let currentPage = $state(1);
     let itemsPerPage = $state(24);
     let sortOrder = $state("name_asc");
 
-    // Modal State
     let modals = $state({
         deleteVocab: { open: false, item: null },
-        deleteType: { open: false, loading: false },
-        edit: { open: false, loading: false, config: { ...DEFAULT_FIELDS_CONFIG }, info: {} }
+        deleteType: { open: false, loading: false }
     });
     let isExportingCsv = $state(false);
 
-    // Derived values
     let vocabularies = $derived(data.researchField?.vocabularies || []);
+    let templateId = $derived(data.researchField?.fields_config?.templateId || null);
+    let colorClasses = $derived(getTemplateColorClasses(templateId));
+    let connectionTypeName = $derived(data.researchField?.name?.content || t("common.untitled", {fallback: "Untitled"}));
+    let connectionDescription = $derived(data.researchField?.description?.content || "");
+    let isPublished = $derived(data.researchField?.onwebsite === 1);
+    let searchPlaceholder = $derived(t("common.search", { fallback: "Search" }));
+
+    let breadcrumbItems = $derived([
+        { label: t("project.connection-types", { fallback: "Connection types" }), href: `/projects/${data.project.id}/connections` },
+        { label: connectionTypeName }
+    ]);
 
     let filteredVocabularies = $derived(
         searchTerm
@@ -55,36 +73,6 @@
 
     function goToDetail(vocabularyId) {
         goto(`/projects/${data.project.id}/connections/${data.researchField.id}/${vocabularyId}`);
-    }
-
-    function handleEditField() {
-        modals.edit.info = {
-            name: data.researchField.name?.content || "",
-            description: data.researchField.description?.content || "",
-            onwebsite: data.researchField.onwebsite === 1
-        };
-        modals.edit.config = { ...(data.researchField.fields_config || DEFAULT_FIELDS_CONFIG) };
-        modals.edit.open = true;
-    }
-
-    async function handleSaveEdit() {
-        modals.edit.loading = true;
-        try {
-            const params = {
-                type: data.researchField.type,
-                name: modals.edit.info.name,
-                description: modals.edit.info.description,
-                onwebsite: modals.edit.info.onwebsite ? 1 : 0,
-                fields_config: JSON.parse(JSON.stringify(modals.edit.config))
-            };
-            const result = await updateResearchField(data.researchField.id, params);
-            if (result && !result.error) {
-                await invalidateAll();
-                modals.edit.open = false;
-            }
-        } finally {
-            modals.edit.loading = false;
-        }
     }
 
     async function handleDuplicate(vocab) {
@@ -163,51 +151,46 @@
             isExportingCsv = false;
         }
     }
-
 </script>
 
 {#if !data.missingEntity && data.researchField}
-<div class="container-fluid h-100 d-flex flex-column">
-    <!-- Header Section -->
-    <div class="pt-3 pb-3 border-bottom mb-3">
-        <div class="d-flex align-items-center gap-2 mb-2 text-muted">
-            <button class="btn btn-link p-0 text-decoration-none text-muted d-flex align-items-center" onclick={goBack}>
-                <i class="bi bi-arrow-left me-1"></i>
-                {t("project.connection-types", { fallback: "Connection types" })}
-            </button>
-        </div>
-
+<div class="h-100 d-flex flex-column mx-n4 mt-n4">
+    <!-- Header: full-width white band with bottom border -->
+    <div class="bg-white border-bottom p-4">
         <div class="d-flex justify-content-between align-items-start">
-            <div>
-                <h2 class="m-0 mb-2">{data.researchField?.name?.content || t("common.untitled", {fallback: "Untitled"})}</h2>
-                <div class="d-flex align-items-center gap-2 text-muted mb-2">
-                    {#if data.researchField.onwebsite !== 1}
-                        <i class="bi bi-eye-slash"></i>
-                        <span>{t("common.not-published-on-website", { fallback: "Not published on the website" })}</span>
-                    {:else}
-                         <i class="bi bi-eye"></i>
-                        <span>{t("common.published-on-website", { fallback: "Published on the website" })}</span>
+            <div class="d-flex flex-column gap-3">
+                <BaseBreadcrumb items={breadcrumbItems} icon={IconChartCircles} />
+                <div>
+                    <h2 class="mb-1">{connectionTypeName}</h2>
+                    {#if connectionDescription}
+                        <p class="text-muted mb-0 text-nowrap text-truncate" style="max-width: 800px;">{connectionDescription}</p>
                     {/if}
                 </div>
-                 <p class="text-muted" style="max-width: 800px;">
-                    {data.researchField?.description?.content || ""}
-                </p>
+                <div class="d-flex align-items-center gap-1">
+                    {#if isPublished}
+                        <IconEye size={16} class="text-secondary flex-shrink-0" />
+                        <span class="small text-secondary">{t("connections.visible-on-website", { fallback: "Visible on website" })}</span>
+                    {:else}
+                        <IconEyeOff size={16} class="text-secondary flex-shrink-0" />
+                        <span class="small text-secondary">{t("connections.not-visible", { fallback: "Not visible" })}</span>
+                    {/if}
+                </div>
             </div>
-            <div class="d-flex gap-2">
-                <button class="btn btn-light border" onclick={handleEditField}>
-                    <i class="bi bi-pencil me-1"></i>
+            <div class="d-flex align-items-start gap-2">
+                <a href="/projects/{data.project.id}/connections/{data.researchField.id}/edit" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+                    <IconPencil size={14} />
                     {t("common.edit-connection-type", { fallback: "Edit connection type" })}
-                </button>
+                </a>
                 <BaseDropdownMenu
                     align="end"
                     side="bottom"
                     sideOffset={4}
                     alignOffset={0}
                     contentProps={{ style: "right: 0; left: auto;" }}
-                    triggerClass="btn btn-light border d-flex align-items-center"
+                    triggerClass="btn btn-outline-secondary btn-sm d-flex align-items-center"
                 >
                     {#snippet trigger()}
-                        <i class="bi bi-three-dots-vertical"></i>
+                        <IconDotsVertical size={16} />
                     {/snippet}
                     {#snippet children({ close })}
                         <button
@@ -222,7 +205,7 @@
                             {#if isExportingCsv}
                                 <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
                             {:else}
-                                <i class="bi bi-download"></i>
+                                <IconDownload size={16} />
                             {/if}
                             {t("common.export", { fallback: "Export" })}
                         </button>
@@ -234,7 +217,7 @@
                                 close();
                             }}
                         >
-                            <i class="bi bi-trash"></i>
+                            <IconTrash size={16} />
                             {t("common.delete", { fallback: "Delete" })}
                         </button>
                     {/snippet}
@@ -243,92 +226,72 @@
         </div>
     </div>
 
-    <!-- Controls -->
-    <div class="row pt-2 pb-3 align-items-center">
-        <div class="col-md-6 col-lg-4">
-             <div class="input-group">
-                <span class="input-group-text bg-white border-end-0">
-                    <i class="bi bi-search"></i>
-                </span>
-                <input
-                    type="text"
-                    class="form-control border-start-0"
-                    placeholder={t("common.search", { fallback: "Search" })}
-                    bind:value={searchTerm}
-                />
+    <!-- Content with standard padding -->
+    <div class="flex-grow-1 d-flex flex-column px-4">
+        <BaseSearchBar bind:search={searchTerm} placeholder={searchPlaceholder}>
+            {#snippet children()}
+                <a href={`/projects/${data.project.id}/connections/${data.researchField.id}/add`} class="btn btn-secondary btn-sm d-flex align-items-center gap-1 text-white">
+                    <IconPlus size={14} />
+                    {t("common.add-connection", { fallback: "Add connection" })}
+                </a>
+            {/snippet}
+        </BaseSearchBar>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="text-muted">
+                {filteredVocabularies.length} {t("common.connections", { fallback: "connections" })}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <select class="form-select form-select-sm" bind:value={sortOrder}>
+                    <option value="name_asc">{t("common.sort-by-name", { fallback: "Sort by name" })}</option>
+                    <option value="name_desc">{t("common.sort-by-name-desc", { fallback: "Sort by name (Z-A)" })}</option>
+                </select>
             </div>
         </div>
-         <div class="col text-end">
-            <a href={`/projects/${data.project.id}/connections/${data.researchField.id}/add`} class="btn btn-sm btn-secondary text-white">
-                <i class="bi bi-plus-lg me-1"></i>
-                {t("common.add-connection", { fallback: "Add connection" })}
-            </a>
-        </div>
-    </div>
 
-    <!-- Stats & Sort -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="text-muted">
-            {filteredVocabularies.length} {t("common.connections", { fallback: "connections" })}
+        <div class="row g-3">
+            {#each paginatedVocabularies as vocabulary (vocabulary.id)}
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <ConnectionVocabularyChip
+                        {vocabulary}
+                        borderStartClass={colorClasses.border}
+                        onOpen={goToDetail}
+                        onDuplicate={handleDuplicate}
+                        onDelete={openDeleteModal}
+                        untitledLabel={t("common.untitled", { fallback: "Untitled" })}
+                        duplicateLabel={t("common.duplicate", { fallback: "Duplicate" })}
+                        deleteLabel={t("common.delete", { fallback: "Delete" })}
+                        imageAltFallback="Connection image"
+                    />
+                </div>
+            {/each}
+            {#if filteredVocabularies.length === 0}
+                <div class="col-12 text-center text-muted py-5" style="border: 1px dashed var(--bs-secondary); border-radius: 0.375rem;">
+                    {data.researchField.vocabularies.length === 0
+                        ? t("connections.no-connections-present", { fallback: "No connections present." })
+                        : t("common.no-connections-found", { fallback: "No connections found." })}
+                </div>
+            {/if}
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <select class="form-select form-select-sm" bind:value={sortOrder}>
-                <option value="name_asc">{t("common.sort-by-name", { fallback: "Sort by name" })}</option>   
-                <option value="name_desc">{t("common.sort-by-name-desc", { fallback: "Sort by name (Z-A)" })}</option>
-            </select>
-        </div>
-    </div>
 
-    <!-- Grid -->
-    <div class="row g-3">
-        {#each paginatedVocabularies as vocabulary (vocabulary.id)}
-            <div class="col-md-6 col-lg-4 col-xl-3">
-                <ConnectionVocabularyChip
-                    {vocabulary}
-                    onOpen={goToDetail}
-                    onDuplicate={handleDuplicate}
-                    onDelete={openDeleteModal}
-                    untitledLabel={t("common.untitled", { fallback: "Untitled" })}
-                    duplicateLabel={t("common.duplicate", { fallback: "Duplicate" })}
-                    deleteLabel={t("common.delete", { fallback: "Delete" })}
-                    imageAltFallback="Connection image"
-                />
-            </div>
-        {/each}
-        {#if filteredVocabularies.length === 0}
-             <div class="col-12 text-center text-muted py-5">
-                {t("common.no-connections-found", { fallback: "No connections found." })}
+        {#if filteredVocabularies.length > 0}
+            <div class="mt-4 d-flex justify-content-between align-items-center border-top pt-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted">{t("common.show", {fallback: "Show"})}</span>
+                    <select class="form-select form-select-sm" bind:value={itemsPerPage} style="width: 80px;" onchange={() => (currentPage = 1)}>
+                        <option value={12}>12</option>
+                        <option value={24}>24</option>
+                        <option value={48}>48</option>
+                    </select>
+                    <span class="text-muted">{t("common.connections", {fallback: "connections"})}</span>
+                </div>
+                <BasePagination bind:page={currentPage} pageSize={itemsPerPage} count={filteredVocabularies.length} />
             </div>
         {/if}
+
+        <div class="pb-5"></div>
     </div>
-
-    <!-- Pagination -->
-    {#if filteredVocabularies.length > 0}
-        <div class="mt-4 d-flex justify-content-between align-items-center border-top pt-3">
-            <div class="d-flex align-items-center gap-2">
-                 <span class="text-muted">{t("common.show", {fallback: "Show"})}</span>
-                      <select class="form-select form-select-sm" bind:value={itemsPerPage} style="width: 80px;" onchange={() => (currentPage = 1)}>  
-                    <option value={12}>12</option>
-                    <option value={24}>24</option>
-                    <option value={48}>48</option>
-                 </select>
-                 <span class="text-muted">{t("common.connections", {fallback: "connections"})}</span>        
-            </div>
-             <BasePagination bind:page={currentPage} pageSize={itemsPerPage} count={filteredVocabularies.length} />
-        </div>
-    {/if}
-
-    <div class="pb-5"></div>
 </div>
-
-{#snippet dialogSnippets(titleKey, descKey, onConfirm, loading = false, onCancel)}
-    {#snippet title()}{t(titleKey.title, { fallback: titleKey.fallback })}{/snippet}
-    {#snippet description()}{t(descKey.title, { fallback: descKey.fallback })}{/snippet}
-    {#snippet footer()}
-        <BaseButton class="btn btn-secondary" disabled={loading} onClick={onCancel} text={t("common.cancel", {fallback: "Cancel"})} />
-        <BaseButton class="btn btn-danger ms-2" loading={loading} onClick={onConfirm} text={t("common.delete", {fallback: "Delete"})} />
-    {/snippet}
-{/snippet}
 
 {#snippet deleteVocabTitle()}
     {t("common.delete-connection", { fallback: "Delete connection" })}
@@ -369,23 +332,4 @@
     description={deleteTypeDescription}
     footer={deleteTypeFooter}
 />
-
-<EditConnectionTypeModal
-    bind:open={modals.edit.open}
-    bind:basicInfo={modals.edit.info}
-    bind:config={modals.edit.config}
-    isSaving={modals.edit.loading}
-    onSave={handleSaveEdit}
-    t={t}
-/>
 {/if}
-
-<style>
-    /* Add any specific overrides here if bootstrap utilities aren't enough */
-    .btn-link {
-        color: inherit;
-    }
-    .btn-link:hover {
-        color: var(--bs-primary);
-    }
-</style>
