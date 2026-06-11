@@ -3,7 +3,6 @@ export const CONNECTION_TEMPLATES = [
     {
         id: 'custom',
         label: 'Custom',
-        icon: 'bi-magic',
         color: 'cyan',
         description: 'Create a connection type from scratch',
         defaultConfig: {
@@ -18,7 +17,6 @@ export const CONNECTION_TEMPLATES = [
     {
         id: 'indigenous_designation',
         label: 'Indigenous designation',
-        icon: 'bi-tags-fill',
         color: 'yellow',
         description: 'Record indigenous names/terms',
         defaultConfig: {
@@ -33,8 +31,7 @@ export const CONNECTION_TEMPLATES = [
     {
         id: 'iconography',
         label: 'Iconography',
-        icon: 'bi-brush-fill',
-        color: 'orange',
+        color: 'blue',
         description: 'Describe symbols and visual elements',
         defaultConfig: {
             description: true,
@@ -48,7 +45,6 @@ export const CONNECTION_TEMPLATES = [
     {
         id: 'place',
         label: 'Place',
-        icon: 'bi-geo-alt-fill',
         color: 'indigo',
         description: 'Geographic locations and sites',
         defaultConfig: {
@@ -63,8 +59,7 @@ export const CONNECTION_TEMPLATES = [
     {
         id: 'oral_history',
         label: 'Oral history',
-        icon: 'bi-mic-fill',
-        color: 'blue',
+        color: 'orange',
         description: 'Recordings and transcripts',
         defaultConfig: {
             description: true,
@@ -78,7 +73,6 @@ export const CONNECTION_TEMPLATES = [
     {
         id: 'people',
         label: 'People',
-        icon: 'bi-person-fill',
         color: 'green',
         description: 'Individuals and groups',
         defaultConfig: {

@@ -6,7 +6,7 @@
   import ConnectionFieldsSelector from "$lib/components/research_fields/ConnectionFieldsSelector.svelte";
   import { CONNECTION_TEMPLATES, DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
   import { createResearchField } from "$lib/api/ResearchFieldsApi.js";
-  import { IconCirclePlus } from "@tabler/icons-svelte";
+  import { IconCirclePlus, IconTags, IconIcons, IconMapPin, IconMicrophone, IconUsersGroup } from "@tabler/icons-svelte";
 
   let { projectId, languages = [], buttonClass = "btn btn-sm btn-primary text-white" } = $props();
 
@@ -15,6 +15,29 @@
   const defaultLanguage =
     languages?.find((l) => l.is_default) ||
     languages?.[0];
+
+  const templateIcons = {
+    custom: IconCirclePlus,
+    indigenous_designation: IconTags,
+    iconography: IconIcons,
+    place: IconMapPin,
+    oral_history: IconMicrophone,
+    people: IconUsersGroup,
+  };
+
+  function getTemplateIcon(templateId) {
+    return templateIcons[templateId] || IconCirclePlus;
+  }
+
+  function getTemplateIconColor(template, colorType) {
+    if (!template || !template.color) {
+      if(colorType=="body") return 'text-gray';
+      return 'bg-gray-100';
+    }
+    
+    if(colorType=="body") return `text-${template.color}-500`;
+    return `bg-${template.color}-100`;
+  }
 
   // Modal State
   let isModalOpen = $state(false);
@@ -27,7 +50,7 @@
   function getTemplateLabel(template) {
     switch (template?.id) {
       case "custom":
-        return t("connections.template.custom.label", { fallback: "Custom" });
+        return t("connections.template.custom.label", { fallback: "Custom connection type" });
       case "indigenous_designation":
         return t("connections.template.indigenous_designation.label", {
           fallback: "Indigenous designation",
@@ -35,7 +58,7 @@
       case "iconography":
         return t("connections.template.iconography.label", { fallback: "Iconography" });
       case "place":
-        return t("connections.template.place.label", { fallback: "Place" });
+        return t("connections.template.place.label", { fallback: "Places" });
       case "oral_history":
         return t("connections.template.oral_history.label", { fallback: "Oral history" });
       case "people":
@@ -49,27 +72,27 @@
     switch (template?.id) {
       case "custom":
         return t("connections.template.custom.description", {
-          fallback: "Create a connection type from scratch",
+          fallback: "Create a connection type from scratch.",
         });
       case "indigenous_designation":
         return t("connections.template.indigenous_designation.description", {
-          fallback: "Record indigenous names/terms",
+          fallback: "Record indigenous terms to describe objects.",
         });
       case "iconography":
         return t("connections.template.iconography.description", {
-          fallback: "Describe symbols and visual elements",
+          fallback: "Describe symbols and visual elements present in the objects.",
         });
       case "place":
         return t("connections.template.place.description", {
-          fallback: "Geographic locations and sites",
+          fallback: "Geographic locations and sites.",
         });
       case "oral_history":
         return t("connections.template.oral_history.description", {
-          fallback: "Recordings and transcripts",
+          fallback: "Audio and video interviews.",
         });
       case "people":
         return t("connections.template.people.description", {
-          fallback: "Individuals and groups",
+          fallback: "Individual and groups of people.",
         });
       default:
         return template?.description || "";
@@ -121,15 +144,10 @@
   }
 
   async function handleTemplateClick(template) {
-    if (template.id === "custom") {
-      selectedTemplate = template;
-    } else {
-      selectedTemplate = template;
-      await handleQuickCreate(template);
-    }
+    selectedTemplate = template;
   }
 
-  async function handleNextStep() {
+  async function handlePrimaryAction() {
     if (step === 1 && selectedTemplate) {
       if (selectedTemplate.id !== "custom") {
         await handleQuickCreate(selectedTemplate);
@@ -186,74 +204,78 @@
 
 {#snippet modalHeader()}
   {#if step === 1}
-    {t("project.add_connection_type", { fallback: "Add a new connection type" })}
+    {t("project.add_connection_type", { fallback: "Add connection type" })}
   {:else if step === 2}
     {t("project.give_name_connection", { fallback: "Give a name to the connection type" })}
   {:else}
-    {t("project.define_fields_connection", {
-      fallback: "Define the fields you want to have for this connection type"
-    })}
+    {t("project.add_connection_type", { fallback: "Add a connection type" })}
   {/if}
 {/snippet}
 
 {#snippet modalBody()}
-  <p class="mb-4">
-    {#if step === 1}
-      {t("project.choose_template", { fallback: "Choose a template or make your own." })}
-    {:else}
-      {t("project.edit_later_hint", { fallback: "Don't worry, you can edit them later" })}
-    {/if}
-  </p>
-
   {#if step === 1}
-    <div class="row g-4">
+    <p class="mb-4">
+      {t("project.choose_template", { fallback: "Choose a template or make your own." })}
+    </p>
+
+    <div class="row g-3">
       {#each CONNECTION_TEMPLATES as template}
-        <div class="col-md-4">
+        {@const IconComponent = getTemplateIcon(template.id)}
+        {@const iconBgClass = getTemplateIconColor(template, "bg")}
+        {@const iconColorClass = getTemplateIconColor(template, "body")}
+        <div class="col-6">
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
-            class="card h-100 shadow-sm template-card"
-            class:selected={selectedTemplate?.id === template.id}
+            class="bg-white rounded-4 p-3 d-flex flex-column gap-2 cursor-pointer template-option"
+            class:border-opacity-50={selectedTemplate?.id === template.id}
             onclick={() => handleTemplateClick(template)}
+            role="button"
+            tabindex="0"
+            style={selectedTemplate?.id === template.id ? `border-color: var(--bs-${template.color})` : undefined}
           >
-            <div
-              class="card-body text-center d-flex flex-column align-items-center justify-content-center p-3"
-              style="min-height: 150px;"
-            >
-              <i class={`bi ${template.icon} fs-1 mb-2`}></i>
-              <p class="card-title mb-1">{getTemplateLabel(template)}</p>
-              <p class="text-muted small mb-0">{getTemplateDescription(template)}</p>
+            <div class="{iconBgClass} rounded-4 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+              <IconComponent size={32} class={iconColorClass} />
             </div>
+            <p class="fw-semibold mb-0">{getTemplateLabel(template)}</p>
+            <p class="small mb-0">{getTemplateDescription(template)}</p>
           </div>
         </div>
       {/each}
     </div>
   {:else if step === 2}
-    <div class="p-3">
-      <div class="mb-3">
-        <label for="name" class="form-label">{t("project.connection-type.title", { fallback: "Connection type name" })}</label>
-        <input type="text" id="name" class="form-control" bind:value={basicInfo.name} />
-      </div>
-      <div class="mb-3">
-        <label for="description" class="form-label">
-          {t("common.description", { fallback: "Description" })}
-        </label>
-        <textarea
-          id="description"
-          class="form-control"
-          rows="3"
-          bind:value={basicInfo.description}
-        ></textarea>
-      </div>
+    <p class="mb-4">
+      {t("project.edit_later_hint", { fallback: "Don't worry, you can edit them later" })}
+    </p>
+    <div class="mb-3">
+      <label for="name" class="form-label">{t("connections.name-of-connection-type", { fallback: "Name of the connection type" })}</label>
+      <input type="text" id="name" class="form-control" bind:value={basicInfo.name} placeholder={t("connections.form.name-placeholder", { fallback: "Custom connection type" })} />
+    </div>
+    <div class="mb-3">
+      <label for="description" class="form-label">
+        {t("common.description", { fallback: "Description" })}
+      </label>
+      <textarea
+        id="description"
+        class="form-control"
+        rows="3"
+        bind:value={basicInfo.description}
+        placeholder={t("connections.form.description-placeholder", { fallback: "Content" })}
+      ></textarea>
     </div>
   {:else if step === 3}
+    <p class="mb-4">
+      {t("project.define_fields_connection", {
+        fallback: "Define the fields you want to have for this connection type"
+      })}
+    </p>
     <ConnectionFieldsSelector bind:config={fieldsConfig} />
   {/if}
 {/snippet}
 
 {#snippet modalFooter()}
   <BaseButton
-    class="btn btn-secondary"
+    class="btn btn-outline-secondary"
     onClick={() => (isModalOpen = false)}
     text={t("common.cancel", { fallback: "Cancel" })}
   />
@@ -261,21 +283,23 @@
   {#if step === 1}
     <BaseButton
       class="btn btn-primary ms-2"
-      onClick={handleNextStep}
+      onClick={handlePrimaryAction}
       disabled={!selectedTemplate}
-      text={t("common.next", { fallback: "Next" })}
+      text={selectedTemplate?.id !== 'custom'
+        ? t("common.create", { fallback: "Create" })
+        : t("common.next", { fallback: "Next" })}
     />
   {:else if step === 2}
     <BaseButton
       class="btn btn-primary ms-2"
-      onClick={handleNextStep}
+      onClick={handlePrimaryAction}
       disabled={!basicInfo.name}
       text={t("common.next", { fallback: "Next" })}
     />
   {:else if step === 3}
     <BaseButton
       class="btn btn-primary ms-2"
-      onClick={handleSubmit}
+      onClick={handlePrimaryAction}
       disabled={isSubmitting}
       text={isSubmitting
         ? t("common.saving", { fallback: "Saving..." })
@@ -284,23 +308,14 @@
   {/if}
 {/snippet}
 
-<BaseModal bind:isOpen={isModalOpen} header={modalHeader} body={modalBody} actions={modalFooter} size="xl" />
+<BaseModal bind:isOpen={isModalOpen} header={modalHeader} body={modalBody} actions={modalFooter} size="lg" />
 
 <style>
-  .template-card {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 2px solid transparent;
+  .template-option {
+    transition: all 0.15s ease;
+    border: 1px solid var(--bs-gray-300);
   }
-  .template-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-  }
-  .template-card.selected {
-    border-color: var(--bs-primary);
-    background-color: #f0fdf4;
-  }
-  :global(.template-card.selected .bi) {
-    color: var(--bs-primary) !important;
+  .template-option:hover {
+    border-color: var(--bs-gray-500);
   }
 </style>

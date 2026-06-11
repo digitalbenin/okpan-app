@@ -1018,13 +1018,53 @@
                              "key":  "template.people.label",
                              "value":  "People"
                          },
-                         {
-                             "namespace":  "connections",
-                             "key":  "template.people.description",
-                             "value":  "Individuals and groups"
-                         },
-                         {
-                             "namespace":  "objects",
+                          {
+                              "namespace":  "connections",
+                              "key":  "template.people.description",
+                              "value":  "Individuals and groups"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "name-of-connection-type",
+                              "value":  "Name of the connection type"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "form.name-placeholder",
+                              "value":  "Custom connection type"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "form.description-placeholder",
+                              "value":  "Content"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "field.label-title",
+                              "value":  "Label/Title"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "field.external-link",
+                              "value":  "External link"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "field.audio",
+                              "value":  "Audio"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "section.main-info",
+                              "value":  "Main info"
+                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "section.media",
+                              "value":  "Media"
+                          },
+                          {
+                              "namespace":  "objects",
                              "key":  "object_name",
                              "value":  "Object name"
                          },
@@ -2358,11 +2398,11 @@
                              "key":  "application-save-error",
                              "value":  "Unable to save application settings."
                          },
-                          {
-                              "namespace":  "project",
-                              "key":  "connection-type.title",
-                              "value":  "Connection type name"
-                          },
+                           {
+                               "namespace":  "project",
+                               "key":  "connection-type.title",
+                               "value":  "Name of the connection type"
+                           },
                            {
                                "namespace":  "project",
                                "key":  "welcome-title",
