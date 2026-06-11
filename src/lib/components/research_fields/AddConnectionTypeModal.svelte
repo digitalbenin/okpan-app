@@ -6,8 +6,9 @@
   import ConnectionFieldsSelector from "$lib/components/research_fields/ConnectionFieldsSelector.svelte";
   import { CONNECTION_TEMPLATES, DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
   import { createResearchField } from "$lib/api/ResearchFieldsApi.js";
+  import { IconCirclePlus } from "@tabler/icons-svelte";
 
-  let { projectId, languages = [], buttonClass = "btn btn-secondary text-white" } = $props();
+  let { projectId, languages = [], buttonClass = "btn btn-sm btn-primary text-white" } = $props();
 
   const { t } = getTranslationStore();
 
@@ -97,7 +98,7 @@
         name: template.label,
         description: template.description || "",
         languageId: defaultLanguage?.id,
-        fields_config: JSON.parse(JSON.stringify(template.defaultConfig)),
+        fields_config: { ...JSON.parse(JSON.stringify(template.defaultConfig)), templateId: template.id },
         onwebsite: 1
       };
 
@@ -152,7 +153,7 @@
         name: basicInfo[`name`],
         description: basicInfo[`description`] || "",
         languageId: defaultLanguage?.id,
-        fields_config: JSON.parse(JSON.stringify(fieldsConfig)),
+        fields_config: { ...JSON.parse(JSON.stringify(fieldsConfig)), templateId: selectedTemplate?.id || 'custom' },
         onwebsite: 1
       };
 
@@ -179,7 +180,7 @@
 </script>
 
 <button class={buttonClass} onclick={openModal}>
-  <i class="bi bi-plus-lg me-1"></i>
+  <IconCirclePlus size={16} class="me-1" />
   {t("common.add-connection-type", { fallback: "Add connection type" })}
 </button>
 

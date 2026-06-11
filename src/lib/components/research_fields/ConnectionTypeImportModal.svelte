@@ -7,11 +7,12 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import { parseCsvLine, analyzeCsvHeaders, getSuggestedTypeName } from "$lib/utils/csvParser.js";
+  import { IconTableImport } from "@tabler/icons-svelte";
 
   let {
     projectId,
     languages = [],
-    buttonClass = "btn btn-light border d-flex align-items-center gap-2"
+    buttonClass = "btn btn-sm btn-primary border d-flex align-items-center gap-2"
   } = $props();
 
   const { t } = getTranslationStore();
@@ -229,9 +230,9 @@
   {#if isImportingCsv}
     <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
   {:else}
-    <i class="bi bi-upload"></i>
+      <IconTableImport size={16} />
   {/if}
-  {t("common.import", { fallback: "Import" })}
+  {t("connections.import", { fallback: "Import" })}
 </button>
 
 <!-- Modal content -->

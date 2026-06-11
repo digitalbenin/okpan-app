@@ -1,20 +1,51 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { goto } from "$app/navigation";
-  import { IconChartCircles } from "@tabler/icons-svelte";
+  import { IconChartCircles, IconChevronDown, IconSortAscendingLetters, IconSortDescendingLetters, IconSortAscendingNumbers, IconSortDescendingNumbers, IconSortAscending, IconSortDescending } from "@tabler/icons-svelte";
   import AddConnectionTypeModal from "$lib/components/research_fields/AddConnectionTypeModal.svelte";
   import ConnectionTypeImportModal from "$lib/components/research_fields/ConnectionTypeImportModal.svelte";
+  import ConnectionTypeCard from "$lib/components/research_fields/ConnectionTypeCard.svelte";
+  import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
+  import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import PageHeader from "$lib/components/base/PageHeader.svelte";
 
   const { data } = $props();
   const { t } = getTranslationStore();
+  let search = $state("");
+  let sortOpen = $state(false);
 
-  function getStatusText(field) {
-    if (field.onwebsite === 1) {
-      return t("common.published", { fallback: "Published" });
-    }
-    return t("common.not-published", { fallback: "Not published" });
-  }
+  const sortOptions = $derived([
+    { label: t("common.sort-by-date", { fallback: "Sort by date" }), icon: IconSortDescendingNumbers, orderBy: "created_at", direction: "desc" },
+    { label: t("common.sort-by-date", { fallback: "Sort by date" }), icon: IconSortAscendingNumbers, orderBy: "created_at", direction: "asc" },
+    { label: t("common.sort-by-name", { fallback: "Sort by name" }), icon: IconSortDescendingLetters, orderBy: "name", direction: "desc" },
+    { label: t("common.sort-by-name", { fallback: "Sort by name" }), icon: IconSortAscendingLetters, orderBy: "name", direction: "asc" },
+    { label: t("common.sort-by-connections", { fallback: "Sort by connections" }), icon: IconSortDescending, orderBy: "connections", direction: "desc" },
+    { label: t("common.sort-by-connections", { fallback: "Sort by connections" }), icon: IconSortAscending, orderBy: "connections", direction: "asc" },
+  ]);
+
+  let sortOrderBy = $state("created_at");
+  let sortDirection = $state("desc");
+
+  const currentSort = $derived(sortOptions.find(o => o.orderBy === sortOrderBy && o.direction === sortDirection) ?? sortOptions[0]);
+
+  const filteredFields = $derived.by(() => {
+    let fields = (data.researchFields || []).filter((field) =>
+      !search || (field.name?.content || "").toLowerCase().includes(search.toLowerCase())
+    );
+
+    fields = [...fields].sort((a, b) => {
+      let cmp = 0;
+      if (sortOrderBy === "name") {
+        cmp = (a.name?.content || "").localeCompare(b.name?.content || "");
+      } else if (sortOrderBy === "created_at") {
+        cmp = (a.created_at || 0) - (b.created_at || 0);
+      } else if (sortOrderBy === "connections") {
+        cmp = (a.vocabularies?.length || 0) - (b.vocabularies?.length || 0);
+      }
+      return sortDirection === "desc" ? -cmp : cmp;
+    });
+
+    return fields;
+  });
 </script>
 
 <PageHeader
@@ -25,46 +56,67 @@
   description={t("project.connection-types-description", { fallback: "The types of relationships you can define between the objects in your collection." })}
 />
 
-<div class="d-flex justify-content-end gap-2 mt-4 mb-3">
-  <ConnectionTypeImportModal projectId={data.project.id} languages={data.languages} />
-  <AddConnectionTypeModal projectId={data.project.id} languages={data.languages} />
-</div>
+<BaseSearchBar bind:search placeholder={t("common.search")}>
+  {#snippet children()}
+    <ConnectionTypeImportModal projectId={data.project.id} languages={data.languages} />
+    <AddConnectionTypeModal projectId={data.project.id} languages={data.languages} />
+  {/snippet}
+  {#snippet toolbar()}
+    <div class="d-flex align-items-center justify-content-between w-100">
+      <span class="small">
+        {filteredFields.length}
+        {filteredFields.length === 1
+          ? t("common.connection-type", { fallback: " connection type" })
+          : t("common.connection-types", { fallback: " connection types" })}
+      </span>
+      <BaseDropdownMenu
+        bind:open={sortOpen}
+        contentProps={{ style: "right: 0; left: auto;" }}
+        side="bottom"
+        align="end"
+        triggerClass="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+      >
+        {#snippet trigger()}
+          {currentSort.label}
+          <IconChevronDown size={16} />
+        {/snippet}
+        {#snippet children()}
+          {#each sortOptions as option}
+            <button
+              class="dropdown-item rounded px-2 py-1 d-flex align-items-center gap-2"
+              class:active={sortOrderBy === option.orderBy && sortDirection === option.direction}
+              onclick={() => { sortOrderBy = option.orderBy; sortDirection = option.direction; sortOpen = false; }}
+            >
+              <option.icon size={16} class="text-body-secondary" />
+              <span class="flex-grow-1">{option.label}</span>
+            </button>
+          {/each}
+        {/snippet}
+      </BaseDropdownMenu>
+    </div>
+  {/snippet}
+</BaseSearchBar>
 
-<div class="row g-4">
-    {#each data.researchFields || [] as field (field.id)}
-      <div class="col-md-4">
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div 
-          class="card h-100 shadow-sm"
-          onclick={() => goto(`/projects/${data.project.id}/connections/${field.id}`)}
-          style="cursor: pointer; transition: box-shadow 0.2s;"
-          onmouseenter={(e) => e.currentTarget.classList.add('shadow')}
-          onmouseleave={(e) => e.currentTarget.classList.remove('shadow')}
-        >
-          <div class="card-body d-flex flex-column justify-content-between p-4" style="min-height: 200px;">
-            <h3 class="card-title fw-normal mb-4">{field.name?.content || t("common.untitled", {fallback: "Untitled"})}</h3>
-            
-            <div class="mt-auto">
-              <div class="d-flex align-items-center gap-2 text-muted mb-1">
-                {#if field.onwebsite !== 1}
-                  <i class="bi bi-eye-slash"></i>
-                {:else}
-                  <i class="bi bi-eye"></i>
-                {/if}
-                <span>{getStatusText(field)}</span>
-              </div>
-              <div class="text-muted">
-                {field.vocabularies?.length || 0} {t("common.connections", { fallback: "connections" })}
-              </div>
-            </div>
-          </div>
-        </div>
+<div class="row g-3">
+    {#each filteredFields as field (field.id)}
+      <div class="col-md-6">
+        <ConnectionTypeCard {field} projectId={data.project.id} />
       </div>
     {/each}
-  {#if (!data.researchFields || data.researchFields.length === 0)}
-    <div class="col-12 text-center text-muted mt-4">
+  {#if (data.researchFields.length === 0) }
+   <div class="border border-dark-subtle  dashed rounded-4 d-flex align-items-center justify-content-center col-12 text-center text-muted mt-4" style="height:150px;">
+      {t("connections.no-connections-present", { fallback: "No connection types present." })}
+    </div>
+    
+  {:else if (filteredFields.length === 0)}
+    <div class="border border-dark-subtle  dashed rounded-4 d-flex align-items-center justify-content-center col-12 text-center text-muted mt-4" style="height:150px;">
       {t("common.no-connections-found", { fallback: "No connection types found." })}
     </div>
   {/if}
 </div>
+
+<style>
+  .border.dashed {
+    border-style: dashed !important;
+  }
+</style>

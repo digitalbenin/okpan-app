@@ -288,6 +288,16 @@
                              "key":  "connection-types-deleted",
                              "value":  "{{actor}} deleted {{count}} connection type | {{actor}} deleted {{count}} connection types"
                          },
+                          {
+                             "namespace":  "connections",
+                             "key":  "import",
+                             "value":  "Import connections"
+                         },
+                         {
+                                "namespace":  "connections",
+                                "key":  "no-connections-present",
+                                "value":  "No institutions yet. Add one by clicking on “Add connection type”."
+                         },
                          {
                              "namespace":  "test",
                              "key":  "editor",

@@ -217,6 +217,16 @@
                              "key":  "website-settings-updated",
                              "value":  "{{actor}} ha modificato le impostazioni del sito web"
                          },
+                           {
+                             "namespace":  "connections",
+                             "key":  "import",
+                             "value":  "Importa connessioni"
+                         },
+                          {
+                                "namespace":  "connections",
+                                "key":  "no-connections-present",
+                                "value":  "Nessuna connessione presente. Aggiungine una facendo clic su “Aggiungi tipo di connessione”."
+                         },
                          {
                              "namespace":  "nav",
                              "key":  "home",
