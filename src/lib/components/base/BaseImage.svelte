@@ -2,6 +2,7 @@
     import { page } from '$app/state';
     import { onDestroy } from 'svelte';
     import { parseAssetFormats, addImageProtocolPrefix } from '$lib/utils/media.js';
+    import { IconPhoto, IconExclamationCircle } from "@tabler/icons-svelte";
 
     let {
         src = null, // Explicit src as override/fallback
@@ -150,7 +151,7 @@
         style={`${ratio ? `aspect-ratio: ${ratio};` : ''} ${width ? `width: ${width}px;` : ''} ${height ? `height: ${height}px;` : ''} ${customStyle} background-color: #e9eef1;`}
     >
         <div class="d-flex flex-column align-items-center justify-content-center gap-2 opacity-50 text-center">
-            <i class={`bi bi-exclamation-circle ${smallPlaceholder ? 'fs-3' : 'fs-1'}`}></i>
+            <IconExclamationCircle size={smallPlaceholder ? 24 : 48} />
             {#if !smallPlaceholder}
                 <span class="fs-6">Error loading image</span>
             {/if}
@@ -163,7 +164,7 @@
         width={width}
         height={height}
         class={customClass}
-        style={`${ratio ? `aspect-ratio: ${ratio};` : ''} object-fit: ${objectFit}; object-position: ${objectPosition}; ${customStyle}`}
+        style={`${ratio ? `aspect-ratio: ${ratio};` : ''} object-fit: ${objectFit}; object-position: ${objectPosition}; ${customStyle} background-color: #e9eef1;`}
         {loading}
         {placeholder}
         onerror={onError}
@@ -171,10 +172,11 @@
 {:else}
     <div
         class={`${customClass} d-flex align-items-center justify-content-center overflow-hidden`}
-        style={`${ratio ? `aspect-ratio: ${ratio};` : ''} ${width ? `width: ${width}px;` : ''} ${height ? `height: ${height}px;` : ''} ${customStyle} background-color: #e9eef1;`}
+        style={`${ratio ? `aspect-ratio: ${ratio};` : ''} ${width ? `width: ${width}px;` : ''} ${height ? `height: ${height}px;` : ''} ${customStyle}`}
     >
         <div class="d-flex flex-column align-items-center justify-content-center gap-2 opacity-50 text-center">
-            <i class={`bi bi-image ${smallPlaceholder ? 'fs-3' : 'fs-1'}`}></i>
+            
+            <IconPhoto size={smallPlaceholder ? 24 : 48} />
             {#if !smallPlaceholder}
                 <span class="fs-6">No image</span>
             {/if}

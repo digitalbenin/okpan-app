@@ -1,15 +1,18 @@
 <script>
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
+  import { IconDotsVertical } from "@tabler/icons-svelte";
 
   let {
     vocabulary,
+    objectsCount = 0,
     onOpen = () => {},
     onDuplicate = () => {},
     onDelete = () => {},
     untitledLabel = "Untitled",
     duplicateLabel = "Duplicate",
     deleteLabel = "Delete",
+    objectsCountLabel = "objects",
     imageAltFallback = "Connection image",
     borderStartClass = "border-light",
   } = $props();
@@ -23,7 +26,7 @@
 >
   <div class="d-flex align-items-center justify-content-between w-100">
     <div class="d-flex align-items-center gap-2 min-w-0">
-      <div class="bg-light rounded-5 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 41px; height: 41px;">
+      <div class="rounded-5 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 41px; height: 41px; background-color: #e9eef1;">
         {#if vocabulary?.mainAsset}
           <BaseImage
             asset={vocabulary.mainAsset}
@@ -34,12 +37,22 @@
             compact={true}
           />
         {:else}
-          <i class="bi bi-image text-muted" style="font-size: 1.25rem;"></i>
+          <BaseImage
+            alt={imageAltFallback}
+            class="rounded-5 w-100 h-100"
+            objectFit="cover"
+            compact={true}
+          />
         {/if}
       </div>
-      <p class="mb-0 text-truncate fw-semibold" style="font-size: 14px;" title={vocabulary?.option?.content}>
-        {vocabulary?.option?.content || untitledLabel}
-      </p>
+      <div class="d-flex flex-column min-w-0">
+        <p class="mb-0 text-truncate fw-semibold" style="font-size: 14px;" title={vocabulary?.option?.content}>
+          {vocabulary?.option?.content || untitledLabel}
+        </p>
+        <p class="mb-0 text-muted small">
+          {objectsCount} {objectsCountLabel}
+        </p>
+      </div>
     </div>
 
     <div class="flex-shrink-0" role="presentation" onclick={(event) => event.stopPropagation()}>
@@ -52,7 +65,7 @@
         triggerClass="btn btn-link text-muted p-0"
       >
         {#snippet trigger()}
-          <i class="bi bi-three-dots-vertical"></i>
+          <IconDotsVertical size={16} />
         {/snippet}
         {#snippet children({ close })}
           <button

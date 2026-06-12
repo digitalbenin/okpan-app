@@ -127,6 +127,11 @@ export const researchFieldsOperations = {
     vocabularies {
       id
       external_link
+      created_at
+      updated_at
+      objectsResearchFields {
+        id
+      }
       mainAsset {
         id
         filename

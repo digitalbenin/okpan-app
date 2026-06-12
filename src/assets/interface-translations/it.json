@@ -3666,6 +3666,51 @@
                              "namespace":  "projects",
                              "key":  "recovery-snapshots.restoring-btn",
                              "value":  "Ripristino..."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "change-main-image",
+                             "value":  "Cambia immagine principale"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "objects-connected",
+                             "value":  "oggetti collegati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "click-to-select-a-file",
+                             "value":  "Clicca per selezionare un file"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "or-drag-and-drop-here",
+                             "value":  "O trascina e rilascia qui"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "today",
+                             "value":  "Oggi"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "yesterday",
+                             "value":  "Ieri"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "days-ago",
+                             "value":  "giorni fa"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "weeks-ago",
+                             "value":  "settimane fa"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "months-ago",
+                             "value":  "mesi fa"
                          }
                      ]
 }

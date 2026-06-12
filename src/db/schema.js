@@ -462,7 +462,8 @@ export const vocabulariesRelations = relations(vocabularies, ({ one, many }) => 
         fields: [vocabularies.main_asset_id],
         references: [genericAssets.id]
     }),
-    vocabulariesGenericAssets: many(vocabularies_generic_assets)
+    vocabulariesGenericAssets: many(vocabularies_generic_assets),
+    objectsResearchFields: many(objects_research_fields)
 }));
 
 /**
