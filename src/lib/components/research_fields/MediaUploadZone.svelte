@@ -21,7 +21,7 @@
         audio: t("common.audio", { fallback: "Audio" }),
     }[type] || "");
 
-    const formatChips = $derived(MEDIA_EXTENSIONS[type]?.slice(0, 3).map((e) => e.toUpperCase()) || []);
+    const formatChips = $derived(MEDIA_EXTENSIONS[type]?.map((e) => e.toUpperCase()) || []);
     const acceptedExts = $derived(MEDIA_EXTENSIONS[type] || []);
 
     /** Check whether a File's extension is accepted for this zone. */
@@ -117,7 +117,7 @@
             {#if formatChips.length}
                 <div class="d-flex gap-1">
                     {#each formatChips as ext}
-                        <span class="badge text-bg-light border">{ext}</span>
+                        <span class="badge fw-normal text-bg-secondary border">{ext}</span>
                     {/each}
                 </div>
             {/if}
