@@ -3,18 +3,52 @@
     import { watch } from "runed";
     import { getMediaType, parseAssetFormats, addImageProtocolPrefix } from '$lib/utils/media.js';
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    
-    let { asset = null, isOpen = false, onClose = null } = $props();
+    import { executeQuery } from "$lib/api/graphqlClient.js";
+    import { parseMetadata } from "$lib/utils/assetMetadata.js";
+    import { addToast } from "$lib/components/base/BaseToast.svelte";
+    import { IconTrash, IconDeviceFloppy } from "@tabler/icons-svelte";
+
+    let { asset = null, isOpen = false, onClose = null, onDelete = null, onUpdate = null } = $props();
     const { t } = getTranslationStore();
 
     let videoElement = $state(null);
     let viewerEl = $state(null);
     let osdViewer = $state(null);
     let OpenSeadragonLib = null;
+    let isSaving = $state(false);
+    let isDeleting = $state(false);
 
-    const zoomStep = 0.25; // 25% per click
+    // Editable metadata fields
+    let description = $state("");
+    let copyright = $state("");
+    let author = $state("");
 
-    // Dynamic import of OpenSeadragon (only when needed)
+    const CHAR_LIMIT = 150;
+
+    // Sync local state when asset changes (metadata is stored in properties JSON)
+    watch(() => asset, (a) => {
+        if (a) {
+            const metadata = parseMetadata(a.properties);
+            const defaultLang = a.project?.default_language_code || "en";
+
+            // Helper: metadata values can be strings (legacy) or objects { en: "..." }
+            const getMetaValue = (field) => {
+                const val = metadata?.[field];
+                if (typeof val === "string") return val;
+                if (typeof val === "object" && val !== null) {
+                    return val[defaultLang] ?? "";
+                }
+                return "";
+            };
+
+            description = getMetaValue("description");
+            copyright = getMetaValue("copyright");
+            author = getMetaValue("author");
+        }
+    });
+
+    const zoomStep = 0.25;
+
     function ensureOsd() {
         if (OpenSeadragonLib) return Promise.resolve(OpenSeadragonLib);
         return import('openseadragon').then((mod) => {
@@ -63,7 +97,6 @@
     function getImagePath(asset) {
         if (!asset) return null;
         const formats = parseAssetFormats(asset.formats);
-        // Use original format for best quality in viewer
         const path = formats?.original || asset.path;
         return path ? addImageProtocolPrefix(path) : null;
     }
@@ -84,7 +117,6 @@
 
     function toggleFullscreen() {
         if (!viewerEl) return;
-        
         if (!document.fullscreenElement) {
             viewerEl.requestFullscreen?.() || 
             viewerEl.webkitRequestFullscreen?.() || 
@@ -96,18 +128,81 @@
         }
     }
 
+    async function handleSave() {
+        if (!asset?.id) return;
+        isSaving = true;
+        try {
+            // Parse existing properties and merge new metadata
+            const existingProps = parseMetadata(asset.properties);
+            const defaultLang = asset.project?.default_language_code || "en";
+            const updatedProperties = {
+                ...existingProps,
+                description: { ...(existingProps.description || {}), [defaultLang]: description.trim() },
+                copyright: { ...(existingProps.copyright || {}), [defaultLang]: copyright.trim() },
+                author: { ...(existingProps.author || {}), [defaultLang]: author.trim() },
+            };
+
+            const payload = { assetId: asset.id, properties: JSON.stringify(updatedProperties) };
+            console.log("[MediaModal] save payload:", payload);
+
+            // Generic assets are stored in the generic_assets table, not assets table
+            const result = await executeQuery('genericAssets', 'update', payload);
+            console.log("[MediaModal] save result:", result);
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            // Notify parent of updated asset
+            if (onUpdate) {
+                onUpdate({ ...asset, properties: updatedProperties });
+            }
+            addToast({
+                data: { type: "success", title: t("common.save", { fallback: "Save" }), description: t("common.changes-saved", { fallback: "Changes saved successfully." }) }
+            });
+        } catch (e) {
+            console.error("Failed to update asset metadata:", e);
+            addToast({
+                data: { type: "danger", title: t("common.error", { fallback: "Error" }), description: e.message || String(e) }
+            });
+        } finally {
+            isSaving = false;
+        }
+    }
+
+    async function handleDelete() {
+        if (!asset?.id) return;
+        if (!confirm(t("media.confirm-delete", { fallback: "Are you sure you want to delete this media? This action cannot be undone." }))) {
+            return;
+        }
+        isDeleting = true;
+        try {
+            // Generic assets use the genericAssets delete operation
+            const result = await executeQuery('genericAssets', 'delete', { assetId: asset.id });
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            addToast({
+                data: { type: "success", title: t("common.delete", { fallback: "Delete" }), description: t("common.deleted-successfully", { fallback: "Deleted successfully." }) }
+            });
+            if (onDelete) onDelete(asset);
+            handleClose();
+        } catch (e) {
+            console.error("Failed to delete asset:", e);
+            addToast({
+                data: { type: "danger", title: t("common.error", { fallback: "Error" }), description: e.message || String(e) }
+            });
+        } finally {
+            isDeleting = false;
+        }
+    }
+
     function handleClose() {
-        // Pause video if it's playing
         if (videoElement) {
             videoElement.pause();
         }
-
-        // Destroy OpenSeadragon viewer
         if (osdViewer) {
             osdViewer.destroy();
             osdViewer = null;
         }
-
         if (onClose) {
             onClose();
         }
@@ -129,11 +224,28 @@
     const isImage = $derived(mediaType === "image");
     const isVideo = $derived(mediaType === "video");
 
+    const hasChanges = $derived.by(() => {
+        const metadata = parseMetadata(asset?.properties);
+        const defaultLang = asset?.project?.default_language_code || "en";
+        const getMetaValue = (field) => {
+            const val = metadata?.[field];
+            if (typeof val === "string") return val;
+            if (typeof val === "object" && val !== null) {
+                return val[defaultLang] ?? "";
+            }
+            return "";
+        };
+        return (
+            description !== getMetaValue("description") ||
+            copyright !== getMetaValue("copyright") ||
+            author !== getMetaValue("author")
+        );
+    });
+
     watch(() => isOpen, (open) => {
         if (open) {
             document.body.style.overflow = "hidden";
             document.addEventListener("keydown", handleKeydown);
-            
             if (isImage) {
                 requestAnimationFrame(() => openViewer());
             }
@@ -168,33 +280,26 @@
             aria-modal="true"
             aria-labelledby="media-modal-title"
         >
-            <div class="modal-content bg-white rounded shadow-lg">
-                <!-- Close Button (pink, top-right outside the content) -->
-                <button
-                    type="button"
-                    class="btn position-absolute rounded-circle d-flex align-items-center justify-content-center"
-                    style="top: -15px; right: -15px; z-index: 1051; width: 40px; height: 40px; background-color: #e91e63; border: none;"
-                    onclick={handleClose}
-                    aria-label={t("media.close-media-preview", { fallback: "Close media preview" })}
-                >
-                    <i class="bi bi-x text-white" style="font-size: 24px; font-weight: bold;" aria-hidden="true"></i>
-                </button>
+            <div class="modal-content bg-white rounded shadow-lg d-flex flex-column" style="max-height: 95vh;">
+                <!-- Header -->
+                <div class="modal-header d-flex align-items-center justify-content-between py-3 px-4 border-bottom">
+                    <h5 id="media-modal-title" class="modal-title mb-0 fw-semibold">
+                        {asset.filename || asset.name || t("media.unknown-file", { fallback: "Unknown file" })}
+                    </h5>
+                    <button
+                        type="button"
+                        class="btn-close"
+                        onclick={handleClose}
+                        aria-label={t("media.close-media-preview", { fallback: "Close media preview" })}
+                    ></button>
+                </div>
 
-                <div class="modal-body p-4">
-                     <p id="media-modal-title" class="mb-3 fw-bold">
-                                {t("media.view-file", {
-                                    fallback: "View {{file}}",
-                                    file: asset.filename || asset.name || t("media.unknown-file", { fallback: "Unknown file" }),
-                                })}
-                            </p>
+                <!-- Body -->
+                <div class="modal-body p-4 overflow-auto">
                     <div class="row g-4">
                         <!-- Left column: Image viewer -->
-                        <div class="col-md-9">
-                            <!-- Title -->
-                           
-
-                            <!-- Image viewer with controls -->
-                            <div class="position-relative bg-light rounded overflow-hidden" style="height: 70vh;">
+                        <div class="col-md-8">
+                            <div class="position-relative bg-dark rounded overflow-hidden" style="height: 60vh;">
                                 {#if isImage}
                                     <!-- Controls overlay -->
                                     <div class="position-absolute top-0 start-0 m-2 d-flex gap-2" style="z-index: 10;">
@@ -250,38 +355,90 @@
                             </div>
                         </div>
 
-                        <!-- Right column: Metadata -->
-                        <div class="col-md-3">
-                            <h5 class="text-muted mb-3 border-bottom">{t("media.media-metadata", { fallback: "Media metadata" })}</h5>
+                        <!-- Right column: Info + Metadata form -->
+                        <div class="col-md-4">
+                            <!-- Info section -->
+                            <div class="mb-4">
+                                <p class="text-uppercase fs-7 text-body-tertiary mb-2">{t("common.info", { fallback: "Info" })}</p>
+                                <div class="small text-body-secondary">
+                                    <div>{t("media.import-date", { fallback: "Import date" })}: {asset.created_at ? new Date(asset.created_at).toISOString().slice(0, 10) : "—"}</div>
+                                    <div>{t("media.size", { fallback: "Size" })}: {asset.torrent_length ? (asset.torrent_length / 1024 / 1024).toFixed(1) + " MB" : "—"}</div>
+                                </div>
+                            </div>
 
-                            {#if asset.description || asset.author || asset.copyright}
+                            <!-- Media Metadata form -->
+                            <div>
+                                <p class="text-uppercase fs-7 text-body-tertiary mb-3">{t("media.media-metadata", { fallback: "Media metadata" })}</p>
+
                                 <!-- Description -->
-                                {#if asset.description}
-                                    <div class="mb-3">
-                                        <div class="text-uppercase small fw-bold mb-1">Description</div>
-                                        <div class="text-muted small">{asset.description}</div>
-                                    </div>
-                                {/if}
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between align-items-center mb-1">
+                                        <span>{t("common.description", { fallback: "Description" })}</span>
+                                        <span class="text-muted" style="font-size: 0.75rem;">{description.length}/{CHAR_LIMIT}</span>
+                                    </label>
+                                    <textarea
+                                        class="form-control"
+                                        rows="2"
+                                        maxlength={CHAR_LIMIT}
+                                        bind:value={description}
+                                        placeholder={t("common.write-here", { fallback: "Write here..." })}
+                                    ></textarea>
+                                </div>
 
-                                <!-- Author/Copyright -->
-                                {#if asset.author}
-                                    <div class="mb-3">
-                                        <div class="text-uppercase small fw-bold mb-1">{t("media.author", { fallback: "Author" })}</div>
-                                        <div class="text-muted small">{asset.author}</div>
-                                    </div>
-                                {/if}
+                                <!-- Copyright -->
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between align-items-center mb-1">
+                                        <span>{t("common.copyright", { fallback: "Copyright" })}</span>
+                                        <span class="text-muted" style="font-size: 0.75rem;">{copyright.length}/{CHAR_LIMIT}</span>
+                                    </label>
+                                    <textarea
+                                        class="form-control"
+                                        rows="2"
+                                        maxlength={CHAR_LIMIT}
+                                        bind:value={copyright}
+                                        placeholder={t("common.write-here", { fallback: "Write here..." })}
+                                    ></textarea>
+                                </div>
 
-                                {#if asset.copyright}
-                                    <div class="mb-3">
-                                        <div class="text-uppercase small fw-bold mb-1">{t("common.copyright", { fallback: "Copyright" })}</div>
-                                        <div class="text-muted small">{asset.copyright}</div>
-                                    </div>
-                                {/if}
-                            {:else}
-                                <div class="text-muted small">{t("media.no-metadata-available", { fallback: "No metadata available" })}</div>
-                            {/if}
+                                <!-- Author -->
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between align-items-center mb-1">
+                                        <span>{t("media.author", { fallback: "Author" })}</span>
+                                        <span class="text-muted" style="font-size: 0.75rem;">{author.length}/{CHAR_LIMIT}</span>
+                                    </label>
+                                    <textarea
+                                        class="form-control"
+                                        rows="2"
+                                        maxlength={CHAR_LIMIT}
+                                        bind:value={author}
+                                        placeholder={t("common.write-here", { fallback: "Write here..." })}
+                                    ></textarea>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer d-flex align-items-center justify-content-between py-3 px-4 border-top">
+                    <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm d-flex align-items-center gap-2"
+                        onclick={handleDelete}
+                        disabled={isDeleting}
+                    >
+                        <IconTrash size={14} />
+                        {isDeleting ? t("common.deleting", { fallback: "Deleting..." }) : t("media.delete-media", { fallback: "Delete media" })}
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-success btn-sm d-flex align-items-center gap-2"
+                        onclick={handleSave}
+                        disabled={!hasChanges || isSaving}
+                    >
+                        <IconDeviceFloppy size={14} />
+                        {isSaving ? t("common.saving", { fallback: "Saving..." }) : t("common.save-changes", { fallback: "Save changes" })}
+                    </button>
                 </div>
             </div>
         </div>

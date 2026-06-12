@@ -29,6 +29,13 @@
         modalAsset = null;
     }
 
+    function handleUpdate(updatedAsset) {
+        // Merge updated properties back into the original asset object
+        if (asset && updatedAsset) {
+            asset.properties = updatedAsset.properties;
+        }
+    }
+
     const assetType = $derived(getMediaType(asset));
 </script>
 
@@ -102,7 +109,7 @@
     </div>
 
     <!-- Media Modal -->
-    <MediaModal asset={modalAsset} isOpen={modalOpen} onClose={closeModal} />
+    <MediaModal asset={modalAsset} isOpen={modalOpen} onClose={closeModal} onUpdate={handleUpdate} />
 {/if}
 
 <style>

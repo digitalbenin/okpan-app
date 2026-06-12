@@ -57,6 +57,9 @@ export const researchFieldsOperations = {
         path
         type
         formats
+        properties
+        created_at
+        torrent_length
       }
       otherAssets:vocabulariesGenericAssets {
         genericAsset {
@@ -64,6 +67,10 @@ export const researchFieldsOperations = {
           filename
           path
           type
+          formats
+          properties
+          created_at
+          torrent_length
         }
         order
       }
@@ -138,6 +145,9 @@ export const researchFieldsOperations = {
         formats
         path
         type
+        properties
+        created_at
+        torrent_length
       }
       vocabulariesGenericAssets {
         genericAsset {
@@ -146,6 +156,9 @@ export const researchFieldsOperations = {
           formats
           path
           type
+          properties
+          created_at
+          torrent_length
         }
         order
       }
