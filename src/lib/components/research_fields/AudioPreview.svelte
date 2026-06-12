@@ -10,6 +10,7 @@
         width = undefined,
         showRemoveButton = false,
         onRemove = null,
+        onClick = null,
     } = $props();
 
     let audioElement;
@@ -175,6 +176,10 @@
 <div
     class="position-relative"
     style="width: {width ?? size + 'px'}; height: {size}px; max-width: 100%;"
+    onclick={() => onClick?.(asset)}
+    role="button"
+    tabindex="0"
+    onkeydown={(e) => e.key === 'Enter' && onClick?.(asset)}
 >
     <!-- Remove Button -->
     {#if showRemoveButton}
@@ -182,7 +187,7 @@
             type="button"
             class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle position-absolute d-flex align-items-center justify-content-center border-0 opacity-0-hover-100 transition-opacity"
             style="width: 22px; height: 22px; padding: 0; top: 5px; right: 5px; z-index: 10;"
-            onclick={handleRemove}
+            onclick={(e) => { e.stopPropagation(); handleRemove(e); }}
             title={t("media.remove-audio", { fallback: "Remove audio" })}
             aria-label={t("media.remove-audio", { fallback: "Remove audio" })}
         >
@@ -207,44 +212,33 @@
                 <span class="small">{t("media.missing-audio", { fallback: "Missing audio" })}</span>
             </div>
         {:else}
-            <i class="bi bi-music-note-beamed text-muted mb-2" style="font-size: 1.5rem;"></i>
-            
-            <div class="w-100">
-                <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="d-flex flex-column align-items-center justify-content-center gap-2 w-100 px-3">
+                <i class="bi bi-music-note-beamed text-muted" style="font-size: 1.5rem;"></i>
+
+                <div class="d-flex align-items-center justify-content-between w-100" style="max-width: 140px;">
                     <button
                         class="btn btn-sm btn-link p-0 d-flex align-items-center justify-content-center border-0"
-                        onclick={togglePlay}
+                        onclick={(e) => { e.stopPropagation(); togglePlay(e); }}
                         disabled={!isLoaded}
                         style="width: 20px; height: 20px;"
-                        aria-label={isPlaying
-                            ? t("media.pause", { fallback: "Pause" })
-                            : t("media.play", { fallback: "Play" })}
+                        aria-label={isPlaying ? t("media.pause", { fallback: "Pause" }) : t("media.play", { fallback: "Play" })}
                     >
                         {#if isPlaying}
-                            <i
-                                class="bi bi-pause-circle text-dark"
-                                style="font-size: 20px;"
-                            ></i>
+                            <i class="bi bi-pause-circle text-dark" style="font-size: 20px;"></i>
                         {:else}
-                            <i
-                                class="bi bi-play-circle text-dark"
-                                style="font-size: 20px;"
-                            ></i>
+                            <i class="bi bi-play-circle text-dark" style="font-size: 20px;"></i>
                         {/if}
                     </button>
 
-                    <span
-                        class="text-muted text-end"
-                        style="font-size: 11px; min-width: 35px;"
-                    >
+                    <span class="text-muted text-end" style="font-size: 11px; min-width: 35px;">
                         {formatTime(duration)}
                     </span>
                 </div>
 
                 <div
-                    class="bg-secondary bg-opacity-25 rounded-pill position-relative user-select-none"
-                    style="height: 4px; cursor: pointer;"
-                    onclick={handleSeek}
+                    class="bg-secondary bg-opacity-25 rounded-pill position-relative user-select-none w-100"
+                    style="height: 4px; cursor: pointer; max-width: 140px;"
+                    onclick={(e) => { e.stopPropagation(); handleSeek(e); }}
                     onkeydown={(e) => e.key === "Enter" && handleSeek(e)}
                     role="button"
                     tabindex="0"
@@ -252,15 +246,11 @@
                 >
                     <div
                         class="bg-secondary rounded-pill h-100 transition-all"
-                        style="width: {duration
-                            ? (currentTime / duration) * 100
-                            : 0}%; transition: width 0.1s ease;"
+                        style="width: {duration ? (currentTime / duration) * 100 : 0}%; transition: width 0.1s ease;"
                     ></div>
                     <div
                         class="bg-secondary rounded-circle position-absolute opacity-0 transition-opacity"
-                        style="width: 12px; height: 12px; top: -4px; left: {duration
-                            ? (currentTime / duration) * 100
-                            : 0}%; transform: translateX(-50%);"
+                        style="width: 12px; height: 12px; top: -4px; left: {duration ? (currentTime / duration) * 100 : 0}%; transform: translateX(-50%);"
                     ></div>
                 </div>
             </div>

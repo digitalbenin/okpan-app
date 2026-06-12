@@ -6,7 +6,7 @@
 
 <div class="d-flex align-items-center">
   {#if icon}
-    <span class="d-flex align-items-center justify-content-start rounded-3 flex-shrink-0" style="width: 40px; height: 40px;">
+    <span class="d-flex align-items-center justify-content-start rounded-3 flex-shrink-0 me-n2" style="width: 40px; height: 40px;">
       <svelte:component this={icon} size={20} class="text-body-secondary" />
     </span>
   {/if}

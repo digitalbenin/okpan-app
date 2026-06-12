@@ -60,7 +60,7 @@
                 onClick={handleMediaClick}
             />
         {:else if assetType === "audio"}
-            <AudioPreview {asset} {size} {width} {showRemoveButton} {onRemove} />
+            <AudioPreview {asset} {size} {width} {showRemoveButton} {onRemove} onClick={handleMediaClick} />
         {:else}
             <!-- Fallback for unknown file types -->
             <div
