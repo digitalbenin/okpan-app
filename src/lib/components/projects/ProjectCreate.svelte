@@ -1,11 +1,21 @@
 <script>
   import { onMount } from "svelte";
   import { createProject } from "$lib/api/ProjectsApi.js";
-  import BaseSelect from "$lib/components/base/BaseSelectNew.svelte"; // Corrected path
+  import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import BaseInput from "$lib/components/base/BaseInput.svelte";
-  import BaseButton from "$lib/components/base/BaseButton.svelte"; // Corrected path
+  import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
   import { goto } from "$app/navigation";
+
+  let selectPortalEl = $state(null);
+
+  onMount(() => {
+    const el = document.createElement("div");
+    el.style.cssText = "position: fixed; top: 0; left: 0; z-index: 1056;";
+    document.body.appendChild(el);
+    selectPortalEl = el;
+    return () => el.remove();
+  });
 
   // let { createProject, projectState } = getProjectStore(); // Removed store state
   let selectedLanguage = $state("");
@@ -35,6 +45,8 @@
       const resp = await window.api.getLanguages();
       if (resp?.success && Array.isArray(resp.result)) {
         worldLanguages = resp.result;
+        const english = resp.result.find((l) => l.code === "en");
+        if (english) selectedLanguage = "en";
       } else {
         languagesError = resp?.error || "Failed to load languages";
         worldLanguages = [];
@@ -178,21 +190,23 @@
     </div>
 
     <div class="mb-3">
-      <p class="form-label">Default language</p>
+      <p class="form-label">Default language *</p>
       {#if isLoadingLanguages}
         <div class="alert alert-info">Loading languages…</div>
       {:else if languagesError}
         <div class="alert alert-danger">{languagesError}</div>
       {/if}
 
-      <BaseSelect
-        bind:value={selectedLanguage}
-        items={languageOptions}
-        placeholder="Select a language"
-        searchable={true}
-        searchPlaceholder="Search languages..."
-        portalProps={{ disabled: true }}
-      />
+      {#if selectPortalEl}
+        <BaseSelect
+          bind:value={selectedLanguage}
+          items={languageOptions}
+          placeholder="Select a language"
+          searchable={true}
+          searchPlaceholder="Search languages..."
+          portalProps={{ to: selectPortalEl }}
+        />
+      {/if}
     </div>
 
     <div class="d-flex justify-content-end">
@@ -207,8 +221,8 @@
     <div class="mb-4">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex align-items-center gap-2">
-          <span class="fs-5 text-dark">Do you want to make a collaborative project?</span>
-          <i class="bi bi-info-circle-fill text-dark fs-5" title="People with this password will be able to search for, join and automatically synchronize data with this project."></i>
+          <span class="fs-6 text-dark">Do you want to make a collaborative project?</span>
+         <!-- <i class="bi bi-info-circle-fill text-dark fs-5" title="People with this password will be able to search for, join and automatically synchronize data with this project."></i> -->
         </div>
         <div class="btn-group border rounded" role="group">
           <button type="button" class="btn {isShared ? 'btn-success text-white' : 'btn-light text-muted'}" style="{isShared ? 'background-color: #0f8a65; border-color: #0f8a65; width: 60px;' : 'background-color: white; border: none; width: 60px;'}" onclick={() => isShared = true}>Yes</button>
@@ -219,7 +233,7 @@
       {#if isShared}
         <div class="d-flex justify-content-between align-items-center mb-4">
           <div class="d-flex align-items-center gap-2">
-            <span class="fs-5 text-dark">Use password</span>
+            <span class="fs-6 text-dark">Use password</span>
           </div>
           <div class="btn-group border rounded" role="group">
             <button type="button" class="btn {usePassword ? 'btn-success text-white' : 'btn-light text-muted'}" style="{usePassword ? 'background-color: #0f8a65; border-color: #0f8a65; width: 60px;' : 'background-color: white; border: none; width: 60px;'}" onclick={() => usePassword = true}>Yes</button>
@@ -230,12 +244,12 @@
 
       {#if isShared && usePassword}
         <div class="mb-4">
-          <p class="form-label fs-5 text-dark">Password</p>
+          <p class="form-label fs-6 text-dark">Password</p>
           <div class="input-group">
             <input
               type="password"
-              class="form-control fs-4 px-3 py-2"
-              placeholder="••••••••••••"
+              class="form-control fs-6 px-3 py-2"
+              placeholder="Enter password"
               bind:value={password}
             />
           </div>
@@ -245,7 +259,7 @@
 
     <div class="d-flex justify-content-end gap-3 mt-5">
       <BaseButton
-        text="Cancel"
+        text="Back"
         class="btn btn-outline-secondary px-4 py-2 bg-white text-dark"
         onClick={() => { currentStep = 1; }}
       />

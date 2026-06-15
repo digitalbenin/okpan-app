@@ -233,7 +233,7 @@
 </div>
 
 {#if newProjectOpen}
-  <BaseAlertDialog bind:open={newProjectOpen} size="lg">
+  <BaseAlertDialog bind:open={newProjectOpen}>
     {#snippet title()}
       {t("project.create-project", { fallback: "Create a new project" })}
     {/snippet}

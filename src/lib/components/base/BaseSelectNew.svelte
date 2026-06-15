@@ -89,7 +89,7 @@
           <div {...wrapperProps}>
             <div
               {...props}
-              class="content mt-1 shadow-sm bg-white border rounded-2 z-3 p-1"
+              class="content mt-1 shadow-sm bg-white border rounded-2 z-1 p-1"
               class:anchorWidth={contentProps.width === "anchor"}
             >
               <Select.ScrollUpButton
