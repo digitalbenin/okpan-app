@@ -2807,11 +2807,61 @@
                              "key":  "all",
                              "value":  "Tutti"
                          },
-                         {
-                             "namespace":  "filters",
-                             "key":  "unknown-field",
-                             "value":  "Campo sconosciuto"
-                         },
+                        {
+                            "namespace":  "filters",
+                            "key":  "unknown-field",
+                            "value":  "Campo sconosciuto"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "object-info",
+                            "value":  "Info oggetto"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "other-fields",
+                            "value":  "Altri campi"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "custom-fields",
+                            "value":  "Campi personalizzati"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "institution-mapped-fields",
+                            "value":  "Campi mappati dall'istituzione"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "active-filters",
+                            "value":  "Filtri attivi"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "edit-filter",
+                            "value":  "Modifica filtro"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "apply",
+                            "value":  "Applica filtro"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "reset-all",
+                            "value":  "Reimposta tutti i filtri"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "add-row",
+                            "value":  "Aggiungi nuova ricerca"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "remove-row",
+                            "value":  "Rimuovi ricerca"
+                        },
                          {
                              "namespace":  "media",
                              "key":  "remove-audio",

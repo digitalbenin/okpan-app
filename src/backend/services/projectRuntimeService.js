@@ -9,7 +9,7 @@ import { db } from '../../db/init.js';
 import { project } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { startP2PForProject, stopP2PForProject, getP2PProvider } from './p2pService.js';
-import { startReconcileLoop, stopProjectTorrents } from './assetTorrentManagerService.js';
+import { startReconcileLoop, stopProjectTorrents, resumeAssetSeeding } from './assetTorrentManagerService.js';
 import { startChangeLogTailer } from './changeLogTailerService.js';
 import { hydrateProjectFromDatabase } from './snapshotService.js';
 import { prepareSessionOpenRecoverySnapshot } from './recoverySnapshotService.js';
@@ -190,6 +190,10 @@ export async function bootstrapProjectRuntime(event, projectId, options = {}, { 
         console.warn('Failed to stop P2P for private project', projectId, err);
       }
     }
+
+    // Torrent metadata must still be creatable for private projects so that
+    // assets can be shared if the project is later promoted to shared.
+    resumeAssetSeeding(projectId);
 
     return { success: true, shared: false };
   }

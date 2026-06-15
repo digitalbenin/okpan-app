@@ -1938,11 +1938,61 @@
                              "key":  "all",
                              "value":  "All"
                          },
-                         {
-                             "namespace":  "filters",
-                             "key":  "unknown-field",
-                             "value":  "Unknown field"
-                         },
+                        {
+                            "namespace":  "filters",
+                            "key":  "unknown-field",
+                            "value":  "Unknown field"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "object-info",
+                            "value":  "Object info"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "other-fields",
+                            "value":  "Other fields"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "custom-fields",
+                            "value":  "Custom fields"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "institution-mapped-fields",
+                            "value":  "Institution mapped fields"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "active-filters",
+                            "value":  "Active filters"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "edit-filter",
+                            "value":  "Edit filter"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "apply",
+                            "value":  "Apply filter"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "reset-all",
+                            "value":  "Reset all filters"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "add-row",
+                            "value":  "Add new search"
+                        },
+                        {
+                            "namespace":  "filters",
+                            "key":  "remove-row",
+                            "value":  "Remove search"
+                        },
                          {
                              "namespace":  "media",
                              "key":  "remove-audio",

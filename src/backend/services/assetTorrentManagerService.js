@@ -837,6 +837,18 @@ async function reconcileTable({ projectId, variant, specificAssetId }) {
 
 
 /**
+ * Allow asset seeding/imports for a project without starting the full reconcile
+ * loop.  Call this after tearing down P2P for a private project so that local
+ * torrent metadata can still be created (needed if the project is later shared).
+ * @memberof backend.services.assetTorrentManagerService
+ * @param {string} projectId - Project identifier.
+ * @returns {void}
+ */
+export function resumeAssetSeeding(projectId) {
+  if (projectId) stoppedProjects.delete(projectId);
+}
+
+/**
  * Start the recurring reconcile loop for a project.
  * @memberof backend.services.assetTorrentManagerService
  * @param {string} projectId - Project identifier.

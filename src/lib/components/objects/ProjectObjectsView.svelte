@@ -15,7 +15,7 @@
   import PageHeader from "$lib/components/base/PageHeader.svelte";
   import { afterNavigate, goto } from "$app/navigation";
   import { page } from "$app/stores";
-  import { IconChevronDown, IconFilter, IconGridDots, IconList, IconCirclePlus, IconTrash, IconTableImport } from "@tabler/icons-svelte";
+  import { IconChevronDown, IconFilter, IconGridDots, IconList, IconCirclePlus, IconTrash, IconX, IconTableImport } from "@tabler/icons-svelte";
   import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/api/ObjectsApi.js";
 
   let { params = $bindable(), project, objects, displayFields, researchFields, ontologyFields, institutions } = $props();
@@ -289,12 +289,15 @@
   {#if hasAppliedFilters}
     <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
       {#each filterBadges as { text, onClear }}
-        <span class="badge rounded-pill text-bg-secondary d-flex align-items-center gap-1">
+        <button
+          type="button"
+          class="btn btn-outline-dark  btn-sm d-flex align-items-center gap-1 rounded-2"
+          aria-label={t("common.remove", { fallback: "Remove" })}
+          onclick={onClear}
+        >
           <span class="text-truncate" style="max-width: 240px;">{text}</span>
-          <button class="btn btn-sm btn-link text-white p-0 m-0" aria-label={t("common.remove", { fallback: "Remove" })} onclick={onClear}>
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </span>
+          <IconX size={16} />
+        </button>
       {/each}
     </div>
   {/if}

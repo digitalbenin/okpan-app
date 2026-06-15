@@ -1,10 +1,10 @@
 <script>
   import { fly, fade } from "svelte/transition";
-  import { debounce } from "$lib/utils/throttle.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { onDestroy } from "svelte";
   import FilterDetailView from "./FilterDetailView.svelte";
+  import FilterMainView from "./FilterMainView.svelte";
   import FilterTextSearchView from "./FilterTextSearchView.svelte";
+  import { IconX } from "@tabler/icons-svelte";
 
   let {
     advancedFilters = $bindable({}),
@@ -20,375 +20,295 @@
 
   const { t } = getTranslationStore();
 
-  // State
+  let pendingFilters = $state($state.snapshot(advancedFilters || {}));
   let activeView = $state("main");
   let selectedField = $state(null);
+  let selectedFieldKind = $state(null);
   let searchTerm = $state("");
-  let textSelectedFieldId = $state("");
-  let textQuery = $state("");
+  let textKindResetCounter = $state(0);
 
-  // Derived - Facet lookup maps
   const institutionFacetMap = $derived.by(() => {
     const map = new Map();
-    (facets?.institutions || []).forEach((row) => map.set(String(row.id), row.count || 0));
+    for (const row of facets?.institutions || []) {
+      map.set(String(row.id), row.count || 0);
+    }
     return map;
   });
 
   const researchFacetMap = $derived.by(() => {
     const map = new Map();
-    (facets?.researchFields || []).forEach((field) => {
-      (field.options || []).forEach((opt) => map.set(`${field.fieldId}:${opt.id}`, opt.count || 0));
-    });
+    for (const field of facets?.researchFields || []) {
+      for (const option of field.options || []) {
+        map.set(`${field.fieldId}:${option.id}`, option.count || 0);
+      }
+    }
     return map;
   });
 
-  const currentTextFilters = $derived(advancedFilters?.__textFilters ?? []);
+  const pendingTextFilters = $derived(pendingFilters?.__textFilters ?? []);
 
-  const filteredItems = $derived.by(() => {
-    if (activeView !== "detail" || !selectedField) return [];
-    
-    let items = selectedField.type === "institutions"
-      ? institutions.map((inst) => ({ ...inst, name: inst?.name?.content || inst?.name || "" }))
-      : vocabularies.filter((v) => v.field_id === selectedField.id);
-
-    const term = searchTerm.toLowerCase().trim();
-    if (term) items = items.filter((item) => (item.name || "").toLowerCase().includes(term));
-
-    return items.sort((a, b) => {
-      const countDiff = getFacetCountForItem(b) - getFacetCountForItem(a);
-      return countDiff || (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase());
-    });
-  });
-
-  const selectableTextFields = $derived.by(() => {
-    const fields = [
-      ...ontologyFields.map((f) => ({ key: `o:${f.id}`, label: f.name?.content || f.name, kind: "ontology", id: f.id })),
-      ...researchFields.filter((f) => (f.type || "").toLowerCase() !== "vocabulary")
-        .map((f) => ({ key: `r:${f.id}`, label: f.name?.content || f.name, kind: "research", id: f.id })),
-    ];
-    return fields.sort((a, b) => (a.label || "").localeCompare(b.label || ""));
-  });
-
-  const visibleTextResearchFields = $derived(
-    (researchFields || []).filter((f) => f?.id && (f.type || "").toLowerCase() !== "vocabulary")
-  );
-
-  const visibleConnectionResearchFields = $derived(
+  const visibleVocabularyFields = $derived(
     (researchFields || []).filter(
-      (f) => f?.id &&
-        (f.type || "").toLowerCase() === "vocabulary" &&
-        vocabularies.some((v) => String(v.field_id) === String(f.id))
+      (field) =>
+        field?.id &&
+        (field.type || "").toLowerCase() === "vocabulary" &&
+        vocabularies.some((vocabulary) => String(vocabulary.field_id) === String(field.id))
     )
   );
 
-  // Helpers
-  const fieldKey = $derived(selectedField?.type === "institutions" ? "institutions" : selectedField?.id);
-  
-  const ensureTextFiltersArray = () => {
-    if (!advancedFilters || typeof advancedFilters !== "object") advancedFilters = {};
-    if (!Array.isArray(advancedFilters.__textFilters)) advancedFilters.__textFilters = [];
-    return advancedFilters.__textFilters;
-  };
+  const visibleTextResearchFields = $derived(
+    (researchFields || []).filter(
+      (field) => field?.id && (field.type || "").toLowerCase() !== "vocabulary"
+    )
+  );
 
-  const parseKind = (val) => {
-    const [k, id] = (val || "").split(":");
-    if (k === "o") return { kind: "ontology", id };
-    if (k === "r") return { kind: "research", id };
-    return { kind: null, id: null };
-  };
+  const subViewFieldsList = $derived.by(() => {
+    if (selectedFieldKind === "research") return visibleTextResearchFields;
+    if (selectedFieldKind === "ontology") return ontologyFields;
+    return [];
+  });
 
-  const triggerChange = () => {
-    advancedFilters = { ...advancedFilters };
-    onFiltersChange(advancedFilters);
-  };
+  const selectedFieldKey = $derived(
+    selectedField?.type === "institutions" ? "institutions" : selectedField?.id
+  );
 
-  const getFacetCountForItem = (item) => {
+  const filteredItems = $derived.by(() => {
+    if (activeView !== "detail" || !selectedField) return [];
+
+    const baseItems = selectedField.type === "institutions"
+      ? institutions.map((institution) => ({
+          ...institution,
+          name: institution?.name?.content || institution?.name || "",
+        }))
+      : vocabularies
+          .filter((vocabulary) => String(vocabulary.field_id) === String(selectedField.id))
+          .map((vocabulary) => ({
+            ...vocabulary,
+            name: vocabulary?.name?.content || vocabulary?.name || "",
+          }));
+
+    const term = searchTerm.trim().toLowerCase();
+    const visibleItems = term
+      ? baseItems.filter((item) => (item.name || "").toLowerCase().includes(term))
+      : baseItems;
+
+    return visibleItems.sort((left, right) => {
+      const countDiff = getFacetCount(right) - getFacetCount(left);
+      return countDiff || (left.name || "").localeCompare(right.name || "");
+    });
+  });
+
+  const institutionCount = $derived(
+    (pendingFilters?.institutions || []).filter((id) =>
+      institutions.some((institution) => String(institution.id) === String(id))
+    ).length
+  );
+
+  const vocabularyCountForField = (fieldId) =>
+    (pendingFilters?.[fieldId] || []).filter((id) =>
+      vocabularies.some(
+        (vocabulary) =>
+          String(vocabulary.field_id) === String(fieldId) && String(vocabulary.id) === String(id)
+      )
+    ).length;
+
+  const textFilterCountForKind = (kind) =>
+    pendingTextFilters.filter((textFilter) => textFilter.kind === kind).length;
+
+  const getFacetCount = (item) => {
     if (!selectedField) return 0;
-    if (selectedField.type === "institutions") return institutionFacetMap.get(item.id) ?? 0;
-    if (selectedField.type === "vocabulary") return researchFacetMap.get(`${selectedField.id}:${item.id}`) ?? 0;
+    if (selectedField.type === "institutions") {
+      return institutionFacetMap.get(String(item.id)) ?? 0;
+    }
+    if (selectedField.type === "vocabulary") {
+      return researchFacetMap.get(`${selectedField.id}:${item.id}`) ?? 0;
+    }
     return 0;
   };
 
-  const getTextFieldLabel = (tf) => {
-    const fieldsList = tf?.kind === "ontology" ? ontologyFields : researchFields;
-    const field = fieldsList.find((f) => String(f.id) === String(tf.fieldId));
+  const isSelected = (itemId) =>
+    (pendingFilters?.[selectedFieldKey] || []).some((id) => String(id) === String(itemId));
+
+  const getTextFieldLabel = (textFilter) => {
+    const fields = textFilter?.kind === "ontology" ? ontologyFields : researchFields;
+    const field = fields.find((entry) => String(entry.id) === String(textFilter.fieldId));
     return field?.name?.content || field?.name || t("filters.unknown-field", { fallback: "Unknown field" });
   };
 
-  const getCurrentTextQuery = (kind, fieldId) => {
-    const tf = currentTextFilters.find((x) => x.kind === kind && String(x.fieldId) === String(fieldId));
-    return tf?.query?.trim() || "";
+  const activeTextFiltersForKind = (kind) =>
+    pendingTextFilters.filter((textFilter) => textFilter.kind === kind);
+
+  const toggleCheckboxFilter = (itemId) => {
+    if (!selectedFieldKey) return;
+    if (getFacetCount({ id: itemId }) === 0 && !isSelected(itemId)) return;
+
+    const currentIds = pendingFilters?.[selectedFieldKey] || [];
+    const nextIds = currentIds.some((id) => String(id) === String(itemId))
+      ? currentIds.filter((id) => String(id) !== String(itemId))
+      : [...currentIds, itemId];
+
+    pendingFilters = { ...pendingFilters, [selectedFieldKey]: nextIds };
   };
 
-  const getSelectionLabel = (selectedIds, items, fieldId = null) => {
-    if (!selectedIds || !selectedIds.length) return t("filters.all", { fallback: "All" });
-    const filtered = items.filter((item) => {
-      const matchesField = !fieldId || String(item.field_id) === String(fieldId);
-      return matchesField && selectedIds.some((id) => String(id) === String(item.id));
-    });
-    const names = filtered.map((item) => item?.name?.content || item?.name || item?.option?.content || "").filter(Boolean);
-    return names.length ? names.join(", ") : t("filters.all", { fallback: "All" });
+  const clearCheckboxFilter = () => {
+    if (!selectedFieldKey) return;
+    pendingFilters = { ...pendingFilters, [selectedFieldKey]: [] };
   };
 
-  const getResearchFieldSelectionLabel = (field) => {
-    const isVocab = (field.type || "").toLowerCase() === "vocabulary";
-    return isVocab
-      ? getSelectionLabel(advancedFilters?.[field.id], vocabularies, field.id)
-      : getCurrentTextQuery("research", field.id) || t("filters.all", { fallback: "All" });
+  const removeTextFilter = (textFilter) => {
+    pendingFilters = {
+      ...pendingFilters,
+      __textFilters: (pendingFilters?.__textFilters || []).filter(
+        (entry) =>
+          !(entry.kind === textFilter.kind && String(entry.fieldId) === String(textFilter.fieldId))
+      ),
+    };
   };
 
-  // Navigation
+  const applyFilters = () => {
+    const nextFilters = $state.snapshot(pendingFilters || {});
+    advancedFilters = nextFilters;
+    onFiltersChange(nextFilters);
+    onClose();
+  };
+
+  const resetAllFilters = () => {
+    advancedFilters = {};
+    onFiltersChange({});
+    onClose();
+  };
+
+  const resetCurrentView = () => {
+    if (activeView === "detail") {
+      clearCheckboxFilter();
+      return;
+    }
+
+    if (activeView === "textKind" && selectedFieldKind) {
+      pendingFilters = {
+        ...pendingFilters,
+        __textFilters: (pendingFilters?.__textFilters || []).filter(
+          (textFilter) => textFilter.kind !== selectedFieldKind
+        ),
+      };
+      textKindResetCounter++;
+    }
+  };
+
   const showDetail = (field) => {
     selectedField = field;
+    searchTerm = "";
     activeView = "detail";
   };
 
-  const showAddTextSearch = (prefillKey = "", prefillQuery = "") => {
-    activeView = "addText";
-    textSelectedFieldId = prefillKey;
-    textQuery = prefillQuery;
+  const showTextKindView = (kind) => {
+    selectedField = null;
+    selectedFieldKind = kind;
+    searchTerm = "";
+    activeView = "textKind";
   };
 
   const showMain = () => {
     activeView = "main";
+    selectedField = null;
+    selectedFieldKind = null;
     searchTerm = "";
   };
 
-  // Filter actions
-  const toggleFilter = (itemId) => {
-    if (!selectedField || !fieldKey) return;
-    if (getFacetCountForItem({ id: itemId }) === 0 && !isSelected(itemId)) return;
-
-    const currentArray = Array.isArray(advancedFilters?.[fieldKey]) ? [...advancedFilters[fieldKey]] : [];
-    const idx = currentArray.findIndex((id) => String(id) === String(itemId));
-    if (idx > -1) currentArray.splice(idx, 1);
-    else currentArray.push(itemId);
-
-    advancedFilters = { ...advancedFilters, [fieldKey]: currentArray };
-    onFiltersChange(advancedFilters);
-  };
-
-  const resetFilter = () => {
-    if (!selectedField || !fieldKey) return;
-    advancedFilters = { ...advancedFilters, [fieldKey]: [] };
-    onFiltersChange(advancedFilters);
-  };
-
-  const isSelected = (itemId) => {
-    const arr = Array.isArray(advancedFilters?.[fieldKey]) ? advancedFilters[fieldKey] : [];
-    return arr.some((id) => String(id) === String(itemId));
-  };
-
-  // Text filter actions
-  const upsertOrRemoveTextFilter = () => {
-    const { kind, id } = parseKind(textSelectedFieldId.trim());
-    const q = textQuery.trim();
-    if (!kind || !id) return;
-
-    const arr = ensureTextFiltersArray();
-    const idx = arr.findIndex((tf) => tf.kind === kind && String(tf.fieldId) === String(id));
-
-    if (!q && idx > -1) arr.splice(idx, 1);
-    else if (q) {
-      const filter = { kind, fieldId: id, query: q };
-      if (idx > -1) arr[idx] = filter;
-      else arr.push(filter);
-    }
-    
-    triggerChange();
-  };
-
-  const editTextFilter = (tf) => {
-    showAddTextSearch(`${tf.kind === "ontology" ? "o" : "r"}:${tf.fieldId}`, tf.query || "");
-  };
-
-  const removeTextFilter = (tf) => {
-    const arr = ensureTextFiltersArray();
-    const idx = arr.findIndex((x) => x.kind === tf.kind && String(x.fieldId) === String(tf.fieldId));
-    if (idx > -1) {
-      arr.splice(idx, 1);
-      triggerChange();
-    }
-  };
-
-  const debouncedUpdateTextFilter = debounce(() => {
-    try {
-      upsertOrRemoveTextFilter();
-    } catch (e) {
-      console.warn("debouncedUpdateTextFilter error:", e);
-    }
-  }, 1000);
-
-  onDestroy(() => debouncedUpdateTextFilter?.cancel?.());
 
 </script>
 
-<!-- Backdrop -->
 <div
   class="position-fixed top-0 start-0 w-100 h-100"
-  onkeydown={onClose}
   role="button"
   tabindex="0"
   style="background-color: rgba(0, 0, 0, 0.5); z-index: 1040;"
   onclick={onClose}
+  onkeydown={onClose}
   transition:fade={{ duration: 150 }}
 ></div>
 
-<!-- Side Panel -->
 <div
   class="position-fixed top-0 end-0 vh-100 bg-white shadow d-flex flex-column"
-  style="width: min(100%, 450px); max-width: 100%; z-index: 1050;"
-  transition:fly={{ x: 350, duration: 300 }}
+  style="width: min(100%, 600px); z-index: 1050;"
   role="dialog"
   aria-modal="true"
   aria-labelledby="filters-title"
+  transition:fly={{ x: 350, duration: 300 }}
 >
-  <div
-    class="d-flex justify-content-between align-items-center px-3 py-4 border-bottom"
-  >
-    <h5 class="m-0" id="filters-title">{t("filters.title", { fallback: "Filters" })}</h5>
+  <div class="d-flex justify-content-between align-items-center px-3 py-4 flex-shrink-0">
+    <p class="m-0 fs-5 fw-semibold" id="filters-title">{t("filters.title", { fallback: "Filters" })}</p>
     <button
       type="button"
       class="btn btn-link text-dark text-decoration-none p-0"
       aria-label={t("filters.close-filters", { fallback: "Close filters" })}
       onclick={onClose}
     >
-      <i class="bi bi-x fs-3"></i>
+      <IconX />
     </button>
   </div>
 
-  {#if activeView === "main"}
-    <div class="p-3 overflow-auto">
-      <div class="list-group list-group-flush">
-            {#if enableInstitutionFilter}
-              <button
-                type="button"
-                class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
-                onclick={() => showDetail({ type: "institutions", id: "institutions" })}
-                aria-label={t("filters.filter-by-institution", { fallback: "Filter by institution" })}
-              >
-                <div class="fw-semibold">{t("common.institution", { fallback: "Institution" })}</div>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="text-muted ps-3">{getSelectionLabel(advancedFilters?.institutions, institutions)}</span>
-                  <i class="bi bi-chevron-right"></i>
-                </div>
-              </button>
-            {/if}
+  <div class="flex-grow-1 overflow-auto">
+    {#if activeView === "main"}
+      <FilterMainView
+        {enableInstitutionFilter}
+        {institutionCount}
+        {visibleVocabularyFields}
+        {visibleTextResearchFields}
+        {ontologyFields}
+        {vocabularyCountForField}
+        {textFilterCountForKind}
+        onShowDetail={showDetail}
+        onShowTextKind={showTextKindView}
+      />
+    {/if}
 
-              {#if visibleConnectionResearchFields.length > 0}
-          <div class="mt-3 px-3 pt-3 text-muted">{t("common.connections", { fallback: "Connections" })}</div>
+    {#if activeView === "textKind" && selectedFieldKind}
+      {#key textKindResetCounter}
+        <FilterTextSearchView
+          kind={selectedFieldKind}
+          fields={subViewFieldsList}
+          currentFilters={activeTextFiltersForKind(selectedFieldKind)}
+          onUpdate={(filters) => {
+            const other = (pendingFilters?.__textFilters || []).filter(
+              (tf) => tf.kind !== selectedFieldKind
+            );
+            pendingFilters = { ...pendingFilters, __textFilters: [...other, ...filters] };
+          }}
+          onBack={showMain}
+        />
+      {/key}
+    {/if}
 
-          {#each visibleConnectionResearchFields as field (field.id)}
-            <button
-              type="button"
-              class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
-              onclick={() => showDetail({ type: "vocabulary", id: field.id })}
-              aria-label={t("filters.filter-by-field", {
-                fallback: "Filter by {{field}}",
-                field: field.name?.content || field.name,
-              })}
-            >
-              <div class="fw-semibold">{field.name?.content || field.name}</div>
-              <div class="d-flex align-items-center gap-2">
-                <span class="text-muted ps-3">{getResearchFieldSelectionLabel(field)}</span>
-                <i class="bi bi-chevron-right"></i>
-              </div>
-            </button>
-          {/each}
-        {/if}
+    {#if activeView === "detail" && selectedField}
+      <FilterDetailView
+        items={filteredItems}
+        {selectedField}
+        bind:searchTerm
+        {isSelected}
+        {getFacetCount}
+        onToggle={toggleCheckboxFilter}
+        onReset={clearCheckboxFilter}
+        onBack={showMain}
+      />
+    {/if}
+  </div>
 
-        {#if visibleTextResearchFields.length > 0}
-          <div class="mt-3 px-3 pt-3 text-muted">{t("filters.research-fields", { fallback: "Research fields" })}</div>
-
-          {#each visibleTextResearchFields as field (field.id)}
-            <button
-              type="button"
-              class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3"
-              onclick={() => showAddTextSearch(`r:${field.id}`, getCurrentTextQuery("research", field.id))}
-              aria-label={t("filters.filter-by-field", {
-                fallback: "Filter by {{field}}",
-                field: field.name?.content || field.name,
-              })}
-            >
-              <div class="fw-semibold">{field.name?.content || field.name}</div>
-              <div class="d-flex align-items-center gap-2">
-                <span class="text-muted ps-3">{getResearchFieldSelectionLabel(field)}</span>
-                <i class="bi bi-chevron-right"></i>
-              </div>
-            </button>
-          {/each}
-        {/if}
-
-        
-
-    
-        <!-- Active text filters overview (shown in main list) -->
-        <div class="list-group-item py-3">
-          <div
-            class="d-flex flex-column justify-content-between align-items-start"
-          >
-            <div class="text-muted pb-3 mt-3">{t("filters.institution-fields", { fallback: "Institution fields" })}</div>
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              onclick={() => showAddTextSearch()}
-            >
-              <i class="bi bi-plus-circle"></i>
-              {t("filters.add-institution-field-filter", { fallback: "Add institution field filter" })}
-            </button>
-          </div>
-
-            {#each currentTextFilters as tf (`${tf.kind}:${tf.fieldId}`)}
-              <div class="d-flex align-items-center justify-content-between border rounded p-2 mb-2 mt-2">
-                <div>
-                  <div class="fw-semibold">{getTextFieldLabel(tf)}</div>
-                  <div class="text-muted fs-7">"{tf.query}"</div>
-                </div>
-                <div class="d-flex gap-2">
-                  <button
-                    class="btn btn-outline-secondary btn-sm"
-                    onclick={() => editTextFilter(tf)}
-                    aria-label={t("filters.edit-filter", { fallback: "Edit filter" })}
-                  >
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  <button
-                    class="btn btn-outline-danger btn-sm"
-                    onclick={() => removeTextFilter(tf)}
-                    aria-label={t("filters.remove-filter", { fallback: "Remove filter" })}
-                  >
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </div>
-            {/each}
-        </div>
-      </div>
-    </div>
-  {/if}
-
-  {#if activeView === "detail" && selectedField}
-    <FilterDetailView
-      items={filteredItems}
-      {selectedField}
-      bind:searchTerm
-      {isSelected}
-      getFacetCount={getFacetCountForItem}
-      onToggle={toggleFilter}
-      onReset={resetFilter}
-      onBack={showMain}
-    />
-  {/if}
-
-  {#if activeView === "addText"}
-    <FilterTextSearchView
-      bind:textSelectedFieldId
-      bind:textQuery
-      {selectableTextFields}
-      onFieldChange={upsertOrRemoveTextFilter}
-      onQueryInput={() => debouncedUpdateTextFilter()}
-      onBack={showMain}
-    />
-  {/if}
+  <div class="border-top p-3 d-flex justify-content-between gap-2 flex-shrink-0">
+    {#if activeView === "main"}
+      <button type="button" class="btn btn-outline-secondary" onclick={resetAllFilters}>
+        {t("filters.reset-all", { fallback: "Reset all filters" })}
+      </button>
+      <button type="button" class="btn btn-secondary" onclick={onClose}>
+        {t("filters.close", { fallback: "Close" })}
+      </button>
+    {:else}
+      <button type="button" class="btn btn-outline-secondary" onclick={resetCurrentView}>
+        {t("common.reset", { fallback: "Reset" })}
+      </button>
+      <button type="button" class="btn btn-primary" onclick={applyFilters}>
+        {t("filters.apply", { fallback: "Apply filter" })}
+      </button>
+    {/if}
+  </div>
 </div>
-
