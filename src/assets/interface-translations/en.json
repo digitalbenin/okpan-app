@@ -300,7 +300,7 @@
                          },
                          {
                                 "namespace":  "connections",
-                                "key":  "no-connections--present",
+                                "key":  "no-connections-present",
                                 "value":  "No connections yet. Add one by clicking on “Add connection”."
                          },
                          {
@@ -3747,51 +3747,6 @@
                              "namespace":  "projects",
                              "key":  "recovery-snapshots.restoring-btn",
                              "value":  "Restoring..."
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "change-main-image",
-                             "value":  "Change main image"
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "objects-connected",
-                             "value":  "objects connected"
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "click-to-select-a-file",
-                             "value":  "Click to select a file"
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "or-drag-and-drop-here",
-                             "value":  "Or drag and drop here"
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "today",
-                             "value":  "Today"
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "yesterday",
-                             "value":  "Yesterday"
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "days-ago",
-                             "value":  "days ago"
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "weeks-ago",
-                             "value":  "weeks ago"
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "months-ago",
-                             "value":  "months ago"
                          }
                      ]
 }

@@ -28,7 +28,7 @@
 </script>
 
 <div
-    class="position-relative"
+    class="position-relative d-flex flex-column rounded overflow-hidden"
     style="width: {width ?? size + 'px'}; height: {size}px; max-width: 100%;"
 >
     <!-- Remove Button -->
@@ -45,10 +45,10 @@
         </button>
     {/if}
 
-    <!-- Image Preview (Square) -->
+    <!-- Image Preview -->
     <div
-        class="bg-light rounded overflow-hidden d-flex align-items-center justify-content-center w-100 h-100"
-        style="cursor: pointer;"
+        class="bg-light d-flex align-items-center justify-content-center w-100 flex-grow-1"
+        style="cursor: pointer; min-height: 0;"
         role="button"
         tabindex="0"
         onclick={handleClick}
@@ -67,5 +67,10 @@
         {:else}
             <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
         {/if}
+    </div>
+
+    <!-- Asset name bar -->
+    <div class="bg-white p-2 flex-shrink-0">
+        <span class="text-truncate small d-block">{asset.filename || asset.name || ""}</span>
     </div>
 </div>

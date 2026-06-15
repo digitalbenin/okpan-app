@@ -136,10 +136,10 @@
         >
             {#each assets as asset (asset.id)}
                 <div class="position-relative">
-                    <AssetPreview {asset} size={120} showRemoveButton={false} />
+                    <AssetPreview {asset} size={180} showRemoveButton={false} />
                     <button
                         type="button"
-                        class="btn btn-sm btn-light position-absolute top-0 end-0 m-1 p-0 d-flex align-items-center justify-content-center"
+                        class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 p-0 d-flex align-items-center justify-content-center"
                         style="width: 22px; height: 22px; border-radius: 50%;"
                         onclick={() => onRemove(asset)}
                         aria-label={t("common.remove", { fallback: "Remove" })}
@@ -152,7 +152,7 @@
             <!-- Plus button: click only; drop is handled by the parent grid -->
             <div
                 class="media-upload-add d-flex align-items-center justify-content-center"
-                style="width: 120px; height: 120px;"
+                style="width: 180px; height: 180px;"
                 role="button"
                 tabindex="0"
                 onclick={pickFiles}

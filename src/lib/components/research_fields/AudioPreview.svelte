@@ -174,7 +174,7 @@
 </script>
 
 <div
-    class="position-relative"
+    class="position-relative d-flex flex-column rounded overflow-hidden"
     style="width: {width ?? size + 'px'}; height: {size}px; max-width: 100%;"
     onclick={() => onClick?.(asset)}
     role="button"
@@ -195,9 +195,10 @@
         </button>
     {/if}
 
-    <!-- Audio Preview (Square) -->
+    <!-- Audio Preview -->
     <div
-        class="bg-light rounded overflow-hidden d-flex flex-column align-items-center justify-content-center p-2 w-100 h-100"
+        class="bg-secondary-subtle d-flex flex-column align-items-center justify-content-center p-2 w-100 flex-grow-1"
+        style="min-height: 0;"
     >
         {#if isDownloading}
             <div class="d-flex flex-column align-items-center justify-content-center gap-2 w-100 h-100 px-4 text-center">
@@ -255,6 +256,11 @@
                 </div>
             </div>
         {/if}
+    </div>
+
+    <!-- Asset name bar -->
+    <div class="bg-white p-2 flex-shrink-0">
+        <span class="text-truncate small d-block">{asset.filename || asset.name || ""}</span>
     </div>
 
     <!-- Hidden Audio Element -->

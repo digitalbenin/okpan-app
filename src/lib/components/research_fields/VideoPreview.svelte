@@ -28,7 +28,7 @@
 </script>
 
 <div
-    class="position-relative"
+    class="position-relative d-flex flex-column rounded overflow-hidden"
     style="width: {width ?? size + 'px'}; height: {size}px; max-width: 100%;"
 >
     <!-- Remove Button -->
@@ -45,10 +45,10 @@
         </button>
     {/if}
 
-    <!-- Video Preview (Square) -->
+    <!-- Video Preview -->
     <div
-        class="bg-light rounded overflow-hidden d-flex align-items-center justify-content-center position-relative w-100 h-100 custom-video-container"
-        style="cursor: pointer;"
+        class="bg-light d-flex align-items-center justify-content-center position-relative w-100 flex-grow-1 custom-video-container"
+        style="cursor: pointer; min-height: 0;"
         role="button"
         tabindex="0"
         onclick={handleClick}
@@ -81,6 +81,11 @@
                 ></i>
             </div>
         </div>
+    </div>
+
+    <!-- Asset name bar -->
+    <div class="bg-white p-2 flex-shrink-0">
+        <span class="text-truncate small d-block">{asset.filename || asset.name || ""}</span>
     </div>
 </div>
 
