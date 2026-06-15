@@ -11,6 +11,7 @@
     selected = $bindable(),
     selectable = true,
     size,
+    transparent = false,
     bordered = false,
     wrap = true,
   } = $props();
@@ -24,6 +25,7 @@
     class="table align-middle {size ? `table-${size}` : ''}"
     class:table-bordered={bordered}
     class:text-nowrap={!wrap}
+    style="--bs-table-bg: {transparent ? 'transparent' : 'white'};"
   >
     <thead>
       <tr>
@@ -34,12 +36,12 @@
         {/if}
         {#each derivedColumns as header}
           <th
-            class="fs-7 fw-normal text-black-50"
+            class="fs-7 fw-normal"
             class:text-nowrap={header.nowrap}
           >
             {#if header.sortable}
               <button
-                class="btn btn-link btn-sm p-0 text-black-50 link-underline link-underline-opacity-0"
+                class="btn btn-link text-dark btn-sm p-0 link-underline link-underline-opacity-0"
                 onclick={() => {
                   if (orderBy === header.value) {
                     direction = direction === "asc" ? "desc" : "asc";

@@ -15,6 +15,7 @@
   import PageHeader from "$lib/components/base/PageHeader.svelte";
   import { afterNavigate, goto } from "$app/navigation";
   import { page } from "$app/stores";
+  import { IconChevronDown, IconFilter, IconGridDots, IconList, IconCirclePlus, IconTrash, IconTableImport } from "@tabler/icons-svelte";
   import { updateObjectsStatusBulk, updateObjectsInstitutionBulk } from "$lib/api/ObjectsApi.js";
 
   let { params = $bindable(), project, objects, displayFields, researchFields, ontologyFields, institutions } = $props();
@@ -208,8 +209,15 @@
 
 <BaseSearchBar bind:search={params.search} placeholder={t("common.search", { fallback: "Search" })} oninput={() => { params.searchField = "all"; params.page = 1; }}>
   {#snippet children()}
-    <a class="btn btn-primary btn-sm" href="/projects/{project.id}/objects/add">
-      <i class="bi bi-plus-lg"></i>
+  <a class="btn btn-primary btn-sm" href="/projects/{project.id}/import-data">
+      
+      <IconTableImport size={16} />
+      {t("menu.import-data", { fallback: "Import Data" })}
+    </a>  
+  
+  <a class="btn btn-primary btn-sm" href="/projects/{project.id}/objects/add">
+      
+      <IconCirclePlus size={16} />
       {t("menu.add-object", { fallback: "Add Object" })}
     </a>
   {/snippet}
@@ -219,33 +227,38 @@
       {searchData.totalCount === 1 ? t("common.object", { fallback: "object" }) : t("common.objects", { fallback: "objects" })}
     </div>
     <div class="d-flex justify-content-end gap-2 flex-wrap">
-      <BaseSelect items={statuses} bind:value={params.status} as="button" inputClass="btn-light btn-sm border">
-        <i class="bi bi-chevron-down"></i>
+      <BaseSelect items={statuses} bind:value={params.status} as="button" inputClass="btn-transparent btn-sm border border-dark">
+        <IconChevronDown size={16} />
       </BaseSelect>
-      <BaseSelect items={sortOptions} bind:value={params.orderBy} as="button" inputClass="btn-light btn-sm border">
-        <i class="bi bi-chevron-down"></i>
+      <BaseSelect items={sortOptions} bind:value={params.orderBy} as="button" inputClass="btn-transparent btn-sm border border-dark">
+        <IconChevronDown size={16} />
       </BaseSelect>
       <InstitutionObjectsFields
         {displayFields}
         {researchFields}
         projectId={project.id}
         as="button"
-        inputClass="btn-light btn-sm border"
+        inputClass="btn-transparent btn-sm border border-dark"
       />
-      <button type="button" class="btn btn-light btn-sm border" onclick={() => (showAdvancedFilters = true)}>
-        <i class="bi bi-filter"></i>
+      <button type="button" class="btn btn-transparent btn-sm border border-dark" onclick={() => (showAdvancedFilters = true)}>
+        <IconFilter size={16} />
         {t("common.filter", { fallback: "Filter" })}
       </button>
       <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as", { fallback: "View as" })}>
         {#each [{ val: "grid", icon: "grid-3x3-gap", label: t("common.grid-view", { fallback: "Grid" }) }, { val: "table", icon: "list", label: t("common.table-view", { fallback: "Table" }) }] as view}
           <button
             type="button"
-            class="btn btn-light border"
+            class="btn btn-transparent border border-dark"
             class:active={viewAs === view.val}
+            class:btn-dark={viewAs === view.val}
             onclick={() => (params.viewAs = view.val)}
             aria-label={view.label}
           >
-            <i class="bi bi-{view.icon}"></i>
+            {#if view.val === "grid"}
+              <IconGridDots size={16} />
+            {:else if view.val === "table"}
+              <IconList size={16} />
+            {/if}
           </button>
         {/each}
       </div>
@@ -253,9 +266,9 @@
     {#if selectedObjects.length}
       <div
         transition:topCurtainOverlay={{ y: -20, duration: 220 }}
-        class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-light"
+        class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-gray-200"
       >
-        <div class="row align-items-center g-2 pb-2 mt-2 h-100">
+        <div class="row align-items-center g-2 pb-2 h-100">
           <div class="col d-flex align-items-center gap-2 flex-wrap">
             {@render actionButton("x-circle", t("common.clear-selection", { fallback: "Clear selection" }), () => (selectedObjects = []))}
             {@render actionButton("bank", t("common.change-institution", { fallback: "Change institution" }), () => (showBulkInstitutionModal = true))}
@@ -309,7 +322,7 @@
       {/if}
     {/key}
   {:else}
-    <div class="text-center fst-italic text-muted mt-5">
+    <div class="text-center fst-italic text-muted border border-2 rounded py-5" style="border-style: dashed !important;">
       {t("objects.no-objects-found", { fallback: "No objects found" })}
     </div>
   {/if}

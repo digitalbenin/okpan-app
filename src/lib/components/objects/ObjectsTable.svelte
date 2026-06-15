@@ -60,7 +60,7 @@
       {
         value: "status",
         label: t("common.status", { fallback: "Status" }),
-        sortable: true,
+        sortable: false,
         render: (value) => ({
           component: BaseBadgeStatus,
           props: { status: value },
@@ -69,7 +69,7 @@
     ];
 
     if (displayInstitution) {
-      col.splice(col.length - 1, 0, {
+      col.splice(col.length, 0, {
         value: "institution",
         label: t("common.institution", { fallback: "Institution" }),
         sortable: false,
@@ -121,6 +121,7 @@
 
 <Table
   {items}
+  transparent={true}
   columns={[...defaultColumns, ...optionalColumns]}
   bind:orderBy
   bind:direction
