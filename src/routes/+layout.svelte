@@ -144,7 +144,7 @@
         >
           {#each translationState.languages as language}
             <option value={language.code}>
-              {language.name} ({language.code})
+              {language.name}
             </option>
           {/each}
         </select>

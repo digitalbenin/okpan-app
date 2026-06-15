@@ -62,11 +62,11 @@
       <label class="form-label" for="app-settings-username">
         {t("common.username", { fallback: "Username" })}
       </label>
-      <p class="text-muted small mb-2">
+      <!--<p class="text-muted small mb-2">
         {t("settings.username-description", {
           fallback: "Leave it empty if you want the app to choose a random name for you.",
-        })}
-      </p>
+    })} 
+      </p> -->
       <BaseInput
         id="app-settings-username"
         bind:value={usernameDraft}
@@ -86,7 +86,7 @@
       >
         {#each translationState.languages as language}
           <option value={language.code}>
-            {language.name} ({language.code})
+            {language.name}
           </option>
         {/each}
       </select>

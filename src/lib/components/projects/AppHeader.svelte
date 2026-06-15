@@ -1,5 +1,5 @@
 <script>
-  import { IconSettings } from "@tabler/icons-svelte";
+  import { IconAdjustmentsCog } from "@tabler/icons-svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import okpanLogo from "../../../assets/okpan_logo.svg";
 
@@ -16,7 +16,7 @@
     class="btn btn-outline-secondary d-flex align-items-center gap-2"
     onclick={onSettingsClick}
   >
-    <IconSettings size={16} stroke={2} />
+    <IconAdjustmentsCog size={16} stroke={2} />
     {t("settings.application", { fallback: "App Settings" })}
   </button>
 </div>
