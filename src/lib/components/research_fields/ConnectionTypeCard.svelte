@@ -37,11 +37,11 @@
   </p>
 
   {#if description}
-    <p class="small mb-0 overflow-hidden" style="height: 90px;">
+    <p class="small mb-0" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
       {description}
     </p>
   {:else}
-    <div style="height: 90px;"></div>
+    <div style="height: 2.8em;"></div>
   {/if}
 
   <div class="d-flex align-items-center gap-2">

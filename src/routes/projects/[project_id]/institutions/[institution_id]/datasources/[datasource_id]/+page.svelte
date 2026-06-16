@@ -105,12 +105,12 @@
   leftButtons={[
     {
       text: t("common.back"),
-      class: "btn btn-outline-secondary",
+      class: "btn btn-sm btn-outline-secondary",
       onClick: () => window.history.back(),
     },
       {
       text: t("common.delete"),
-      class: "btn btn-outline-danger",
+      class: "btn btn-sm btn-outline-danger",
       icon: "trash",
       disabled: deleting,
       onClick: openDeleteModal,
@@ -120,7 +120,7 @@
   
     {
       text: t("common.save"),
-      class: "btn btn-primary",
+      class: "btn btn-sm btn-primary",
       onClick: () => form.handleSubmit(),
       disableOnError: true,
     },

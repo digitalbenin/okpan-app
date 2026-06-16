@@ -45,7 +45,7 @@
           />
         {/if}
       </div>
-      <div class="d-flex flex-column min-w-0">
+      <div class="d-flex flex-column min-w-0 overflow-hidden" style="max-width: 200px;">
         <p class="mb-0 text-truncate fw-semibold" style="font-size: 14px;" title={vocabulary?.option?.content}>
           {vocabulary?.option?.content || untitledLabel}
         </p>
