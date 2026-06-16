@@ -3718,6 +3718,11 @@
                              "value":  "Ripristino..."
                          },
                          {
+                             "namespace":  "projects",
+                             "key":  "no-projects-found",
+                             "value":  "Nessun progetto trovato"
+                         },
+                         {
                              "namespace":  "common",
                              "key":  "change-main-image",
                              "value":  "Cambia immagine principale"

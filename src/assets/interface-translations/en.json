@@ -3797,6 +3797,11 @@
                              "namespace":  "projects",
                              "key":  "recovery-snapshots.restoring-btn",
                              "value":  "Restoring..."
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "no-projects-found",
+                             "value":  "No projects found"
                          }
                      ]
 }

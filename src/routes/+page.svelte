@@ -15,7 +15,7 @@
   import { getProjects } from "$lib/api/ProjectsApi.js";
   import { getUserPresenceStore } from "$lib/stores/UserPresenceStore.svelte.js";
   import { onMount } from "svelte";
-  import { IconSearch } from "@tabler/icons-svelte";
+  import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
 
   const { data } = $props();
   const { t, setLocale } = getTranslationStore();
@@ -211,19 +211,7 @@
             {t("onboarding.your-projects", { fallback: "Your projects" })}
           </p>
 
-          <!-- Search -->
-          <div class="d-flex align-items-center border border-gray-500 rounded-sm overflow-hidden" style="width: 300px;">
-            <input
-              type="text"
-              class="form-control border-0 flex-fill"
-              placeholder={t("common.search", { fallback: "Search" })}
-              bind:value={search}
-              style="padding: 4px 16px;"
-            />
-            <span class="bg-white d-flex align-items-center justify-content-center flex-shrink-0" style="padding: 12px;">
-              <IconSearch size={16} stroke={2} />
-            </span>
-          </div>
+          <BaseSearchBar bind:search placeholder={t("common.search", { fallback: "Search" })} border="border-gray-500" />
         </div>
 
         <ProjectsList projects={filteredProjects} />
