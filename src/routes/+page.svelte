@@ -245,9 +245,9 @@
 {/if}
 
 {#if syncProjectOpen}
-  <BaseAlertDialog bind:open={syncProjectOpen} size="lg">
+  <BaseAlertDialog bind:open={syncProjectOpen}>
     {#snippet title()}
-      {t("project.sync-project", { fallback: "Sync project" })}
+      {t("project.join-project", { fallback: "Join project" })}
     {/snippet}
     {#snippet description()}
       <ProjectSync

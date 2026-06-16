@@ -3802,6 +3802,16 @@
                              "namespace":  "projects",
                              "key":  "no-projects-found",
                              "value":  "No projects found"
+                         },
+                         {
+                            "namespace":  "projects",
+                            "key":  "join-project",
+                            "value":  "Join project"
+                         },
+                         {
+                            "namespace":  "projects",
+                            "key":  "syncing",
+                            "value":  "Syncing..."
                          }
                      ]
 }

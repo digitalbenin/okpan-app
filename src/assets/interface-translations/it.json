@@ -3723,6 +3723,16 @@
                              "value":  "Nessun progetto trovato"
                          },
                          {
+                             "namespace":  "projects",
+                             "key":  "join-project",
+                             "value":  "Partecipa al progetto"
+                         },
+                         {
+                             "namespace":  "projects",
+                             "key":  "syncing",
+                             "value":  "Sincronizzazione in corso..."
+                         },
+                         {
                              "namespace":  "common",
                              "key":  "change-main-image",
                              "value":  "Cambia immagine principale"

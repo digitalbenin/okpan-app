@@ -2,6 +2,9 @@
   import BaseInput from "$lib/components/base/BaseInput.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  
+  const { t } = getTranslationStore();
 
   const { onSynced, onTimeout = null } = $props();
 
@@ -136,7 +139,7 @@
 
   <div class="d-flex justify-content-end">
     <BaseButton
-      text={isSyncing ? "Syncing..." : "Sync Project"}
+      text={isSyncing ? t("project.syncing", { fallback: "Syncing..." }) : t("project.join-project", { fallback: "Join project" })}
       class="btn btn-primary"
       disabled={isSyncing || !projectId.trim()}
       onClick={handleSyncProject}
