@@ -32,7 +32,7 @@
  * @namespace backend.protocols
  * @memberof backend
  */
-import { app, BrowserWindow, ipcMain, protocol, net, powerMonitor } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net, powerMonitor, shell } from 'electron';
 import serve from 'electron-serve';
 import started from 'electron-squirrel-startup';
 import 'dotenv/config';
@@ -463,6 +463,15 @@ function createWindow() {
       .catch((err) => {
         console.warn('Failed to read initial navigator.onLine state:', err?.message || err);
       });
+  });
+
+  // Open external links in the default browser instead of Electron
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http:') || url.startsWith('https:')) {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
   });
 
   // Register webContents so assetTorrentManager can emit IPC progress events to renderer

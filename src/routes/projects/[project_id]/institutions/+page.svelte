@@ -112,6 +112,12 @@
     pageSize={params.pageSize}
     count={data.institutions.count}
   />
+{:else if params.search}
+  <div class="border border-dashed rounded-4 d-flex flex-column align-items-center justify-content-center" style="height: 120px;">
+    <p class="text-body-secondary fs-7 mb-0">
+      {t("common.no-results", { fallback: "No results found for your search." })}
+    </p>
+  </div>
 {:else}
   <div class="border border-dashed rounded-4 d-flex flex-column align-items-center justify-content-center" style="height: 120px;">
     <p class="text-body-secondary fs-7 mb-0">
