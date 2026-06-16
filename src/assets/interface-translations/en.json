@@ -3812,6 +3812,11 @@
                             "namespace":  "projects",
                             "key":  "syncing",
                             "value":  "Syncing..."
+                         },
+                         {
+                            "namespace":  "datasources",
+                            "key":  "info",
+                            "value":  "Data source info"
                          }
                      ]
 }

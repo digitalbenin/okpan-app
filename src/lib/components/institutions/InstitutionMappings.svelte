@@ -97,23 +97,26 @@
     rows = nextRows;
   }
 
+  // Sync prop to local state whenever the parent re-fetches
   watch(
-    [() => mappingTemplates, () => selectedTemplateId],
-    ([nextTemplates, _nextSelectedId], [prevTemplates, prevSelectedId]) => {
-      if (nextTemplates !== prevTemplates) {
-        templates = Array.isArray(nextTemplates) ? nextTemplates : [];
-      }
+    () => mappingTemplates,
+    (nextTemplates) => {
+      templates = Array.isArray(nextTemplates) ? nextTemplates : [];
+    }
+  );
 
-      // Keep selection valid when templates change
-      if (!templates.length) {
+  // Auto-select when the list grows (select last) or shrinks (recover selection)
+  watch(
+    () => templates.length,
+    (nextLen, prevLen) => {
+      if (nextLen === 0) {
         selectedTemplateId = null;
+      } else if (nextLen > (prevLen ?? 0)) {
+        selectedTemplateId = templates[templates.length - 1].id;
       } else if (!selectedTemplateId || !templates.some((t) => t.id === selectedTemplateId)) {
         selectedTemplateId = templates[0].id;
       }
-
-      if (selectedTemplateId !== prevSelectedId || nextTemplates !== prevTemplates) {
-        initEditorState();
-      }
+      initEditorState();
     }
   );
 
@@ -169,8 +172,7 @@
       });
       const created = res?.result?.insertIntoTemplates?.[0] || res?.result?.[0];
       if (created?.id) {
-        templates = [...templates, created];
-        selectedTemplateId = created.id;
+        templates = [...templates, created]; // watch fires → selects last → initEditorState
       }
     } catch (err) {
       console.error("Failed to create template:", err);
@@ -227,8 +229,7 @@
     deletingTemplate = true;
     try {
       await deleteTemplateAndCleanup(selectedTemplateId);
-      templates = templates.filter((t) => t.id !== selectedTemplateId);
-      selectedTemplateId = templates.length > 0 ? templates[0].id : null;
+      templates = templates.filter((t) => t.id !== selectedTemplateId); // watch fires → recovers selection → initEditorState
       deleteModalOpen = false;
     } catch (err) {
       console.error("Failed to delete template:", err);
@@ -255,13 +256,13 @@
   <div class="row">
     <!-- Left: template list -->
     <div class="col-2 border-end border-1 border-dark-subtle pe-3">
-      <div class="text-muted mb-2">
+      <div class="mb-2 fs-8 text-uppercase">
         {t("common.mapping-templates")}
       </div>
 
       <div class="list-group">
         {#if templates.length === 0}
-          <div class="list-group-item text-muted fst-italic">
+          <div class="list-group-item  fst-italic">
             {t("common.no-templates")}
           </div>
         {:else}
@@ -273,7 +274,7 @@
               class:border-start={tpl.id === selectedTemplateId}
               class:border-3={tpl.id === selectedTemplateId}
               class:border-primary={tpl.id === selectedTemplateId}
-              onclick={() => (selectedTemplateId = tpl.id)}
+              onclick={() => { selectedTemplateId = tpl.id; initEditorState(); }}
             >
               {titleForTemplate(tpl, idx)}
             </button>
@@ -285,13 +286,13 @@
     <!-- Right: template editor -->
     <div class="col-10">
       <div class="card border-0">
-        <div class="card-body">
+        <div class="card-body py-0 px-2">
           <div class="mb-4">
-            <h5 class="mb-3">
+            <p class="mb-3 fs-8 text-uppercase">
               {t("common.template-info")}
-            </h5>
+            </p>
 
-            <label class="form-label text-muted" for="template-title">
+            <label class="form-label" for="template-title">
               {t("common.data-mapping-title")}
             </label>
             <input
@@ -304,16 +305,16 @@
           </div>
 
           <div>
-            <h5 class="mb-3">
+            <p class="mb-3 fs-8 text-uppercase">
               {t("common.template-mapping")}
-            </h5>
+            </p>
             <TemplateMappingEditor bind:rows {ontologyFields} {canEdit} />
           </div>
         </div>
 
         <div class="card-footer bg-transparent border-0 d-flex justify-content-between gap-2">
           <button
-            class="btn btn-outline-danger"
+            class="btn btn-sm btn-outline-danger"
             onclick={promptDeleteTemplate}
             disabled={!canEdit || saving || creating || deletingTemplate}
           >
@@ -322,7 +323,7 @@
           </button>
 
           <button
-            class="btn btn-success"
+            class="btn btn-sm btn-success"
             onclick={onSaveTemplate}
             disabled={!canEdit || saving || creating || deletingTemplate}
           > 

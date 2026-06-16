@@ -142,7 +142,9 @@
   );
 
 </script>
-
+<p class="fs-8 text-uppercase">
+  {t("datasources.info", { fallback: "Data Source Info" })}
+</p>
 <AutoForm
     {form}
     {validator}
@@ -154,6 +156,7 @@
     fieldOrder={["date"]}
     {uiSchema}
     usePortal={false}
+    margin={0}
     {hideLanguageSelector}
     bind:activeLanguageCode
 />

@@ -9,7 +9,7 @@
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
   import DetailSidebar from "$lib/components/common/DetailSidebar.svelte";
   import LanguageSelector from "$lib/components/form/LanguageSelector.svelte";
-  import { IconDatabase } from "@tabler/icons-svelte";
+  import { IconBuildingBank } from "@tabler/icons-svelte";
   import { invalidate } from "$app/navigation";
   import { deleteDatasource, getObjectsByDatasource } from "$lib/api/DatasourcesApi.js";
   import { getObjectImageUrl } from "$lib/utils/media.js";
@@ -126,11 +126,11 @@
     },
   ]}
 >
-  <div class="container-fluid p-0">
+  <div class="container-fluid px-2">
     <div class="row mb-2">
       <div class="col-12">
         <div class="d-flex align-items-center justify-content-between" style="overflow: visible;">
-          <BaseBreadcrumb icon={IconDatabase} items={breadcrumbItems} />
+          <BaseBreadcrumb icon={IconBuildingBank} items={breadcrumbItems} />
           <LanguageSelector {languages} bind:activeLanguageCode usePortal={false} class="ms-auto" />
         </div>
 
@@ -164,7 +164,7 @@
       <!-- Right column: detail sidebar -->
       <DetailSidebar>
         <div class="mb-4">
-          <p class="mb-2 text-uppercase">{t("common.activity")}</p>
+          <p class="mb-2 text-uppercase fs-8">{t("common.activity")}</p>
           <div class="small text-muted">
             {#if datasource?.created_at}
               <div class="mb-1">
@@ -173,7 +173,7 @@
             {/if}
             {#if datasource?.updated_at}
               <div>
-                {t("common.last-update")}: {timeAgo(datasource.updated_at)}
+                {t("common.last-edited")}: {timeAgo(datasource.updated_at)}
               </div>
             {/if}
             {#if !datasource?.created_at && !datasource?.updated_at}
@@ -184,7 +184,7 @@
 
         <div>
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <p class="text-uppercase mb-0">{t("common.connected-objects")} ({totalCount})</p>
+            <p class="text-uppercase  fs-8 mb-0">{t("common.connected-objects")} ({totalCount})</p>
           </div>
 
           {#if isLoadingObjects}

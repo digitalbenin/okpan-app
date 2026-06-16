@@ -161,16 +161,16 @@
             <IconArrowRight size={16} class="text-muted" />
 
             {#each row.mappedFields as fieldId (fieldId)}
-              <span class="badge text-bg-light border d-inline-flex align-items-center gap-1">
+              <span class="badge text-dark border fw-normal d-inline-flex align-items-center gap-1">
                 {ontologyName(fieldId) || fieldId}
                 <button
                   type="button"
-                  class="btn btn-sm border-0 p-0"
+                  class="btn btn-sm border-0 p-0 fw-normal"
                   onclick={() => removeMappedField(row.rowId, fieldId)}
                   disabled={!canEdit}
                   aria-label={t("common.remove-mapping")}
                 >
-                  <IconX size={16} />
+                  <IconX size={12} />
                 </button>
               </span>
             {/each}
