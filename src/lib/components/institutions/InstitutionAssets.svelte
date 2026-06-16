@@ -15,6 +15,7 @@
   import { IconCirclePlus, IconChevronDown } from "@tabler/icons-svelte";
   import { cubicInOut } from "svelte/easing";
   import { watch } from "runed";
+  import { IconTrash, IconPencil, IconLink, IconCircleX, IconGrid3x3, IconList } from "@tabler/icons-svelte";
 
   let { institution, assets, params = $bindable() } = $props();
   const { t, translationState } = getTranslationStore();
@@ -164,33 +165,35 @@
       {assets.totalCount === 1 ? t("common.media", { fallback: "media" }) : t("common.media", { fallback: "media" })}
     </div>
     <div class="d-flex justify-content-end gap-2 flex-wrap">
-      <BaseSelect items={statuses} bind:value={params.aLinked} as="button" inputClass="btn-light btn-sm border">
+      <BaseSelect items={statuses} bind:value={params.aLinked} as="button" inputClass="btn-transparent btn-sm border">
         <IconChevronDown size={16} />
       </BaseSelect>
       <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as")}>
         <button
           type="button"
-          class="btn btn-light border"
+          class="btn btn-transparent border"
           class:active={viewAs === "grid"}
+          class:btn-dark={viewAs === "grid"}
           onclick={() => (viewAs = "grid")}
           aria-label={t("common.grid-view")}
         >
-          <i class="bi bi-grid-3x3-gap"></i>
+          <IconGrid3x3 size={16} />
         </button>
         <button
           type="button"
-          class="btn btn-light border"
+          class="btn btn-transparent border"
           class:active={viewAs === "table"}
+          class:btn-dark={viewAs === "table"}
           onclick={() => (viewAs = "table")}
           aria-label={t("common.table-view")}
         >
-          <i class="bi bi-list"></i>
+          <IconList size={16} />
         </button>
       </div>
     </div>
     {#if selectedAssets.length > 0}
-      <div transition:topCurtainFly={{ y: -24, duration: 240 }} class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-light">
-        <div class="d-flex align-items-center gap-2 flex-wrap py-2 h-100">
+      <div transition:topCurtainFly={{ y: -24, duration: 240 }} class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-white">
+        <div class="d-flex align-items-center gap-2 flex-wrap pb-2 h-100">
           <button
             class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
             onclick={clearSelection}
@@ -198,7 +201,7 @@
             <span>
               {t("common.clear-selection")}
             </span>
-            <i class="bi bi-x-circle"></i>
+            <IconCircleX size={16} />
           </button>
           <button
             class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
@@ -207,7 +210,7 @@
             <span>
               {t("common.link-to-object")}
             </span>
-            <i class="bi bi-link-45deg"></i>
+            <IconLink size={16} />
           </button>
           <button
             class="btn btn-secondary btn-sm d-flex align-items-center gap-2"
@@ -216,7 +219,7 @@
             <span>
               {t("common.edit-metadata")}
             </span>
-            <i class="bi bi-pencil-square"></i>
+            <IconPencil size={16} />
           </button>
           <button
             class="btn btn-danger btn-sm d-flex align-items-center gap-2"
@@ -225,7 +228,7 @@
             <span>
               {t("common.delete")}
             </span>
-            <i class="bi bi-trash"></i>
+            <IconTrash size={16} />
           </button>
         </div>
       </div>
@@ -236,7 +239,7 @@
     {#if viewAs === "grid"}
       <div class="row">
         {#each assetItems as asset (asset.id)}
-          <div class="col-3">
+          <div class="col-2 col-sm-4 col-md-3 col-lg-2" transition:fade>
             <AssetCard {asset} view={params.view} bind:selected={selectedAssets}
             />
           </div>

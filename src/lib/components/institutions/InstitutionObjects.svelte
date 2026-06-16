@@ -6,7 +6,7 @@
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { IconCirclePlus, IconChevronDown, IconTableImport } from "@tabler/icons-svelte";
+  import { IconCirclePlus, IconChevronDown, IconTableImport, IconFilter, IconX } from "@tabler/icons-svelte";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
@@ -264,10 +264,10 @@
       {objectsData.totalCount === 1 ? t("common.object") : t("common.objects")}
     </div>
     <div class="d-flex justify-content-end gap-2 flex-wrap">
-      <BaseSelect items={statuses} bind:value={params.oStatus} as="button" inputClass="btn-light btn-sm border">
+      <BaseSelect items={statuses} bind:value={params.oStatus} as="button" inputClass="border-secondary btn-transparent btn-sm border">
         <IconChevronDown size={16} />
       </BaseSelect>
-      <BaseSelect items={sortOptions} bind:value={params.oOrderBy} as="button" inputClass="btn-light btn-sm border">
+      <BaseSelect items={sortOptions} bind:value={params.oOrderBy} as="button" inputClass="border-secondary btn-transparent btn-sm border">
         <IconChevronDown size={16} />
       </BaseSelect>
       <InstitutionObjectsFields
@@ -276,18 +276,19 @@
         {researchFields}
         projectId={institution.project_id}
         as="button"
-        inputClass="btn-light btn-sm border"
+        inputClass="border-secondary btn-transparent btn-sm border"
       />
-      <button type="button" class="btn btn-light btn-sm border" onclick={() => (showAdvancedFilters = true)}>
-        <i class="bi bi-filter"></i>
-        {t("common.filter")}
+      <button type="button" class="btn btn-transparent btn-sm border border-secondary" onclick={() => (showAdvancedFilters = true)}>
+        <IconFilter size={16} />
+         {t("common.filters")}
       </button>
       <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as")}>
         {#each [{ val: "grid", icon: "grid-3x3-gap", label: t("common.grid-view") }, { val: "table", icon: "list", label: t("common.table-view") }] as view}
           <button
             type="button"
-            class="btn btn-light border"
+            class="btn btn-transparent border border-secondary"
             class:active={viewAs === view.val}
+            class:btn-dark={viewAs === view.val}
             onclick={() => (params.oViewAs = view.val)}
             aria-label={view.label}
           >
@@ -322,12 +323,15 @@
   {#if hasAppliedFilters}
     <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
       {#each filterBadges as { text, onClear }}
-        <span class="badge rounded-pill text-bg-secondary d-flex align-items-center gap-1">
+        <button
+          type="button"
+          class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1 rounded-2"
+          aria-label={t("common.remove")}
+          onclick={onClear}
+        >
           <span class="text-truncate" style="max-width: 240px;">{text}</span>
-          <button class="btn btn-sm btn-link text-white p-0 m-0" aria-label={t("common.remove")} onclick={onClear}>
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </span>
+          <IconX size={16} />
+        </button>
       {/each}
     </div>
   {/if}

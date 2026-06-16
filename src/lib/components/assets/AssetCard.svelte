@@ -50,7 +50,7 @@
   <div class="fs-5 mb-2 text-break p-2">
     <a
       href="/projects/{asset.project_id}/institutions/{asset.institution_id}/assets/{asset.id}"
-      class="link-dark text-decoration-none">{asset.filename}</a
+      class="link-dark text-truncate text-decoration-none">{asset.filename}</a
     >
   </div>
   <div class="mt-auto p-2">

@@ -5,6 +5,9 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { formatDate } from "$lib/utils/dates";
   import imgLg from "$assets/img_lg.png";
+  import Swiper from "swiper";
+  import { Navigation } from "swiper/modules";
+  import { IconChevronLeft, IconChevronRight } from "@tabler/icons-svelte";
 
   let { object, displayFields, displayInstitution = false, selected = $bindable([]), listQuery = "" } = $props();
 
@@ -18,7 +21,30 @@
       getObjectIdentifier(object)
   );
 
-  const image = $derived(object.objectsAssets[0]?.asset);
+  const sortedAssets = $derived.by(() => {
+    if (!object?.objectsAssets || object.objectsAssets.length === 0) return [];
+    return [...object.objectsAssets]
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((oa) => oa?.asset)
+      .filter(Boolean);
+  });
+
+  const attachSwiper = (element) => {
+    const swiperInstance = new Swiper(element, {
+      slidesPerView: 1,
+      spaceBetween: 0,
+      loop: sortedAssets.length > 1,
+      modules: [Navigation],
+      navigation: {
+        nextEl: element.parentElement.querySelector('.next'),
+        prevEl: element.parentElement.querySelector('.prev'),
+      },
+    });
+
+    return () => {
+      swiperInstance.destroy();
+    };
+  };
 
   const withQuery = (url) => (listQuery ? `${url}${listQuery}` : url);
 
@@ -59,22 +85,55 @@
   class:border-primary={isSelected}
   class:border-2={isSelected}
 >
-  <div class="bg-light d-flex align-items-center justify-content-center overflow-hidden" style="aspect-ratio: 1;">
-    {#if image}
-      <BaseImage
-        class="w-100 h-100"
-        objectFit="cover"
-        asset={image}
-        preferredFormat="sm"
-        alt={title || ""}
-      />
+  <div class="bg-light overflow-hidden position-relative" style="aspect-ratio: 1;">
+    {#if sortedAssets.length > 0}
+      <div class="h-100 w-100">
+        {#if sortedAssets.length > 1}
+          <div class="position-absolute top-50 start-0 translate-middle-y z-2 ps-1">
+            <button
+              class="prev d-flex align-items-center justify-content-center btn btn-light btn-sm p-0 rounded-circle border-0 opacity-75 flex-shrink-0"
+              style="width: 24px; height: 24px;"
+              aria-label={t("objects.previous-image", { fallback: "Previous image" })}
+            >
+              <IconChevronLeft size={14} />
+            </button>
+          </div>
+        {/if}
+        <div class="swiper w-100 h-100" {@attach attachSwiper}>
+          <div class="swiper-wrapper">
+            {#each sortedAssets as asset, i (asset.id + '-' + i)}
+              <div class="swiper-slide">
+                <BaseImage
+                  class="w-100 h-100"
+                  objectFit="cover"
+                  {asset}
+                  preferredFormat="sm"
+                  loading="lazy"
+                  alt={title || ""}
+                />
+              </div>
+            {/each}
+          </div>
+        </div>
+        {#if sortedAssets.length > 1}
+          <div class="position-absolute top-50 end-0 translate-middle-y z-2 pe-1">
+            <button
+              class="next d-flex align-items-center justify-content-center btn btn-light btn-sm p-0 rounded-circle border-0 opacity-75 flex-shrink-0"
+              style="width: 24px; height: 24px;"
+              aria-label={t("objects.next-image", { fallback: "Next image" })}
+            >
+              <IconChevronRight size={14} />
+            </button>
+          </div>
+        {/if}
+      </div>
     {:else}
       <img src={imgLg} alt="" class="w-100 h-100" style="object-fit: cover;" />
     {/if}
   </div>
 
   {#if isSelectable}
-    <div class="position-absolute top-0 end-0 m-2" style="z-index: 2">
+    <div class="position-absolute top-0 end-0 m-2" style="z-index: 1">
       <input
         type="checkbox"
         class="form-check-input"
