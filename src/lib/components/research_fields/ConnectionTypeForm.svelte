@@ -171,7 +171,7 @@
         id: "back-connection-type",
         text: t("common.back"),
         iconComponent: IconArrowLeft,
-        class: "btn btn-outline-secondary",
+        class: "btn btn-sm btn-outline-secondary",
         onClick: onBack,
       });
     }
@@ -179,7 +179,7 @@
     buttons.push({
       id: "delete-connection-type",
       text: t("common.delete-connection-type", { fallback: "Delete connection type" }),
-      class: "btn btn-outline-danger",
+      class: "btn btn-sm btn-outline-danger",
       iconComponent: IconTrash,
       onClick: openDeleteModal,
     });
@@ -191,7 +191,7 @@
     {
       id: "save-connection-type",
       text: t("common.save-changes", { fallback: "Save changes" }),
-      class: "btn btn-success",
+      class: "btn btn-sm btn-success",
       iconComponent: IconDeviceFloppy,
       type: "submit",
       disableOnError: true,
