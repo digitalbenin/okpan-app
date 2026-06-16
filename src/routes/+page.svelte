@@ -234,7 +234,7 @@
 <AppSettingsModal bind:open={appSettingsOpen} onSave={handleSaveAppSettings} />
 
 {#if importProjectOpen}
-  <BaseAlertDialog bind:open={importProjectOpen} size="lg">
+  <BaseAlertDialog bind:open={importProjectOpen}>
     {#snippet title()}
       {t("project.import-from-file", { fallback: "Import from file" })}
     {/snippet}

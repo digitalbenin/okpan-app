@@ -112,7 +112,7 @@
   <div 
     role="button"
     tabindex="0"
-    class="border border-2 border-dashed rounded p-5 text-center bg-light {isDragging ? 'border-primary bg-primary-subtle' : ''}"
+    class="border border-2 border-dashed rounded p-5 text-center bg-gray-200 {isDragging ? 'border-primary bg-primary-subtle' : ''}"
     style="transition: all 0.2s ease;"
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
@@ -184,7 +184,7 @@
       </button>
     {/if}
     <button
-      class="btn btn-primary btn-lg"
+      class="btn btn-primary"
       onclick={handleImport}
       disabled={!selectedFile || isImporting}
     >
