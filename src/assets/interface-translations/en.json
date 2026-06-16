@@ -1368,6 +1368,7 @@
                              "key":  "edit-info",
                              "value":  "Edit project info"
                          },
+
                          {
                              "namespace":  "project",
                              "key":  "delete-project",
@@ -3382,6 +3383,11 @@
                              "namespace":  "common",
                              "key":  "edit-info",
                              "value":  "Edit institution"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "edit-object-info",
+                             "value":  "Edit info"
                          },
                          {
                              "namespace":  "common",

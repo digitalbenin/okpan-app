@@ -7,6 +7,7 @@
         size = 200,
         width = undefined,
         showRemoveButton = false,
+        showFilename = true,
         onRemove = null,
         onClick = null,
     } = $props();
@@ -70,7 +71,9 @@
     </div>
 
     <!-- Asset name bar -->
+    {#if showFilename}
     <div class="bg-white p-2 flex-shrink-0">
         <span class="text-truncate small d-block">{asset.filename || asset.name || ""}</span>
     </div>
+    {/if}
 </div>

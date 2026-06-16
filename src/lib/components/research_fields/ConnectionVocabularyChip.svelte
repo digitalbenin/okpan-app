@@ -2,6 +2,9 @@
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
   import { IconDotsVertical } from "@tabler/icons-svelte";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+
+  const { t } = getTranslationStore();
 
   let {
     vocabulary,
@@ -12,10 +15,15 @@
     untitledLabel = "Untitled",
     duplicateLabel = "Duplicate",
     deleteLabel = "Delete",
-    objectsCountLabel = "objects",
     imageAltFallback = "Connection image",
     borderStartClass = "border-light",
   } = $props();
+
+  const countLabel = $derived(
+    objectsCount === 1
+      ? t("common.object", { fallback: "object" })
+      : t("common.objects", { fallback: "objects" })
+  );
 </script>
 
 <button
@@ -24,9 +32,8 @@
   style="cursor: pointer; background: white;"
   onclick={() => onOpen(vocabulary?.id)}
 >
-  <div class="d-flex align-items-center justify-content-between w-100">
-    <div class="d-flex align-items-center gap-2 min-w-0">
-      <div class="rounded-5 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 41px; height: 41px; background-color: #e9eef1;">
+  <div class="d-flex align-items-center gap-2" style="width: 100%; min-width: 0;">
+    <div class="rounded-5 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 41px; height: 41px; background-color: #e9eef1;">
         {#if vocabulary?.mainAsset}
           <BaseImage
             asset={vocabulary.mainAsset}
@@ -45,17 +52,15 @@
           />
         {/if}
       </div>
-      <div class="d-flex flex-column min-w-0 overflow-hidden" style="max-width: 200px;">
-        <p class="mb-0 text-truncate fw-semibold" style="font-size: 14px;" title={vocabulary?.option?.content}>
+    <div style="flex: 1 1 0; min-width: 0; overflow: hidden;">
+        <p class="mb-0 fw-semibold text-truncate" style="font-size: 14px;" title={vocabulary?.option?.content}>
           {vocabulary?.option?.content || untitledLabel}
         </p>
         <p class="mb-0 text-muted small">
-          {objectsCount} {objectsCountLabel}
+          {objectsCount} {countLabel}
         </p>
       </div>
-    </div>
-
-    <div class="flex-shrink-0" role="presentation" onclick={(event) => event.stopPropagation()}>
+    <div class="flex-shrink-0 ms-auto" role="presentation" onclick={(event) => event.stopPropagation()}>
       <BaseDropdownMenu
         align="end"
         side="bottom"

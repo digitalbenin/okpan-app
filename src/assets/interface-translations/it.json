@@ -3304,6 +3304,11 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "edit-object-info",
+                             "value":  "Modifica info"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "link-to-object",
                              "value":  "Collega all'oggetto"
                          },

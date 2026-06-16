@@ -302,7 +302,7 @@
         transition:topCurtainOverlay={{ y: -20, duration: 220 }}
         class="position-absolute top-0 start-0 end-0 bottom-0 z-2 bg-white"
       >
-        <div class="row align-items-center g-2 pb-2 mt-2 h-100">
+        <div class="row align-items-center g-2 pb-2  h-100">
           <div class="col d-flex align-items-center gap-2 flex-wrap">
             {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
             {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
@@ -311,7 +311,7 @@
               bind:value={bulkStatusValue}
               onValueChange={applyBulkStatus}
             />
-            {@render actionButton("pencil", t("common.edit-info"), openBulkEdit)}
+            {@render actionButton("pencil", t("common.edit-object-info"), openBulkEdit)}
             {@render actionButton("trash", t("common.delete"), () => (showBulkDeleteModal = true), "danger")}
           </div>
         </div>

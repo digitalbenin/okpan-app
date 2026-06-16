@@ -217,7 +217,7 @@
                         aria-label={mainAsset ? t("connections.main-image", { fallback: "Main image" }) : t("connections.add-main-image", { fallback: "Add main image" })}
                     >
                         {#if mainAsset}
-                            <AssetPreview asset={mainAsset} size={56} width="100%" height="100%" showRemoveButton={false} />
+                            <AssetPreview asset={mainAsset} size={56} width="100%" height="100%" showRemoveButton={false} showFilename={false} />
                         {:else}
                             <img src="/src/assets/img_lg.png" alt="" class="w-100 h-100 object-fit-cover" />
                         {/if}
@@ -226,7 +226,7 @@
                         </div>
                     </button>
                     <div class="d-flex flex-column min-w-0">
-                        <h2 class="fs-4 fw-semibold mb-0 text-truncate">{vocabularyName}</h2>
+                        <h2 class=" mb-0 text-truncate">{vocabularyName}</h2>
                         <div class="text-muted small text-truncate">
                             {linkedObjectsTotalCount} {t("common.objects-connected", { fallback: "objects connected" })}
                         </div>

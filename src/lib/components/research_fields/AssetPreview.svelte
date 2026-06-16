@@ -13,6 +13,7 @@
         class: customClass = "",
         onRemove = null,
         showRemoveButton = false,
+        showFilename = true,
     } = $props();
 
     let modalOpen = $state(false);
@@ -47,6 +48,7 @@
                 {size}
                 {width}
                 {showRemoveButton}
+                {showFilename}
                 {onRemove}
                 onClick={handleMediaClick}
             />
