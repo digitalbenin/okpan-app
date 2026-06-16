@@ -15,18 +15,18 @@ export function addImageProtocolPrefix(url) {
  * Common file extensions for different media types
  */
 export const MEDIA_EXTENSIONS = {
-    image: ["jpg", "jpeg", "png", "gif", "webp", "avif", "svg"],
-    audio: ["mp3", "ogg", "wav", "m4a", "aac"],
-    video: ["mp4", "webm", "mov", "avi", "mkv", "wmv", "flv", "m4v"],
+    image: ["jpg", "jpeg", "png", "gif", "webp", "avif"],
+    audio: ["mp3", "ogg"],
+    video: ["mp4", "webm", "mov"],
 };
 
 /**
  * Common MIME types for different media types
  */
 export const MEDIA_MIME_TYPES = {
-    image: ["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif", "image/avif"],
-    audio: ["audio/mpeg", "audio/ogg", "audio/wav", "audio/mp4", "audio/aac"],
-    video: ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/x-ms-wmv", "video/x-flv"],
+    image: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"],
+    audio: ["audio/mpeg", "audio/ogg"],
+    video: ["video/mp4", "video/webm", "video/quicktime"],
 };
 
 /**

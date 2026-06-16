@@ -52,12 +52,12 @@
     {#each mediaSections as section}
         {#if section.visible}
             <div>
-                <div class="d-flex align-items-center gap-1 mb-1 fs-7 text-body-secondary text-uppercase">
+                <div class="d-flex align-items-center gap-1 mb-1 text-body-secondary">
                     {t(
                         `common.${section.type === "image" ? "images" : section.type === "video" ? "videos" : "audio"}`,
                         { fallback: section.type.charAt(0).toUpperCase() + section.type.slice(1) + "s" }
                     )}
-                    <IconInfoCircle size={12} />
+                    <!--<IconInfoCircle size={12} />-->
                 </div>
                 <MediaUploadZone
                     type={section.type}

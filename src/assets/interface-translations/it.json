@@ -1967,6 +1967,11 @@
                              "key":  "template.people.description",
                              "value":  "Individui e gruppi"
                          },
+                          {
+                              "namespace":  "connections",
+                              "key":  "section-media",
+                              "value":  "MEDIA"
+                          },
                          {
                              "namespace":  "objects",
                              "key":  "object_name",

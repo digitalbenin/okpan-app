@@ -14,6 +14,8 @@
     } = $props();
 
     let isDragOver = $state(false);
+    let isZoneHovered = $state(false);
+    let isAddHovered = $state(false);
 
     const label = $derived({
         image: t("common.images", { fallback: "Images" }),
@@ -95,17 +97,18 @@
 
 <div class="d-flex flex-column gap-2">
     {#if assets.length === 0}
-        <!-- Empty state: entire zone is a drop target AND a click target -->
         <div
-            class="media-upload-zone w-100 d-flex flex-column align-items-center justify-content-center text-center"
-            class:is-dragover={isDragOver}
+            class="w-100 rounded-3 py-5 px-3 d-flex flex-column align-items-center justify-content-center text-center"
             role="button"
             tabindex="0"
+            style="border: 2px dashed {isDragOver || isZoneHovered ? 'var(--bs-primary)' : 'var(--bs-gray-500)'}; cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease;"
             onclick={pickFiles}
             onkeydown={handleKeyDown}
             ondragover={handleDragOver}
             ondragleave={handleDragLeave}
             ondrop={handleDrop}
+            onmouseenter={() => isZoneHovered = true}
+            onmouseleave={() => isZoneHovered = false}
         >
             <IconUpload size={20} class="text-body-secondary mb-2" />
             <div class="fw-semibold mb-1">
@@ -123,24 +126,22 @@
             {/if}
         </div>
     {:else}
-        <!-- Assets present: the whole grid wrapper is the drop target.
-             The plus button is only a click-to-upload trigger. -->
         <div
-            class="media-upload-grid d-flex flex-wrap gap-2"
-            class:is-dragover={isDragOver}
+            class="rounded-3 p-2 d-flex flex-wrap gap-2"
+            role="region"
+            aria-label={t("common.drop-zone", { fallback: "Drop zone" })}
+            style="border: 2px dashed {isDragOver ? 'var(--bs-primary)' : 'var(--bs-secondary-subtle)'}; transition: border-color 0.15s ease, background-color 0.15s ease; background-color: {isDragOver ? 'rgba(var(--bs-primary-rgb, 0, 128, 96), 0.06)' : 'transparent'};"
             ondragover={handleDragOver}
             ondragleave={handleDragLeave}
             ondrop={handleDrop}
-            role="region"
-            aria-label={t("common.drop-zone", { fallback: "Drop zone" })}
         >
             {#each assets as asset (asset.id)}
                 <div class="position-relative">
                     <AssetPreview {asset} size={180} showRemoveButton={false} />
                     <button
                         type="button"
-                        class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 p-0 d-flex align-items-center justify-content-center"
-                        style="width: 22px; height: 22px; border-radius: 50%;"
+                        class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 p-0 d-flex align-items-center justify-content-center rounded-circle"
+                        style="width: 22px; height: 22px;"
                         onclick={() => onRemove(asset)}
                         aria-label={t("common.remove", { fallback: "Remove" })}
                     >
@@ -149,57 +150,18 @@
                 </div>
             {/each}
 
-            <!-- Plus button: click only; drop is handled by the parent grid -->
             <div
-                class="media-upload-add d-flex align-items-center justify-content-center"
-                style="width: 180px; height: 180px;"
+                class="rounded-3 d-flex align-items-center justify-content-center"
+                style="width: 180px; height: 180px; cursor: pointer; border: 2px dashed {isAddHovered ? 'var(--bs-primary)' : 'var(--bs-gray-500)'}; transition: border-color 0.15s ease;"
                 role="button"
                 tabindex="0"
                 onclick={pickFiles}
                 onkeydown={handleKeyDown}
+                onmouseenter={() => isAddHovered = true}
+                onmouseleave={() => isAddHovered = false}
             >
                 <IconPlus size={20} class="text-body-secondary" />
             </div>
         </div>
     {/if}
 </div>
-
-<style>
-    .media-upload-zone {
-        background-color: transparent;
-        border: 1px solid #b0b0b0;
-        border-radius: 0.5rem;
-        padding: 3rem 1rem;
-        cursor: pointer;
-        transition: border-color 0.15s ease, background-color 0.15s ease;
-    }
-    .media-upload-zone:hover {
-        border-color: var(--bs-primary, #008060);
-    }
-    .media-upload-zone.is-dragover {
-        border-color: var(--bs-primary, #008060);
-        background-color: rgba(var(--bs-primary-rgb, 0, 128, 96), 0.06);
-    }
-
-    .media-upload-grid {
-        padding: 0.5rem;
-        border: 1px solid transparent;
-        border-radius: 0.5rem;
-        transition: border-color 0.15s ease, background-color 0.15s ease;
-    }
-    .media-upload-grid.is-dragover {
-        border-color: var(--bs-primary, #008060);
-        background-color: rgba(var(--bs-primary-rgb, 0, 128, 96), 0.06);
-    }
-
-    .media-upload-add {
-        background-color: transparent;
-        border: 2px solid var(--bs-border-color, #d5d6d0);
-        border-radius: 0.5rem;
-        cursor: pointer;
-        transition: border-color 0.15s ease;
-    }
-    .media-upload-add:hover {
-        border-color: var(--bs-primary, #008060);
-    }
-</style>

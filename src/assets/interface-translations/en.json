@@ -1065,8 +1065,8 @@
                           },
                           {
                               "namespace":  "connections",
-                              "key":  "section.media",
-                              "value":  "Media"
+                              "key":  "section-media",
+                              "value":  "MEDIA"
                           },
                           {
                               "namespace":  "connections",
@@ -3823,6 +3823,16 @@
                             "namespace":  "datasources",
                             "key":  "info",
                             "value":  "Data source info"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "click-to-select-a-file",
+                             "value":  "Click to select a file"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "or-drag-and-drop-here",
+                             "value":  "Or drag and drop here"
                          }
                      ]
 }

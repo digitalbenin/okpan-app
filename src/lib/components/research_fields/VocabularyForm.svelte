@@ -256,7 +256,7 @@
                                     description: { type: "textarea", colSize: 12, label: t("common.description", { fallback: "Description" }), charLimit: 150 },
                                     externalLink: { colSize: 12, label: t("common.external-link", { fallback: "External link" }), charLimit: 150 },
                                     mediaAssets: {
-                                        label: t("connections.section.media", { fallback: "Media" }),
+                                        label: t("connections.section-media", { fallback: "Media" }),
                                         renderer: MediaSectionRenderer,
                                         colSize: 12,
                                         rendererProps: { visibleFields, project },
