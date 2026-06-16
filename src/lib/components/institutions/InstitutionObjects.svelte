@@ -6,7 +6,7 @@
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { IconCirclePlus, IconChevronDown, IconTableImport, IconFilter, IconX } from "@tabler/icons-svelte";
+  import { IconCirclePlus, IconChevronDown, IconTableImport, IconFilter, IconX, IconGridDots, IconListDetails } from "@tabler/icons-svelte";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
@@ -283,7 +283,7 @@
          {t("common.filters")}
       </button>
       <div class="btn-group btn-group-sm" role="group" aria-label={t("common.view-as")}>
-        {#each [{ val: "grid", icon: "grid-3x3-gap", label: t("common.grid-view") }, { val: "table", icon: "list", label: t("common.table-view") }] as view}
+        {#each [{ val: "grid", icon: IconGridDots, label: t("common.grid-view") }, { val: "table", icon: IconListDetails, label: t("common.table-view") }] as view}
           <button
             type="button"
             class="btn btn-transparent border border-secondary"
@@ -292,7 +292,7 @@
             onclick={() => (params.oViewAs = view.val)}
             aria-label={view.label}
           >
-            <i class="bi bi-{view.icon}"></i>
+            <view.icon size={16} />
           </button>
         {/each}
       </div>

@@ -15,7 +15,7 @@
   import { IconCirclePlus, IconChevronDown } from "@tabler/icons-svelte";
   import { cubicInOut } from "svelte/easing";
   import { watch } from "runed";
-  import { IconTrash, IconPencil, IconLink, IconCircleX, IconGrid3x3, IconList } from "@tabler/icons-svelte";
+  import { IconTrash, IconPencil, IconLink, IconCircleX, IconGridDots, IconListDetails } from "@tabler/icons-svelte";
 
   let { institution, assets, params = $bindable() } = $props();
   const { t, translationState } = getTranslationStore();
@@ -177,7 +177,7 @@
           onclick={() => (viewAs = "grid")}
           aria-label={t("common.grid-view")}
         >
-          <IconGrid3x3 size={16} />
+          <IconGridDots size={16} />
         </button>
         <button
           type="button"
@@ -187,7 +187,7 @@
           onclick={() => (viewAs = "table")}
           aria-label={t("common.table-view")}
         >
-          <IconList size={16} />
+          <IconListDetails size={16} />
         </button>
       </div>
     </div>
