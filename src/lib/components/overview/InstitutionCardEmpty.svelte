@@ -19,7 +19,7 @@
   <div
     class="info d-flex align-items-center justify-content-center overflow-hidden w-100"
   >
-    <div class="fst-italic">
+    <div class="fst-italic fs-7">
       {t("common.no-institutions", { fallback: "No institutions yet!" })}
     </div>
   </div>

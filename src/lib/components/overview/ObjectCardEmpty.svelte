@@ -13,7 +13,7 @@
     </div>
   </div>
   <div class="info d-flex align-items-center justify-content-center">
-    <div class="fst-italic">
+    <div class="fst-italic fs-7">
       {t("common.no-objects", { fallback: "No objects yet!" })}
     </div>
   </div>

@@ -49,7 +49,7 @@
 
   <div class="px-2 pt-1 pb-2 d-flex flex-column justify-content-between" style="height: 120px;">
     <div class="d-flex flex-column gap-1">
-      <div class="fw-semibold text-truncate">{institution.name.content}</div>
+      <div class="fw-semibold text-truncate fs-7">{institution.name.content}</div>
       {#if institution.location?.content || institution.country?.content}
         <div class="small text-body-secondary d-flex align-items-center gap-1 text-truncate">
           <i class="bi bi-geo-alt flex-shrink-0"></i>

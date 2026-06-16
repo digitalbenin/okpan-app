@@ -91,13 +91,13 @@
     {#if isSelectable}
       <a
         href={withQuery(`/projects/${object.project_id}/institutions/${object.institution_id}/objects/${object.id}`)}
-        class="fw-semibold text-truncate link-dark text-decoration-none"
+        class="fw-semibold text-truncate link-dark text-decoration-none fs-7"
       >{title}</a>
     {:else}
-      <div class="fw-semibold text-truncate">{title}</div>
+      <div class="fw-semibold text-truncate fs-7">{title}</div>
     {/if}
     {#if institution}
-      <div class="text-body-secondary text-truncate">{institution}</div>
+      <div class="text-body-secondary text-truncate fs-7">{institution}</div>
     {/if}
     <BaseBadgeStatus status={object.status} />
   </div>
@@ -105,7 +105,7 @@
   {#each parsedFields as field}
     <div class="px-3 mb-1">
       <div class="fs-7 text-muted">{field.label}</div>
-      <div class:text-black-50={field.value === null} class:fst-italic={field.value === null}>
+      <div class="fs-7" class:text-black-50={field.value === null} class:fst-italic={field.value === null}>
         {field.value || t("common.no-value", { fallback: "No value" })}
       </div>
     </div>

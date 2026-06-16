@@ -11,7 +11,7 @@
 </script>
 
 <span
-  class={`badge rounded-3 fw-normal border py-1 px-1 lh-1 align-self-start ${className}`}
+  class={`badge rounded-3 fw-normal border py-1 px-1 lh-1 align-self-start fs-8 ${className}`}
   class:bg-success-subtle={status === "completed"}
   class:border-success-subtle={status === "completed"}
   class:text-success-emphasis={status === "completed"}

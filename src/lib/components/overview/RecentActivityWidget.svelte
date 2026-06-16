@@ -63,7 +63,7 @@
         </div>
         <div>
           <div class="lh-sm small">{getActivityMessage(activity)}</div>
-          <div class="small text-secondary">
+          <div class="small text-secondary fs-8">
             <ActivityTimeAgo timestamp={activity.updated_at || activity.created_at} />
           </div>
         </div>
