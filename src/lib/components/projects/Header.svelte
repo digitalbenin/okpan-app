@@ -10,6 +10,8 @@
   import { page } from "$app/state";
   import { goto, invalidateAll } from "$app/navigation";
   import { deleteProject } from "$lib/api/ProjectsApi.js";
+  import BaseImage from "$lib/components/base/BaseImage.svelte";
+  import { IconCirclePlus, IconArrowLeft, IconPencil, IconShare, IconTrash } from "@tabler/icons-svelte";
 
   const { t } = getTranslationStore();
   const project = $derived(page.data.project);
@@ -27,7 +29,7 @@
   const dropdownItems = $derived([
     {
       label: t("header.all-projects", { fallback: "All projects" }),
-      icon: "arrow-left",
+      icon: IconArrowLeft,
       onClick: () => {
         goto("/");
       },
@@ -37,21 +39,21 @@
     },
     {
       label: t("project.new", { fallback: "New project" }),
-      icon: "plus-circle",
+      icon: IconCirclePlus,
       onClick: () => {
         goto("/?create=new");
       },
     },
     {
       label: t("project.edit-info", { fallback: "Edit project info" }),
-      icon: "pencil",
+      icon: IconPencil,
       onClick: () => {
         goto(`/projects/${project.id}/settings/general`);
       },
     },
     {
       label: t("project.get-sharing-id", { fallback: "Get project sharing ID" }),
-      icon: "share",
+      icon: IconShare,
       onClick: () => {
         showSharingModal = true;
         idCopied = false;
@@ -59,7 +61,7 @@
     },
     {
       label: t("project.delete-project", { fallback: "Delete project" }),
-      icon: "trash",
+      icon: IconTrash,
       onClick: () => {
         showDeleteModal = true;
         confirmationText = "";
@@ -72,6 +74,15 @@
   );
 
   const isSharedProject = $derived(project?.is_shared === 1 || project?.is_shared === true);
+
+  const titleContent = $derived(project.title?.content || "Connecting/Downloading Project...");
+  const firstLetter = $derived(titleContent.charAt(0).toUpperCase());
+  const websiteLogoAsset = $derived.by(() => {
+    if (project.websiteLogoFormats && Object.keys(project.websiteLogoFormats).length > 0) {
+      return { formats: project.websiteLogoFormats };
+    }
+    return null;
+  });
 
   async function handleDeleteConfirm() {
     if (!isDeleteEnabled) return;
@@ -108,23 +119,35 @@
 >
   <div class="col d-flex align-items-center">
     <div class="d-inline-flex rounded-1 p-1 px-2 align-items-center gap-1 bg-gray-300" style="height: 39px;">
-     <!-- {#if project.thumbnail}
-        <img src={project.thumbnail} alt="" class="rounded-1 flex-shrink-0" style="width: 30px; height: 30px; object-fit: cover;" />
-      {:else}
-        <div class="rounded-1 flex-shrink-0 bg-body" style="width: 30px; height: 30px;"></div>
-      {/if} -->
       <BaseDropdownMenu
         bind:open={dropdownOpen}
         items={dropdownItems}
         triggerClass="btn btn-sm btn-link text-decoration-none d-flex align-items-center gap-1 p-0"
-        contentProps={{ style: "left: 0; min-width: 200px;" }}
+        contentProps={{ style: "min-width: 200px; left:-10px;" }}
         side="bottom"
         align="start"
-        sideOffset={4}
         alignOffset={0}
+        sideOffset={8}
+        size="sm"
+        menuClass="border border-secondary-subtle"
       >
         {#snippet trigger()}
-          <span class="text-primary-emphasis">
+          {#if websiteLogoAsset}
+            <BaseImage
+              asset={websiteLogoAsset}
+              class="rounded-1 flex-shrink-0 me-2"
+              width={30}
+              height={30}
+              objectFit="cover"
+              preferredFormat="sm"
+            />
+          {:else}
+            <div class="d-flex align-items-center justify-content-center rounded-1 flex-shrink-0 bg-secondary-subtle text-secondary fw-bold" style="width: 30px; height: 30px; font-size: 14px;">
+              {firstLetter}
+            </div>
+          {/if}
+        <span class="text-primary-emphasis">
+            
             {project.title?.content || "Connecting/Downloading Project..."}
           </span>
           {#if dropdownOpen}

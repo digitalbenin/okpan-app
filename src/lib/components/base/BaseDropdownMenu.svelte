@@ -16,8 +16,23 @@
     sideOffset = 4,
     alignOffset = 0,
     onItemClick = null,
+    menuClass = "",
+    size = "md",
     ...restProps
   } = $props();
+
+  const sizeMap = {
+    sm: { icon: 14, textClass: "fs-7" },
+    md: { icon: 16, textClass: "" },
+    lg: { icon: 20, textClass: "fs-6" },
+  };
+  const iconSize = $derived(sizeMap[size]?.icon ?? 16);
+  const textSizeClass = $derived(sizeMap[size]?.textClass ?? "");
+
+  // Check if icon is a Svelte component (function) rather than a bootstrap string
+  function isComponentIcon(icon) {
+    return typeof icon === 'function';
+  }
 
   // Workaround for bits-ui pointer-events bug
   $effect(() => {
@@ -69,7 +84,7 @@
           <div {...wrapperProps} style="{wrapperProps.style}; z-index: 100000;">
             <div 
               {...props} 
-              class="dropdown-menu show shadow-sm border-0 rounded-2 px-1 py-2 {contentProps.class || ''}"
+              class="dropdown-menu show shadow-sm rounded-2 px-1 py-2 {contentProps.class || ''} {menuClass}"
               style={contentProps.style || ''}
             >
               {#if children}
@@ -87,12 +102,16 @@
                       {/if}
                       {#each item.items as groupItem}
                         <DropdownMenu.Item 
-                          class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2 {groupItem.disabled ? 'disabled' : ''}"
+                          class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2 {groupItem.disabled ? 'disabled' : ''} {groupItem.class || ''} {textSizeClass}"
                           disabled={groupItem.disabled}
                           onclick={() => handleItemClick(groupItem)}
                         >
                           {#if groupItem.icon}
-                            <i class="bi bi-{groupItem.icon}"></i>
+                            {#if isComponentIcon(groupItem.icon)}
+                              <groupItem.icon size={iconSize} />
+                            {:else}
+                              <i class="bi bi-{groupItem.icon}"></i>
+                            {/if}
                           {/if}
                           <span class="flex-grow-1">{groupItem.label}</span>
                           {#if groupItem.shortcut}
@@ -103,12 +122,16 @@
                     </DropdownMenu.Group>
                   {:else}
                     <DropdownMenu.Item 
-                      class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2 {item.disabled ? 'disabled' : ''}"
+                      class="dropdown-item rounded px-2 py-1 cursor-pointer d-flex align-items-center gap-2 {item.disabled ? 'disabled' : ''} {item.class || ''} {textSizeClass}"
                       disabled={item.disabled}
                       onclick={() => handleItemClick(item)}
                     >
                       {#if item.icon}
-                        <i class="bi bi-{item.icon}"></i>
+                        {#if isComponentIcon(item.icon)}
+                          <item.icon size={iconSize} />
+                        {:else}
+                          <i class="bi bi-{item.icon}"></i>
+                        {/if}
                       {/if}
                       <span class="flex-grow-1">{item.label}</span>
                       {#if item.shortcut}
