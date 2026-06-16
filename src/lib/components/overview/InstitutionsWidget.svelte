@@ -5,6 +5,8 @@
   import InstitutionCardEmpty from "./InstitutionCardEmpty.svelte";
   const { t } = getTranslationStore();
   const { institutions } = $props();
+
+  const visibleInstitutions = $derived(institutions.slice(0, 3));
 </script>
 
 <div class=" rounded-5">
@@ -12,15 +14,22 @@
     <div>{t("common.recent-institutions", { fallback: "Recent Institutions" })}</div>
     <a class="fs-7" href="{page.url.pathname}/institutions">{t("overview.view-all-institutions", { fallback: "View all institutions" })}</a>
   </div>
-  {#if institutions.length === 0}
-    <InstitutionCardEmpty />
-  {:else}
-    <div class="row row-cols-3 g-3">
-      {#each institutions.slice(0, 3) as institution}
-        <div class="col">
-          <InstitutionGridCard {institution} />
-        </div>
-      {/each}
-    </div>
-  {/if}
+  <div class="row row-cols-1 row-cols-lg-2 row-cols-xl-3 g-3">
+    {#each visibleInstitutions as institution, index}
+      <div
+        class="col"
+        class:d-none={index >= 1}
+        class:d-lg-block={index === 1}
+        class:d-xl-block={index >= 2}
+      >
+        <InstitutionGridCard {institution} />
+      </div>
+    {/each}
+
+    {#if institutions.length === 0}
+      <div class="col">
+        <InstitutionCardEmpty />
+      </div>
+    {/if}
+  </div>
 </div>

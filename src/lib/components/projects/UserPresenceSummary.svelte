@@ -127,36 +127,36 @@
 </script>
 
   <div class="d-flex justify-content-end align-items-center gap-2">
-    <div class="btn btn-light d-flex align-items-center gap-2">
-      <BaseDropdownMenu
-        bind:open={syncDropdownOpen}
-        triggerClass="d-inline-flex align-items-center p-0 m-0 border-0 bg-transparent shadow-none"
-        contentProps={{ style: "right: 0; left: auto; min-width: 260px; background: #fff; border: 1px solid rgba(15, 23, 42, 0.12); color: #111827; border-radius: 0.85rem; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);" }}
-        side="bottom"
-        align="end"
-        sideOffset={8}
-        alignOffset={0}
-      >
-        {#snippet trigger()}
-          <div
-            class="d-inline-flex align-items-center justify-content-center flex-shrink-0 cursor-pointer bg-transparent border-0"
-            style="width: 1.5rem; height: 1.5rem;"
-            title={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
-            aria-label={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
-          >
-            {#if !isOnline}
-              <IconCloudOff size={24} />
-            {:else if isDataSyncing}
-              <IconCloudUp size={24} />
-            {:else if isDownloadingAssets}
-              <IconCloudDownload size={24} />
-            {:else}
-              <IconCloudCheck size={24} />
-            {/if}
-          </div>
-        {/snippet}
+    <BaseDropdownMenu
+      bind:open={syncDropdownOpen}
+      triggerClass="btn btn-light d-inline-flex align-items-center gap-2 border-0 shadow-none"
+      contentProps={{ style: "right: 0; left: auto; min-width: 260px; background: #fff; border: 1px solid rgba(15, 23, 42, 0.12); color: #111827; border-radius: 0.85rem; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);" }}
+      side="bottom"
+      align="end"
+      sideOffset={8}
+      alignOffset={0}
+    >
+      {#snippet trigger()}
+        <div
+          class="d-inline-flex align-items-center justify-content-center flex-shrink-0 cursor-pointer bg-transparent border-0"
+          style="width: 1.5rem; height: 1.5rem;"
+          title={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
+          aria-label={!isOnline ? 'Offline' : isDataSyncing ? 'Syncing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Online & Synced'}
+        >
+          {#if !isOnline}
+            <IconCloudOff size={24} />
+          {:else if isDataSyncing}
+            <IconCloudUp size={24} />
+          {:else if isDownloadingAssets}
+            <IconCloudDownload size={24} />
+          {:else}
+            <IconCloudCheck size={24} />
+          {/if}
+        </div>
+        <span class="fw-semibold text-body text-truncate" style="max-width: 140px;">{currentUsername}</span>
+      {/snippet}
 
-        {#snippet children()}
+      {#snippet children()}
           <div class="d-flex flex-column gap-2 pt-3 px-2 sync-status-menu text-dark">
             <div class="fw-bold mb-2 pb-2 border-bottom sync-status-menu-divider">
               Sync Status: {!isOnline ? 'Offline' : isDataSyncing ? 'Synchronizing...' : isDownloadingAssets ? 'Downloading Assets...' : 'Up to Date'}
@@ -179,9 +179,7 @@
 
           </div>
         {/snippet}
-      </BaseDropdownMenu>
-      <span class="fw-semibold text-body text-truncate" style="max-width: 140px;">{currentUsername}</span>
-    </div>
+    </BaseDropdownMenu>
 
     {#if connectedPeers.length > 0}
       <div class="vr align-self-stretch my-1"></div>
