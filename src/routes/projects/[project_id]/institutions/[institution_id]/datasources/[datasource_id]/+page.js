@@ -20,7 +20,7 @@ export const load = async ({ params, depends }) => {
         projectId,
         institutionId,
         page: 0,
-        pageSize: 25
+        pageSize: 10
     });
 
     console.log(datasourceRes.result);

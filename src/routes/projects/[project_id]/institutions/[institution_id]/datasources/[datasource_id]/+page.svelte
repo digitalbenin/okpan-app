@@ -126,7 +126,7 @@
     },
   ]}
 >
-  <div class="container-fluid px-2">
+  <div class="container-fluid px-2 ">
     <div class="row mb-2">
       <div class="col-12">
         <div class="d-flex align-items-center justify-content-between" style="overflow: visible;">
@@ -142,7 +142,7 @@
       </div>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-0 bg-white">
       <!-- Left column: edit form -->
       <div class="col-12 col-lg-8">
         <div class="card border-0 mb-1">
@@ -194,11 +194,14 @@
           {:else}
             <div class="list-group rounded-3">
               {#each objects as obj}
-                <div class="list-group-item list-group-item-action py-2">
+                <div class="list-group-item list-group-item-action border-0 border-top py-2">
                   <div class="d-flex align-items-center gap-3">
-                    <BaseImage src={getObjectImageUrl(obj)} alt={getObjectIdentifier(obj) || "Object"} width={52} height={52} class="rounded border" />
+                    <BaseImage src={getObjectImageUrl(obj)} alt={getObjectIdentifier(obj) || "Object"} width={52} height={52} class="" />
                     <div class="flex-grow-1 text-truncate">
                       <div class="fw-semibold text-truncate">{getObjectIdentifier(obj)}</div>
+                      {#if obj.institution?.name?.content}
+                        <div class="fs-7 text-secondary text-truncate">{obj.institution.name.content}</div>
+                      {/if}
                     </div>
                   </div>
                 </div>
