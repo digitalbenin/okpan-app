@@ -63,7 +63,7 @@
         <div class="d-flex align-items-center gap-2 flex-shrink-0" style="overflow: visible;">
         
           <BaseButton
-            class="btn btn-outline-secondary btn"
+            class="btn btn-outline-secondary btn-sm"
             onClick={handleEdit}
             text={t("common.edit-info")}
             IconComponent={IconPencil}
