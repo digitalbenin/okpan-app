@@ -1,4 +1,5 @@
 <script>
+    import { IconX, IconVideo, IconPlayerPlayFilled } from "@tabler/icons-svelte";
     import BaseVideo from "$lib/components/base/BaseVideo.svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
@@ -35,13 +36,13 @@
     {#if showRemoveButton}
         <button
             type="button"
-            class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle position-absolute d-flex align-items-center justify-content-center border-0 opacity-0-hover-100 transition-opacity"
-            style="width: 22px; height: 22px; padding: 0; top: 5px; right: 5px; z-index: 10;"
+            class="btn btn-sm bg-white  text-dark rounded-circle position-absolute d-flex align-items-center justify-content-center border-0 opacity-0-hover-100 transition-opacity"
+            style="width: 28px; height: 28px; padding: 0; top: 8px; right: 8px; z-index: 10;"
             onclick={handleRemove}
             title={t("media.remove-video", { fallback: "Remove video" })}
             aria-label={t("media.remove-video", { fallback: "Remove video" })}
         >
-            <i class="bi bi-x-lg" style="font-size: 10px;"></i>
+            <IconX size={14} />
         </button>
     {/if}
 
@@ -63,22 +64,19 @@
                 compact={true}
             />
         {:else}
-            <i class="bi bi-camera-video text-muted" style="font-size: 2rem;"></i>
+            <IconVideo size={32} class="text-muted" />
         {/if}
 
         <!-- Play Button Overlay -->
         <div
-            class="position-absolute d-flex align-items-center justify-content-center opacity-75 hover-opacity-100"
+            class="position-absolute d-flex align-items-center justify-content-center  hover-opacity-100"
             style="top: 0; left: 0; right: 0; bottom: 0;"
         >
             <div
-                class="bg-dark bg-opacity-75 rounded-circle d-flex align-items-center justify-content-center transition-transform"
+                class="bg-white  rounded-circle d-flex align-items-center justify-content-center transition-transform"
                 style="width: 40px; height: 40px;"
             >
-                <i
-                    class="bi bi-play-fill text-white"
-                    style="font-size: 16px; margin-left: 2px;"
-                ></i>
+                <IconPlayerPlayFilled size={16} class="text-dark" style="margin-left: 2px;" />
             </div>
         </div>
     </div>

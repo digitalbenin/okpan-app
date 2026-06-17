@@ -7,14 +7,9 @@
     const { t } = getTranslationStore();
 
     let videoElement = $state(null);
-    let audioElement = $state(null);
     let viewerEl = $state(null);
     let osdViewer = $state(null);
     let OpenSeadragonLib = null;
-
-    let isPlaying = $state(false);
-    let currentTime = $state(0);
-    let duration = $state(0);
 
     const mediaType = $derived(getMediaType(asset));
     const isImage = $derived(mediaType === "image");
@@ -76,26 +71,6 @@
         });
     }
 
-    function toggleAudioPlay() {
-        if (!audioElement) return;
-        if (isPlaying) audioElement.pause();
-        else audioElement.play().catch((e) => console.error("Audio play error:", e));
-    }
-
-    function handleAudioSeek(e) {
-        if (!audioElement || !duration) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        const percentage = (e.clientX - rect.left) / rect.width;
-        audioElement.currentTime = percentage * duration;
-    }
-
-    function formatTime(seconds) {
-        if (!seconds || isNaN(seconds)) return "0:00";
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, "0")}`;
-    }
-
     $effect(() => {
         if (asset && isImage) {
             requestAnimationFrame(() => openViewer());
@@ -128,30 +103,12 @@
             {t("media.browser-no-video", { fallback: "Your browser does not support the video tag." })}
         </video>
     {:else if isAudio}
-        <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-white px-5">
-            <i class="bi bi-music-note-beamed mb-4" style="font-size: 3rem;"></i>
-            <div class="w-100" style="max-width: 400px;">
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <button class="btn btn-link text-white p-0 d-flex align-items-center justify-content-center border-0" onclick={toggleAudioPlay} style="width: 32px; height: 32px;"
-                        aria-label={isPlaying ? t("media.pause", { fallback: "Pause" }) : t("media.play", { fallback: "Play" })}>
-                        <i class="bi {isPlaying ? 'bi-pause-circle' : 'bi-play-circle'}" style="font-size: 28px;"></i>
-                    </button>
-                    <span class="text-white-50" style="font-size: 13px;">
-                        {formatTime(currentTime)} / {formatTime(duration)}
-                    </span>
-                </div>
-                <div class="bg-white bg-opacity-25 rounded-pill position-relative" style="height: 5px; cursor: pointer;" onclick={handleAudioSeek} role="button" tabindex="0"
-                    aria-label={t("media.seek-audio-position", { fallback: "Seek audio position" })}>
-                    <div class="bg-white rounded-pill h-100" style="width: {duration ? (currentTime / duration) * 100 : 0}%;"></div>
-                    <div class="bg-white rounded-circle position-absolute" style="width: 14px; height: 14px; top: -4.5px; left: {duration ? (currentTime / duration) * 100 : 0}%; transform: translateX(-50%);"></div>
-                </div>
+        <div class="w-100 h-100 d-flex align-items-center justify-content-center px-4">
+            <div class="w-100" style="max-width: 500px;">
+                <i class="bi bi-music-note-beamed d-block text-center text-white mb-4" style="font-size: 3rem;"></i>
+                <audio src="media://{asset.path}" controls class="w-100"
+                    preload="metadata"></audio>
             </div>
-            <audio bind:this={audioElement} src="media://{asset.path}" class="d-none"
-                ontimeupdate={() => { if (audioElement) currentTime = audioElement.currentTime; }}
-                onloadedmetadata={() => { if (audioElement) duration = audioElement.duration; }}
-                onplay={() => isPlaying = true}
-                onpause={() => isPlaying = false}
-                preload="metadata"></audio>
         </div>
     {:else}
         <div class="w-100 h-100 d-flex align-items-center justify-content-center">

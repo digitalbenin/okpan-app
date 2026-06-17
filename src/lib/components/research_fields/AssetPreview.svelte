@@ -96,7 +96,7 @@
                             <button
                                 type="button"
                                 class="btn btn-sm btn-outline-danger rounded-circle"
-                                style="width: 24px; height: 24px; padding: 0;"
+                                style="width: 30px; height: 24px; padding: 0;"
                                 onclick={onRemove}
                                 title={t("media.remove-file", { fallback: "Remove file" })}
                                 aria-label={t("media.remove-file", { fallback: "Remove file" })}
