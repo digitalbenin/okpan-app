@@ -54,7 +54,7 @@
     getFieldList(researchFields)
       .filter((f) => (f.type || "").toLowerCase() === "vocabulary")
       .flatMap((f) =>
-        (f.vocabularies || []).map((v) => ({ id: v.id, field_id: f.id, name: v.option?.content || v.option }))
+        (f.vocabularies || []).map((v) => ({ id: v.id, field_id: f.id, name: v.option?.content || v.option, mainAsset: v.mainAsset || null }))
       )
   );
 

@@ -46,6 +46,7 @@
   });
 
   const pendingTextFilters = $derived(pendingFilters?.__textFilters ?? []);
+  const appliedTextFilters = $derived(advancedFilters?.__textFilters ?? []);
 
   const visibleVocabularyFields = $derived(
     (researchFields || []).filter(
@@ -99,13 +100,13 @@
   });
 
   const institutionCount = $derived(
-    (pendingFilters?.institutions || []).filter((id) =>
+    (advancedFilters?.institutions || []).filter((id) =>
       institutions.some((institution) => String(institution.id) === String(id))
     ).length
   );
 
   const vocabularyCountForField = (fieldId) =>
-    (pendingFilters?.[fieldId] || []).filter((id) =>
+    (advancedFilters?.[fieldId] || []).filter((id) =>
       vocabularies.some(
         (vocabulary) =>
           String(vocabulary.field_id) === String(fieldId) && String(vocabulary.id) === String(id)
@@ -113,7 +114,7 @@
     ).length;
 
   const textFilterCountForKind = (kind) =>
-    pendingTextFilters.filter((textFilter) => textFilter.kind === kind).length;
+    appliedTextFilters.filter((textFilter) => textFilter.kind === kind).length;
 
   const getFacetCount = (item) => {
     if (!selectedField) return 0;

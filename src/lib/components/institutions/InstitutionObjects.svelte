@@ -62,6 +62,7 @@
         id: v.id,
         field_id: f.id,
         name: v.option?.content || v.option,
+        mainAsset: v.mainAsset || null,
       })))
   );
 

@@ -12,6 +12,12 @@
 
   const { t } = getTranslationStore();
 
+  const kindLabel = $derived(
+    kind === "research"
+      ? t("filters.custom-fields", { fallback: "Custom fields" })
+      : t("filters.institution-mapped-fields", { fallback: "Institution mapped fields" })
+  );
+
   let rows = $state(
     currentFilters.length > 0
       ? currentFilters.map((filter, index) => ({
@@ -58,9 +64,9 @@
 </script>
 
 <div class="p-3 d-flex flex-column gap-3">
-  <button class="btn btn-link text-decoration-none p-0 align-self-start" onclick={onBack}>
-    <IconArrowLeft />
-    {t("nav.back", { fallback: "Back" })}
+  <button class="btn btn-link text-decoration-none p-0 align-self-start d-flex align-items-center gap-1" onclick={onBack}>
+    <IconArrowLeft size={16} />
+    <span class="fw-semibold">{kindLabel}</span>
   </button>
 
   {#each rows as row (row.localId)}

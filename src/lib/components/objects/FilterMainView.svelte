@@ -56,7 +56,7 @@
             fallback: "Filter by {{field}}",
             field: field.name?.content || field.name,
           })}
-          onclick={() => onShowDetail({ type: "vocabulary", id: field.id })}
+          onclick={() => onShowDetail({ type: "vocabulary", id: field.id, name: field.name })}
         >
           <div>{field.name?.content || field.name}</div>
           <div class="d-flex align-items-center gap-2">
