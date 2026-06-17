@@ -1834,6 +1834,16 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "add-image",
+                             "value":  "Aggiungi immagine"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-video",
+                             "value":  "Aggiungi video"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "drag-upload-images",
                              "value":  "Nessuna immagine"
                          },

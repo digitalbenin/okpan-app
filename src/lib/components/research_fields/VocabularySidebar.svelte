@@ -1,5 +1,7 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+    import { goto } from "$app/navigation";
+    import { page } from "$app/stores";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BasePagination from "$lib/components/base/BasePagination.svelte";
     import { getObjectIdentifier } from "$lib/api/ObjectsApi.js";
@@ -8,20 +10,27 @@
         initialValues = {},
         linkedObjects = [],
         linkedObjectsTotalCount = 0,
-        linkedObjectsPageSize = 24,
+        linkedObjectsPage = 1,
+        linkedObjectsPageSize = 20,
         project = null,
     } = $props();
 
     const { t } = getTranslationStore();
 
-    let currentPage = $state(1);
+    let currentPage = $state(linkedObjectsPage);
+    const currentUrl = $derived($page.url);
 
-    const paginatedObjects = $derived(
-        linkedObjects.slice(
-            (currentPage - 1) * linkedObjectsPageSize,
-            currentPage * linkedObjectsPageSize
-        )
-    );
+    $effect(() => {
+        currentPage = linkedObjectsPage;
+    });
+
+    $effect(() => {
+        if (currentPage !== linkedObjectsPage) {
+            const url = new URL(currentUrl);
+            url.searchParams.set("loPage", String(currentPage));
+            goto(url, { keepFocus: true, noScroll: true });
+        }
+    });
 
     const formatDate = (ts) => {
         if (!ts) return "—";
@@ -66,7 +75,7 @@
             </p>
         </div>
         <div class="d-flex flex-column">
-            {#each paginatedObjects as obj (obj.id)}
+            {#each linkedObjects as obj (obj.id)}
                 <a
                     href={`/projects/${project.id}/institutions/${obj.institution_id}/objects/${obj.id}`}
                     class="d-flex align-items-center gap-2 py-2 border-top text-decoration-none text-body"

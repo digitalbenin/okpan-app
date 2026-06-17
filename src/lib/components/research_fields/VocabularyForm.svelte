@@ -19,7 +19,7 @@
     import { deleteVocabulary as deleteVocabularyApi, updateVocabulary, updateVocabularyAssets, addVocabulary } from "$lib/api/ResearchFieldsApi.js";
     import { processEntityTranslations, buildTranslationFormValues } from "$lib/api/TranslationsApi.js";
     import { createDirtyTracker } from "$lib/stores/DirtyTracker.svelte.js";
-    import { IconChartCircles, IconTrash, IconPencil } from "@tabler/icons-svelte";
+    import { IconChartCircles, IconTrash, IconPencil, IconDeviceFloppy } from "@tabler/icons-svelte";
     import { watch } from "runed";
 
     let {
@@ -156,12 +156,12 @@
     ]);
 
     const rightButtons = $derived([
-        { id: "save-vocabulary", text: submitLabel || t("common.save", { fallback: "Save changes" }), class: "btn btn-success", type: "submit", disableOnError: true, disableWhenClean: isEditMode }
+        { id: "save-vocabulary", text: submitLabel || t("common.save", { fallback: "Save changes" }), class: "btn btn-success btn-sm", type: "submit", disableOnError: true, disableWhenClean: isEditMode, iconComponent: IconDeviceFloppy }
     ]);
 
     const leftButtons = $derived(
         isEditMode
-            ? [{ id: "delete-vocabulary", text: t("common.delete-connection", { fallback: "Delete connection" }), class: "btn btn-outline-danger", iconComponent: IconTrash, onClick: () => (showDeleteDialog = true), type: "button" }]
+            ? [{ id: "delete-vocabulary", text: t("common.delete-connection", { fallback: "Delete connection" }), class: "btn btn-sm btn-outline-danger", iconComponent: IconTrash, onClick: () => (showDeleteDialog = true), type: "button" }]
             : []
     );
 
@@ -237,7 +237,7 @@
 
         <!-- Body -->
         <div class="flex-grow-1 pt-0">
-            <div class="row g-4">
+            <div class="row me-n5">
                 <div class="col-12 col-xl-9 col-lg-8 pe-xl-4">
                     <section class="mb-4 pt-4">
                         <p class="text-uppercase fs-7 mb-0">{t("connections.section.main-info", { fallback: "Main info" })}</p>
@@ -274,6 +274,7 @@
                             {initialValues}
                             {linkedObjects}
                             {linkedObjectsTotalCount}
+                            {linkedObjectsPage}
                             {linkedObjectsPageSize}
                             {project}
                         />

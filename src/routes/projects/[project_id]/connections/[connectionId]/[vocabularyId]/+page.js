@@ -17,10 +17,10 @@ export async function load({ params, parent, url }) {
 
     // Linked Objects pagination (1-based in UI)
     const loPageRaw = Number(url?.searchParams?.get('loPage') ?? 1);
-    const loPageSizeRaw = Number(url?.searchParams?.get('loPageSize') ?? 24);
+    const loPageSizeRaw = Number(url?.searchParams?.get('loPageSize') ?? 20);
     const linkedObjectsPage = Number.isFinite(loPageRaw) && loPageRaw > 0 ? Math.floor(loPageRaw) : 1;
-    const allowedPageSizes = new Set([12, 24, 48, 96]);
-    const linkedObjectsPageSize = allowedPageSizes.has(loPageSizeRaw) ? loPageSizeRaw : 24;
+    const allowedPageSizes = new Set([12, 20, 24, 48, 96]);
+    const linkedObjectsPageSize = allowedPageSizes.has(loPageSizeRaw) ? loPageSizeRaw : 20;
     
     // Fetch the research field which contains the vocabularies
     const { result: researchField, error: fetchError } = await getResearchFieldById(connectionId);

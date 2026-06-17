@@ -23,7 +23,7 @@
     function handleRemove(e) {
         e.stopPropagation();
         if (onRemove) {
-            onRemove();
+            onRemove(asset);
         }
     }
 </script>

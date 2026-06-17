@@ -895,6 +895,16 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "add-image",
+                             "value":  "Add image"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-video",
+                             "value":  "Add video"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "drag-upload-images",
                              "value":  "No images"
                          },
@@ -3833,6 +3843,31 @@
                              "namespace":  "common",
                              "key":  "or-drag-and-drop-here",
                              "value":  "Or drag and drop here"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "today",
+                             "value":  "Today"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "yesterday",
+                             "value":  "Yesterday"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "days-ago",
+                             "value":  "days ago"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "weeks-ago",
+                             "value":  "weeks ago"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "months-ago",
+                             "value":  "months ago"
                          }
                      ]
 }

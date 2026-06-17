@@ -1,6 +1,7 @@
 <script>
-    import { IconInfoCircle } from "@tabler/icons-svelte";
+    import { IconPlus } from "@tabler/icons-svelte";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+    import { MEDIA_EXTENSIONS } from "$lib/utils/media.js";
     import MediaUploadZone from "$lib/components/research_fields/MediaUploadZone.svelte";
 
     const { t } = getTranslationStore();
@@ -38,6 +39,25 @@
         }
     }
 
+    async function pickAndImport(type) {
+        const labelMap = {
+            image: t("common.images", { fallback: "Images" }),
+            video: t("common.videos", { fallback: "Videos" }),
+            audio: t("common.audio", { fallback: "Audio" }),
+        };
+        const exts = MEDIA_EXTENSIONS[type] || [];
+        try {
+            const result = await window.api.openFileDialog({
+                properties: ["openFile", "multiSelections"],
+                filters: [{ name: labelMap[type] || type, extensions: exts }],
+            });
+            if (result?.canceled || !result.filePaths?.length) return;
+            await importPaths(result.filePaths, type);
+        } catch (e) {
+            console.error("Failed to pick files", e);
+        }
+    }
+
     function handleRemove(type, asset) {
         const key = type === "image" ? "images" : type === "video" ? "videos" : "audio";
         const updated = {
@@ -52,12 +72,26 @@
     {#each mediaSections as section}
         {#if section.visible}
             <div>
-                <div class="d-flex align-items-center gap-1 mb-1 text-body-secondary">
-                    {t(
-                        `common.${section.type === "image" ? "images" : section.type === "video" ? "videos" : "audio"}`,
-                        { fallback: section.type.charAt(0).toUpperCase() + section.type.slice(1) + "s" }
-                    )}
-                    <!--<IconInfoCircle size={12} />-->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>
+                        {t(
+                            `common.${section.type === "image" ? "images" : section.type === "video" ? "videos" : "audio"}`,
+                            { fallback: section.type.charAt(0).toUpperCase() + section.type.slice(1) + "s" }
+                        )}
+                    </span>
+                    {#if (value[section.key] || []).length > 0}
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-dark d-flex align-items-center gap-1"
+                            onclick={() => pickAndImport(section.type)}
+                        >
+                            <IconPlus size={14} />
+                            {t(
+                                `common.add-${section.type}`,
+                                { fallback: "Add " + section.type }
+                            )}
+                        </button>
+                    {/if}
                 </div>
                 <MediaUploadZone
                     type={section.type}

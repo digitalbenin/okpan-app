@@ -1,5 +1,5 @@
 <script>
-    import { IconUpload, IconX, IconPlus } from "@tabler/icons-svelte";
+    import { IconUpload } from "@tabler/icons-svelte";
     import { MEDIA_EXTENSIONS } from "$lib/utils/media.js";
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import AssetPreview from "$lib/components/research_fields/AssetPreview.svelte";
@@ -15,7 +15,6 @@
 
     let isDragOver = $state(false);
     let isZoneHovered = $state(false);
-    let isAddHovered = $state(false);
 
     const label = $derived({
         image: t("common.images", { fallback: "Images" }),
@@ -127,41 +126,17 @@
         </div>
     {:else}
         <div
-            class="rounded-3 p-2 d-flex flex-wrap gap-2"
+            class="rounded-3 p-3 d-flex flex-wrap gap-3"
             role="region"
             aria-label={t("common.drop-zone", { fallback: "Drop zone" })}
-            style="border: 2px dashed {isDragOver ? 'var(--bs-primary)' : 'var(--bs-secondary-subtle)'}; transition: border-color 0.15s ease, background-color 0.15s ease; background-color: {isDragOver ? 'rgba(var(--bs-primary-rgb, 0, 128, 96), 0.06)' : 'transparent'};"
+            style="border: 2px dashed {isDragOver ? 'var(--bs-primary)' : 'var(--bs-gray-500)'}; transition: border-color 0.15s ease, background-color 0.15s ease; background-color: {isDragOver ? 'rgba(var(--bs-primary-rgb, 0, 128, 96), 0.06)' : 'transparent'};"
             ondragover={handleDragOver}
             ondragleave={handleDragLeave}
             ondrop={handleDrop}
         >
             {#each assets as asset (asset.id)}
-                <div class="position-relative">
-                    <AssetPreview {asset} size={180} showRemoveButton={false} />
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 p-0 d-flex align-items-center justify-content-center rounded-circle"
-                        style="width: 22px; height: 22px;"
-                        onclick={() => onRemove(asset)}
-                        aria-label={t("common.remove", { fallback: "Remove" })}
-                    >
-                        <IconX size={14} />
-                    </button>
-                </div>
+                <AssetPreview {asset} size={180} showRemoveButton={true} {onRemove} />
             {/each}
-
-            <div
-                class="rounded-3 d-flex align-items-center justify-content-center"
-                style="width: 180px; height: 180px; cursor: pointer; border: 2px dashed {isAddHovered ? 'var(--bs-primary)' : 'var(--bs-gray-500)'}; transition: border-color 0.15s ease;"
-                role="button"
-                tabindex="0"
-                onclick={pickFiles}
-                onkeydown={handleKeyDown}
-                onmouseenter={() => isAddHovered = true}
-                onmouseleave={() => isAddHovered = false}
-            >
-                <IconPlus size={20} class="text-body-secondary" />
-            </div>
         </div>
     {/if}
 </div>
