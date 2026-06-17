@@ -43,7 +43,7 @@
         <div class="modal-dialog modal-dialog-scrollable modal-{size} {dialogClass}" role="document" style={dialogStyle}>
             <div class="modal-content" style={contentStyle}>
                 <div class="modal-header">
-                    <div class="modal-title h5">
+                    <div class="modal-title fs-5">
                         {@render header()}
                     </div>
                     <BaseButton
