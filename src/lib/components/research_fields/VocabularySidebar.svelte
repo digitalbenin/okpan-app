@@ -78,7 +78,7 @@
             {#each linkedObjects as obj (obj.id)}
                 <a
                     href={`/projects/${project.id}/institutions/${obj.institution_id}/objects/${obj.id}`}
-                    class="d-flex align-items-center gap-2 py-2 border-top text-decoration-none text-body"
+                    class="d-flex align-items-center gap-2 py-2 border-top text-decoration-none text-body min-w-0"
                 >
                     <div class="flex-shrink-0 rounded overflow-hidden" style="width: 51px; height: 52px;">
                         <BaseImage
@@ -92,9 +92,9 @@
                             compact={true}
                         />
                     </div>
-                    <div class="d-flex flex-column min-w-0">
-                        <span class="fw-semibold text-truncate">{getDisplayName(obj)}</span>
-                        <span class="small text-truncate">{obj?.institution?.name?.content || ""}</span>
+                    <div class="overflow-hidden min-w-0">
+                        <div class="fw-semibold text-truncate">{getDisplayName(obj)}</div>
+                        <div class="small text-truncate">{obj?.institution?.name?.content || ""}</div>
                     </div>
                 </a>
             {/each}

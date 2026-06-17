@@ -237,7 +237,7 @@
 
         <!-- Body -->
         <div class="flex-grow-1 pt-0">
-            <div class="row me-n5">
+            <div class="row me-n4">
                 <div class="col-12 col-xl-9 col-lg-8 pe-xl-4">
                     <section class="mb-4 pt-4">
                         <p class="text-uppercase fs-7 mb-0">{t("connections.section.main-info", { fallback: "Main info" })}</p>
