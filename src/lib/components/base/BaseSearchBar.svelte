@@ -1,11 +1,11 @@
 <script>
   import { IconSearch } from "@tabler/icons-svelte";
 
-  let { search = $bindable(""), placeholder = "Search", oninput, border = "border-white", children, toolbar } = $props();
+  let { search = $bindable(""), placeholder = "Search", oninput, border = "border-white", width, children, toolbar } = $props();
 </script>
 
-<div class="d-flex justify-content-between align-items-center pb-3 mt-4">
-  <div class="input-group" style="width: 300px;">
+<div class="d-flex justify-content-between align-items-center pb-3 mt-4 w-100">
+  <div class="input-group" style="width: {width ?? '300px'};">
     <input
       type="text"
       class="form-control border-end-0 {border}"

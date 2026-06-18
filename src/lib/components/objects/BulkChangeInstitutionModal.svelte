@@ -1,7 +1,7 @@
 <script>
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
-  import BaseInput from "$lib/components/base/BaseInput.svelte";
+  import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getSearch } from "$lib/api/SearchApi.js";
@@ -12,6 +12,7 @@
   let {
     isOpen = $bindable(false),
     projectId,
+    selectedCount = 0,
     pageSize = 10,
     onConfirm = () => {},
   } = $props();
@@ -98,14 +99,13 @@
 
   {#snippet body()}
     <div class="d-flex flex-column gap-3">
-      <div class="d-flex gap-2 align-items-center">
-        <BaseInput
-          placeholder={t("common.search", { fallback: "Search" })}
-          clearable
-          size="sm"
-          bind:value={searchQuery}
-          onInput={(e) => throttledSearch(e.target.value)}
-        />
+      <div class="text-dark fs-6">
+        <span class="fw-semibold">{t("common.bulk-change-institution-hint-count", { count: selectedCount }, { fallback: `${selectedCount} objects selected` })}</span>
+        <span>{t("common.bulk-change-institution-hint-action", { count: selectedCount }, { fallback: `— select the institution to move them to.` })}</span>
+      </div>
+
+      <div class="d-flex gap-2 align-items-center w-100">
+        <BaseSearchBar bind:search={searchQuery} placeholder={t("common.search", { fallback: "Search" })} oninput={(e) => throttledSearch(e.target.value)} width="100%" border="border-secondary-subtle"/>
       </div>
 
       {#if isLoading}
@@ -113,12 +113,14 @@
       {:else}
         <div class="list-group">
           {#each pagedItems() as inst}
-            <label class="list-group-item d-flex align-items-center gap-2">
+            <label class="list-group-item d-flex border-secondary-subtle align-items-center gap-2" class:bg-primary-subtle={inst.id === selectedInstitutionId}>
               <input
                 type="radio"
                 name="institution-select"
                 value={inst.id}
                 bind:group={selectedInstitutionId}
+                class="form-check-input"
+                style="accent-color: var(--bs-primary)"
               />
               <span class="fw-medium">{inst.name || inst.title || inst.id}</span>
             </label>

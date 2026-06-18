@@ -9,10 +9,11 @@
   import { IconCirclePlus, IconChevronDown, IconTableImport, IconFilter, IconX, IconGridDots, IconListDetails } from "@tabler/icons-svelte";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
+  import BulkEditObjectsModal from "$lib/components/objects/BulkEditObjectsModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import ObjectAdvancedFilters from "$lib/components/objects/ObjectAdvancedFilters.svelte";
   import { topCurtainOverlay } from "$lib/utils/transitions.js";
-  import { afterNavigate, goto } from "$app/navigation";
+  import { afterNavigate } from "$app/navigation";
   import { page } from "$app/stores";
   import { resource } from "runed";
   import { updateObjectsStatusBulk, updateObjectsInstitutionBulk, searchObjects } from "$lib/api/ObjectsApi.js";
@@ -25,6 +26,7 @@
   let selectedObjects = $state([]);
   let showBulkDeleteModal = $state(false);
   let showBulkInstitutionModal = $state(false);
+  let showBulkEditModal = $state(false);
   let bulkStatusValue = $state("");
   let showAdvancedFilters = $state(false);
   let advancedFilters = $state(params?.oFilters || {});
@@ -233,9 +235,7 @@
 
   const openBulkEdit = () => {
     if (!selectedObjects?.length) return;
-    const returnTo = `/projects/${institution.project_id}/institutions/${institution.id}`;
-    const ids = selectedObjects.map(String).join(",");
-    goto(`/projects/${institution.project_id}/objects/bulk-edit?ids=${encodeURIComponent(ids)}&returnTo=${encodeURIComponent(returnTo)}`);
+    showBulkEditModal = true;
   };
 </script>
 
@@ -363,7 +363,8 @@
 </div>
 
 <BulkDeleteObjectsModal bind:isOpen={showBulkDeleteModal} selectedIds={selectedObjects} on:deleted={() => (selectedObjects = [])} />
-<BulkChangeInstitutionModal bind:isOpen={showBulkInstitutionModal} projectId={institution.project_id} onConfirm={handleConfirmInstitution} />
+<BulkChangeInstitutionModal bind:isOpen={showBulkInstitutionModal} projectId={institution.project_id} selectedCount={selectedObjects.length} onConfirm={handleConfirmInstitution} />
+<BulkEditObjectsModal bind:isOpen={showBulkEditModal} projectId={institution.project_id} selectedIds={selectedObjects} researchFields={researchFields} onSaved={() => (selectedObjects = [])} />
 
 {#if showAdvancedFilters}
   <ObjectAdvancedFilters

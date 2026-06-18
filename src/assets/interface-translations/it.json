@@ -1534,6 +1534,21 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "bulk-change-institution-hint",
+                             "value":  "{{count}} oggetto selezionato — seleziona l'istituzione in cui spostarlo. | {{count}} oggetti selezionati — seleziona l'istituzione in cui spostarli."
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "bulk-change-institution-hint-count",
+                             "value":  "{{count}} oggetto selezionato | {{count}} oggetti selezionati"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "bulk-change-institution-hint-action",
+                             "value":  "— seleziona l'istituzione in cui spostarlo. | — seleziona l'istituzione in cui spostarli."
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "select-institution",
                              "value":  "Seleziona istituzione"
                          },
@@ -2011,6 +2026,66 @@
                              "namespace":  "objects",
                              "key":  "edit-selected",
                              "value":  "Modifica selezionati"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "edit-multiple-objects",
+                             "value":  "Modifica più oggetti"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "bulk-edit-hint-count",
+                             "value":  "{{count}} oggetto selezionato | {{count}} oggetti selezionati"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "bulk-edit-hint-action",
+                             "value":  "— seleziona i campi che vuoi modificare"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "bulk-edit-add",
+                             "value":  "Aggiungi"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "bulk-edit-replace-all",
+                             "value":  "Sostituisci tutto"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "bulk-edit-add-hint-vocab",
+                             "value":  "Queste relazioni saranno aggiunte a tutti gli oggetti selezionati."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "bulk-edit-replace-hint-vocab",
+                             "value":  "Le relazioni esistenti saranno sostituite su tutti gli oggetti selezionati."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "bulk-edit-add-hint-text",
+                             "value":  "Il testo sarà aggiunto alla fine delle note esistenti"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "bulk-edit-replace-hint-text",
+                             "value":  "Le note esistenti saranno sostituite su tutti gli oggetti selezionati."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "save-changes",
+                             "value":  "Salva modifiche"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "bulk-edit-write-here",
+                             "value":  "Scrivi qui"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "bulk-edit-overwrite-warning",
+                             "value":  "La sovrascrittura è attiva per alcuni campi. I contenuti esistenti su tutti i {{count}} oggetti saranno sostituiti permanentemente. Questa azione non può essere annullata."
                          },
                          {
                              "namespace":  "objects",
@@ -3106,6 +3181,11 @@
                              "namespace":  "common",
                              "key":  "connection",
                              "value":  "Connessione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "custom-field",
+                             "value":  "campo personalizzato"
                          },
                          {
                              "namespace":  "common",
