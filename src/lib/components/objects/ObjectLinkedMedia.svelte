@@ -137,8 +137,38 @@
     };
 
     const handleLinkModalSave = (selectedAssets) => {
-        const existingIds = new Set(linkedAssets.map((oa) => oa.asset.id));
-        pendingAdditions = selectedAssets.filter((a) => !existingIds.has(a.id));
+        const selectedIds = new Set(selectedAssets.filter((a) => a?.id != null).map((a) => a.id));
+        const linkedIds = new Set(linkedAssets.map((oa) => oa.asset.id));
+
+        // Currently active (linked - pendingRemovals + pendingAdditions)
+        const currentActiveIds = new Set([
+            ...linkedAssets.filter((oa) => !pendingRemovals.has(oa.asset.id)).map((oa) => oa.asset.id),
+            ...pendingAdditions.map((a) => a.id),
+        ]);
+
+        // 1. Identify removals: currently active but not in new selection
+        const toRemove = new Set([...currentActiveIds].filter((id) => !selectedIds.has(id)));
+        // 2. Identify additions: in new selection but not currently linked (ignoring removals)
+        const toAdd = new Set([...selectedIds].filter((id) => !linkedIds.has(id) || pendingRemovals.has(id)));
+
+        // Update pendingRemovals: add newly deselected linked assets
+        const newRemovals = new Set(pendingRemovals);
+        for (const id of toRemove) {
+            if (linkedIds.has(id)) newRemovals.add(id);
+        }
+        pendingRemovals = newRemovals;
+
+        // Update pendingAdditions: keep only additions that are still in the new selection;
+        // add new ones (with full asset data from selectedAssets)
+        const normalizedNew = selectedAssets
+            .filter((a) => toAdd.has(a.id))
+            .map((a) => ({
+                id: a.id,
+                filename: a.filename || `asset-${a.id}`,
+                path: a.path || null,
+                ...a,
+            }));
+        pendingAdditions = normalizedNew;
 
         if (hasReorderChanges) {
             const newItems = pendingAdditions.map((asset) => ({
@@ -368,7 +398,7 @@
     isOpen={isLinkModalOpen}
     projectId={object?.project_id ?? projectId}
     institutionId={object?.institution_id ?? institutionId}
-    initiallySelectedIds={[...linkedAssets.map((oa) => oa.asset.id), ...pendingAdditions.map((a) => a.id)]}
+    initiallySelectedIds={[...linkedAssets.filter((oa) => !pendingRemovals.has(oa.asset.id)).map((oa) => oa.asset.id), ...pendingAdditions.map((a) => a.id)]}
     onClose={() => (isLinkModalOpen = false)}
     onSave={handleLinkModalSave}
 />

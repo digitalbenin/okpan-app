@@ -12,7 +12,7 @@
     };
 </script>
 
-<h5 class="mb-3">{t("common.linked-objects")}</h5>
+<p class="mb-3 fs-7 text-uppercase">{t("common.linked-objects")}</p>
 
 {#if linkedObjects?.length > 0}
     {#each linkedObjects as objectAsset}

@@ -144,7 +144,7 @@
 </script>
 
 <PageActionFooter {formStore} leftButtons={leftButtons} rightButtons={rightButtons}>
-    <div class="container-fluid px-4 py-3">
+    <div class="container-fluid pb-3">
         <div class="d-flex align-items-center">
             <BaseBreadcrumb icon={IconPhoto} items={breadcrumbItems} />
         </div>
@@ -152,7 +152,7 @@
          <h1 class="mb-3">{t("common.media")}</h1>
         <div class="row bg-white px-3 py-4">
         
-            <div class="col-lg-8  pe-2">
+            <div class="col-lg-8 pe-3 border-end ">
                
                 <p class="text-uppercase fs-7 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">{t("common.media")}</p>
                 <AssetMediaDisplay {asset} />
@@ -174,7 +174,7 @@
                 </form>
             </div>
 
-            <div class="col-lg-4">
+            <div class="col-lg-4 ps-3">
                 <LinkedObjectsPanel
                     {linkedObjects}
                     onLink={() => (showLinkObjectsModal = true)}

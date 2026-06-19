@@ -3,6 +3,8 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BasePagination from "$lib/components/base/BasePagination.svelte";
+    import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
+    import { IconSearch, IconUpload } from "@tabler/icons-svelte";
     import { getAssets } from "$lib/api/AssetsApi.js";
     import { watch } from "runed";
 
@@ -18,14 +20,12 @@
     const { t } = getTranslationStore();
 
     let page = $state(1);
-    const pageSize = 20; // fixed per requirement
+    const pageSize = 20;
     let search = $state("");
     let isLoading = $state(false);
     let items = $state([]);
     let totalCount = $state(0);
-    // svelte-ignore state_referenced_locally
     let selected = $state(new Set(initiallySelectedIds || []));
-    // Cache of assets we've seen while paginating/searching, so we can return full objects on Save
     let selectedAssetsMap = new Map();
 
     // Upload state
@@ -51,7 +51,6 @@
                 direction: "desc",
             });
             items = list || [];
-            // Update cache for quick lookup on save
             items.forEach((a) => {
                 selectedAssetsMap.set(a.id, a);
             });
@@ -65,19 +64,9 @@
         }
     }
 
-    // Handle image upload via Electron file dialog and backend import
     async function uploadNewImage() {
         try {
-            if (!projectId) {
-                console.error("Image upload failed: Project ID is required");
-                alert("Please select an institution (project) before uploading images.");
-                return;
-            }
-            if (!institutionId) {
-                console.error("Image upload failed: Institution ID is required");
-                alert("Please select an institution before uploading images.");
-                return;
-            }
+            if (!projectId || !institutionId) return;
             const result = await window.api.openFileDialog({
                 title: t("file-upload.select-image", { fallback: "Select Image" }),
                 properties: ["openFile", "multiSelections"],
@@ -89,7 +78,6 @@
             isUploading = true;
             uploadPercent = 0;
 
-            // Listen to progress events while importing
             const unsubscribeImportProgress = window.api.onImportProgress((data) => {
                 if (data?.status === "progress") {
                     uploadPercent = data.percent || 0;
@@ -109,7 +97,6 @@
             });
 
             const newlyCreated = importResult?.createdAssets || [];
-            // Auto-add uploaded assets to selection and cache
             for (const a of newlyCreated) {
                 if (!a?.id) continue;
                 selected.add(a.id);
@@ -117,7 +104,6 @@
             }
             selected = new Set(selected);
 
-            // Refresh to show new assets (sorted by created_at desc)
             page = 1;
             await loadAssets();
         } catch (e) {
@@ -148,7 +134,6 @@
 
     function handleSave() {
         if (onSave) {
-            // Return selected asset objects from cache (covers multi-page selections)
             const selectedAssets = Array.from(selected).map(
                 (id) => selectedAssetsMap.get(id) || { id },
             );
@@ -180,7 +165,7 @@
                 <div class="modal-header flex-shrink-0">
                     <h5 class="modal-title">
                         {t("objects.linked_media.select_media", {
-                            fallback: "Select media to link",
+                            fallback: "Link media",
                         })}
                     </h5>
                     <BaseButton
@@ -191,41 +176,36 @@
                     />
                 </div>
 
-                <div class="modal-body flex-grow-1 overflow-auto" style="min-height: 0;">
-                    <!-- Search -->
-                    <div class="input-group mb-3">
-                        <span class="input-group-text"
-                            ><i class="bi bi-search"></i></span
-                        >
-                        <input
-                            class="form-control"
-                            type="text"
-                            placeholder={t("common.search", {
-                                fallback: "Search",
-                            })}
-                            bind:value={search}
-                            onkeydown={(e) => e.key === "Enter" && loadAssets()}
-                        />
-                        <button
+                <div class="modal-body flex-grow-1 overflow-auto d-flex flex-column" style="min-height: 0;">
+                    <!-- Search & upload bar -->
+                    <div class="d-flex gap-2 align-items-center mb-3">
+                        <div class="flex-grow-1 border rounded-3 d-flex align-items-center">
+                            <div class="d-flex flex-grow-1 align-items-center px-3 py-1">
+                                <input
+                                    type="text"
+                                    class="form-control border-0 shadow-none p-0"
+                                    placeholder={t("common.search", { fallback: "Search" })}
+                                    bind:value={search}
+                                    onkeydown={(e) => e.key === "Enter" && loadAssets()}
+                                />
+                            </div>
+                            <button
+                                class="btn btn-link text-body-secondary p-2 d-flex align-items-center"
+                                type="button"
+                                onclick={loadAssets}
+                            >
+                                <IconSearch size={16} />
+                            </button>
+                        </div>
+                        <BaseButton
                             class="btn btn-outline-secondary"
-                            type="button"
-                            onclick={loadAssets}
-                        >
-                            {t("common.search", { fallback: "Search" })}
-                        </button>
-                        <button
-                            class="btn btn-outline-secondary ms-2"
-                            type="button"
-                            onclick={uploadNewImage}
+                            IconComponent={IconUpload}
+                            text={t("common.upload-image", { fallback: "Upload image" })}
+                            onClick={uploadNewImage}
                             disabled={isUploading || !projectId || !institutionId}
-                        >
-                            <i class="bi bi-upload"></i>
-                            {t("common.upload-image", { fallback: "Upload image" })}
-                        </button>
+                        />
                         {#if isUploading}
-                            <span class="ms-2 text-muted small align-self-center">
-                                {uploadPercent}%
-                            </span>
+                            <span class="text-muted small">{uploadPercent}%</span>
                         {/if}
                     </div>
 
@@ -238,68 +218,55 @@
                         </div>
                     {:else if items.length === 0}
                         <div class="text-center py-5 text-muted">
-                            {t("common.no-results", {
-                                fallback: "No results found",
-                            })}{search ? ` for "${search}"` : ""}
+                            {t("common.no-results", { fallback: "No results found" })}
+                            {search ? ` for "${search}"` : ""}
                         </div>
                     {:else}
-                        <div class="list-group">
-                            {#each items as asset (asset.id)}
+                        <div class="border rounded-3 overflow-hidden">
+                            {#each items as asset, i (asset.id)}
                                 <div
-                                    class="list-group-item d-flex align-items-center gap-3"
+                                    class="d-flex align-items-center gap-2 px-2 py-2"
+                                    class:border-top={i > 0}
+                                    style="height: 71px;"
                                 >
-                                    <div
-                                        class="flex-shrink-0"
-                                        style="width: 64px; height: 64px;"
-                                    >
+                                    <!-- Checkbox -->
+                                    <div class="d-flex align-items-center flex-shrink-0" style="width: 20px;">
+                                        <input
+                                            type="checkbox"
+                                            class="form-check-input m-0"
+                                            checked={selected.has(asset.id)}
+                                            onchange={() => toggleSelect(asset.id)}
+                                            style="width: 16px; height: 16px; cursor: pointer;"
+                                        />
+                                    </div>
+
+                                    <!-- Thumbnail -->
+                                    <div class="flex-shrink-0 rounded overflow-hidden" style="width: 55px; height: 55px;">
                                         <BaseImage
                                             asset={asset}
                                             preferredFormat="sm"
                                             alt={asset?.filename || t("media.unnamed-file", { fallback: "Unnamed file" })}
-                                            width={64}
-                                            height={64}
-                                            class="rounded"
+                                            width={55}
+                                            height={55}
+                                            class="w-100 h-100"
+                                            objectFit="cover"
                                             ratio="1/1"
                                             compact={true}
                                         />
                                     </div>
-                                    <div class="flex-grow-1 min-w-0">
-                                        <div class="fw-medium text-truncate">
-                                            {asset.filename}
-                                        </div>
-                                    </div>
-                                    <div class="flex-shrink-0">
-                                        {#if selected.has(asset.id)}
-                                            <span
-                                                class="btn btn-success btn-sm disabled"
-                                            >
-                                                <i class="bi bi-check2"></i>
-                                                {t("common.added", {
-                                                    fallback: "Added",
-                                                })}
-                                            </span>
-                                        {:else}
-                                            <button
-                                                class="btn btn-outline-secondary btn-sm"
-                                                type="button"
-                                                onclick={() =>
-                                                    toggleSelect(asset.id)}
-                                            >
-                                                <i class="bi bi-plus-lg"></i>
-                                                {t("common.add", {
-                                                    fallback: "Add",
-                                                })}
-                                            </button>
-                                        {/if}
+
+                                    <!-- Filename -->
+                                    <div class="flex-grow-1 fw-semibold text-truncate" style="min-width: 0;">
+                                        {asset.filename}
                                     </div>
                                 </div>
                             {/each}
                         </div>
 
-                        <!-- Pagination (BasePagination component) -->
+                        <!-- Pagination -->
                         {#if totalCount > pageSize}
                             <div class="d-flex justify-content-between align-items-center mt-3">
-                                <div class="text-muted">
+                                <div class="text-muted small">
                                     {selected.size} {t("objects.linked_media.media_linked", { fallback: "media linked" })}
                                 </div>
                                 <BasePagination bind:page pageSize={pageSize} count={totalCount} size="sm" />
@@ -326,15 +293,11 @@
 {/if}
 
 <style>
-    .list-group-item {
-        border: 1px solid rgba(108, 117, 125, 0.25);
-        border-radius: 0.5rem;
-        margin-bottom: 0.5rem;
-    }
-
-    /* Fixed width for the modal dialog */
     .link-media-modal .modal-dialog.fixed-width {
-        width: 900px;
-        max-width: 900px;
+        width: 650px;
+        max-width: 650px;
+    }
+    .link-media-modal .border-top {
+        border-color: var(--bs-border-color, #d5d6d0) !important;
     }
 </style>
