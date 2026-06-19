@@ -18,6 +18,8 @@
     import { z } from "zod";
     import { createFieldValidator } from "$lib/utils/formValidation.js";
     import AutoForm from "$lib/components/form/AutoForm.svelte";
+    import ObjectDetailSidebar from "$lib/components/objects/ObjectDetailSidebar.svelte";
+    import ObjectFieldHelp from "$lib/components/objects/ObjectFieldHelp.svelte";
 
     const { data } = $props();
     const { t } = getTranslationStore();
@@ -83,6 +85,26 @@
         window.history.back();
     }
 
+    // Sidebar state
+    let activeSection = $state("basic-info");
+    let focusedField = $state(null);
+
+    function scrollToSection(sectionId) {
+        activeSection = sectionId;
+        const el = document.getElementById(`section-${sectionId}`);
+        if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }
+
+    function handleFieldFocus(fieldName) {
+        focusedField = fieldName;
+    }
+
+    function handleFieldBlur() {
+        focusedField = null;
+    }
+
     // Object name input (default language only for now)
     let objectName = $state("");
 
@@ -142,8 +164,9 @@
 
     const rightActionButtons = $derived.by(() => [{
         id: "create-object",
-        text: t("common.confirm", { fallback: "Confirm" }),
-        class: "btn btn-success",
+        text: t("common.save-changes", { fallback: "Save changes" }),
+        class: "btn btn-primary",
+        icon: "device-floppy",
         disabled: !hasAnyChanges || isSaving || !selectedInstitutionId,
         disableOnError: true,
         onClick: saveAllChanges,
@@ -190,7 +213,6 @@
                     "Error creating object:",
                     error || "New object ID not found",
                 );
-                // Optionally, show an error message to the user
                 return;
             }
 
@@ -198,7 +220,6 @@
             const savePromises = [];
             for (const [componentName, componentData] of componentChanges) {
                 if (componentData.hasChanges && componentData.saveFunction) {
-                    // Pass the new objectId to the save function
                     savePromises.push(componentData.saveFunction(newObjectId));
                 }
             }
@@ -227,6 +248,8 @@
 
 <PageActionFooter leftButtons={leftActionButtons} rightButtons={rightActionButtons} {formStore}>
     <ObjectHeader
+        {projectId}
+        institutionId={selectedInstitutionId}
         institutionName={selectedInstitutionName}
         title={t("menu.add-object", { fallback: "Add Object" })}
         status="in progress"
@@ -234,52 +257,78 @@
         showStatus={false}
     />
 
-    <!-- Research Fields and Linked Media Section -->
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-10">
-                <div class="mt-2 mb-3 px-2">
+    <div class="row g-0 me-n4">
+        <div class="col-12 col-lg-9">
+            <div class="ps-0 pe-4 py-4 d-flex flex-column gap-5">
+
+                <!-- Basic info section -->
+                <section id="section-basic-info" class="pb-5 border-bottom">
+                    <p class="text-uppercase fs-8 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">
+                        {t("objects.sections.basic_info", { fallback: "Basic info" })}
+                    </p>
                     <ObjectBasicInfo
                         bind:objectName
                         bind:selectedInstitutionId
                         institutionItems={institutionItems}
+                        onNameFocus={() => handleFieldFocus("name")}
+                        onNameBlur={handleFieldBlur}
                         onInstitutionValueChange={onInstitutionValueChange}
                     >
-                           <AutoForm 
-                              {form} 
-                              validator={customValidator}
-                              {createFieldValidator}
-                              margin={0}
-                              enableDirtyTracking={false}
-                              uiSchema={{
+                        <AutoForm
+                            {form}
+                            validator={customValidator}
+                            {createFieldValidator}
+                            margin={0}
+                            enableDirtyTracking={false}
+                            uiSchema={{
                                 name: { label: t("objects.object_name", { fallback: "Object name" }), placeholder: t("objects.object_name", { fallback: "Object name" }) }
-                              }}
-                           />
+                            }}
+                        />
                     </ObjectBasicInfo>
-                </div>
-                <div class="mt-2 mb-3 px-2">
+                </section>
+
+                <!-- Media section -->
+                <section id="section-media" class="pb-5 border-bottom">
+                    <p class="text-uppercase fs-8 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">
+                        {t("objects.sections.media", { fallback: "Media" })}
+                    </p>
                     <ObjectLinkedMedia
                         {projectId}
                         institutionId={selectedInstitutionId}
                         onChangesUpdate={handleComponentChanges}
                     />
-                </div>
-                <div class="mt-2 mb-3 px-2">
-                    <ObjectResearchFields
-                        researchFields={data.researchFields}
-                        {defaultLanguageId}
-                        onChangesUpdate={handleComponentChanges}
-                    />
-                </div>
-                <div class="mt-2 mb-3 px-2">
+                </section>
+
+                <!-- Object connections section -->
+                <section id="section-connections" class="pb-5 border-bottom">
+                    <p class="text-uppercase fs-8 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">
+                        {t("objects.sections.connections", { fallback: "Object connections" })}
+                    </p>
                     <ObjectConnections
                         researchFields={data.researchFields}
                         {defaultLanguageId}
                         onChangesUpdate={handleComponentChanges}
                     />
-                </div>
+                </section>
+
+                <!-- Custom fields section -->
+                <section id="section-custom-fields" class="pb-5 border-bottom">
+                    <p class="text-uppercase fs-8 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">
+                        {t("objects.sections.custom_fields", { fallback: "Custom fields" })}
+                    </p>
+                    <ObjectResearchFields
+                        researchFields={data.researchFields}
+                        {defaultLanguageId}
+                        onChangesUpdate={handleComponentChanges}
+                    />
+                </section>
+
+                <!-- Source data section -->
                 {#if selectedInstitutionId}
-                    <div class="mt-2 mb-3 px-2">
+                    <section id="section-source-data" class="pb-4">
+                        <p class="text-uppercase fs-8 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">
+                            {t("objects.sections.source_data", { fallback: "Source data" })}
+                        </p>
                         <ObjectInstitutionalData
                             datasources={[]}
                             {templates}
@@ -290,7 +339,25 @@
                             {languages}
                             onChangesUpdate={handleComponentChanges}
                         />
-                    </div>
+                    </section>
+                {/if}
+
+            </div>
+        </div>
+
+        <!-- Sidebar column -->
+        <div class="col-12 col-lg-3 bg-white pe-0">
+            <div class="p-4 sticky-lg-top" style="top: 1rem; z-index: 1;">
+                {#if focusedField}
+                    <ObjectFieldHelp
+                        fieldName={focusedField}
+                        onClose={() => focusedField = null}
+                    />
+                {:else}
+                    <ObjectDetailSidebar
+                        {activeSection}
+                        onNavigate={scrollToSection}
+                    />
                 {/if}
             </div>
         </div>

@@ -22,13 +22,12 @@
 
   const hasChildren = $derived(element.children && element.children.length > 0);
 
-  const isActive = $derived(
-    hasChildren
-      ? element.children.some((child) => pathname === child.url || pathname.startsWith(child.url + "/"))
-      : element.exact
-        ? pathname === element.url
-        : pathname === element.url || pathname.startsWith(element.url + "/"),
-  );
+  const isActive = $derived(hasChildren
+    ? element.children.some(child => pathname === child.url || pathname.startsWith(child.url + '/'))
+    : element.exact
+      ? pathname === element.url
+      : (pathname === element.url || pathname.startsWith(element.url + '/'))
+        && !(element.excludePaths || []).some(suffix => pathname === element.url + suffix));
 
   const iconMap = {
     "layout-dashboard": IconLayoutDashboard,

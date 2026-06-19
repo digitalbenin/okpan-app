@@ -24,6 +24,7 @@
       label: t("common.institutions", { fallback: "Institutions" }),
       url: `/projects/${page.data.project.id}/institutions`,
       icon: "building-bank",
+      excludePaths: ['/add'],
     },
     {
       label: t("common.objects", { fallback: "Objects" }),
