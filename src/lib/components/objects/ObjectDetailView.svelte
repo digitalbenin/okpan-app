@@ -14,6 +14,8 @@
   import ObjectBasicInfo from "$lib/components/objects/ObjectBasicInfo.svelte";
   import ObjectHeader from "$lib/components/objects/ObjectHeader.svelte";
   import ObjectDeleteModal from "$lib/components/objects/ObjectDeleteModal.svelte";
+  import ObjectDetailSidebar from "$lib/components/objects/ObjectDetailSidebar.svelte";
+  import ObjectFieldHelp from "$lib/components/objects/ObjectFieldHelp.svelte";
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
@@ -251,6 +253,28 @@
   // Status update
   let statusUpdating = $state(false);
 
+  // Sidebar navigation
+  let activeSection = $state("basic-info");
+
+  // Field-focused contextual help
+  let focusedField = $state(null);
+
+  function handleFieldFocus(fieldName) {
+    focusedField = fieldName;
+  }
+
+  function handleFieldBlur() {
+    focusedField = null;
+  }
+
+  function scrollToSection(sectionId) {
+    activeSection = sectionId;
+    const el = document.getElementById(`section-${sectionId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
   async function setStatus(nextStatus) {
     if (!object?.id || statusUpdating) return;
     statusUpdating = true;
@@ -287,8 +311,9 @@
   const rightActionButtons = $derived([
     {
       id: "save-object",
-      text: t("common.confirm", { fallback: "Confirm" }),
-      class: "btn btn-success",
+      text: t("common.save-changes", { fallback: "Save changes" }),
+      class: "btn btn-primary",
+      icon: "device-floppy",
       disabled: !hasAnyChanges || isSaving,
       disableOnError: true,
       onClick: saveAllChanges,
@@ -309,17 +334,26 @@
     status={object.status}
     statusDisabled={statusUpdating}
     onStatusChange={setStatus}
+    {languages}
   />
 
-  <div class="container-fluid px-0">
-    <div class="row">
-      <div class="col-9 mb-4">
-        <div class="mt-2 mb-3">
+  <div class="row g-0 me-n4">
+    <!-- Main content column -->
+    <div class="col-12 col-lg-9 col-md-8">
+      <div class="ps-0 pe-4 py-4 d-flex flex-column gap-5">
+
+        <!-- Basic info section -->
+        <section id="section-basic-info" class="pb-5 border-bottom">
+          <p class="text-uppercase fs-8 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">
+            {t("objects.sections.basic_info", { fallback: "Basic info" })}
+          </p>
           <ObjectBasicInfo
             bind:objectName
             {selectedInstitutionId}
             institutionItems={institutions || []}
             onNameInput={handleNameInput}
+            onNameFocus={() => handleFieldFocus("name")}
+            onNameBlur={handleFieldBlur}
             onInstitutionValueChange={onInstitutionValueChange}
           >
             <AutoForm
@@ -333,27 +367,52 @@
               }}
             />
           </ObjectBasicInfo>
-        </div>
-        <div class="mt-2 mb-3">
-          <ObjectLinkedMedia {object} onChangesUpdate={handleComponentChanges} />
-        </div>
-        <div class="mt-2 mb-3">
-          <ObjectResearchFields
+        </section>
+
+        <!-- Media section -->
+        <section id="section-media" class="pb-5 border-bottom">
+          <p class="text-uppercase fs-8 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">
+            {t("objects.sections.media", { fallback: "Media" })}
+          </p>
+          <ObjectLinkedMedia
             {object}
-            {researchFields}
-            {defaultLanguageId}
+            {projectId}
+            institutionId={currentInstitutionIdParam}
             onChangesUpdate={handleComponentChanges}
           />
-        </div>
-        <div class="mt-2 mb-3">
+        </section>
+
+        <!-- Object connections section -->
+        <section id="section-connections" class="pb-5 border-bottom">
+          <p class="text-uppercase fs-8 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">
+            {t("objects.sections.connections", { fallback: "Object connections" })}
+          </p>
           <ObjectConnections
             {object}
             {researchFields}
             {defaultLanguageId}
             onChangesUpdate={handleComponentChanges}
           />
-        </div>
-        <div class="mt-2 mb-3 pb-4">
+        </section>
+
+        <!-- Custom fields section -->
+        <section id="section-custom-fields" class="pb-5 border-bottom">
+          <p class="text-uppercase fs-8 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">
+            {t("objects.sections.custom_fields", { fallback: "Custom fields" })}
+          </p>
+          <ObjectResearchFields
+            {object}
+            {researchFields}
+            {defaultLanguageId}
+            onChangesUpdate={handleComponentChanges}
+          />
+        </section>
+
+        <!-- Source data section -->
+        <section id="section-source-data" class="pb-4">
+          <p class="text-uppercase fs-8 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">
+            {t("objects.sections.source_data", { fallback: "Source data" })}
+          </p>
           <ObjectInstitutionalData
             {object}
             {datasources}
@@ -365,7 +424,26 @@
             {languages}
             onChangesUpdate={handleComponentChanges}
           />
-        </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- Sidebar column -->
+    <div class="col-12 col-lg-3 col-md-4 bg-white pe-0">
+      <div class="p-4 sticky-lg-top" style="top: 1rem; z-index: 1;">
+        {#if focusedField}
+          <ObjectFieldHelp
+            fieldName={focusedField}
+            onClose={() => focusedField = null}
+          />
+        {:else}
+          <ObjectDetailSidebar
+            {object}
+            {activeSection}
+            onNavigate={scrollToSection}
+          />
+        {/if}
       </div>
     </div>
   </div>

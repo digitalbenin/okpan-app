@@ -176,45 +176,34 @@
     }
 </script>
 
-<div class="card bg-white mb-2 border-0 mx-0">
-    <div class="card-body">
-        <div class="mb-3">
-            <p class="mb-0">
-                <i class="bi bi-info-circle me-2"></i>
-                {t("objects.research_fields.title", { fallback: "Research data" })}
-            </p>
+<div class="d-flex flex-column gap-3">
+    {#if allResearchFields.length === 0}
+        <div class="text-muted small">
+            {t("objects.research_fields.no_fields", {
+                fallback: "No research fields defined for this project",
+            })}
         </div>
-
-        {#if allResearchFields.length === 0}
-            <div class="fd-5">
-                {t("objects.research_fields.no_fields", {
-                    fallback: "No research fields defined for this project",
-                })}
+    {:else}
+        {#each allResearchFields as field}
+            <div>
+                <label class="form-label mb-2">
+                    {field.name?.content || t("common.unnamed-field", { fallback: "Unnamed field" })}
+                </label>
+                <textarea
+                    class="form-control"
+                    rows="3"
+                    value={field.currentValue}
+                    placeholder={t(
+                        "objects.research_fields.enter_value",
+                        { fallback: "Write here.." },
+                    )}
+                    oninput={(e) =>
+                        handleFreeTextChange(
+                            field.id,
+                            e.target.value,
+                        )}
+                ></textarea>
             </div>
-        {:else}
-            <div class="d-flex flex-column gap-3">
-                {#each allResearchFields as field}
-                    <div>
-                        <p class="mb-2">
-                            {field.name?.content || t("common.unnamed-field", { fallback: "Unnamed field" })}
-                        </p>
-                        <textarea
-                            class="form-control"
-                            rows="3"
-                            value={field.currentValue}
-                            placeholder={t(
-                                "objects.research_fields.enter_value",
-                                { fallback: "Write here.." },
-                            )}
-                            oninput={(e) =>
-                                handleFreeTextChange(
-                                    field.id,
-                                    e.target.value,
-                                )}
-                        ></textarea>
-                    </div>
-                {/each}
-            </div>
-        {/if}
-    </div>
+        {/each}
+    {/if}
 </div>

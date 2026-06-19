@@ -149,9 +149,12 @@
             <BaseBreadcrumb icon={IconPhoto} items={breadcrumbItems} />
         </div>
 
-        <div class="row">
-            <div class="col-lg-8">
-                <h1 class="mb-3">{t("common.media")}</h1>
+         <h1 class="mb-3">{t("common.media")}</h1>
+        <div class="row bg-white px-3 py-4">
+        
+            <div class="col-lg-8  pe-2">
+               
+                <p class="text-uppercase fs-7 fw-normal text-body mb-3" style="letter-spacing: 0.24px;">{t("common.media")}</p>
                 <AssetMediaDisplay {asset} />
 
                 <h5 class="mb-3">{t("media.media-metadata")}</h5>

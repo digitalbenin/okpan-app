@@ -3881,6 +3881,26 @@
                                 "namespace":  "datasources",
                                 "key":  "info",
                                 "value":  "Informazioni sulla fonte dati"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "help.name_title",
+                             "value":  "Titolo oggetto"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "help.name_description",
+                             "value":  "L'identificativo principale di questo oggetto. Usa il numero di riferimento o il nome esattamente come appare nel catalogo dell'istituzione di origine."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "help.name_example",
+                             "value":  "AAA2817 o \"Sedia in legno dal Camerun\""
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "help.name_tip",
+                             "value":  "Se l'oggetto non ha un titolo ufficiale, utilizza il numero di inventario dell'istituzione."
                          }
                      ]
 }

@@ -219,25 +219,21 @@
   const allDatasourcesMenu = $derived(datasourcesArray.map(getDatasourceTab));
 </script>
 
-<div class="card bg-white border-0 pb-4">
-  <div class="card-body p-0">
-    <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
-      <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-table"></i>
-        <span>
-          {t("objects.institution_data.title", { fallback: "Data sources" })}
+<div class="d-flex flex-column gap-3">
+    <div class="d-flex align-items-center justify-content-between">
+        <span class="form-label mb-0">
+            {t("objects.institution_data.title", { fallback: "Institution metadata" })}
         </span>
-      </div>
-      <BaseButton
-        class="btn btn-sm btn-secondary"
-        icon="plus-lg"
-        text={t("objects.add-data-source", { fallback: "Add data source" })}
-        onClick={handleAddDataSource}
-        disabled={creating}
-      />
+        <BaseButton
+            class="btn btn-sm btn-outline-secondary"
+            icon="plus-lg"
+            text={t("objects.add-data-source", { fallback: "Add data source" })}
+            onClick={handleAddDataSource}
+            disabled={creating}
+        />
     </div>
 
-    <div class="border border-top rounded-top rounded-4 mx-3 mt-3 bg-white">
+    <div class="border rounded-3 bg-white">
     {#if datasourcesArray.length > 0}
       <!-- Tabs Strip -->
       <div class="d-flex align-items-center border-bottom">
@@ -314,16 +310,13 @@
       </div>
 
     {:else}
-      <div class="text-muted small pb-2 p-3">
-        <div class="mt-2 text-center">
+      <div class="text-muted small py-3 text-center">
           {t("objects.no-institution-data-found", {
             fallback: "No data sources found",
           })}
-        </div>
       </div>
     {/if}
     </div>
-  </div>
 </div>
 
 <BaseAlertDialog bind:open={deleteDialogOpen}>

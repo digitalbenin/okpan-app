@@ -4,6 +4,7 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
+    import MediaUploadZone from "$lib/components/research_fields/MediaUploadZone.svelte";
     import MediaModal from "$lib/components/research_fields/MediaModal.svelte";
     import LinkMediaModal from "$lib/components/objects/LinkMediaModal.svelte";
     import { unlinkAssetFromObject, reorderAssets, linkAssetToObject } from "$lib/api/ObjectsApi.js";
@@ -83,6 +84,27 @@
     };
 
     const handleAddMedia = () => (isLinkModalOpen = true);
+
+    /** Import files to the institution, then link them to this object. */
+    async function handleUploadDirect(paths) {
+        const instId = object?.institution_id ?? institutionId;
+        const projId = object?.project_id ?? projectId;
+        if (!instId || !projId || !paths?.length) return;
+        try {
+            const importResult = await window.api.importAssets({
+                projectId: projId,
+                institutionId: instId,
+                isGenericAsset: false,
+                files: paths,
+            });
+            const newlyCreated = importResult?.createdAssets || [];
+            if (newlyCreated.length > 0) {
+                handleLinkModalSave(newlyCreated);
+            }
+        } catch (e) {
+            console.error("Failed to upload media:", e);
+        }
+    }
 
     const handleAudioToggle = (asset) => {
         const audioElement = audioElements.get(asset.id);
@@ -190,48 +212,47 @@
     }
 </script>
 
-<div class="card bg-white border-0">
-    <div class="card-body">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-image"></i>
-                <span>
-                    {t("objects.linked_media.title", { fallback: "Linked media" })}
-                </span>
-            </div>
-            {#if isLinkDisabled}
-                <BaseTooltip>
-                    {#snippet trigger(props)}
-                        <div class="d-inline-block" {...(({ type, ...rest }) => rest)(props)}>
-                            <BaseButton
-                                class="btn btn-sm btn-light"
-                                icon="plus"
-                                text={t("objects.linked_media.add_media", {
-                                    fallback: "Add media",
-                                })}
-                                disabled={true}
-                            />
-                        </div>
-                    {/snippet}
-                    {t("objects.linked_media.select-institution-first", {
-                        fallback: "Select an institution first",
-                    })}
-                </BaseTooltip>
-            {:else}
-                <BaseButton
-                    class="btn btn-sm btn-secondary"
-                    icon="plus"
-                    text={t("objects.linked_media.add_media", {
-                        fallback: "Add media",
-                    })}
-                    onClick={handleAddMedia}
-                />
-            {/if}
+<div class="d-flex flex-column gap-3">
+    <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-1">
+            <span class="form-label mb-0">
+                {t("objects.linked_media.title", { fallback: "Objects images" })}
+            </span>
         </div>
+        {#if isLinkDisabled}
+            <BaseTooltip>
+                {#snippet trigger(props)}
+                    <div class="d-inline-block" {...(({ type, ...rest }) => rest)(props)}>
+                        <BaseButton
+                            class="btn btn-sm btn-outline-secondary"
+                            icon="plus"
+                            text={t("objects.linked_media.link_media", {
+                                fallback: "Link media",
+                            })}
+                            disabled={true}
+                        />
+                    </div>
+                {/snippet}
+                {t("objects.linked_media.select-institution-first", {
+                    fallback: "Select an institution first",
+                })}
+            </BaseTooltip>
+        {:else}
+            <BaseButton
+                class="btn btn-sm btn-outline-secondary"
+                icon="plus"
+                text={t("objects.linked_media.link_media", {
+                    fallback: "Link media",
+                })}
+                onClick={handleAddMedia}
+            />
+        {/if}
+    </div>
 
+    <div class="border border-dashed rounded-4 p-3">
         {#if displayAssets.length > 0}
             <div
-                class="d-flex gap-3 overflow-x-auto pb-2"
+                class="d-flex gap-3 overflow-x-auto"
                 use:dragHandleZone={{
                     dropTargetStyle: { outline: "none" },
                     items: displayAssets,
@@ -242,37 +263,38 @@
             >
                 {#each displayAssets as objectAsset (objectAsset.id)}
                     {@const asset = objectAsset.asset}
-                    <div class="flex-shrink-0" style="width: 160px;" animate:flip={{ duration: flipDurationMs }}>
-                        <div class="bg-white border rounded overflow-hidden ">
-                            <!-- Action buttons bar at top -->
-                            <div class="d-flex justify-content-between align-items-center p-0 bg-white border-bottom">
-                                <button
-                                    class="btn btn-link p-1 text-secondary"
-                                    style="cursor: grab;"
-                                    aria-label={t("media.drag-item", { fallback: "Drag item" })}
-                                    use:dragHandle
-                                >
-                                    <i class="bi bi-arrows-move"></i>
-                                </button>
-                                <button
-                                    class="btn btn-link p-1 text-secondary"
-                                    type="button"
-                                    aria-label={t("objects.linked_media.remove-media", {
-                                        fallback: "Remove media",
-                                    })}
-                                    onclick={(e) => {
-                                        e.stopPropagation();
-                                        handleAssetRemove(objectAsset.asset.id);
-                                    }}
-                                >
-                                    <i class="bi bi-x-circle"></i>
-                                </button>
-                            </div>
+                    <div class="flex-shrink-0" style="width: 200px;" animate:flip={{ duration: flipDurationMs }}>
+                        <div class="border rounded-3 overflow-hidden position-relative">
+                            <!-- Close button -->
+                            <button
+                                class="btn btn-light btn-sm rounded-pill position-absolute p-1 lh-1 d-flex align-items-center justify-content-center"
+                                style="top: 5px; right: 5px; width: 24px; height: 24px; z-index: 2;"
+                                type="button"
+                                aria-label={t("objects.linked_media.remove-media", {
+                                    fallback: "Remove media",
+                                })}
+                                onclick={(e) => {
+                                    e.stopPropagation();
+                                    handleAssetRemove(objectAsset.asset.id);
+                                }}
+                            >
+                                <i class="bi bi-x fs-6"></i>
+                            </button>
+
+                            <!-- Drag handle -->
+                            <button
+                                class="btn btn-link p-1 text-secondary position-absolute"
+                                style="top: 5px; left: 5px; z-index: 2; cursor: grab;"
+                                aria-label={t("media.drag-item", { fallback: "Drag item" })}
+                                use:dragHandle
+                            >
+                                <i class="bi bi-arrows-move small"></i>
+                            </button>
 
                             <!-- Asset preview -->
                             <div
                                 class="position-relative bg-light"
-                                style="width: 160px; height: 160px; cursor: pointer;"
+                                style="width: 200px; height: 160px; cursor: pointer;"
                                 role="button"
                                 tabindex="0"
                                 onclick={() => handleViewMedia(asset)}
@@ -298,7 +320,7 @@
                             </div>
 
                             <!-- Asset filename -->
-                            <div class="p-2 small text-truncate text-muted" title={asset?.filename || t("media.unnamed-file", { fallback: "Unnamed file" })}>
+                            <div class="px-2 py-2 small text-truncate bg-white" title={asset?.filename || t("media.unnamed-file", { fallback: "Unnamed file" })}>
                                 {asset?.filename || t("media.unnamed-file", { fallback: "Unnamed file" })}
                             </div>
                         </div>
@@ -306,11 +328,19 @@
                 {/each}
             </div>
         {:else}
-            <div class="text-muted small">
-                {t("objects.linked_media.no_media", {
-                    fallback: "No linked media",
-                })}
-            </div>
+            {#if !isLinkDisabled}
+                <MediaUploadZone
+                    type="image"
+                    assets={[]}
+                    onAdd={handleUploadDirect}
+                />
+            {:else}
+                <div class="text-center py-4 text-muted small">
+                    {t("objects.linked_media.no_media", {
+                        fallback: "No linked media",
+                    })}
+                </div>
+            {/if}
         {/if}
     </div>
 </div>

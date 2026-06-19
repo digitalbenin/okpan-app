@@ -1,7 +1,7 @@
 <script>
   import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
   import BaseImage from "$lib/components/base/BaseImage.svelte";
-  import { IconDotsVertical } from "@tabler/icons-svelte";
+  import { IconDotsVertical, IconX } from "@tabler/icons-svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   const { t } = getTranslationStore();
@@ -12,11 +12,16 @@
     onOpen = () => {},
     onDuplicate = () => {},
     onDelete = () => {},
+    onRemove = null,
     untitledLabel = "Untitled",
     duplicateLabel = "Duplicate",
     deleteLabel = "Delete",
+    removeLabel = "Remove",
     imageAltFallback = "Connection image",
     borderStartClass = "border-light",
+    borderColor = null,
+    showCount = true,
+    showActions = true,
   } = $props();
 
   const countLabel = $derived(
@@ -26,10 +31,12 @@
   );
 </script>
 
-<button
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div
   type="button"
   class="card h-100 w-100 border-0 border-start border-3 {borderStartClass} p-2 text-start rounded-4"
-  style="cursor: pointer; background: white;"
+  style="cursor: pointer; background: white;{borderColor ? ` border-left-color: ${borderColor} !important;` : ''}"
   onclick={() => onOpen(vocabulary?.id)}
 >
   <div class="d-flex align-items-center gap-2" style="width: 100%; min-width: 0;">
@@ -56,10 +63,13 @@
         <p class="mb-0 fw-semibold text-truncate" style="font-size: 14px;" title={vocabulary?.option?.content}>
           {vocabulary?.option?.content || untitledLabel}
         </p>
-        <p class="mb-0 text-muted small">
-          {objectsCount} {countLabel}
-        </p>
+        {#if showCount}
+          <p class="mb-0 text-muted small">
+            {objectsCount} {countLabel}
+          </p>
+        {/if}
       </div>
+    {#if showActions}
     <div class="flex-shrink-0 ms-auto" role="presentation" onclick={(event) => event.stopPropagation()}>
       <BaseDropdownMenu
         align="end"
@@ -96,5 +106,18 @@
         {/snippet}
       </BaseDropdownMenu>
     </div>
+    {/if}
+    {#if onRemove}
+    <div class="flex-shrink-0" role="presentation" onclick={(event) => event.stopPropagation()}>
+      <button
+        type="button"
+        class="btn btn-link p-0 text-body-secondary text-decoration-none"
+        aria-label={removeLabel}
+        onclick={() => onRemove(vocabulary)}
+      >
+        <IconX size={16} />
+      </button>
+    </div>
+    {/if}
   </div>
-</button>
+</div>

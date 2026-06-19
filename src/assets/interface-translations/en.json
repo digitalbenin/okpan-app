@@ -3948,6 +3948,26 @@
                              "namespace":  "common",
                              "key":  "months-ago",
                              "value":  "months ago"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "help.name_title",
+                             "value":  "Object title"
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "help.name_description",
+                             "value":  "The primary identifier for this object. Use the reference number or name exactly as it appears in the source institution's catalogue."
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "help.name_example",
+                             "value":  "AAA2817 or \"Wooden Chair from Cameroun\""
+                         },
+                         {
+                             "namespace":  "objects",
+                             "key":  "help.name_tip",
+                             "value":  "If the object has no official title, use the institution's accession number."
                          }
                      ]
 }

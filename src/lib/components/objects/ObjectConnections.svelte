@@ -1,9 +1,10 @@
 <script>
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import BaseImage from "$lib/components/base/BaseImage.svelte";
     import BaseButton from "$lib/components/base/BaseButton.svelte";
+    import ConnectionVocabularyChip from "$lib/components/research_fields/ConnectionVocabularyChip.svelte";
     import VocabularySelectionModal from "./VocabularySelectionModal.svelte";
-    import { updateObjectResearchFields, getConnectionFieldColor } from "$lib/api/ObjectsApi.js";
+    import { updateObjectResearchFields } from "$lib/api/ObjectsApi.js";
+    import { getTemplateColorClasses } from "$lib/constants/connectionTemplates.js";
     import { invalidate } from "$app/navigation";
 
     // Props
@@ -308,81 +309,60 @@
     });
 </script>
 
-<div class="card bg-white mx-0 border-0">
-    <div class="card-body">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-share"></i>
-                <span class="">
-                    {t("common.connections", { fallback: "Connections" })}
-                </span>
-            </div>
-            {#if allVocabularyFields.length > 0}
-                <BaseButton
-                    class="btn btn-sm btn-secondary"
-                    icon="plus"
-                    text={t("export.add-connection", { fallback: "Add connection" })}
-                    onClick={() => openVocabularyModal(allVocabularyFields[0])}
-                />
-            {/if}
-        </div>
-
-        {#if allVocabularyFields.length === 0}
-            <div class="text-muted">
-                {t("objects.connections.no_fields", {
-                    fallback: "No connection fields defined for this project",
-                })}
-            </div>
-        {:else if allConnections.length === 0}
-            <div class="text-muted">
-                {t("objects.connections.no_connections", {
-                    fallback: "No connections added",
-                })}
-            </div>
-        {:else}
-            <div class="d-flex flex-wrap gap-2">
-                {#each allConnections as connection}
-                    <div
-                        class="connection-card d-flex align-items-center gap-2 p-2 rounded"
-                        style="background-color: {getConnectionFieldColor(connection.fieldName)};"
-                    >
-                        <div class="connection-image">
-                            <BaseImage
-                                src={connection.vocabularyImage}
-                                alt={connection.vocabularyName}
-                                width={40}
-                                height={40}
-                                class="rounded-circle"
-                                ratio="1/1"
-                            />
-                        </div>
-                        <div class="connection-info flex-grow-1">
-                            <div class="fw-semibold">
-                                {connection.vocabularyName}
-                            </div>
-                            <div class="text-muted small">
-                                {connection.fieldName}
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            class="btn btn-link p-0 text-dark text-decoration-none"
-                            aria-label={t("objects.connections.remove", {
-                                fallback: "Remove connection",
-                            })}
-                            onclick={() =>
-                                handleVocabularyRemove(
-                                    connection.fieldId,
-                                    connection.vocabularyId,
-                                )}
-                        >
-                            <i class="bi bi-x-circle"></i>
-                        </button>
-                    </div>
-                {/each}
-            </div>
+<div class="d-flex flex-column gap-3">
+    <div class="d-flex align-items-center justify-content-between">
+        <span class="form-label mb-0">
+            {t("common.connections", { fallback: "Connections" })}
+        </span>
+        {#if allVocabularyFields.length > 0}
+            <BaseButton
+                class="btn btn-sm btn-outline-secondary"
+                icon="plus"
+                text={t("export.add-connection", { fallback: "Add connection" })}
+                onClick={() => openVocabularyModal(allVocabularyFields[0])}
+            />
         {/if}
     </div>
+
+    {#if allVocabularyFields.length === 0}
+        <div class="text-muted small">
+            {t("objects.connections.no_fields", {
+                fallback: "No connection fields defined for this project",
+            })}
+        </div>
+    {:else if allConnections.length === 0}
+        <div class="text-muted small">
+            {t("objects.connections.no_connections", {
+                fallback: "No connections added",
+            })}
+        </div>
+    {:else}
+        <div class="d-flex flex-wrap gap-2">
+            {#each allConnections as connection}
+                {@const field = researchFields.find(rf => rf.id === connection.fieldId)}
+                {@const templateId = field?.fields_config?.templateId || null}
+                {@const colorClasses = getTemplateColorClasses(templateId)}
+                {@const chipVocabulary = {
+                    id: connection.vocabularyId,
+                    option: { content: connection.vocabularyName },
+                    mainAsset: connection.vocabularyImage
+                        ? { path: connection.vocabularyImage.replace("media://", "") }
+                        : null,
+                }}
+                <div style="min-width: 220px; max-width: 300px; flex: 0 0 auto;">
+                    <ConnectionVocabularyChip
+                        vocabulary={chipVocabulary}
+                        borderStartClass={colorClasses.border}
+                        showCount={false}
+                        showActions={false}
+                        onRemove={() => handleVocabularyRemove(connection.fieldId, connection.vocabularyId)}
+                        removeLabel={t("objects.connections.remove", { fallback: "Remove connection" })}
+                        imageAltFallback={connection.vocabularyName}
+                    />
+                </div>
+            {/each}
+        </div>
+    {/if}
 </div>
 
 <!-- Vocabulary Selection Modal -->
@@ -396,24 +376,4 @@
     {defaultLanguageId}
 />
 
-<style>
-    .connection-card {
-        min-width: 200px;
-        max-width: 300px;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-    }
 
-    .connection-image {
-        flex-shrink: 0;
-    }
-
-    .connection-info {
-        min-width: 0;
-    }
-
-    .connection-info > div {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-</style>
