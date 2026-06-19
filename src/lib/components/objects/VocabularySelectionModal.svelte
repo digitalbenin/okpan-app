@@ -3,8 +3,10 @@
     import BaseButton from "$lib/components/base/BaseButton.svelte";
     import BaseModal from "$lib/components/base/BaseModal.svelte";
     import BaseImage from "$lib/components/base/BaseImage.svelte";
+    import { IconInfoCircle, IconCirclePlus, IconSearch } from "@tabler/icons-svelte";
     import { watch } from "runed";
     import { addVocabulary as addVocabularyAPI } from "$lib/api/ResearchFieldsApi.js";
+    import { getTemplateColorClasses } from "$lib/constants/connectionTemplates.js";
 
     // Props
     let {
@@ -30,8 +32,6 @@
     let newConnectionTitle = $state("");
     let newConnectionDescription = $state("");
     let newConnectionExternalLink = $state("");
-    let expandedDescriptions = $state(new Set());
-
     // Reset state whenever the modal opens
     watch(() => isOpen, (open) => {
         if (!open) return;
@@ -45,7 +45,6 @@
         newConnectionTitle = "";
         newConnectionDescription = "";
         newConnectionExternalLink = "";
-        expandedDescriptions = new Set();
     });
 
     // Get the currently selected field from vocabularyFields
@@ -93,10 +92,10 @@
         }
     };
 
-    const toggleDescription = (vocabId) => {
-        const next = new Set(expandedDescriptions);
-        next.has(vocabId) ? next.delete(vocabId) : next.add(vocabId);
-        expandedDescriptions = next;
+    /** Truncate description to 300 chars for tooltip display. */
+    const truncateDescription = (desc) => {
+        if (!desc) return "";
+        return desc.length > 300 ? desc.slice(0, 300) + "…" : desc;
     };
 
     const handleAddNewConnection = () => {
@@ -231,7 +230,7 @@
                                 bind:value={searchQuery}
                             />
                             <div class="position-absolute top-50 end-0 translate-middle-y pe-3">
-                                <i class="bi bi-search text-muted"></i>
+                                <IconSearch size={16}  />
                             </div>
                         </div>
                     </div>
@@ -239,8 +238,8 @@
 
                 <div class="d-flex justify-content-end mb-3 px-2">
                     <BaseButton
-                        class="btn btn-link btn-sm text-primary-dark text-decoration-none"
-                        icon="plus-circle-fill"
+                        class="btn btn-link btn-sm text-primary text-decoration-none"
+                        IconComponent={IconCirclePlus}
                         text={t("objects.connections.add_new_connection", { fallback: "Add new connection" })}
                         onClick={handleAddNewConnection}
                     />
@@ -250,10 +249,14 @@
             <!-- Vocabulary List - scrollable -->
             <div class="vocabulary-list" style="overflow-y: auto; height: calc(100% - 120px);">
                 {#each filteredVocabularies as vocab (`${vocab._fieldId}_${vocab.id}`)}
+                    {@const fieldFor = vocabularyFields.find(f => f.id === vocab._fieldId)}
+                    {@const templateId = fieldFor?.fields_config?.templateId || null}
+                    {@const colorClasses = getTemplateColorClasses(templateId)}
+                    {@const descText = truncateDescription(vocab.description?.content)}
                     <div class="border-bottom">
-                        <div class="d-flex align-items-center p-3">
+                        <div class="d-flex align-items-center p-3 gap-3">
                             <!-- Checkbox -->
-                            <div class="me-3">
+                            <div>
                                 <input
                                     type="checkbox"
                                     class="form-check-input"
@@ -263,51 +266,45 @@
                                 />
                             </div>
 
+                            <!-- Vocabulary content -->
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <div class="fw-medium text-truncate">
+                                    {vocab.option?.content || t("common.unnamed", { fallback: "Unnamed" })}
+                                </div>
+                                <small class="text-uppercase fw-normal fs-8 {colorClasses.text}" style="letter-spacing: 0.24px;">
+                                    {vocab._fieldName}
+                                </small>
+                            </div>
+
                             <!-- Main Asset Image -->
-                            <div class="me-3">
+                            <div class="flex-shrink-0">
                                 <BaseImage
                                     asset={vocab.mainAsset}
                                     preferredFormat="sm"
                                     alt={vocab.option?.content || t("common.unnamed", { fallback: "Unnamed" })}
                                     width={48}
                                     height={48}
-                                    class="rounded"
+                                    class="rounded-circle"
                                     ratio="1/1"
                                     compact={true}
+                                    style="background-color:#E9EEF1"
                                 />
                             </div>
 
-                            <!-- Vocabulary content -->
-                            <div class="flex-grow-1">
-                                <div class="fw-medium">
-                                    {vocab.option?.content || t("common.unnamed", { fallback: "Unnamed" })}
-                                </div>
-                                <small class="text-muted">
-                                    {vocab._fieldName}
-                                </small>
-                            </div>
-
-                            <!-- Expand/Collapse button for description -->
-                            {#if vocab.description?.content}
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-link text-decoration-none p-0"
-                                    onclick={() => toggleDescription(vocab.id)}
-                                    aria-label={expandedDescriptions.has(vocab.id)
-                                        ? t("common.collapse", { fallback: "Collapse" })
-                                        : t("common.expand", { fallback: "Expand" })}
+                            <!-- Description info tooltip -->
+                            
+                                <span class="position-relative d-inline-flex align-items-center text-body-dark desc-tooltip"
+                                    class:opacity-25={!descText}
                                 >
-                                    <i class="bi {expandedDescriptions.has(vocab.id) ? 'bi-dash-circle' : 'bi-info-circle'}"></i>
-                                </button>
-                            {/if}
+                                    <IconInfoCircle size={16}  />
+                                    {#if descText}
+                                        <span class="position-absolute top-0 end-100 me-2 text-bg-dark py-1 px-2 rounded fs-7" style="max-width: 260px; white-space: normal; z-index: 1060; display: none; pointer-events: none;">
+                                            {descText}
+                                        </span>
+                                    {/if}
+                                </span>
+                            
                         </div>
-
-                        <!-- Expandable description -->
-                        {#if vocab.description?.content && expandedDescriptions.has(vocab.id)}
-                            <div class="pb-3 text-muted small" style="margin-left: 116px; padding-right: 1rem;">
-                                {vocab.description.content}
-                            </div>
-                        {/if}
                     </div>
                 {/each}
 
@@ -319,7 +316,7 @@
                             </div>
                             <BaseButton
                                 class="btn btn-link text-dark text-decoration-none"
-                                icon="plus-circle"
+                                IconComponent={IconCirclePlus}
                                 text={t("objects.connections.create-option", {
                                     fallback: 'Create "{{value}}"',
                                     value: searchQuery.trim(),
@@ -381,7 +378,7 @@
                 />
             </div>
 
-            <div class="mb-3">
+          <!--  <div class="mb-3">
                 <label for="connection-description" class="form-label">
                     {t("common.description", { fallback: "Description" })}
                 </label>
@@ -410,7 +407,7 @@
             <p class="text-muted small">
                 {t("objects.connections.add_media_note", { fallback: "NOTE: You can add media and other details later from the connections section." })}
             </p>
-
+-->
             {#if creationError}
                 <div class="alert alert-danger small mt-2 pb-2">{creationError}</div>
             {/if}
@@ -444,3 +441,9 @@
 {/snippet}
 
 <BaseModal bind:isOpen size="lg" {header} {body} {actions} />
+
+<style>
+  .desc-tooltip:hover > span {
+    display: block !important;
+  }
+</style>
