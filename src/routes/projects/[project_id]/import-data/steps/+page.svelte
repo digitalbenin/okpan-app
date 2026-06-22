@@ -15,11 +15,11 @@
 </script>
 
 {#if wizard.currentStep === 1}
-  <Datasource institutions={data.institutions} languages={data.languages} />
+  <UploadFile />
 {/if}
 
 {#if wizard.currentStep === 2}
-  <UploadFile />
+  <Datasource institutions={data.institutions} languages={data.languages} />
 {/if}
 
 {#if wizard.currentStep === 3}

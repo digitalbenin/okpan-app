@@ -4,8 +4,8 @@ const IMPORT_WIZARD_KEY = 'importWizard';
 
 export function createImportWizardContext(params) {
     let steps = $state([
-        { id: 1, t: 'give-datasource-name', fallback: 'Give Data Source Name' },
-        { id: 2, t: 'upload-data', fallback: 'Add your data file' },
+        { id: 1, t: 'upload-data', fallback: 'Add your data file' },
+        { id: 2, t: 'give-datasource-name', fallback: 'Give Data Source Name' },
         { id: 3, t: 'match-data', fallback: 'Match your data' },
         { id: 4, t: 'choose-id', fallback: 'Choose your object identifier' },
         { id: 5, t: 'review-save', fallback: 'Review and Save' }
@@ -24,6 +24,7 @@ export function createImportWizardContext(params) {
     let reusedTemplate = $state();
     let useMatchingTemplate = $state(false);
     let importCompleted = $state(false);
+    let submitStep = $state(null);
     // let formData = $state({});
     // let isValid = $state(false);
     // let errors = $state([]);
@@ -71,6 +72,9 @@ export function createImportWizardContext(params) {
 
         get importCompleted() { return importCompleted; },
         set importCompleted(value) { importCompleted = value; },
+
+        get submitStep() { return submitStep; },
+        set submitStep(value) { submitStep = value; },
 
         get reusedTemplate() { return reusedTemplate; },
         set reusedTemplate(value) {

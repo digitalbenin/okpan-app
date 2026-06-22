@@ -1,5 +1,5 @@
 <script>
-  import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import { IconBulb } from "@tabler/icons-svelte";
   import { createForm } from "@tanstack/svelte-form";
   import { getValidator, createFieldValidator, getFormConfig } from "$lib/utils/formValidation.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -7,7 +7,9 @@
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
   import { queryParameters, ssp } from "sveltekit-search-params";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
+
+  import { watch } from "runed";
 
   const translationStore = getTranslationStore();
   const t = $derived(translationStore.t);
@@ -42,7 +44,6 @@
         const values = {
           institutionId: result.institution_id,
           date: result.date,
-          // Handle potential object fields from Text/Translations structure by taking .content
           name: result.name?.content || (typeof result.name === 'string' ? result.name : ""),
           method: result.method?.content || (typeof result.method === 'string' ? result.method : ""),
           notes: result.notes?.content || (typeof result.notes === 'string' ? result.notes : ""),
@@ -51,12 +52,10 @@
           language: result.language,
         };
 
-        // Populate translations for secondary languages
         secondaryLanguages.forEach((lang) => {
           TRANSLATABLE_FIELDS.forEach((field) => {
             const fieldData = result[field];
             if (fieldData?.translations && Array.isArray(fieldData.translations)) {
-              // Find translation matching the language code
               const translation = fieldData.translations.find(
                 (t) => t.language?.code === lang.code || t.language_code === lang.code
               );
@@ -104,16 +103,17 @@
   };
 
   // Create the form
-  const form = $derived(createForm(() =>
+  const form = createForm(() =>
     getFormConfig("datasources", "create", {
       defaultValues: {
         date: new Date().toISOString(),
-        languageId: defaultLanguage?.id,
-        institutionId: params.institution_id || undefined,
+        languageId: defaultLanguage?.id || '',
+        institutionId: params.institution_id || '',
         ...initialValues,
       },
       onSubmit: async ({ value }) => {
         try {
+          wizard.saving = true;
           const payload = cleanPayload(value);
           const translations = buildTranslationsPayload(value);
           const finalPayload = { ...payload, ...translations };
@@ -126,12 +126,10 @@
               return;
             }
             const createdDatasourceId = result?.result?.id;
-
             if (!createdDatasourceId) {
               console.error("Error creating datasource: missing datasource id in response", result);
               return;
             }
-
             wizard.datasourceId = createdDatasourceId;
           } else {
             const updateResult = await updateDatasource(wizard.datasourceId, finalPayload);
@@ -140,13 +138,39 @@
               return;
             }
           }
-          wizard.nextEnabled = true;
+          wizard.nextStep();
         } catch (error) {
           console.error("Error creating datasource:", error);
+        } finally {
+          wizard.saving = false;
         }
       },
-    }),
-  ));
+    })
+  );
+
+  // Expose submit handler so BottomToolbar can trigger it
+  wizard.submitStep = async () => {
+    await form.handleSubmit();
+  };
+
+  onDestroy(() => {
+    wizard.submitStep = null;
+  });
+
+  // Derive nextEnabled from form field values
+  const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
+  let canProceed = $derived.by(() => {
+    const v = formStore?.current?.values;
+    return Boolean(
+      v?.name?.trim?.() &&
+      v?.institutionId &&
+      v?.date
+    );
+  });
+
+  watch(() => canProceed, (enabled) => {
+    wizard.nextEnabled = enabled;
+  });
 
   // UI Configuration
   const uiSchema = $derived({
@@ -154,7 +178,7 @@
     templateId: { hidden: true },
     source: { hidden: true },
     importId: { hidden: true },
-    name: { label: t("common.datasource-name", { fallback: "Datasource Name" }), colSize: 9 },
+    name: { label: t("common.datasource-name", { fallback: "Datasource Name" }), colSize: 9, required: true },
     method: { type: "textarea", label: t("common.method", { fallback: "Method" }), colSize: 9 },
     notes: { type: "textarea", label: t("common.notes", { fallback: "Notes" }), colSize: 9 },
     institutionId: {
@@ -162,8 +186,9 @@
       label: t("common.institution", { fallback: "Institution" }),
       options: institutions.map((i) => ({ value: i.id, label: i.name.content })),
       colSize: 9,
+      required: true,
     },
-    date: { type: "date", label: t("common.date", { fallback: "Date" }), colSize: 9 },
+    date: { type: "date", label: t("common.date", { fallback: "Date" }), colSize: 9, required: true },
     language: { label: t("common.datasource-language", { fallback: "Datasource Language" }), colSize: 9 },
     copyright: { label: t("common.copyright", { fallback: "Copyright" }), colSize: 9 },
     contact: { label: t("common.contact", { fallback: "Contact" }), colSize: 9 },
@@ -172,47 +197,64 @@
   const fieldOrder = ["institutionId", "date", "language", "copyright", "contact"];
 </script>
 
-<form onsubmit={(e) => { e.preventDefault(); e.stopPropagation(); form.handleSubmit(); }}>
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-12">
-        <h2 class="mt-3">{t("common.add-new-datasource", { fallback: "Add New Datasource" })}</h2>
-        <p>{t("common.add-new-datasource-desc", { fallback: "Please fill out the details below to add a new datasource to your project." })}</p>
+<div class="row g-3">
+  <!-- Left column: form -->
+  <div class="col-12 col-lg-8 col-xl-9 min-w-0">
+    <div class="bg-white rounded-3 p-4">
+      <div>
+        <h3 class="mb-1">
+          {t("common.add-new-datasource", { fallback: "Add New Datasource" })}
+        </h3>
+        <p class="mb-0 text-body-secondary">
+          {t("common.add-new-datasource-desc", { fallback: "Please fill out the details below to add a new datasource to your project." })}
+        </p>
+      </div>
+
+      {#if loading}
+        <div class="d-flex justify-content-center p-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      {:else}
+        <AutoForm
+          {form}
+          {validator}
+          {createFieldValidator}
+          {languages}
+          translatableFields={TRANSLATABLE_FIELDS}
+          {translationsValidator}
+          defaultColSize={9}
+          {fieldOrder}
+          hiddenStaticValues={{ templateId: null }}
+          {uiSchema}
+          usePortal={false}
+          enableDirtyTracking={false}
+        />
+      {/if}
+    </div>
+  </div>
+
+  <!-- Right column: info sidebar -->
+  <div class="col-12 col-lg-4 col-xl-3">
+    <div class="bg-white border rounded-3 p-4">
+      <div class="d-flex gap-3 align-items-start">
+        <div class="d-flex align-items-center mt-1 flex-shrink-0">
+          <IconBulb size={16} stroke={2} />
+        </div>
+        <div>
+          <p class="fw-semibold mb-1 text-body">
+            {t("import.datasource-help-title", { fallback: "About the datasource" })}
+          </p>
+          <div class="text-body-secondary fs-7">
+            <p class="mb-2">
+              {t("import.datasource-help-description", {
+                fallback: "A datasource groups together all the objects you import from a single file or export. Give it a meaningful name — like the institution and year — so you can find it easily later.",
+              })}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
-
-    {#if loading}
-      <div class="d-flex justify-content-center p-5">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    {:else}
-      <div class="row">
-        <div class="col-12">
-          <AutoForm
-            {form}
-            {validator}
-            {createFieldValidator}
-            {languages}
-            translatableFields={TRANSLATABLE_FIELDS}
-            {translationsValidator}
-            defaultColSize={9}
-            {fieldOrder}
-            hiddenStaticValues={{ templateId: null }}
-            {uiSchema}
-            usePortal={false}
-            enableDirtyTracking={false}
-            
-          />
-        </div>
-      </div>
-
-      <div class="row mt-0 bg-white border-top py-2" style="position: sticky; bottom: 0; z-index: 100;">
-        <div class="col-12 d-flex align-items-center justify-content-end">
-          <BaseButton type="submit" class="btn btn-success btn-sm" text={t("common.confirm", { fallback: "Confirm" })} />
-        </div>
-      </div>
-    {/if}
   </div>
-</form>
+</div>

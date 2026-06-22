@@ -41,6 +41,11 @@ export async function findMatchingTemplates(inputHeaders, projectId, institution
 
         for (const template of projectTemplates) {
             try {
+                // Skip templates with empty or invalid mapping
+                if (!template.mapping || typeof template.mapping !== 'string') {
+                    continue;
+                }
+
                 // Parse the mapping JSON
                 const mapping = JSON.parse(template.mapping);
 

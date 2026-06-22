@@ -7,7 +7,8 @@
   let {
     field,
     suggestions = [],
-    fieldMatched = $bindable(),
+    fieldMatched = null,
+    onSetMatchChange = () => {},
     disabled = false,
     open = $bindable(false),
     triggerVariant = "edit",
@@ -50,14 +51,17 @@
   });
 
   function updateMatch() {
-    fieldMatched = page.data.ontologyFields
+    const match = page.data.ontologyFields
       .filter((f) => f.id === value)
       .map((f) => ({
         name: f.name.content,
         id: f.id,
         description: f.description.content,
-        suggestion: suggestions.some((ss) => ss.ontologyFieldId === f.id),
+        suggestion: false,
       }))[0];
+    if (match) {
+      onSetMatchChange(match);
+    }
     open = false;
   }
 </script>

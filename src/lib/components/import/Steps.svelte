@@ -7,14 +7,17 @@
 </script>
 
 <div class="w-100">
-  <div class="bg-light rounded d-flex justify-content-between p-2 gap-2">
+  <div class="rounded d-flex bg-white justify-content-between py-3 gap-2 px-4 border-bottom">
     {#each wizard.steps as step, i (step.id)}
       <div
         class="d-flex align-items-center gap-1 overflow-hidden"
-        class:disabled={wizard.currentStep !== i + 1}
       >
         <div
-          class="step text-bg-primary rounded d-flex align-items-center justify-content-center flex-shrink-0"
+          class="step text-bg-primary fs-7 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+          class:bg-gray-300={wizard.currentStep !== i + 1}
+          class:border={wizard.currentStep !== i + 1}
+          class:border-gray-800={wizard.currentStep !== i + 1}
+          class:text-dark={wizard.currentStep !== i + 1}
         >
           <div>{i + 1}</div>
         </div>
@@ -34,6 +37,6 @@
 
   .disabled {
     pointer-events: none;
-    opacity: 0.65;
+
   }
 </style>

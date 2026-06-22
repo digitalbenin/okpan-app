@@ -33,12 +33,6 @@
   const skipTemplateSuggestions = $derived.by(
     () => Boolean(wizard.file?.preset?.id && wizard.file?.preset?.id !== "json-ld")
   );
-  const mappingSignature = $derived.by(() =>
-    (wizard.mapping || [])
-      .map((entry) => `${entry?.headerField || ''}:${entry?.mappedField || ''}`)
-      .sort()
-      .join('|')
-  );
 
   // Per-field inclusion tracking (all included by default)
   let fieldInclusion = $state({});
@@ -62,9 +56,9 @@
   }
 
   const matchingSuggestions = resource(
-    () => [fields, wizard.useMatchingSuggestions, isPresetImport, mappingSignature, wizard.projectId],
+    () => [fields, wizard.useMatchingSuggestions, isPresetImport, wizard.projectId],
     async (
-      [fields, useMatchingSuggestions, presetImport, _mappingSignature, projectId]
+      [fields, useMatchingSuggestions, presetImport, projectId]
     ) => {
       if (fields.length === 0) return [];
 
@@ -103,7 +97,25 @@
       wizard.nextEnabled = mapping.length > 0;
     }
   );
+  const mappedCount = $derived.by(() => wizard.mapping.filter((m) => m.mappedField).length);
+  const mappedPercent = $derived.by(() => fields.length ? Math.round((mappedCount / fields.length) * 100) : 0);
 </script>
+
+<div class="content-stretch flex gap-16px items-center relative shrink-0 w-full" data-node-id="205:35219">
+  <span>
+    {mappedCount} {t("import.out-of", { fallback: "out of" })} {fields.length} {t("import.fields-are-mapped", { fallback: "fields are mapped" })}
+  </span>
+  <div class="progress flex-grow-1" style="height: 6px;">
+    <div
+      class="progress-bar"
+      role="progressbar"
+      style="width: {mappedPercent}%;"
+      aria-valuenow={mappedPercent}
+      aria-valuemin="0"
+      aria-valuemax="100"
+    ></div>
+  </div>
+</div>
 
 {#if templateSuggestions.loading || matchingSuggestions.loading}
   <div class="d-flex flex-column align-items-center justify-content-center py-5">

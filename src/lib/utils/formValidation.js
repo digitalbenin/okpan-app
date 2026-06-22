@@ -234,6 +234,13 @@ registerCustomValidator('datasources', 'copyright', {
     defaultValue: ''
 });
 
+// Name validator - required field
+registerCustomValidator('datasources', 'name', {
+    validator: () => z.string().min(1, 'Datasource name is required'),
+    required: true,
+    defaultValue: ''
+});
+
 // =============================================================================
 // RESEARCH FIELDS VALIDATORS
 // =============================================================================

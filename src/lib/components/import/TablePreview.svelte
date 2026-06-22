@@ -18,5 +18,5 @@
   selectable={false}
   size="sm"
   bordered={true}
-  wrap={false}
+  wrap={true}
 />

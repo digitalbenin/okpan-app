@@ -8,7 +8,7 @@
 </script>
 
 <div
-  class="w-100 bg-light p-3 d-flex justify-content-between align-items-center"
+  class="w-100 bg-white p-3 d-flex justify-content-between align-items-center my-n4 border-top"
 >
   <div class="d-flex gap-2">
     <Cancel />
@@ -28,10 +28,21 @@
   {#if wizard.currentStep < wizard.steps.length}
     <button
       class="btn btn-success"
-      disabled={!wizard.nextEnabled}
-      onclick={wizard.nextStep}
+      disabled={!wizard.nextEnabled || wizard.saving}
+      onclick={async () => {
+        if (wizard.submitStep) {
+          await wizard.submitStep();
+        } else {
+          wizard.nextStep();
+        }
+      }}
     >
-      {t("common.next", { fallback: "Next" })}
+      {#if wizard.saving}
+        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        {t("common.saving", { fallback: "Saving..." })}
+      {:else}
+        {t("common.next", { fallback: "Next" })}
+      {/if}
     </button>
   {/if}
   {#if wizard.currentStep === wizard.steps.length}

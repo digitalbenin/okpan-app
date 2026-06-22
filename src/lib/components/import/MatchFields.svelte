@@ -7,21 +7,19 @@
   const wizard = getImportWizardContext();
 </script>
 
-<div class="container-fluid mt-3">
-  <div class="row">
-    <div class="col-12">
-      <h3>
-        {t("import.match-start", {
-          fallback: "Tell us what each column in your file means.",
-        })}
-      </h3>
-      <p class="w-75">
-        {t("import.match-fields-description", {
-          fallback:
-            "In this step, you’ll connect the data from your file (like titles, dates, authors, etc.) to our shared structure. This helps make the objects searchable and comparable across different institutions.",
-        })}
-      </p>
-    </div>
+<div class="bg-white rounded-3 p-4 d-flex flex-column gap-4">
+  <div>
+    <h3 class="mb-1">
+      {t("import.match-start", {
+        fallback: "Match your columns to Okpan fields",
+      })}
+    </h3>
+    <p class="mb-0 text-body-secondary">
+      {t("import.match-fields-description", {
+        fallback:
+          "Your file has columns with its own names. Tell Okpan which column corresponds to which field so the data ends up in the right place. Okpan has already suggested matches \u2014 review and correct them if needed.",
+      })}
+    </p>
   </div>
   {#if wizard.file.tabularized || wizard.file.format === "csv" || wizard.file.format === "tsv" || wizard.file.format === "xlsx"}
     <Dsv data={wizard.data} />

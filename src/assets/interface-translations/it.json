@@ -468,6 +468,16 @@
                              "value":  "Compila i dettagli per aggiungere un nuovo datasource al progetto."
                          },
                          {
+                             "namespace":  "import",
+                             "key":  "datasource-help-title",
+                             "value":  "Informazioni sul datasource"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "datasource-help-description",
+                             "value":  "Un datasource raggruppa tutti gli oggetti che importi da un singolo file o esportazione. Dagli un nome significativo \u2014 come l'istituzione e l'anno \u2014 per trovarlo facilmente in seguito."
+                         },
+                         {
                              "namespace":  "common",
                              "key":  "select-institution-desc",
                              "value":  "Seleziona l'istituzione a cui appartiene la risorsa."
@@ -904,33 +914,68 @@
                          },
                          {
                              "namespace":  "import",
-                             "key":  "begin",
-                             "value":  "Inizia importazione dati"
-                         },
-                         {
-                             "namespace":  "import",
-                             "key":  "description",
-                             "value":  "Questa pagina ti permette di importare dati nel progetto. Puoi caricare file o collegarti a fonti dati esterne."
-                         },
-                         {
-                             "namespace":  "import",
                              "key":  "start",
                              "value":  "Inizia"
                          },
                          {
                              "namespace":  "import",
                              "key":  "upload-title",
-                             "value":  "Carica il file che contiene l'elenco degli oggetti che vuoi importare nel progetto."
+                             "value":  "Carica il tuo file di dati"
                          },
                          {
                              "namespace":  "import",
                              "key":  "upload-description",
-                             "value":  "Puoi caricare un file CSV, JSON o XML. Assicurati che il file sia formattato correttamente per il processo di importazione."
+                             "value":  "Seleziona il file che contiene l'elenco degli oggetti che vuoi importare. Okpan lo leggera e ti guidera nel resto del processo."
                          },
                          {
                              "namespace":  "import",
-                             "key":  "select-file",
-                             "value":  "Seleziona file"
+                             "key":  "new-to-okpan-tip",
+                             "value":  "Nuovo su O\u0323kpan? Ti consigliamo di iniziare aggiungendo almeno un'istituzione, poi importare il tuo primo dataset."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "click-to-select-file",
+                             "value":  "Clicca per selezionare un file"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "or-drag-and-drop-here",
+                             "value":  "Oppure trascina e rilascia qui"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "select-different-file",
+                             "value":  "Cambia file"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "supported-formats-title",
+                             "value":  "Quali formati di file sono supportati?"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "supported-formats-description-p1",
+                             "value":  "Okpan accetta file CSV, JSON e XML. CSV e il formato piu comune \u2014 la maggior parte dei database museali e degli strumenti di fogli di calcolo possono esportare in questo formato. JSON e XML sono formati piu strutturati, spesso usati da API per sviluppatori o esportazioni personalizzate di database."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "supported-formats-description-p2",
+                             "value":  "Consulta i nostri tutorial per sapere come ottenere dati dalle istituzioni."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "you-loaded-a",
+                             "value":  "Hai caricato un"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "file-named",
+                             "value":  "file chiamato"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "with-rows",
+                             "value":  "con {{count}} righe"
                          },
                          {
                              "namespace":  "import",
@@ -985,7 +1030,7 @@
                          {
                              "namespace":  "import",
                              "key":  "match-fields-description",
-                             "value":  "In questo passaggio collegherai i dati del file alla struttura condivisa cosi gli oggetti potranno essere cercati e confrontati tra istituzioni diverse."
+                             "value":  "Il tuo file ha colonne con nomi propri. Indica a Okpan quale colonna corrisponde a quale campo in modo che i dati finiscano nel posto giusto. Okpan ha gia suggerito delle corrispondenze \u2014 rivedile e correggile se necessario."
                          },
                          {
                              "namespace":  "import",
@@ -1009,13 +1054,18 @@
                          },
                          {
                              "namespace":  "import",
-                             "key":  "multi-sheet-warning",
-                             "value":  "Il file Excel contiene piu fogli. Seleziona il foglio da usare."
+                             "key":  "select-sheet-title",
+                             "value":  "Seleziona il foglio che vuoi importare"
                          },
                          {
                              "namespace":  "import",
-                             "key":  "select-sheet",
-                             "value":  "Seleziona foglio"
+                             "key":  "sheets-detected",
+                             "value":  "fogli rilevati"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "sheets-detected-hint",
+                             "value":  "seleziona il foglio che vuoi importare."
                          },
                          {
                              "namespace":  "import",
@@ -1104,13 +1154,23 @@
                          },
                          {
                              "namespace":  "import",
+                             "key":  "other-n",
+                             "value":  "altri {{n}}\u2026"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "ai-suggested",
+                             "value":  "Suggerito dall'AI"
+                         },
+                         {
+                             "namespace":  "import",
                              "key":  "field-unmapped",
-                             "value":  "Campo non mappato"
+                             "value":  "Questo campo non e mappato"
                          },
                          {
                              "namespace":  "import",
                              "key":  "match-start",
-                             "value":  "Abbina i campi importati a quelli del progetto."
+                             "value":  "Associa le tue colonne ai campi Okpan"
                          },
                          {
                              "namespace":  "import",
@@ -1204,23 +1264,13 @@
                          },
                          {
                              "namespace":  "import",
-                             "key":  "compatible-parser-found",
-                             "value":  "E stato trovato un parser compatibile: {{name}}"
+                             "key":  "this-looks-familiar",
+                             "value":  "Questo sembra familiare"
                          },
                          {
                              "namespace":  "import",
-                             "key":  "compatible-parser-description",
-                             "value":  "Puoi usare il parser per passare direttamente all'anteprima dei campi analizzati e delle associazioni suggerite, oppure continuare con il flusso standard di importazione."
-                         },
-                         {
-                             "namespace":  "import",
-                             "key":  "use-detected-parser",
-                             "value":  "Usa parser"
-                         },
-                         {
-                             "namespace":  "import",
-                             "key":  "continue-standard-import",
-                             "value":  "Continua con importazione standard"
+                             "key":  "template-detected-description",
+                             "value":  "Il file che hai scelto sembra un'esportazione da {{name}}. Vuoi analizzarlo con questo template?"
                          },
                          {
                              "namespace":  "import-assets",
@@ -1336,6 +1386,11 @@
                              "namespace":  "common",
                              "key":  "confirm",
                              "value":  "Conferma"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "decline",
+                             "value":  "Rifiuta"
                          },
                          {
                              "namespace":  "common",
