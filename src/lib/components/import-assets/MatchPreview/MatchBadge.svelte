@@ -1,4 +1,5 @@
 <script>
+  import { IconSparkles, IconX } from "@tabler/icons-svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getObjectIdentifier } from "$lib/api/ObjectsApi.js";
 
@@ -18,11 +19,11 @@
 
 {#if mappedObjects.length > 0}
   <div
-    class="d-flex align-items-center bg-white rounded overflow-hidden text-capitalize position-relative"
+    class="d-flex align-items-center bg-gray-300 rounded overflow-hidden text-capitalize position-relative"
   >
     {#if true}
-      <div class="px-2 p-1 text-bg-primary">
-        <i class="bi bi-stars"></i>
+      <div class="px-2 py-2 d-flex align-items-center bg-primary">
+        <IconSparkles size={16} class="text-white" />
       </div>
     {/if}
     <div class="ps-2">{displayText}</div>
@@ -34,7 +35,7 @@
         fallback: "Reset match",
       })}
     >
-      <i class="bi bi-x-lg"></i>
+      <IconX size={14} />
     </button>
   </div>
 {:else}

@@ -29,9 +29,9 @@
   };
 </script>
 
-<div class="h-100 d-flex flex-column">
+<div class="h-100 d-flex flex-column mx-n4 mt-n4">
   <Steps />
-  <div class="flex-grow-1 overflow-y-auto">
+  <div class="flex-grow-1 overflow-y-auto p-4 pb-0">
     {@render children?.()}
   </div>
   <BottomToolbar />

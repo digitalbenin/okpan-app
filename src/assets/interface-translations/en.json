@@ -3340,6 +3340,111 @@
                              "value":  "No matches found."
                          },
                          {
+                             "namespace":  "import-assets",
+                             "key":  "select-institution-title",
+                             "value":  "Select Institution"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-institution-desc",
+                             "value":  "Please select an institution which the asset belongs to."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "institution-help-title",
+                             "value":  "How should I fill this?"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "institution-help-desc-p1",
+                             "value":  "Choose the institution that owns or manages the assets you are about to import. This helps Okpan organise your media files and link them to the right objects later."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "institution-help-desc-p2",
+                             "value":  "If you don't see the right institution, make sure you have added it to your project first."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-files-title",
+                             "value":  "Select files to import"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-files-desc",
+                             "value":  "You can upload file images in different formats such as .png, .jpg, .webp, .avif."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-files-btn",
+                             "value":  "Select files"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-directory-btn",
+                             "value":  "Select directory"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "click-to-select-file",
+                             "value":  "Click to select a file"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "or-drag-and-drop",
+                             "value":  "Or drag and drop here"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "upload-help-title",
+                             "value":  "Which images do you want to import?"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "upload-help-desc",
+                             "value":  "Select the image files you want to import from your computer. You can select multiple files at once. Instead of uploading images one by one on each object page, this process lets Okpan match and link them automatically based on their filenames."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "file-selected",
+                             "value":  " file selected"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "files-selected",
+                             "value":  " files selected"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "match-title",
+                             "value":  "Link assets to objects"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "match-description",
+                             "value":  "In this step you can link assets to the objects of your collection. The automatic linking tries to match the filename of the assets with the primary field of the objects you have imported."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "match-help-title",
+                             "value":  "How should I fill this?"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "match-help-desc-p1",
+                             "value":  "Okpan tries to match each asset to an object by comparing the filename with the object identifier and any additional search fields you select."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "match-help-desc-p2",
+                             "value":  "If a match isn't correct, click the edit button to change it manually. Assets that don't match any object can be linked later from the object page."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "assets-linked",
+                             "value":  "assets are linked"
+                         },
+                         {
                              "namespace":  "common",
                              "key":  "edit",
                              "value":  "Edit"

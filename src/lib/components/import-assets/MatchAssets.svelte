@@ -1,4 +1,5 @@
 <script>
+  import { IconSearch, IconBulb } from "@tabler/icons-svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import MatchPreview from "./MatchPreview/MatchPreview.svelte";
@@ -32,7 +33,6 @@
     hasMatched = false;
 
     try {
-      // Use JSON serialization to ensure plain objects (avoid Proxy issues with IPC)
       const toMap = wizard.assets.map((a) => ({
         id: a.id,
         filename: a.filename,
@@ -42,12 +42,10 @@
       const suggestions = await window.api.suggestObjectMatches(toMap, {
         projectId: wizard.projectId,
         institutionId: wizard.institutionId,
-        searchFields: [...selectedFieldIds], // Spread to plain array (avoid Proxy issues with IPC)
+        searchFields: [...selectedFieldIds],
         maxSuggestions: 3,
         minConfidence: 0.3,
       });
-
-      console.log("Received suggestions", suggestions);
 
       matchingSuggestions = suggestions;
       wizard.mapping = suggestions.map((s) => {
@@ -70,89 +68,125 @@
   }
 </script>
 
-<div class="container-fluid mt-3">
-  <div class="row">
-    <div class="col-12">
-      <h2 class="mt-3">
-        {t("common.link-assets", { fallback: "Link assets to objects" })}
-      </h2>
-      <p>
-        {t("common.link-assets-desc", {
-          fallback:
-            "In this step you can link assets to the objects of your collection. The automatic linking try to match the filename of the assets with the primary field of the objects you have imported.",
-        })}
-      </p>
-    </div>
-  </div>
-
-  <!-- Field selection and start matching -->
-  <div class="row mb-4">
-    <div class="fw-semibold mb-1">
-        {t("import-assets.search-in-fields", { fallback: "Search in fields" })}
+<div class="row g-3">
+  <!-- Left column: main content -->
+  <div class="col-12 col-lg-8 col-xl-9 min-w-0 mb-5">
+    <div class="bg-white rounded-3 p-4 d-flex flex-column gap-4">
+      <div>
+        <h3 class="mb-1">
+          {t("import-assets.match-title", { fallback: "Link assets to objects" })}
+        </h3>
+        <p class="mb-0">
+          {t("import-assets.match-description", {
+            fallback:
+              "In this step you can link assets to the objects of your collection. The automatic linking tries to match the filename of the assets with the primary field of the objects you have imported.",
+          })}
+        </p>
       </div>
-      <p>
+
+      <div>
+        <p class="fw-semibold mb-1">
+          {t("import-assets.search-in-fields", { fallback: "Search in fields" })}
+        </p>
+        <p class="mb-2">
           {t("import-assets.click-start-matching", {
             fallback: "Select fields (optional) and click 'Start matching' to find object matches for your assets.",
           })}
         </p>
-    <div class="col-md-6">
-      
-      <BaseSelect
-        items={ontologyFieldItems}
-        bind:value={selectedFieldIds}
-        type="multiple"
-        placeholder={t("import-assets.select-fields-placeholder", { fallback: "Select fields..." })}
-        disabled={isMatching}
-      />
-      <small class="text-muted d-block mt-1">
-        {t("import-assets.search-fields-hint", {
-          fallback: "Leave empty to search only in primary fields.",
-        })}
-      </small>
-    </div>
-    <div class="col-md-6 d-flex align-items-start">
-      <button
-        class="btn btn-primary"
-        onclick={startMatching}
-        disabled={isMatching || !wizard.assets.length}
-      >
-        {#if isMatching}
-          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-          {t("common.matching", { fallback: "Matching..." })}
-        {:else}
-          <i class="bi bi-search me-2"></i>
-          {t("import-assets.start-matching", { fallback: "Start matching" })}
-        {/if}
-      </button>
-    </div>
-  </div>
+        <div class="w-100 d-flex align-items-start gap-3 p-0">
+        <div class="flex-grow-1">
+          <BaseSelect
+            items={ontologyFieldItems}
+            bind:value={selectedFieldIds}
+            type="multiple"
+            placeholder={t("import-assets.select-fields-placeholder", { fallback: "Select fields..." })}
+            disabled={isMatching}
+          />
+          <small class="text-body-secondary d-block mt-1">
+            {t("import-assets.search-fields-hint", {
+              fallback: "Leave empty to search only in primary fields.",
+            })}
+          </small>
+          </div>
+          <button
+          class="btn btn-secondary"
+          onclick={startMatching}
+          disabled={isMatching || !wizard.assets.length}
+        >
+          {#if isMatching}
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            {t("common.matching", { fallback: "Matching..." })}
+          {:else}
+            <IconSearch size={16} class="me-1" />
+            {t("import-assets.start-matching", { fallback: "Start matching" })}
+          {/if}
+        </button>
+        </div>
+        
+      </div>
 
-  <!-- Results -->
-  {#if isMatching}
-    <div class="row">
-      <div class="col-12">
+    </div>
+
+    <!-- Results: detached, same col size -->
+    {#if isMatching}
+      <div class="d-flex justify-content-center py-4 px-4 mt-4">
         <div class="spinner-border text-primary" role="status">
           <span class="visually-hidden">{t("common.loading", { fallback: "Loading..." })}</span>
         </div>
       </div>
-    </div>
-  {:else if hasMatched && matchingSuggestions.length}
-    {#each matchingSuggestions as asset}
-      <MatchPreview asset={asset.asset} results={asset.results} />
-    {/each}
-  {:else if hasMatched}
-    <div class="row">
-      <div class="col-12">
-        <p class="text-muted fst-italic">
-          {t("import-assets.no-matches-found", { fallback: "No matches found." })}
-        </p>
+    {:else if hasMatched && matchingSuggestions.length}
+      <div class="bg-white rounded-3 p-4 mt-4 d-flex flex-column gap-3">
+        <div class="d-flex gap-3 align-items-center">
+          <span class="text-body-secondary flex-shrink-0">
+            {wizard.mapping.filter((m) => m.object_ids?.length).length} {t("import.out-of", { fallback: "out of" })} {matchingSuggestions.length} {t("import-assets.assets-linked", { fallback: "assets are linked" })}
+          </span>
+          <div class="progress flex-grow-1" style="height: 6px;">
+            <div
+              class="progress-bar"
+              role="progressbar"
+              style="width: {matchingSuggestions.length ? Math.round((wizard.mapping.filter((m) => m.object_ids?.length).length / matchingSuggestions.length) * 100) : 0}%;"
+              aria-valuenow={matchingSuggestions.length ? Math.round((wizard.mapping.filter((m) => m.object_ids?.length).length / matchingSuggestions.length) * 100) : 0}
+              aria-valuemin="0"
+              aria-valuemax="100"
+            ></div>
+          </div>
+        </div>
+        {#each matchingSuggestions as asset}
+          <MatchPreview asset={asset.asset} results={asset.results} />
+        {/each}
+      </div>
+    {:else if hasMatched}
+      <p class="text-body-secondary fst-italic">
+        {t("import-assets.no-matches-found", { fallback: "No matches found." })}
+      </p>
+    {/if}
+  </div>
+
+  <!-- Right column: info sidebar -->
+  <div class="col-12 col-lg-4 col-xl-3">
+    <div class="bg-white border rounded-3 p-4">
+      <div class="d-flex flex-column gap-3">
+        <div class="flex-shrink-0">
+          <IconBulb size={16} stroke={2} />
+        </div>
+        <div>
+          <p class="fw-semibold mb-1 text-body">
+            {t("import-assets.match-help-title", { fallback: "How should I fill this?" })}
+          </p>
+          <div class="text-body-secondary fs-7">
+            <p class="mb-2">
+              {t("import-assets.match-help-desc-p1", {
+                fallback: "Okpan tries to match each asset to an object by comparing the filename with the object identifier and any additional search fields you select.",
+              })}
+            </p>
+            <p class="mb-0">
+              {t("import-assets.match-help-desc-p2", {
+                fallback: "If a match isn't correct, click the edit button to change it manually. Assets that don't match any object can be linked later from the object page.",
+              })}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
-  {:else}
-    <div class="row">
-      <div class="col-12">
-        
-      </div>
-    </div>
-  {/if}
+  </div>
 </div>

@@ -1,5 +1,7 @@
 <script>
+  import { IconFiles, IconFolder, IconBulb } from "@tabler/icons-svelte";
   import TablePreview from "./TablePreview.svelte";
+  import MediaDropZone from "./MediaDropZone.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import { getMediaType } from "$lib/utils/media.js";
@@ -8,7 +10,6 @@
   const { t } = getTranslationStore();
 
   let files = $state(wizard.selectedFiles || []);
-  let filesSelected = $state(wizard.selectedFilePaths || []);
   let importErrors = $state([]);
 
   function buildPendingAssets(selectedPaths) {
@@ -30,13 +31,14 @@
   }
 
   watch(
-    () => [files, filesSelected],
+    () => files,
     () => {
+      const paths = files.map((f) => f.path);
       wizard.selectedFiles = files;
-      wizard.selectedFilePaths = filesSelected;
-      wizard.assets = buildPendingAssets(filesSelected);
+      wizard.selectedFilePaths = paths;
+      wizard.assets = buildPendingAssets(paths);
       wizard.mapping = [];
-      wizard.nextEnabled = filesSelected.length > 0;
+      wizard.nextEnabled = files.length > 0;
       wizard.hasPersistedAssets = false;
     },
     { immediate: true },
@@ -47,83 +49,101 @@
       isDirectory,
       multiple: !isDirectory,
     });
-    console.log("Dialog result", result);
     if (result.canceled) return;
     wizard.assets = [];
     wizard.mapping = [];
     wizard.hasPersistedAssets = false;
     importErrors = [];
     files = result.files;
-    filesSelected = result.files.map((f) => f.path);
+  }
+
+  function handleDropZoneSelect(paths) {
+    const mappedFiles = paths.map((p) => ({ name: p.split(/[/\\]/).pop(), path: p, size: 0 }));
+    wizard.assets = [];
+    wizard.mapping = [];
+    wizard.hasPersistedAssets = false;
+    importErrors = [];
+    files = mappedFiles;
   }
 </script>
 
-<div class="container-fluid pt-3 h-100 d-flex flex-column">
-  <div class="row">
-    <div class="col-12">
-      <h2 class="mt-3">
-        {t("common.select-files", { fallback: "Select Files to import" })}
-      </h2>
-      <p>
-        {t("common.select-file-desc", {
-          fallback:
-            "You can upload file images in different formats such as .png, .jpg, .webp, .avif.",
-        })}
-      </p>
-    </div>
-  </div>
-  <div class="row mb-3">
-    <div class="col-12">
-      <button class="btn btn-primary" onclick={() => choose(false)}>
-        <i class="bi bi-files"></i>
-        {t("import.select-files", { fallback: "Select Files" })}
-      </button>
+<div class="row g-3">
+  <!-- Left column: main content -->
+  <div class="col-12 col-lg-8 col-xl-9 min-w-0 mb-5">
+    <div class="bg-white rounded-3 p-4 d-flex flex-column gap-4">
+      <div>
+        <h3 class="mb-1">
+          {t("import-assets.select-files-title", { fallback: "Select files to import" })}
+        </h3>
+        <p class="mb-0 text-body-secondary">
+          {t("import-assets.select-files-desc", {
+            fallback: "You can upload file images in different formats such as .png, .jpg, .webp, .avif.",
+          })}
+        </p>
+      </div>
 
-      <button class="btn btn-primary" onclick={() => choose(true)}>
-        <i class="bi bi-folder"></i>
-        {t("import.select-directory", { fallback: "Select Directory" })}
-      </button>
-    </div>
-  </div>
-  {#if files.length}
-    <div class="d-flex flex-column flex-grow-1 min-h-0">
-      <div class="row flex-grow-1 min-h-0 overflow-y-auto">
-        <div class="col-9 h-100 d-flex flex-column">
-          <div class="flex-grow-1 min-h-0 overflow-y-auto">
-            <TablePreview
-              data={files.map((f) => ({ name: f.name, size: f.size, id: f.path }))}
-              bind:selected={filesSelected}
-            />
+      <div class="d-flex gap-2">
+        <button class="btn btn-secondary" onclick={() => choose(false)}>
+          <IconFiles size={16} class="me-1" />
+          {t("import-assets.select-files-btn", { fallback: "Select files" })}
+        </button>
+        <button class="btn btn-secondary" onclick={() => choose(true)}>
+          <IconFolder size={16} class="me-1" />
+          {t("import-assets.select-directory-btn", { fallback: "Select directory" })}
+        </button>
+      </div>
+
+      {#if !files.length}
+        <MediaDropZone onSelect={handleDropZoneSelect} />
+      {/if}
+
+      {#if files.length}
+        <div>
+          <TablePreview
+            data={files.map((f) => ({ name: f.name, size: f.size, id: f.path }))}
+          />
+        </div>
+
+        {#if importErrors.length}
+          <div class="alert alert-danger mt-2 mb-0">
+            <h4>
+              {t("common.errors-occurred", {
+                fallback: "Some errors occurred:",
+              })}
+            </h4>
+            <ul>
+              {#each importErrors as err}
+                <li>{err}</li>
+              {/each}
+            </ul>
           </div>
+        {/if}
 
-          {#if importErrors.length}
-            <div class="alert alert-danger mt-2 mb-0">
-              <h4>
-                {t("common.errors-occurred", {
-                  fallback: "Some errors occurred:",
-                })}
-              </h4>
-              <ul>
-                {#each importErrors as err}
-                  <li>{err}</li>
-                {/each}
-              </ul>
-            </div>
-          {/if}
+        
+      {/if}
+    </div>
+  </div>
+
+  <!-- Right column: info sidebar -->
+  <div class="col-12 col-lg-4 col-xl-3">
+    <div class="bg-white border rounded-3 p-4">
+      <div class="d-flex flex-column gap-3">
+        <div class="flex-shrink-0">
+          <IconBulb size={16} stroke={2} />
         </div>
-      </div>
-      <div class="row bg-white border-top py-2 position-sticky bottom-0 z-3 mt-2">
-        <div class="col-12 d-flex align-items-center justify-content-end gap-3">
-          {#if files.length}
-            <span>
-              {filesSelected.length}
-              {filesSelected.length === 1
-                ? t("import.file-selected", { fallback: "file selected" })
-                : t("import.files", { fallback: "files selected" })}
-            </span>
-          {/if}
+        <div>
+          <p class="fw-semibold mb-1 text-body">
+            {t("import-assets.upload-help-title", { fallback: "Which images do you want to import?" })}
+          </p>
+          <div class="text-body-secondary fs-7">
+            <p class="mb-0">
+              {t("import-assets.upload-help-desc", {
+                fallback: "Select the image files you want to import from your computer. You can select multiple files at once. Instead of uploading images one by one on each object page, this process lets Okpan match and link them automatically based on their filenames.",
+              })}
+            </p>
+          </div>
         </div>
       </div>
     </div>
-  {/if}
+  </div>
 </div>

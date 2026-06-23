@@ -1,4 +1,5 @@
 <script>
+  import { IconSparkles, IconArrowsMaximize, IconCircleCheck, IconCirclePlus, IconFileDescription } from "@tabler/icons-svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getObjectIdentifier, getConnectionFieldColor } from "$lib/api/ObjectsApi.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
@@ -58,7 +59,7 @@
   }
 </script>
 
-<div class="rounded bg-secondary-subtle p-2 mb-2">
+<div class="rounded bg-secondary-subtle px-2 py-1 mb-2">
   <div class="d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center gap-2">
       <div class="fw-bold">
@@ -66,9 +67,9 @@
       </div>
 
       {#if suggested}
-        <span class="badge text-bg-primary"
-          >{t("import.suggested", { fallback: "Suggested" })}
-          <i class="bi bi-stars"></i></span
+          <span class="badge text-bg-primary d-inline-flex align-items-center gap-1"
+            >{t("import.suggested", { fallback: "Suggested" })}
+            <IconSparkles size={12} /></span
         >
       {/if}
     </div>
@@ -79,7 +80,7 @@
         onclick={() => expanded = !expanded}
         aria-label={expanded ? "Collapse" : "Expand"}
       >
-         <i class="bi bi-arrows-expand"></i>
+         <IconArrowsMaximize size={16} />
       </button>
 
       <button
@@ -88,7 +89,11 @@
         class:btn-outline-secondary={!selected}
         onclick={handleSelect}
       >
-        <i class="bi bi-{selected ? 'check-circle' : 'plus-circle'}"></i>
+        {#if selected}
+          <IconCircleCheck size={16} class="me-1" />
+        {:else}
+          <IconCirclePlus size={16} class="me-1" />
+        {/if}
         {selected ? t("common.selected", {fallback: "Selected"}) : t("common.add", {fallback: "Add"})}
       </button>
     </div>
@@ -199,7 +204,7 @@
             />
           {:else}
              <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
-                <i class="bi bi-file-earmark-image"></i>
+                <IconFileDescription size={24} />
              </div>
           {/if}
         </div>

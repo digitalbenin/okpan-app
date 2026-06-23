@@ -1,4 +1,5 @@
 <script>
+  import { IconPencil } from "@tabler/icons-svelte";
   import { page } from "$app/state";
   import { getObjects } from "$lib/api/ObjectsApi.js";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
@@ -80,7 +81,7 @@
 <BaseAlertDialog
   bind:open
   buttonProps={{
-    class: "btn btn-outline-secondary btn-sm",
+    class: "btn btn-secondary btn-sm",
     disabled: disabled,
   }}
   size="xl"
@@ -89,7 +90,7 @@
     {t("import.edit-link", { fallback: "Edit linked asset" })}
   {/snippet}
   {#snippet trigger()}
-    <i class="bi bi-pencil"></i>
+    <IconPencil size={14} />
     {t("import.edit-link", {
       fallback: "Edit linked asset",
     })}

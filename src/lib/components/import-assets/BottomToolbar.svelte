@@ -8,7 +8,7 @@
 </script>
 
 <div
-  class="w-100 bg-light p-3 d-flex justify-content-between align-items-center"
+  class="w-100 bg-white mb-n4 px-4 py-3 d-flex justify-content-between align-items-center"
 >
   <div class="d-flex gap-2">
     <Cancel />

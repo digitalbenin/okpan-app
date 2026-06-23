@@ -1418,6 +1418,111 @@
                              "value":  "Nessuna corrispondenza trovata."
                          },
                          {
+                             "namespace":  "import-assets",
+                             "key":  "select-institution-title",
+                             "value":  "Seleziona istituzione"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-institution-desc",
+                             "value":  "Seleziona l\u2019istituzione a cui appartengono gli asset."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "institution-help-title",
+                             "value":  "Come devo compilare questo campo?"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "institution-help-desc-p1",
+                             "value":  "Scegli l\u2019istituzione che possiede o gestisce gli asset che stai per importare. Questo aiuta Okpan a organizzare i tuoi file multimediali e a collegarli agli oggetti giusti in seguito."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "institution-help-desc-p2",
+                             "value":  "Se non vedi l\u2019istituzione giusta, assicurati di averla aggiunta prima al tuo progetto."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-files-title",
+                             "value":  "Seleziona i file da importare"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-files-desc",
+                             "value":  "Puoi caricare immagini in diversi formati come .png, .jpg, .webp, .avif."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-files-btn",
+                             "value":  "Seleziona file"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "select-directory-btn",
+                             "value":  "Seleziona cartella"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "click-to-select-file",
+                             "value":  "Clicca per selezionare un file"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "or-drag-and-drop",
+                             "value":  "Oppure trascina qui"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "upload-help-title",
+                             "value":  "Quali immagini vuoi importare?"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "upload-help-desc",
+                             "value":  "Seleziona i file immagine che vuoi importare dal tuo computer. Puoi selezionare pi\u00f9 file contemporaneamente. Invece di caricare le immagini una per una su ogni pagina oggetto, questo processo permette a Okpan di abbinarle e collegarle automaticamente in base ai nomi dei file."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "file-selected",
+                             "value":  " file selezionato"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "files-selected",
+                             "value":  " file selezionati"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "match-title",
+                             "value":  "Collega gli asset agli oggetti"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "match-description",
+                             "value":  "In questo passaggio puoi collegare gli asset agli oggetti della tua collezione. Il collegamento automatico cerca di abbinare il nome file degli asset con il campo primario degli oggetti che hai importato."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "match-help-title",
+                             "value":  "Come devo compilare questo campo?"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "match-help-desc-p1",
+                             "value":  "Okpan cerca di abbinare ogni asset a un oggetto confrontando il nome file con l\u2019identificatore dell\u2019oggetto e con eventuali campi di ricerca aggiuntivi che selezioni."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "match-help-desc-p2",
+                             "value":  "Se un abbinamento non \u00e8 corretto, clicca il pulsante modifica per cambiarlo manualmente. Gli asset che non corrispondono a nessun oggetto possono essere collegati in seguito dalla pagina dell\u2019oggetto."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "assets-linked",
+                             "value":  "asset collegati"
+                         },
+                         {
                              "namespace":  "nav",
                              "key":  "back",
                              "value":  "indietro"

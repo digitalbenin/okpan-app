@@ -1,4 +1,6 @@
 <script>
+  import { watch } from "runed";
+  import { IconArrowRight } from "@tabler/icons-svelte";
   import MatchBadge from "./MatchBadge.svelte";
   import SetMatch from "./SetMatch.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
@@ -8,55 +10,57 @@
   const { asset, results } = $props();
   const wizard = getImportAssetsWizardContext();
   const { t } = getTranslationStore();
-  //   let objectLinked = $derived.by(() => {
-  //     if (suggestion.results.length) {
-  //       const obj = suggestion.results[0].object;
-  //       obj.suggested = true;
-  //       return obj;
-  //     }
-  //     return null;
-  //   });
 
-  // const suggestedObject = $derived.by(() => {
-  //   if (results.length) {
-  //     return results[0].object;
-  //   }
-  //   return null;
-  // });
+  let mappedObjects = $state([]);
+  let _initialized = false;
 
-  let mappedObjects = $state(results.length && results[0] ? [results[0].object] : []);
+  watch(
+    () => results,
+    (r) => {
+      if (!_initialized && r?.length && r[0]) {
+        _initialized = true;
+        mappedObjects = [r[0].object];
+      }
+    }
+  );
+
+  // Sync mappedObjects changes to wizard.mapping
+  watch(
+    () => mappedObjects,
+    (objects) => {
+      if (objects.length) return;
+      // When unlinked, clear the wizard mapping entry for this asset
+      const existingMapping = wizard.mapping.find(
+        (m) => m.asset_id === asset.id
+      );
+      if (!existingMapping || !existingMapping.object_ids?.length) return;
+      existingMapping.object_ids = [];
+      existingMapping.objects_primary_ids = [];
+      wizard.mapping = [...wizard.mapping];
+    }
+  );
+
+  const isMapped = $derived(mappedObjects.length > 0);
 </script>
 
-<div class="row mb-3 bg-secondary-subtle rounded mx-1">
-  <div class="col-3">
-    <div class="p-2">
-      <!-- <div class="text-break fw-bold lh-0 mb-2">{asset.filename}</div> -->
-      <div class="square-image-container">
-        <img
-          src={getAssetImageUrl(asset, 'md')}
-          alt={asset.filename}
-          class="object-fit-contain w-100 h-100"
-        />
-      </div>
-    </div>
+<div
+  class="bg-gray-200 rounded-3 p-3 d-flex gap-3 border-start border-3"
+  class:border-success={isMapped}
+  class:border-warning={!isMapped}
+>
+  <div class="flex-shrink-0 overflow-hidden rounded-2" style="width: 80px; aspect-ratio: 1/1;">
+    <img
+      src={getAssetImageUrl(asset, 'md')}
+      alt={asset.filename}
+      class="object-fit-cover w-100 h-100"
+    />
   </div>
-  <div class="col-9">
-    <div class="p-2 border-start">
-      <div class="d-flex align-items-center gap-2">
-        <div class="text-break fw-bold">{asset.filename}</div>
-        <div><i class="bi bi-arrow-right-short fs-4"></i></div>
-        <MatchBadge bind:mappedObjects />
-        <SetMatch {asset} bind:mappedObjects suggestions={results} />
-      </div>
+  <div class="flex-grow-1 d-flex flex-column justify-content-center gap-1 min-w-0">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="text-break fw-semibold">{asset.filename}</span>
+      <IconArrowRight size={16} class="text-body-secondary flex-shrink-0" />
+      <MatchBadge bind:mappedObjects />
+      <SetMatch {asset} bind:mappedObjects suggestions={results} />
     </div>
   </div>
 </div>
-
-<style>
-  .square-image-container {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    position: relative;
-    overflow: hidden;
-  }
-</style>
