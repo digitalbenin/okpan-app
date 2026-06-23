@@ -12,14 +12,15 @@
   const { t } = getTranslationStore();
 </script>
 
-<RadioGroup.Root bind:value bind:ref {...restProps}>
+<RadioGroup.Root bind:value bind:ref class="border rounded" {...restProps}>
   {#each items as item}
     {@const id = useId()}
-    <div class="form-check">
+    <div class="form-check py-2 px-0  m-0 border-bottom"
+      class:bg-primary-subtle={item.value === value}>
       <RadioGroup.Item {id} value={item.value} disabled={item.disabled}>
         {#snippet child({ props, checked })}
           <input
-            class="form-check-input"
+            class="form-check-input mx-2 px-0"
             type="radio"
             aria-checked={props["aria-checked"]}
             {checked}
@@ -34,7 +35,7 @@
       <Label.Root for={id} class="form-check-label text-capitalize ">
         {item.label}
         {#if item.suggested}
-          <span class=" badge rounded-pill bg-primary">
+          <span class=" badge rounded p-2 ms-2 bg-primary fw-normal">
             {t("import.suggested", { fallback: "Suggested" })}
           </span>
         {/if}

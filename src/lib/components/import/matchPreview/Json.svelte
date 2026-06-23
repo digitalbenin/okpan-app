@@ -80,6 +80,14 @@
     { initialValue: [] }
   );
 
+  const showTemplateDecision = $derived(
+    !templateSuggestions.loading &&
+    templateSuggestions.current.length > 0 &&
+    !wizard.useMatchingTemplate &&
+    !wizard.useMatchingSuggestions &&
+    wizard.mapping.length === 0
+  );
+
   watch(
     () => wizard.mapping,
     (mapping) => {
@@ -92,6 +100,7 @@
 
 </script>
 
+{#if !showTemplateDecision}
 <div class="content-stretch flex gap-16px items-center relative shrink-0 w-full">
   <span>
     {mappedCount} {t("import.out-of", { fallback: "out of" })} {fields.length} {t("import.fields-are-mapped", { fallback: "fields are mapped" })}
@@ -107,6 +116,7 @@
     ></div>
   </div>
 </div>
+{/if}
 
 {#if templateSuggestions.loading || matchingSuggestions.loading}
   <div class="d-flex flex-column align-items-center justify-content-center py-5">
@@ -123,6 +133,7 @@
   </div>
 {/if}
 <SuggestTemplate {templateSuggestions}></SuggestTemplate>
+{#if !showTemplateDecision}
 {#if !fields.length}
   <div class="alert alert-warning mt-3" role="alert">
     {t("import.no-structured-fields", {
@@ -131,10 +142,7 @@
   </div>
 {:else}
   <div class="w-100">
-    <div class="d-flex align-items-center justify-content-between mb-2 px-3 py-2 bg-white border rounded">
-      <span class="text-muted">
-        {t("import.fields-count", { fallback: "{{count}} fields", count: fields.length })}
-      </span>
+    <div class="d-flex align-items-center justify-content-between mb-2">
       <div class="form-check mb-0">
         <input
           class="form-check-input"
@@ -157,4 +165,5 @@
       {fieldInclusion}
     ></CardTree>
   </div>
+{/if}
 {/if}

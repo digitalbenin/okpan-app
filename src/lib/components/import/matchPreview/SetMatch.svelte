@@ -1,7 +1,9 @@
 <script>
   import { page } from "$app/state";
+  import { IconPlus, IconPencil } from "@tabler/icons-svelte";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseRadioGroup from "$lib/components/base/BaseRadioGroup.svelte";
+  import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
   let {
@@ -36,7 +38,9 @@
   });
 
   let value = $derived(fieldMatched ? fieldMatched.id : null);
-  const items = $derived.by(() => {
+  let searchTerm = $state("");
+
+  const allItems = $derived.by(() => {
     return page.data.ontologyFields
       .map((s) => ({
         value: s.id,
@@ -48,6 +52,14 @@
         if (!a.suggested && b.suggested) return 1;
         return 0;
       });
+  });
+
+  const items = $derived.by(() => {
+    if (!searchTerm.trim()) return allItems;
+    const query = searchTerm.toLowerCase().trim();
+    return allItems.filter((item) =>
+      item.label.toLowerCase().includes(query)
+    );
   });
 
   function updateMatch() {
@@ -75,10 +87,10 @@
   {/snippet}
   {#snippet trigger()}
     {#if triggerVariant === "add"}
-      <i class="bi bi-plus"></i>
+      <IconPlus size={14} />
       <span class="visually-hidden">{t("common.add", { fallback: "Add" })}</span>
     {:else}
-      <i class="bi bi-pencil"></i>
+      <IconPencil size={14} />
       {t("import.edit-match", {
         fallback: "Edit matched field",
       })}
@@ -90,12 +102,16 @@
     })} <span class="fw-bold">{field}</span>
   {/snippet}
 
+  <BaseSearchBar border="border-secondary-gray-200" bind:search={searchTerm} placeholder={t("import.search-fields", { fallback: "Search" })} width="100%" />
   <div class="mt-2">
     <BaseRadioGroup bind:value {items} />
   </div>
   {#snippet footer()}
+    <button class="btn btn-outline-secondary" onclick={() => (open = false)}>
+      {t("common.cancel", { fallback: "Cancel" })}
+    </button>
     <button class="btn btn-success" onclick={updateMatch}>
-      {t("common.confirm", { fallback: "Confirm" })}
+      {t("objects.save-changes", { fallback: "Save changes" })}
     </button>
   {/snippet}
 </BaseAlertDialog>

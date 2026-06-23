@@ -272,8 +272,8 @@
   <!-- Right column: info sidebar -->
   <div class="col-12 col-lg-4 col-xl-3">
     <div class="bg-white border rounded-3 p-4 d-flex flex-column">
-      <div class="d-flex gap-3 align-items-start">
-        <div class="d-flex align-items-center mt-1 flex-shrink-0">
+      <div class="d-flex flex-column gap-3">
+        <div class="flex-shrink-0">
           <IconBulb size={16} stroke={2} />
         </div>
         <div>

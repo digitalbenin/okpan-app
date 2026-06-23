@@ -1,5 +1,6 @@
 <script>
   import ItemsPreview from "./ItemsPreview.svelte";
+  import ImportStats from "./ImportStats.svelte";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { createFetcher } from "$lib/stores/useFetcher.svelte.js";
@@ -32,7 +33,6 @@
       open = true;
     } catch (error) {
       console.error("Error saving datasource:", error);
-      // Handle error appropriately, e.g., show a notification
     } finally {
       wizard.saving = false;
     }
@@ -43,6 +43,14 @@
   const finalData = $derived(
     parseData(wizard.data, wizard.mapping, wizard.file?.tabularized ? "csv" : wizard.file.format)
   );
+
+  const identifierField = $derived(
+    wizard.mapping.find((m) => m.primary)?.headerField || ""
+  );
+  const mappedCount = $derived(
+    wizard.mapping.filter((m) => m.mappedField).length
+  );
+
   function closeAndHome() {
     open = false;
     goto("/projects/" + wizard.projectId);
@@ -54,66 +62,34 @@
     if (wizard.institutionId) {
       searchParams.set("institution_id", wizard.institutionId);
     }
-
     const query = searchParams.toString();
     goto(`/projects/${wizard.projectId}/import-assets/steps${query ? `?${query}` : ""}`);
   }
 </script>
 
-<div class="container-fluid mt-3">
-  <div class="row">
-    <div class="col-12">
-      <h3>
-        {t("import.review-start", {
-          fallback: "Review your data and save it to the archive.",
-        })}
-      </h3>
-      <p class="w-75">
-        {t("import.review-description", {
-          fallback:
-            "In this step, you’ll see a summary of your data and can make final adjustments before saving it to the archive. This is your chance to ensure everything is correct and ready for archiving.",
-        })}
-      </p>
-    </div>
-  </div>
-  <div class="row mb-2">
-    <div class="col-12">
+<div class="row g-3">
+  <div class="col-12 col-lg-8 col-xl-9 min-w-0 mb-5">
+    <div class="bg-white rounded-3 p-4 d-flex flex-column gap-4">
       <div>
-        {wizard.data.length}
-        {t("import.objects-will-be-imported", {
-          fallback: "objects will be imported",
-        })}
+        <h3>
+          {t("import.ready-to-import", {
+            fallback: "Ready to import",
+          })}
+        </h3>
+        <p class="mb-0 text-body-secondary">
+          {t("import.ready-to-import-description", {
+            fallback: "Check that everything looks right before importing. You can go back to make changes.",
+          })}
+        </p>
       </div>
-      <div>
-        {wizard.mapping.length}
-        {t("import.fields-will-be-imported", {
-          fallback: "fields will be imported",
-        })}
-        {t("common.and", {
-          fallback: "and",
-        })}
-        {wizard.mapping.filter((m) => m.mappedField).length}
-        {t("import.fields-are-mapped", {
-          fallback: "fields are mapped",
-        })}.
-      </div>
-      <div>
-        {t("import.primary-field-set-to", {
-          fallback: "Object identifier field is set to",
-        })}
-        <span class="fw-bold"
-          >{wizard.mapping.find((m) => m.primary)?.headerField || ""}</span
-        >
-      </div>
-      <!-- <button class="btn btn-success btn-lg mt-3" onclick={handleSave}>
-        {t("common.save-data", {
-          fallback: "Save Data",
-        })}
-      </button> -->
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-12">
+
+      <ImportStats
+        objectsCount={wizard.data.length}
+        fieldsCount={wizard.mapping.length}
+        {mappedCount}
+        {identifierField}
+      />
+
       <ItemsPreview data={finalData} mapping={wizard.mapping} />
     </div>
   </div>
@@ -123,12 +99,6 @@
   {#snippet title()}
     {t("import.objects-imported", { fallback: "Objects imported correctly" })}
   {/snippet}
-  <!-- {#snippet trigger()}
-    <i class="bi bi-pencil"></i>
-    {t("import.edit-link", {
-      fallback: "Edit linked asset",
-    })}
-  {/snippet} -->
   {#snippet description()}
     <p class="mb-2">
       <span class="fw-bold">{wizard.data.length}</span>

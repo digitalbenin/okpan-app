@@ -1,5 +1,6 @@
 <script>
   import { watch } from "runed";
+  import { IconArrowRight } from "@tabler/icons-svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   const { t } = getTranslationStore();
@@ -70,9 +71,10 @@
   );
 </script>
 
-<div class="w-100">
+<div class="w-100 border rounded-3">
   {#each headerOptions as field, i}
-    <div class="bg-secondary-subtle rounded mb-2 px-3 py-2">
+    <div class="bg-white border-bottom px-3 py-3"
+      class:bg-primary-subtle={field.primary}>
       <input
         type="radio"
         name="identifier"
@@ -81,9 +83,12 @@
         bind:group={selected}
       />
       <span class="ms-1 fw-bold text-break">{field.headerField}</span>
-      <i class="bi bi-arrow-right"></i>
+      <IconArrowRight size={14} class="mx-1" />
       {#if field.mappedLabel}
-        <span class="text-capitalize">{field.mappedLabel}</span>
+        <span class="bg-secondary-subtle px-2 py-1 rounded"
+          class:bg-secondary-subtle={!field.primary}
+          class:bg-green-300={field.primary}
+          >{field.mappedLabel}</span>
       {:else}
         <span class="text-muted fst-italic"
           >{t("import.not-set", { fallback: "Not set" })}</span

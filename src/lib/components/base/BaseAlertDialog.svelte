@@ -48,7 +48,7 @@
         {/if}
       {/snippet}
     </AlertDialog.Overlay>
-    <AlertDialog.Content {...contentProps} forceMount>
+    <AlertDialog.Content style="max-height:75vh;" {...contentProps} forceMount>
       {#snippet child({ props, open })}
         {#if open}
           <div {...props} class="modal d-block" transition:fade>
@@ -57,7 +57,7 @@
             >
               <div class="modal-content">
                 <AlertDialog.Title class="modal-header">
-                  <h1 class="modal-title fs-5">{@render title()}</h1>
+                  <p class="modal-title fs-5">{@render title()}</p>
                   <AlertDialog.Cancel class="btn-close border-0 bg-transparent p-0 d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
                     <IconX size={24} stroke={2} />
                   </AlertDialog.Cancel>

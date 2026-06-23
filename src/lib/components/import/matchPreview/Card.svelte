@@ -114,8 +114,10 @@
     (key) => {
       if (key === lastSyncKey) return;
       lastSyncKey = key;
+      // Template mode: mapping is managed externally (from acceptTemplate), don't touch it
+      if (!editEnabled) return;
       const id = fieldMatched?.id;
-      if (!editEnabled || !included || !id) {
+      if (!included || !id) {
         wizard.removeMappingEntry({ headerField: field });
         return;
       }

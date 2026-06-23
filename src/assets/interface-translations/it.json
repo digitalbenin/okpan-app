@@ -964,6 +964,111 @@
                          },
                          {
                              "namespace":  "import",
+                             "key":  "how-to-fill-title",
+                             "value":  "Come devo compilare questo campo?"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "how-to-fill-desc-p1",
+                             "value":  "Collega le colonne del tuo file ai campi di Okpan. Il tuo file potrebbe chiamare le cose in modo diverso \u2014 \"Mezzo\" invece di \"Materiale\", per esempio."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "how-to-fill-desc-p2",
+                             "value":  "Okpan suggerisce le corrispondenze automaticamente, ma controllale sempre. Le colonne che non ti servono possono non essere importate."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "template-colon",
+                             "value":  "Template:"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "reuse-this-template",
+                             "value":  "Riutilizza questo template"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "identifier-help-title",
+                             "value":  "Come devo compilare questo campo?"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "identifier-help-desc-p1",
+                             "value":  "Scegli il campo che contiene un codice univoco per ogni oggetto \u2014 di solito un numero di inventario o di catalogo."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "identifier-help-desc-p2",
+                             "value":  "Okpan lo usa per distinguere gli oggetti e per aggiornare in sicurezza i record esistenti se re-importi lo stesso file in futuro."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "ready-to-import",
+                             "value":  "Pronto per l\u2019importazione"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "ready-to-import-description",
+                             "value":  "Controlla che tutto sia corretto prima di importare. Puoi tornare indietro per fare modifiche."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "objects-to-import",
+                             "value":  "Oggetti da importare"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "fields-imported",
+                             "value":  "Campi importati"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "mapped-fields",
+                             "value":  "Campi mappati"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "object-identifier-label",
+                             "value":  "Identificatore oggetto"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "preview-object",
+                             "value":  "Anteprima oggetto"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "institution-field",
+                             "value":  "Campo istituzione"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "mapped-field",
+                             "value":  "Campo mappato"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "value",
+                             "value":  "Valore"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "not-matched",
+                             "value":  "Non mappato"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "import-objects",
+                             "value":  "Importa oggetti ({{count}}) | Importa oggetti ({{count}})"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "importing",
+                             "value":  "Importazione in corso..."
+                         },
+                         {
+                             "namespace":  "import",
                              "key":  "you-loaded-a",
                              "value":  "Hai caricato un"
                          },

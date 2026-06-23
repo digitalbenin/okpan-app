@@ -2886,6 +2886,111 @@
                          },
                          {
                              "namespace":  "import",
+                             "key":  "how-to-fill-title",
+                             "value":  "How should I fill this?"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "how-to-fill-desc-p1",
+                             "value":  "Connect the columns in your file to the fields in Okpan. Your file may call things differently \u2014 \"Medium\" instead of \"Material\", for example."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "how-to-fill-desc-p2",
+                             "value":  "Okpan suggests matches automatically, but always review them. Columns you don't need can be not imported."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "template-colon",
+                             "value":  "Template:"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "reuse-this-template",
+                             "value":  "Reuse this template"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "identifier-help-title",
+                             "value":  "How should I fill this?"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "identifier-help-desc-p1",
+                             "value":  "Choose the field that contains a unique code for each object — usually an accession or catalogue number."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "identifier-help-desc-p2",
+                             "value":  "Okpan uses this to tell objects apart and to update existing records safely if you re-import the same file in the future."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "ready-to-import",
+                             "value":  "Ready to import"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "ready-to-import-description",
+                             "value":  "Check that everything looks right before importing. You can go back to make changes."
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "objects-to-import",
+                             "value":  "Objects to import"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "fields-imported",
+                             "value":  "Fields imported"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "mapped-fields",
+                             "value":  "Mapped fields"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "object-identifier-label",
+                             "value":  "Object identifier"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "preview-object",
+                             "value":  "Preview object"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "institution-field",
+                             "value":  "Institution field"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "mapped-field",
+                             "value":  "Mapped field"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "value",
+                             "value":  "Value"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "not-matched",
+                             "value":  "Not matched"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "import-objects",
+                             "value":  "Import {{count}} object | Import {{count}} objects"
+                         },
+                         {
+                             "namespace":  "import",
+                             "key":  "importing",
+                             "value":  "Importing..."
+                         },
+                         {
+                             "namespace":  "import",
                              "key":  "you-loaded-a",
                              "value":  "You loaded a"
                          },

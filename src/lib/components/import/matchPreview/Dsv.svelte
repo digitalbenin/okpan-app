@@ -91,6 +91,14 @@
     { initialValue: [] }
   );
 
+  const showTemplateDecision = $derived(
+    !templateSuggestions.loading &&
+    templateSuggestions.current.length > 0 &&
+    !wizard.useMatchingTemplate &&
+    !wizard.useMatchingSuggestions &&
+    wizard.mapping.length === 0
+  );
+
   watch(
     () => wizard.mapping,
     (mapping) => {
@@ -101,21 +109,23 @@
   const mappedPercent = $derived.by(() => fields.length ? Math.round((mappedCount / fields.length) * 100) : 0);
 </script>
 
-<div class="content-stretch flex gap-16px items-center relative shrink-0 w-full" data-node-id="205:35219">
-  <span>
-    {mappedCount} {t("import.out-of", { fallback: "out of" })} {fields.length} {t("import.fields-are-mapped", { fallback: "fields are mapped" })}
-  </span>
-  <div class="progress flex-grow-1" style="height: 6px;">
-    <div
-      class="progress-bar"
-      role="progressbar"
-      style="width: {mappedPercent}%;"
-      aria-valuenow={mappedPercent}
-      aria-valuemin="0"
-      aria-valuemax="100"
-    ></div>
+{#if !showTemplateDecision}
+  <div class="content-stretch flex gap-16px items-center relative shrink-0 w-full" data-node-id="205:35219">
+    <span>
+      {mappedCount} {t("import.out-of", { fallback: "out of" })} {fields.length} {t("import.fields-are-mapped", { fallback: "fields are mapped" })}
+    </span>
+    <div class="progress flex-grow-1" style="height: 6px;">
+      <div
+        class="progress-bar"
+        role="progressbar"
+        style="width: {mappedPercent}%;"
+        aria-valuenow={mappedPercent}
+        aria-valuemin="0"
+        aria-valuemax="100"
+      ></div>
+    </div>
   </div>
-</div>
+{/if}
 
 {#if templateSuggestions.loading || matchingSuggestions.loading}
   <div class="d-flex flex-column align-items-center justify-content-center py-5">
@@ -132,18 +142,17 @@
   </div>
 {/if}
 <SuggestTemplate {templateSuggestions}></SuggestTemplate>
-{#if !rows.length}
-  <div class="alert alert-warning mt-3" role="alert">
-    {t("import.no-previewable-rows", {
-      fallback: "The parsed file does not contain previewable tabular rows for field matching."
-    })}
-  </div>
-{:else}
-  <div class="w-100">
-    <div class="d-flex align-items-center justify-content-between mb-2 px-3 py-2 bg-white border rounded">
-      <span class="text-muted">
-        {t("import.fields-count", { fallback: "{{count}} fields", count: fields.length })}
-      </span>
+{#if !showTemplateDecision}
+  {#if !rows.length}
+    <div class="alert alert-warning mt-3" role="alert">
+      {t("import.no-previewable-rows", {
+        fallback: "The parsed file does not contain previewable tabular rows for field matching."
+      })}
+    </div>
+  {:else}
+    <div class="w-100">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+     
       <div class="form-check mb-0">
         <input
           class="form-check-input"
@@ -180,4 +189,5 @@
       {/if}
     {/each}
   </div>
+{/if}
 {/if}

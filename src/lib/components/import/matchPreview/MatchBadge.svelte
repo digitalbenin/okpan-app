@@ -1,4 +1,5 @@
 <script>
+  import { IconSparkles, IconLink, IconX } from "@tabler/icons-svelte";
   import BaseTooltip from "$lib/components/base/BaseTooltip.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
@@ -21,12 +22,12 @@
           <div
             class="d-flex align-items-center justify-content-center border-0 rounded-start bg-primary px-1 me-2"
           >
-            <i class="bi bi-stars text-white" style="font-size: 1.2rem;"></i>
+            <IconSparkles size={16} class="text-white" />
           </div>
         {/if}
 
         <div class="px-2 py-1">
-          <i class="bi bi-link-45deg me-2"></i>
+          <IconLink size={16} class="me-2" />
         {field.name}
         {#if !disabled}
           <button
@@ -36,7 +37,7 @@
               fallback: "Reset match",
             })}
           >
-            <i class="bi bi-x-lg"></i>
+            <IconX size={16} />
           </button>
         {/if}
         </div>

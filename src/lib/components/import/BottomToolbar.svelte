@@ -5,6 +5,8 @@
 
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
+
+  const objectCount = $derived(wizard.data?.length || 0);
 </script>
 
 <div
@@ -49,9 +51,9 @@
     <button class="btn btn-success" onclick={() => wizard.save()} disabled={wizard.saving}>
       {#if wizard.saving}
         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-        {t("common.saving", { fallback: "Saving..." })}
+        {t("import.importing", { fallback: "Importing..." })}
       {:else}
-        {t("common.save", { fallback: "Save" })}
+        {t("import.import-objects", { fallback: "Import objects", count: objectCount })}
       {/if}
     </button>
   {/if}
