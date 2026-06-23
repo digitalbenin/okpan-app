@@ -1,6 +1,6 @@
-<script>
-  //   import ItemsPreview from "./ItemsPreview.svelte";
+﻿<script>
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
+  import ImportStatsAsset from "./ImportStatsAsset.svelte";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { createFetcher } from "$lib/stores/useFetcher.svelte.js";
@@ -8,8 +8,6 @@
   import { goto } from "$app/navigation";
   import TableMatchPreview from "./TableMatchPreview.svelte";
   import { onMount, onDestroy } from "svelte";
-
-  // import { parseData } from "$lib/utils/import.js";
 
   const { t } = getTranslationStore();
   const wizard = getImportAssetsWizardContext();
@@ -49,28 +47,20 @@
     const sourcePathToAsset = new Map(
       (createdAssets || []).map((asset) => [asset?._sourcePath, asset]).filter(([key]) => Boolean(key))
     );
-
     const tempAssetsById = new Map((stagedAssets || []).map((asset) => [asset.id, asset]));
-
     return (wizard.mapping || [])
       .map((entry) => {
         const tempAsset = tempAssetsById.get(entry.asset_id);
         const sourcePath = tempAsset?._sourcePath;
         const created = sourcePath ? sourcePathToAsset.get(sourcePath) : null;
         if (!created?.id) return null;
-        return {
-          ...entry,
-          asset_id: created.id,
-        };
+        return { ...entry, asset_id: created.id };
       })
       .filter(Boolean);
   }
 
   const handleSave = async function () {
-    if (wizard.saving) {
-      return;
-    }
-
+    if (wizard.saving) return;
     try {
       wizard.saving = true;
       importErrors = [];
@@ -97,23 +87,15 @@
       wizard.mapping = remapped;
 
       const saveParams = $state.snapshot(remapped);
-
-      const response = await saveFetcher.fetch(
+      await saveFetcher.fetch(
         saveParams
           .filter((m) => m.object_ids && m.object_ids.length > 0)
-          .map((m) => {
-            return {
-              asset_id: m.asset_id,
-              object_ids: m.object_ids,
-            };
-          })
+          .map((m) => ({ asset_id: m.asset_id, object_ids: m.object_ids }))
       );
       wizard.importCompleted = true;
       open = true;
-      console.log("Assets linked:", response);
     } catch (error) {
       console.error("Error linking assets:", error);
-      // Handle error appropriately, e.g., show a notification
     } finally {
       isImporting = false;
       wizard.saving = false;
@@ -122,18 +104,9 @@
 
   wizard.save = handleSave;
 
-  //   const finalData = $derived(
-  //     parseData(wizard.data, wizard.mapping, wizard.file.format)
-  //   );
-
-  const assetsLinked = $derived.by(() => {
-    return wizard.mapping.filter((m) => m.object_ids && m.object_ids.length > 0)
-      .length;
-  });
-  const assetsImported = $derived.by(() => wizard.assets?.length || 0);
-  const assetsNotLinked = $derived.by(() =>
-    Math.max(0, assetsImported - assetsLinked)
-  );
+  const assetsImported = $derived(wizard.assets?.length || 0);
+  const assetsLinked = $derived(wizard.mapping.filter((m) => m.object_ids && m.object_ids.length > 0).length);
+  const assetsNotLinked = $derived(Math.max(0, assetsImported - assetsLinked));
 
   function closeAndHome() {
     open = false;
@@ -141,91 +114,29 @@
   }
 </script>
 
-<div class="container-fluid mt-3">
-  <div class="row">
-    <div class="col-12">
-      <h3>
-        {t("import.review-start", {
-          fallback: "Review your data and save it to the archive.",
-        })}
-      </h3>
-      <p class="w-75">
-        {t("import.review-description", {
-          fallback:
-            "In this step, you’ll see a summary of your data and can make final adjustments before saving it to the archive. This is your chance to ensure everything is correct and ready for archiving.",
-        })}
-      </p>
-    </div>
-  </div>
-  <div class="row mb-2">
-    <div class="col-12">
-      <div class="alert alert-primary" role="alert" style="width: fit-content">
-        <div>
-          <span class="fw-bold me-1">{assetsImported}</span>
-          {t("import.assets-will-be-imported", {
-            fallback: "media will be imported.",
-          })}
-        </div>
-        <div>
-          {#if assetsNotLinked > 0}
-            <span class="fw-bold me-1">{assetsNotLinked}</span>
-            {t("import.media-not-linked", {
-              fallback: "media is not linked.",
-            })}
-          {:else}
-            <span class="fw-bold me-1">{assetsLinked}</span>
-            {t("import.assets-will-be-linked", {
-              fallback: "media will be linked.",
-            })}
-          {/if}
-        </div>
-      </div>
-      <!-- 
+<div class="row g-3">
+  <div class="col-12 col-lg-8 col-xl-9 min-w-0 mb-5">
+    <div class="bg-white rounded-3 p-4 d-flex flex-column gap-4">
       <div>
-        {wizard.mapping.length}
-        {t("import.fields-will-be-imported", {
-          fallback: "fields will be imported",
-        })}
-        {t("common.and", {
-          fallback: "and",
-        })}
-        {wizard.mapping.filter((m) => m.mappedField).length}
-        {t("import.fields-are-mapped", {
-          fallback: "fields are mapped",
-        })}.
+        <h3 class="mb-1">
+          {t("import-assets.review-title", { fallback: "Review your data and save it to the archive." })}
+        </h3>
+        <p class="mb-0 text-body-secondary">
+          {t("import-assets.review-description", { fallback: "In this step, you will see a summary of your data and can make final adjustments before saving it to the archive." })}
+        </p>
       </div>
-      <div>
-        {t("import.primary-field-set-to", {
-          fallback: "Object identifier field is set to",
-        })}
-        <span class="fw-bold"
-          >{wizard.mapping.find((m) => m.primary).headerField}</span
-        >
-      </div> -->
-      <!-- <button class="btn btn-success btn-lg mt-3" onclick={handleSave}>
-        {t("common.save-data", {
-          fallback: "Save Data",
-        })}
-      </button> -->
-      {#if saveFetcher.isLoading}
-        <div>{t("common.loading", { fallback: "Loading..." })}</div>
-      {/if}
+
+      <ImportStatsAsset {assetsImported} {assetsLinked} />
+
       {#if isImporting}
-        <div class="mt-2 w-100" style="max-width: 320px;">
-          <div
-            class="progress"
-            role="progressbar"
-            aria-label={t("common.import-progress", { fallback: "Import progress" })}
-            aria-valuenow={importProgressPercent}
-            aria-valuemin="0"
-            aria-valuemax="100"
-            style="height: 10px;"
-          >
+        <div class="w-100" style="max-width: 320px;">
+          <div class="progress" role="progressbar" aria-label={t("common.import-progress", { fallback: "Import progress" })} aria-valuenow={importProgressPercent} aria-valuemin="0" aria-valuemax="100" style="height: 10px;">
             <div class="progress-bar" style="width: {importProgressPercent}%"></div>
           </div>
-          <div class="text-end fs-7 text-muted mt-1">{importProgressText}</div>
+          <div class="text-end fs-7 text-body-secondary mt-1">{importProgressText}</div>
         </div>
       {/if}
+
       {#if importErrors.length}
         <div class="alert alert-danger mt-2 mb-0">
           <h4>{t("common.errors-occurred", { fallback: "Some errors occurred:" })}</h4>
@@ -236,11 +147,7 @@
           </ul>
         </div>
       {/if}
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-12">
-      <!-- <ItemsPreview data={finalData} mapping={wizard.mapping} /> -->
+
       <TableMatchPreview data={wizard.mapping} />
     </div>
   </div>
@@ -250,26 +157,21 @@
   {#snippet title()}
     {t("import.media-import-completed", { fallback: "Media import completed" })}
   {/snippet}
-  <!-- {#snippet trigger()}
-    <i class="bi bi-pencil"></i>
-    {t("import.edit-link", {
-      fallback: "Edit linked asset",
-    })}
-  {/snippet} -->
   {#snippet description()}
-    <div class="d-flex flex-column gap-1">
-      <div>
-        {t("import.assets-imported", { fallback: "Imported media:" })}
-        <span class="fw-bold ms-1">{assetsImported}</span>
-      </div>
-      <div>
-        {#if assetsLinked}
-          {t("import.assets-linked", { fallback: "Linked media:" })}
-          <span class="fw-bold ms-1">{assetsLinked}</span>
-        {:else}
-          {t("import.no-media-linked", { fallback: "No media were linked." })}
-        {/if}
-      </div>
+    <div>
+      <p class="mb-2">
+        <span class="fw-bold">{assetsImported}</span> {t("import.assets-imported", { fallback: "Imported media:" })}
+      </p>
+      {#if assetsLinked > 0}
+        <p class="mb-2">
+          <span class="fw-bold">{assetsLinked}</span> {t("import.assets-linked", { fallback: "Linked media:" })}
+        </p>
+      {/if}
+      {#if assetsNotLinked > 0}
+        <p class="mb-0">
+          <span class="fw-bold">{assetsNotLinked}</span> {t("import.no-media-linked", { fallback: "No media were linked." })}
+        </p>
+      {/if}
     </div>
   {/snippet}
   {#snippet footer()}

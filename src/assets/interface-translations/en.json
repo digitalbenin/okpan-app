@@ -3445,6 +3445,111 @@
                              "value":  "assets are linked"
                          },
                          {
+                             "namespace":  "import-assets",
+                             "key":  "edit-link-title",
+                             "value":  "Edit linked asset"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "change-linked-asset",
+                             "value":  "Change the linked asset for"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "search-objects",
+                             "value":  "Search objects"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "save-changes",
+                             "value":  "Save changes"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "change-linked-object",
+                             "value":  "Change the linked object for"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "search-object",
+                             "value":  "Search object"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "linked",
+                             "value":  "Linked"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "add",
+                             "value":  "Add"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "no-objects-found",
+                             "value":  "No objects found."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "object-name-label",
+                             "value":  "Object name"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "media",
+                             "value":  "Media"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "review-title",
+                             "value":  "Review your data and save it to the archive."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "review-description",
+                             "value":  "In this step, you will see a summary of your data and can make final adjustments before saving it to the archive."
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "assets-will-be-imported-stat",
+                             "value":  "Assets will be imported"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "assets-will-be-linked-stat",
+                             "value":  "Assets will be linked to objects"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "table-image",
+                             "value":  "Image"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "table-asset-name",
+                             "value":  "Asset name"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "table-linked-object",
+                             "value":  "Linked object"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "not-linked-label",
+                             "value":  "Not linked"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "import-assets-btn",
+                             "value":  "Import {{count}} asset | Import {{count}} assets"
+                         },
+                         {
+                             "namespace":  "import-assets",
+                             "key":  "importing",
+                             "value":  "Importing..."
+                         },
+                         {
                              "namespace":  "common",
                              "key":  "edit",
                              "value":  "Edit"

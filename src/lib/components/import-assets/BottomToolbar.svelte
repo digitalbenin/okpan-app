@@ -5,6 +5,7 @@
 
   const { t } = getTranslationStore();
   const wizard = getImportAssetsWizardContext();
+  const assetCount = $derived(wizard.assets?.length || 0);
 </script>
 
 <div
@@ -42,9 +43,9 @@
     <button class="btn btn-success" onclick={() => wizard.save()} disabled={wizard.isCleaningUp || wizard.saving}>
       {#if wizard.saving}
         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-        {t("common.saving", { fallback: "Saving..." })}
+        {t("import-assets.importing", { fallback: "Importing..." })}
       {:else}
-        {t("common.save", { fallback: "Save" })}
+        {t("import-assets.import-assets-btn", { fallback: "Import assets", count: assetCount })}
       {/if}
     </button>
   {/if}

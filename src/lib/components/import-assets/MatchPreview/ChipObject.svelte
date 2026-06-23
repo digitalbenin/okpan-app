@@ -67,9 +67,9 @@
       </div>
 
       {#if suggested}
-          <span class="badge text-bg-primary d-inline-flex align-items-center gap-1"
+          <span class="badge fw-normal rounded-1 px-2 py-1 text-bg-primary d-inline-flex align-items-center gap-1"
             >{t("import.suggested", { fallback: "Suggested" })}
-            <IconSparkles size={12} /></span
+            </span
         >
       {/if}
     </div>
