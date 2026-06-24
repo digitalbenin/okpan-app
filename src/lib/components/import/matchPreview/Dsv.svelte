@@ -105,7 +105,7 @@
       wizard.nextEnabled = mapping.length > 0;
     }
   );
-  const mappedCount = $derived.by(() => wizard.mapping.filter((m) => m.mappedField).length);
+  const mappedCount = $derived.by(() => new Set(wizard.mapping.filter((m) => m.mappedField).map((m) => m.headerField)).size);
   const mappedPercent = $derived.by(() => fields.length ? Math.round((mappedCount / fields.length) * 100) : 0);
 </script>
 

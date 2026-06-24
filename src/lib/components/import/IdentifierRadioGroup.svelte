@@ -19,14 +19,16 @@
       const headerField = entry?.headerField;
       if (!headerField) continue;
       if (!groups.has(headerField)) {
-        const firstMapped = (wizard.mapping || []).find(
-          (e) => e?.headerField === headerField && e?.mappedField
-        )?.mappedField;
-        const ontologyField = fields.find((f) => f.id === firstMapped);
+        // Collect ALL mapped fields for this header
+        const allMapped = (wizard.mapping || [])
+          .filter((e) => e?.headerField === headerField && e?.mappedField)
+          .map((e) => e.mappedField);
+        const labels = allMapped
+          .map((id) => fields.find((f) => f.id === id)?.name?.content)
+          .filter(Boolean);
         groups.set(headerField, {
           headerField,
-          mappedField: firstMapped || null,
-          mappedLabel: ontologyField?.name?.content || null,
+          mappedLabels: labels,
           primary: Boolean(entry?.primary),
         });
       } else {
@@ -83,12 +85,15 @@
         bind:group={selected}
       />
       <span class="ms-1 fw-bold text-break">{field.headerField}</span>
-      <IconArrowRight size={14} class="mx-1" />
-      {#if field.mappedLabel}
-        <span class="bg-secondary-subtle px-2 py-1 rounded"
-          class:bg-secondary-subtle={!field.primary}
-          class:bg-green-300={field.primary}
-          >{field.mappedLabel}</span>
+      <IconArrowRight size={14} class="ms-1" />
+      {#if field.mappedLabels.length}
+        {#each field.mappedLabels as label, idx}
+        
+          <span class="px-2 py-1 ms-2 rounded"
+            class:bg-secondary-subtle={!field.primary}
+            class:bg-green-300={field.primary}
+            >{label}</span>
+        {/each}
       {:else}
         <span class="text-muted fst-italic"
           >{t("import.not-set", { fallback: "Not set" })}</span

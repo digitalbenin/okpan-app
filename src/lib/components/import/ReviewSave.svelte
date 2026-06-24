@@ -48,8 +48,9 @@
     wizard.mapping.find((m) => m.primary)?.headerField || ""
   );
   const mappedCount = $derived(
-    wizard.mapping.filter((m) => m.mappedField).length
+    new Set(wizard.mapping.filter((m) => m.mappedField).map((m) => m.headerField)).size
   );
+  const fieldsCount = $derived(new Set(wizard.mapping.map((m) => m.headerField)).size);
 
   function closeAndHome() {
     open = false;
@@ -85,7 +86,7 @@
 
       <ImportStats
         objectsCount={wizard.data.length}
-        fieldsCount={wizard.mapping.length}
+        fieldsCount={fieldsCount}
         {mappedCount}
         {identifierField}
       />

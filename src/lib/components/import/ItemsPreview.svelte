@@ -22,9 +22,6 @@
         .map((m) => m?.mappedField)
         .filter(Boolean);
 
-      const ontologyLabel = mappedFields.length
-        ? mappedFields.map((id) => getOntologyLabel(id)).filter(Boolean).join(", ")
-        : null;
       let outputValue;
       if (value) {
         const splittedValue = String(value).split("|");
@@ -44,7 +41,9 @@
       }
       return {
         key,
-        "mapped-field": ontologyLabel,
+        "mapped-fields": mappedFields.length
+          ? mappedFields.map((id) => getOntologyLabel(id)).filter(Boolean)
+          : [],
         value: outputValue,
       };
     });
@@ -93,9 +92,12 @@
     <div class="d-flex border-bottom px-3 py-2">
       <span class="fw-semibold text-break" style="width: 272px; flex-shrink: 0; font-size: 16px;">{row.key}</span>
       <span style="width: 287px; flex-shrink: 0;">
-        {#if row["mapped-field"]}
-          <IconArrowRight size={14} class="mx-1" />
-          <span class="badge rounded-1 px-2 py-1" style="background: #d5d6d0; color: #292927; font-weight: 400; font-size: 14px;">{row["mapped-field"]}</span>
+        {#if row["mapped-fields"].length}
+          <IconArrowRight size={14} class="ms-1" />
+          {#each row["mapped-fields"] as label, idx}
+            
+            <span class="badge rounded-1 px-2 py-1 ms-2" style="background: #d5d6d0; color: #292927; font-weight: 400; font-size: 14px;">{label}</span>
+          {/each}
         {:else}
           <span class="text-body-secondary">{t("import.not-matched", { fallback: "Not matched" })}</span>
         {/if}

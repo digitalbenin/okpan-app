@@ -1,8 +1,8 @@
 <script>
+  import { watch } from "runed";
   import { page } from "$app/state";
   import { IconPlus, IconPencil } from "@tabler/icons-svelte";
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
-  import BaseRadioGroup from "$lib/components/base/BaseRadioGroup.svelte";
   import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
@@ -23,7 +23,7 @@
       class:
         triggerVariant === "add"
           ? "btn btn-light btn-sm"
-          : "btn btn-outline-secondary btn-sm",
+          : "btn btn-secondary btn-sm",
     };
 
     const merged = {
@@ -32,13 +32,28 @@
       disabled: disabled,
     };
 
-    // Always enforce disabled from prop
     if (disabled) merged.disabled = true;
     return merged;
   });
 
-  let value = $derived(fieldMatched ? fieldMatched.id : null);
   let searchTerm = $state("");
+  let selectedValues = $state([]);
+
+  // Initialize from existing match (can be single object or array)
+  let _initialized = false;
+  watch(
+    () => fieldMatched,
+    (match) => {
+      if (!_initialized && match) {
+        const arr = Array.isArray(match) ? match : [match];
+        const existingIds = arr.map((m) => m.id).filter(Boolean);
+        if (existingIds.length) {
+          _initialized = true;
+          selectedValues = existingIds;
+        }
+      }
+    }
+  );
 
   const allItems = $derived.by(() => {
     return page.data.ontologyFields
@@ -62,17 +77,29 @@
     );
   });
 
+  function isSelected(id) {
+    return selectedValues.includes(id);
+  }
+
+  function toggleItem(id) {
+    if (isSelected(id)) {
+      selectedValues = selectedValues.filter((v) => v !== id);
+    } else {
+      selectedValues = [...selectedValues, id];
+    }
+  }
+
   function updateMatch() {
-    const match = page.data.ontologyFields
-      .filter((f) => f.id === value)
+    const matches = page.data.ontologyFields
+      .filter((f) => selectedValues.includes(f.id))
       .map((f) => ({
         name: f.name.content,
         id: f.id,
         description: f.description.content,
         suggestion: false,
-      }))[0];
-    if (match) {
-      onSetMatchChange(match);
+      }));
+    if (matches.length) {
+      onSetMatchChange(matches);
     }
     open = false;
   }
@@ -103,8 +130,29 @@
   {/snippet}
 
   <BaseSearchBar border="border-secondary-gray-200" bind:search={searchTerm} placeholder={t("import.search-fields", { fallback: "Search" })} width="100%" />
-  <div class="mt-2">
-    <BaseRadioGroup bind:value {items} />
+  <div class="border rounded mt-2" style="max-height: 350px; overflow-y: auto;">
+    {#each items as item}
+      <div
+        class="form-check py-2 px-0 m-0 border-bottom"
+        class:bg-primary-subtle={isSelected(item.value)}
+      >
+        <input
+          class="form-check-input mx-2 px-0"
+          type="checkbox"
+          id="match-{item.value}"
+          checked={isSelected(item.value)}
+          onclick={() => toggleItem(item.value)}
+        />
+        <label class="form-check-label text-capitalize" for="match-{item.value}">
+          {item.label}
+          {#if item.suggested}
+            <span class="badge rounded p-2 ms-2 bg-primary fw-normal">
+              {t("import.suggested", { fallback: "Suggested" })}
+            </span>
+          {/if}
+        </label>
+      </div>
+    {/each}
   </div>
   {#snippet footer()}
     <button class="btn btn-outline-secondary" onclick={() => (open = false)}>

@@ -24,8 +24,17 @@
   const editEnabled = $derived(wizard.useMatchingTemplate ? false : true);
 
   // Local state — set once on AI arrival, then only changed by user actions
+  // fieldMatched can be a single object or an array of objects (multi-match)
   let fieldMatched = $state(null);
   let aiApplied = $state(false);
+
+  // Normalize fieldMatched to always be an array for display
+  const fieldMatchedArray = $derived(
+    fieldMatched
+      ? (Array.isArray(fieldMatched) ? fieldMatched : [fieldMatched])
+      : []
+  );
+  const fieldMatchedIds = $derived(fieldMatchedArray.map((m) => m.id).filter(Boolean));
 
   // Initialize from AI suggestion once
   watch(
@@ -57,14 +66,19 @@
       const arr = Array.isArray(mf) ? mf : [mf];
       const ids = arr.map((m) => m?.mappedField).filter(Boolean);
       if (!ids.length) return;
-      const ontologyField = page.data.ontologyFields.find((f) => f.id === ids[0]);
-      if (!ontologyField) return;
-      fieldMatched = {
-        name: ontologyField.name.content,
-        id: ontologyField.id,
-        description: ontologyField.description.content,
-        suggestion: false,
-      };
+      // Store ALL matches, not just the first
+      fieldMatched = ids
+        .map((id) => {
+          const ontologyField = page.data.ontologyFields.find((f) => f.id === id);
+          if (!ontologyField) return null;
+          return {
+            name: ontologyField.name.content,
+            id: ontologyField.id,
+            description: ontologyField.description.content,
+            suggestion: false,
+          };
+        })
+        .filter(Boolean);
     }
   );
 
@@ -91,40 +105,57 @@
 
   function resetFieldMatched() {
     fieldMatched = null;
+    wizard.mapping = wizard.mapping.filter((m) => m.headerField !== field);
+    lastSyncKey = `|${included}|${editEnabled}`;
   }
 
   function onToggleIncluded() {
     // watching the combined signal below handles wizard sync
   }
 
-  function onSetMatchChange(match) {
-    if (!match) return;
-    fieldMatched = {
-      name: match.name,
-      id: match.id,
-      description: match.description,
-      suggestion: false,
-    };
+  function onSetMatchChange(matches) {
+    if (!matches) return;
+    const arr = Array.isArray(matches) ? matches : [matches];
+    // Pre-set lastSyncKey so the sync watch skips the upcoming reactive fire
+    const newKey = arr.length ? arr.map((m) => m.id).sort().join(',') : '';
+    lastSyncKey = `${newKey}|${included}|${editEnabled}`;
+    // Store the full array of matches
+    fieldMatched = arr.length ? arr : null;
+    // Sync all selected matches to wizard.mapping
+    if (editEnabled && included) {
+      wizard.mapping = wizard.mapping.filter((m) => m.headerField !== field);
+      arr.forEach((match) => {
+        wizard.addMappingEntry({
+          headerField: field,
+          mappedField: match.id,
+          primary: false,
+        });
+      });
+    }
   }
 
-  // Sync local state to wizard.mapping whenever fieldMatched or included changes
+  // Sync local state to wizard.mapping whenever included changes
   let lastSyncKey = $state('');
   watch(
-    () => `${fieldMatched?.id ?? ''}|${included}|${editEnabled}`,
+    () => `${fieldMatchedIds.join(',')}|${included}|${editEnabled}`,
     (key) => {
       if (key === lastSyncKey) return;
       lastSyncKey = key;
-      // Template mode: mapping is managed externally (from acceptTemplate), don't touch it
       if (!editEnabled) return;
-      const id = fieldMatched?.id;
-      if (!included || !id) {
-        wizard.removeMappingEntry({ headerField: field });
+      if (!included) {
+        wizard.mapping = wizard.mapping.filter((m) => m.headerField !== field);
         return;
       }
-      wizard.addMappingEntry({
-        headerField: field,
-        mappedField: id,
-        primary: false,
+      // If entries already exist for this field, don't touch them (multi-match handled in SetMatch)
+      const existingCount = wizard.mapping.filter((m) => m.headerField === field).length;
+      if (existingCount > 0) return;
+      // Re-add ALL matches when re-including
+      fieldMatchedIds.forEach((id) => {
+        wizard.addMappingEntry({
+          headerField: field,
+          mappedField: id,
+          primary: false,
+        });
       });
     }
   );
@@ -133,8 +164,8 @@
 <div
   class="bg-secondary-subtle px-3 py-2 mb-2 rounded"
   class:border-start={included}
-  class:border-success={included && fieldMatched?.id}
-  class:border-warning={included && !fieldMatched?.id}
+  class:border-success={included && fieldMatchedArray.length}
+  class:border-warning={included && !fieldMatchedArray.length}
   class:border-3={included}
 >
   <div class="text-muted fs-7">
@@ -207,31 +238,33 @@
             </div>
           {/each}
         {:else}
-          {#if fieldMatched}
-            <BaseTooltip>
-              {#snippet trigger(props)}
-                <div class="d-flex align-items-stretch rounded-1 overflow-hidden" style="border: 1px solid #eaebe7;" {...(({ type, ...rest }) => rest)(props)}>
-                  {#if fieldMatched.suggestion}
-                    <span class="d-flex align-items-center px-2" style="background: #008060;" title={t("import.ai-suggested", { fallback: "AI suggested" })}>
-                      <IconSparklesFilled size={14} class="text-white" />
-                    </span>
-                  {/if}
-                  <span class="d-flex align-items-center gap-1 px-2 py-1 bg-white text-body text-capitalize" style="font-size: 14px;">
-                    {fieldMatched.name}
-                    {#if editEnabled}
-                      <button
-                        class="btn btn-sm p-0 lh-1"
-                        onclick={resetFieldMatched}
-                        aria-label={t("import.reset-match", { fallback: "Reset match" })}
-                      >
-                        <IconX size={14} />
-                      </button>
+          {#if fieldMatchedArray.length}
+            {#each fieldMatchedArray as fm (fm.id)}
+              <BaseTooltip>
+                {#snippet trigger(props)}
+                  <div class="d-flex align-items-stretch rounded-1 overflow-hidden" style="border: 1px solid #eaebe7;" {...(({ type, ...rest }) => rest)(props)}>
+                    {#if fm.suggestion}
+                      <span class="d-flex align-items-center px-2" style="background: #008060;" title={t("import.ai-suggested", { fallback: "AI suggested" })}>
+                        <IconSparklesFilled size={14} class="text-white" />
+                      </span>
                     {/if}
-                  </span>
-                </div>
-              {/snippet}
-              {fieldMatched.description}
-            </BaseTooltip>
+                    <span class="d-flex align-items-center gap-1 px-2 py-1 bg-white text-body text-capitalize" style="font-size: 14px;">
+                      {fm.name}
+                      {#if editEnabled}
+                        <button
+                          class="btn btn-sm p-0 lh-1"
+                          onclick={resetFieldMatched}
+                          aria-label={t("import.reset-match", { fallback: "Reset match" })}
+                        >
+                          <IconX size={14} />
+                        </button>
+                      {/if}
+                    </span>
+                  </div>
+                {/snippet}
+                {fm.description}
+              </BaseTooltip>
+            {/each}
           {:else}
             <div class="d-flex align-items-center gap-2 bg-warning-subtle border border-warning-subtle text-warning-emphasis px-3 py-1 rounded">
               <IconExclamationCircle size={14} />

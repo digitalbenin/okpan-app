@@ -95,7 +95,10 @@ export function createImportWizardContext(params) {
 
         // Helper methods
         addMappingEntry(entry) {
-            const existingIndex = mapping.findIndex(e => e.headerField === entry.headerField);
+            // Check for exact duplicate (same headerField + mappedField)
+            const existingIndex = mapping.findIndex(
+                e => e.headerField === entry.headerField && e.mappedField === entry.mappedField
+            );
             if (existingIndex !== -1) {
                 mapping[existingIndex] = entry;
             } else {
@@ -103,7 +106,14 @@ export function createImportWizardContext(params) {
             }
         },
         removeMappingEntry(entry) {
-            mapping = mapping.filter(e => e.headerField !== entry.headerField);
+            // Remove by headerField + mappedField if both provided, else by headerField only
+            if (entry.mappedField) {
+                mapping = mapping.filter(
+                    e => !(e.headerField === entry.headerField && e.mappedField === entry.mappedField)
+                );
+            } else {
+                mapping = mapping.filter(e => e.headerField !== entry.headerField);
+            }
         },
         setPrimaryHeaderField(headerField) {
             const primaryHeaderField = headerField || null;
