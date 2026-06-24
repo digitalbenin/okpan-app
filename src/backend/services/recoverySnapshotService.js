@@ -276,6 +276,7 @@ async function deleteProjectStateForRestore(projectId) {
   const websiteSettings = await db
     .select({
       title_id: dbSchema.websiteSettings.title_id,
+      short_description_id: dbSchema.websiteSettings.short_description_id,
       about_id: dbSchema.websiteSettings.about_id,
     })
     .from(dbSchema.websiteSettings)
@@ -299,7 +300,7 @@ async function deleteProjectStateForRestore(projectId) {
     ontologyFields.flatMap((row) => [row.name_id, row.description_id, row.category_id]),
     datasources.flatMap((row) => [row.name_id, row.method_id, row.notes_id]),
     vocabularies.flatMap((row) => [row.option_id, row.description_id]),
-    websiteSettings.flatMap((row) => [row.title_id, row.about_id]),
+    websiteSettings.flatMap((row) => [row.title_id, row.short_description_id, row.about_id]),
   );
 
   await db.transaction(async (tx) => {

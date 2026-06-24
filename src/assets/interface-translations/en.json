@@ -1841,6 +1841,11 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "short-description",
+                             "value":  "Short Description"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "status",
                              "value":  "Status"
                          },
@@ -3548,6 +3553,26 @@
                              "namespace":  "import-assets",
                              "key":  "importing",
                              "value":  "Importing..."
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "help-title",
+                             "value":  "About website settings"
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "page-description",
+                             "value":  "Configure how your project appears when exported as a static website."
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "help-desc-p1",
+                             "value":  "Configure how your project appears when exported as a public website. Set the title, description, and logo that visitors will see."
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "help-desc-p2",
+                             "value":  "Changes made here are reflected in the exported website, not in the Okpan application itself."
                          },
                          {
                              "namespace":  "common",

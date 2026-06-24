@@ -278,6 +278,8 @@ const ensureGlobalSettingsSchema = async () => {
     }
 };
 
+
+
 const ensureDefaultInterfaceTranslations = async () => {
     try {
         const existingLanguages = await db.select().from(interface_languages);

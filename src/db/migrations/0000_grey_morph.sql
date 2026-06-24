@@ -447,6 +447,7 @@ CREATE TABLE `website_settings` (
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`title_id` text,
+	`short_description_id` text,
 	`about_id` text,
 	`authors` text,
 	`logo_id` text,
@@ -454,6 +455,7 @@ CREATE TABLE `website_settings` (
 	`show_unmapped` integer DEFAULT 0 NOT NULL,
 	`project_id` text,
 	FOREIGN KEY (`title_id`) REFERENCES `texts`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`short_description_id`) REFERENCES `texts`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`about_id`) REFERENCES `texts`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`logo_id`) REFERENCES `generic_assets`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`project_id`) REFERENCES `project`(`id`) ON UPDATE no action ON DELETE no action

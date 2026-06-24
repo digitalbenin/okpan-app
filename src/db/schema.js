@@ -827,6 +827,7 @@ export const objectsDatasourcesRelations = relations(objects_datasources, ({ one
 export const websiteSettings = sqliteTable('website_settings', {
     ...commonFields,
     title_id: text('title_id').references(() => texts.id),
+    short_description_id: text('short_description_id').references(() => texts.id),
     about_id: text('about_id').references(() => texts.id),
     authors: text('authors'),
     logo_id: text('logo_id').references(() => genericAssets.id),
@@ -842,6 +843,10 @@ export const websiteSettingsRelations = relations(websiteSettings, ({ one }) => 
     }),
     title: one(texts, {
         fields: [websiteSettings.title_id],
+        references: [texts.id]
+    }),
+    shortDescription: one(texts, {
+        fields: [websiteSettings.short_description_id],
         references: [texts.id]
     }),
     about: one(texts, {

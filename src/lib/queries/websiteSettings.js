@@ -12,6 +12,7 @@ export const websiteSettingsOperations = {
     id
     project_id
     title_id
+    short_description_id
     about_id
     authors
     logo_id
@@ -20,6 +21,21 @@ export const websiteSettingsOperations = {
     created_at
     updated_at
     title {
+      id
+      content
+      original_language_id
+      translations {
+        id
+        content
+        language_id
+        language {
+          id
+          code
+          name
+        }
+      }
+    }
+    shortDescription {
       id
       content
       original_language_id
@@ -68,6 +84,7 @@ export const websiteSettingsOperations = {
     variables: {
       projectId: "ID of the project",
       title: "Title content",
+      shortDescription: "Short description content",
       about: "About content",
       authors: "Authors text",
       subfolderPath: "Subfolder path for website",
@@ -76,6 +93,7 @@ export const websiteSettingsOperations = {
       logoId: "Generic asset ID for logo (optional)",
       // Translation arrays
       titleTranslations: "Array of title translations (optional)",
+      shortDescriptionTranslations: "Array of short description translations (optional)",
       aboutTranslations: "Array of about translations (optional)"
     },
     mutations: [
@@ -95,6 +113,23 @@ export const websiteSettingsOperations = {
 }`,
         useVariables: ["title", "languageId"],
         skipIf: { variableName: "title", isEmpty: true }
+      },
+      {
+        name: "createShortDescriptionText",
+        query: `mutation CreateShortDescriptionText($shortDescription: String!, $languageId: String!) {
+  insertIntoTexts(
+    values: [{
+      content: $shortDescription,
+      context: "website_settings.short_description",
+      original_language_id: $languageId
+    }]
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["shortDescription", "languageId"],
+        skipIf: { variableName: "shortDescription", isEmpty: true }
       },
       {
         name: "createAboutText",
@@ -118,6 +153,7 @@ export const websiteSettingsOperations = {
         query: `mutation CreateWebsiteSettings(
   $projectId: String!
   $titleId: String
+  $shortDescriptionId: String
   $aboutId: String
   $authors: String
   $subfolderPath: String
@@ -128,6 +164,7 @@ export const websiteSettingsOperations = {
     values: [{
       project_id: $projectId
       title_id: $titleId
+      short_description_id: $shortDescriptionId
       about_id: $aboutId
       authors: $authors
       subfolder_path: $subfolderPath
@@ -138,6 +175,7 @@ export const websiteSettingsOperations = {
     id
     project_id
     title_id
+    short_description_id
     about_id
     authors
     subfolder_path
@@ -150,6 +188,7 @@ export const websiteSettingsOperations = {
         useVariables: ["projectId", "authors", "subfolderPath", "showUnmapped", "logoId"],
         mapVariables: {
           titleId: { from: "createTitleText", path: "insertIntoTexts.0.id" },
+          shortDescriptionId: { from: "createShortDescriptionText", path: "insertIntoTexts.0.id" },
           aboutId: { from: "createAboutText", path: "insertIntoTexts.0.id" }
         }
       },
@@ -161,6 +200,14 @@ export const websiteSettingsOperations = {
           translationsParam: "titleTranslations"
         },
         onlyIf: { from: "createTitleText", path: "insertIntoTexts.0.id", isNull: false }
+      },
+      {
+        name: "processShortDescriptionTranslations",
+        processTranslations: {
+          textIdPath: "createShortDescriptionText.insertIntoTexts.0.id",
+          translationsParam: "shortDescriptionTranslations"
+        },
+        onlyIf: { from: "createShortDescriptionText", path: "insertIntoTexts.0.id", isNull: false }
       },
       {
         name: "processAboutTranslations",
@@ -182,6 +229,7 @@ export const websiteSettingsOperations = {
     variables: {
       id: "ID of the website settings to update",
       title: "New title content (optional)",
+      shortDescription: "New short description content (optional)",
       about: "New about content (optional)",
       authors: "New authors text (optional)",
       subfolderPath: "New subfolder path (optional)",
@@ -190,6 +238,7 @@ export const websiteSettingsOperations = {
       logoId: "Generic asset ID for logo (optional)",
       // Translation arrays
       titleTranslations: "Array of title translations (optional)",
+      shortDescriptionTranslations: "Array of short description translations (optional)",
       aboutTranslations: "Array of about translations (optional)"
     },
     mutations: [
@@ -199,6 +248,7 @@ export const websiteSettingsOperations = {
   websiteSettings(where: { id: { eq: $id } }) {
     id
     title_id
+    short_description_id
     about_id
     authors
     logo_id
@@ -207,6 +257,12 @@ export const websiteSettingsOperations = {
     created_at
     updated_at
     title {
+      id
+      content
+      original_language_id
+      translations { id content language_id }
+    }
+    shortDescription {
       id
       content
       original_language_id
@@ -238,6 +294,23 @@ export const websiteSettingsOperations = {
           titleId: { from: "getWebsiteSettings", path: "websiteSettings.0.title.id" }
         },
         skipIf: { variableName: "title", isEmpty: true }
+      },
+      {
+        name: "updateShortDescription",
+        query: `mutation UpdateWebsiteSettingsShortDescription($shortDescriptionId: String!, $shortDescription: String!) {
+  updateTexts(
+    set: { content: $shortDescription }
+    where: { id: { eq: $shortDescriptionId } }
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["shortDescription"],
+        mapVariables: {
+          shortDescriptionId: { from: "getWebsiteSettings", path: "websiteSettings.0.shortDescription.id" }
+        },
+        skipIf: { variableName: "shortDescription", isEmpty: true }
       },
       {
         name: "updateAbout",
@@ -311,6 +384,33 @@ export const websiteSettingsOperations = {
         },
         skipIf: { variableName: "aboutId", isUndefined: true }
       },
+      {
+        name: "createShortDescriptionTextIfMissing",
+        query: `mutation CreateShortDescriptionTextIfMissing($shortDescription: String!, $languageId: String!) {
+  insertIntoTexts(
+    values: [{ content: $shortDescription, context: "website_settings.short_description", original_language_id: $languageId }]
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["shortDescription", "languageId"],
+        onlyIf: { from: "getWebsiteSettings", path: "websiteSettings.0.short_description", isNull: true }
+      },
+      {
+        name: "linkNewShortDescriptionText",
+        query: `mutation LinkNewShortDescriptionText($id: String!, $shortDescriptionId: String!) {
+  updateWebsiteSettings(
+    set: { short_description_id: $shortDescriptionId }
+    where: { id: { eq: $id } }
+  ) { id short_description_id }
+}`,
+        useVariables: ["id"],
+        mapVariables: {
+          shortDescriptionId: { from: "createShortDescriptionTextIfMissing", path: "insertIntoTexts.0.id" }
+        },
+        skipIf: { variableName: "shortDescriptionId", isUndefined: true }
+      },
       // Update scalar fields
       {
         name: "updateWebsiteSettingsScalarFields",
@@ -360,6 +460,16 @@ export const websiteSettingsOperations = {
             "createTitleTextIfMissing.insertIntoTexts.0.id"
           ],
           translationsParam: "titleTranslations"
+        }
+      },
+      {
+        name: "processShortDescriptionTranslations",
+        processTranslations: {
+          textIdPaths: [
+            "getWebsiteSettings.websiteSettings.0.shortDescription.id",
+            "createShortDescriptionTextIfMissing.insertIntoTexts.0.id"
+          ],
+          translationsParam: "shortDescriptionTranslations"
         }
       },
       {

@@ -392,6 +392,7 @@ const generateSchemaDDL = () => {
     created_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     title_id TEXT REFERENCES texts(id),
+    short_description_id TEXT REFERENCES texts(id),
     about_id TEXT REFERENCES texts(id),
     authors TEXT,
     logo_id TEXT REFERENCES generic_assets(id),

@@ -1,4 +1,5 @@
 <script>
+  import { IconX } from "@tabler/icons-svelte";
   import { addImageProtocolPrefix, MEDIA_EXTENSIONS, MEDIA_MIME_TYPES } from "$lib/utils/media.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
 
@@ -173,7 +174,7 @@
             {disabled}
             title={t("media.remove-image")}
           >
-            <i class="bi bi-x"></i>
+            <IconX size={14} />
           </button>
         </div>
         <div class="mt-2 text-muted small">{displayName}</div>

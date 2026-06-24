@@ -1628,6 +1628,26 @@
                              "value":  "Importazione in corso..."
                          },
                          {
+                             "namespace":  "website-settings",
+                             "key":  "help-title",
+                             "value":  "Informazioni sulle impostazioni del sito"
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "page-description",
+                             "value":  "Configura come appare il tuo progetto quando viene esportato come sito web statico."
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "help-desc-p1",
+                             "value":  "Configura come appare il tuo progetto quando viene esportato come sito web pubblico. Imposta il titolo, la descrizione e il logo che i visitatori vedranno."
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "help-desc-p2",
+                             "value":  "Le modifiche fatte qui si riflettono nel sito web esportato, non nell\u2019applicazione Okpan stessa."
+                         },
+                         {
                              "namespace":  "nav",
                              "key":  "back",
                              "value":  "indietro"
@@ -3081,6 +3101,11 @@
                              "namespace":  "common",
                              "key":  "description",
                              "value":  "Descrizione"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "short-description",
+                             "value":  "Breve descrizione"
                          },
                          {
                              "namespace":  "institutions",

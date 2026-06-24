@@ -1,7 +1,8 @@
-<script>
+﻿<script>
+  import { watch } from "runed";
   import { createForm } from "@tanstack/svelte-form";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
-  import FileUpload from "$lib/components/base/FileUpload.svelte";
+  import MediaUploadZone from "$lib/components/research_fields/MediaUploadZone.svelte";
   import { getValidator, createFieldValidator, getFormConfig } from "$lib/utils/formValidation.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { createWebsiteSettings, updateWebsiteSettings } from "$lib/api/WebsiteSettingsApi.js";
@@ -10,25 +11,53 @@
   const translationStore = getTranslationStore();
   const t = $derived(translationStore.t);
 
-  // Props
   let { mode = "create", websiteSettings = null, languages = [], projectId = null, onSuccess = null } = $props();
 
-  // Derived
   const isEditMode = $derived(mode === "edit");
   const defaultLanguage = $derived(languages?.find((l) => l.is_default) || languages?.[0] || null);
   const secondaryLanguages = $derived(languages?.filter((l) => !l.is_default) || []);
   const operationName = $derived(isEditMode ? "update" : "create");
   const validator = $derived(getValidator("websiteSettings", operationName));
 
+  let logoFile = $state(null);
+  let logoAssets = $state([]);
+
+  watch(
+    () => logoAssets,
+    (assets) => { logoFile = assets.length ? assets[0] : null; }
+  );
+
+  // Init from existing settings
+  let _logoInit = false;
+  watch(
+    () => websiteSettings,
+    (settings) => {
+      if (!_logoInit && isEditMode && settings?.logo) {
+        _logoInit = true;
+        logoAssets = [settings.logo];
+      }
+    }
+  );
+
+  async function onAddLogo(paths) {
+    if (!paths?.length) return;
+    const p = paths[0];
+    logoAssets = [{ path: p, name: p.split(/[/\\]/).pop() }];
+  }
+
+  function removeLogo() {
+    logoAssets = [];
+  }
+
   const findTranslationForLanguage = (textField, lang) =>
     textField?.translations?.find((translation) =>
       translation?.language_id === lang.id || translation?.language?.code === lang.code
     ) || null;
 
-  // Default values
   const defaultValues = $derived.by(() => {
     const baseValues = {
       title: "",
+      shortDescription: "",
       about: "",
       authors: "",
       subfolderPath: "",
@@ -36,6 +65,7 @@
       projectId: projectId || $page.params.project_id,
       languageId: defaultLanguage?.id || "",
       titleTranslations: [],
+      shortDescriptionTranslations: [],
       aboutTranslations: [],
       logoFile: null,
     };
@@ -43,21 +73,22 @@
     if (isEditMode) {
       baseValues.id = websiteSettings?.id || "";
       baseValues.title = websiteSettings?.title?.content || "";
+      baseValues.shortDescription = websiteSettings?.shortDescription?.content || "";
       baseValues.about = websiteSettings?.about?.content || "";
       baseValues.authors = websiteSettings?.authors || "";
       baseValues.subfolderPath = websiteSettings?.subfolder_path || "";
       baseValues.showUnmapped = Boolean(websiteSettings?.show_unmapped);
       baseValues.logoFile = websiteSettings?.logo || null;
 
-      // Add translation fields
       secondaryLanguages.forEach((lang) => {
         baseValues[`translations_${lang.id}_title`] = findTranslationForLanguage(websiteSettings?.title, lang)?.content || "";
+        baseValues[`translations_${lang.id}_shortDescription`] = findTranslationForLanguage(websiteSettings?.shortDescription, lang)?.content || "";
         baseValues[`translations_${lang.id}_about`] = findTranslationForLanguage(websiteSettings?.about, lang)?.content || "";
       });
     } else {
-      // Create mode - add empty translation fields
       secondaryLanguages.forEach((lang) => {
         baseValues[`translations_${lang.id}_title`] = "";
+        baseValues[`translations_${lang.id}_shortDescription`] = "";
         baseValues[`translations_${lang.id}_about`] = "";
       });
     }
@@ -65,32 +96,39 @@
     return baseValues;
   });
 
-  // Submit handler
   const onSubmitForm = async ({ value }) => {
     try {
       const payloadBase = {
         title: value.title?.trim() || "",
+        shortDescription: value.shortDescription?.trim() || "",
         about: value.about?.trim() || "",
         authors: value.authors?.trim() || "",
         subfolderPath: value.subfolderPath?.trim() || "",
         showUnmapped: value.showUnmapped ? 1 : 0,
         languageId: defaultLanguage?.id || value.languageId || "",
-        logoFile: value.logoFile || null,
+        logoFile: logoFile || null,
       };
 
-      // Build translation arrays
       const titleTranslations = [];
+      const shortDescriptionTranslations = [];
       const aboutTranslations = [];
 
       secondaryLanguages.forEach((lang) => {
         const tContent = (value?.[`translations_${lang.id}_title`] || "").trim();
+        const sdContent = (value?.[`translations_${lang.id}_shortDescription`] || "").trim();
         const aContent = (value?.[`translations_${lang.id}_about`] || "").trim();
-
         if (tContent) {
           const existing = findTranslationForLanguage(websiteSettings?.title, lang);
           titleTranslations.push(existing?.id
             ? { id: existing.id, language_id: lang.id, language_code: lang.code, content: tContent }
             : { language_id: lang.id, language_code: lang.code, content: tContent }
+          );
+        }
+        if (sdContent) {
+          const existing = findTranslationForLanguage(websiteSettings?.shortDescription, lang);
+          shortDescriptionTranslations.push(existing?.id
+            ? { id: existing.id, language_id: lang.id, language_code: lang.code, content: sdContent }
+            : { language_id: lang.id, language_code: lang.code, content: sdContent }
           );
         }
         if (aContent) {
@@ -106,6 +144,7 @@
         ...payloadBase,
         projectId: projectId || $page.params.project_id,
         ...(titleTranslations.length && { titleTranslations }),
+        ...(shortDescriptionTranslations.length && { shortDescriptionTranslations }),
         ...(aboutTranslations.length && { aboutTranslations }),
       };
 
@@ -116,7 +155,6 @@
       } else {
         const res = await updateWebsiteSettings({ id: websiteSettings?.id || value.id, ...payload });
         if (res?.error) throw res.error;
-        // updateWebsiteSettings refetches fresh data; res.websiteSettings is the fresh array
         const freshSettings = Array.isArray(res?.websiteSettings) ? res.websiteSettings[0] : null;
         onSuccess?.(freshSettings || websiteSettings || null);
       }
@@ -125,9 +163,7 @@
     }
   };
 
-  // Form instance
   const form = $derived(createForm(() => getFormConfig("websiteSettings", operationName, {
-    // Keep dynamic translation fields like `translations_<langId>_<field>` in form values.
     validators: {
       onChange: validator?.schema?.passthrough ? validator.schema.passthrough() : validator.schema
     },
@@ -136,7 +172,6 @@
   })));
   const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
 
-  // Export functions for parent component
   export function submitForm() {
     form.handleSubmit();
   }
@@ -144,28 +179,25 @@
   export function getFormStore() {
     return formStore;
   }
-  // UI schema
+
   const uiSchema = $derived({
     ...(isEditMode && { id: { hidden: true } }),
     projectId: { hidden: true },
     languageId: { hidden: true },
     titleTranslations: { hidden: true },
+    shortDescriptionTranslations: { hidden: true },
     aboutTranslations: { hidden: true },
     logoId: { hidden: true },
-    logoFile: {
-      label: t("common.logo"),
-      renderer: FileUpload,
-      rendererProps: { accept: "image/*", maxSize: 5 * 1024 * 1024, allowedTypes: ["image/jpeg", "image/png", "image/svg+xml", "image/webp"] },
-      colSize: 12,
-    },
-    title: { label: t("settings.title"), colSize: 12 },
-    about: { label: t("common.about"), type: "textarea", colSize: 12 },
+    logoFile: { hidden: true },
+    title: { label: t("settings.title"), colSize: 12, charLimit: 100 },
+    shortDescription: { label: t("common.short-description"), type: "textarea", colSize: 12, charLimit: 300 },
+    about: { label: t("common.about"), type: "textarea", colSize: 12, charLimit: 500 },
     authors: { label: t("common.authors"), colSize: 12, hidden: true },
     subfolderPath: { label: t("common.subfolder-path"), colSize: 12, hidden: true },
     showUnmapped: { label: t("common.show-unmapped"), type: "checkbox", colSize: 12, hidden: true },
   });
 
-  const fieldOrder = $derived(["title", "about", "logoFile"]);
+  const fieldOrder = $derived(["title", "shortDescription", "about"]);
 
   const hiddenValueProviders = $derived({
     ...(isEditMode && { id: () => websiteSettings?.id || "" }),
@@ -174,28 +206,22 @@
   });
 </script>
 
-<form
-  onsubmit={(e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    form.handleSubmit();
-  }}
->
-  <div class="row">
-    <div class="col-12">
-      <!-- Remove inner title to avoid duplication with page heading -->
-      <AutoForm
-        {form}
-        {validator}
-        {createFieldValidator}
-        {languages}
-        translatableFields={["title", "about"]}
-        translationsValidator={getValidator("translations", "create")}
-        defaultColSize={12}
-        {fieldOrder}
-        {uiSchema}
-        {hiddenValueProviders}
-      />
-    </div>
+<div>
+  <AutoForm
+    {form}
+    {validator}
+    {createFieldValidator}
+    {languages}
+    translatableFields={["title", "shortDescription", "about"]}
+    translationsValidator={getValidator("translations", "create")}
+    defaultColSize={12}
+    {fieldOrder}
+    {uiSchema}
+    {hiddenValueProviders}
+  />
+
+  <div class="mt-4">
+    <p class="fw-semibold mb-2">{t("common.logo")}</p>
+    <MediaUploadZone type="image" assets={logoAssets} onAdd={onAddLogo} onRemove={removeLogo} />
   </div>
-</form>
+</div>
