@@ -8,7 +8,7 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 export const ssr = !isStaticExport;
 
 /** @type {import('./$types').PageLoad} */
-export async function load({ url, fetch }) {
+export async function load({ url, fetch, parent }) {
 	// For static export: return skeleton data - client will load data.json via onMount
 	if (isStaticExport) {
 		return {
@@ -41,6 +41,7 @@ export async function load({ url, fetch }) {
 		page: parseInt(url.searchParams.get('page') || '1'),
 		pageSize: parseInt(url.searchParams.get('pageSize') || url.searchParams.get('limit') || '10'),
 		institutionIds: url.searchParams.getAll('institutionId'),
+		researchFieldFilters: [], // website UI doesn't use this yet, but reserved for future
 		orderBy: url.searchParams.get('orderBy') || 'created_at',
 		direction: url.searchParams.get('direction') || 'desc'
 	};
@@ -61,15 +62,66 @@ export async function load({ url, fetch }) {
 
 	// Client-side: use unified search (handles both static and preview mode)
 	const { searchObjects } = await import('$lib/utils/search.js');
-	const searchResult = await searchObjects({
+
+	// Read stored filters from layout (website settings) — these define the corpus
+	let storedFilters = {};
+	try {
+		const parentData = await parent();
+		storedFilters = parentData?.settings?.filters || {};
+	} catch {
+		storedFilters = {};
+	}
+	console.log('[WebsitePreview] storedFilters from DB:', storedFilters);
+
+	// Merge stored filters (corpus definition) with website's own query params (user filtering within corpus)
+	const searchParams = {
 		project_id: queryParams.projectId,
 		q: queryParams.q,
 		page: queryParams.page,
 		pageSize: queryParams.pageSize,
-		institution_ids: queryParams.institutionIds,
 		orderBy: queryParams.orderBy,
 		direction: queryParams.direction
-	});
+	};
+
+	// Status from stored filters (corpus definition) — always applied
+	if (storedFilters.status && storedFilters.status !== 'all') {
+		searchParams.status = storedFilters.status;
+	}
+
+	// Institutions: corpus filter defines the base set; user filter narrows within it
+	const corpusInstitutionIds = storedFilters.institutionIds?.length ? storedFilters.institutionIds : null;
+	const userInstitutionIds = queryParams.institutionIds?.length ? queryParams.institutionIds : null;
+	if (corpusInstitutionIds && userInstitutionIds) {
+		searchParams.institution_ids = userInstitutionIds.filter(id => corpusInstitutionIds.includes(id));
+	} else if (corpusInstitutionIds) {
+		searchParams.institution_ids = corpusInstitutionIds;
+	} else if (userInstitutionIds) {
+		searchParams.institution_ids = userInstitutionIds;
+	}
+	// Pass corpus filter separately so facets respect the corpus boundary
+	if (corpusInstitutionIds) {
+		searchParams.corpus_institution_ids = corpusInstitutionIds;
+	}
+
+	// Research field filters: corpus + user (AND)
+	const corpusResearchFieldFilters = storedFilters.researchFieldFilters || [];
+	const userResearchFieldFilters = queryParams.researchFieldFilters || [];
+	const combinedResearchFieldFilters = [...corpusResearchFieldFilters, ...userResearchFieldFilters];
+	if (combinedResearchFieldFilters.length) {
+		searchParams.researchFieldFilters = combinedResearchFieldFilters;
+	}
+	if (corpusResearchFieldFilters.length) {
+		searchParams.corpus_researchFieldFilters = corpusResearchFieldFilters;
+	}
+
+	// Excluded objects from settings (corpus definition)
+	if (storedFilters.excludeObjectIds?.length) {
+		searchParams.excluded_object_ids = storedFilters.excludeObjectIds;
+	}
+
+	console.log('[WebsitePreview] Final searchParams:', searchParams);
+	const searchResult = await searchObjects(searchParams);
+	console.log('[WebsitePreview] Search result:', { totalCount: searchResult.totalCount, itemsCount: searchResult.items?.length });
 
 	return {
 		searchResult,

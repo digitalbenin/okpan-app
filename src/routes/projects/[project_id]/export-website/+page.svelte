@@ -1,7 +1,6 @@
 <script>
 	import { page } from '$app/stores';
 	import BaseAlertDialog from '$lib/components/base/BaseAlertDialog.svelte';
-	import ExportPreviewSection from '$lib/components/export/ExportPreviewSection.svelte';
 	import PageActionFooter from '$lib/components/common/PageActionFooter.svelte';
 	import { getTranslationStore } from '$lib/stores/InterfaceTranslationStore.svelte.js';
 
@@ -50,10 +49,10 @@
 	let websiteLocalePreference = $state('');
 	let excludedOptionalContentLanguageCodes = $state([]);
 
-	let deselectedObjectIds = $state(new Set());
-	let totalCount = $state(0);
-	let isLoading = $state(false);
-	let filtersPayload = $state({});
+	const websiteSettings = $derived.by(() => {
+		const list = $page?.data?.websiteSettings ?? [];
+		return list[0] ?? null;
+	});
 
 	const websiteLocaleOptions = $derived.by(() => {
 		const seen = new Set();
@@ -143,14 +142,14 @@
 			const outputPath = result.filePaths[0];
 			exportPath = outputPath;
 
-			const exportResult = await window.api.exportStaticWebsite(JSON.parse(JSON.stringify({
-				projectId,
-				outputPath,
-				locale: selectedWebsiteLocale,
-				filters: {
-					...filtersPayload,
-					contentLanguageCodes: [...selectedContentLanguageCodes],
-					...(deselectedObjectIds.size > 0 && { excludeObjectIds: [...deselectedObjectIds] })
+const storedFilters = websiteSettings?.filters || {};
+		const exportResult = await window.api.exportStaticWebsite(JSON.parse(JSON.stringify({
+			projectId,
+			outputPath,
+			locale: selectedWebsiteLocale,
+			filters: {
+				...(storedFilters || {}),
+				contentLanguageCodes: [...selectedContentLanguageCodes]
 				}
 			})));
 
@@ -168,10 +167,7 @@
 	}
 
 	const exportDisabledReason = $derived.by(() => {
-		if (isLoading) return '';
 		if (websiteLocaleOptions.length === 0) return t('export-website.interface-language-empty');
-		if (totalCount === 0) return t('export.no-objects-match');
-		if (totalCount - deselectedObjectIds.size <= 0) return t('export.no-objects-selected');
 		return '';
 	});
 
@@ -293,15 +289,7 @@
 			</div>
 
 			<h5 class="h5 mb-3">{t('export.filter-content')}</h5>
-
-			<ExportPreviewSection
-				{projectId}
-				{data}
-				bind:deselectedObjectIds
-				bind:totalCount
-				bind:isLoading
-				bind:filtersPayload
-			/>
+			<p class="text-muted small">{t('website-settings.filter-from-settings', { fallback: 'Filtering is configured on the Website Settings page. Go to Website Settings to choose which objects to include.' })}</p>
 		</div>
 	</div>
 </PageActionFooter>

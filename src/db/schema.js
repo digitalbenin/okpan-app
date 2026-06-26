@@ -833,7 +833,8 @@ export const websiteSettings = sqliteTable('website_settings', {
     logo_id: text('logo_id').references(() => genericAssets.id),
     subfolder_path: text('subfolder_path'),
     show_unmapped: integer('show_unmapped').notNull().default(0), // false by default
-    project_id: text('project_id').references(() => project.id).unique()
+    project_id: text('project_id').references(() => project.id).unique(),
+    filters: text('filters', { mode: 'json' })
 });
 
 export const websiteSettingsRelations = relations(websiteSettings, ({ one }) => ({

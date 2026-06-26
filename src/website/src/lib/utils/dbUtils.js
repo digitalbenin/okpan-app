@@ -454,8 +454,14 @@ export function fetchWebsiteSettings(db, projectId) {
 
   const textPayloadMap = buildTextPayloadMap(db, [row.title_id, row.about_id]);
 
+  let filters = {};
+  if (row.filters) {
+    try { filters = typeof row.filters === 'string' ? JSON.parse(row.filters) : row.filters; } catch {}
+  }
+
   return {
     ...row,
+    filters,
     title_i18n: textPayloadMap[row.title_id] || null,
     about_i18n: textPayloadMap[row.about_id] || null,
     description_i18n: textPayloadMap[row.about_id] || null

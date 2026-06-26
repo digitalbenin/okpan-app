@@ -183,6 +183,7 @@
 	function buildSearchOptions() {
 		// Base options mapped to searchUtils expectations (snake_case where required)
 		const qp = data.queryParams || {};
+		const storedFilters = data.settings?.filters || {};
 		const options = {
 			q: (searchTerm ?? '').trim(),
 			project_id: qp.projectId || null,
@@ -192,17 +193,33 @@
 			direction: qp.direction // 'asc' | 'desc'
 		};
 
-		// Institutions from advanced filters
-		if (advancedFilters?.institutions?.length) {
-			options.institution_ids = advancedFilters.institutions;
+		// Status from stored filters (corpus definition) — always applied in preview mode
+		if (!isStaticExport && storedFilters.status && storedFilters.status !== 'all') {
+			options.status = storedFilters.status;
+		}
+
+		// Institutions: corpus filter defines the base set; user filter narrows within it
+		const corpusInstitutionIds = !isStaticExport && storedFilters.institutionIds?.length ? storedFilters.institutionIds : null;
+		const userInstitutionIds = advancedFilters?.institutions?.length ? advancedFilters.institutions : null;
+
+		if (corpusInstitutionIds && userInstitutionIds) {
+			options.institution_ids = userInstitutionIds.filter(id => corpusInstitutionIds.includes(id));
+		} else if (corpusInstitutionIds) {
+			options.institution_ids = corpusInstitutionIds;
+		} else if (userInstitutionIds) {
+			options.institution_ids = userInstitutionIds;
+		}
+
+		if (corpusInstitutionIds) {
+			options.corpus_institution_ids = corpusInstitutionIds;
 		}
 
 		// Research field vocabulary selections mapping -> researchFieldFilters
-		const researchFieldFilters = [];
+		const userResearchFieldFilters = [];
 		for (const [key, value] of Object.entries(advancedFilters || {})) {
 			if (key === 'institutions' || key === '__textFilters') continue;
 			if (Array.isArray(value) && value.length > 0) {
-				researchFieldFilters.push({ fieldId: key, vocabularyIds: value });
+				userResearchFieldFilters.push({ fieldId: key, vocabularyIds: value });
 			}
 		}
 
@@ -212,8 +229,8 @@
 		for (const tf of tfs) {
 			if (!tf?.query || !tf?.fieldId) continue;
 			if (tf.kind === 'research') {
-				// incorporate into researchFieldFilters with query
-				researchFieldFilters.push({ fieldId: String(tf.fieldId), query: String(tf.query) });
+				// incorporate into userResearchFieldFilters with query
+				userResearchFieldFilters.push({ fieldId: String(tf.fieldId), query: String(tf.query) });
 			} else if (tf.kind === 'ontology') {
 				textFieldFilters.push({
 					kind: 'ontology',
@@ -223,11 +240,21 @@
 			}
 		}
 
-		if (researchFieldFilters.length > 0) {
-			options.researchFieldFilters = researchFieldFilters;
+		const corpusResearchFieldFilters = !isStaticExport && storedFilters.researchFieldFilters || [];
+		const combinedResearchFieldFilters = [...corpusResearchFieldFilters, ...userResearchFieldFilters];
+
+		if (combinedResearchFieldFilters.length > 0) {
+			options.researchFieldFilters = combinedResearchFieldFilters;
+		}
+		if (corpusResearchFieldFilters.length > 0) {
+			options.corpus_researchFieldFilters = corpusResearchFieldFilters;
 		}
 		if (textFieldFilters.length > 0) {
 			options.textFieldFilters = textFieldFilters;
+		}
+
+		if (!isStaticExport && storedFilters.excludeObjectIds?.length) {
+			options.excluded_object_ids = storedFilters.excludeObjectIds;
 		}
 
 		return options;

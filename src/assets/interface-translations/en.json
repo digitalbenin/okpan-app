@@ -1,4 +1,4 @@
-﻿{
+{
     "code":  "en",
     "name":  "english",
     "translations":  [
@@ -3573,6 +3573,36 @@
                              "namespace":  "website-settings",
                              "key":  "help-desc-p2",
                              "value":  "Changes made here are reflected in the exported website, not in the Okpan application itself."
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "filter-objects",
+                             "value":  "Filter objects"
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "filter-by-status",
+                             "value":  "Filter objects by status"
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "advanced-filtering",
+                             "value":  "Advanced filtering"
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "preview-objects",
+                             "value":  "Preview objects on display"
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "filter-from-settings",
+                             "value":  "Filtering is configured on the Website Settings page. Go to Website Settings to choose which objects to include."
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "objects-exported-count",
+                             "value":  "{{count}} objects will be shown on the website"
                          },
                          {
                              "namespace":  "common",

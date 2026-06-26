@@ -40,6 +40,14 @@ export async function searchObjects(options = {}) {
   if (typeof institutionIds === 'string') {
     institutionIds = institutionIds.split(',').filter(Boolean);
   }
+  let corpusInstitutionIds = options.corpus_institution_ids ?? [];
+  if (typeof corpusInstitutionIds === 'string') {
+    corpusInstitutionIds = corpusInstitutionIds.split(',').filter(Boolean);
+  }
+  let excludedObjectIds = options.excluded_object_ids ?? [];
+  if (typeof excludedObjectIds === 'string') {
+    excludedObjectIds = excludedObjectIds.split(',').filter(Boolean);
+  }
   // status filter removed
   // Prefer pageSize; accept legacy "limit" for backward compatibility
   const pageSize = Number.isFinite(options.pageSize)
@@ -52,6 +60,7 @@ export async function searchObjects(options = {}) {
   const projectId = options.project_id ?? null;
   const ontologyFieldIds = options.ontologyFieldIds ?? [];
   const researchFieldFilters = options.researchFieldFilters ?? [];
+  const corpusResearchFieldFilters = options.corpus_researchFieldFilters ?? [];
   const textFieldFilters = options.textFieldFilters ?? [];
   const orderBy = options.orderBy ?? 'created_at';
   const direction = options.direction === 'asc' ? 'ASC' : 'DESC';
@@ -64,12 +73,30 @@ export async function searchObjects(options = {}) {
     whereClauses.push('o.project_id = ? /*project*/');
     params.push(projectId);
   }
+  // Corpus institution filter (always applied, including to facets)
+  if (corpusInstitutionIds.length > 0) {
+    const placeholders = corpusInstitutionIds.map(() => '?').join(',');
+    whereClauses.push(`o.institution_id IN (${placeholders}) /*corpus_institution*/`);
+    params.push(...corpusInstitutionIds);
+  }
+  // User institution filter (removed from institution facet so user can switch)
   if (institutionIds.length > 0) {
     const placeholders = institutionIds.map(() => '?').join(',');
     whereClauses.push(`o.institution_id IN (${placeholders}) /*institution*/`);
     params.push(...institutionIds);
   }
-  // status filter removed
+  // Status filter
+  const status = options.status ?? null;
+  if (status && status !== 'all') {
+    whereClauses.push('o.status = ? /*status*/');
+    params.push(status);
+  }
+  // Excluded objects filter (always applied, including to facets)
+  if (excludedObjectIds.length > 0) {
+    const placeholders = excludedObjectIds.map(() => '?').join(',');
+    whereClauses.push(`o.id NOT IN (${placeholders}) /*exclude_objects*/`);
+    params.push(...excludedObjectIds);
+  }
   if (ontologyQuery) {
     const searchConditions = [];
     const searchParams = [];
@@ -148,6 +175,48 @@ export async function searchObjects(options = {}) {
     }
   }
 
+  // Corpus research field filters (always applied, including to facets)
+  if (corpusResearchFieldFilters.length > 0) {
+    const corpusResearchConditions = [];
+    for (const filter of corpusResearchFieldFilters) {
+      const fieldConditions = [];
+      if (filter.query && filter.query.trim()) {
+        fieldConditions.push(`
+                    EXISTS (
+                        SELECT 1 FROM objects_research_fields orf
+                        JOIN research_fields rf ON orf.field_id = rf.id
+                        WHERE orf.object_id = o.id
+                        AND rf.onwebsite = 1
+                        AND orf.field_id = ?
+                        AND LOWER(orf.value) LIKE ?
+                    )
+                `);
+        params.push(filter.fieldId, `%${filter.query.trim().toLowerCase()}%`);
+      }
+      if (filter.vocabularyIds && filter.vocabularyIds.length > 0) {
+        const vocabPlaceholders = filter.vocabularyIds.map(() => '?').join(',');
+        fieldConditions.push(`
+                    EXISTS (
+                        SELECT 1 FROM objects_research_fields orf
+                        JOIN research_fields rf ON orf.field_id = rf.id
+                        WHERE orf.object_id = o.id
+                        AND rf.onwebsite = 1
+                        AND orf.field_id = ?
+                        AND orf.vocabulary_id IN (${vocabPlaceholders})
+                    )
+                `);
+        params.push(filter.fieldId, ...filter.vocabularyIds);
+      }
+      if (fieldConditions.length > 0) {
+        corpusResearchConditions.push(`(${fieldConditions.join(' OR ')})`);
+      }
+    }
+    if (corpusResearchConditions.length > 0) {
+      whereClauses.push(`(${corpusResearchConditions.join(' AND ')}) /*corpus_research*/`);
+    }
+  }
+
+  // User research field filters (removed from research facet so user can switch)
   if (researchFieldFilters.length > 0) {
     const researchFieldConditions = [];
     for (const filter of researchFieldFilters) {

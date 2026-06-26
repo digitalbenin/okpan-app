@@ -454,6 +454,7 @@ CREATE TABLE `website_settings` (
 	`subfolder_path` text,
 	`show_unmapped` integer DEFAULT 0 NOT NULL,
 	`project_id` text,
+	`filters` text,
 	FOREIGN KEY (`title_id`) REFERENCES `texts`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`short_description_id`) REFERENCES `texts`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`about_id`) REFERENCES `texts`(`id`) ON UPDATE no action ON DELETE no action,

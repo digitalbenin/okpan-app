@@ -118,6 +118,10 @@
 			items = vocabularies.filter((v) => v.field_id === selectedField.id);
 		}
 
+		// Only show items that have objects in the current filtered subset,
+		// or are already selected
+		items = items.filter((item) => getFacetCountForItem(item) > 0 || isSelected(item.id));
+
 		const term = (searchTerm || '').toLowerCase().trim();
 		let result = items;
 		if (term) {

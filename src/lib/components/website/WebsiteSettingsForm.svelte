@@ -11,7 +11,7 @@
   const translationStore = getTranslationStore();
   const t = $derived(translationStore.t);
 
-  let { mode = "create", websiteSettings = null, languages = [], projectId = null, onSuccess = null } = $props();
+  let { mode = "create", websiteSettings = null, languages = [], projectId = null, currentFilters = null, onSuccess = null } = $props();
 
   const isEditMode = $derived(mode === "edit");
   const defaultLanguage = $derived(languages?.find((l) => l.is_default) || languages?.[0] || null);
@@ -62,6 +62,7 @@
       authors: "",
       subfolderPath: "",
       showUnmapped: false,
+      filters: {},
       projectId: projectId || $page.params.project_id,
       languageId: defaultLanguage?.id || "",
       titleTranslations: [],
@@ -78,6 +79,7 @@
       baseValues.authors = websiteSettings?.authors || "";
       baseValues.subfolderPath = websiteSettings?.subfolder_path || "";
       baseValues.showUnmapped = Boolean(websiteSettings?.show_unmapped);
+      baseValues.filters = websiteSettings?.filters || {};
       baseValues.logoFile = websiteSettings?.logo || null;
 
       secondaryLanguages.forEach((lang) => {
@@ -105,6 +107,7 @@
         authors: value.authors?.trim() || "",
         subfolderPath: value.subfolderPath?.trim() || "",
         showUnmapped: value.showUnmapped ? 1 : 0,
+        filters: (currentFilters && Object.keys(currentFilters).length) ? currentFilters : null,
         languageId: defaultLanguage?.id || value.languageId || "",
         logoFile: logoFile || null,
       };

@@ -18,6 +18,7 @@ export const websiteSettingsOperations = {
     logo_id
     subfolder_path
     show_unmapped
+    filters
     created_at
     updated_at
     title {
@@ -159,6 +160,7 @@ export const websiteSettingsOperations = {
   $subfolderPath: String
   $showUnmapped: Int
   $logoId: String
+  $filters: JSON
 ) {
   insertIntoWebsiteSettings(
     values: [{
@@ -170,6 +172,7 @@ export const websiteSettingsOperations = {
       subfolder_path: $subfolderPath
       show_unmapped: $showUnmapped
       logo_id: $logoId
+      filters: $filters
     }]
   ) {
     id
@@ -181,11 +184,12 @@ export const websiteSettingsOperations = {
     subfolder_path
     show_unmapped
     logo_id
+    filters
     created_at
     updated_at
   }
 }`,
-        useVariables: ["projectId", "authors", "subfolderPath", "showUnmapped", "logoId"],
+        useVariables: ["projectId", "authors", "subfolderPath", "showUnmapped", "logoId", "filters"],
         mapVariables: {
           titleId: { from: "createTitleText", path: "insertIntoTexts.0.id" },
           shortDescriptionId: { from: "createShortDescriptionText", path: "insertIntoTexts.0.id" },
@@ -254,6 +258,7 @@ export const websiteSettingsOperations = {
     logo_id
     subfolder_path
     show_unmapped
+    filters
     created_at
     updated_at
     title {
@@ -419,17 +424,19 @@ export const websiteSettingsOperations = {
   $authors: String
   $subfolderPath: String
   $showUnmapped: Int
+  $filters: JSON
 ) {
   updateWebsiteSettings(
     set: { 
       authors: $authors,
       subfolder_path: $subfolderPath,
-      show_unmapped: $showUnmapped
+      show_unmapped: $showUnmapped,
+      filters: $filters
     }
     where: { id: { eq: $id } }
-  ) { id authors subfolder_path show_unmapped }
+  ) { id authors subfolder_path show_unmapped filters }
 }`,
-        useVariables: ["authors", "subfolderPath", "showUnmapped"],
+        useVariables: ["authors", "subfolderPath", "showUnmapped", "filters"],
         mapVariables: {
           id: { from: "getWebsiteSettings", path: "websiteSettings.0.id" }
         }

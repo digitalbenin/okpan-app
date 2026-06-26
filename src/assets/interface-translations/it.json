@@ -1,4 +1,4 @@
-﻿{
+{
     "code":  "it",
     "name":  "italiano",
     "translations":  [
@@ -1646,6 +1646,36 @@
                              "namespace":  "website-settings",
                              "key":  "help-desc-p2",
                              "value":  "Le modifiche fatte qui si riflettono nel sito web esportato, non nell\u2019applicazione Okpan stessa."
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "filter-objects",
+                             "value":  "Filtra oggetti"
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "filter-by-status",
+                             "value":  "Filtra oggetti per stato"
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "advanced-filtering",
+                             "value":  "Filtri avanzati"
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "preview-objects",
+                             "value":  "Anteprima oggetti in mostra"
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "filter-from-settings",
+                             "value":  "Il filtraggio e configurato nella pagina Impostazioni Sito. Vai alle Impostazioni Sito per scegliere quali oggetti includere."
+                         },
+                         {
+                             "namespace":  "website-settings",
+                             "key":  "objects-exported-count",
+                             "value":  "{{count}} oggetti saranno mostrati sul sito web"
                          },
                          {
                              "namespace":  "nav",

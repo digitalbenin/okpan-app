@@ -1,10 +1,14 @@
 import { getProjectInstitutions } from '$lib/api/InstitutionsApi.js';
 import { getResearchFields } from '$lib/api/ResearchFieldsApi.js';
+import { getWebsiteSettings } from '$lib/api/WebsiteSettingsApi.js';
 import { browser } from '$app/environment';
 import { executeQuery } from '$lib/api/graphqlClient.js';
 
 export async function load({ params, fetch }) {
     const { project_id } = params;
+
+    const websiteSettingsResponse = await getWebsiteSettings(project_id);
+    const websiteSettings = Array.isArray(websiteSettingsResponse) ? websiteSettingsResponse : (websiteSettingsResponse ? [websiteSettingsResponse] : []);
 
     const institutionsResponse = await getProjectInstitutions(
         {
@@ -50,6 +54,7 @@ export async function load({ params, fetch }) {
         connectionFields,
         freeTextFields,
         contentLanguages,
-        project_id
+        project_id,
+        websiteSettings
     };
 }
