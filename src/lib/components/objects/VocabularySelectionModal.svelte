@@ -247,7 +247,7 @@
             </div>
 
             <!-- Vocabulary List - scrollable -->
-            <div class="vocabulary-list" style="overflow-y: auto; height: calc(100% - 120px);">
+            <div class="vocabulary-list border rounded" style="overflow-y: auto; height: calc(100% - 120px);">
                 {#each filteredVocabularies as vocab (`${vocab._fieldId}_${vocab.id}`)}
                     {@const fieldFor = vocabularyFields.find(f => f.id === vocab._fieldId)}
                     {@const templateId = fieldFor?.fields_config?.templateId || null}
@@ -277,22 +277,24 @@
                             </div>
 
                             <!-- Main Asset Image -->
-                            <div class="flex-shrink-0">
-                                <BaseImage
-                                    asset={vocab.mainAsset}
-                                    preferredFormat="sm"
-                                    alt={vocab.option?.content || t("common.unnamed", { fallback: "Unnamed" })}
-                                    width={48}
-                                    height={48}
-                                    class="rounded-circle"
-                                    ratio="1/1"
-                                    compact={true}
-                                    style="background-color:#E9EEF1"
-                                />
-                            </div>
+                            {#if vocab?.mainAsset}
+                                <div class="flex-shrink-0">
+                                    <BaseImage
+                                        asset={vocab.mainAsset}
+                                        preferredFormat="sm"
+                                        alt={vocab.option?.content || t("common.unnamed", { fallback: "Unnamed" })}
+                                        width={48}
+                                        height={48}
+                                        class="rounded-circle"
+                                        ratio="1/1"
+                                        compact={true}
+                                        style="background-color:#E9EEF1"
+                                    />
+                                </div>
+                            {/if}
 
                             <!-- Description info tooltip -->
-                            
+                            <!-- 
                                 <span class="position-relative d-inline-flex align-items-center text-body-dark desc-tooltip"
                                     class:opacity-25={!descText}
                                 >
@@ -303,7 +305,7 @@
                                         </span>
                                     {/if}
                                 </span>
-                            
+                            -->
                         </div>
                     </div>
                 {/each}
