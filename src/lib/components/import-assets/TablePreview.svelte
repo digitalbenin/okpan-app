@@ -1,6 +1,6 @@
 <script>
   import Table from "$lib/components/base/table/Table.svelte";
-  let { data } = $props();
+  let { data, selected = $bindable([]) } = $props();
 
   const columns = $derived.by(() => {
     const headers = Object.keys(data[0]);
@@ -27,7 +27,8 @@
 <Table
   items={data}
   {columns}
-  selectable={false}
+  bind:selected
+  selectable={true}
   size="sm"
   bordered={true}
   wrap={true}

@@ -8,7 +8,7 @@
     columns = [],
     orderBy = $bindable(),
     direction = $bindable(),
-    selected = $bindable(),
+    selected = $bindable([]),
     selectable = true,
     size,
     transparent = false,

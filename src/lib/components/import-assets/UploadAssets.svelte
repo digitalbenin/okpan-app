@@ -10,6 +10,7 @@
   const { t } = getTranslationStore();
 
   let files = $state(wizard.selectedFiles || []);
+  let filesSelected = $state(wizard.selectedFilePaths || []);
   let importErrors = $state([]);
 
   function buildPendingAssets(selectedPaths) {
@@ -31,14 +32,13 @@
   }
 
   watch(
-    () => files,
+    () => [files, filesSelected],
     () => {
-      const paths = files.map((f) => f.path);
       wizard.selectedFiles = files;
-      wizard.selectedFilePaths = paths;
-      wizard.assets = buildPendingAssets(paths);
+      wizard.selectedFilePaths = filesSelected;
+      wizard.assets = buildPendingAssets(filesSelected);
       wizard.mapping = [];
-      wizard.nextEnabled = files.length > 0;
+      wizard.nextEnabled = filesSelected.length > 0;
       wizard.hasPersistedAssets = false;
     },
     { immediate: true },
@@ -55,6 +55,7 @@
     wizard.hasPersistedAssets = false;
     importErrors = [];
     files = result.files;
+    filesSelected = result.files.map((f) => f.path);
   }
 
   function handleDropZoneSelect(paths) {
@@ -64,6 +65,7 @@
     wizard.hasPersistedAssets = false;
     importErrors = [];
     files = mappedFiles;
+    filesSelected = paths;
   }
 </script>
 
@@ -101,6 +103,7 @@
         <div>
           <TablePreview
             data={files.map((f) => ({ name: f.name, size: f.size, id: f.path }))}
+            bind:selected={filesSelected}
           />
         </div>
 
