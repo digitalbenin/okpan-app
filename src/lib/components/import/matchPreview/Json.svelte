@@ -85,7 +85,7 @@
     templateSuggestions.current.length > 0 &&
     !wizard.useMatchingTemplate &&
     !wizard.useMatchingSuggestions &&
-    wizard.mapping.length === 0
+    wizard.mapping.filter((m) => m.mappedField != null).length === 0
   );
 
   watch(

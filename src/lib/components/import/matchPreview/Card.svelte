@@ -106,6 +106,13 @@
   function resetFieldMatched() {
     fieldMatched = null;
     wizard.mapping = wizard.mapping.filter((m) => m.headerField !== field);
+    if (included && editEnabled) {
+      wizard.addMappingEntry({
+        headerField: field,
+        mappedField: null,
+        primary: false,
+      });
+    }
     lastSyncKey = `|${included}|${editEnabled}`;
   }
 
@@ -146,27 +153,36 @@
         wizard.mapping = wizard.mapping.filter((m) => m.headerField !== field);
         return;
       }
-      // If entries already exist for this field, don't touch them (multi-match handled in SetMatch)
+      // Remove stale null entry first so it doesn't clash with real matches
+      wizard.mapping = wizard.mapping.filter(
+        (m) => !(m.headerField === field && m.mappedField === null)
+      );
       const existingCount = wizard.mapping.filter((m) => m.headerField === field).length;
       if (existingCount > 0) return;
-      // Re-add ALL matches when re-including
-      fieldMatchedIds.forEach((id) => {
+      if (fieldMatchedIds.length) {
+        fieldMatchedIds.forEach((id) => {
+          wizard.addMappingEntry({
+            headerField: field,
+            mappedField: id,
+            primary: false,
+          });
+        });
+      } else {
+        // Included but unmapped — keep data flowing with null field_id
         wizard.addMappingEntry({
           headerField: field,
-          mappedField: id,
+          mappedField: null,
           primary: false,
         });
-      });
+      }
     }
   );
 </script>
 
 <div
-  class="bg-secondary-subtle px-3 py-2 mb-2 rounded"
-  class:border-start={included}
+  class="bg-secondary-subtle px-3 py-2 mb-2 rounded border-start border-3"
   class:border-success={included && fieldMatchedArray.length}
   class:border-warning={included && !fieldMatchedArray.length}
-  class:border-3={included}
 >
   <div class="text-muted fs-7">
     {i}
