@@ -337,7 +337,7 @@
     {languages}
   />
 
-  <div class="row g-0 me-n4">
+  <div class="row g-0 me-n4 mb-n4">
     <!-- Main content column -->
     <div class="col-12 col-lg-9 col-md-8">
       <div class="ps-0 pe-4 py-4 d-flex flex-column gap-5">
@@ -431,7 +431,7 @@
 
     <!-- Sidebar column -->
     <div class="col-12 col-lg-3 col-md-4 bg-white pe-0">
-      <div class="p-4 sticky-lg-top" style="top: 1rem; z-index: 1;">
+      <div class="px-4 pt-4 sticky-lg-top" style="top: 1rem; z-index: 1;">
         {#if focusedField}
           <ObjectFieldHelp
             fieldName={focusedField}
