@@ -12,6 +12,7 @@
     selectable = true,
     size,
     transparent = false,
+    headerClass = "fs-7 fw-normal",
     bordered = false,
     wrap = true,
   } = $props();
@@ -20,7 +21,7 @@
   const derivedColumns = $derived([...defaultColumns, ...columns]);
 </script>
 
-<div class="table-responsive">
+<div class="table-responsive-lg">
   <table
     class="table align-middle {size ? `table-${size}` : ''}"
     class:table-bordered={bordered}
@@ -35,8 +36,7 @@
           </th>
         {/if}
         {#each derivedColumns as header}
-          <th
-            class="fs-7 fw-normal"
+          <th class={headerClass}
             class:text-nowrap={header.nowrap}
           >
             {#if header.sortable}

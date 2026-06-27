@@ -2,6 +2,7 @@
   import Cancel from "./Cancel.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
+  import { IconArrowRight } from "@tabler/icons-svelte";
 
   const { t } = getTranslationStore();
   const wizard = getImportWizardContext();
@@ -20,13 +21,13 @@
       </button>
     {/if}
   </div>
-  <div class="text-primary fw-bold">
+  <!--<div class="text-primary fw-bold">
     {t("common.step", { fallback: "Step" })}
     {wizard.currentStep}
     {t("common.of", { fallback: "of" })}
     {wizard.steps.length}
   </div>
-
+-->
   {#if wizard.currentStep < wizard.steps.length}
     <button
       class="btn btn-success"
@@ -44,6 +45,9 @@
         {t("common.saving", { fallback: "Saving..." })}
       {:else}
         {t("common.next", { fallback: "Next" })}
+        <span class="ms-1">
+          <IconArrowRight size={16} />
+        </span>
       {/if}
     </button>
   {/if}

@@ -162,7 +162,7 @@
 
 <div class="row g-3">
   <!-- Left column -->
-  <div class="col-12 col-lg-8 col-xl-9 min-w-0 d-flex flex-column gap-3">
+  <div class="col-12 col-lg-8 col-xl-9 min-w-0 d-flex flex-column gap-3 pb-4 mb-4">
     <!-- Card 1: header + state alert + drop/preview -->
     <div class="bg-white rounded-3 p-4 d-flex flex-column gap-4">
     <!-- Header -->
@@ -250,7 +250,7 @@
 
       {#if (wizard.file.format === "csv" || wizard.file.format === "tsv" || wizard.file.format === "xlsx" || wizard.file.tabularized) && wizard.data.length}
         <div>
-          <p class="fw-semibold mb-3">
+          <p class="mb-3">
             {t("import.preview-table", { fallback: "Preview of the first rows" })}
           </p>
           <div class="border rounded-3 overflow-auto pb-4">

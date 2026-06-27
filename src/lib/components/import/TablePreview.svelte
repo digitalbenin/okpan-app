@@ -16,7 +16,8 @@
   items={data}
   {columns}
   selectable={false}
-  size="sm"
+  size="lg"
   bordered={true}
+  headerClass="fs-7 fw-bold"
   wrap={true}
 />

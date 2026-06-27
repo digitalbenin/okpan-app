@@ -179,8 +179,7 @@
     source: { hidden: true },
     importId: { hidden: true },
     name: { label: t("common.datasource-name", { fallback: "Datasource Name" }), colSize: 9, required: true },
-    method: { type: "textarea", label: t("common.method", { fallback: "Method" }), colSize: 9 },
-    notes: { type: "textarea", label: t("common.notes", { fallback: "Notes" }), colSize: 9 },
+   
     institutionId: {
       type: "select",
       label: t("common.institution", { fallback: "Institution" }),
@@ -189,12 +188,14 @@
       required: true,
     },
     date: { type: "date", label: t("common.date", { fallback: "Date" }), colSize: 9, required: true },
+     method: { type: "textarea", label: t("common.method", { fallback: "Method" }), colSize: 9 },
+    notes: { type: "textarea", label: t("common.notes", { fallback: "Notes" }), colSize: 9 },
     language: { label: t("common.datasource-language", { fallback: "Datasource Language" }), colSize: 9 },
     copyright: { label: t("common.copyright", { fallback: "Copyright" }), colSize: 9 },
     contact: { label: t("common.contact", { fallback: "Contact" }), colSize: 9 },
   });
 
-  const fieldOrder = ["institutionId", "date", "language", "copyright", "contact"];
+  const fieldOrder = ["name","institutionId",  "date", "language", "copyright", "contact"];
 </script>
 
 <div class="row g-3">
