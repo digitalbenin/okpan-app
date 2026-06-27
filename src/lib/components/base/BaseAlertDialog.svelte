@@ -48,12 +48,12 @@
         {/if}
       {/snippet}
     </AlertDialog.Overlay>
-    <AlertDialog.Content style="max-height:75vh;" {...contentProps} forceMount>
+    <AlertDialog.Content class="" style="max-height:75vh;" {...contentProps} forceMount>
       {#snippet child({ props, open })}
         {#if open}
           <div {...props} class="modal d-block" transition:fade>
             <div
-              class={`modal-dialog modal-dialog-scrollable ${size ? ` modal-${size}` : ""}`}
+              class={`modal-dialog modal-dialog-centered modal-dialog-scrollable ${size ? ` modal-${size}` : ""}`}
             >
               <div class="modal-content">
                 <AlertDialog.Title class="modal-header">

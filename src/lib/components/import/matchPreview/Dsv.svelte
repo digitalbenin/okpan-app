@@ -160,6 +160,7 @@
           id="global-field-include"
           checked={allIncluded}
           indeterminate={mixedInclusion}
+          disabled={wizard.useMatchingTemplate}
           onclick={toggleAll}
         />
         <label class="form-check-label text-capitalize" for="global-field-include">
