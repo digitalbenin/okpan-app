@@ -183,7 +183,7 @@
                             <div class="d-flex flex-grow-1 align-items-center px-3 py-1">
                                 <input
                                     type="text"
-                                    class="form-control border-0 shadow-none p-0"
+                                    class="form-control border-0 shadow-none p-0 py-1"
                                     placeholder={t("common.search", { fallback: "Search" })}
                                     bind:value={search}
                                     onkeydown={(e) => e.key === "Enter" && loadAssets()}

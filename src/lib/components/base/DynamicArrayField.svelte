@@ -1,6 +1,6 @@
 <script>
     import BaseButton from "./BaseButton.svelte";
-    import { IconPlus, IconTrash } from "@tabler/icons-svelte";
+    import { IconPlus, IconTrash, IconCirclePlus, IconMinus } from "@tabler/icons-svelte";
     let {
         value = $bindable([]),
         itemFields = [],
@@ -109,10 +109,10 @@
 <div class="dynamic-array-field {customClass}">
     <!-- Array Items -->
     {#each arrayValue as item, index}
-        <div class="mb-3">
-            <div class="row g-2 d-flex align-items-end">
+        <div class="mb-0">
+            <div class="row g-2 d-flex flex-nowrap w-100 align-items-end">
                 {#each itemFields as fieldConfig}
-                    <div class="col-{fieldConfig.colSize || 6}">
+                    <div class="col">
                         {#if index === 0}
                             <p class="form-label">
                                 {fieldConfig.label}
@@ -192,12 +192,13 @@
                 {/each}
 
                 <!-- Delete Button Column (auto width so it stays inline) -->
-                <div class="col-auto d-flex align-items-end">
+                <div class="col-auto d-flex align-items-end flex-grow-0">
                     {#if arrayValue.length > minItems}
                         <BaseButton
                             type="button"
-                            class="btn btn-sm btn-outline-danger p-2 ms-2 mb-1"
-                            IconComponent={IconTrash}
+                            class="btn btn-sm btn-danger  rounded-circle d-flex align-items-center justify-content-center p-0 mb-2"
+                            style="width: 20px; height: 20px;"
+                            IconComponent={IconMinus}
                             text=""
                             title={deleteButtonTitle}
                             onClick={() => removeItem(index)}
@@ -216,12 +217,13 @@
                         index,
                         fieldConfig.name,
                     )}
-                    <div class="col-{fieldConfig.colSize || 6}">
+                    <div class="flex-grow-1">
                         {#if fieldErrors.length > 0}
                             <div class="invalid-feedback d-block">
                                 {fieldErrors.join(", ")}
                             </div>
                         {/if}
+                        
                     </div>
                 {/each}
             </div>
@@ -230,8 +232,8 @@
 
     <!-- Add Button -->
     {#if !maxItems || arrayValue.length < maxItems}
-        <button type="button" class="btn btn-secondary d-flex align-items-center gap-2" onclick={addItem}>
-            <IconPlus size={16} /> {addButtonText}
+        <button type="button" class="btn btn-sm btn-secondary d-flex align-items-center gap-2" onclick={addItem}>
+            <IconCirclePlus size={16} /> {addButtonText}
         </button>
     {/if}
 

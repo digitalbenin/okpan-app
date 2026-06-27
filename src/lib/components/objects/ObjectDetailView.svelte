@@ -1,6 +1,7 @@
 <script>
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
+  import { onMount } from "svelte";
   import { watch } from "runed";
   import { createForm } from "@tanstack/svelte-form";
   import { z } from "zod";
@@ -267,13 +268,51 @@
     focusedField = null;
   }
 
+  let isProgrammaticScroll = false;
+
   function scrollToSection(sectionId) {
     activeSection = sectionId;
     const el = document.getElementById(`section-${sectionId}`);
     if (el) {
+      isProgrammaticScroll = true;
       el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => {
+        isProgrammaticScroll = false;
+      }, 600);
     }
   }
+
+  const sectionIds = [
+    "basic-info",
+    "media",
+    "connections",
+    "custom-fields",
+    "source-data"
+  ];
+
+  onMount(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isProgrammaticScroll) return;
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            activeSection = entry.target.id.replace("section-", "");
+          }
+        }
+      },
+      {
+        rootMargin: "-10% 0px -70% 0px",
+        threshold: 0
+      }
+    );
+
+    for (const id of sectionIds) {
+      const el = document.getElementById(`section-${id}`);
+      if (el) observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  });
 
   async function setStatus(nextStatus) {
     if (!object?.id || statusUpdating) return;
