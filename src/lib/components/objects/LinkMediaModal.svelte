@@ -222,7 +222,7 @@
                             {search ? ` for "${search}"` : ""}
                         </div>
                     {:else}
-                        <div class="border rounded-3 overflow-hidden">
+                        <div class="border rounded-3">
                             {#each items as asset, i (asset.id)}
                                 <div
                                     class="d-flex align-items-center gap-2 px-2 py-2"
