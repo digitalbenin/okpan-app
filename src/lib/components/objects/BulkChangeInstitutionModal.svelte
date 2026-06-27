@@ -44,6 +44,7 @@
         totalCount = 0;
       } else {
         institutions = items || [];
+        institutions.sort((a, b) => (a.name || a.title || "").localeCompare(b.name || b.title || ""));
         totalCount = typeof tc === "number" ? tc : (items?.length || 0);
         page = 1; // reset to first page on new search
       }
