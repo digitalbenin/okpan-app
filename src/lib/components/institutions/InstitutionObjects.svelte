@@ -6,7 +6,7 @@
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-  import { IconCirclePlus, IconChevronDown, IconTableImport, IconFilter, IconX, IconGridDots, IconListDetails } from "@tabler/icons-svelte";
+  import { IconCirclePlus, IconChevronDown, IconTableImport, IconFilter, IconX, IconGridDots, IconListDetails, IconPencil, IconTrash, IconCircleX, IconArrowMoveRight } from "@tabler/icons-svelte";
   import BulkDeleteObjectsModal from "$lib/components/objects/BulkDeleteObjectsModal.svelte";
   import BulkChangeInstitutionModal from "$lib/components/objects/BulkChangeInstitutionModal.svelte";
   import BulkEditObjectsModal from "$lib/components/objects/BulkEditObjectsModal.svelte";
@@ -241,8 +241,9 @@
 
 {#snippet actionButton(icon, text, onClick, variant = "secondary")}
   <button class="btn btn-{variant} btn-sm d-flex align-items-center gap-2" onclick={onClick}>
+    <svelte:component this={icon} size={16} />
     <span>{text}</span>
-    <i class="bi bi-{icon}"></i>
+    
   </button>
 {/snippet}
 
@@ -305,15 +306,15 @@
       >
         <div class="row align-items-center g-2 pb-2  h-100">
           <div class="col d-flex align-items-center gap-2 flex-wrap">
-            {@render actionButton("x-circle", t("common.clear-selection"), () => (selectedObjects = []))}
-            {@render actionButton("bank", t("common.change-institution"), () => (showBulkInstitutionModal = true))}
+            {@render actionButton(IconCircleX, t("common.clear-selection"), () => (selectedObjects = []))}
+            {@render actionButton(IconArrowMoveRight, t("common.change-institution"), () => (showBulkInstitutionModal = true))}
             <BulkActionsStatusSelect
               items={statuses.filter((s) => s.value !== "all")}
               bind:value={bulkStatusValue}
               onValueChange={applyBulkStatus}
             />
-            {@render actionButton("pencil", t("common.edit-object-info"), openBulkEdit)}
-            {@render actionButton("trash", t("common.delete"), () => (showBulkDeleteModal = true), "danger")}
+            {@render actionButton(IconPencil, t("objects.edit-selected"), openBulkEdit)}
+            {@render actionButton(IconTrash, t("common.delete-selected"), () => (showBulkDeleteModal = true), "danger")}
           </div>
         </div>
       </div>
