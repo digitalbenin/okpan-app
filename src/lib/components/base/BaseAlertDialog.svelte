@@ -14,6 +14,7 @@
     description,
     footer,
     size = "",
+    noClose = false,
     ...restProps
   } = $props();
 
@@ -58,9 +59,11 @@
               <div class="modal-content">
                 <AlertDialog.Title class="modal-header">
                   <p class="modal-title fs-5">{@render title()}</p>
-                  <AlertDialog.Cancel class="btn-close border-0 bg-transparent p-0 d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
-                    <IconX size={24} stroke={2} />
-                  </AlertDialog.Cancel>
+                  {#if !noClose}
+                    <AlertDialog.Cancel class="btn-close border-0 bg-transparent p-0 d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                      <IconX size={24} stroke={2} />
+                    </AlertDialog.Cancel>
+                  {/if}
                 </AlertDialog.Title>
                 <div class="modal-body">
                   <AlertDialog.Description>

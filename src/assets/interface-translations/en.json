@@ -3252,22 +3252,22 @@
                          {
                              "namespace":  "import",
                              "key":  "media-import-completed",
-                             "value":  "Media import completed"
+                             "value":  "Import completed"
                          },
                          {
                              "namespace":  "import",
                              "key":  "assets-imported",
-                             "value":  "Imported media:"
+                             "value":  "Files imported"
                          },
                          {
                              "namespace":  "import",
                              "key":  "assets-linked",
-                             "value":  "Linked media:"
+                             "value":  "were linked to objects"
                          },
                          {
                              "namespace":  "import",
                              "key":  "no-media-linked",
-                             "value":  "No media were linked."
+                             "value":  "Not linked to any object"
                          },
                          {
                              "namespace":  "import",

@@ -10,9 +10,9 @@
       id: item.asset?.id || item.asset_id,
       imageUrl: getAssetImageUrl(item.asset, "sm"),
       fileName: item.asset?.filename || "",
-      linkedId: Array.isArray(item.objects_primary_ids) && item.objects_primary_ids.length
-        ? item.objects_primary_ids[0]
-        : null,
+      linkedIds: Array.isArray(item.objects_primary_ids) && item.objects_primary_ids.length
+        ? item.objects_primary_ids
+        : [],
     }));
   });
 </script>
@@ -35,10 +35,13 @@
         {/if}
       </div>
       <span class="flex-shrink-0 text-body" style="width: 351px; font-size: 16px;">{row.fileName}</span>
-      <div class="flex-fill d-flex align-items-center gap-2" style="min-width: 0;">
-        {#if row.linkedId}
+      <div class="flex-fill d-flex flex-wrap align-items-center gap-2" style="min-width: 0;">
+        {#if row.linkedIds.length}
           <IconLink size={16} class="text-primary flex-shrink-0" />
-          <span class="text-body">{row.linkedId}</span>
+          {#each row.linkedIds as id, idx}
+            <span class="text-body">{id}</span>
+            {#if idx + 1 < row.linkedIds.length}<span class="text-body-secondary">|</span>{/if}
+          {/each}
         {:else}
           <IconUnlink size={16} class="text-warning flex-shrink-0" style="color: #54420d;" />
           <span style="color: #54420d; font-size: 14px;">{t("import-assets.not-linked-label", { fallback: "Not linked" })}</span>

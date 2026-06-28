@@ -153,23 +153,23 @@
   </div>
 </div>
 
-<BaseAlertDialog bind:open>
+<BaseAlertDialog bind:open noClose>
   {#snippet title()}
     {t("import.media-import-completed", { fallback: "Media import completed" })}
   {/snippet}
   {#snippet description()}
     <div>
       <p class="mb-2">
-        <span class="fw-bold">{assetsImported}</span> {t("import.assets-imported", { fallback: "Imported media:" })}
+        <span class="fw-bold">{assetsImported}</span> {t("import.assets-imported", { fallback: "Files imported" })}
       </p>
       {#if assetsLinked > 0}
         <p class="mb-2">
-          <span class="fw-bold">{assetsLinked}</span> {t("import.assets-linked", { fallback: "Linked media:" })}
+          <span class="fw-bold">{assetsLinked}</span> {t("import.assets-linked", { fallback: "were linked to objects" })}
         </p>
       {/if}
       {#if assetsNotLinked > 0}
         <p class="mb-0">
-          <span class="fw-bold">{assetsNotLinked}</span> {t("import.no-media-linked", { fallback: "No media were linked." })}
+          <span class="fw-bold">{assetsNotLinked}</span> {t("import.no-media-linked", { fallback: "Not linked to any object" })}
         </p>
       {/if}
     </div>

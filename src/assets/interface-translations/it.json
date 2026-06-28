@@ -1325,22 +1325,22 @@
                          {
                              "namespace":  "import",
                              "key":  "media-import-completed",
-                             "value":  "Importazione media completata"
+                             "value":  "Importazione completata"
                          },
                          {
                              "namespace":  "import",
                              "key":  "assets-imported",
-                             "value":  "Media importati:"
+                             "value":  "File importati"
                          },
                          {
                              "namespace":  "import",
                              "key":  "assets-linked",
-                             "value":  "Media collegati:"
+                             "value":  "sono stati collegati a oggetti"
                          },
                          {
                              "namespace":  "import",
                              "key":  "no-media-linked",
-                             "value":  "Nessun media e stato collegato."
+                             "value":  "Non collegato ad alcun oggetto"
                          },
                          {
                              "namespace":  "import",
