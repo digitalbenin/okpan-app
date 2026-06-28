@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/stores';
+	import { IconWorldUpload, IconBulb } from '@tabler/icons-svelte';
 	import BaseAlertDialog from '$lib/components/base/BaseAlertDialog.svelte';
 	import PageActionFooter from '$lib/components/common/PageActionFooter.svelte';
 	import { getTranslationStore } from '$lib/stores/InterfaceTranslationStore.svelte.js';
@@ -39,6 +40,11 @@
 	}
 
 	let projectId = $derived($page.params.project_id);
+
+	const websiteSettings = $derived.by(() => {
+		const list = data?.websiteSettings ?? [];
+		return list[0] ?? null;
+	});
 	let isExporting = $state(false);
 	let exportStatus = $state(null);
 	let exportMessage = $state('');
@@ -48,11 +54,6 @@
 	let basePathInput = $state('');
 	let websiteLocalePreference = $state('');
 	let excludedOptionalContentLanguageCodes = $state([]);
-
-	const websiteSettings = $derived.by(() => {
-		const list = $page?.data?.websiteSettings ?? [];
-		return list[0] ?? null;
-	});
 
 	const websiteLocaleOptions = $derived.by(() => {
 		const seen = new Set();
@@ -142,16 +143,20 @@
 			const outputPath = result.filePaths[0];
 			exportPath = outputPath;
 
-const storedFilters = websiteSettings?.filters || {};
-		const exportResult = await window.api.exportStaticWebsite(JSON.parse(JSON.stringify({
-			projectId,
-			outputPath,
-			locale: selectedWebsiteLocale,
-			filters: {
-				...(storedFilters || {}),
-				contentLanguageCodes: [...selectedContentLanguageCodes]
-				}
-			})));
+			const storedFilters = websiteSettings?.filters || {};
+			const exportResult = await window.api.exportStaticWebsite(
+				JSON.parse(
+					JSON.stringify({
+						projectId,
+						outputPath,
+						locale: selectedWebsiteLocale,
+						filters: {
+							...(storedFilters || {}),
+							contentLanguageCodes: [...selectedContentLanguageCodes]
+						}
+					})
+				)
+			);
 
 			exportPath = exportResult?.outputPath || outputPath;
 			exportStatus = 'success';
@@ -175,126 +180,161 @@ const storedFilters = websiteSettings?.filters || {};
 		{
 			id: 'export-website',
 			text: isExporting ? t('export-website.exporting') : t('export-website.button'),
-			class: `btn btn-primary ${isExporting ? 'exporting-button' : ''}`,
+			class: `btn btn-primary`,
 			icon: isExporting ? 'arrow-repeat' : 'download',
-			loading: false,
 			disabled: isExporting || !!exportDisabledReason,
 			title: exportDisabledReason,
-			onClick: handleExport
+			onClick: handleExport,
+			noSuccessFlash: true
 		}
 	]);
 </script>
 
-<PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons}>
-	<div class="row mb-4">
-		<div class="col-12">
-			<h1 class="h3 mb-0">{t('export-website.title')}</h1>
+
+<!-- Heading section -->
+	<div class="bg-white border-bottom px-4 py-3 d-flex flex-column gap-2 mx-n4 mt-n4">
+		<div class="d-flex flex-column gap-3">
+			<div class="d-flex align-items-center gap-3">
+				<div class="bg-gray-200 text-gray-500 rounded-4 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+					<IconWorldUpload size={32} />
+				</div>
+				<h1 class="mb-0 flex-grow-1">{t('export-website.title')}</h1>
+			</div>
+			<p class="fs-7 mb-0">{t('export-website.description')}</p>
 		</div>
 	</div>
-	<div class="row">
-		<div class="col-8">
-			<div class="card shadow-sm mb-4">
-				<div class="card-body">
-					<h5 class="card-title mb-3">{t('export-website.subtitle')}</h5>
-					<p class="card-text text-muted mb-4">{t('export-website.description')}</p>
-					<div class="mb-0">
-						<h6 class="fw-semibold mb-2">{t('export-website.what-included')}</h6>
-						<ul class="text-muted mb-0">
-							<li>{t('export-website.include-objects')}</li>
-							<li>{t('export-website.include-assets')}</li>
-							<li>{t('export-website.include-fields')}</li>
-							<li>{t('export-website.include-settings')}</li>
-						</ul>
-					</div>
+
+<PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons}>
+	
+
+	<!-- Main content -->
+	<div class="row g-3">
+		<div class="col-12 col-lg-8 col-xl-9 min-w-0">
+			<!-- Card 1: Generate static website -->
+			<div class="bg-white rounded-3 p-4 d-flex flex-column gap-1">
+				<h3 class="fw-normal mb-0">{t('export-website.subtitle')}</h3>
+				<div class="mt-2">
+					<p class="mb-2">{t('export-website.long-description')}</p>
+					<p class="mb-2 fw-semibold text-body">{t('export-website.what-included')}</p>
+					<ul class="mb-2">
+						<li class="mb-0">{t('export-website.include-objects')}</li>
+						<li class="mb-0">{t('export-website.include-assets')}</li>
+						<li class="mb-0">{t('export-website.include-fields')}</li>
+						<li class="mb-0">{t('export-website.include-settings')}</li>
+					</ul>
+					<p class="mb-0">{t('export-website.filter-hint')}</p>
 				</div>
 			</div>
 
-			<div class="mb-4">
-				<h5 class="card-title mb-3">{t('export-website.languages-title')}</h5>
+			<!-- Card 2: Options -->
+			<div class="bg-white rounded-3 p-4 d-flex flex-column gap-3">
+				<p class="text-uppercase fs-8 fw-normal text-body mb-0">
+					{t('export-website.options-title')}
+				</p>
+				<div class="d-flex flex-column gap-4">
+					<!-- Interface language -->
+					<div>
+						<label class="form-label fw-normal mb-2" for="website-export-language-select">
+							{t('export-website.interface-language-title')}
+						</label>
+						<select
+							id="website-export-language-select"
+							class="form-select"
+							value={selectedWebsiteLocale}
+							onchange={(event) => { websiteLocalePreference = event.currentTarget.value; }}
+							disabled={websiteLocaleOptions.length === 0}
+						>
+							{#each websiteLocaleOptions as language (language.code)}
+								<option value={language.code}>{language.name}</option>
+							{/each}
+						</select>
+						<div class="form-text mt-2">{t('export-website.interface-language-description')}</div>
+						{#if websiteLocaleOptions.length === 0}
+							<p class="fs-7 mt-1 mb-0">{t('export-website.interface-language-empty')}</p>
+						{/if}
+					</div>
 
-				<h6 class="fw-semibold mb-2">{t('export-website.interface-language-title')}</h6>
-				<p class="small mb-2">{t('export-website.interface-language-description')}</p>
-				<label class="form-label" for="website-export-language-select">
-					{t('export-website.interface-language-label')}
-				</label>
-				<select
-					id="website-export-language-select"
-					class="form-select"
-					value={selectedWebsiteLocale}
-					onchange={(event) => { websiteLocalePreference = event.currentTarget.value; }}
-					disabled={websiteLocaleOptions.length === 0}
-				>
-					{#each websiteLocaleOptions as language (language.code)}
-						<option value={language.code}>{language.name}</option>
-					{/each}
-				</select>
-				{#if websiteLocaleOptions.length === 0}
-					<p class="small mt-2 mb-0">{t('export-website.interface-language-empty')}</p>
-				{/if}
-
-				{#if showContentLanguageSelection}
-					<div class="mt-4">
-						<h6 class="fw-semibold mb-2">{t('export-website.content-languages-title')}</h6>
-						<p class="small mb-2">{t('export-website.content-languages-description')}</p>
-
-						<div class="form-check mb-2">
-							<input
-								id="default-content-language"
-								class="form-check-input"
-								type="checkbox"
-								checked={true}
-								disabled={true}
-							/>
-							<label class="form-check-label" for="default-content-language">
-								{t('export-website.default-content-language-label', {
-									name: defaultContentLanguage?.name || defaultContentLanguage?.code || ''
-								})}
-							</label>
-						</div>
-
-						{#each optionalContentLanguages as language (language.code)}
+					<!-- Content languages (kept per user request) -->
+					{#if showContentLanguageSelection}
+						<div>
+							<label class="form-label fw-normal mb-2">{t('export-website.content-languages-title')}</label>
+							<p class="fs-7 mb-2">{t('export-website.content-languages-description')}</p>
 							<div class="form-check mb-2">
 								<input
-									id={`content-language-${language.code}`}
+									id="default-content-language"
 									class="form-check-input"
 									type="checkbox"
-									checked={selectedOptionalContentLanguages.includes(language.code)}
-									onchange={(event) => {
-										setOptionalContentLanguageEnabled(language.code, event.currentTarget.checked);
-									}}
+									checked={true}
+									disabled={true}
 								/>
-								<label class="form-check-label" for={`content-language-${language.code}`}>
-									{language.name}
+								<label class="form-check-label" for="default-content-language">
+									{t('export-website.default-content-language-label', {
+										name: defaultContentLanguage?.name || defaultContentLanguage?.code || ''
+									})}
 								</label>
 							</div>
-						{/each}
-					</div>
-				{/if}
-			</div>
+							{#each optionalContentLanguages as language (language.code)}
+								<div class="form-check mb-2">
+									<input
+										id={`content-language-${language.code}`}
+										class="form-check-input"
+										type="checkbox"
+										checked={selectedOptionalContentLanguages.includes(language.code)}
+										onchange={(event) => {
+											setOptionalContentLanguageEnabled(language.code, event.currentTarget.checked);
+										}}
+									/>
+									<label class="form-check-label" for={`content-language-${language.code}`}>
+										{language.name}
+									</label>
+								</div>
+							{/each}
+						</div>
+					{/if}
 
-			<div class="mb-4">
-				<h5 class="card-title mb-3">{t('export-website.base-path-title')}</h5>
-				<p class="text-muted small">{t('export-website.base-path-description')}</p>
-				<div class="input-group">
-					<span class="input-group-text" id="basepath-addon">{t('export-website.base-path-label')}</span>
-					<input
-						type="text"
-						class="form-control"
-						placeholder="/"
-						aria-label={t('export-website.base-path-label')}
-						aria-describedby="basepath-addon"
-						bind:value={basePathInput}
-					/>
+					<!-- Hosting subdirectory -->
+					<div>
+						<label class="form-label fw-normal mb-2" for="export-base-path">
+							{t('export-website.base-path-title')}
+						</label>
+						<div class="input-group">
+							<span class="input-group-text" id="basepath-addon">{t('export-website.base-path-label')} /</span>
+							<input
+								id="export-base-path"
+								type="text"
+								class="form-control"
+								aria-label={t('export-website.base-path-label')}
+								aria-describedby="basepath-addon"
+								bind:value={basePathInput}
+							/>
+						</div>
+						<div class="form-text mt-2">{t('export-website.base-path-description')}</div>
+					</div>
 				</div>
 			</div>
+		</div>
 
-			<h5 class="h5 mb-3">{t('export.filter-content')}</h5>
-			<p class="text-muted small">{t('website-settings.filter-from-settings', { fallback: 'Filtering is configured on the Website Settings page. Go to Website Settings to choose which objects to include.' })}</p>
+		<!-- Right sidebar: help card -->
+		<div class="col-12 col-lg-4 col-xl-3">
+			<div class="bg-white border rounded-3 p-4 d-flex flex-column">
+				<div class="d-flex flex-column gap-1">
+					<div class="flex-shrink-0">
+						<IconBulb size={16} stroke={2} />
+					</div>
+					<div>
+						<p class="fw-semibold mb-1">{t('export-website.help-title')}</p>
+						<div class="fs-7">
+							<p class="mb-2">{t('export-website.help-desc-p1')}</p>
+							<p class="mb-0">{t('export-website.help-desc-p2')}</p>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 </PageActionFooter>
 
-<BaseAlertDialog bind:open={exportResultDialogOpen} size="lg">
+<BaseAlertDialog bind:open={exportResultDialogOpen} size="lg" noClose>
 	{#snippet title()}
 		{t('export-website.success')}
 	{/snippet}
@@ -306,7 +346,7 @@ const storedFilters = websiteSettings?.filters || {};
 			</div>
 
 			<div>
-				<h6 class="fw-semibold mb-2">{t('export-website.next-steps')}</h6>
+				<p class="fw-semibold mb-2">{t('export-website.next-steps')}</p>
 				<ol class="text-muted small mb-0">
 					<li>{t('export-website.step1')}</li>
 					<li>{t('export-website.step2')}</li>
@@ -315,25 +355,9 @@ const storedFilters = websiteSettings?.filters || {};
 			</div>
 		</div>
 	{/snippet}
+	{#snippet footer()}
+		<button class="btn btn-success" onclick={() => { exportResultDialogOpen = false; }}>
+			{t('common.ok', { fallback: 'OK' })}
+		</button>
+	{/snippet}
 </BaseAlertDialog>
-
-<style>
-	code {
-		background-color: rgba(0, 0, 0, 0.05);
-		padding: 0.2rem 0.4rem;
-		border-radius: 0.25rem;
-	}
-
-	:global(.exporting-button .bi-arrow-repeat) {
-		animation: export-spin 1s linear infinite;
-	}
-
-	@keyframes export-spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-</style>

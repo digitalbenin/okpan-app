@@ -2677,6 +2677,11 @@
                          {
                              "namespace":  "export-website",
                              "key":  "description",
+                             "value":  "Generate the files for your public archive, ready to publish online in a dedicated website."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "long-description",
                              "value":  "Export your project data as a static website that can be hosted on any web server. The export includes all entities and configurations set in your website settings."
                          },
                          {
@@ -2703,6 +2708,31 @@
                              "namespace":  "export-website",
                              "key":  "include-settings",
                              "value":  "Website configuration and branding"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "filter-hint",
+                             "value":  "To control which objects appear on the public site, go to Website settings and filter by status or any metadata field before exporting."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "options-title",
+                             "value":  "Options"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "help-title",
+                             "value":  "How to publish the website?"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "help-desc-p1",
+                             "value":  "Exporting your website generates a folder of files — HTML, CSS, and images — that can be uploaded to any static hosting service. A free and straightforward option is GitHub Pages, which lets you publish your archive online at no cost."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "help-desc-p2",
+                             "value":  "Once you have exported your files, follow our step-by-step tutorial on the Okpan website to complete the publication."
                          },
                          {
                              "namespace":  "export-website",

@@ -32,7 +32,9 @@
   async function handleButtonClick(button) {
     try {
       await button?.onClick?.();
-      triggerSuccess();
+      if (!button?.noSuccessFlash) {
+        triggerSuccess();
+      }
     } catch {
       // don't show success if the action failed
     }

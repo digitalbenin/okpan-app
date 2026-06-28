@@ -750,6 +750,11 @@
                          {
                              "namespace":  "export-website",
                              "key":  "description",
+                             "value":  "Genera i file per il tuo archivio pubblico, pronti per essere pubblicati online in un sito web dedicato."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "long-description",
                              "value":  "Esporta i dati del progetto come sito web statico, ospitabile su qualsiasi server web. L'esportazione include tutte le entita e le configurazioni impostate nelle impostazioni del sito web."
                          },
                          {
@@ -776,6 +781,31 @@
                              "namespace":  "export-website",
                              "key":  "include-settings",
                              "value":  "Configurazione e identita visiva del sito web"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "filter-hint",
+                             "value":  "Per controllare quali oggetti appaiono sul sito pubblico, vai alle Impostazioni del sito web e filtra per stato o per qualsiasi campo dei metadati prima di esportare."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "options-title",
+                             "value":  "Opzioni"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "help-title",
+                             "value":  "Come pubblicare il sito web?"
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "help-desc-p1",
+                             "value":  "L'esportazione del sito web genera una cartella di file — HTML, CSS e immagini — che puoi caricare su qualsiasi servizio di hosting statico. Un'opzione gratuita e semplice e GitHub Pages, che ti permette di pubblicare il tuo archivio online senza costi."
+                         },
+                         {
+                             "namespace":  "export-website",
+                             "key":  "help-desc-p2",
+                             "value":  "Una volta esportati i file, segui il nostro tutorial passo passo sul sito web di Okpan per completare la pubblicazione."
                          },
                          {
                              "namespace":  "export-website",
