@@ -704,8 +704,43 @@
                          },
                          {
                              "namespace":  "export",
+                             "key":  "page-description",
+                             "value":  "Esporta i tuoi dati"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "subtitle",
+                             "value":  "Esporta i tuoi dati"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "long-description",
+                             "value":  "Scegli il formato e i filtri per esportare i dati. CSV \u00e8 ideale per fogli di calcolo, JSON per API, e SQLite per database."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "header-subtitle",
+                             "value":  "Scarica i dati del tuo progetto come file \u2014 per eseguire backup, condividere o utilizzare in un altro strumento."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "about-title",
+                             "value":  "Informazioni sull'esportazione dei dati"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "about-description",
+                             "value":  "Esporta i dati del tuo progetto come file da utilizzare al di fuori di Okpan \u2014 per analisi, condivisione o archiviazione. Puoi scegliere il formato e filtrare esattamente quali oggetti includere prima di esportare."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "options-label",
+                             "value":  "Opzioni"
+                         },
+                         {
+                             "namespace":  "export",
                              "key":  "export-as",
-                             "value":  "Esporta come"
+                             "value":  "Seleziona il formato"
                          },
                          {
                              "namespace":  "export",
@@ -714,18 +749,53 @@
                          },
                          {
                              "namespace":  "export",
+                             "key":  "include-media-size",
+                             "value":  "Includi i media nell'esportazione (100 MB)"
+                         },
+                         {
+                             "namespace":  "export",
                              "key":  "filter-content",
                              "value":  "Filtra contenuto"
                          },
                          {
                              "namespace":  "export",
-                             "key":  "page-description",
-                             "value":  "Scegli i filtri per esportare il dataset."
+                             "key":  "filter-objects",
+                             "value":  "Filtra oggetti"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "filter-by-status",
+                             "value":  "Filtra oggetti per stato"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "status-all",
+                             "value":  "Tutti"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "status-completed",
+                             "value":  "Completati"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "status-draft",
+                             "value":  "Bozza"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "advanced-filtering",
+                             "value":  "Filtri avanzati"
                          },
                          {
                              "namespace":  "export",
                              "key":  "summary",
                              "value":  "Oggetti che corrispondono ai filtri: {{count}}"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "summary-count",
+                             "value":  "L'esportazione includer\u00e0 {{count}} oggetti"
                          },
                          {
                              "namespace":  "export",
@@ -736,6 +806,46 @@
                              "namespace":  "export",
                              "key":  "no-objects-selected",
                              "value":  "Nessun oggetto selezionato"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "help-title",
+                             "value":  "Come esportare?"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "help-desc-p1",
+                             "value":  "Seleziona il formato e imposta le opzioni di esportazione. Tutti i filtri e le esclusioni configurate qui sotto si applicano all'esportazione."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "help-desc-p2",
+                             "value":  "Gli oggetti esclusi dalla tabella di anteprima non saranno inclusi nel file di esportazione."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "help-desc-p3",
+                             "value":  "Puoi anche utilizzare i filtri avanzati per restringere quali oggetti esportare."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "help-format-title",
+                             "value":  "Quale formato dovrei scegliere?"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "help-format-csv",
+                             "value":  "CSV funziona con la maggior parte degli strumenti \u2014 fogli di calcolo, database e software di analisi dati."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "help-format-json",
+                             "value":  "JSON preserva pi\u00f9 struttura ed \u00e8 ideale per sviluppatori o integrazioni personalizzate."
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "help-format-sqlite",
+                             "value":  "SQLite esporta l'intero progetto come un singolo file di database, utile per archiviare o condividere con ricercatori che devono interrogare i dati direttamente."
                          },
                          {
                              "namespace":  "export-website",
