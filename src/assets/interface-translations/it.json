@@ -1474,6 +1474,11 @@
                          },
                          {
                              "namespace":  "import-assets",
+                             "key":  "include-subfolders",
+                             "value":  "Includi sottocartelle"
+                         },
+                         {
+                             "namespace":  "import-assets",
                              "key":  "upload-help-title",
                              "value":  "Quali immagini vuoi importare?"
                          },

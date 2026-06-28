@@ -12,6 +12,7 @@
   let files = $state(wizard.selectedFiles || []);
   let filesSelected = $state(wizard.selectedFilePaths || []);
   let importErrors = $state([]);
+  let includeSubfolders = $state(true);
 
   function buildPendingAssets(selectedPaths) {
     const byPath = new Map((files || []).map((file) => [file.path, file]));
@@ -48,6 +49,7 @@
     const result = await window.api.openFileDialog({
       isDirectory,
       multiple: !isDirectory,
+      recursive: isDirectory ? includeSubfolders : undefined,
     });
     if (result.canceled) return;
     wizard.assets = [];
@@ -93,6 +95,10 @@
           <IconFolder size={16} class="me-1" />
           {t("import-assets.select-directory-btn", { fallback: "Select directory" })}
         </button>
+        <label class="form-check-label d-flex align-items-center gap-1 ms-2">
+          <input type="checkbox" class="form-check-input" bind:checked={includeSubfolders} />
+          <span class="fs-7">{t("import-assets.include-subfolders", { fallback: "Include subfolders" })}</span>
+        </label>
       </div>
 
       {#if !files.length}

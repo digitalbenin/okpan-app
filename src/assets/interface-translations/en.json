@@ -3401,6 +3401,11 @@
                          },
                          {
                              "namespace":  "import-assets",
+                             "key":  "include-subfolders",
+                             "value":  "Include subfolders"
+                         },
+                         {
+                             "namespace":  "import-assets",
                              "key":  "upload-help-title",
                              "value":  "Which images do you want to import?"
                          },

@@ -57,6 +57,25 @@ async function listFilesRecursively(dirPath) {
     return results;
 }
 
+// Helper: list only top-level files in a directory
+async function listFilesTopLevel(dirPath) {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    const results = [];
+    for (const entry of entries) {
+        if (!entry.isFile()) continue;
+        const fullPath = path.join(dirPath, entry.name);
+        try {
+            const stat = await fs.stat(fullPath);
+            results.push({
+                path: fullPath,
+                name: entry.name,
+                size: bytesToMB(stat.size),
+            });
+        } catch (e) {}
+    }
+    return results;
+}
+
 /**
  * Open a file or directory picker and return the selected files.
  * @function handleFileDialog
@@ -91,7 +110,9 @@ export const handleFileDialog = async (event, options) => {
         let files = [];
         if (options.isDirectory) {
             for (const dirPath of result.filePaths) {
-                const listed = await listFilesRecursively(dirPath);
+                const listed = options.recursive !== false
+                    ? await listFilesRecursively(dirPath)
+                    : await listFilesTopLevel(dirPath);
                 const imageFiles = listed.filter(file => {
                     const ext = file.name.split('.').pop().toLowerCase();
                     return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'].includes(ext);
