@@ -283,58 +283,7 @@ export const websiteSettingsOperations = {
 }`,
         useVariables: ["id"]
       },
-      {
-        name: "updateTitle",
-        query: `mutation UpdateWebsiteSettingsTitle($titleId: String!, $title: String!) {
-  updateTexts(
-    set: { content: $title }
-    where: { id: { eq: $titleId } }
-  ) {
-    id
-    content
-  }
-}`,
-        useVariables: ["title"],
-        mapVariables: {
-          titleId: { from: "getWebsiteSettings", path: "websiteSettings.0.title.id" }
-        },
-        skipIf: { variableName: "title", isEmpty: true }
-      },
-      {
-        name: "updateShortDescription",
-        query: `mutation UpdateWebsiteSettingsShortDescription($shortDescriptionId: String!, $shortDescription: String!) {
-  updateTexts(
-    set: { content: $shortDescription }
-    where: { id: { eq: $shortDescriptionId } }
-  ) {
-    id
-    content
-  }
-}`,
-        useVariables: ["shortDescription"],
-        mapVariables: {
-          shortDescriptionId: { from: "getWebsiteSettings", path: "websiteSettings.0.shortDescription.id" }
-        },
-        skipIf: { variableName: "shortDescription", isEmpty: true }
-      },
-      {
-        name: "updateAbout",
-        query: `mutation UpdateWebsiteSettingsAbout($aboutId: String!, $about: String!) {
-  updateTexts(
-    set: { content: $about }
-    where: { id: { eq: $aboutId } }
-  ) {
-    id
-    content
-  }
-}`,
-        useVariables: ["about"],
-        mapVariables: {
-          aboutId: { from: "getWebsiteSettings", path: "websiteSettings.0.about.id" }
-        },
-        skipIf: { variableName: "about", isEmpty: true }
-      },
-      // Create and link texts if missing and base content provided
+      // --- Title: create if missing, link, then update ---
       {
         name: "createTitleTextIfMissing",
         query: `mutation CreateTitleTextIfMissing($title: String!, $languageId: String!) {
@@ -363,6 +312,69 @@ export const websiteSettingsOperations = {
         skipIf: { variableName: "titleId", isUndefined: true }
       },
       {
+        name: "updateTitle",
+        query: `mutation UpdateWebsiteSettingsTitle($titleId: String!, $title: String!) {
+  updateTexts(
+    set: { content: $title }
+    where: { id: { eq: $titleId } }
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["title"],
+        mapVariables: {
+          titleId: { from: "getWebsiteSettings", path: "websiteSettings.0.title.id" }
+        },
+        skipIf: { variableName: "title", isEmpty: true }
+      },
+      // --- Short description: create if missing, link, then update ---
+      {
+        name: "createShortDescriptionTextIfMissing",
+        query: `mutation CreateShortDescriptionTextIfMissing($shortDescription: String!, $languageId: String!) {
+  insertIntoTexts(
+    values: [{ content: $shortDescription, context: "website_settings.short_description", original_language_id: $languageId }]
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["shortDescription", "languageId"],
+        onlyIf: { from: "getWebsiteSettings", path: "websiteSettings.0.shortDescription", isNull: true }
+      },
+      {
+        name: "linkNewShortDescriptionText",
+        query: `mutation LinkNewShortDescriptionText($id: String!, $shortDescriptionId: String!) {
+  updateWebsiteSettings(
+    set: { short_description_id: $shortDescriptionId }
+    where: { id: { eq: $id } }
+  ) { id short_description_id }
+}`,
+        useVariables: ["id"],
+        mapVariables: {
+          shortDescriptionId: { from: "createShortDescriptionTextIfMissing", path: "insertIntoTexts.0.id" }
+        },
+        skipIf: { variableName: "shortDescriptionId", isUndefined: true }
+      },
+      {
+        name: "updateShortDescription",
+        query: `mutation UpdateWebsiteSettingsShortDescription($shortDescriptionId: String!, $shortDescription: String!) {
+  updateTexts(
+    set: { content: $shortDescription }
+    where: { id: { eq: $shortDescriptionId } }
+  ) {
+    id
+    content
+  }
+}`,
+        useVariables: ["shortDescription"],
+        mapVariables: {
+          shortDescriptionId: { from: "getWebsiteSettings", path: "websiteSettings.0.shortDescription.id" }
+        },
+        skipIf: { variableName: "shortDescription", isEmpty: true }
+      },
+      // --- About: create if missing, link, then update ---
+      {
         name: "createAboutTextIfMissing",
         query: `mutation CreateAboutTextIfMissing($about: String!, $languageId: String!) {
   insertIntoTexts(
@@ -390,31 +402,21 @@ export const websiteSettingsOperations = {
         skipIf: { variableName: "aboutId", isUndefined: true }
       },
       {
-        name: "createShortDescriptionTextIfMissing",
-        query: `mutation CreateShortDescriptionTextIfMissing($shortDescription: String!, $languageId: String!) {
-  insertIntoTexts(
-    values: [{ content: $shortDescription, context: "website_settings.short_description", original_language_id: $languageId }]
+        name: "updateAbout",
+        query: `mutation UpdateWebsiteSettingsAbout($aboutId: String!, $about: String!) {
+  updateTexts(
+    set: { content: $about }
+    where: { id: { eq: $aboutId } }
   ) {
     id
     content
   }
 }`,
-        useVariables: ["shortDescription", "languageId"],
-        onlyIf: { from: "getWebsiteSettings", path: "websiteSettings.0.short_description", isNull: true }
-      },
-      {
-        name: "linkNewShortDescriptionText",
-        query: `mutation LinkNewShortDescriptionText($id: String!, $shortDescriptionId: String!) {
-  updateWebsiteSettings(
-    set: { short_description_id: $shortDescriptionId }
-    where: { id: { eq: $id } }
-  ) { id short_description_id }
-}`,
-        useVariables: ["id"],
+        useVariables: ["about"],
         mapVariables: {
-          shortDescriptionId: { from: "createShortDescriptionTextIfMissing", path: "insertIntoTexts.0.id" }
+          aboutId: { from: "getWebsiteSettings", path: "websiteSettings.0.about.id" }
         },
-        skipIf: { variableName: "shortDescriptionId", isUndefined: true }
+        skipIf: { variableName: "about", isEmpty: true }
       },
       // Update scalar fields
       {

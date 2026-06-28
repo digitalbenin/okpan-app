@@ -1,10 +1,17 @@
 <script>
     import { IconFilter, IconX } from '@tabler/icons-svelte';
+    import BaseImage from '$lib/components/base/BaseImage.svelte';
     import BasePagination from '$lib/components/base/BasePagination.svelte';
     import ObjectAdvancedFilters from '$lib/components/objects/ObjectAdvancedFilters.svelte';
     import { getTranslationStore } from '$lib/stores/InterfaceTranslationStore.svelte.js';
 
     const { t } = getTranslationStore();
+
+    function getFirstImageAsset(object) {
+        const list = object?.objectsAssets || [];
+        const first = list.find((oa) => oa?.asset?.type === 'image') || list[0];
+        return first?.asset ?? first ?? null;
+    }
 
     let {
         projectId = null,
@@ -187,7 +194,14 @@
                                     />
                                 </div>
                                 <div class="flex-shrink-0 rounded overflow-hidden" style="width: 51px; height: 52px;">
-                                    <img src={obj?.thumbnail || obj?.image || ''} alt="" class="w-100 h-100" style="object-fit: cover;" onerror={(e) => e.target.style.display = 'none'} />
+                                    <BaseImage
+                                        asset={getFirstImageAsset(obj)}
+                                        preferredFormat="sm"
+                                        alt=""
+                                        class="w-100 h-100"
+                                        objectFit="cover"
+                                        compact={true}
+                                    />
                                 </div>
                                 <p class="mb-0 fw-semibold text-nowrap" style="width: 139px; font-size: 14px;">{obj?.name || obj?.id || ''}</p>
                                 <div style="width: 180px;">
