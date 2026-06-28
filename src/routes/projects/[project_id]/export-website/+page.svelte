@@ -195,7 +195,7 @@
 	<div class="bg-white border-bottom px-4 py-3 d-flex flex-column gap-2 mx-n4 mt-n4">
 		<div class="d-flex flex-column gap-3">
 			<div class="d-flex align-items-center gap-3">
-				<div class="bg-gray-200 text-gray-500 rounded-4 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+				<div class="bg-gray-200  rounded-4 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
 					<IconWorldUpload size={32} />
 				</div>
 				<h1 class="mb-0 flex-grow-1">{t('export-website.title')}</h1>

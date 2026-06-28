@@ -87,8 +87,8 @@
 					{#each exportFormats as format}
 						<label class="d-inline-flex flex-column align-items-center gap-2 px-4 py-3 border rounded-3 cursor-pointer" class:border-primary={selectedFormat === format.value} style="width: 86px;">
 							<svelte:component this={format.icon} size={32} stroke={1.5} color={selectedFormat === format.value ? '#008060' : undefined} />
-							<div class="d-inline-flex align-items-center gap-1">
-								<input type="radio" class="form-check-input" bind:group={selectedFormat} value={format.value} />
+							<div class="d-inline-flex align-items-center gap-2">
+								<input type="radio" class="form-check-input mb-1" bind:group={selectedFormat} value={format.value} />
 								<span>{format.label}</span>
 							</div>
 						</label>
@@ -102,18 +102,13 @@
 				</div>
 			</div>
 
-			<div class="bg-white rounded-3 p-4 d-flex flex-column gap-3">
-				<p class="text-uppercase fs-8 fw-normal text-body mb-0" style="letter-spacing: 0.24px;">
-					{t('export.filter-content', { fallback: 'Filter content' })}
-				</p>
-				<ExportPreviewSection
+			<ExportPreviewSection
 					{projectId}
 					{data}
 					bind:deselectedObjectIds
 					bind:totalCount
 					bind:filtersPayload
 				/>
-			</div>
 		</div>
 
 		<div class="col-12 col-lg-4 col-xl-3">
