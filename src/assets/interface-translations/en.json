@@ -2980,6 +2980,57 @@
                              "value":  "No website languages are available"
                          },
                          {
+                             "namespace":  "research-fields",
+                             "key":  "page-description",
+                             "value":  "Define your own text fields to describe objects beyond the default information."
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "field-name",
+                             "value":  "Field name"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "description",
+                             "value":  "Description"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "visibility",
+                             "value":  "Visibility on website"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "actions",
+                             "value":  "Actions"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "help-title",
+                             "value":  "Custom fields?"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "help-desc-p1",
+                             "value":  "Custom fields let you define your own text fields to describe objects in ways that go beyond the institution fields and your own connection."
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "example-label",
+                             "value":  "Example"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "modal-create-description",
+                             "value":  "Don\u2019t worry, you can edit them later."
+                         },
+
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "help-example",
+                             "value":  "Okpan already includes a \"Display status\" mapping field to track whether an object is on display or in storage. But your project also needs to record the date the object was first displayed. You add a custom field \"Date on display\"."
+                         },
+                         {
                              "namespace":  "import",
                              "key":  "start",
                              "value":  "Start"

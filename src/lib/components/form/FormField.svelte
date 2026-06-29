@@ -29,6 +29,7 @@
     <input type="hidden" name={field.name} value={field.state.value} />
 {:else}
     <div class="mb-3">
+        {#if config.type !== "checkbox"}
         <p class="form-label d-flex justify-content-between align-items-center" for={field.name}>
             <span>
                 {labelText}
@@ -38,6 +39,7 @@
                 <span class="text-muted" style="font-size: 0.75rem;">{charCount}/{charLimit}</span>
             {/if}
         </p>
+        {/if}
 
         {#if config.renderer}
             {@const Renderer = config.renderer}
@@ -88,15 +90,18 @@
                 onblur={field.handleBlur}
             ></textarea>
         {:else if config.type === "checkbox"}
-            <input
-                id={field.name}
-                name={field.name}
-                type="checkbox"
-                class="form-check-input"
-                checked={Boolean(field.state.value)}
-                onchange={(e) => field.handleChange(e.target.checked)}
-                onblur={field.handleBlur}
-            />
+            <div class="form-check">
+                <input
+                    id={field.name}
+                    name={field.name}
+                    type="checkbox"
+                    class="form-check-input"
+                    checked={Boolean(field.state.value)}
+                    onchange={(e) => field.handleChange(e.target.checked)}
+                    onblur={field.handleBlur}
+                />
+                <label class="form-check-label" for={field.name}>{labelText}</label>
+            </div>
         {:else if config.type === "number"}
             <input
                 id={field.name}

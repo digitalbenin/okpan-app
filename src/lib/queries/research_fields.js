@@ -21,6 +21,7 @@ export const researchFieldsOperations = {
       content
       original_language_id
       translations {
+        id
         language_id
         content
       }
@@ -30,6 +31,7 @@ export const researchFieldsOperations = {
       content
       original_language_id
       translations {
+        id
         language_id
         content
       }

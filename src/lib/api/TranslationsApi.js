@@ -45,22 +45,30 @@ export async function getTranslationsByTextId(textId) {
 
 /**
  * Pure helper to get existing translation ID from a field object's translations array.
+ * Falls back to matching by language_id when t.language?.code is unavailable.
  * @param {Object|null} fieldObj
  * @param {string} langCode
+ * @param {string} [langId]
  * @returns {string|null}
  */
-export function getExistingTranslationId(fieldObj, langCode) {
-    return fieldObj?.translations?.find((t) => t.language?.code === langCode)?.id ?? null;
+export function getExistingTranslationId(fieldObj, langCode, langId) {
+    return fieldObj?.translations?.find((t) =>
+        t.language?.code === langCode || (langId && t.language_id === langId)
+    )?.id ?? null;
 }
 
 /**
  * Pure helper to get translation content from a field object's translations array.
+ * Falls back to matching by language_id when t.language?.code is unavailable.
  * @param {Object|null} fieldObj
  * @param {string} langCode
+ * @param {string} [langId]
  * @returns {string}
  */
-export function getTranslationContent(fieldObj, langCode) {
-    return fieldObj?.translations?.find((t) => t.language?.code === langCode)?.content ?? "";
+export function getTranslationContent(fieldObj, langCode, langId) {
+    return fieldObj?.translations?.find((t) =>
+        t.language?.code === langCode || (langId && t.language_id === langId)
+    )?.content ?? "";
 }
 
 /**
@@ -74,7 +82,7 @@ export function buildTranslationFormValues(entity, secondaryLanguages, translata
     const values = {};
     secondaryLanguages.forEach(lang => {
         translatableFields.forEach(fieldName => {
-            values[`translations_${lang.id}_${fieldName}`] = getTranslationContent(entity?.[fieldName], lang.code);
+            values[`translations_${lang.id}_${fieldName}`] = getTranslationContent(entity?.[fieldName], lang.code, lang.id);
         });
     });
     return values;
@@ -91,7 +99,9 @@ export function buildTranslationFormValues(entity, secondaryLanguages, translata
  */
 export async function handleFieldTranslation(fieldObj, langCode, content, languages, textId = null) {
     const trimmed = content?.trim() ?? "";
-    const existingId = getExistingTranslationId(fieldObj, langCode);
+    const language = languages.find(lang => lang.code === langCode);
+    const langId = language?.id;
+    const existingId = getExistingTranslationId(fieldObj, langCode, langId);
     const mainId = fieldObj?.id || textId;
 
     if (existingId) {
@@ -99,7 +109,6 @@ export async function handleFieldTranslation(fieldObj, langCode, content, langua
     }
 
     if (mainId && trimmed) {
-        const language = languages.find(lang => lang.code === langCode);
         if (!language) {
             throw new Error(`Language with code "${langCode}" not found`);
         }

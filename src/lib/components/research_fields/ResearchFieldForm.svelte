@@ -27,6 +27,7 @@
         customTitle = null,
         customDescription = null,
         fixedType = null,
+        noFooter = false,
     } = $props();
 
     // Constants & Derived
@@ -95,7 +96,7 @@
     // Prepare default values based on mode
     const getDefaultValues = () => {
         if (!isEditMode || !initialData) {
-            return { type: selectedType, name: "", description: "", vocabularies: [] };
+            return { type: selectedType, name: "", description: "", onwebsite: 0, vocabularies: [] };
         }
 
         const values = {
@@ -105,7 +106,9 @@
             vocabularies: processVocabulariesForEdit(),
         };
 
-        Object.assign(values, buildTranslationFormValues(initialData, secondaryLanguages, TRANSLATABLE_FIELDS));
+        values.onwebsite = initialData.onwebsite ?? 0;
+        const transValues = buildTranslationFormValues(initialData, secondaryLanguages, TRANSLATABLE_FIELDS);
+        Object.assign(values, transValues);
         return values;
     };
 
@@ -115,17 +118,17 @@
         projectId: { hidden: true },
         languageId: { hidden: true },
         private: { hidden: true },
-        onwebsite: { hidden: true },
+        onwebsite: { type: "checkbox", label: t("common.public-website", { fallback: "Visible on website" }), colSize: 12 },
         fieldsConfig: { hidden: true },
         name: { 
             label: t("common.label"), 
-            colSize: 7 
+            colSize: 12 
         },
-        description: { type: "textarea", label: t("common.description"), colSize: 7 },
+        description: { type: "textarea", label: t("common.description"), colSize: 12 },
         type: {
             label: t("common.field-type"),
             renderer: TypeSelector,
-            colSize: 7,
+            colSize: 12,
             rendererProps: { onTypeChange: (newType) => mutableType = normalizeType(newType) },
             hidden: !!effectiveFixedType
         },
@@ -144,34 +147,6 @@
             },
         },
     });
-
-    // Helper to prepare translations from form values
-    const prepareTranslations = (value) => {
-        const toTranslation = (field, content, lang) => {
-            if (content == null || !String(content).trim()) return null;
-            const existing = initialData?.[field]?.translations?.find(
-                (t) => t.language_id === lang.id || t.language?.code === lang.code
-            );
-            return {
-                language_id: lang.id,
-                language_code: lang.code,
-                content: String(content).trim(),
-                id: existing?.id
-            };
-        };
-
-        const nameTranslations = [];
-        const descriptionTranslations = [];
-
-        secondaryLanguages.forEach((lang) => {
-            const name = toTranslation("name", value[`translations_${lang.id}_name`], lang);
-            if (name) nameTranslations.push(name);
-            const desc = toTranslation("description", value[`translations_${lang.id}_description`], lang);
-            if (desc) descriptionTranslations.push(desc);
-        });
-
-        return { nameTranslations, descriptionTranslations };
-    };
 
     // Create form instance
     const form = createForm(() => {
@@ -202,7 +177,7 @@
 
     const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
 
-    // Handle create mode
+    // Handle create mode (matching InstitutionForm pattern — create + processEntityTranslations)
     const handleCreate = async (value) => {
         const result = await createResearchField({
             projectId: value.projectId || projectId,
@@ -210,32 +185,40 @@
             name: value.name ?? "",
             description: value.description ?? "",
             type: value.type,
+            onwebsite: value.onwebsite ?? 0,
         });
 
-        if (!result?.length) throw new Error("Failed to create research field");
+        if (!result || result.error) {
+            throw new Error(result?.error?.message || result?.error || "Failed to create research field");
+        }
 
-        const { id: researchFieldId, name_id: nameId, description_id: descriptionId } = result[0];
-        await processEntityTranslations(null, secondaryLanguages, TRANSLATABLE_FIELDS, value, languages, { name: nameId, description: descriptionId });
+        const createdField = result?.result?.[0];
+        if (!createdField) {
+            throw new Error("No research field returned from create mutation");
+        }
+
+        const textIdMap = { name: createdField.name_id, description: createdField.description_id };
+        await processEntityTranslations(null, secondaryLanguages, TRANSLATABLE_FIELDS, value, languages, textIdMap);
 
         if (value.type === "vocabulary" && value.vocabularies?.length > 0 && vocabularyProcessingFunction) {
-            await vocabularyProcessingFunction(researchFieldId, value.projectId || projectId, value.languageId || defaultLanguage?.id, "create");
+            await vocabularyProcessingFunction(createdField.id, value.projectId || projectId, value.languageId || defaultLanguage?.id, "create");
         }
 
         return result;
     };
 
-    // Handle update mode
+    // Handle update mode (same translation pattern as InstitutionForm)
     const handleUpdate = async (value) => {
-        const { nameTranslations, descriptionTranslations } = prepareTranslations(value);
         const result = await updateResearchField(initialData.id, {
             type: value.type,
             name: value.name,
             description: value.description,
-            nameTranslations: nameTranslations.length ? nameTranslations : undefined,
-            descriptionTranslations: descriptionTranslations.length ? descriptionTranslations : undefined,
+            onwebsite: value.onwebsite ?? 0,
         });
 
         if (!result || result.error) throw new Error(result?.error || "Failed to update research field");
+
+        await processEntityTranslations(initialData, secondaryLanguages, TRANSLATABLE_FIELDS, value, languages);
 
         if (value.type === "vocabulary" && value.vocabularies && vocabularyProcessingFunction) {
             await vocabularyProcessingFunction(initialData.id, value.projectId || projectId, value.languageId || defaultLanguage?.id, "edit");
@@ -279,30 +262,55 @@
         },
     ]);
 
+    const autoFormProps = $derived({
+        form,
+        validator,
+        createFieldValidator,
+        languages,
+        translatableFields: TRANSLATABLE_FIELDS,
+        defaultColSize: 6,
+        translationsValidator: getValidator("translations", validatorOperationName),
+        fieldOrder: ["type", "vocabularies", "onwebsite"],
+        uiSchema,
+        margin:0,
+        usePortal: false,
+        hiddenValueProviders: {
+            projectId: () => projectId,
+            languageId: () => defaultLanguage?.id || "",
+            type: () => selectedType
+        }
+    });
+
 </script>
 
 <form
-    method="post"
-    onsubmit={(event) => {
+    method="post"    id="research-field-form"    onsubmit={(event) => {
         event.preventDefault();
         form.handleSubmit();
     }}
 >
-    <PageActionFooter
-        contentClass="container-fluid"
-        leftButtons={leftActionButtons}
-        rightButtons={rightActionButtons}
-        formStore={formStore}
-    >
-        {#if showTitle}
-            <div class="row"><div class="col-12">
-                <h2 class="mt-3">{title}</h2>
-                {#if showDescription}<p>{description}</p>{/if}
-            </div></div>
-        {/if}
-
+    {#if showTitle}
         <div class="row"><div class="col-12">
-            <AutoForm {form} {validator} {createFieldValidator} {languages} translatableFields={TRANSLATABLE_FIELDS} defaultColSize={6} translationsValidator={getValidator("translations", validatorOperationName)} fieldOrder={["type", "vocabularies"]} {uiSchema} hiddenValueProviders={{ projectId: () => projectId, languageId: () => defaultLanguage?.id || "", type: () => selectedType }} />
+            <h2 class="mt-3">{title}</h2>
+            {#if showDescription}<p>{description}</p>{/if}
         </div></div>
-    </PageActionFooter>
+    {/if}
+
+    {#if noFooter}
+        <div class="row"><div class="col-12">
+            <AutoForm {...autoFormProps} />
+        </div></div>
+        <button type="submit" class="d-none" tabindex="-1" aria-label="Submit"></button>
+    {:else}
+        <PageActionFooter
+            contentClass="container-fluid"
+            leftButtons={leftActionButtons}
+            rightButtons={rightActionButtons}
+            formStore={formStore}
+        >
+            <div class="row"><div class="col-12">
+                <AutoForm {...autoFormProps} />
+            </div></div>
+        </PageActionFooter>
+    {/if}
 </form>

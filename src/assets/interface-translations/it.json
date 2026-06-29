@@ -1053,6 +1053,57 @@
                              "value":  "Non ci sono lingue del sito web disponibili"
                          },
                          {
+                             "namespace":  "research-fields",
+                             "key":  "page-description",
+                             "value":  "Definisci campi di testo personalizzati per descrivere gli oggetti oltre alle informazioni predefinite."
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "field-name",
+                             "value":  "Nome campo"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "description",
+                             "value":  "Descrizione"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "visibility",
+                             "value":  "Visibilit\u00e0 sul sito web"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "actions",
+                             "value":  "Azioni"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "help-title",
+                             "value":  "Campi personalizzati?"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "help-desc-p1",
+                             "value":  "I campi personalizzati ti permettono di definire i tuoi campi di testo per descrivere gli oggetti in modi che vanno oltre i campi istituzionali e le tue connessioni."
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "example-label",
+                             "value":  "Esempio"
+                         },
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "modal-create-description",
+                             "value":  "Non preoccuparti, puoi modificarli in seguito."
+                         },
+
+                         {
+                             "namespace":  "research-fields",
+                             "key":  "help-example",
+                             "value":  "Okpan include gi\u00e0 un campo di mappatura \"Stato di visualizzazione\" per tracciare se un oggetto \u00e8 in esposizione o in deposito. Ma il tuo progetto necessita anche di registrare la data in cui l'oggetto \u00e8 stato esposto per la prima volta. Aggiungi un campo personalizzato \"Data di esposizione\"."
+                         },
+                         {
                              "namespace":  "import",
                              "key":  "start",
                              "value":  "Inizia"
