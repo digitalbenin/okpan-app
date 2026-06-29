@@ -3030,6 +3030,32 @@
                              "key":  "help-example",
                              "value":  "Okpan already includes a \"Display status\" mapping field to track whether an object is on display or in storage. But your project also needs to record the date the object was first displayed. You add a custom field \"Date on display\"."
                          },
+
+                         {
+                             "namespace":  "default-fields",
+                             "key":  "page-description",
+                             "value":  "Here you can see the list of fields you can use to map the data you receive from institutions and decide to make them public or not."
+                         },
+                         {
+                             "namespace":  "default-fields",
+                             "key":  "help-title",
+                             "value":  "Mapping fields?"
+                         },
+                         {
+                             "namespace":  "default-fields",
+                             "key":  "help-desc-p1",
+                             "value":  "Mapping fields is the step where you tell Okpan which field in your imported file corresponds to which field in your project, so the data lands in the right place and can be searched across institutions."
+                         },
+                         {
+                             "namespace":  "default-fields",
+                             "key":  "example-label",
+                             "value":  "Example"
+                         },
+                         {
+                             "namespace":  "default-fields",
+                             "key":  "help-example",
+                             "value":  "Okpan has a \"Display status\" field. One institution exports this as \"On display\", another calls it \"Status\". In the mapping process you connect both to \"Display status\" — from then on, all objects share the same field regardless of how each source labelled it."
+                         },
                          {
                              "namespace":  "import",
                              "key":  "start",

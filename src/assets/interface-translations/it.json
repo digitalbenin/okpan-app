@@ -1103,6 +1103,32 @@
                              "key":  "help-example",
                              "value":  "Okpan include gi\u00e0 un campo di mappatura \"Stato di visualizzazione\" per tracciare se un oggetto \u00e8 in esposizione o in deposito. Ma il tuo progetto necessita anche di registrare la data in cui l'oggetto \u00e8 stato esposto per la prima volta. Aggiungi un campo personalizzato \"Data di esposizione\"."
                          },
+
+                         {
+                             "namespace":  "default-fields",
+                             "key":  "page-description",
+                             "value":  "Qui puoi vedere l'elenco dei campi che puoi utilizzare per mappare i dati che ricevi dalle istituzioni e decidere se renderli pubblici o meno."
+                         },
+                         {
+                             "namespace":  "default-fields",
+                             "key":  "help-title",
+                             "value":  "Campi di mappatura?"
+                         },
+                         {
+                             "namespace":  "default-fields",
+                             "key":  "help-desc-p1",
+                             "value":  "La mappatura dei campi è il passaggio in cui dici a Okpan quale campo del tuo file importato corrisponde a quale campo del tuo progetto, in modo che i dati finiscano nel posto giusto e possano essere cercati tra le istituzioni."
+                         },
+                         {
+                             "namespace":  "default-fields",
+                             "key":  "example-label",
+                             "value":  "Esempio"
+                         },
+                         {
+                             "namespace":  "default-fields",
+                             "key":  "help-example",
+                             "value":  "Okpan ha un campo \"Stato di visualizzazione\". Un'istituzione lo esporta come \"In esposizione\", un'altra lo chiama \"Stato\". Nel processo di mappatura colleghi entrambi a \"Stato di visualizzazione\" — da quel momento in poi, tutti gli oggetti condividono lo stesso campo indipendentemente da come ogni fonte lo ha etichettato."
+                         },
                          {
                              "namespace":  "import",
                              "key":  "start",
