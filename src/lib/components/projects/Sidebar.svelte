@@ -92,12 +92,12 @@
       children: [
         {
           label: t("menu.mapping-fields", { fallback: "Mapping fields" }),
-          url: `/projects/${page.data.project.id}/data-structure/research-fields`,
+          url: `/projects/${page.data.project.id}/data-structure/default-fields`,
           icon: "",
         },
         {
           label: t("menu.custom-fields", { fallback: "Custom fields" }),
-          url: `/projects/${page.data.project.id}/data-structure/default-fields`,
+          url: `/projects/${page.data.project.id}/data-structure/research-fields`,
           icon: "",
         },
       ],
