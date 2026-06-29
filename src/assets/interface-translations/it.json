@@ -1129,6 +1129,22 @@
                              "key":  "help-example",
                              "value":  "Okpan ha un campo \"Stato di visualizzazione\". Un'istituzione lo esporta come \"In esposizione\", un'altra lo chiama \"Stato\". Nel processo di mappatura colleghi entrambi a \"Stato di visualizzazione\" — da quel momento in poi, tutti gli oggetti condividono lo stesso campo indipendentemente da come ogni fonte lo ha etichettato."
                          },
+
+                         {
+                             "namespace":  "general-settings",
+                             "key":  "page-description",
+                             "value":  "Modifica il titolo e la descrizione del tuo progetto in tutte le lingue abilitate."
+                         },
+                         {
+                             "namespace":  "general-settings",
+                             "key":  "help-title",
+                             "value":  "Hai bisogno di un\u2019anteprima?"
+                         },
+                         {
+                             "namespace":  "general-settings",
+                             "key":  "help-desc-p1",
+                             "value":  "Clicca su \u201cAnteprima sito web\u201d per vedere come titolo, descrizione e icona verranno visti dalle altre persone quando pubblichi il sito web."
+                         },
                          {
                              "namespace":  "import",
                              "key":  "start",

@@ -1,4 +1,5 @@
 <script>
+  import { IconSettings, IconBulb, IconCirclePlus, IconX } from "@tabler/icons-svelte";
   import { updateProject, removeLanguageFromProject } from "$lib/api/ProjectsApi.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import AddProjectLanguagesModal from "$lib/components/projects/AddProjectLanguagesModal.svelte";
@@ -34,8 +35,6 @@
 
   // Helpers
   const i18n = $derived({
-    settings: t("project.settings"),
-    settingsDesc: t("project.settings-desc"),
     title: t("project.title"),
     description: t("common.description"),
     titlePlaceholder: t("project.title.placeholder"),
@@ -245,33 +244,42 @@
     },
   ]);
 </script>
+<!-- Heading section -->
+<div class="bg-white border-bottom px-4 py-3 d-flex flex-column gap-2 mx-n4 mt-n4">
+	<div class="d-flex flex-column gap-3">
+		<div class="d-flex align-items-center gap-3">
+			<div class="bg-gray-200 text-gray-500 rounded-4 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+				<IconSettings size={32} />
+			</div>
+			<h1 class="mb-0 flex-grow-1">{t("menu.general-settings", { fallback: "General settings" })}</h1>
+		</div>
+		<p class="mb-0" style="font-size: 14px;">{t("general-settings.page-description", { fallback: "Edit your project\u2019s title and description in all enabled languages." })}</p>
+	</div>
+</div>
+
 <form onsubmit={handleSubmit}>
   <PageActionFooter contentClass="container-fluid" rightButtons={rightActionButtons}>
-    <div class="row">
-      <div class="col-md-6 col-sm-12">
-        <h2 class="mt-3">{i18n.settings}</h2>
-        <p>{i18n.settingsDesc}</p>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-6 col-sm-12">
-        <!-- Language Selector -->
-        <div class="mb-4 d-flex justify-content-end">
-          <LanguageSelector {languages} bind:activeLanguageCode />
+    <div class="row g-3 mt-2">
+      <div class="col-12 col-lg-8 col-xl-9 min-w-0">
+        <div class="bg-white rounded-3 p-4">
+        <!-- Language Selector - top right -->
+        <div class="d-flex justify-content-end mb-4">
+           <LanguageSelector {languages} bind:activeLanguageCode usePortal={false} />
         </div>
 
         <!-- Content Fields -->
         <div class="">
-          <div class="mb-3">
+          <div class="mb-3 position-relative">
             <p class="form-label">{i18n.title}</p>
-            <input class="form-control" type="text" value={editTitle[currentLangCode] ?? ""} 
+            <span class="position-absolute end-0 top-0 text-muted" style="font-size: 0.75rem;">{(editTitle[currentLangCode] ?? "").length}/150</span>
+            <input class="form-control" type="text" maxlength="150" value={editTitle[currentLangCode] ?? ""} 
               oninput={(e) => (editTitle[currentLangCode] = e.currentTarget.value)}
               placeholder={i18n.titlePlaceholder} required={currentLangCode === defaultLanguage?.code} />
           </div>
-          <div class="mb-3">
+          <div class="mb-3 position-relative">
             <p class="form-label">{i18n.description}</p>
-            <textarea class="form-control" rows="4" 
+            <span class="position-absolute end-0 top-0 text-muted" style="font-size: 0.75rem;">{(editDescription[currentLangCode] ?? "").length}/500</span>
+            <textarea class="form-control" rows="4" maxlength="500"
               oninput={(e) => (editDescription[currentLangCode] = e.currentTarget.value)}
               >{editDescription[currentLangCode] ?? ""}</textarea>
           </div>
@@ -283,23 +291,22 @@
           <div class="d-flex flex-column gap-2">
             {#each languages as lang}
               <div class="d-flex align-items-center justify-content-between border rounded px-3 py-2">
-                <span>{lang.name || lang.code}</span>
+                <span>{lang.name || lang.code} {lang.is_default ? `(${i18n.defaultLanguage})` : ""}</span>
+                
                 <div>
-                  {#if lang.is_default}
-                    <span class="badge bg-success">{i18n.defaultLanguage}</span>
-                  {:else}
+                  {#if !lang.is_default}
                     <button type="button" class="btn btn-sm btn-link text-dark text-decoration-none" 
                       onclick={() => removeLanguage(lang)} aria-label={t("common.remove")}>
-                      <i class="bi bi-x-circle"></i>
+                      <IconX size={16} />
                     </button>
                   {/if}
                 </div>
               </div>
             {/each}
             <div>
-              <button type="button" class="btn btn-outline-secondary" 
+              <button type="button" class="btn btn-sm btn-primary" 
                 onclick={() => (showAddLanguages = true)}>
-                <i class="bi bi-plus"></i> {i18n.addLanguage}
+                <IconCirclePlus size={16}  class="me-1" /> {i18n.addLanguage}
               </button>
             </div>
           </div>
@@ -309,6 +316,24 @@
           existingLanguages={languages} onAdded={async () => {
             activeLanguageCode = "default";
           }} />
+      </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-12 col-lg-4 col-xl-3">
+        <div class="bg-white border rounded-3 p-4 d-flex flex-column">
+          <div class="d-flex flex-column gap-1">
+            <div class="flex-shrink-0">
+              <IconBulb size={16} stroke={2} />
+            </div>
+            <div>
+              <p class="fw-semibold mb-1 text-body">{t("general-settings.help-title", { fallback: "Need a preview?" })}</p>
+              <div class="text-body-secondary fs-7">
+                <p class="mb-3">{t("general-settings.help-desc-p1", { fallback: "Click on \u201cWebsite preview\u201d to see how the title, description and icon will be seen by other people when you publish the website." })}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </PageActionFooter>

@@ -3056,6 +3056,22 @@
                              "key":  "help-example",
                              "value":  "Okpan has a \"Display status\" field. One institution exports this as \"On display\", another calls it \"Status\". In the mapping process you connect both to \"Display status\" — from then on, all objects share the same field regardless of how each source labelled it."
                          },
+
+                         {
+                             "namespace":  "general-settings",
+                             "key":  "page-description",
+                             "value":  "Edit your project\u2019s title and description in all enabled languages."
+                         },
+                         {
+                             "namespace":  "general-settings",
+                             "key":  "help-title",
+                             "value":  "Need a preview?"
+                         },
+                         {
+                             "namespace":  "general-settings",
+                             "key":  "help-desc-p1",
+                             "value":  "Click on \u201cWebsite preview\u201d to see how the title, description and icon will be seen by other people when you publish the website."
+                         },
                          {
                              "namespace":  "import",
                              "key":  "start",
