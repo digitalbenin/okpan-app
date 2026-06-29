@@ -56,7 +56,9 @@
 	]);
 </script>
 
-<!-- Heading section -->
+
+<PageActionFooter contentClass="container-fluid p-0 m-0" rightButtons={rightActionButtons}>
+	<!-- Heading section -->
 <div class="bg-white border-bottom px-4 py-3 d-flex flex-column gap-2 mx-n4 mt-n4">
 	<div class="d-flex flex-column gap-3">
 		<div class="d-flex align-items-center gap-3">
@@ -69,8 +71,8 @@
 	</div>
 </div>
 
-<PageActionFooter contentClass="container-fluid py-4" rightButtons={rightActionButtons}>
-	<div class="row g-3">
+
+	<div class="row g-3 mt-3">
 		<div class="col-12 col-lg-8 col-xl-9 min-w-0">
 			<div class="bg-white rounded-3 p-4 d-flex flex-column gap-1 mb-3">
 				<h3 class="fw-normal mb-0" style="font-size: 28px; letter-spacing: -0.56px;">{t('export.subtitle', { fallback: 'Export your data' })}</h3>

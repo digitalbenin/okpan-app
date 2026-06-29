@@ -4,6 +4,7 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import BaseTextArea from "$lib/components/base/BaseTextArea.svelte";
   import { addToast } from "$lib/components/base/BaseToast.svelte";
+  import { IconCamera, IconTrash, IconRefresh } from "@tabler/icons-svelte";
   import RecoverySnapshotSection from "$lib/components/projects/RecoverySnapshotSection.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import {
@@ -160,17 +161,8 @@
   });
 </script>
 
-<div class="container-fluid pb-4">
-  <div class="row">
-    <div class="col-12 col-xl-10">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap pt-3 pb-2 mb-3">
-        <div>
-          <h1 class="h2 mb-2">{t("projects.recovery-snapshots.title", { fallback: "Recovery snapshots" })}</h1>
-          <p class="mb-0">
-            {t("projects.recovery-snapshots.description", { fallback: "Automatic snapshots are captured before the first sync after opening a project in each app session. Automatic snapshots keep the 10 most recent entries. Manual snapshots are always kept until you remove them." })}
-          </p>
-        </div>
-      </div>
+<div class="container-fluid p-0 m-0">
+ 
 
       {#if restoringSnapshotId}
         <div class="alert alert-warning d-flex align-items-center gap-3 mb-4 border-1 border-secondary" role="status">
@@ -188,8 +180,8 @@
           <span>{t("projects.recovery-snapshots.loading", { fallback: "Loading recovery snapshots..." })}</span>
         </div>
       {:else}
-        <div class="d-flex flex-column gap-3">
-          <div class="row g-4 align-items-start">
+        <div>
+          <div class="d-flex flex-row w-100 gap-4 m-0">
             <RecoverySnapshotSection
               title={t("projects.recovery-snapshots.automatic", { fallback: "Automatic" })}
               snapshots={automaticSnapshots}
@@ -214,7 +206,7 @@
               onRestore={openRestoreDialog}
               onDelete={openDeleteDialog}
               headerActionText={t("projects.recovery-snapshots.create-action", { fallback: "Create snapshot" })}
-              headerActionIcon="camera"
+              headerActionIcon={IconCamera}
               headerActionLoading={isCreating}
               headerActionDisabled={!projectId || isCreating || !!restoringSnapshotId || !!deletingSnapshotId}
               onHeaderAction={openCreateDialog}
@@ -222,8 +214,7 @@
           </div>
         </div>
       {/if}
-    </div>
-  </div>
+
 </div>
 
 <BaseAlertDialog bind:open={createDialogOpen} size="md">
@@ -254,7 +245,7 @@
     />
     <BaseButton
       text={t("projects.recovery-snapshots.create-action", { fallback: "Create snapshot" })}
-      icon="camera"
+      IconComponent={IconCamera}
       loading={isCreating}
       class="btn btn-primary"
       disabled={!projectId || isCreating || !!restoringSnapshotId}
@@ -291,7 +282,7 @@
     />
     <BaseButton
       text={t("projects.recovery-snapshots.delete-action", { fallback: "Delete snapshot" })}
-      icon="trash"
+      IconComponent={IconTrash}
       loading={!!deletingSnapshotId}
       class="btn btn-danger"
       disabled={!snapshotPendingDeletion || !!deletingSnapshotId || !!restoringSnapshotId}
@@ -328,7 +319,7 @@
     />
     <BaseButton
       text={restoringSnapshotId ? t("projects.recovery-snapshots.restoring-btn", { fallback: "Restoring..." }) : t("projects.recovery-snapshots.restore-action", { fallback: "Restore snapshot" })}
-      icon={restoringSnapshotId ? "arrow-repeat" : "arrow-counterclockwise"}
+      IconComponent={IconRefresh}
       class="btn btn-danger"
       disabled={!selectedSnapshot || !!restoringSnapshotId}
       onClick={handleRestoreSnapshot}

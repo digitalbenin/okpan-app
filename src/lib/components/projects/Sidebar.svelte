@@ -118,7 +118,7 @@
         },
         {
           label: t("menu.export-project", { fallback: "Export project" }),
-          url: `/projects/${page.data.project.id}/export`,
+          url: `/projects/${page.data.project.id}/settings/export-project`,
           icon: "",
         },
         {

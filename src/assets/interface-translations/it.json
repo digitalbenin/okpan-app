@@ -1145,6 +1145,173 @@
                              "key":  "help-desc-p1",
                              "value":  "Clicca su \u201cAnteprima sito web\u201d per vedere come titolo, descrizione e icona verranno visti dalle altre persone quando pubblichi il sito web."
                          },
+
+                         {
+                             "namespace":  "share-project",
+                             "key":  "page-description",
+                             "value":  "Configura le impostazioni di condivisione per il tuo progetto."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "help-title",
+                             "value":  "Condivisione?"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "help-desc-p1",
+                             "value":  "Qui puoi configurare le impostazioni di condivisione per il tuo progetto. I progetti multi-utente possono essere accessibili da pi\u00f9 collaboratori contemporaneamente e sono necessari per le funzionalit\u00e0 di collaborazione in tempo reale."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "help-desc-p2",
+                             "value":  "I progetti privati sono accessibili solo su questo dispositivo e non supportano la collaborazione in tempo reale."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "section-title",
+                             "value":  "Opzioni di condivisione"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "multi-user-project",
+                             "value":  "Progetto multi-utente"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "project-link",
+                             "value":  "Link del progetto"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "copy-to-clipboard",
+                             "value":  "Copia negli appunti"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "copied",
+                             "value":  "Copiato"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "join-instruction",
+                             "value":  "Per partecipare a un progetto, vai alla pagina nuovo progetto, seleziona Importa da URL e incolla il link."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "use-password",
+                             "value":  "Usa password"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "password",
+                             "value":  "Password"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "hide-saved-password",
+                             "value":  "Nascondi password salvata"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "show-saved-password",
+                             "value":  "Mostra password salvata"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "hide-password",
+                             "value":  "Nascondi password"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "show-password",
+                             "value":  "Mostra password"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "change-password",
+                             "value":  "Cambia password"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "saving",
+                             "value":  "Salvataggio..."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "private-message",
+                             "value":  "Questo progetto \u00e8 privato. Abilita la condivisione per generare un link del progetto e proteggerlo opzionalmente con una password."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "enabling-sharing",
+                             "value":  "Attivazione condivisione progetto..."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "switching-private",
+                             "value":  "Passaggio a progetto privato..."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "updating-password",
+                             "value":  "Aggiornamento password..."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "removing-password",
+                             "value":  "Rimozione password..."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "toast-enabled-title",
+                             "value":  "Condivisione progetto attivata"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "toast-enabled-desc",
+                             "value":  "Questo progetto \u00e8 ora condiviso con i collaboratori che hanno l'ID del progetto."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "toast-disabled-title",
+                             "value":  "Progetto reso privato"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "toast-disabled-desc",
+                             "value":  "Questo progetto \u00e8 ora privato su questo dispositivo."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "toast-copy-error",
+                             "value":  "Impossibile copiare l'ID del progetto."
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "toast-password-title",
+                             "value":  "Password aggiornata"
+                         },
+                         {
+                             "namespace":  "share-project",
+                             "key":  "toast-password-desc",
+                             "value":  "La password del progetto \u00e8 stata salvata."
+                         },
+
+                         {
+                             "namespace":  "export-project",
+                             "key":  "page-description",
+                             "value":  "Salva l\u2019intero progetto in un unico file."
+                         },
+                         {
+                             "namespace":  "export-project",
+                             "key":  "help-title",
+                             "value":  "Come riaprirlo?"
+                         },
+                         {
+                             "namespace":  "export-project",
+                             "key":  "help-desc",
+                             "value":  "Per riaprirlo, vai alla schermata principale di Okpan e seleziona Importa un progetto."
+                         },
                          {
                              "namespace":  "import",
                              "key":  "start",
@@ -3908,7 +4075,7 @@
                          {
                              "namespace":  "settings",
                              "key":  "export_project_file",
-                             "value":  "Esporta file del progetto"
+                             "value":  "Esporta progetto"
                          },
                          {
                              "namespace":  "settings",
@@ -4311,6 +4478,11 @@
                              "value":  "Data sconosciuta"
                          },
                          {
+                             "namespace":  "recovery-snapshots",
+                             "key":  "page-description",
+                             "value":  "Visualizza e gestisci gli snapshot del progetto per backup e recupero."
+                         },
+                         {
                              "namespace":  "projects",
                              "key":  "recovery-snapshots.title",
                              "value":  "Snapshot di recupero"
@@ -4328,7 +4500,7 @@
                          {
                              "namespace":  "projects",
                              "key":  "recovery-snapshots.automatic",
-                             "value":  "Automatici"
+                             "value":  "Backup automatici"
                          },
                          {
                              "namespace":  "projects",
@@ -4338,7 +4510,7 @@
                          {
                              "namespace":  "projects",
                              "key":  "recovery-snapshots.manual",
-                             "value":  "Manuali"
+                             "value":  "Backup manuali"
                          },
                          {
                              "namespace":  "projects",

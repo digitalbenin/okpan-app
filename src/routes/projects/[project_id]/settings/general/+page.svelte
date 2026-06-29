@@ -244,7 +244,11 @@
     },
   ]);
 </script>
-<!-- Heading section -->
+
+
+<form onsubmit={handleSubmit}>
+  <PageActionFooter contentClass="container-fluid p-0 m-0" rightButtons={rightActionButtons}>
+    <!-- Heading section -->
 <div class="bg-white border-bottom px-4 py-3 d-flex flex-column gap-2 mx-n4 mt-n4">
 	<div class="d-flex flex-column gap-3">
 		<div class="d-flex align-items-center gap-3">
@@ -256,9 +260,7 @@
 		<p class="mb-0" style="font-size: 14px;">{t("general-settings.page-description", { fallback: "Edit your project\u2019s title and description in all enabled languages." })}</p>
 	</div>
 </div>
-
-<form onsubmit={handleSubmit}>
-  <PageActionFooter contentClass="container-fluid" rightButtons={rightActionButtons}>
+    
     <div class="row g-3 mt-2">
       <div class="col-12 col-lg-8 col-xl-9 min-w-0">
         <div class="bg-white rounded-3 p-4">
