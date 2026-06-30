@@ -98,7 +98,7 @@
                                 <p class="mb-0" style="flex: 3; min-width: 0;">{t("research-fields.visibility", { fallback: "Visibility on website" })}</p>
                             </div>
 
-                            {#each fieldsByCategory[categoryName] as field (field.id)}
+                            {#each fieldsByCategory[categoryName].sort((a, b) => a.name?.content?.localeCompare(b.name?.content) || 0) as field (field.id)}
                                 <div class="d-flex gap-3 align-items-start py-3 border-top">
                                     <p class="mb-0 fw-semibold text-body" style="flex: 6; min-width: 0; font-size: 14px; word-break: break-word;">{field.name?.content || t("common.unnamed-field")}</p>
                                     <p class="mb-0 text-body-secondary" style="flex: 9; min-width: 0; font-size: 14px; word-break: break-word;">{field.description?.content || t("common.no-description-available")}</p>

@@ -484,8 +484,20 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       : [];
 
     // Keep only fields visible on the website
-    const visibleResearchFields = researchFields.filter(rf => rf.onwebsite !== 0);
-    const visibleOntologyFields = ontologyFields.filter(of => of.onwebsite !== 0);
+    console.log('[DEBUG onwebsite] research_fields sample:', researchFields.slice(0, 5).map(rf => ({ id: rf.id, type: rf.type, onwebsite: rf.onwebsite, onwebsiteType: typeof rf.onwebsite })));
+    const visibleResearchFields = researchFields.filter(rf => {
+        if (rf.onwebsite !== 0 && rf.onwebsite !== 1) {
+            console.log('[DEBUG onwebsite] UNEXPECTED VALUE:', { id: rf.id, type: rf.type, onwebsite: rf.onwebsite, typeof: typeof rf.onwebsite });
+        }
+        return rf.onwebsite !== 0;
+    });
+    console.log('[DEBUG onwebsite] ontology_fields sample:', ontologyFields.slice(0, 10).map(of => ({ id: of.id, onwebsite: of.onwebsite, onwebsiteType: typeof of.onwebsite })));
+    const visibleOntologyFields = ontologyFields.filter(of => {
+        if (of.onwebsite !== 0 && of.onwebsite !== 1) {
+            console.log('[DEBUG onwebsite] UNEXPECTED ONTOLOGY VALUE:', { id: of.id, onwebsite: of.onwebsite, typeof: typeof of.onwebsite });
+        }
+        return of.onwebsite !== 0;
+    });
     const visibleResearchFieldIds = new Set(visibleResearchFields.map(rf => rf.id));
     const visibleOntologyFieldIds = new Set(visibleOntologyFields.map(of => of.id));
 
