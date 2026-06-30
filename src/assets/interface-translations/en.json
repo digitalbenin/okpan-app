@@ -2775,6 +2775,21 @@
                              "value":  "SQLite exports the full project as a single database file, useful for archiving or sharing with researchers who need to query the data directly."
                          },
                          {
+                             "namespace":  "export",
+                             "key":  "result-title",
+                             "value":  "Export completed"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "result-description",
+                             "value":  " objects and their related data were exported"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "result-path",
+                             "value":  "Saved to"
+                         },
+                         {
                              "namespace":  "export-website",
                              "key":  "title",
                              "value":  "Export static website"

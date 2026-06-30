@@ -848,6 +848,21 @@
                              "value":  "SQLite esporta l'intero progetto come un singolo file di database, utile per archiviare o condividere con ricercatori che devono interrogare i dati direttamente."
                          },
                          {
+                             "namespace":  "export",
+                             "key":  "result-title",
+                             "value":  "Esportazione completata"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "result-description",
+                             "value":  " oggetti e i relativi dati sono stati esportati"
+                         },
+                         {
+                             "namespace":  "export",
+                             "key":  "result-path",
+                             "value":  "Salvato in"
+                         },
+                         {
                              "namespace":  "export-website",
                              "key":  "title",
                              "value":  "Esporta sito web statico"

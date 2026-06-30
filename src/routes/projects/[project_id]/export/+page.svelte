@@ -1,9 +1,10 @@
 <script>
 	import { page } from '$app/stores';
-	import { IconTableExport, IconBulb, IconTable, IconBraces, IconDatabase } from '@tabler/icons-svelte';
+	import { IconTableExport, IconBulb, IconTable, IconBraces, IconDatabase, IconDownload, IconComponents } from '@tabler/icons-svelte';
 	import { getTranslationStore } from '$lib/stores/InterfaceTranslationStore.svelte.js';
 	import ExportPreviewSection from '$lib/components/export/ExportPreviewSection.svelte';
 	import PageActionFooter from '$lib/components/common/PageActionFooter.svelte';
+	import BaseAlertDialog from '$lib/components/base/BaseAlertDialog.svelte';
 
 	let { data } = $props();
 	const { t } = getTranslationStore();
@@ -14,6 +15,8 @@
 	let deselectedObjectIds = $state(new Set());
 	let totalCount = $state(0);
 	let filtersPayload = $state({});
+	let exportResult = $state(null);
+	let exportResultDialogOpen = $state(false);
 
 	const exportFormats = [
 		{ value: 'csv', label: 'CSV', icon: IconTable },
@@ -33,6 +36,8 @@
 				format: selectedFormat
 			})));
 			if (result.canceled) return;
+			exportResult = result;
+			exportResultDialogOpen = true;
 		} catch {
 			// intentionally silent
 		}
@@ -49,6 +54,8 @@
 			id: 'export-data',
 			text: t('translations.export', { fallback: 'Export' }),
 			class: 'btn btn-success',
+			iconComponent: IconDownload,
+			iconPosition: 'left',
 			disabled: !!exportDisabledReason,
 			onClick: handleExport,
 			title: exportDisabledReason
@@ -132,3 +139,30 @@
 		</div>
 	</div>
 </PageActionFooter>
+
+<BaseAlertDialog bind:open={exportResultDialogOpen} size="md" noClose>
+	{#snippet title()}
+		{t('export.result-title', { fallback: 'Export completed' })}
+	{/snippet}
+	{#snippet description()}
+		<div class="d-flex flex-column gap-3">
+			{#if exportResult?.counts}
+				<p class="mb-0">
+					{exportResult.counts.objects}
+					{t('export.result-description', { fallback: ' objects and their related data were exported' })}
+				</p>
+			{/if}
+			{#if exportResult?.filePath}
+				<div>
+					{t('export.result-path', { fallback: 'Saved to' })}:
+					<code class="ms-1 text-break">{exportResult.filePath}</code>
+				</div>
+			{/if}
+		</div>
+	{/snippet}
+	{#snippet footer()}
+		<button class="btn btn-success" onclick={() => { exportResultDialogOpen = false; }}>
+			{t('common.ok', { fallback: 'OK' })}
+		</button>
+	{/snippet}
+</BaseAlertDialog>
