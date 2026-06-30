@@ -6,6 +6,7 @@
     import Bold from '@tiptap/extension-bold';
     import Italic from '@tiptap/extension-italic';
     import LinkExtension from '@tiptap/extension-link';
+    import { TextSelection } from '@tiptap/pm/state';
     import { watch } from 'runed';
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
     import { IconBold, IconItalic, IconLink } from "@tabler/icons-svelte";
@@ -32,8 +33,6 @@
     let isItalicActive = $state(false);
     let isLinkActive = $state(false);
 
-    const charCount = $derived(typeof value === 'string' ? value.replace(/<[^>]*>/g, '').length : 0);
-    const showCharCount = $derived(maxLength != null);
     const hasErrors = $derived(errors && errors.length > 0);
 
     function refreshActiveStates(ed) {
@@ -152,15 +151,21 @@
         const url = linkUrl.trim();
 
         if (linkHasSelection) {
-            // Text is already selected — just apply the link mark
-            editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+            // Text is already selected — apply the link mark, collapse selection to end,
+            // then clear stored marks so subsequent typing is unlinked
+            editor.chain().focus().setLink({ href: url }).command(({ tr, dispatch }) => {
+                if (dispatch) {
+                    dispatch(tr.setSelection(TextSelection.create(tr.doc, tr.selection.to)));
+                }
+                return true;
+            }).unsetMark('link').run();
         } else {
             // No text selected — insert label as linked text
             const label = linkLabel.trim() || url;
             editor.chain().focus().insertContent([
                 { type: 'text', text: label, marks: [{ type: 'link', attrs: { href: url } }] },
                 { type: 'text', text: ' ' }
-            ]).run();
+            ]).unsetMark('link').run();
         }
 
         linkModalOpen = false;
@@ -188,7 +193,7 @@
             <div class="card-header d-flex gap-1 bg-gray-200 p-2 border-bottom">
                 <button
                     type="button"
-                    class="btn btn-sm {isBoldActive ? 'btn-secondary' : 'btn-outline-secondary'}"
+                    class="btn btn-sm {isBoldActive ? 'btn-secondary' : 'btn-secondary-subtle'}"
                     onclick={toggleBold}
                     title={t('editor.bold', { fallback: 'Bold' })}
                     disabled={disabled}
@@ -199,7 +204,7 @@
 
                 <button
                     type="button"
-                    class="btn btn-sm {isItalicActive ? 'btn-secondary' : 'btn-outline-secondary'}"
+                    class="btn btn-sm {isItalicActive ? 'btn-secondary' : 'btn-secondary-subtle'}"
                     onclick={toggleItalic}
                     title={t('editor.italic', { fallback: 'Italic' })}
                     disabled={disabled}
@@ -210,7 +215,7 @@
 
                 <button
                     type="button"
-                    class="btn btn-sm {isLinkActive ? 'btn-secondary' : 'btn-outline-secondary'}"
+                    class="btn btn-sm {isLinkActive ? 'btn-secondary' : 'btn-secondary-subtle'}"
                     onclick={openLinkModal}
                     title={t('editor.link', { fallback: 'Link' })}
                     disabled={disabled}
@@ -239,16 +244,6 @@
             {/if}
         </div>
 
-        {#if showCharCount}
-            <div class="card-footer bg-white border-top-0 d-flex justify-content-end py-1 px-3">
-                <small class="text-muted">
-                    {t('editor.char-count', {
-                        fallback: '{count} / {limit}',
-                        values: { count: charCount, limit: maxLength }
-                    })}
-                </small>
-            </div>
-        {/if}
     </div>
 
     {#if hasErrors}

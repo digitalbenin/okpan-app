@@ -20,8 +20,14 @@
     );
 
     const charLimit = $derived(config.charLimit ?? null);
-    const charCount = $derived(typeof field.state.value === 'string' ? field.state.value.length : 0);
-    const showCharCount = $derived(charLimit != null && (config.type === 'text' || config.type === 'textarea') && !config.renderer);
+    const rawCharCount = $derived(typeof field.state.value === 'string' ? field.state.value.length : 0);
+    // Strip HTML tags so the count reflects visible/plain text only (e.g. rich text editor values)
+    const charCount = $derived(
+        typeof field.state.value === 'string'
+            ? field.state.value.replace(/<[^>]*>/g, '').length
+            : 0
+    );
+    const showCharCount = $derived(charLimit != null && (config.type === 'text' || config.type === 'textarea' || config.renderer));
     const maxLength = $derived(charLimit != null ? charLimit : null);
 </script>
 
