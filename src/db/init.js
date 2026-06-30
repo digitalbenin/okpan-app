@@ -130,6 +130,10 @@ const isLegacyMigrationAlreadyPresent = async (journalEntry) => {
         return sqliteObjectExists('trigger', 'trg_objects_assets_change_log_insert');
     }
 
+    if (journalEntry.tag.endsWith('object-updated-at-triggers')) {
+        return sqliteObjectExists('trigger', 'trg_objects_assets_updated_at_ai');
+    }
+
     return false;
 };
 
