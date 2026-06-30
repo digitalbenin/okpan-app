@@ -228,7 +228,7 @@
                     <div class="d-flex flex-column min-w-0">
                         <h2 class=" mb-0 text-truncate">{vocabularyName}</h2>
                         <div class="text-muted small text-truncate">
-                            {linkedObjectsTotalCount} {t("common.objects-connected", { fallback: "objects connected" })}
+                            {linkedObjectsTotalCount} {t("common.linked-objects", { fallback: "linked objects" })}
                         </div>
                     </div>
                 </div>

@@ -796,7 +796,7 @@
                          {
                              "namespace":  "common",
                              "key":  "linked-objects",
-                             "value":  "Linked objects"
+                             "value":  "linked objects"
                          },
                          {
                              "namespace":  "common",
@@ -3006,6 +3006,11 @@
                          },
                          {
                              "namespace":  "research-fields",
+                             "key":  "custom-field-name",
+                             "value":  "Custom field name"
+                         },
+                         {
+                             "namespace":  "research-fields",
                              "key":  "description",
                              "value":  "Description"
                          },
@@ -4047,7 +4052,7 @@
                          {
                              "namespace":  "common",
                              "key":  "public-website",
-                             "value":  "Public on website"
+                             "value":  "Visible on the website"
                          },
                          {
                              "namespace":  "common",
@@ -4123,6 +4128,16 @@
                              "namespace":  "common",
                              "key":  "edit-item",
                              "value":  "Edit {{item}}"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-custom-field",
+                             "value":  "Add a custom field"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "edit-custom-field",
+                             "value":  "Edit custom field"
                          },
                          {
                              "namespace":  "common",
@@ -4368,11 +4383,6 @@
                              "namespace":  "common",
                              "key":  "template-mapping",
                              "value":  "Template mapping"
-                         },
-                          {
-                             "namespace":  "common",
-                             "key":  "connected-objects",
-                             "value":  "Connected objects"
                          },
                          {
                              "namespace":  "common",

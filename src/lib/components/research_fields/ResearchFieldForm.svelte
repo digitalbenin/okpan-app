@@ -118,10 +118,10 @@
         projectId: { hidden: true },
         languageId: { hidden: true },
         private: { hidden: true },
-        onwebsite: { type: "checkbox", label: t("common.public-website", { fallback: "Visible on website" }), colSize: 12 },
+        onwebsite: { type: "checkbox", label: t("common.public-website", { fallback: "Visible on the website" }), colSize: 12 },
         fieldsConfig: { hidden: true },
         name: { 
-            label: t("common.label"), 
+            label: t("research-fields.custom-field-name", { fallback: "Custom field name" }), 
             colSize: 12 
         },
         description: { type: "textarea", label: t("common.description"), colSize: 12 },

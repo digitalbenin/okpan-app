@@ -184,7 +184,7 @@
 
         <div>
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <p class="text-uppercase  fs-8 mb-0">{t("common.connected-objects")} ({totalCount})</p>
+            <p class="text-uppercase  fs-8 mb-0">{totalCount} {t("common.linked-objects", { fallback: "linked objects" })}</p>
           </div>
 
           {#if isLoadingObjects}

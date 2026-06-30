@@ -71,7 +71,7 @@
     <div class="mb-3 p-2">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <p class="text-uppercase fs-7 mb-0">
-                {t("common.linked-objects", { fallback: "Linked objects" })} ({linkedObjectsTotalCount})
+                {linkedObjectsTotalCount} {t("common.linked-objects", { fallback: "linked objects" })}
             </p>
         </div>
         <div class="d-flex flex-column">

@@ -1079,6 +1079,11 @@
                          },
                          {
                              "namespace":  "research-fields",
+                             "key":  "custom-field-name",
+                             "value":  "Nome campo personalizzato"
+                         },
+                         {
+                             "namespace":  "research-fields",
                              "key":  "description",
                              "value":  "Descrizione"
                          },
@@ -2570,7 +2575,7 @@
                          {
                              "namespace":  "common",
                              "key":  "linked-objects",
-                             "value":  "Oggetti collegati"
+                             "value":  "oggetti collegati"
                          },
                          {
                              "namespace":  "common",
@@ -3970,7 +3975,7 @@
                          {
                              "namespace":  "common",
                              "key":  "public-website",
-                             "value":  "Pubblico sul sito web"
+                             "value":  "Visibile sul sito web"
                          },
                          {
                              "namespace":  "common",
@@ -4046,6 +4051,16 @@
                              "namespace":  "common",
                              "key":  "edit-item",
                              "value":  "Modifica {{item}}"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "add-custom-field",
+                             "value":  "Aggiungi un campo personalizzato"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "edit-custom-field",
+                             "value":  "Modifica campo personalizzato"
                          },
                          {
                              "namespace":  "common",
@@ -4291,11 +4306,6 @@
                              "namespace":  "common",
                              "key":  "template-mapping",
                              "value":  "Mappatura template"
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "connected-objects",
-                             "value":  "Oggetti collegati"
                          },
                          {
                              "namespace":  "common",
@@ -4686,11 +4696,6 @@
                              "namespace":  "common",
                              "key":  "change-main-image",
                              "value":  "Cambia immagine principale"
-                         },
-                         {
-                             "namespace":  "common",
-                             "key":  "objects-connected",
-                             "value":  "oggetti collegati"
                          },
                          {
                              "namespace":  "common",

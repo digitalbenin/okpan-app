@@ -295,17 +295,10 @@ const ensureDefaultInterfaceTranslations = async () => {
                 .map((language) => language.code?.trim()?.toLowerCase())
                 .filter(Boolean)
         );
-        const existingTranslationKeys = new Set(
+        const existingTranslationByKey = new Map(
             existingTranslations
-                .map((translation) => {
-                    const locale = translation.locale?.trim()?.toLowerCase();
-                    if (!locale || !translation.namespace || !translation.key) {
-                        return null;
-                    }
-
-                    return `${locale}::${translation.namespace}::${translation.key}`;
-                })
-                .filter(Boolean)
+                .filter((t) => t.locale && t.namespace && t.key)
+                .map((t) => [`${t.locale.trim().toLowerCase()}::${t.namespace}::${t.key}`, t])
         );
 
         const missingLanguages = [];
@@ -363,22 +356,37 @@ const ensureDefaultInterfaceTranslations = async () => {
         }
 
         if (bundled.translations.length > 0) {
-            const translationsToInsert = bundled.translations
-                .filter((translation) => translation?.locale && translation?.namespace && translation?.key && translation?.value)
-                .map((translation) => ({
-                    locale: translation.locale.trim().toLowerCase(),
-                    namespace: translation.namespace,
-                    key: translation.key,
-                    value: translation.value
-                }))
-                .filter((translation) => {
-                    const compoundKey = `${translation.locale}::${translation.namespace}::${translation.key}`;
-                    return !existingTranslationKeys.has(compoundKey);
-                });
+            // Sync all translations from JSON — upsert existing, insert new
+            let inserts = 0;
+            let updates = 0;
 
-            if (translationsToInsert.length > 0) {
-                await db.insert(interface_translations).values(translationsToInsert);
-                console.log(`Bootstrapped ${translationsToInsert.length} interface translations`);
+            for (const translation of bundled.translations) {
+                if (!translation?.locale || !translation?.namespace || !translation?.key || !translation?.value) continue;
+
+                const locale = translation.locale.trim().toLowerCase();
+                const compoundKey = `${locale}::${translation.namespace}::${translation.key}`;
+                const existing = existingTranslationByKey.get(compoundKey);
+
+                if (existing) {
+                    if (existing.value !== translation.value) {
+                        await db.update(interface_translations)
+                            .set({ value: translation.value })
+                            .where(eq(interface_translations.id, existing.id));
+                        updates++;
+                    }
+                } else {
+                    await db.insert(interface_translations).values({
+                        locale,
+                        namespace: translation.namespace,
+                        key: translation.key,
+                        value: translation.value
+                    });
+                    inserts++;
+                }
+            }
+
+            if (inserts > 0 || updates > 0) {
+                console.log(`Synced interface translations from JSON (${inserts} new, ${updates} updated)`);
             }
         }
     } catch (error) {

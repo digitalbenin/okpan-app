@@ -18,12 +18,16 @@
 
   const modalTitle = $derived.by(() => {
     if (mode === "create") {
-      const itemLabel = fixedType === "vocabulary"
-        ? t("common.connection", { fallback: "Connection" })
-        : t("common.research-field", { fallback: "Research field" });
-      return t("common.add-item", { item: itemLabel, fallback: `Add ${itemLabel}` });
+      if (fixedType === "vocabulary") {
+        const itemLabel = t("common.connection", { fallback: "Connection" });
+        return t("common.add-item", { item: itemLabel, fallback: `Add ${itemLabel}` });
+      }
+      return t("common.add-custom-field", { fallback: "Add a custom field" });
     }
-    return initialData?.name?.content || t("common.edit", { fallback: "Edit" });
+    if (fixedType === "vocabulary") {
+      return initialData?.name?.content || t("common.edit", { fallback: "Edit" });
+    }
+    return t("common.edit-custom-field", { fallback: "Edit custom field" });
   });
 
   const modalDescription = $derived(
