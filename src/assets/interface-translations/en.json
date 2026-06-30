@@ -4803,6 +4803,56 @@
                              "namespace":  "objects",
                              "key":  "help.name_tip",
                              "value":  "If the object has no official title, use the institution's accession number."
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "bold",
+                             "value":  "Bold"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "italic",
+                             "value":  "Italic"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "link",
+                             "value":  "Link"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "link-url",
+                             "value":  "Enter the URL"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "char-count",
+                             "value":  "{count} / {limit}"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "rich-text",
+                             "value":  "Rich text editor"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "placeholder",
+                             "value":  "Write here..."
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "link-label",
+                             "value":  "Text"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "link-label-placeholder",
+                             "value":  "Link text"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "link-selection-hint",
+                             "value":  "Text is selected from the editor"
                          }
                      ]
 }

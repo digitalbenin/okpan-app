@@ -4736,6 +4736,56 @@
                              "namespace":  "objects",
                              "key":  "help.name_tip",
                              "value":  "Se l'oggetto non ha un titolo ufficiale, utilizza il numero di inventario dell'istituzione."
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "bold",
+                             "value":  "Grassetto"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "italic",
+                             "value":  "Corsivo"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "link",
+                             "value":  "Collegamento"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "link-url",
+                             "value":  "Inserisci l'URL"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "char-count",
+                             "value":  "{count} / {limit}"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "rich-text",
+                             "value":  "Editor di testo"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "placeholder",
+                             "value":  "Scrivi qui..."
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "link-label",
+                             "value":  "Testo"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "link-label-placeholder",
+                             "value":  "Testo del collegamento"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "link-selection-hint",
+                             "value":  "Il testo è selezionato dall'editor"
                          }
                      ]
 }

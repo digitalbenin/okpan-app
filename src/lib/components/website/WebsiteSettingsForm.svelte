@@ -7,6 +7,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { createWebsiteSettings, updateWebsiteSettings } from "$lib/api/WebsiteSettingsApi.js";
   import { page } from "$app/stores";
+  import BaseRichTextEditor from "$lib/components/base/BaseRichTextEditor.svelte";
 
   const translationStore = getTranslationStore();
   const t = $derived(translationStore.t);
@@ -194,7 +195,7 @@
     logoFile: { hidden: true },
     title: { label: t("settings.title"), colSize: 12, charLimit: 100 },
     shortDescription: { label: t("common.short-description"), type: "textarea", colSize: 12, charLimit: 300 },
-    about: { label: t("common.about"), type: "textarea", colSize: 12, charLimit: 500 },
+    about: { label: t("common.about"), type: "textarea", colSize: 12, charLimit: 500, renderer: BaseRichTextEditor, rendererProps: { maxLength: 500, placeholder: t("common.about-placeholder", { fallback: "Write about your project..." }) } },
     authors: { label: t("common.authors"), colSize: 12, hidden: true },
     subfolderPath: { label: t("common.subfolder-path"), colSize: 12, hidden: true },
     showUnmapped: { label: t("common.show-unmapped"), type: "checkbox", colSize: 12, hidden: true },
