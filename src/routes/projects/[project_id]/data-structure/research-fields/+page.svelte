@@ -1,7 +1,8 @@
 <script>
-  import { IconTableOptions, IconSearch, IconCirclePlus, IconPencil, IconMinus, IconX, IconBulb } from "@tabler/icons-svelte";
+  import { IconTableOptions, IconCirclePlus, IconPencil, IconMinus, IconBulb } from "@tabler/icons-svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
+  import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
   import ResearchFieldModal from "$lib/components/research_fields/ResearchFieldModal.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import {
@@ -150,29 +151,17 @@
     <div class="col-12 col-lg-8 col-xl-9 min-w-0">
   <div class="bg-white rounded-3 p-4">
     <!-- Control row: search + add button -->
-    <div class="d-flex align-items-center justify-content-between pb-3">
-      <div class="border rounded-2 d-flex align-items-center px-3 py-1" style="width: 300px;">
-        <IconSearch size={16} class="text-body-secondary flex-shrink-0" />
-        <input
-          type="text"
-          class="border-0 form-control form-control-sm bg-transparent"
-          placeholder={t("filters.search", { fallback: "Search" })}
-          bind:value={search}
-        />
-        {#if search}
-          <button class="btn btn-link text-dark p-0 flex-shrink-0" onclick={() => (search = "")}>
-            <IconX size={14} />
-          </button>
-        {/if}
-      </div>
-      <button
-        class="btn btn-success btn-sm d-flex align-items-center gap-1"
-        onclick={() => openAddField("freetext")}
-      >
-        <IconCirclePlus size={16} />
-        {t("export.add-field", { fallback: "Add custom field" })}
-      </button>
-    </div>
+    <BaseSearchBar bind:search border="border-secondary-subtle" placeholder={t("filters.search", { fallback: "Search" })}>
+      {#snippet children()}
+        <button
+          class="btn btn-success btn-sm d-flex align-items-center gap-1"
+          onclick={() => openAddField("freetext")}
+        >
+          <IconCirclePlus size={16} />
+          {t("export.add-field", { fallback: "Add custom field" })}
+        </button>
+      {/snippet}
+    </BaseSearchBar>
 
     {#if filteredResearchFields.length > 0}
       <!-- Table header -->
