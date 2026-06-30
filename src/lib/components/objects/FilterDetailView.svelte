@@ -70,10 +70,10 @@
                         </div>
                     {/if}
                     <label
-                        class="form-check-label min-w-0"
+                        class="form-check-label min-w-0 text-truncate d-block"
                         for={`filter-${selectedField.id}-${item.id}`}
                     >
-                        <span class="fw-semibold text-truncate d-block">{item.name}</span>
+                        <span class="fw-semibold">{item.name}</span>
                     </label>
                     <span class="text-muted small flex-shrink-0 ms-auto">{getFacetCount(item)}</span>
                 </div>
