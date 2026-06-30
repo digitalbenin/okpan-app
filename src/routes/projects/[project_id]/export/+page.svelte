@@ -87,8 +87,8 @@
 				</p>
 				<div class="d-flex gap-3">
 					{#each exportFormats as format}
-						<label class="d-inline-flex flex-column align-items-center gap-2 px-4 py-3 border rounded-3 cursor-pointer" class:border-primary={selectedFormat === format.value} style="width: 86px;">
-							<svelte:component this={format.icon} size={32} stroke={1.5} color={selectedFormat === format.value ? '#008060' : undefined} />
+						<label class="d-inline-flex flex-column align-items-center gap-2 px-4 py-3 border rounded-3 cursor-pointer" class:border-primary={selectedFormat === format.value} class:text-primary={selectedFormat === format.value} style="width: 86px;">
+							<svelte:component this={format.icon} size={32} stroke={1.5} />
 							<div class="d-inline-flex align-items-center gap-2">
 								<input type="radio" class="form-check-input mb-1" bind:group={selectedFormat} value={format.value} />
 								<span>{format.label}</span>
