@@ -29,6 +29,19 @@ export const getOntologyFields = async (projectId, page, pageSize) => {
 };
 
 /**
+ * Returns ontology fields used by a specific institution's datasources.
+ * @memberOf frontend.api.OntologyFieldsApi
+ * @method
+ * @param {string} projectId - The project ID.
+ * @param {string} institutionId - The institution ID.
+ * @returns {Promise.<Array.<Object>>} Array of ontology fields used by the institution.
+ */
+export const getOntologyFieldsByInstitution = async (projectId, institutionId) => {
+    const result = await executeQuery('ontology_fields', 'byInstitution', { projectId, institutionId });
+    return result;
+};
+
+/**
  * Returns a single ontology field by ID.
  * @memberOf frontend.api.OntologyFieldsApi
  * @method

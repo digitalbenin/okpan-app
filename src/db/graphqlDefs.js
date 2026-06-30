@@ -19,6 +19,7 @@ import {
     createObjectImportMutation,
     createObjectImportUsingTemplateMutation,
     createResearchFieldObjectsCountQuery,
+    createOntologyFieldsByInstitutionQuery,
     createProjectCreateMutation,
     createProjectDeleteCascadeMutation,
     createAssetsObjectsBulkLinkMutation,
@@ -115,6 +116,7 @@ export function createGraphQLSchema(db, options = {}) {
     drizzleResult.schema._typeMap.Query._fields.objectDisplayFieldsTransformed = createObjectDisplayFieldsTransformedQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.objectSearch = createObjectSearchQuery(db, drizzleResult);
     drizzleResult.schema._typeMap.Query._fields.researchFieldObjectsCount = createResearchFieldObjectsCountQuery(db, drizzleResult);
+    drizzleResult.schema._typeMap.Query._fields.ontologyFieldsByInstitution = createOntologyFieldsByInstitutionQuery(db, drizzleResult);
 
     // Add custom bulk mutations
     drizzleResult.schema._typeMap.Mutation._fields.bulkUpdateInstitutions = createInstitutionsBulkUpdateMutation(db, drizzleResult);

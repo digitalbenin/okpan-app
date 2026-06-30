@@ -24,4 +24,5 @@ export { createAssetsObjectsBulkLinkMutation } from './assetsObjectsBulkLink';
 export { createAssetsBulkDeleteMutation } from './assetsBulkDelete';
 export { createAssetDeleteMutation, createGenericAssetDeleteMutation } from './assetDelete';
 export { createObjectsOntologyFieldsUnlinkMutation } from './objectsOntologyFieldsUnlink';
+export { createOntologyFieldsByInstitutionQuery } from './ontologyFieldsByInstitution';
 export { createUpdateTemplateAndPropagateMutation, createDeleteTemplateAndCleanupMutation } from './templatePropagate';

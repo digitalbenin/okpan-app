@@ -1,12 +1,12 @@
 <script>
+  import { watch } from "runed";
   import { IconSearch, IconBulb } from "@tabler/icons-svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getImportAssetsWizardContext } from "$lib/stores/ImportAssetsWizard.svelte.js";
   import MatchPreview from "./MatchPreview/MatchPreview.svelte";
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import { getObjectIdentifier } from "$lib/api/ObjectsApi.js";
-
-  let { ontologyFields = [] } = $props();
+  import { getOntologyFieldsByInstitution } from "$lib/api/OntologyFieldsApi.js";
 
   const wizard = getImportAssetsWizardContext();
   const { t } = getTranslationStore();
@@ -16,6 +16,32 @@
   let isMatching = $state(false);
   let matchingSuggestions = $state([]);
   let hasMatched = $state(false);
+
+  // State for institution-specific ontology fields
+  let ontologyFields = $state([]);
+  let isLoadingFields = $state(false);
+
+  // Fetch ontology fields when institution changes
+  watch(
+    () => wizard.institutionId,
+    async (institutionId) => {
+      if (!institutionId || !wizard.projectId) {
+        ontologyFields = [];
+        return;
+      }
+
+      isLoadingFields = true;
+      try {
+        const result = await getOntologyFieldsByInstitution(wizard.projectId, institutionId);
+        ontologyFields = Array.isArray(result) ? result : (result?.result || []);
+      } catch (error) {
+        console.error("Error fetching ontology fields by institution:", error);
+        ontologyFields = [];
+      } finally {
+        isLoadingFields = false;
+      }
+    }
+  );
 
   // Prepare ontology fields for multi-select dropdown
   const ontologyFieldItems = $derived(
@@ -95,13 +121,19 @@
         </p>
         <div class="w-100 d-flex align-items-start gap-3 p-0">
         <div class="flex-grow-1">
-          <BaseSelect
-            items={ontologyFieldItems}
-            bind:value={selectedFieldIds}
-            type="multiple"
-            placeholder={t("import-assets.select-fields-placeholder", { fallback: "Select fields..." })}
-            disabled={isMatching}
-          />
+          {#if isLoadingFields}
+            <div class="form-control text-body-secondary" style="pointer-events: none;">
+              {t("common.loading", { fallback: "Loading..." })}
+            </div>
+          {:else}
+            <BaseSelect
+              items={ontologyFieldItems}
+              bind:value={selectedFieldIds}
+              type="multiple"
+              placeholder={t("import-assets.select-fields-placeholder", { fallback: "Select fields..." })}
+              disabled={isMatching}
+            />
+          {/if}
           <small class="text-body-secondary d-block mt-1">
             {t("import-assets.search-fields-hint", {
               fallback: "Leave empty to search only in primary fields.",

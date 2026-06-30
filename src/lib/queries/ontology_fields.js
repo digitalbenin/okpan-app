@@ -322,5 +322,51 @@ export const ontologyFieldsOperations = {
     category_id
   }
 }`
+  },
+  byInstitution: {
+    type: "query",
+    name: "Ontology Fields By Institution",
+    description: "Returns ontology fields used by a specific institution's datasources",
+    variables: {
+      projectId: "ID of the project",
+      institutionId: "ID of the institution"
+    },
+    query: `query OntologyFieldsByInstitution($projectId: String!, $institutionId: String!) {
+  result: ontologyFieldsByInstitution(projectId: $projectId, institutionId: $institutionId) {
+    id
+    created_at
+    updated_at
+    project_id
+    name {
+      id
+      content
+      original_language_id
+      translations {
+        language_id
+        content
+      }
+    }
+    description {
+      id
+      content
+      original_language_id
+      translations {
+        language_id
+        content
+      }
+    }
+    category {
+      id
+      content
+      original_language_id
+      translations {
+        language_id
+        content
+      }
+    }
+    embeddings
+    onwebsite
+  }
+}`
   }
 }; 
