@@ -1,10 +1,7 @@
 <script>
-    import BaseVideo from '$lib/components/base/BaseVideo.svelte';
-    import BaseAudio from '$lib/components/base/BaseAudio.svelte';
-    import BaseImage from '$lib/components/base/BaseImage.svelte';
+    import ConnectionMedia from '$lib/components/ConnectionMedia.svelte';
     import { getAssetUrl } from '$lib/utils/imgUtils.js';
-    import { page } from '$app/stores';
-    import { browser } from '$app/environment';
+    import { getConnectionTextColor } from '$lib/utils/connectionColors.js';
     import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
     import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
@@ -23,235 +20,117 @@
         if (!researchField?.id || !vocabulary?.id) return 'connections';
         return `connections/${researchField.id}/${vocabulary.id}`;
     });
-    
-    // Pagination
-    let currentPage = $state(1);
-    const pageSize = 5;
-    let paginatedObjects = $derived(allObjects.slice((currentPage - 1) * pageSize, currentPage * pageSize));
-    let totalPages = $derived(Math.ceil(allObjects.length / pageSize));
+    const connectionLabelColor = $derived(getConnectionTextColor(researchField?.fields_config));
+    const mainThumbnailUrl = $derived(vocabulary?.main_asset_path ? getAssetUrl({ asset_path: vocabulary.main_asset_path }) : null);
+    const MAX_VISIBLE_OBJECTS = 5;
+    const displayObjects = $derived(allObjects.slice(0, MAX_VISIBLE_OBJECTS));
+    const hasMoreObjects = $derived(allObjects.length > MAX_VISIBLE_OBJECTS);
 
-    function goToPage(p) {
-        if (p >= 1 && p <= totalPages) {
-            currentPage = p;
+    // Build archive URL filtered by this connection
+    const connectionFilterUrl = $derived.by(() => {
+        const filters = JSON.stringify({ [researchField?.id]: [vocabulary?.id] });
+        if (isStaticExport) {
+            return resolveStaticHref('/') + '?filters=' + encodeURIComponent(filters);
         }
-    }
-
-    // Process generic assets
-    // vocabulary.assets contains list of attached generic assets.
-    // Need to split into images, videos, audio.
-    
-    let videos = $derived((vocabulary?.assets || []).filter(a => a.type === 'video' || a.path.match(/\.(mp4|webm|ogg)$/i)));
-    
-    let images = $derived.by(() => {
-        const list = (vocabulary?.assets || []).filter(a => a.type === 'image' || a.path.match(/\.(jpg|jpeg|png|gif|webp|avif)$/i));
-        // Add main asset as first item if it exists and isn't already included
-        if (vocabulary?.main_asset_path) {
-            const isDuplicate = list.some(a => a.path === vocabulary.main_asset_path);
-            if (!isDuplicate) {
-                // Assuming main asset is an image since it's used as icon
-                return [{ path: vocabulary.main_asset_path, type: 'image' }, ...list];
-            }
-        }
-        return list;
+        const base = buildPathWithProjectId('/', projectId);
+        return base + '&filters=' + encodeURIComponent(filters);
     });
-
-    let audio = $derived((vocabulary?.assets || []).filter(a => a.type === 'audio' || a.path.match(/\.(mp3|wav)$/i)));
-    
-    // Carousel state
-    let videoIndex = $state(0);
-    function nextVideo() {
-        if (videos.length > 0) videoIndex = (videoIndex + 1) % videos.length;
-    }
-    function prevVideo() {
-        if (videos.length > 0) videoIndex = (videoIndex - 1 + videos.length) % videos.length;
-    }
-
-    let imageIndex = $state(0);
-    function nextImage() {
-        if (images.length > 0) imageIndex = (imageIndex + 1) % images.length;
-    }
-    function prevImage() {
-        if (images.length > 0) imageIndex = (imageIndex - 1 + images.length) % images.length;
-    }
 </script>
 
-<div class="py-4 col-lg-8 col-md-12">
-    <!-- Breadcrumb / Header -->
-    <div class="mb-4">
-        {#if researchField}
-            <a href={isStaticExport ? resolveStaticHref(`connections/${researchField.id}`) : buildPathWithProjectId(`/connections/${researchField.id}`, projectId)} class="text-secondary text-decoration-none small mb-2 d-inline-block">
-                {content(researchField, 'name')}
-            </a>
-        {/if}
-        
-        <h1 class="fw-bold mb-3">{content(vocabulary, 'name') || t('common.unknown-item')}</h1>
-
-		{#if content(vocabulary, 'description')}
-			<p class="text-muted mb-3">{content(vocabulary, 'description')}</p>
-        {/if}
-
-        {#if vocabulary?.external_link}
-            <p class="mb-3">
-                <span class="text-muted me-1">{t('common.link')}:</span>
-                <a href={vocabulary.external_link} target="_blank" rel="noopener noreferrer" class="text-decoration-underline text-dark">
-                    {vocabulary.external_link}
-                </a>
-            </p>
-        {/if}
-    </div>
-
-    <!-- Media Sections -->
-    
-    <!-- Videos -->
-    {#if videos.length > 0}
-        <div class="mb-5">
-            <h6 class="fw-bold mb-3"><i class="bi bi-play-btn me-2"></i>{t('media.videos')}</h6>
-            <div class="card border-0 bg-light rounded-3 overflow-hidden position-relative" style="height: 400px;">
-                <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-black">
-                    {#key videos[videoIndex].path}
-                        <BaseVideo 
-                            src={videos[videoIndex].path}
-                            assetId={videos[videoIndex].id}
-                            class="d-block mw-100 mh-100" />
-                    {/key}
-                </div>
-                
-                {#if videos.length > 1}
-                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute start-0 top-50 translate-middle-y ms-2 rounded-circle" onclick={prevVideo} aria-label={t('media.previous')}>
-                        <i class="bi bi-chevron-left text-white"></i>
-                    </button>
-                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute end-0 top-50 translate-middle-y me-2 rounded-circle" onclick={nextVideo} aria-label={t('media.next')}>
-                        <i class="bi bi-chevron-right text-white"></i>
-                    </button>
-                    
-                    <div class="position-absolute bottom-0 start-50 translate-middle-x mb-2 d-flex gap-2">
-                        {#each videos as vid, i}
-                            <button 
-                                class="btn p-0 rounded-circle border-0 {i === videoIndex ? 'bg-white' : 'bg-white bg-opacity-50'}"
-                                style="width: 8px; height: 8px; transition: all 0.2s;"
-                                onclick={() => videoIndex = i}
-                                aria-label={t('media.go-to-video', { count: i + 1 })}
-                            ></button>
-                        {/each}
-                    </div>
-                {/if}
-            </div>
-        </div>
-    {/if}
-
-    <!-- Images -->
-    {#if images.length > 0}
-        <div class="mb-5">
-            <h6 class="fw-bold  mb-3"><i class="bi bi-images me-2"></i>{t('media.images')}</h6>
-            <div class="card border-0 bg-light rounded-3 overflow-hidden position-relative" style="height: 400px;">
-                <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-secondary bg-opacity-10">
-                     <BaseImage
-                        src={images[imageIndex].path} 
-                        assetId={images[imageIndex].id}
-                                alt={content(vocabulary, 'name')}
-                        class="mw-100 mh-100 object-fit-contain"
-                     />
-                </div>
-                
-                {#if images.length > 1}
-                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute start-0 top-50 translate-middle-y ms-2 rounded-circle" onclick={prevImage} aria-label={t('media.previous')}>
-                        <i class="bi bi-chevron-left text-white"></i>
-                    </button>
-                    <button class="btn btn-dark bg-opacity-50 border-0 position-absolute end-0 top-50 translate-middle-y me-2 rounded-circle" onclick={nextImage} aria-label={t('media.next')}>
-                        <i class="bi bi-chevron-right text-white"></i>
-                    </button>
-                    
-                    <div class="position-absolute bottom-0 start-50 translate-middle-x mb-2 d-flex gap-2">
-                        {#each images as img, i}
-                            <button 
-                                class="btn p-0 rounded-circle border-0 {i === imageIndex ? 'bg-white' : 'bg-white bg-opacity-50'}"
-                                style="width: 8px; height: 8px; transition: all 0.2s;"
-                                onclick={() => imageIndex = i}
-                                aria-label={t('media.go-to-image', { count: i + 1 })}
-                            ></button>
-                        {/each}
-                    </div>
-                {/if}
-            </div>
-        </div>
-    {/if}
-
-    <!-- Audio -->
-    {#if audio.length > 0}
-        <div class="mb-5">
-            <h6 class="fw-bold  mb-3"><i class="bi bi-volume-up me-2"></i>{t('media.audio')}</h6>
-            <div class="d-flex flex-column gap-3">
-                {#each audio as aud}
-                    <div class="card border-0 bg-light p-3 rounded-pill">
-                        <div class="d-flex align-items-center gap-3">
-                            <BaseAudio 
-                                src={aud.path} 
-                                assetId={aud.id}
-                                class="flex-grow-1" 
-                                style="height: 32px;" 
-                            />
-                        </div>
-                    </div>
-                {/each}
-            </div>
-        </div>
-    {/if}
-
-    <!-- Linked Objects -->
-    {#if allObjects.length > 0}
-        <div class="card border rounded-3 mt-5">
-            <div class="card-header bg-white border-bottom p-3">
-                <h6 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>{t('object.linked-objects')}</h6>
-                <small class="text-muted">{t('object.objects-count', { count: allObjects.length })}</small>
-            </div>
-            
-            <div class="list-group list-group-flush">
-                {#each paginatedObjects as obj}
-                         <a href={isStaticExport ? `${resolveStaticHref(`${obj.id}`)}?back=${encodeURIComponent(staticObjectBackHref)}` : buildPathWithProjectId(`/${obj.id}`, projectId)} 
-                             class="list-group-item list-group-item-action p-3 d-flex align-items-center"
-                    >
-                        <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;">
-                            {#if obj.main_image}
-                                 <img src={getAssetUrl({ asset_path: obj.main_image })} alt={content(obj, 'name') || obj.id} class="w-100 h-100 object-fit-cover">
-                            {:else}
-                                <i class="bi bi-image text-secondary fs-4"></i>
-                            {/if}
-                        </div>
-                        <div>
-                            <div class="fw-bold text-decoration-underline text-success-emphasis">{content(obj, 'name') || obj.id}</div> 
-							<div class="small text-muted">{content(obj, 'institution_name') || obj.institution_name}</div>
-                        </div>
-                    </a>
-                {/each}
-            </div>
-
-            {#if totalPages > 1}
-                <div class="card-footer bg-white p-2 d-flex justify-content-center">
-                    <nav>
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item {currentPage === 1 ? 'disabled' : ''}">
-                                <button class="page-link text-dark" onclick={() => goToPage(currentPage - 1)} aria-label={t('pagination.previous-page')}>
-                                    <i class="bi bi-chevron-left"></i>
-                                </button>
-                            </li>
-                            
-                            {#each Array(totalPages) as _, i}
-                                <li class="page-item {currentPage === i + 1 ? 'active' : ''}">
-                                    <button class="page-link {currentPage === i + 1 ? 'bg-success border-success text-white' : 'text-dark'}" onclick={() => goToPage(i + 1)}>
-                                        {i + 1}
-                                    </button>
-                                </li>
-                            {/each}
-
-                            <li class="page-item {currentPage === totalPages ? 'disabled' : ''}">
-                                <button class="page-link text-dark" onclick={() => goToPage(currentPage + 1)} aria-label={t('pagination.next-page')}>
-                                    <i class="bi bi-chevron-right"></i>
-                                </button>
-                            </li>
-                        </ul>
-                    </nav>
+<div class="bg-gray-200 min-vh-100">
+    <div class="container-xl py-5">
+        <!-- Header: thumbnail + label + name -->
+        <div class="d-flex gap-2 mb-4">
+            {#if mainThumbnailUrl}
+                <div class="flex-shrink-0 overflow-hidden rounded-2" style="width: 55px; height: 56px;">
+                    <img src={mainThumbnailUrl} alt={content(vocabulary, 'name')} class="w-100 h-100 object-fit-cover" />
                 </div>
             {/if}
+            <div class="d-flex flex-column gap-1">
+                <span class="text-uppercase fs-8" style="color: {connectionLabelColor};">
+                    {content(researchField, 'name') || ''}
+                </span>
+                <h1 class="h2 text-body mb-0">
+                    {content(vocabulary, 'name') || t('common.unknown-item')}
+                </h1>
+            </div>
         </div>
-    {/if}
+
+        <!-- Two-column layout: left media/details, right linked objects -->
+        <div class="row g-4">
+            <!-- Left column -->
+            <div class="col-lg-8 col-md-12 d-flex flex-column gap-4">
+                <!-- DESCRIPTION -->
+                {#if content(vocabulary, 'description')}
+                    <div class="d-flex flex-column gap-1">
+                        <span class="text-uppercase fs-8 text-body">
+                            {t('common.description')}
+                        </span>
+                        <span class="fs-6 text-body" style="white-space: pre-wrap;">
+                            {content(vocabulary, 'description')}
+                        </span>
+                    </div>
+                {/if}
+
+                <!-- External link -->
+                {#if vocabulary?.external_link}
+                    <div class="d-flex flex-column gap-1">
+                        <span class="text-uppercase fs-8 text-body">
+                            {t('object.external-link')}
+                        </span>
+                        <a href={vocabulary.external_link} target="_blank" rel="noopener noreferrer" class="fs-6 text-body text-break">
+                            {vocabulary.external_link}
+                        </a>
+                    </div>
+                {/if}
+
+                <!-- MEDIA -->
+                <ConnectionMedia mainAssetPath={vocabulary?.main_asset_path} assets={vocabulary?.assets || []} />
+            </div>
+
+            <!-- Right column: Linked Objects -->
+            <div class="col-lg-4 col-md-12">
+                {#if allObjects.length > 0}
+                    <div class="d-flex flex-column gap-2">
+                        <span class="text-uppercase fs-8 text-body">
+                            {t('object.linked-objects')}
+                        </span>
+                       
+                        <div class="d-flex flex-column">
+                            {#each displayObjects as obj}
+                                <a
+                                    href={isStaticExport ? `${resolveStaticHref(`${obj.id}`)}?back=${encodeURIComponent(staticObjectBackHref)}` : buildPathWithProjectId(`/${obj.id}`, projectId)}
+                                    class="text-decoration-none text-dark d-flex align-items-center gap-2 py-2 border-top border-gray-400"
+                                >
+                                    <div class="flex-shrink-0 overflow-hidden rounded" style="width: 41px; height: 41px;">
+                                        {#if obj.main_image}
+                                            <img src={getAssetUrl({ asset_path: obj.main_image })} alt={content(obj, 'name') || obj.id} class="w-100 h-100 object-fit-cover" />
+                                        {:else}
+                                            <div class="w-100 h-100 bg-light d-flex align-items-center justify-content-center text-secondary fw-semibold fs-5">
+                                                {(content(obj, 'name') || obj.id)?.[0]?.toUpperCase()}
+                                            </div>
+                                        {/if}
+                                    </div>
+                                    <div class="d-flex flex-column px-1">
+                                        <span class="fw-semibold fs-7 text-body">
+                                            {content(obj, 'name') || obj.id}
+                                        </span>
+                                        <span class="fs-7 text-body-secondary">
+                                            {content(obj, 'institution_name') || obj.institution_name}
+                                        </span>
+                                    </div>
+                                </a>
+                            {/each}
+                        </div>
+
+                        {#if hasMoreObjects}
+                            <a href={connectionFilterUrl} class="btn btn-outline-secondary btn-sm rounded-3 align-self-start mt-1">
+                                {t('common.see-all', { count: allObjects.length })}
+                            </a>
+                        {/if}
+                    </div>
+                {/if}
+            </div>
+        </div>
+    </div>
 </div>

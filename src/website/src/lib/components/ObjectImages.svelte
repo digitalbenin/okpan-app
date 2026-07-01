@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import { onDestroy, onMount } from 'svelte';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
-	const { assets = [] } = $props();
+	const { assets = [], single = false } = $props();
 	const { t } = getWebsiteTranslationStore();
 
 	// Normalize and keep only items that have a file path

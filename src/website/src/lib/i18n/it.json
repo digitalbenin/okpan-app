@@ -79,6 +79,7 @@
       "close": "Chiudi",
       "back": "Indietro",
       "no-description-available": "Nessuna descrizione disponibile.",
+      "description": "Descrizione",
       "unknown": "Sconosciuto",
       "unknown-item": "Voce sconosciuta",
       "unknown-field": "Campo sconosciuto",
@@ -100,6 +101,7 @@
       "quote-open": "\u201c",
       "quote-close": "\u201d",
       "untitled": "Senza titolo",
+      "see-all": "Vedi tutti i {{count}} oggetti",
       "none": "-"
     },
     "object": {

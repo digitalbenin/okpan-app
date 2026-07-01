@@ -79,6 +79,7 @@
       "close": "Close",
       "back": "Back",
       "no-description-available": "No description available.",
+      "description": "Description",
       "unknown": "Unknown",
       "unknown-item": "Unknown item",
       "unknown-field": "Unknown field",
@@ -100,6 +101,7 @@
       "quote-open": "\u201c",
       "quote-close": "\u201d",
       "untitled": "Untitled",
+      "see-all": "See all {{count}} objects",
       "none": "-"
     },
     "object": {
