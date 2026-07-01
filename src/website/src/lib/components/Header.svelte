@@ -4,18 +4,20 @@
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
     import { resolveStaticHref } from '$lib/utils/sitePaths.js';
 
-    let { project, settings, activeProjectId = null } = $props();
+    let { project, settings, activeProjectId = null, title = undefined, description = undefined, showButton = true } = $props();
     const { t } = getWebsiteTranslationStore();
     const { content } = getWebsiteContentStore();
 
     const titleText = $derived.by(() => (
-        content(settings, 'title')
+        title
+        || content(settings, 'title')
         || content(project, 'name')
         || t('site.untitled-project')
     ));
 
     const descriptionText = $derived.by(() => (
-        content(settings, 'short_description')
+        description
+        || content(settings, 'short_description')
         || content(project, 'description')
         || ''
     ));
@@ -33,8 +35,10 @@
     {#if descriptionText}
         <p class="mb-2 col-md-12 col-lg-7">{descriptionText}</p>
     {/if}
+    {#if showButton}
     <a class="btn btn-dark rounded-3 align-self-start" href={aboutHref}>
         {t('home.know-more')}
     </a>
+    {/if}
 </header>
 </div>

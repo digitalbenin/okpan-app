@@ -176,6 +176,7 @@ export async function exportStaticWebsite(
           name_i18n: field.name_i18n || null,
           description: field.description,
           description_i18n: field.description_i18n || null,
+          fields_config: field.fields_config,
           count: (data.vocabularies || []).filter(v => v.field_id === field.id).length
         }))
     };
@@ -904,6 +905,7 @@ async function exportWebsiteData(projectId, db, filters = {}) {
         name_i18n: field.name_i18n || null,
         description: field.description,
         description_i18n: field.description_i18n || null,
+        fields_config: field.fields_config,
         count: transformedVocabularies.filter(v => v.field_id === field.id).length
       }));
 

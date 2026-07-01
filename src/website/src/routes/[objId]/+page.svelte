@@ -93,11 +93,11 @@
 </svelte:head>
 
 <div class="bg-gray-200 min-vh-100">
-    <div class="container-xl py-5" style="padding-left: 150px; padding-right: 150px;">
+    <div class="container-xl py-5">
         <!-- Top: Media + Details -->
-        <div class="d-flex gap-4">
+        <div class="row g-4">
             <!-- Left: Media section -->
-            <div style="flex: 0 0 754px;">
+            <div class="col-lg-8 col-md-12">
                 <div class="d-flex flex-column gap-2">
                     <span class="text-uppercase fs-8 text-body">
                         {t('object.media')}
@@ -106,7 +106,7 @@
                 </div>
             </div>
             <!-- Right: Details section -->
-            <div class="d-flex flex-column flex-grow-1 gap-4" style="min-width: 0;">
+            <div class="col-lg-4 col-md-12 d-flex flex-column gap-4">
                 <!-- Object Title -->
                 <div class="d-flex flex-column gap-1">
                     <span class="text-uppercase fs-8 text-body">

@@ -89,7 +89,7 @@
 	{#if Object.keys(groupedFields).length > 0}
 		
 		<div class="row g-4">
-			<div class="col-lg-8 rounded mt-0">
+			<div class="col-lg-8 col-md-12 rounded mt-0">
             <span class="text-uppercase fs-8 d-block mb-2">
 			{t('institution.title')}
 		</span> 
@@ -170,7 +170,7 @@
 				{/each}
                 </div>
 			</div>
-			<div class="col-lg-4 mt-0">
+			<div class="col-lg-4 col-md-12 mt-0 mt-md-4">
 				<div class="d-flex flex-column gap-2">
 					<span class="text-uppercase fs-8 text-body">
 						{t('object.institution')}

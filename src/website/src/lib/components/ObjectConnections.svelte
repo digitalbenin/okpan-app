@@ -1,33 +1,12 @@
 <script>
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
+	import { getConnectionColorsFromConfig } from '$lib/utils/connectionColors.js';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
 
 	let { objectResearchFields = [], researchFields = [], vocabularies = [] } = $props();
 	const { t } = getWebsiteTranslationStore();
 	const { content } = getWebsiteContentStore();
-
-	// Map template IDs to actual hex colors (matching SCSS primitives)
-	const TEMPLATE_COLORS = {
-		custom: { border: '#0DCAF0', text: '#087990' },
-		indigenous_designation: { border: '#D3A621', text: '#7F6414' },
-		iconography: { border: '#1470CC', text: '#0C437A' },
-		place: { border: '#2D2DB2', text: '#1A1A7A' },
-		oral_history: { border: '#FD7E14', text: '#984C0C' },
-		people: { border: '#008060', text: '#004D3A' }
-	};
-
-	const DEFAULT_COLORS = { border: '#A2A39D', text: '#51524E' };
-
-	function getConnectionColors(field) {
-		if (!field?.fields_config) return DEFAULT_COLORS;
-		let config = field.fields_config;
-		if (typeof config === 'string') {
-			try { config = JSON.parse(config); } catch { return DEFAULT_COLORS; }
-		}
-		const templateId = config?.templateId;
-		return TEMPLATE_COLORS[templateId] || DEFAULT_COLORS;
-	}
 
 	// Build enriched connection list: join objectResearchFields (vocabulary type) with vocabularies and researchFields
 	const connections = $derived.by(() => {
@@ -47,7 +26,7 @@
 			if (!vocab) continue;
 			const name = content(vocab, 'name') || '';
 			if (!name) continue;
-			const colors = getConnectionColors(rf);
+			const colors = getConnectionColorsFromConfig(rf?.fields_config);
 			results.push({
 				id: orf.id,
 				fieldId: orf.field_id,

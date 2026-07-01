@@ -51,6 +51,7 @@ export async function load({ url, fetch }) {
       name_i18n: field.name_i18n,
       description: field.description,
       description_i18n: field.description_i18n,
+      fields_config: field.fields_config,
       count: (vocabularies || []).filter(v => v.field_id === field.id).length
     }));
 
