@@ -20,18 +20,15 @@
   });
 </script>
 
-<div class="explorer-container">
+<div class="explorer-container h-100 my-n4 mx-n4">
   <iframe src={srcUrl} title="Data Explorer" class="explorer-frame"></iframe>
 </div>
 
 <style>
-  .explorer-container {
-    width: 100%;
-    height: 100%;
-  }
+
   .explorer-frame {
     width: 100%;
-    height: calc(100vh - 60px);
+    height: 100%;
     border: 0;
     background: transparent;
   }

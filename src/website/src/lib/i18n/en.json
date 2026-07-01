@@ -15,7 +15,8 @@
     "site": {
       "untitled-project": "Untitled Project",
       "default-title": "Database Collection",
-      "default-description": "Explore our digital collection"
+      "default-description": "Explore our digital collection",
+      "okpan": "Okpan"
     },
     "home": {
       "know-more": "Know more"
@@ -73,6 +74,11 @@
       "page": "Page {{count}}",
       "previous-page": "Previous page",
       "next-page": "Next page"
+    },
+    "about": {
+      "created-with": "This archive was created using ",
+      "tool-description": ", a tool for connecting cultural objects across institutions and publishing them as a searchable public archive.",
+      "built-with": "Built with Okpan · 2026"
     },
     "common": {
       "loading": "Loading...",

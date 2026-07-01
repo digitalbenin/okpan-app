@@ -37,7 +37,7 @@
     });
 </script>
 
-<div class="bg-gray-200 min-vh-100">
+<div class="bg-gray-200">
     <div class="container-xl py-5">
         <!-- Header: thumbnail + label + name -->
         <div class="d-flex gap-2 mb-4">
@@ -124,7 +124,7 @@
                         </div>
 
                         {#if hasMoreObjects}
-                            <a href={connectionFilterUrl} class="btn btn-outline-secondary btn-sm rounded-3 align-self-start mt-1">
+                            <a href={connectionFilterUrl} class="btn btn-link rounded-3 text-black align-self-start mt-1 ps-0">
                                 {t('common.see-all', { count: allObjects.length })}
                             </a>
                         {/if}

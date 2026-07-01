@@ -170,7 +170,7 @@
 				{/each}
                 </div>
 			</div>
-			<div class="col-lg-4 col-md-12 mt-0 mt-md-4">
+			<div class="col-lg-4 col-md-12 mt-lg-0 mt-md-4">
 				<div class="d-flex flex-column gap-2">
 					<span class="text-uppercase fs-8 text-body">
 						{t('object.institution')}

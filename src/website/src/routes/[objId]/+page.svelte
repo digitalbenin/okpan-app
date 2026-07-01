@@ -92,7 +92,7 @@
     {/if}
 </svelte:head>
 
-<div class="bg-gray-200 min-vh-100">
+<div class="bg-gray-200">
     <div class="container-xl py-5">
         <!-- Top: Media + Details -->
         <div class="row g-4">

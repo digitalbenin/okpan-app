@@ -15,7 +15,8 @@
     "site": {
       "untitled-project": "Progetto senza titolo",
       "default-title": "Collezione del database",
-      "default-description": "Esplora la nostra collezione digitale"
+      "default-description": "Esplora la nostra collezione digitale",
+      "okpan": "Okpan"
     },
     "home": {
       "know-more": "Scopri di più"
@@ -73,6 +74,11 @@
       "page": "Pagina {{count}}",
       "previous-page": "Pagina precedente",
       "next-page": "Pagina successiva"
+    },
+    "about": {
+      "created-with": "Questo archivio è stato creato usando ",
+      "tool-description": ", uno strumento per connettere oggetti culturali tra istituzioni e pubblicarli come archivio pubblico consultabile.",
+      "built-with": "Realizzato con Okpan · 2026"
     },
     "common": {
       "loading": "Caricamento...",
