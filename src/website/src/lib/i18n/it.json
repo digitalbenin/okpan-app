@@ -20,6 +20,11 @@
     "home": {
       "know-more": "Scopri di più"
     },
+    "connections": {
+        "sort-label": "Ordina per",
+        "sort-name": "Nome",
+        "sort-count": "Numero oggetti"
+    },
     "page": {
       "archive": {
         "loading": "Caricamento collezione..."

@@ -47,7 +47,7 @@
 			{...data}
 		/>
 		<div
-			class="container-xl mt-5"
+			class="container-xl mt-4"
 		>
 			{#if connectionTypes.length > 0}
 				<div class="row g-3">
