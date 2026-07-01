@@ -13,7 +13,10 @@
 			})
 			.map((e) => ({
 				...e,
-				name: content(ontologyFields.find((f) => f.id == e.field_id), 'name')
+				name: content(
+					ontologyFields.find((f) => f.id == e.field_id),
+					'name'
+				)
 			}))
 	);
 
@@ -63,7 +66,10 @@
 		try {
 			const parsed = JSON.parse(raw);
 			if (Array.isArray(parsed)) {
-				res = parsed.map((l) => ({ url: l?.url ?? l, label: l?.label ?? l?.name ?? t('common.link') }));
+				res = parsed.map((l) => ({
+					url: l?.url ?? l,
+					label: l?.label ?? l?.name ?? t('common.link')
+				}));
 			}
 		} catch (e) {
 			console.error('malformed links section');
@@ -79,16 +85,17 @@
 	const addressText = $derived(content(institution, 'location') || null);
 </script>
 
-<div class="bg-white mb-2 px-2">
-	<div class="d-flex justify-content-between align-items-center mb-3">
-		<h3 class="mb-0">{t('institution.title')}</h3>
-	</div>
-
-	<div class="row g-4">
-		<div class="col-lg-12">
-			{#if Object.keys(groupedFields).length > 0}
+<div class="d-flex flex-column pt-3">
+	{#if Object.keys(groupedFields).length > 0}
+		
+		<div class="row g-4">
+			<div class="col-lg-8 rounded mt-0">
+            <span class="text-uppercase fs-8 d-block mb-2">
+			{t('institution.title')}
+		</span> 
+            <div class="bg-white p-3">
 				<!-- Tab Navigation -->
-				<ul class="nav nav-underline mb-3 border-bottom">
+				<ul class="nav nav-underline mb-3 border-bottom bg-white">
 					{#each Object.entries(groupedFields) as [dsId, fieldsByLabel], i}
 						<li class="nav-item">
 							<button
@@ -105,122 +112,130 @@
 					{/each}
 				</ul>
 
-				<div class="row">
-					<div class="col-md-8">
-						<!-- Tab Content (only the active one shown) -->
-						{#each Object.entries(groupedFields) as [dsId, fieldsByLabel], i}
-							{#if (activeTabId ?? Object.keys(groupedFields)[0]) === dsId}
-								{#if Object.keys(fieldsByLabel).length > 0}
-									<table class="table table-sm">
-										<thead>
-											<tr>
-												<th style="width: 25%">{t('institution.field')}</th>
-												<th style="width: 30%">{t('institution.matched-field')}</th>
-												<th style="width: 45%">{t('institution.value')}</th>
-											</tr>
-										</thead>
-										<tbody>
-											{#each Object.entries(fieldsByLabel) as [label, fields]}
-												<tr>
-													<td class="text-muted">{label}</td>
-													<td>
-														<div class="d-flex flex-wrap gap-1">
-															{#each fields as field}
-																<span class="badge bg-secondary-subtle text-secondary-emphasis">
-																	{field.name || t('common.unknown')}
-																</span>
-															{/each}
-														</div>
-													</td>
-													<td style="word-break: break-word; overflow-wrap: break-word; max-width: 0;">
-														{#if fields[0]?.value}
-															<span>{getDisplayText(fields[0].id, fields[0].value)}</span>
-															{#if shouldTruncate(fields[0].value)}
-																<button
-																	type="button"
-																	class="btn btn-link btn-sm p-0 ms-2 text-decoration-none"
-																	onclick={() => toggleExpanded(fields[0].id)}
-																>
-																	{isExpanded(fields[0].id) ? t('common.read-less') : t('common.read-more')}
-																</button>
-															{/if}
-														{:else}
-															<span class="text-muted fst-italic">{t('institution.value-placeholder')}</span>
-														{/if}
-													</td>
-												</tr>
-											{/each}
-										</tbody>
-									</table>
-								{:else}
-									<div class="text-center text-muted py-4">
-										{t('institution.no-fields-for-datasource')}
-									</div>
-								{/if}
-							{/if}
-						{/each}
-					</div>
-					<div class="col-lg-4">
-						<aside class="card border border-secondary-subtle rounded-3 p-3 bg-light">
-							<h5 class="mb-3">{t('institution.about')}</h5>
-							<div class="mb-3">
-								<div class="label text-uppercase small fw-bold">{t('common.name')}</div>
-								<div>{content(institution, 'name') || t('common.none')}</div>
+				<!-- Tab Content (only the active one shown) -->
+				{#each Object.entries(groupedFields) as [dsId, fieldsByLabel], i}
+					{#if (activeTabId ?? Object.keys(groupedFields)[0]) === dsId}
+						{#if Object.keys(fieldsByLabel).length > 0}
+							<table class="table table-sm">
+								<thead>
+									<tr>
+										<th style="width: 25%">{t('institution.field')}</th>
+										<th style="width: 30%">{t('institution.matched-field')}</th>
+										<th style="width: 45%">{t('institution.value')}</th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each Object.entries(fieldsByLabel) as [label, fields]}
+										<tr>
+											<td class="text-muted">{label}</td>
+											<td>
+												<div class="d-flex flex-wrap gap-1">
+													{#each fields as field}
+														<span class="badge bg-secondary-subtle text-secondary-emphasis">
+															{field.name || t('common.unknown')}
+														</span>
+													{/each}
+												</div>
+											</td>
+											<td style="word-break: break-word; overflow-wrap: break-word; max-width: 0;">
+												{#if fields[0]?.value}
+													<span>{getDisplayText(fields[0].id, fields[0].value)}</span>
+													{#if shouldTruncate(fields[0].value)}
+														<button
+															type="button"
+															class="btn btn-link btn-sm p-0 ms-2 text-decoration-none"
+															onclick={() => toggleExpanded(fields[0].id)}
+														>
+															{isExpanded(fields[0].id)
+																? t('common.read-less')
+																: t('common.read-more')}
+														</button>
+													{/if}
+												{:else}
+													<span class="text-muted fst-italic"
+														>{t('institution.value-placeholder')}</span
+													>
+												{/if}
+											</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						{:else}
+							<div class="text-center text-muted py-4">
+								{t('institution.no-fields-for-datasource')}
 							</div>
-							<div class="mb-3">
-								<div class="label text-uppercase small fw-bold">{t('common.country')}</div>
-								<div>{countryText || t('common.none')}</div>
-							</div>
-							<div class="mb-3">
-								<div class="label text-uppercase small fw-bold">{t('common.address')}</div>
-								<div>{addressText || t('common.none')}</div>
-							</div>
-							{#if linkItems.length > 0}
-								<div class="mb-3">
-									<div class="label text-uppercase small fw-bold">{t('common.links')}</div>
-									<ul class="list-unstyled mb-0">
-										{#each linkItems as l}
-											<li class="mb-1">
-												<a
-													class="link-primary"
-													href={l.url}
-													target="_blank"
-													rel="noopener noreferrer">{l.label}</a
-												>
-											</li>
-										{/each}
-									</ul>
-								</div>
-							{:else if websiteUrl}
-								<div class="mb-2">
-									<div class="label text-uppercase text-muted small fw-semibold">{t('common.links')}</div>
+						{/if}
+					{/if}
+				{/each}
+                </div>
+			</div>
+			<div class="col-lg-4 mt-0">
+				<div class="d-flex flex-column gap-2">
+					<span class="text-uppercase fs-8 text-body">
+						{t('object.institution')}
+					</span>
+					<div class="bg-white d-flex flex-column p-3 rounded-2 gap-3">
+						<span class="h5 text-body-secondary mb-0">
+							{content(institution, 'name') || ''}
+						</span>
+						<div class="d-flex flex-column">
+							<span class="text-uppercase fs-8 text-body">
+								{t('common.country')}
+							</span>
+							<span class="fs-7 text-body-secondary">
+								{countryText || t('common.none')}
+							</span>
+						</div>
+						<div class="d-flex flex-column">
+							<span class="text-uppercase fs-8 text-body">
+								{t('common.address')}
+							</span>
+							<span class="fs-7 text-body-secondary">
+								{addressText || t('common.none')}
+							</span>
+						</div>
+						{#if linkItems.length > 0}
+							{#each linkItems as l}
+								<div class="d-flex flex-column">
+									<span class="text-uppercase fs-8 text-body">
+										{t('common.links')}
+									</span>
 									<a
-										class="link-primary"
-										href={websiteUrl}
+										href={l.url}
 										target="_blank"
-										rel="noopener noreferrer">{t('common.website')}</a
+										rel="noopener noreferrer"
+										class="fs-7 text-body-secondary"
 									>
+										{l.label}
+									</a>
 								</div>
-							{/if}
-						</aside>
+							{/each}
+						{:else if websiteUrl}
+							<div class="d-flex flex-column">
+								<span class="text-uppercase fs-8 text-body">
+									{t('common.links')}
+								</span>
+								<a
+									href={websiteUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="fs-7 text-body-secondary"
+								>
+									{t('common.website')}
+								</a>
+							</div>
+						{/if}
 					</div>
 				</div>
-			{:else}
-				<div class="text-center text-muted py-4">
-					<i class="bi bi-database fs-1 opacity-50"></i>
-					<div class="mt-2">{t('institution.no-data-for-object')}</div>
-				</div>
-			{/if}
+			</div>
 		</div>
-	</div>
+	{:else}
+		<div class="text-center text-muted py-4">
+			<i class="bi bi-database fs-1 opacity-50"></i>
+			<div class="mt-2">{t('institution.no-data-for-object')}</div>
+		</div>
+	{/if}
 </div>
 
-<style>
-	/* Keep nav-underline styling consistent */
-	.nav-underline .nav-link.active {
-		font-weight: 400 !important;
-	}
-	.label {
-		letter-spacing: 0.03em;
-	}
-</style>
+

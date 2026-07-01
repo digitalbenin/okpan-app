@@ -152,7 +152,7 @@
 <div class="d-flex flex-column">
 	<!-- Main image viewer -->
 	<div
-		class="position-relative bg-white rounded border overflow-hidden mb-3"
+		class="position-relative bg-secondary rounded border overflow-hidden mb-3"
 		style="height: 520px;"
 	>
 		<!-- Controls -->
@@ -185,7 +185,7 @@
 
 		<!-- Image canvas (OpenSeadragon container) -->
 		{#if selected}
-			<div class="w-100 h-100 d-flex align-items-center justify-content-center bg-light">
+			<div class="w-100 h-100 d-flex align-items-center justify-content-center bg-secondary">
 				<div
 					class="w-100 h-100 d-flex align-items-center justify-content-center"
 					style="overflow: hidden;"
@@ -194,7 +194,7 @@
 				</div>
 			</div>
 		{:else}
-			<div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted bg-light">
+			<div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted bg-secondary">
 				{t('media.no-image-available')}
 			</div>
 		{/if}
@@ -217,7 +217,7 @@
 						style="width: 100px; height: 100px;"
 					>
 						<div
-							class="w-100 h-100 d-flex align-items-center justify-content-center overflow-hidden bg-light"
+							class="w-100 h-100 d-flex align-items-center justify-content-center overflow-hidden bg-secondary"
 						>
 							<img
 								src={getFormatUrl(a, 'sm')}
@@ -293,7 +293,7 @@
 		height: 100%;
 		pointer-events: none;
 		z-index: 1;
-		background: linear-gradient(to left, rgba(255, 255, 255, 0.9) 10%, rgba(255, 255, 255, 0));
+		background: linear-gradient(to left, rgba(245, 245, 243, 0.9) 10%, rgba(245, 245, 243, 0));
 	}
 	/* Ensure the overlay sits above scrollbar content if present */
 	.fade-right {

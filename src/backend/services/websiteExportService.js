@@ -806,7 +806,8 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       description_i18n: textPayloadMap[rf.description_id] || null,
       type: rf.type,
       private: rf.private,
-      onwebsite: rf.onwebsite
+      onwebsite: rf.onwebsite,
+      fields_config: rf.fields_config
     }));
 
     const transformedOntologyFields = visibleOntologyFields.map(of => ({

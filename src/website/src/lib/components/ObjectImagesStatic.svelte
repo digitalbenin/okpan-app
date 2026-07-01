@@ -46,7 +46,7 @@
 <div class="osd-container d-flex flex-column" data-images={imageDataJson}>
 	<!-- Main image viewer -->
 	<div
-		class="position-relative bg-white rounded border overflow-hidden mb-3"
+		class="position-relative bg-secondary rounded border overflow-hidden mb-3"
 		style="height: 520px;"
 	>
 		<!-- Controls -->
