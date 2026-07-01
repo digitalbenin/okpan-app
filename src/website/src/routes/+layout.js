@@ -54,6 +54,8 @@ export async function load({ url, fetch }) {
       count: (vocabularies || []).filter(v => v.field_id === field.id).length
     }));
 
+    console.log(settings, 'settings');
+
   return {
     institutions,
     ontology_fields,

@@ -420,10 +420,12 @@ export function fetchWebsiteSettings(db, projectId) {
       `
       SELECT ws.*,
              tt.content AS title,
+             st.content AS short_description,
              at.content AS about,
              ga.path AS logo_asset_path
       FROM website_settings ws
       LEFT JOIN texts tt ON ws.title_id = tt.id
+      LEFT JOIN texts st ON ws.short_description_id = st.id
       LEFT JOIN texts at ON ws.about_id = at.id
       LEFT JOIN generic_assets ga ON ws.logo_id = ga.id
       WHERE ws.project_id = ?
@@ -436,10 +438,12 @@ export function fetchWebsiteSettings(db, projectId) {
       `
       SELECT ws.*,
              tt.content AS title,
+             st.content AS short_description,
              at.content AS about,
              ga.path AS logo_asset_path
       FROM website_settings ws
       LEFT JOIN texts tt ON ws.title_id = tt.id
+      LEFT JOIN texts st ON ws.short_description_id = st.id
       LEFT JOIN texts at ON ws.about_id = at.id
       LEFT JOIN generic_assets ga ON ws.logo_id = ga.id
       LIMIT 1
@@ -452,7 +456,7 @@ export function fetchWebsiteSettings(db, projectId) {
     return null;
   }
 
-  const textPayloadMap = buildTextPayloadMap(db, [row.title_id, row.about_id]);
+  const textPayloadMap = buildTextPayloadMap(db, [row.title_id, row.short_description_id, row.about_id]);
 
   let filters = {};
   if (row.filters) {
@@ -463,6 +467,7 @@ export function fetchWebsiteSettings(db, projectId) {
     ...row,
     filters,
     title_i18n: textPayloadMap[row.title_id] || null,
+    short_description_i18n: textPayloadMap[row.short_description_id] || null,
     about_i18n: textPayloadMap[row.about_id] || null,
     description_i18n: textPayloadMap[row.about_id] || null
   };

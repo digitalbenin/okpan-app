@@ -8,7 +8,7 @@ import { getDb, getResults, parseJsonFields, getParamsWithout } from '$lib/utils
  * @param {object} options - The search parameters.
  * @param {string} [options.q] - Full-text search query.
  * @param {string|string[]} [options.institution_ids] - IDs of institutions to filter by.
- * @param {number} [options.pageSize=25] - The number of items to return per page.
+ * @param {number} [options.pageSize=15] - The number of items to return per page.
  * @param {number} [options.page=0] - The page number for pagination.
  * @param {string} [options.project_id] - The ID of the project to scope the search to.
  * @param {string[]} [options.ontologyFieldIds] - Optional list of ontology field IDs to search in.
@@ -54,7 +54,7 @@ export async function searchObjects(options = {}) {
     ? options.pageSize
     : Number.isFinite(options.limit)
     ? options.limit
-    : 25;
+    : 15;
   const page = Number.isFinite(options.page) ? options.page : 1;
   const offset = (page > 0 ? page - 1 : 0) * pageSize;
   const projectId = options.project_id ?? null;

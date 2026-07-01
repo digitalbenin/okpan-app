@@ -16,14 +16,14 @@ export async function load({ url, fetch, parent }) {
 				items: [],
 				totalCount: 0,
 				page: 1,
-				pageSize: 25,
+				pageSize: 15,
 				facets: { institution_ids: [], ontology_fields: [], research_fields: [] }
 			},
 			queryParams: {
 				projectId: null,
 				q: '',
 				page: 1,
-				pageSize: 25,
+				pageSize: 15,
 				institutionIds: [],
 				orderBy: 'created_at',
 				direction: 'desc'
@@ -35,24 +35,53 @@ export async function load({ url, fetch, parent }) {
 
 	// Preview mode: parse query params (only available client-side or non-prerendered)
 	const projectId = resolveProjectId(url);
+
+	// Parse the JSON filters param (used by sveltekit-search-params client-side)
+	let filtersFromUrl = {};
+	try {
+		const raw = url.searchParams.get('filters');
+		if (raw) filtersFromUrl = JSON.parse(raw);
+	} catch {}
+
 	const queryParams = {
 		projectId,
 		q: url.searchParams.get('q') || '',
 		page: parseInt(url.searchParams.get('page') || '1'),
-		pageSize: parseInt(url.searchParams.get('pageSize') || url.searchParams.get('limit') || '10'),
-		institutionIds: url.searchParams.getAll('institutionId'),
-		researchFieldFilters: [], // website UI doesn't use this yet, but reserved for future
+		pageSize: parseInt(url.searchParams.get('pageSize') || url.searchParams.get('limit') || '15'),
+		institutionIds: filtersFromUrl?.institutions || url.searchParams.getAll('institutionId'),
+		researchFieldFilters: [],
 		orderBy: url.searchParams.get('orderBy') || 'created_at',
 		direction: url.searchParams.get('direction') || 'desc'
 	};
 
+	// Build researchFieldFilters from URL filters param
+	if (filtersFromUrl) {
+		for (const [key, value] of Object.entries(filtersFromUrl)) {
+			if (key === 'institutions' || key === '__textFilters') continue;
+			if (Array.isArray(value) && value.length > 0) {
+				queryParams.researchFieldFilters.push({ fieldId: key, vocabularyIds: value });
+			}
+		}
+		const tfs = filtersFromUrl.__textFilters || [];
+		for (const tf of tfs) {
+			if (!tf?.query || !tf?.fieldId) continue;
+			queryParams.researchFieldFilters.push({ fieldId: String(tf.fieldId), query: String(tf.query) });
+		}
+	}
+
 	// Preview mode: During SSR return empty - actual search happens client-side
 	if (!browser) {
+		let ssrFilters = {};
+		try {
+			const raw = url.searchParams.get('filters');
+			if (raw) ssrFilters = JSON.parse(raw);
+		} catch {}
+
 		return {
 			searchResult: {
 				items: [],
 				totalCount: 0,
-				page: 1,
+				page: queryParams.page,
 				pageSize: queryParams.pageSize,
 				facets: { institution_ids: [], ontology_fields: [], research_fields: [] }
 			},

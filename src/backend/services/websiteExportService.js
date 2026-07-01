@@ -562,7 +562,7 @@ async function exportWebsiteData(projectId, db, filters = {}) {
     ))];
     // Add project and settings text IDs
     const projectTextIds = [project?.title_id, project?.description_id].filter(Boolean);
-    const settingsTextIds = [settings?.title_id, settings?.about_id].filter(Boolean);
+    const settingsTextIds = [settings?.title_id, settings?.short_description_id, settings?.about_id].filter(Boolean);
     // Add datasource text IDs
     const datasourceTextIds = [...new Set(allDatasources.flatMap(ds => 
       [ds.name_id, ds.method_id, ds.notes_id].filter(Boolean)
@@ -880,9 +880,12 @@ async function exportWebsiteData(projectId, db, filters = {}) {
 
     // Transform settings with resolved text, falling back to project values
     const aboutText = textMap[settings?.about_id] || textMap[project?.description_id] || null;
+    const shortDescriptionText = textMap[settings?.short_description_id] || textMap[project?.description_id] || null;
     const transformedSettings = {
       title: textMap[settings?.title_id] || textMap[project?.title_id] || null,
       title_i18n: textPayloadMap[settings?.title_id] || textPayloadMap[project?.title_id] || null,
+      short_description: shortDescriptionText,
+      short_description_i18n: textPayloadMap[settings?.short_description_id] || textPayloadMap[project?.description_id] || null,
       about: aboutText,
       about_i18n: textPayloadMap[settings?.about_id] || textPayloadMap[project?.description_id] || null,
       description: aboutText,

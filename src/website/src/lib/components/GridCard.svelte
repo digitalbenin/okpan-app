@@ -106,12 +106,12 @@
 	}
 </script>
 
-<div class="card h-100 border-secondary-subtle rounded-3 p-2">
-	<div class="bg-light rounded ratio ratio-1x1 mb-3 overflow-hidden position-relative">
+<div class="card h-100 border-secondary-subtle rounded-4 overflow-hidden">
+	<div class="ratio ratio-1x1 mb-3 overflow-hidden">
 		<div>
 			{#key clampedIndex}
 				<div
-					class="position-absolute top-0 start-0 w-100 h-100"
+					class="position-absolute top-0 start-0 w-100 h-100 bg-secondary"
 					in:fly={{ x: slideDir === 'next' ? 120 : -120, duration: 200 }}
 					out:fly={{ x: slideDir === 'next' ? -120 : 120, duration: 200 }}
 				>

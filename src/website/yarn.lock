@@ -338,6 +338,18 @@
     magic-string "^0.30.17"
     vitefu "^1.1.1"
 
+"@tabler/icons-svelte@^3.44.0":
+  version "3.44.0"
+  resolved "https://registry.yarnpkg.com/@tabler/icons-svelte/-/icons-svelte-3.44.0.tgz#bb938b8f64c84f37288eada48ace27cf9ba18542"
+  integrity sha512-ZJJMCHoqpvb9hLVn9dU+pn8LCdX/e+mJ/fC+EUaJT5nHEm0+IW4aKKYkYQI+rFMzN8ivj36MnMC5TGFi4H6zew==
+  dependencies:
+    "@tabler/icons" "3.44.0"
+
+"@tabler/icons@3.44.0":
+  version "3.44.0"
+  resolved "https://registry.yarnpkg.com/@tabler/icons/-/icons-3.44.0.tgz#286b203aac98591e27360de03974762568bbb272"
+  integrity sha512-Wn0AOZG9sg0L+bjfMqq4eNhC6pQjIrk94LvvWYNYkY8KH8wC3YILRzQlrnVJc4FUeMxH/AK97QsYCX35H3LndA==
+
 "@types/cookie@^0.6.0":
   version "0.6.0"
   resolved "https://registry.npmjs.org/@types/cookie/-/cookie-0.6.0.tgz"
@@ -618,6 +630,11 @@ svelte@^5.0.0:
     locate-character "^3.0.0"
     magic-string "^0.30.11"
     zimmerframe "^1.1.2"
+
+sveltekit-search-params@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/sveltekit-search-params/-/sveltekit-search-params-4.0.0.tgz#ca8c9c9cfc11352bfee78df2734d90dfb924d661"
+  integrity sha512-zVejOWfr5rOrAVO1yQpPGsPQn5dSHpgxUcshWeyDdU4YYzaMF8euEw753L5L/BEFmkQvfp5R38DSwLcJbNPPhg==
 
 tinyglobby@^0.2.15:
   version "0.2.15"

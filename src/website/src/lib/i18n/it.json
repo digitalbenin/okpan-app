@@ -17,6 +17,9 @@
       "default-title": "Collezione del database",
       "default-description": "Esplora la nostra collezione digitale"
     },
+    "home": {
+      "know-more": "Scopri di più"
+    },
     "page": {
       "archive": {
         "loading": "Caricamento collezione..."
