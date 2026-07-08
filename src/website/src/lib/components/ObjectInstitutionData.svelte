@@ -41,7 +41,9 @@
 		);
 	}
 
-	// Active tab handling without $effect; default to first tab when none selected
+
+
+	// Active tab for switching between datasource groups
 	let activeTabId = $state(null);
 
 	// Text truncation logic
@@ -87,88 +89,84 @@
 
 <div class="d-flex flex-column pt-3">
 	{#if Object.keys(groupedFields).length > 0}
-		
 		<div class="row g-4">
 			<div class="col-lg-8 col-md-12 rounded mt-0">
-            <span class="text-uppercase fs-8 d-block mb-2">
-			{t('institution.title')}
-		</span> 
-            <div class="bg-white p-3">
-				<!-- Tab Navigation -->
-				<ul class="nav nav-underline mb-3 border-bottom bg-white">
-					{#each Object.entries(groupedFields) as [dsId, fieldsByLabel], i}
-						<li class="nav-item">
+				<span class="text-uppercase fs-8 d-block mb-2" style="letter-spacing: 0.24px;">
+					{t('institution.title')}
+				</span>
+				<div class="bg-white rounded-3 border">
+					<!-- Datasource tabs -->
+					<div class="d-flex border-bottom">
+						{#each Object.entries(groupedFields) as [dsId, fieldsByLabel], i}
 							<button
 								type="button"
-								class="nav-link"
-								class:active={(activeTabId ?? Object.keys(groupedFields)[0]) === dsId}
-								role="tab"
-								aria-selected={(activeTabId ?? Object.keys(groupedFields)[0]) === dsId}
+								class="btn border-0 rounded-0 px-3 py-2 border-end"
+								class:fw-bold={(activeTabId ?? Object.keys(groupedFields)[0]) === dsId}
+								class:text-body-secondary={(activeTabId ?? Object.keys(groupedFields)[0]) !== dsId}
+								style="font-size: 16px;"
 								onclick={() => (activeTabId = dsId)}
 							>
 								{getDatasourceName(dsId)}
 							</button>
-						</li>
-					{/each}
-				</ul>
+						{/each}
+					</div>
 
-				<!-- Tab Content (only the active one shown) -->
-				{#each Object.entries(groupedFields) as [dsId, fieldsByLabel], i}
-					{#if (activeTabId ?? Object.keys(groupedFields)[0]) === dsId}
-						{#if Object.keys(fieldsByLabel).length > 0}
-							<table class="table table-sm">
-								<thead>
-									<tr>
-										<th style="width: 25%">{t('institution.field')}</th>
-										<th style="width: 30%">{t('institution.matched-field')}</th>
-										<th style="width: 45%">{t('institution.value')}</th>
-									</tr>
-								</thead>
-								<tbody>
-									{#each Object.entries(fieldsByLabel) as [label, fields]}
-										<tr>
-											<td class="text-muted">{label}</td>
-											<td>
-												<div class="d-flex flex-wrap gap-1">
-													{#each fields as field}
-														<span class="badge bg-secondary-subtle text-secondary-emphasis">
-															{field.name || t('common.unknown')}
-														</span>
-													{/each}
-												</div>
-											</td>
-											<td style="word-break: break-word; overflow-wrap: break-word; max-width: 0;">
-												{#if fields[0]?.value}
-													<span>{getDisplayText(fields[0].id, fields[0].value)}</span>
-													{#if shouldTruncate(fields[0].value)}
-														<button
-															type="button"
-															class="btn btn-link btn-sm p-0 ms-2 text-decoration-none"
-															onclick={() => toggleExpanded(fields[0].id)}
-														>
-															{isExpanded(fields[0].id)
-																? t('common.read-less')
-																: t('common.read-more')}
-														</button>
-													{/if}
-												{:else}
-													<span class="text-muted fst-italic"
-														>{t('institution.value-placeholder')}</span
-													>
-												{/if}
-											</td>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
+					<!-- Column header row -->
+					<div class="d-flex px-3 py-2 border-bottom" style="gap: 16px;">
+						<div style="width: 272px; flex-shrink: 0;">{t('institution.field')}</div>
+						<div>{t('institution.value')}</div>
+					</div>
+
+					{#each Object.entries(groupedFields) as [dsId, fieldsByLabel]}
+						{#if (activeTabId ?? Object.keys(groupedFields)[0]) === dsId}
+							{#if Object.keys(fieldsByLabel).length > 0}
+								{#each Object.entries(fieldsByLabel) as [label, fields]}
+								<div class="d-flex border-top px-3 py-2" style="gap: 16px;">
+									<div class="d-flex flex-column" style="width: 272px; flex-shrink: 0;">
+										<div class="d-flex align-items-center gap-1">
+											<span class="fw-normal text-body" style="font-size: 14px;">{label}</span>
+											{#if fields[0]?.primary}
+												<i class="bi bi-star-fill" style="font-size: 12px; color: #7a7a76;"></i>
+											{/if}
+										</div>
+										<div class="d-flex flex-wrap gap-1">
+											{#each fields as field}
+												<span class="text-nowrap" style="color: #7a7a76; font-size: 12px;">
+													&rarr; {field.name || t('common.unknown')}
+												</span>
+											{/each}
+										</div>
+									</div>
+									<div class="d-flex flex-column" style="min-width: 0;">
+										{#if fields[0]?.value}
+											<span class="text-body" style="font-size: 16px; word-break: break-word;">{getDisplayText(fields[0].id, fields[0].value)}</span>
+											{#if shouldTruncate(fields[0].value)}
+												<button
+													type="button"
+													class="btn btn-link btn-sm p-0 text-decoration-none align-self-start"
+													onclick={() => toggleExpanded(fields[0].id)}
+												>
+													{isExpanded(fields[0].id)
+														? t('common.read-less')
+														: t('common.read-more')}
+												</button>
+											{/if}
+										{:else}
+											<span class="text-muted fst-italic"
+												>{t('institution.value-placeholder')}</span
+											>
+										{/if}
+									</div>
+								</div>
+							{/each}
 						{:else}
-							<div class="text-center text-muted py-4">
+							<div class="text-center text-muted py-4 border-top">
 								{t('institution.no-fields-for-datasource')}
 							</div>
 						{/if}
 					{/if}
 				{/each}
-                </div>
+				</div>
 			</div>
 			<div class="col-lg-4 col-md-12 mt-lg-0 mt-md-4">
 				<div class="d-flex flex-column gap-2">

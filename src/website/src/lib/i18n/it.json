@@ -127,7 +127,7 @@
       "no-image": "Nessuna immagine"
     },
     "institution": {
-      "title": "Dati istituzione",
+      "title": "Metadati istituzione",
       "field": "Campo istituzione",
       "matched-field": "Campo associato",
       "value": "Valore",
