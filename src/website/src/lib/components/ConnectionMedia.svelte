@@ -10,11 +10,9 @@
 	let { mainAssetPath = null, assets = [] } = $props();
 
 	// Build unified mixed media array (images, videos, audio)
+	// The mainAssetPath (vocabulary thumbnail) is excluded — it's shown in the header
 	const mediaItems = $derived.by(() => {
 		const items = [];
-		if (mainAssetPath) {
-			items.push({ type: 'image', path: mainAssetPath, id: null, formats: null });
-		}
 		for (const a of (assets || [])) {
 			const path = a.path || '';
 			const type = a.type || (
@@ -22,7 +20,7 @@
 				path.match(/\.(mp3|wav)$/i) ? 'audio' :
 				'image'
 			);
-			if (type === 'image' && path === mainAssetPath) continue;
+			if (mainAssetPath && type === 'image' && path === mainAssetPath) continue;
 			items.push({ type, path, id: a.id, formats: a.formats || null });
 		}
 		return items;
