@@ -253,7 +253,7 @@
                                 defaultColSize={12}
                                 uiSchema={{
                                     option: { label: t("common.name", { fallback: "Name" }), colSize: 12, charLimit: 150 },
-                                    description: { type: "textarea", colSize: 12, label: t("common.description", { fallback: "Description" }), charLimit: 150 },
+                                    description: { type: "textarea", colSize: 12, label: t("common.description", { fallback: "Description" }) },
                                     externalLink: { colSize: 12, label: t("common.external-link", { fallback: "External link" }), charLimit: 150 },
                                     mediaAssets: {
                                         label: t("connections.section-media", { fallback: "Media" }),
