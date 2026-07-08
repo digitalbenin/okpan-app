@@ -1,5 +1,6 @@
 <script>
 	import { getAssetUrl } from '$lib/utils/imgUtils.js';
+	import { resolveSitePath } from '$lib/utils/sitePaths.js';
 	import { getConnectionColorsFromConfig } from '$lib/utils/connectionColors.js';
 	import { getWebsiteTranslationStore } from '$lib/stores/WebsiteTranslationStore.svelte.js';
 	import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
@@ -55,31 +56,36 @@
 		</span>
 		<div class="d-flex flex-column gap-2">
 			{#each connections as conn}
-				<div
-					class="bg-white d-flex align-items-center p-2 rounded-3 gap-1"
-					style="border-left: 3px solid {conn.border};"
+				<a
+					href={resolveSitePath(`connections/${conn.fieldId}/${conn.vocabId}`)}
+					class="text-decoration-none"
 				>
-					{#if conn.mainAssetPath}
-						<div
-							class="overflow-hidden flex-shrink-0 rounded-circle"
-							style="width: 41px; height: 41px;"
-						>
-							<img
-								src={getVocabThumbnailUrl(conn.mainAssetPath)}
-								alt={conn.name}
-								class="w-100 h-100 object-fit-cover"
-							/>
+					<div
+						class="bg-white d-flex align-items-center p-2 rounded-3 gap-1"
+						style="border-left: 3px solid {conn.border};"
+					>
+						{#if conn.mainAssetPath}
+							<div
+								class="overflow-hidden flex-shrink-0 rounded-circle"
+								style="width: 41px; height: 41px;"
+							>
+								<img
+									src={getVocabThumbnailUrl(conn.mainAssetPath)}
+									alt={conn.name}
+									class="w-100 h-100 object-fit-cover"
+								/>
+							</div>
+						{/if}
+						<div class="d-flex flex-column px-1">
+							<span class="text-uppercase fs-8" style="color: {conn.text};">
+								{conn.label}
+							</span>
+							<span class="fs-7 fw-semibold text-body">
+								{conn.name}
+							</span>
 						</div>
-					{/if}
-					<div class="d-flex flex-column px-1">
-						<span class="text-uppercase fs-8" style="color: {conn.text};">
-							{conn.label}
-						</span>
-						<span class="fs-7 fw-semibold text-body">
-							{conn.name}
-						</span>
 					</div>
-				</div>
+				</a>
 			{/each}
 		</div>
 	</div>
