@@ -354,6 +354,11 @@ async function deleteProjectStateForRestore(projectId) {
       .where(eq(dbSchema.research_fields.project_id, projectId))
       .execute();
 
+    // Delete websiteSettings before genericAssets: logo_id FK references generic_assets(id)
+    await tx.delete(dbSchema.websiteSettings)
+      .where(eq(dbSchema.websiteSettings.project_id, projectId))
+      .execute();
+
     await tx.delete(dbSchema.genericAssets)
       .where(eq(dbSchema.genericAssets.project_id, projectId))
       .execute();
@@ -364,10 +369,6 @@ async function deleteProjectStateForRestore(projectId) {
 
     await tx.delete(dbSchema.object_display_fields)
       .where(eq(dbSchema.object_display_fields.project_id, projectId))
-      .execute();
-
-    await tx.delete(dbSchema.websiteSettings)
-      .where(eq(dbSchema.websiteSettings.project_id, projectId))
       .execute();
 
     await tx.delete(dbSchema.settings)

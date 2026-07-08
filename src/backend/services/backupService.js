@@ -504,6 +504,7 @@ export async function createProjectBackup(options, { db }) {
   
   websiteSettings.forEach(ws => {
     if (ws.title_id) textIds.add(ws.title_id);
+    if (ws.short_description_id) textIds.add(ws.short_description_id);
     if (ws.about_id) textIds.add(ws.about_id);
   });
 

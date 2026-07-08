@@ -208,6 +208,7 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                 .select({
                     id: dbSchema.websiteSettings.id,
                     title_id: dbSchema.websiteSettings.title_id,
+                    short_description_id: dbSchema.websiteSettings.short_description_id,
                     about_id: dbSchema.websiteSettings.about_id
                 })
                 .from(dbSchema.websiteSettings)
@@ -231,7 +232,7 @@ export const createProjectDeleteCascadeMutation = (db, drizzleResult) => {
                 ontologyFields.flatMap((row) => [row.name_id, row.description_id, row.category_id]),
                 datasources.flatMap((row) => [row.name_id, row.method_id, row.notes_id]),
                 vocabularies.flatMap((row) => [row.option_id, row.description_id]),
-                websiteSettings.flatMap((row) => [row.title_id, row.about_id])
+                websiteSettings.flatMap((row) => [row.title_id, row.short_description_id, row.about_id])
             );
 
             const counts = {
