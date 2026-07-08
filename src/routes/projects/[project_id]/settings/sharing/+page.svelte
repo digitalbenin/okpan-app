@@ -120,8 +120,8 @@
   const rightActionButtons = $derived([
     {
       id: "save-sharing-settings",
-      text: isSaving ? t("common.saving", { fallback: "Saving..." }) : t("common.confirm", { fallback: "Confirm" }),
-      class: "btn btn-success",
+      text: isSaving ? t("common.saving", { fallback: "Saving..." }) : t("objects.save-changes", { fallback: "Save changes" }),
+      class: "btn btn-success me-3",
       iconComponent: IconDeviceFloppy,
       type: "submit",
       disabled: isSaving || !hasChanges,
