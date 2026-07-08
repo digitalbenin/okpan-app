@@ -44,6 +44,20 @@
     return map;
   });
 
+  const ontologyFacetMap = $derived.by(() => {
+    const set = new Set();
+    for (const row of facets?.ontology_fields || []) {
+      if (row.field_id) set.add(String(row.field_id));
+    }
+    return set;
+  });
+
+  const visibleOntologyFields = $derived(
+    (ontologyFields || []).filter(
+      (field) => field?.id && ontologyFacetMap.has(String(field.id))
+    )
+  );
+
   const pendingTextFilters = $derived(pendingFilters?.__textFilters ?? []);
   const appliedTextFilters = $derived(advancedFilters?.__textFilters ?? []);
 
@@ -64,7 +78,7 @@
 
   const subViewFieldsList = $derived.by(() => {
     if (selectedFieldKind === "research") return visibleTextResearchFields;
-    if (selectedFieldKind === "ontology") return ontologyFields;
+    if (selectedFieldKind === "ontology") return visibleOntologyFields;
     return [];
   });
 
@@ -255,7 +269,7 @@
         {institutionCount}
         {visibleVocabularyFields}
         {visibleTextResearchFields}
-        {ontologyFields}
+        ontologyFields={visibleOntologyFields}
         {vocabularyCountForField}
         {textFilterCountForKind}
         onShowDetail={showDetail}

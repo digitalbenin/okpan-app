@@ -219,6 +219,11 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 		(researchFields || []).forEach((f) => m.set(String(f.id), f));
 		return m;
 	});
+	const ontologyFieldById = $derived.by(() => {
+		const m = new Map();
+		(ontologyFields || []).forEach((f) => m.set(String(f.id), f));
+		return m;
+	});
 
 	// Chip derivations
 	const institutionChips = $derived.by(() => {
@@ -241,8 +246,16 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 		}
 		return chips;
 	});
+	const textFilterChips = $derived.by(() => {
+		const textFilters = advancedFilters?.__textFilters || [];
+		return textFilters.map((tf) => {
+			const fields = tf.kind === 'ontology' ? ontologyFieldById : researchFieldById;
+			const fieldName = content(fields.get(String(tf.fieldId)), 'name') || t('filters.field-fallback');
+			return { ...tf, label: `${fieldName}: "${tf.query}"` };
+		});
+	});
 	const hasActiveFilters = $derived(
-		(institutionChips?.length || 0) + (vocabularyChips?.length || 0) > 0
+		(institutionChips?.length || 0) + (vocabularyChips?.length || 0) + (textFilterChips?.length || 0) > 0
 	);
 
 	function syncFiltersToUrl() {
@@ -263,6 +276,16 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 		const idx = arr.indexOf(vocabId);
 		if (idx > -1) arr.splice(idx, 1);
 		if (arr.length === 0) delete advancedFilters[fieldId];
+		syncFiltersToUrl();
+		runSearch();
+	}
+	function removeTextFilter(textFilter) {
+		const arr = advancedFilters.__textFilters || [];
+		const idx = arr.findIndex(
+			(tf) => tf.kind === textFilter.kind && String(tf.fieldId) === String(textFilter.fieldId)
+		);
+		if (idx > -1) arr.splice(idx, 1);
+		if (arr.length === 0) delete advancedFilters.__textFilters;
 		syncFiltersToUrl();
 		runSearch();
 	}
@@ -336,6 +359,15 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 				<button
 					class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
 					onclick={() => removeVocabulary(chip.fieldId, chip.vocabId)}
+				>
+					{chip.label}
+					<i class="bi bi-x"></i>
+				</button>
+			{/each}
+			{#each textFilterChips as chip (chip.fieldId + chip.kind)}
+				<button
+					class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+					onclick={() => removeTextFilter(chip)}
 				>
 					{chip.label}
 					<i class="bi bi-x"></i>
