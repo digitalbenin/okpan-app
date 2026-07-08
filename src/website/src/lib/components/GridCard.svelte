@@ -166,10 +166,7 @@
                 class="text-dark text-decoration-none"
 				href={getObjectHref()}>{getObjectDisplayName()}</a
             >
-		</h5>		<p class="card-text mb-2">
-			<small class="text-muted">{t('object.designation')}</small><br />
-			{getObjectType()}
-		</p>
+		</h5>	
 
 		{#if getInstitutionName()}
 			<p class="card-text mb-2">
