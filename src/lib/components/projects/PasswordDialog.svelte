@@ -2,6 +2,8 @@
   import BaseAlertDialog from "$lib/components/base/BaseAlertDialog.svelte";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { watch } from "runed";
+  import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  const { t } = getTranslationStore();
 
   /**
    * @prop {string} currentSavedPassword - The password already persisted. Empty string means "create" mode.
@@ -106,10 +108,10 @@
             class="btn btn-outline-secondary"
             type="button"
             onclick={() => { showNew = !showNew; }}
-            aria-label={showNew ? "Hide new password" : "Show new password"}
-            title={showNew ? "Hide password" : "Show password"}
+            aria-label={showNew ? t("share-project.hide-password", { fallback: "Hide password" }) : t("share-project.show-password", { fallback: "Show password" })}
+            title={showNew ? t("share-project.hide-password", { fallback: "Hide password" }) : t("share-project.show-password", { fallback: "Show password" })}
           >
-            <i class={`bi ${showNew ? "bi-eye-slash" : "bi-eye"}`}></i>
+            {showNew ? t("share-project.hide-password", { fallback: "Hide password" }) : t("share-project.show-password", { fallback: "Show password" })}
           </button>
         </div>
       </div>

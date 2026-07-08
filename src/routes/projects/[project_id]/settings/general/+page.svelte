@@ -1,5 +1,5 @@
 <script>
-  import { IconSettings, IconBulb, IconCirclePlus, IconX } from "@tabler/icons-svelte";
+  import { IconSettings, IconBulb, IconCirclePlus, IconX, IconDeviceFloppy } from "@tabler/icons-svelte";
   import { updateProject, removeLanguageFromProject } from "$lib/api/ProjectsApi.js";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import AddProjectLanguagesModal from "$lib/components/projects/AddProjectLanguagesModal.svelte";
@@ -237,8 +237,9 @@
   const rightActionButtons = $derived([
     {
       id: "save-project-settings",
-      text: isSaving ? i18n.saving : i18n.confirm,
-      class: "btn btn-success",
+      text: isSaving ? t("common.saving", { fallback: "Saving..." }) : t("objects.save-changes", { fallback: "Save changes" }),
+      class: "btn btn-success me-3",
+      iconComponent: IconDeviceFloppy,
       type: "submit",
       disabled: isSaving || !defaultLanguage || !hasUnsavedChanges,
     },

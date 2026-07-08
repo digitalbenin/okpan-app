@@ -30,7 +30,7 @@
     {
       id: "export-project-file",
       text: isExporting ? t("common.saving", { fallback: "Saving..." }) : t("settings.export_project_file", { fallback: "Export project file" }),
-      class: "btn btn-success",
+      class: "btn btn-success me-3",
       iconComponent: IconDownload,
       disabled: isExporting,
       onClick: handleExportProjectFile,
