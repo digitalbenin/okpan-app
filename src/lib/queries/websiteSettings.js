@@ -326,7 +326,7 @@ export const websiteSettingsOperations = {
         mapVariables: {
           titleId: { from: "getWebsiteSettings", path: "websiteSettings.0.title.id" }
         },
-        skipIf: { variableName: "title", isEmpty: true }
+        skipIf: { variableName: "titleId", isUndefined: true }
       },
       // --- Short description: create if missing, link, then update ---
       {
@@ -371,7 +371,7 @@ export const websiteSettingsOperations = {
         mapVariables: {
           shortDescriptionId: { from: "getWebsiteSettings", path: "websiteSettings.0.shortDescription.id" }
         },
-        skipIf: { variableName: "shortDescription", isEmpty: true }
+        skipIf: { variableName: "shortDescriptionId", isUndefined: true }
       },
       // --- About: create if missing, link, then update ---
       {
@@ -416,7 +416,7 @@ export const websiteSettingsOperations = {
         mapVariables: {
           aboutId: { from: "getWebsiteSettings", path: "websiteSettings.0.about.id" }
         },
-        skipIf: { variableName: "about", isEmpty: true }
+        skipIf: { variableName: "aboutId", isUndefined: true }
       },
       // Update scalar fields
       {

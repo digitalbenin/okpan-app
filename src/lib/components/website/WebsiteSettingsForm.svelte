@@ -121,24 +121,25 @@
         const tContent = (value?.[`translations_${lang.id}_title`] || "").trim();
         const sdContent = (value?.[`translations_${lang.id}_shortDescription`] || "").trim();
         const aContent = (value?.[`translations_${lang.id}_about`] || "").trim();
-        if (tContent) {
-          const existing = findTranslationForLanguage(websiteSettings?.title, lang);
-          titleTranslations.push(existing?.id
-            ? { id: existing.id, language_id: lang.id, language_code: lang.code, content: tContent }
+        const existingTitle = findTranslationForLanguage(websiteSettings?.title, lang);
+        const existingShortDesc = findTranslationForLanguage(websiteSettings?.shortDescription, lang);
+        const existingAbout = findTranslationForLanguage(websiteSettings?.about, lang);
+        // Include translation if there's an existing record (to allow clearing) or new content (to create)
+        if (existingTitle || tContent) {
+          titleTranslations.push(existingTitle?.id
+            ? { id: existingTitle.id, language_id: lang.id, language_code: lang.code, content: tContent }
             : { language_id: lang.id, language_code: lang.code, content: tContent }
           );
         }
-        if (sdContent) {
-          const existing = findTranslationForLanguage(websiteSettings?.shortDescription, lang);
-          shortDescriptionTranslations.push(existing?.id
-            ? { id: existing.id, language_id: lang.id, language_code: lang.code, content: sdContent }
+        if (existingShortDesc || sdContent) {
+          shortDescriptionTranslations.push(existingShortDesc?.id
+            ? { id: existingShortDesc.id, language_id: lang.id, language_code: lang.code, content: sdContent }
             : { language_id: lang.id, language_code: lang.code, content: sdContent }
           );
         }
-        if (aContent) {
-          const existing = findTranslationForLanguage(websiteSettings?.about, lang);
-          aboutTranslations.push(existing?.id
-            ? { id: existing.id, language_id: lang.id, language_code: lang.code, content: aContent }
+        if (existingAbout || aContent) {
+          aboutTranslations.push(existingAbout?.id
+            ? { id: existingAbout.id, language_id: lang.id, language_code: lang.code, content: aContent }
             : { language_id: lang.id, language_code: lang.code, content: aContent }
           );
         }
