@@ -40,6 +40,16 @@ export default {
             platforms: ['darwin'],
         },
         {
+            name: '@electron-forge/maker-dmg',
+            platforms: ['darwin'],
+            config: {
+                name: 'DataConnectionTool',
+                overwrite: true,
+                iconSize: 80,
+                format: 'ULFO'
+            }
+        },
+        {
             name: '@electron-forge/maker-deb',
             config: {},
         },
