@@ -415,7 +415,7 @@ function createWindow() {
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
     autoHideMenuBar: true,
-    icon: path.join(app.getAppPath(), 'src/assets/logo_wip.png'),
+    icon: path.join(app.getAppPath(), 'src/assets/okpan_logo.png'),
     webPreferences: {
       preload: path.join(app.getAppPath(), '.vite/preload.js'),
       nodeIntegration: false,

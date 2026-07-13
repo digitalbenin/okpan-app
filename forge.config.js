@@ -5,8 +5,9 @@ import path from 'path';
 
 export default {
     packagerConfig: {
-        name: 'DataConnectionTool',
-        executableName: "DataConnectionTool",
+        name: 'Okpan',
+        executableName: "Okpan",
+        icon: './src/assets/okpan_logo',
         // Disable ASAR to prevent native .node extraction to temp, ensuring DLLs
         // like libvips are loaded from their adjacent directory on Windows
         asar: false,
@@ -33,7 +34,9 @@ export default {
     makers: [
         {
             name: '@electron-forge/maker-squirrel',
-            config: {},
+            config: {
+                icon: './src/assets/okpan_logo.ico'
+            },
         },
         {
             name: '@electron-forge/maker-zip',
@@ -43,7 +46,7 @@ export default {
             name: '@electron-forge/maker-dmg',
             platforms: ['darwin'],
             config: {
-                name: 'DataConnectionTool',
+                icon: './src/assets/okpan_logo.icns',
                 overwrite: true,
                 iconSize: 80,
                 format: 'ULFO'
