@@ -29,27 +29,15 @@ jobs:
       - name: Build Electron app (ARM64)
         run: yarn make -- --arch=arm64
 
-      - name: Inject unlock.command into maker ZIP (ARM64)
+      - name: Generate unlock.command
         shell: bash
         run: |
-          set -euxo pipefail
-          ZIP_DIR="out/make/zip/darwin/arm64"
-          if [[ ! -d "$ZIP_DIR" ]]; then
-            echo "Maker ZIP directory not found: $ZIP_DIR"
-            exit 0
-          fi
-          ZIP_FILE=$(ls "$ZIP_DIR"/*.zip | head -n 1 || true)
-          if [[ -z "$ZIP_FILE" ]]; then
-            echo "No ZIP produced by maker-zip in $ZIP_DIR; skipping unlock injection."
-            exit 0
-          fi
-          TMPDIR=$(mktemp -d)
-          cat > "$TMPDIR/unlock.command" << 'EOF'
+          mkdir -p out/make/unlock
+          cat > out/make/unlock/unlock.command << 'EOF'
           #!/bin/bash
-          xattr -c "$(cd "$(dirname "$0")" && pwd)/DataConnectionTool.app"
+          xattr -c /Applications/Okpan.app
           EOF
-          chmod +x "$TMPDIR/unlock.command"
-          zip -j "$ZIP_FILE" "$TMPDIR/unlock.command"
+          chmod +x out/make/unlock/unlock.command
 
       - name: Upload ARM64 artifacts
         uses: actions/upload-artifact@v4
@@ -79,27 +67,15 @@ jobs:
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64
 
-      - name: Inject unlock.command into maker ZIP (x64)
+      - name: Generate unlock.command
         shell: bash
         run: |
-          set -euxo pipefail
-          ZIP_DIR="out/make/zip/darwin/x64"
-          if [[ ! -d "$ZIP_DIR" ]]; then
-            echo "Maker ZIP directory not found: $ZIP_DIR"
-            exit 0
-          fi
-          ZIP_FILE=$(ls "$ZIP_DIR"/*.zip | head -n 1 || true)
-          if [[ -z "$ZIP_FILE" ]]; then
-            echo "No ZIP produced by maker-zip in $ZIP_DIR; skipping unlock injection."
-            exit 0
-          fi
-          TMPDIR=$(mktemp -d)
-          cat > "$TMPDIR/unlock.command" << 'EOF'
+          mkdir -p out/make/unlock
+          cat > out/make/unlock/unlock.command << 'EOF'
           #!/bin/bash
-          xattr -c "$(cd "$(dirname "$0")" && pwd)/DataConnectionTool.app"
+          xattr -c /Applications/Okpan.app
           EOF
-          chmod +x "$TMPDIR/unlock.command"
-          zip -j "$ZIP_FILE" "$TMPDIR/unlock.command"
+          chmod +x out/make/unlock/unlock.command
 
       - name: Upload x64 artifacts
         uses: actions/upload-artifact@v4
@@ -149,6 +125,11 @@ jobs:
         with:
           path: artifacts
 
+      - name: Collect unlock.command from ARM64 artifacts
+        shell: bash
+        run: |
+          cp artifacts/macOS-arm64/unlock/unlock.command artifacts/
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -156,6 +137,7 @@ jobs:
             artifacts/macOS-arm64/**/*
             artifacts/macOS-x64/**/*
             artifacts/windows-x64/**/*
+            artifacts/unlock.command
           draft: false
           prerelease: false
           generate_release_notes: true
