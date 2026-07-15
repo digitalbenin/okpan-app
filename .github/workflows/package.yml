@@ -29,16 +29,6 @@ jobs:
       - name: Build Electron app (ARM64)
         run: yarn make -- --arch=arm64
 
-      - name: Generate unlock.command
-        shell: bash
-        run: |
-          mkdir -p out/make/unlock
-          cat > out/make/unlock/unlock.command << 'EOF'
-          #!/bin/bash
-          xattr -c /Applications/Okpan.app
-          EOF
-          chmod +x out/make/unlock/unlock.command
-
       - name: Upload ARM64 artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -66,16 +56,6 @@ jobs:
 
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64
-
-      - name: Generate unlock.command
-        shell: bash
-        run: |
-          mkdir -p out/make/unlock
-          cat > out/make/unlock/unlock.command << 'EOF'
-          #!/bin/bash
-          xattr -c /Applications/Okpan.app
-          EOF
-          chmod +x out/make/unlock/unlock.command
 
       - name: Upload x64 artifacts
         uses: actions/upload-artifact@v4
@@ -125,10 +105,22 @@ jobs:
         with:
           path: artifacts
 
-      - name: Collect unlock.command from ARM64 artifacts
+      - name: Generate unlock.command
         shell: bash
         run: |
-          cp artifacts/macOS-arm64/unlock/unlock.command artifacts/
+          cat > artifacts/unlock.command << 'EOF'
+          #!/bin/bash
+          for app_path in "$HOME/Applications/Okpan.app" "/Applications/Okpan.app"; do
+            if [ -d "$app_path" ]; then
+              echo "Removing quarantine from $app_path..."
+              xattr -c "$app_path"
+              exit 0
+            fi
+          done
+          echo "Okpan.app not found in ~/Applications or /Applications."
+          exit 1
+          EOF
+          chmod +x artifacts/unlock.command
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
