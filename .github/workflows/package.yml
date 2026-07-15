@@ -107,10 +107,10 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --network-timeout 300000
 
       - name: Install website dependencies
-        run: yarn --cwd src/website install
+        run: yarn --cwd src/website install --network-timeout 300000
 
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64
