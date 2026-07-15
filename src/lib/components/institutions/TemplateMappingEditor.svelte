@@ -82,14 +82,19 @@
   let pickerRowId = $state(null);
   let pickerFieldName = $state("");
   let pickerSuggestions = $state([]);
-  let pickerMatched = $state(null);
 
   function openPicker(row) {
     pickerRowId = row.rowId;
     pickerFieldName = (row.institutionField || "").trim() || EMPTY_FIELD_LABEL;
     pickerSuggestions = [];
-    pickerMatched = null;
     pickerOpen = true;
+  }
+
+  function handleSetMatchChange(matches) {
+    if (!Array.isArray(matches) || !pickerRowId) return;
+    for (const match of matches) {
+      if (match?.id) addMappedField(pickerRowId, match.id);
+    }
   }
 
   watch(
@@ -108,14 +113,6 @@
         console.warn("Failed to load mapping suggestions:", err);
         pickerSuggestions = [];
       }
-    }
-  );
-
-  watch(
-    () => pickerMatched,
-    (matched) => {
-      if (!matched?.id || !pickerRowId) return;
-      addMappedField(pickerRowId, matched.id);
     }
   );
 </script>
@@ -238,7 +235,7 @@
 <SetMatch
   field={pickerFieldName}
   suggestions={pickerSuggestions}
-  bind:fieldMatched={pickerMatched}
+  onSetMatchChange={handleSetMatchChange}
   bind:open={pickerOpen}
   triggerVariant="add"
   buttonProps={{ class: "d-none" }}
