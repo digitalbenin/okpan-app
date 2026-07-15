@@ -33,11 +33,12 @@
  * @memberof backend
  */
 import { app, BrowserWindow, ipcMain, protocol, net, powerMonitor, shell } from 'electron';
-import serve from 'electron-serve';
 import started from 'electron-squirrel-startup';
 import 'dotenv/config';
 import EventEmitter from 'events';
 import path from 'path';
+import fs from 'fs';
+import { pathToFileURL } from 'url';
 import { sendToAllWindows, notifyProjectDataChanged, notifyProjectPresence } from './services/windowNotifierService.js';
 import { broadcastNetworkStatus, getCurrentNetworkStatus, setNetworkStatus, startConnectivityProbe, stopConnectivityProbe } from './services/connectivityService.js';
 import { registerMediaProtocol } from './protocols/media.js';
@@ -163,9 +164,6 @@ const restoreRegisterSchemesAsPrivileged = (() => {
     });
   };
 })();
-
-// Initialize electron-serve early (before app is ready) so its protocol is registered in time.
-const loadURLProd = serve({ directory: 'build' });
 
 restoreRegisterSchemesAsPrivileged();
 
@@ -415,6 +413,8 @@ function createWindow() {
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
     autoHideMenuBar: true,
+    //titleBarStyle: 'hidden',
+    //...(process.platform !== 'darwin' ? { titleBarOverlay: true } : {}),
     icon: path.join(app.getAppPath(), 'src/assets/okpan_logo.png'),
     webPreferences: {
       preload: path.join(app.getAppPath(), '.vite/preload.js'),
@@ -446,7 +446,7 @@ function createWindow() {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
     mainWindow.webContents.openDevTools();
   } else {
-    loadURLProd(mainWindow);
+    mainWindow.loadURL('app://-/');
   }
 
   mainWindow.webContents.on('online-status-changed', (_event, online) => {
@@ -488,6 +488,44 @@ function registerPowerMonitorHandlers() {
   });
 }
 
+// ── App protocol ────────────────────────────────────────────────────────────
+
+// Serves the SvelteKit static build via the `app://` protocol.
+// Electron's custom protocols don't resolve absolute paths (/_app/...) from the
+// origin root the way http:// does — when the document URL is a SPA sub-route
+// like app://-/projects/123/institutions/, absolute paths in index.html are
+// resolved relative to the current pathname. This handler works around that by
+// stripping SPA route prefixes from _app/ paths before looking up files.
+function registerAppProtocol() {
+  const buildDir = path.join(app.getAppPath(), 'build');
+  const indexPath = path.join(buildDir, 'index.html');
+
+  protocol.handle('app', async (request) => {
+    const url = new URL(request.url);
+    const pathname = decodeURIComponent(url.pathname).replace(/^\//, '');
+
+    const candidates = [path.join(buildDir, pathname)];
+
+    // If the path contains _app/, also try stripping the SPA route prefix.
+    // e.g. projects/123/institutions/_app/immutable/chunks/X.js → _app/immutable/chunks/X.js
+    const appIndex = pathname.indexOf('_app/');
+    if (appIndex > 0) {
+      candidates.push(path.join(buildDir, pathname.slice(appIndex)));
+    }
+
+    for (const candidate of candidates) {
+      const safe = !path.relative(buildDir, candidate).startsWith('..');
+      if (!safe) continue;
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        return net.fetch(pathToFileURL(candidate).toString());
+      }
+    }
+
+    // SPA fallback: serve index.html for any non-file request
+    return net.fetch(pathToFileURL(indexPath).toString());
+  });
+}
+
 // ── App lifecycle ───────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
@@ -496,6 +534,7 @@ app.whenReady().then(async () => {
   registerPowerMonitorHandlers();
   registerMediaProtocol();
   registerWebsiteProtocol();
+  registerAppProtocol();
   createWindow();
 });
 
