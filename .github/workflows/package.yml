@@ -110,15 +110,7 @@ jobs:
         run: |
           cat > artifacts/unlock.command << 'EOF'
           #!/bin/bash
-          for app_path in "$HOME/Applications/Okpan.app" "/Applications/Okpan.app"; do
-            if [ -d "$app_path" ]; then
-              echo "Removing quarantine from $app_path..."
-              xattr -c "$app_path"
-              exit 0
-            fi
-          done
-          echo "Okpan.app not found in ~/Applications or /Applications."
-          exit 1
+          xattr -c /Applications/Okpan.app
           EOF
           chmod +x artifacts/unlock.command
 
