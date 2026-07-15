@@ -373,7 +373,6 @@
     status={object.status}
     statusDisabled={statusUpdating}
     onStatusChange={setStatus}
-    {languages}
   />
 
   <div class="row g-0 me-n4 mb-n4">

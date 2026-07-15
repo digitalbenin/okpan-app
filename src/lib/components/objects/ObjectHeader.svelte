@@ -13,9 +13,6 @@
     statusDisabled = false,
     showStatus = true,
     onStatusChange = undefined,
-    languages = [],
-    activeLanguage = null,
-    onLanguageChange = undefined,
   } = $props();
 
   const { t } = getTranslationStore();
@@ -25,8 +22,6 @@
     { label: institutionName, href: `/projects/${projectId}/institutions/${institutionId}` },
     { label: title },
   ]);
-
-  const showLanguageSelector = $derived(languages?.length > 1);
 
   function handleStatusClick() {
     if (statusDisabled) return;
@@ -41,20 +36,7 @@
       <BaseBreadcrumb icon={IconBuildingBank} items={breadcrumbItems} />
     </div>
 
-    {#if showLanguageSelector}
-      <div class="flex-shrink-0">
-        <select
-          class="form-select form-select-sm"
-          style="background-color: #7A7A76; color: #fff; border-color: #7A7A76; --bs-form-select-bg-img: url('data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3e%3cpath fill=%27none%27 stroke=%27%23fff%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27m2 5 6 6 6-6%27/%3e%3c/svg%3e');"
-          value={activeLanguage || languages[0]?.id || ''}
-          onchange={(e) => onLanguageChange?.(e.target.value)}
-        >
-          {#each languages as lang}
-            <option value={lang.id}>{lang.name?.content || lang.code}</option>
-          {/each}
-        </select>
-      </div>
-    {/if}
+
   </div>
 
   <div class="d-flex align-items-center gap-2 mt-1">
