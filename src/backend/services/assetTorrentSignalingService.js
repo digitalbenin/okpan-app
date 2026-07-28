@@ -6,10 +6,11 @@
  * @memberof backend.services
  */
 import crypto from 'crypto';
-import { joinRoom } from 'trystero';
+import { joinRoom, getRelaySockets } from 'trystero';
 import { RTCPeerConnection } from 'node-datachannel/polyfill';
 import SimplePeer from '@thaunknown/simple-peer';
 import { getRelayConfig, getTurnConfig } from '../utils/trysteroConfig.js';
+import { hasAnyP2PProvider } from './p2pService.js';
 
 function buildIceServers() {
   const stunServers = [
@@ -357,6 +358,7 @@ export function stopProjectAssetSignaling(projectId) {
   if (!projectId) return;
 
   const sig = signalingActions.get(projectId);
+  console.log('[AssetTorrent] stopProjectAssetSignaling', { projectId, hasSig: !!sig });
   if (sig) {
     for (const entry of sig.seederPeers.values()) destroyPeer(entry?.peer);
     try { sig.room?.leave?.(); } catch (err) { console.warn('[AssetTorrent] signaling room leave failed:', err?.message); }
@@ -364,6 +366,19 @@ export function stopProjectAssetSignaling(projectId) {
   }
 
   clearProjectPendingSignals(projectId);
+
+  // Close relay sockets if no other rooms are active.
+  if (signalingActions.size === 0 && !hasAnyP2PProvider()) {
+    try {
+      const sockets = getRelaySockets();
+      for (const socket of Object.values(sockets)) {
+        if (socket?.readyState <= 1) {
+          socket.onclose = () => {};
+          socket.close();
+        }
+      }
+    } catch (err) { console.warn('[AssetTorrent] Failed to close relay sockets', err); }
+  }
 }
 
 /**

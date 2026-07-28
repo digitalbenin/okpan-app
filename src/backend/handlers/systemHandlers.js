@@ -10,8 +10,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import { XMLParser } from 'fast-xml-parser';
 import { setCurrentProjectId, getCurrentProjectId, clearCurrentProjectId } from '../services/projectCacheService.js';
-import { stopP2PForProject } from '../services/p2pService.js';
+import { stopP2PForProject, getP2PProvider } from '../services/p2pService.js';
 import { stopProjectTorrents } from '../services/assetTorrentManagerService.js';
+import { stopProjectAssetSignaling } from '../services/assetTorrentSignalingService.js';
 import { applyImportPreset, describeImportPresets } from '../services/importPresets/index.js';
 
 /**
@@ -455,9 +456,11 @@ export const handleExcelSheetSelection = async (event, options) => {
 export const handleClearCurrentProject = async (event) => {
     try {
         const currentProjectId = getCurrentProjectId();
+        console.log('[P2P] clearCurrentProject', { currentProjectId, hasProvider: currentProjectId ? !!getP2PProvider(currentProjectId) : false });
         if (currentProjectId) {
             await stopProjectTorrents(currentProjectId);
             await stopP2PForProject(currentProjectId);
+            stopProjectAssetSignaling(currentProjectId);
         }
         clearCurrentProjectId();
         return { success: true };

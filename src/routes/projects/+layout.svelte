@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import Header from "$lib/components/projects/Header.svelte";
   import Sidebar from "$lib/components/projects/Sidebar.svelte";
   import DeletedEntityRedirectGuard from "$lib/components/navigation/DeletedEntityRedirectGuard.svelte";
@@ -19,15 +19,6 @@
   onMount(() => {
     void networkStatusStore.initialize();
     return () => p2pReconnect.destroy();
-  });
-
-  // Clear project cache when leaving the projects section
-  onDestroy(() => {
-    try {
-      window.api.clearCurrentProject();
-    } catch (error) {
-      console.warn("Failed to clear project cache:", error);
-    }
   });
 
   // Hide sidebar in explorer route

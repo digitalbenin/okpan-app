@@ -15,7 +15,7 @@ import {
   restoreRecoverySnapshot,
   deleteRecoverySnapshot
 } from '../services/recoverySnapshotService.js';
-import { clearDelayedReconcileStart, scheduleDelayedReconcileStart } from '../services/projectRuntimeService.js';
+import { clearDelayedReconcileStart, scheduleDelayedReconcileStart, isProjectShared } from '../services/projectRuntimeService.js';
 
 /**
  * Create a P2P sync snapshot for the project.
@@ -58,7 +58,8 @@ export async function handleHydrateSnapshot(_event, projectId) {
 
     const result = await hydrateProjectFromLatestSnapshot(projectId);
 
-    if (wasRunning) {
+    const sharedProject = await isProjectShared(projectId);
+    if (wasRunning && sharedProject) {
       await startP2PForProject(projectId, { skipHydration: true });
     }
 
@@ -149,7 +150,8 @@ export async function handleRestoreRecoverySnapshot(event, payload, { notifyProj
 
     const result = await restoreRecoverySnapshot(projectId, snapshotId);
 
-    if (hadProvider) {
+    const sharedProject = await isProjectShared(projectId);
+    if (hadProvider && sharedProject) {
       await startP2PForProject(projectId, { skipHydration: true });
     }
 

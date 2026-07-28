@@ -419,6 +419,21 @@ export async function stopP2PForProject(projectId) {
       }
     } catch (err) { console.warn('[P2P] Failed to leave trystero room', err) }
 
+    // Close relay sockets if no other rooms are active.
+    // Trystero auto-reconnects on close via the socket's onclose handler,
+    // so we override it before closing to prevent orphaned reconnects.
+    if (providers.size <= 1) {
+      try {
+        const sockets = getRelaySockets()
+        for (const socket of Object.values(sockets)) {
+          if (socket?.readyState <= 1) {
+            socket.onclose = () => {}
+            socket.close()
+          }
+        }
+      } catch (err) { console.warn('[P2P] Failed to close relay sockets', err) }
+    }
+
     try {
       if (typeof entry.awareness?.destroy === 'function') {
         entry.awareness.destroy()
@@ -444,6 +459,14 @@ export function getP2PProvider(projectId) {
   return providers.get(projectId)?.provider || null
 }
 
+/**
+ * Check whether any P2P provider is currently active.
+ * @memberof backend.services.p2pService
+ * @returns {boolean}
+ */
+export function hasAnyP2PProvider() {
+  return providers.size > 0
+}
 
 /**
  * Get the current peer count for a project.

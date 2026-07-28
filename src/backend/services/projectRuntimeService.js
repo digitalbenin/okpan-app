@@ -160,6 +160,13 @@ export async function bootstrapProjectRuntime(event, projectId, options = {}, { 
   const sharedProject = await isProjectShared(projectId);
   const isPendingRemoteJoin = pendingProjectJoins.has(projectId);
 
+  console.log('[P2P] bootstrapProjectRuntime', {
+    projectId,
+    sharedProject,
+    isPendingRemoteJoin,
+    hasProvider: !!getP2PProvider(projectId),
+  });
+
   if (hydrateSnapshot && !getP2PProvider(projectId)) {
     try {
       await hydrateProjectFromDatabase(projectId);
