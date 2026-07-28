@@ -9,6 +9,7 @@ import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
 // Use Trystero Torrent (WebTorrent) strategy for matchmaking
 import { joinRoom, getRelaySockets } from 'trystero'
 import { RTCPeerConnection } from 'node-datachannel/polyfill'
+import { getRelayConfig, getTurnConfig } from '../utils/trysteroConfig.js'
 import WebSocket from 'ws'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
 import * as Y from 'yjs'
@@ -260,6 +261,8 @@ export async function startP2PForProject(projectId, options = {}) {
     appId,
     password,
     rtcPolyfill: RTCPeerConnection,
+    ...getRelayConfig(),
+    ...getTurnConfig(),
   }, roomId)
 
   logRelayState(projectId, 'room-created', {

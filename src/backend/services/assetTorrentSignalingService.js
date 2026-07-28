@@ -9,14 +9,26 @@ import crypto from 'crypto';
 import { joinRoom } from 'trystero';
 import { RTCPeerConnection } from 'node-datachannel/polyfill';
 import SimplePeer from '@thaunknown/simple-peer';
+import { getRelayConfig, getTurnConfig } from '../utils/trysteroConfig.js';
 
-const WEBRTC_CONFIG = {
-  iceServers: [
+function buildIceServers() {
+  const stunServers = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun.cloudflare.com:3478' },
-  ],
-};
+  ];
+
+  const turnCfg = getTurnConfig();
+  if (turnCfg.turnConfig) {
+    return [...stunServers, ...turnCfg.turnConfig];
+  }
+
+  return stunServers;
+}
+
+function getWebRTCConfig() {
+  return { iceServers: buildIceServers() };
+}
 
 const signalingActions = new Map();
 const pendingPeerSignals = new Map();
@@ -148,7 +160,7 @@ export function createDownloaderSignalPeer({ projectId, infoHash, torrent }) {
   const attemptId = crypto.randomUUID();
 
   let sigPeer;
-  try { sigPeer = new SimplePeer({ initiator: false, trickle: true, config: WEBRTC_CONFIG }); }
+  try { sigPeer = new SimplePeer({ initiator: false, trickle: true, config: getWebRTCConfig() }); }
   catch (err) {
     console.warn(`[AssetTorrent] downloader SimplePeer failed ${infoHash}:`, err?.message);
     return false;
@@ -237,7 +249,11 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
   let room;
   try {
     const appId = process.env.TRYSTERO_APP_ID || 'db-conn-tool';
-    room = joinRoom({ appId, rtcPolyfill: RTCPeerConnection }, `project-assets-${projectId}`);
+    room = joinRoom({
+      appId,
+      rtcPolyfill: RTCPeerConnection,
+      ...getRelayConfig(),
+    }, `project-assets-${projectId}`);
   } catch (err) {
     console.error('[AssetTorrent] signaling room creation failed:', err?.message);
     return null;
@@ -269,7 +285,7 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
     const normalizedAttemptId = normalizeAttemptId(attemptId) || `legacy-${requesterId}`;
 
     let peer;
-    try { peer = new SimplePeer({ initiator: true, trickle: true, config: WEBRTC_CONFIG }); }
+    try { peer = new SimplePeer({ initiator: true, trickle: true, config: getWebRTCConfig() }); }
     catch (err) {
       console.error('[AssetTorrent] seeder SimplePeer failed:', err?.message);
       return;
