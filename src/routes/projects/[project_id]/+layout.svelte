@@ -1,5 +1,4 @@
 <script>
-    import { onDestroy } from "svelte";
     import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
     import { getAssetSyncStore } from "$lib/stores/AssetSyncStore.svelte.js";
     import { watch } from "runed";
