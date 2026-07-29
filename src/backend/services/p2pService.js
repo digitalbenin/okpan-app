@@ -20,6 +20,7 @@ import { ingestRemoteUpdate } from './remoteIngestionService.js'
 import { hydrateProjectFromDatabase } from './snapshotService.js'
 import { scheduleAssetReconcile, resetErroredAssets } from './assetTorrentManagerService.js'
 import { getGlobalProfile } from '../../db/queries/globalSettings.js'
+import { getRelayConfig, getTurnConfig, getTurnOnlyIceServers, isForceTurnOnly } from '../utils/trysteroConfig.js'
 
 // Helper: count tables and rows in a Y.Doc's `tables` map
 function countDocTables(doc) {
@@ -260,6 +261,9 @@ export async function startP2PForProject(projectId, options = {}) {
     appId,
     password,
     rtcPolyfill: RTCPeerConnection,
+    ...getRelayConfig(),
+    ...getTurnConfig(),
+    ...(isForceTurnOnly() ? { rtcConfig: { iceServers: getTurnOnlyIceServers() } } : {}),
   }, roomId)
 
   logRelayState(projectId, 'room-created', {
@@ -267,48 +271,11 @@ export async function startP2PForProject(projectId, options = {}) {
     appId,
     hasPassword: !!password
   })
-
-  const tracePeerConnection = (peerId) => {
-    const connection = trysteroRoom.getPeers?.()[peerId]
-    if (!connection) return
-
-    const logState = (event) => {
-      console.log('[P2P] peer transport state', {
-        projectId,
-        peerId,
-        event,
-        connectionState: connection.connectionState,
-        iceConnectionState: connection.iceConnectionState,
-        signalingState: connection.signalingState,
-      })
-    }
-
-    connection.addEventListener('connectionstatechange', () => logState('connectionstatechange'))
-    connection.addEventListener('iceconnectionstatechange', () => logState('iceconnectionstatechange'))
-    connection.addEventListener('signalingstatechange', () => logState('signalingstatechange'))
-    logState('observed')
-  }
-
-  const peerJoinObservers = new Set();
-  const peerLeaveObservers = new Set();
-  const setPeerJoinHandler = trysteroRoom.onPeerJoin.bind(trysteroRoom);
-  const setPeerLeaveHandler = trysteroRoom.onPeerLeave.bind(trysteroRoom);
-
-  trysteroRoom.onPeerJoin = (handler) => setPeerJoinHandler((peerId) => {
-    handler(peerId);
-    for (const observer of peerJoinObservers) observer(peerId);
-  });
-  trysteroRoom.onPeerLeave = (handler) => setPeerLeaveHandler((peerId) => {
-    handler(peerId);
-    for (const observer of peerLeaveObservers) observer(peerId);
-  });
-
-  peerJoinObservers.add((peerId) => {
+  trysteroRoom.onPeerJoin((peerId) => {
     console.log('[P2P] room peer joined', { projectId, peerId });
     logRelayState(projectId, 'peer-join', { peerId });
-    tracePeerConnection(peerId);
   });
-  peerLeaveObservers.add((peerId) => {
+  trysteroRoom.onPeerLeave((peerId) => {
     console.log('[P2P] room peer left', { projectId, peerId });
     logRelayState(projectId, 'peer-leave', { peerId });
   });
@@ -432,7 +399,6 @@ export async function startP2PForProject(projectId, options = {}) {
 export async function stopP2PForProject(projectId) {
   const entry = providers.get(projectId)
   console.log('[P2P] stop requested', { projectId, hasEntry: !!entry })
-  console.trace('[P2P] stop request stack')
   if (!entry) return
   try {
     try {
