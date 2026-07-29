@@ -9,16 +9,6 @@
     const contentStore = getContentLanguageStore();
     const syncStore = getAssetSyncStore();
 
-    // Stop P2P and torrents when leaving this project
-    onDestroy(() => {
-        console.log('[ProjectLayout] onDestroy — clearing project');
-        try {
-            window.api.clearCurrentProject();
-        } catch (error) {
-            console.warn("Failed to clear project cache on leave:", error);
-        }
-    });
-
     watch(() => data?.languages, (languages) => {
         if (languages) {
             contentStore.initialize({
