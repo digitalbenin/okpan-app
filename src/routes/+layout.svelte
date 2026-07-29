@@ -8,7 +8,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { watch } from "runed";
   import { onMount } from "svelte";
-  import { invalidate, invalidateAll } from "$app/navigation";
+  import { invalidate } from "$app/navigation";
   import { page } from "$app/state";
 
   let { children, data } = $props();
@@ -101,7 +101,7 @@
       if (!activeProjectId) {
         invalidate("app:projects");
       } else {
-        invalidateAll();
+        invalidate("app:project-shared");
       }
     });
   });

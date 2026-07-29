@@ -1,4 +1,3 @@
-import { browser } from '$app/environment';
 import { getProject } from "$lib/api/ProjectsApi.js";
 import { getProjectInstitutions } from "$lib/api/InstitutionsApi.js";
 import { getDisplayFields } from '$lib/api/DisplayFieldsApi.js';
@@ -11,18 +10,10 @@ import { getAssetLocalStates } from '$lib/api/AssetsApi.js';
 export const prerender = false;
 
 export const load = async ({ params, depends }) => {
-    if (!browser) return;
     depends('app:project-shared');
     depends('app:projects');
     depends('app:content-languages');
     depends('app:asset-sync');
-
-    // Cache the current project ID in backend for optimized GraphQL queries
-    try {
-        await window.api.setCurrentProject(params.project_id);
-    } catch (error) {
-        console.warn('Failed to cache project ID:', error);
-    }
 
     const project = await getProject(params.project_id);
     const displayFields = await getDisplayFields({ projectId: params.project_id });

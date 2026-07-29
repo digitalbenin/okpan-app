@@ -7,6 +7,17 @@
 
     const contentStore = getContentLanguageStore();
     const syncStore = getAssetSyncStore();
+    let initializedProjectId = null;
+
+    $effect(() => {
+        const projectId = data?.project?.id;
+        if (!projectId || projectId === initializedProjectId) return;
+
+        initializedProjectId = projectId;
+        window.api.setCurrentProject(projectId).catch((error) => {
+            console.warn('Failed to cache project ID:', error);
+        });
+    });
 
     watch(() => data?.languages, (languages) => {
         if (languages) {
