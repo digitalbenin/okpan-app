@@ -441,16 +441,6 @@ export function getP2PProvider(projectId) {
   return providers.get(projectId)?.provider || null
 }
 
-/**
- * Get the Trystero room owned by a project's active P2P provider.
- *
- * @param {string} projectId - Project identifier.
- * @returns {Object|null}
- */
-export function getP2PTrysteroRoom(projectId) {
-  return providers.get(projectId)?.trysteroRoom || null
-}
-
 
 /**
  * Get the current peer count for a project.

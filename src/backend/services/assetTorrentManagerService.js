@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import { db } from '../../db/init.js';
-import { assets, genericAssets, asset_local_state, generic_asset_local_state, project } from '../../db/schema.js';
+import { assets, genericAssets, asset_local_state, generic_asset_local_state } from '../../db/schema.js';
 import { eq, and, isNotNull, inArray, sql } from 'drizzle-orm';
 import {
   resolveLogicalAssetPath,
@@ -102,20 +102,8 @@ async function getProjectTorrent(infoHash) {
   return client.get(infoHash);
 }
 
-async function ensureProjectSignaling(projectId) {
-  try {
-    const rows = await db.select({ is_shared: project.is_shared }).from(project).where(eq(project.id, projectId)).limit(1);
-    const shared = rows[0] != null && (rows[0].is_shared === 1 || rows[0].is_shared === true);
-    if (!shared) return null;
-  } catch (_) {
-    return null;
-  }
-
-  const { getP2PTrysteroRoom } = await import('./p2pService.js');
-  const room = getP2PTrysteroRoom(projectId);
-  if (!room) return null;
-
-  return ensureProjectAssetSignaling(projectId, { getTorrent: getProjectTorrent, room });
+function ensureProjectSignaling(projectId) {
+  return ensureProjectAssetSignaling(projectId, { getTorrent: getProjectTorrent });
 }
 
 function getOrSet(map, key, factory) {
