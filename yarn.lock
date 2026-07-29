@@ -405,9 +405,9 @@
   optionalDependencies:
     global-agent "^3.0.0"
 
-"@electron/node-gyp@git+https://github.com/electron/node-gyp.git#06b29aafb7708acef8b3669835c8a7857ebc92d2":
+"@electron/node-gyp@https://github.com/electron/node-gyp#06b29aafb7708acef8b3669835c8a7857ebc92d2":
   version "10.2.0-electron.1"
-  resolved "git+https://github.com/electron/node-gyp.git#06b29aafb7708acef8b3669835c8a7857ebc92d2"
+  resolved "https://github.com/electron/node-gyp#06b29aafb7708acef8b3669835c8a7857ebc92d2"
   dependencies:
     env-paths "^2.2.0"
     exponential-backoff "^3.1.1"
@@ -8378,10 +8378,10 @@ node-api-version@^0.2.0:
   dependencies:
     semver "^7.3.5"
 
-node-datachannel@0.32.1, node-datachannel@^0.32.3:
-  version "0.32.1"
-  resolved "https://registry.yarnpkg.com/node-datachannel/-/node-datachannel-0.32.1.tgz#57674f0f9b0eaef67e3e4b606e7f0a5e68380fcc"
-  integrity sha512-r4UdtA0lCsz6XrG84pJ6lntAyw/MHpmBOhEkg5UQcmWTEpANqCPkMos6rj/QZDdq3GBUsdI/wst5acwWUiibCA==
+node-datachannel@0.32.3, node-datachannel@^0.32.3:
+  version "0.32.3"
+  resolved "https://registry.yarnpkg.com/node-datachannel/-/node-datachannel-0.32.3.tgz#27c7cfae1c549e3a65ca51a001ae3b67301c4155"
+  integrity sha512-Aok1ZhLsll472lRefgWYuWJ0070jh0ecHravTdRyZEmoESumebMEQV8Y+poBwSW2ZbEwAokAOGsK5Cu8pDDT2g==
   dependencies:
     prebuild-install "^7.1.3"
 

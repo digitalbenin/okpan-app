@@ -81,6 +81,47 @@ let presenceNotifier = null
 const LOCAL_PRESENCE_HEARTBEAT_MS = 10000
 const WEBSOCKET_READY_STATE_LABELS = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']
 
+// Health-check tracking: last time any remote peer was seen per project
+const lastPeerSeenAt = new Map()
+const healthCheckIntervals = new Map()
+const HEALTH_CHECK_INTERVAL_MS = 30000
+const PEER_DEAD_THRESHOLD_MS = 60000
+
+function startHealthCheck(projectId) {
+  if (healthCheckIntervals.has(projectId)) return
+  lastPeerSeenAt.set(projectId, Date.now())
+  const interval = setInterval(() => {
+    const entry = providers.get(projectId)
+    if (!entry) {
+      stopHealthCheck(projectId)
+      return
+    }
+    const lastSeen = lastPeerSeenAt.get(projectId) || 0
+    const elapsed = Date.now() - lastSeen
+    const remotePeers = listRemotePeers(projectId)
+    if (remotePeers.length > 0) {
+      lastPeerSeenAt.set(projectId, Date.now())
+    } else if (elapsed > PEER_DEAD_THRESHOLD_MS) {
+      console.warn('[P2P] Health check: no peers for >60s, restarting P2P', { projectId, elapsed })
+      stopP2PForProject(projectId).then(() => {
+        startP2PForProject(projectId, { skipHydration: true })
+      }).catch(err => {
+        console.error('[P2P] Health check restart failed', { projectId, err: err?.message })
+      })
+    }
+  }, HEALTH_CHECK_INTERVAL_MS)
+  healthCheckIntervals.set(projectId, interval)
+}
+
+function stopHealthCheck(projectId) {
+  const interval = healthCheckIntervals.get(projectId)
+  if (interval) {
+    clearInterval(interval)
+    healthCheckIntervals.delete(projectId)
+  }
+  lastPeerSeenAt.delete(projectId)
+}
+
 /**
  * Store a pending project password used during reconnect flows.
  * @memberof backend.services.p2pService
@@ -245,6 +286,7 @@ export async function startP2PForProject(projectId, options = {}) {
   const onChange = ({ added = [], updated = [], removed = [] }) => {
     for (const clientId of added) {
       console.log('[P2P] Peer connected', { projectId, clientId })
+      lastPeerSeenAt.set(projectId, Date.now())
       // New peer appeared: reset any errored assets and re-reconcile.
       // This handles the "after reconnect/network restoration" trigger point.
       resetErroredAssets(projectId).catch((err) =>
@@ -254,6 +296,7 @@ export async function startP2PForProject(projectId, options = {}) {
     }
     for (const clientId of updated) {
       // heartbeat — no log
+      lastPeerSeenAt.set(projectId, Date.now())
     }
     for (const clientId of removed) {
       console.log('[P2P] Peer disconnected', { projectId, clientId })
@@ -412,6 +455,7 @@ export async function startP2PForProject(projectId, options = {}) {
 
   providers.set(projectId, entry)
   console.log('[P2P] provider registered', { projectId, clientId: doc.clientID, providerCount: providers.size })
+  startHealthCheck(projectId)
   emitProjectPresence(projectId)
   return provider
 }
@@ -424,6 +468,7 @@ export async function startP2PForProject(projectId, options = {}) {
  * @returns {Promise<void>}
  */
 export async function stopP2PForProject(projectId) {
+  stopHealthCheck(projectId)
   const entry = providers.get(projectId)
   console.log('[P2P] stopP2PForProject ENTRY', { projectId, hasEntry: !!entry, providerCount: providers.size })
   if (!entry) {
