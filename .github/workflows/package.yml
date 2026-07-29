@@ -29,11 +29,26 @@ jobs:
       - name: Build Electron app (ARM64)
         run: yarn make -- --arch=arm64
 
+      - name: Generate unlock.command
+        shell: bash
+        run: |
+          cat > out/make/unlock.command << 'EOF'
+          #!/bin/bash
+          xattr -c /Applications/Okpan.app
+          EOF
+          chmod +x out/make/unlock.command
+
+      - name: Zip macOS ARM64 release bundle
+        shell: bash
+        run: |
+          dmg_path=$(find out/make -name "*.dmg" | head -n 1)
+          zip -j okpan-macos-arm64.zip out/make/unlock.command "$dmg_path"
+
       - name: Upload ARM64 artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macOS-arm64
-          path: out/make/**/*
+          path: okpan-macos-arm64.zip
   
   build-macos-x64:
     name: Build macOS x64
@@ -57,11 +72,26 @@ jobs:
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64
 
+      - name: Generate unlock.command
+        shell: bash
+        run: |
+          cat > out/make/unlock.command << 'EOF'
+          #!/bin/bash
+          xattr -c /Applications/Okpan.app
+          EOF
+          chmod +x out/make/unlock.command
+
+      - name: Zip macOS x64 release bundle
+        shell: bash
+        run: |
+          dmg_path=$(find out/make -name "*.dmg" | head -n 1)
+          zip -j okpan-macos-x64.zip out/make/unlock.command "$dmg_path"
+
       - name: Upload x64 artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macOS-x64
-          path: out/make/**/*
+          path: okpan-macos-x64.zip
 
   build-windows-x64:
     name: Build Windows x64
@@ -77,10 +107,10 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --network-timeout 300000
 
       - name: Install website dependencies
-        run: yarn --cwd src/website install
+        run: yarn --cwd src/website install --network-timeout 300000
 
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64
