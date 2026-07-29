@@ -33,14 +33,16 @@ function getSeederPeerKey(infoHash, requesterId, attemptId) {
   return `${infoHash}:${requesterId}:${attemptId}`;
 }
 
-function destroyPeer(peer) {
+function destroyPeer(peer, reason) {
+  console.warn('[AssetTorrent] destroying signaling peer', { peerId: peer?.id, reason });
+  console.trace('[AssetTorrent] signaling peer destroy stack');
   try { peer?.destroy(); } catch (_) {}
 }
 
 function removePendingPeerSignalEntry(key, { destroy = true } = {}) {
   const entry = pendingPeerSignals.get(key);
   if (!entry) return null;
-  if (destroy) destroyPeer(entry.peer);
+  if (destroy) destroyPeer(entry.peer, 'remove-pending-signal');
   pendingPeerSignals.delete(key);
   return entry;
 }
@@ -75,7 +77,7 @@ function clearSeederPeersForRequest(seederPeers, infoHash, requesterId, keepAtte
   for (const [key, entry] of seederPeers) {
     if (entry?.infoHash !== infoHash || entry?.requesterId !== requesterId) continue;
     if (keepAttemptId && entry.attemptId === keepAttemptId) continue;
-    destroyPeer(entry.peer);
+    destroyPeer(entry.peer, 'replace-seeder-peer');
     seederPeers.delete(key);
   }
 }
@@ -342,7 +344,7 @@ export function stopProjectAssetSignaling(projectId) {
 
   const sig = signalingActions.get(projectId);
   if (sig) {
-    for (const entry of sig.seederPeers.values()) destroyPeer(entry?.peer);
+    for (const entry of sig.seederPeers.values()) destroyPeer(entry?.peer, 'stop-project-signaling');
     try { sig.room?.leave?.(); } catch (err) { console.warn('[AssetTorrent] signaling room leave failed:', err?.message); }
     signalingActions.delete(projectId);
   }
@@ -360,7 +362,7 @@ export function destroyAssetSignaling() {
     stopProjectAssetSignaling(projectId);
   }
 
-  for (const entry of pendingPeerSignals.values()) destroyPeer(entry?.peer);
+  for (const entry of pendingPeerSignals.values()) destroyPeer(entry?.peer, 'destroy-all-signaling');
   pendingPeerSignals.clear();
   signalingActions.clear();
 }

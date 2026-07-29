@@ -268,22 +268,6 @@ export async function startP2PForProject(projectId, options = {}) {
     hasPassword: !!password
   })
 
-  trysteroRoom.onPeerJoin((peerId) => {
-    console.log('[P2P] room peer joined', { projectId, peerId })
-    logRelayState(projectId, 'peer-join', { peerId })
-  })
-  trysteroRoom.onPeerLeave((peerId) => {
-    console.log('[P2P] room peer left', { projectId, peerId })
-    logRelayState(projectId, 'peer-leave', { peerId })
-  })
-
-  // Initialize provider with canonical doc (no explicit connect)
-  const provider = new TrysteroProvider(roomId, doc, {
-    appId,        // Required: Your Trystero app ID
-    awareness,    // Awareness protocol
-    trysteroRoom  // Use pre-configured room (server-side)
-  })
-
   const tracePeerConnection = (peerId) => {
     const connection = trysteroRoom.getPeers?.()[peerId]
     if (!connection) return
@@ -304,6 +288,37 @@ export async function startP2PForProject(projectId, options = {}) {
     connection.addEventListener('signalingstatechange', () => logState('signalingstatechange'))
     logState('observed')
   }
+
+  const peerJoinObservers = new Set();
+  const peerLeaveObservers = new Set();
+  const setPeerJoinHandler = trysteroRoom.onPeerJoin.bind(trysteroRoom);
+  const setPeerLeaveHandler = trysteroRoom.onPeerLeave.bind(trysteroRoom);
+
+  trysteroRoom.onPeerJoin = (handler) => setPeerJoinHandler((peerId) => {
+    handler(peerId);
+    for (const observer of peerJoinObservers) observer(peerId);
+  });
+  trysteroRoom.onPeerLeave = (handler) => setPeerLeaveHandler((peerId) => {
+    handler(peerId);
+    for (const observer of peerLeaveObservers) observer(peerId);
+  });
+
+  peerJoinObservers.add((peerId) => {
+    console.log('[P2P] room peer joined', { projectId, peerId });
+    logRelayState(projectId, 'peer-join', { peerId });
+    tracePeerConnection(peerId);
+  });
+  peerLeaveObservers.add((peerId) => {
+    console.log('[P2P] room peer left', { projectId, peerId });
+    logRelayState(projectId, 'peer-leave', { peerId });
+  });
+
+  // Initialize provider with canonical doc (no explicit connect)
+  const provider = new TrysteroProvider(roomId, doc, {
+    appId,        // Required: Your Trystero app ID
+    awareness,    // Awareness protocol
+    trysteroRoom  // Use pre-configured room (server-side)
+  })
 
   const entry = {
     provider,
@@ -340,7 +355,6 @@ export async function startP2PForProject(projectId, options = {}) {
       trysteroCount: trysteroPeers.length,
       bcCount: bcPeers.length
     })
-    for (const peerId of added) tracePeerConnection(peerId)
   })
   provider.on('destroy', () => {
     console.log('[P2P] provider destroyed', { projectId })
