@@ -284,6 +284,27 @@ export async function startP2PForProject(projectId, options = {}) {
     trysteroRoom  // Use pre-configured room (server-side)
   })
 
+  const tracePeerConnection = (peerId) => {
+    const connection = trysteroRoom.getPeers?.()[peerId]
+    if (!connection) return
+
+    const logState = (event) => {
+      console.log('[P2P] peer transport state', {
+        projectId,
+        peerId,
+        event,
+        connectionState: connection.connectionState,
+        iceConnectionState: connection.iceConnectionState,
+        signalingState: connection.signalingState,
+      })
+    }
+
+    connection.addEventListener('connectionstatechange', () => logState('connectionstatechange'))
+    connection.addEventListener('iceconnectionstatechange', () => logState('iceconnectionstatechange'))
+    connection.addEventListener('signalingstatechange', () => logState('signalingstatechange'))
+    logState('observed')
+  }
+
   const entry = {
     provider,
     awareness,
@@ -319,6 +340,7 @@ export async function startP2PForProject(projectId, options = {}) {
       trysteroCount: trysteroPeers.length,
       bcCount: bcPeers.length
     })
+    for (const peerId of added) tracePeerConnection(peerId)
   })
   provider.on('destroy', () => {
     console.log('[P2P] provider destroyed', { projectId })
@@ -396,6 +418,7 @@ export async function startP2PForProject(projectId, options = {}) {
 export async function stopP2PForProject(projectId) {
   const entry = providers.get(projectId)
   console.log('[P2P] stop requested', { projectId, hasEntry: !!entry })
+  console.trace('[P2P] stop request stack')
   if (!entry) return
   try {
     try {
