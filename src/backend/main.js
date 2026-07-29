@@ -194,6 +194,10 @@ process.on('uncaughtException', (error) => {
 });
 
 process.on('unhandledRejection', (reason) => {
+  if (reason?.message?.includes('destroyed channel') || reason?.message?.includes('sendMessagBinary')) {
+    console.warn('[P2P] Suppressed send error on dead peer:', reason.message);
+    return;
+  }
   console.error('Unhandled Rejection:', reason);
 });
 

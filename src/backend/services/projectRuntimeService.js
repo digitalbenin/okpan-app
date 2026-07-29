@@ -160,7 +160,7 @@ export async function bootstrapProjectRuntime(event, projectId, options = {}, { 
   const sharedProject = await isProjectShared(projectId);
   const isPendingRemoteJoin = pendingProjectJoins.has(projectId);
 
-  console.log('[P2P] bootstrapProjectRuntime', {
+  console.log('[P2P] bootstrapProjectRuntime ENTRY', {
     projectId,
     sharedProject,
     isPendingRemoteJoin,

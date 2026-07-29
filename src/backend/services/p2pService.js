@@ -8,8 +8,27 @@
 import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
 // Use Trystero Torrent (WebTorrent) strategy for matchmaking
 import { joinRoom, getRelaySockets } from 'trystero'
-import { RTCPeerConnection } from 'node-datachannel/polyfill'
+import { RTCPeerConnection as NodeRTCPeerConnection } from 'node-datachannel/polyfill'
 import { getRelayConfig, getTurnConfig, isForceTurnOnly, getTurnOnlyIceServers } from '../utils/trysteroConfig.js'
+
+// Monkey-patch RTCPeerConnection to log state changes for debugging connection drops
+const RTCPeerConnection = class extends NodeRTCPeerConnection {
+  constructor(config) {
+    super(config);
+    this.addEventListener('connectionstatechange', () => {
+      console.log('[WebRTC] connectionstatechange', this.connectionState);
+    });
+    this.addEventListener('iceconnectionstatechange', () => {
+      console.log('[WebRTC] iceconnectionstatechange', this.iceConnectionState);
+    });
+    this.addEventListener('icegatheringstatechange', () => {
+      console.log('[WebRTC] icegatheringstatechange', this.iceGatheringState);
+    });
+    this.addEventListener('signalingstatechange', () => {
+      console.log('[WebRTC] signalingstatechange', this.signalingState);
+    });
+  }
+}
 import WebSocket from 'ws'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
 import * as Y from 'yjs'
@@ -179,14 +198,15 @@ if (typeof globalThis.WebSocket === 'undefined') {
  * @returns {Promise<Object|null>}
  */
 export async function startP2PForProject(projectId, options = {}) {
+  console.log('[P2P] startP2PForProject ENTRY', { projectId, hasProvider: providers.has(projectId), providerCount: providers.size })
   if (!projectId) return null
   if (providers.has(projectId)) {
-    //console.log('[P2P] start skipped: provider already exists', { projectId })
+    console.log('[P2P] start skipped: provider already exists', { projectId })
     emitProjectPresence(projectId)
     return providers.get(projectId).provider
   }
 
-  //console.log('[P2P] start requested', { projectId })
+  console.log('[P2P] start requested', { projectId })
 
   // Ensure Doc is hydrated from DB before starting P2P to prevent "empty doc" diffs
   if (!options.skipHydration) {
@@ -257,14 +277,20 @@ export async function startP2PForProject(projectId, options = {}) {
     password = pendingProjectPasswords.get(projectId)
   }
 
+  const rtcConfig = isForceTurnOnly()
+    ? { iceServers: getTurnOnlyIceServers(), iceTransportPolicy: 'relay' }
+    : {};
+
+  console.log('[P2P] calling joinRoom', { projectId, roomId, appId, hasPassword: !!password, relayCount: Object.keys(getRelaySockets()).length, forceTurn: isForceTurnOnly() })
   const trysteroRoom = joinRoom({
     appId,
     password,
     rtcPolyfill: RTCPeerConnection,
     ...getRelayConfig(),
     ...getTurnConfig(),
-    ...(isForceTurnOnly() ? { rtcConfig: { iceServers: getTurnOnlyIceServers() } } : {}),
+    ...(Object.keys(rtcConfig).length > 0 ? { rtcConfig } : {}),
   }, roomId)
+  console.log('[P2P] joinRoom returned', { projectId, hasRoom: !!trysteroRoom, hasLeave: typeof trysteroRoom?.leave === 'function' })
 
   logRelayState(projectId, 'room-created', {
     roomId,
@@ -385,7 +411,7 @@ export async function startP2PForProject(projectId, options = {}) {
   }, LOCAL_PRESENCE_HEARTBEAT_MS)
 
   providers.set(projectId, entry)
-  console.log('[P2P] provider ready', { projectId, roomId })
+  console.log('[P2P] provider registered', { projectId, clientId: doc.clientID, providerCount: providers.size })
   emitProjectPresence(projectId)
   return provider
 }
@@ -399,8 +425,11 @@ export async function startP2PForProject(projectId, options = {}) {
  */
 export async function stopP2PForProject(projectId) {
   const entry = providers.get(projectId)
-  console.log('[P2P] stop requested', { projectId, hasEntry: !!entry })
-  if (!entry) return
+  console.log('[P2P] stopP2PForProject ENTRY', { projectId, hasEntry: !!entry, providerCount: providers.size })
+  if (!entry) {
+    console.log('[P2P] stop skipped: no entry', { projectId })
+    return
+  }
   try {
     try {
       entry.awareness?.off('change', entry.onChange)
@@ -411,27 +440,36 @@ export async function stopP2PForProject(projectId) {
     try { getProjectDoc(projectId)?.off('update', entry.onDocUpdatePersist) } catch (err) { console.warn('[P2P] Failed to remove canonical doc persistence handler', err) }
 
     const provider = entry.provider
+    console.log('[P2P] destroying provider', { projectId, hasDestroy: typeof provider.destroy === 'function', hasDisconnect: typeof provider.disconnect === 'function' })
     if (typeof provider.destroy === 'function') await provider.destroy()
     else if (typeof provider.disconnect === 'function') await provider.disconnect()
+    console.log('[P2P] provider destroyed', { projectId })
 
     try {
       if (entry.trysteroRoom && typeof entry.trysteroRoom.leave === 'function') {
+        console.log('[P2P] leaving trystero room', { projectId })
         entry.trysteroRoom.leave()
+        console.log('[P2P] trystero room left', { projectId })
       }
     } catch (err) { console.warn('[P2P] Failed to leave trystero room', err) }
 
     // Close relay sockets if no other rooms are active.
     // Trystero auto-reconnects on close via the socket's onclose handler,
     // so we override it before closing to prevent orphaned reconnects.
+    console.log('[P2P] checking socket cleanup', { projectId, providerCountBeforeDelete: providers.size })
     if (providers.size <= 1) {
       try {
         const sockets = getRelaySockets()
+        const socketStates = Object.entries(sockets).map(([url, s]) => ({ url, readyState: s?.readyState }))
+        console.log('[P2P] closing relay sockets', { projectId, socketStates })
         for (const socket of Object.values(sockets)) {
           if (socket?.readyState <= 1) {
+            console.log('[P2P] overriding onclose and closing socket', { projectId, readyState: socket.readyState })
             socket.onclose = () => {}
             socket.close()
           }
         }
+        console.log('[P2P] relay sockets closed', { projectId })
       } catch (err) { console.warn('[P2P] Failed to close relay sockets', err) }
     }
 
@@ -446,6 +484,7 @@ export async function stopP2PForProject(projectId) {
     console.error('[P2P] stopP2PForProject error', err)
   }
   providers.delete(projectId)
+  console.log('[P2P] stopP2PForProject EXIT', { projectId, providerCountAfterDelete: providers.size })
   emitProjectPresence(projectId)
 }
 

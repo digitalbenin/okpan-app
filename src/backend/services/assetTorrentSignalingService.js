@@ -35,7 +35,11 @@ function buildIceServers() {
 }
 
 function getWebRTCConfig() {
-  return { iceServers: buildIceServers() };
+  const config = { iceServers: buildIceServers() };
+  if (isForceTurnOnly()) {
+    config.iceTransportPolicy = 'relay';
+  }
+  return config;
 }
 
 const signalingActions = new Map();
