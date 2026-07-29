@@ -9,10 +9,17 @@ import crypto from 'crypto';
 import { joinRoom, getRelaySockets } from 'trystero';
 import { RTCPeerConnection } from 'node-datachannel/polyfill';
 import SimplePeer from '@thaunknown/simple-peer';
-import { getRelayConfig, getTurnConfig } from '../utils/trysteroConfig.js';
+import { getRelayConfig, getTurnConfig, isForceTurnOnly, getTurnOnlyIceServers } from '../utils/trysteroConfig.js';
 import { hasAnyP2PProvider } from './p2pService.js';
 
 function buildIceServers() {
+  if (isForceTurnOnly()) {
+    const turnOnly = getTurnOnlyIceServers();
+    if (turnOnly.length > 0) return turnOnly;
+    console.warn('[AssetTorrent] FORCE_TURN_ONLY is set but no TURN server is configured');
+    return [];
+  }
+
   const stunServers = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },

@@ -4,6 +4,42 @@
  */
 import { generateTurnCredentials } from './turnCredentials.js';
 
+function buildTurnIceServers() {
+  const serverUrl = process.env.TURN_SERVER_URL;
+  if (!serverUrl) return [];
+
+  const username = process.env.TURN_USERNAME;
+  const credential = process.env.TURN_CREDENTIAL;
+  if (username && credential) {
+    return [{ urls: serverUrl, username, credential }];
+  }
+
+  const secret = process.env.TURN_SECRET;
+  if (secret) {
+    const { username: genUser, credential: genCred } = generateTurnCredentials(secret);
+    return [{ urls: serverUrl, username: genUser, credential: genCred }];
+  }
+
+  return [];
+}
+
+/**
+ * Check whether FORCE_TURN_ONLY is enabled.
+ * @returns {boolean}
+ */
+export function isForceTurnOnly() {
+  return process.env.FORCE_TURN_ONLY === 'true';
+}
+
+/**
+ * Get ICE servers array containing only TURN servers.
+ * Useful for overriding default STUN servers when FORCE_TURN_ONLY is set.
+ * @returns {Array<Object>} iceServers array for RTCPeerConnection config.
+ */
+export function getTurnOnlyIceServers() {
+  return buildTurnIceServers();
+}
+
 /**
  * Parse TRYSTERO_RELAY_URLS env var into a relayUrls array.
  * Trystero's Nostr strategy in v0.22.0 reads config.relayUrls (flat array),
