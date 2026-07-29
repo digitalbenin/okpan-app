@@ -6,40 +6,27 @@
  * @memberof backend.services
  */
 import crypto from 'crypto';
-import { joinRoom, getRelaySockets } from 'trystero';
+import { joinRoom } from 'trystero';
 import { RTCPeerConnection } from 'node-datachannel/polyfill';
 import SimplePeer from '@thaunknown/simple-peer';
-import { getRelayConfig, getTurnConfig, isForceTurnOnly, getTurnOnlyIceServers } from '../utils/trysteroConfig.js';
-import { hasAnyP2PProvider } from './p2pService.js';
+import { getRelayConfig, getTurnConfig } from '../utils/trysteroConfig.js';
 
-function buildIceServers() {
-  if (isForceTurnOnly()) {
-    const turnOnly = getTurnOnlyIceServers();
-    if (turnOnly.length > 0) return turnOnly;
-    console.warn('[AssetTorrent] FORCE_TURN_ONLY is set but no TURN server is configured');
-    return [];
-  }
-
-  const stunServers = [
+const WEBRTC_CONFIG = {
+  iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun.cloudflare.com:3478' },
-  ];
-
-  const turnCfg = getTurnConfig();
-  if (turnCfg.turnConfig) {
-    return [...stunServers, ...turnCfg.turnConfig];
-  }
-
-  return stunServers;
-}
+  ],
+};
 
 function getWebRTCConfig() {
-  const config = { iceServers: buildIceServers() };
-  if (isForceTurnOnly()) {
-    config.iceTransportPolicy = 'relay';
+  const turnCfg = getTurnConfig();
+  if (turnCfg.turnConfig) {
+    return {
+      iceServers: [...WEBRTC_CONFIG.iceServers, ...turnCfg.turnConfig],
+    };
   }
-  return config;
+  return WEBRTC_CONFIG;
 }
 
 const signalingActions = new Map();
@@ -377,19 +364,6 @@ export function stopProjectAssetSignaling(projectId) {
   }
 
   clearProjectPendingSignals(projectId);
-
-  // Close relay sockets if no other rooms are active.
-  if (signalingActions.size === 0 && !hasAnyP2PProvider()) {
-    try {
-      const sockets = getRelaySockets();
-      for (const socket of Object.values(sockets)) {
-        if (socket?.readyState <= 1) {
-          socket.onclose = () => {};
-          socket.close();
-        }
-      }
-    } catch (err) { console.warn('[AssetTorrent] Failed to close relay sockets', err); }
-  }
 }
 
 /**

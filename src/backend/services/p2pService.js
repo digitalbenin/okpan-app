@@ -8,27 +8,8 @@
 import { TrysteroProvider } from '@winstonfassett/y-webrtc-trystero'
 // Use Trystero Torrent (WebTorrent) strategy for matchmaking
 import { joinRoom, getRelaySockets } from 'trystero'
-import { RTCPeerConnection as NodeRTCPeerConnection } from 'node-datachannel/polyfill'
+import { RTCPeerConnection } from 'node-datachannel/polyfill'
 import { getRelayConfig, getTurnConfig, isForceTurnOnly, getTurnOnlyIceServers } from '../utils/trysteroConfig.js'
-
-// Monkey-patch RTCPeerConnection to log state changes for debugging connection drops
-const RTCPeerConnection = class extends NodeRTCPeerConnection {
-  constructor(config) {
-    super(config);
-    this.addEventListener('connectionstatechange', () => {
-      console.log('[WebRTC] connectionstatechange', this.connectionState);
-    });
-    this.addEventListener('iceconnectionstatechange', () => {
-      console.log('[WebRTC] iceconnectionstatechange', this.iceConnectionState);
-    });
-    this.addEventListener('icegatheringstatechange', () => {
-      console.log('[WebRTC] icegatheringstatechange', this.iceGatheringState);
-    });
-    this.addEventListener('signalingstatechange', () => {
-      console.log('[WebRTC] signalingstatechange', this.signalingState);
-    });
-  }
-}
 import WebSocket from 'ws'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
 import * as Y from 'yjs'
@@ -80,47 +61,6 @@ const pendingProjectPasswords = new Map()
 let presenceNotifier = null
 const LOCAL_PRESENCE_HEARTBEAT_MS = 10000
 const WEBSOCKET_READY_STATE_LABELS = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']
-
-// Health-check tracking: last time any remote peer was seen per project
-const lastPeerSeenAt = new Map()
-const healthCheckIntervals = new Map()
-const HEALTH_CHECK_INTERVAL_MS = 30000
-const PEER_DEAD_THRESHOLD_MS = 60000
-
-function startHealthCheck(projectId) {
-  if (healthCheckIntervals.has(projectId)) return
-  lastPeerSeenAt.set(projectId, Date.now())
-  const interval = setInterval(() => {
-    const entry = providers.get(projectId)
-    if (!entry) {
-      stopHealthCheck(projectId)
-      return
-    }
-    const lastSeen = lastPeerSeenAt.get(projectId) || 0
-    const elapsed = Date.now() - lastSeen
-    const remotePeers = listRemotePeers(projectId)
-    if (remotePeers.length > 0) {
-      lastPeerSeenAt.set(projectId, Date.now())
-    } else if (elapsed > PEER_DEAD_THRESHOLD_MS) {
-      console.warn('[P2P] Health check: no peers for >60s, restarting P2P', { projectId, elapsed })
-      stopP2PForProject(projectId).then(() => {
-        startP2PForProject(projectId, { skipHydration: true })
-      }).catch(err => {
-        console.error('[P2P] Health check restart failed', { projectId, err: err?.message })
-      })
-    }
-  }, HEALTH_CHECK_INTERVAL_MS)
-  healthCheckIntervals.set(projectId, interval)
-}
-
-function stopHealthCheck(projectId) {
-  const interval = healthCheckIntervals.get(projectId)
-  if (interval) {
-    clearInterval(interval)
-    healthCheckIntervals.delete(projectId)
-  }
-  lastPeerSeenAt.delete(projectId)
-}
 
 /**
  * Store a pending project password used during reconnect flows.
@@ -286,7 +226,6 @@ export async function startP2PForProject(projectId, options = {}) {
   const onChange = ({ added = [], updated = [], removed = [] }) => {
     for (const clientId of added) {
       console.log('[P2P] Peer connected', { projectId, clientId })
-      lastPeerSeenAt.set(projectId, Date.now())
       // New peer appeared: reset any errored assets and re-reconcile.
       // This handles the "after reconnect/network restoration" trigger point.
       resetErroredAssets(projectId).catch((err) =>
@@ -296,7 +235,6 @@ export async function startP2PForProject(projectId, options = {}) {
     }
     for (const clientId of updated) {
       // heartbeat — no log
-      lastPeerSeenAt.set(projectId, Date.now())
     }
     for (const clientId of removed) {
       console.log('[P2P] Peer disconnected', { projectId, clientId })
@@ -320,18 +258,13 @@ export async function startP2PForProject(projectId, options = {}) {
     password = pendingProjectPasswords.get(projectId)
   }
 
-  const rtcConfig = isForceTurnOnly()
-    ? { iceServers: getTurnOnlyIceServers(), iceTransportPolicy: 'relay' }
-    : {};
-
-  console.log('[P2P] calling joinRoom', { projectId, roomId, appId, hasPassword: !!password, relayCount: Object.keys(getRelaySockets()).length, forceTurn: isForceTurnOnly() })
+  console.log('[P2P] calling joinRoom', { projectId, roomId, appId, hasPassword: !!password, relayCount: Object.keys(getRelaySockets()).length })
   const trysteroRoom = joinRoom({
     appId,
     password,
     rtcPolyfill: RTCPeerConnection,
     ...getRelayConfig(),
     ...getTurnConfig(),
-    ...(Object.keys(rtcConfig).length > 0 ? { rtcConfig } : {}),
   }, roomId)
   console.log('[P2P] joinRoom returned', { projectId, hasRoom: !!trysteroRoom, hasLeave: typeof trysteroRoom?.leave === 'function' })
 
@@ -455,7 +388,6 @@ export async function startP2PForProject(projectId, options = {}) {
 
   providers.set(projectId, entry)
   console.log('[P2P] provider registered', { projectId, clientId: doc.clientID, providerCount: providers.size })
-  startHealthCheck(projectId)
   emitProjectPresence(projectId)
   return provider
 }
@@ -468,7 +400,6 @@ export async function startP2PForProject(projectId, options = {}) {
  * @returns {Promise<void>}
  */
 export async function stopP2PForProject(projectId) {
-  stopHealthCheck(projectId)
   const entry = providers.get(projectId)
   console.log('[P2P] stopP2PForProject ENTRY', { projectId, hasEntry: !!entry, providerCount: providers.size })
   if (!entry) {
@@ -485,38 +416,14 @@ export async function stopP2PForProject(projectId) {
     try { getProjectDoc(projectId)?.off('update', entry.onDocUpdatePersist) } catch (err) { console.warn('[P2P] Failed to remove canonical doc persistence handler', err) }
 
     const provider = entry.provider
-    console.log('[P2P] destroying provider', { projectId, hasDestroy: typeof provider.destroy === 'function', hasDisconnect: typeof provider.disconnect === 'function' })
     if (typeof provider.destroy === 'function') await provider.destroy()
     else if (typeof provider.disconnect === 'function') await provider.disconnect()
-    console.log('[P2P] provider destroyed', { projectId })
 
     try {
       if (entry.trysteroRoom && typeof entry.trysteroRoom.leave === 'function') {
-        console.log('[P2P] leaving trystero room', { projectId })
         entry.trysteroRoom.leave()
-        console.log('[P2P] trystero room left', { projectId })
       }
     } catch (err) { console.warn('[P2P] Failed to leave trystero room', err) }
-
-    // Close relay sockets if no other rooms are active.
-    // Trystero auto-reconnects on close via the socket's onclose handler,
-    // so we override it before closing to prevent orphaned reconnects.
-    console.log('[P2P] checking socket cleanup', { projectId, providerCountBeforeDelete: providers.size })
-    if (providers.size <= 1) {
-      try {
-        const sockets = getRelaySockets()
-        const socketStates = Object.entries(sockets).map(([url, s]) => ({ url, readyState: s?.readyState }))
-        console.log('[P2P] closing relay sockets', { projectId, socketStates })
-        for (const socket of Object.values(sockets)) {
-          if (socket?.readyState <= 1) {
-            console.log('[P2P] overriding onclose and closing socket', { projectId, readyState: socket.readyState })
-            socket.onclose = () => {}
-            socket.close()
-          }
-        }
-        console.log('[P2P] relay sockets closed', { projectId })
-      } catch (err) { console.warn('[P2P] Failed to close relay sockets', err) }
-    }
 
     try {
       if (typeof entry.awareness?.destroy === 'function') {
@@ -529,7 +436,6 @@ export async function stopP2PForProject(projectId) {
     console.error('[P2P] stopP2PForProject error', err)
   }
   providers.delete(projectId)
-  console.log('[P2P] stopP2PForProject EXIT', { projectId, providerCountAfterDelete: providers.size })
   emitProjectPresence(projectId)
 }
 
