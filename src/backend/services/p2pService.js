@@ -123,6 +123,44 @@ function logRelayState(projectId, context, details = {}) {
   })
 }
 
+function closeRelaySocket(socket) {
+  return new Promise((resolve) => {
+    const onClose = () => resolve()
+
+    if (typeof socket.addEventListener === 'function') {
+      socket.addEventListener('close', onClose, { once: true })
+    } else if (typeof socket.once === 'function') {
+      socket.once('close', onClose)
+    } else {
+      resolve()
+      return
+    }
+
+    try {
+      socket.close()
+    } catch (err) {
+      console.warn('[P2P] Failed to close idle relay socket:', err?.message)
+      resolve()
+    }
+  })
+}
+
+async function closeIdleRelaySockets() {
+  if (providers.size > 0) return
+
+  const closures = []
+  for (const socket of Object.values(getRelaySockets())) {
+    if (!socket || socket.readyState === 3) continue
+
+    // Trystero reconnects every closed relay socket. Once the final project
+    // leaves, this process owns no room and must release its server client.
+    socket.onclose = null
+    closures.push(closeRelaySocket(socket))
+  }
+
+  await Promise.all(closures)
+}
+
 function listRemotePeers(projectId) {
   const entry = providers.get(projectId)
   if (!entry?.awareness) return []
@@ -430,6 +468,7 @@ export async function stopP2PForProject(projectId) {
     console.error('[P2P] stopP2PForProject error', err)
   }
   providers.delete(projectId)
+  await closeIdleRelaySockets()
   emitProjectPresence(projectId)
 }
 
