@@ -110,7 +110,12 @@ async function ensureProjectSignaling(projectId) {
   } catch (_) {
     return null;
   }
-  return ensureProjectAssetSignaling(projectId, { getTorrent: getProjectTorrent });
+
+  const { getP2PTrysteroRoom } = await import('./p2pService.js');
+  const room = getP2PTrysteroRoom(projectId);
+  if (!room) return null;
+
+  return ensureProjectAssetSignaling(projectId, { getTorrent: getProjectTorrent, room });
 }
 
 function getOrSet(map, key, factory) {

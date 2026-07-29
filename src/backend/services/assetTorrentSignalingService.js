@@ -6,8 +6,6 @@
  * @memberof backend.services
  */
 import crypto from 'crypto';
-import { joinRoom } from 'trystero';
-import { RTCPeerConnection } from 'node-datachannel/polyfill';
 import SimplePeer from '@thaunknown/simple-peer';
 
 const WEBRTC_CONFIG = {
@@ -200,67 +198,26 @@ export function createDownloaderSignalPeer({ projectId, infoHash, torrent }) {
   return true;
 }
 
-async function resetPendingSeederForPeer(projectId, peerId) {
-  if (!projectId || !peerId) return;
-
-  const sig = signalingActions.get(projectId);
-  if (!sig) return;
-
-  for (const entry of pendingPeerSignals.values()) {
-    if (entry?.projectId !== projectId || entry.seederId !== peerId) continue;
-
-    const torrent = await sig.getTorrent(entry.infoHash);
-    if (!torrent || torrent.done) {
-      cleanupAssetSignalingPeer(projectId, entry.infoHash, entry.attemptId);
-      continue;
-    }
-
-    console.warn(`[AssetTorrent] [Signaling] Seeder ${peerId} left during ${entry.infoHash}; rebuilding downloader peer`);
-    createDownloaderSignalPeer({ projectId, infoHash: entry.infoHash, torrent });
-  }
-}
-
 /**
  * Ensure a signaling room exists for the project and attach request/signal handlers.
  * @memberof backend.services.assetTorrentSignalingService
  * @param {string} projectId - Project identifier.
  * @param {Object} [options={}] - Signaling options.
  * @param {Function} options.getTorrent - Lookup function that returns a torrent by info hash.
+ * @param {Object} options.room - Active project Trystero room.
  * @returns {Promise<Object|null>}
  */
-export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}) {
-  if (!projectId || typeof getTorrent !== 'function') return null;
+export async function ensureProjectAssetSignaling(projectId, { getTorrent, room } = {}) {
+  if (!projectId || typeof getTorrent !== 'function' || !room) return null;
 
   const existing = signalingActions.get(projectId);
   if (existing) return existing;
-
-  let room;
-  try {
-    const appId = process.env.TRYSTERO_APP_ID || 'db-conn-tool';
-    room = joinRoom({ appId, rtcPolyfill: RTCPeerConnection }, `project-assets-${projectId}`);
-  } catch (err) {
-    console.error('[AssetTorrent] signaling room creation failed:', err?.message);
-    return null;
-  }
 
   const [sendRequest, receiveRequest] = room.makeAction('peerRequest');
   const [sendSignal, receiveSignal] = room.makeAction('peerSignal');
 
   const state = { room, sendRequest, sendSignal, seederPeers: new Map(), getTorrent };
   signalingActions.set(projectId, state);
-
-  room.onPeerJoin((peerId) => {
-    for (const entry of pendingPeerSignals.values()) {
-      if (entry?.projectId !== projectId || entry.seederId || !entry.infoHash) continue;
-      sendRequest({ infoHash: entry.infoHash, attemptId: entry.attemptId }, [peerId]);
-    }
-  });
-
-  room.onPeerLeave((peerId) => {
-    resetPendingSeederForPeer(projectId, peerId).catch((err) => {
-      console.warn('[AssetTorrent] failed to reset pending seeder on leave:', err?.message);
-    });
-  });
 
   receiveRequest(async ({ infoHash, attemptId }, requesterId) => {
     const torrent = await getTorrent(infoHash);
@@ -343,7 +300,6 @@ export function stopProjectAssetSignaling(projectId) {
   const sig = signalingActions.get(projectId);
   if (sig) {
     for (const entry of sig.seederPeers.values()) destroyPeer(entry?.peer);
-    try { sig.room?.leave?.(); } catch (err) { console.warn('[AssetTorrent] signaling room leave failed:', err?.message); }
     signalingActions.delete(projectId);
   }
 
