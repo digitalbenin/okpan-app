@@ -619,7 +619,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
         torrent.on('done', async () => {
           active.delete(assetId);
-          cleanupAssetSignalingPeer(projectId, infoHash);
+          cleanupAssetSignalingPeer(projectId, infoHash, null, { destroy: false });
           try {
             const actualPath = resolveDownloadedFilePath(expected, torrent);
             if (!actualPath) {

@@ -122,16 +122,25 @@ export function getProjectAssetSignaling(projectId) {
  * @param {string} projectId - Project identifier.
  * @param {string} infoHash - Torrent info hash.
  * @param {string|null} [attemptId=null] - Optional attempt identifier.
+ * @param {Object} [options={}] - Cleanup options.
+ * @param {boolean} [options.destroy=true] - Whether to destroy the WebTorrent-owned peer.
  * @returns {void}
  */
-export function cleanupAssetSignalingPeer(projectId, infoHash, attemptId = null) {
+export function cleanupAssetSignalingPeer(projectId, infoHash, attemptId = null, { destroy = true } = {}) {
   const normalizedAttemptId = normalizeAttemptId(attemptId);
   if (normalizedAttemptId) {
-    removePendingPeerSignalEntry(getPendingPeerSignalKey(projectId, infoHash, normalizedAttemptId));
+    const key = getPendingPeerSignalKey(projectId, infoHash, normalizedAttemptId);
+    if (destroy) removePendingPeerSignalEntry(key);
+    else pendingPeerSignals.delete(key);
     return;
   }
 
-  clearPendingPeerSignalsForAsset(projectId, infoHash);
+  if (destroy) clearPendingPeerSignalsForAsset(projectId, infoHash);
+  else {
+    for (const [key, entry] of pendingPeerSignals) {
+      if (entry?.projectId === projectId && entry?.infoHash === infoHash) pendingPeerSignals.delete(key);
+    }
+  }
 }
 
 /**
