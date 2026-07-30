@@ -3,6 +3,7 @@
  * Returns relayUrls and turnConfig arrays to spread into joinRoom() calls.
  */
 import { generateTurnCredentials } from './turnCredentials.js';
+import { defaultRelayUrls as defaultNostrRelays } from 'trystero/nostr';
 
 function buildTurnIceServers() {
   const serverUrl = process.env.TURN_SERVER_URL;
@@ -44,16 +45,22 @@ export function getTurnOnlyIceServers() {
  * Parse TRYSTERO_RELAY_URLS env var into a relayUrls array.
  * Trystero's Nostr strategy in v0.22.0 reads config.relayUrls (flat array),
  * NOT config.relayConfig.urls (nested object).
+ * Custom URLs are merged with the default NOSTR relays so the client
+ * connects to both the specified relays and the public fallback pool.
  * @returns {Object} with relayUrls array, or empty object if not set.
  */
 export function getRelayConfig() {
   const urls = process.env.TRYSTERO_RELAY_URLS;
-  if (!urls) return {};
+  const customUrls = urls
+    ? urls.split(',').map(u => u.trim()).filter(Boolean)
+    : [];
 
-  const urlList = urls.split(',').map(u => u.trim()).filter(Boolean);
-  if (urlList.length === 0) return {};
+  if (customUrls.length === 0) {
+    return {};
+  }
 
-  return { relayUrls: urlList };
+  const allUrls = [...new Set([...customUrls, ...defaultNostrRelays])];
+  return { relayUrls: allUrls };
 }
 
 /**
