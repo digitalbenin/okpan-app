@@ -301,7 +301,7 @@ export async function startP2PForProject(projectId, options = {}) {
     rtcPolyfill: RTCPeerConnection,
     ...getRelayConfig(),
     ...getTurnConfig(),
-    ...(isForceTurnOnly() ? { rtcConfig: { iceServers: getTurnOnlyIceServers() } } : {}),
+    ...(isForceTurnOnly() ? { rtcConfig: { iceServers: getTurnOnlyIceServers(), iceTransportPolicy: 'relay' } } : {}),
   }, roomId)
 
   logRelayState(projectId, 'room-created', {

@@ -19,9 +19,14 @@ function getWebRTCConfig() {
   ];
   const turnServers = getTurnConfig().turnConfig || [];
 
-  return {
-    iceServers: isForceTurnOnly() ? getTurnOnlyIceServers() : [...stunServers, ...turnServers],
-  };
+  return isForceTurnOnly()
+    ? {
+        iceServers: getTurnOnlyIceServers(),
+        iceTransportPolicy: 'relay',
+      }
+    : {
+        iceServers: [...stunServers, ...turnServers],
+      };
 }
 
 const signalingActions = new Map();
@@ -257,7 +262,7 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
       rtcPolyfill: RTCPeerConnection,
       ...getRelayConfig(),
       ...getTurnConfig(),
-      ...(isForceTurnOnly() ? { rtcConfig: { iceServers: getTurnOnlyIceServers() } } : {}),
+      ...(isForceTurnOnly() ? { rtcConfig: { iceServers: getTurnOnlyIceServers(), iceTransportPolicy: 'relay' } } : {}),
     }, `project-assets-${projectId}`);
   } catch (err) {
     console.error('[AssetTorrent] signaling room creation failed:', err?.message);
