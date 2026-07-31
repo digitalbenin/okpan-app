@@ -37,7 +37,7 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	const params = queryParameters({
 		q: ssp.string(''),
 		page: ssp.number(1),
-		pageSize: ssp.number(15),
+		pageSize: ssp.number(20),
 		filters: ssp.object({}),
 	}, {
 		debounceHistory: 300,

@@ -6,6 +6,7 @@
   import ManualDirtyGuard from "$lib/components/navigation/ManualDirtyGuard.svelte";
   import LanguageSelector from "$lib/components/form/LanguageSelector.svelte";
   import { watch } from "runed";
+  import { invalidate } from "$app/navigation";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
 
   const { data } = $props();
@@ -200,6 +201,7 @@
       if (error) throw error;
 
       syncSnapshots();
+      await invalidate("app:projects");
     } catch (err) {
       console.error("Failed to update project:", err);
     } finally {

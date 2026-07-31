@@ -30,7 +30,7 @@
 
   // New states for Step 2
   let currentStep = $state(1);
-  let isShared = $state(true);
+  let isShared = $state(false);
   let usePassword = $state(true);
   let password = $state("");
 
@@ -128,7 +128,7 @@
       selectedLanguage = "";
       projectData = { title: { content: "" }, description: { content: "" } };
       currentStep = 1;
-      isShared = true;
+      isShared = false;
       usePassword = true;
       password = "";
     } catch (error) {

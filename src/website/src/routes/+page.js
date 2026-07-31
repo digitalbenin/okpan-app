@@ -16,14 +16,14 @@ export async function load({ url, fetch, parent }) {
 				items: [],
 				totalCount: 0,
 				page: 1,
-				pageSize: 15,
+				pageSize: 20,
 				facets: { institution_ids: [], ontology_fields: [], research_fields: [] }
 			},
 			queryParams: {
 				projectId: null,
 				q: '',
 				page: 1,
-				pageSize: 15,
+				pageSize: 20,
 				institutionIds: [],
 				orderBy: 'created_at',
 				direction: 'desc'
@@ -47,7 +47,7 @@ export async function load({ url, fetch, parent }) {
 		projectId,
 		q: url.searchParams.get('q') || '',
 		page: parseInt(url.searchParams.get('page') || '1'),
-		pageSize: parseInt(url.searchParams.get('pageSize') || url.searchParams.get('limit') || '15'),
+		pageSize: parseInt(url.searchParams.get('pageSize') || url.searchParams.get('limit') || '20'),
 		institutionIds: filtersFromUrl?.institutions || url.searchParams.getAll('institutionId'),
 		researchFieldFilters: [],
 		orderBy: url.searchParams.get('orderBy') || 'created_at',
