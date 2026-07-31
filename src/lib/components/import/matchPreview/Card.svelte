@@ -213,7 +213,7 @@
       <div class="text-muted" style="width: 130px;">
         {t("import.preview", { fallback: "Preview" })}
       </div>
-      <div class="d-flex flex-wrap align-items-center gap-1">
+      <div class="d-flex flex-wrap align-items-center gap-1 overflow-x-auto" style="min-width: 0;">
         {#if slicedValues.length}
           {#each slicedValues as value, idx}
             <span class="text-body">{value}</span>
