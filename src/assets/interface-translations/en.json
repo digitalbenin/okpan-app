@@ -4266,6 +4266,26 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "sort-by",
+                             "value":  "Sort by"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "order",
+                             "value":  "Order"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "ascending",
+                             "value":  "Ascending"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "descending",
+                             "value":  "Descending"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "no-institutions-found",
                              "value":  "No institutions found."
                          },

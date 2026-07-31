@@ -2,6 +2,7 @@
   import BaseSelect from "$lib/components/base/BaseSelectNew.svelte";
   import BasePagination from "$lib/components/base/BasePagination.svelte";
   import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
+  import SortMenu from "$lib/components/base/SortMenu.svelte";
   import ObjectCard from "$lib/components/overview/ObjectCard.svelte";
   import ObjectsTable from "$lib/components/objects/ObjectsTable.svelte";
   import InstitutionObjectsFields from "$lib/components/institutions/InstitutionObjectsFields.svelte";
@@ -269,9 +270,16 @@
       <BaseSelect items={statuses} bind:value={params.oStatus} as="button" inputClass="border-secondary btn-transparent btn-sm border">
         <IconChevronDown size={16} />
       </BaseSelect>
-      <BaseSelect items={sortOptions} bind:value={params.oOrderBy} as="button" inputClass="border-secondary btn-transparent btn-sm border">
-        <IconChevronDown size={16} />
-      </BaseSelect>
+      <SortMenu
+        fields={sortOptions}
+        bind:orderBy={params.oOrderBy}
+        bind:direction={params.oDirection}
+        sortByLabel={t("common.sort-by", { fallback: "Sort by" })}
+        orderLabel={t("common.order", { fallback: "Order" })}
+        ascendingLabel={t("common.ascending", { fallback: "Ascending" })}
+        descendingLabel={t("common.descending", { fallback: "Descending" })}
+        triggerClass="btn btn-transparent btn-sm border border-secondary d-flex align-items-center gap-1"
+      />
       <InstitutionObjectsFields
         {displayFields}
         {ontologyFields}

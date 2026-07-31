@@ -4189,6 +4189,26 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "sort-by",
+                             "value":  "Ordina per"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "order",
+                             "value":  "Ordinamento"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "ascending",
+                             "value":  "Crescente"
+                         },
+                         {
+                             "namespace":  "common",
+                             "key":  "descending",
+                             "value":  "Decrescente"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "no-institutions-found",
                              "value":  "Nessuna istituzione trovata."
                          },

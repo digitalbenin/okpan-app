@@ -10,6 +10,7 @@
   import BulkEditObjectsModal from "$lib/components/objects/BulkEditObjectsModal.svelte";
   import BulkActionsStatusSelect from "$lib/components/objects/BulkActionsStatusSelect.svelte";
   import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
+  import SortMenu from "$lib/components/base/SortMenu.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { topCurtainOverlay } from "$lib/utils/transitions.js";
   import { IconBox } from "@tabler/icons-svelte";
@@ -231,9 +232,16 @@
       <BaseSelect items={statuses} bind:value={params.status} as="button" inputClass="btn-transparent btn-sm border border-dark">
         <IconChevronDown size={16} />
       </BaseSelect>
-      <BaseSelect items={sortOptions} bind:value={params.orderBy} as="button" inputClass="btn-transparent btn-sm border border-dark">
-        <IconChevronDown size={16} />
-      </BaseSelect>
+      <SortMenu
+        fields={sortOptions}
+        bind:orderBy={params.orderBy}
+        bind:direction={params.direction}
+        sortByLabel={t("common.sort-by", { fallback: "Sort by" })}
+        orderLabel={t("common.order", { fallback: "Order" })}
+        ascendingLabel={t("common.ascending", { fallback: "Ascending" })}
+        descendingLabel={t("common.descending", { fallback: "Descending" })}
+        triggerClass="btn btn-transparent btn-sm border border-dark d-flex align-items-center gap-1"
+      />
       <InstitutionObjectsFields
         {displayFields}
         {researchFields}

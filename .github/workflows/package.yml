@@ -7,18 +7,51 @@ on:
       - '*'
 
 jobs:
+  download-model:
+    name: Download embedding model
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Download embedding model
+        run: yarn download-model
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: embedding-model
+          path: src/assets/models/
+          compression-level: 0
+
   build-macos-arm64:
     name: Build macOS ARM64
+    needs: [download-model]
     runs-on: macos-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Download embedding model
+        uses: actions/download-artifact@v4
+        with:
+          name: embedding-model
+          path: src/assets/models/
 
       - name: Install dependencies
         run: yarn install
@@ -49,19 +82,26 @@ jobs:
         with:
           name: macOS-arm64
           path: okpan-macos-arm64.zip
-  
+
   build-macos-x64:
     name: Build macOS x64
+    needs: [download-model]
     runs-on: macos-15-intel
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Download embedding model
+        uses: actions/download-artifact@v4
+        with:
+          name: embedding-model
+          path: src/assets/models/
 
       - name: Install dependencies
         run: yarn install
@@ -95,16 +135,23 @@ jobs:
 
   build-windows-x64:
     name: Build Windows x64
+    needs: [download-model]
     runs-on: windows-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Download embedding model
+        uses: actions/download-artifact@v4
+        with:
+          name: embedding-model
+          path: src/assets/models/
 
       - name: Install dependencies
         run: yarn install --network-timeout 300000
@@ -128,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
+
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4

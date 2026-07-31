@@ -1,10 +1,10 @@
 <script>
   import { queryParameters } from "sveltekit-search-params";
-  import BaseDropdownMenu from "$lib/components/base/BaseDropdownMenu.svelte";
+  import SortMenu from "$lib/components/base/SortMenu.svelte";
   import BaseSearchBar from "$lib/components/base/BaseSearchBar.svelte";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import InstitutionsGrid from "$lib/components/institutions/InstitutionsGrid.svelte";
-  import { IconBuildingBank, IconCirclePlus, IconChevronDown, IconSortAscendingLetters, IconSortDescendingLetters, IconSortAscendingNumbers, IconSortDescendingNumbers, IconSortAscending, IconSortDescending } from "@tabler/icons-svelte";
+  import { IconBuildingBank, IconCirclePlus } from "@tabler/icons-svelte";
   import PageHeader from "$lib/components/base/PageHeader.svelte";
 
   const { t } = getTranslationStore();
@@ -38,18 +38,12 @@
   });
 
   const { data } = $props();
-  let sortOpen = $state(false);
 
   const sortOptions = $derived([
-    { label: t("common.sort-by-date", { fallback: "Sort by date" }), icon: IconSortDescendingNumbers, orderBy: "created_at", direction: "desc" },
-    { label: t("common.sort-by-date", { fallback: "Sort by date" }), icon: IconSortAscendingNumbers, orderBy: "created_at", direction: "asc" },
-    { label: t("common.sort-by-name", { fallback: "Sort by name" }), icon: IconSortDescendingLetters, orderBy: "name", direction: "desc" },
-    { label: t("common.sort-by-name", { fallback: "Sort by name" }), icon: IconSortAscendingLetters, orderBy: "name", direction: "asc" },
-    { label: t("common.sort-by-objects", { fallback: "Sort by objects" }), icon: IconSortDescending, orderBy: "objectsCount", direction: "desc" },
-    { label: t("common.sort-by-objects", { fallback: "Sort by objects" }), icon: IconSortAscending, orderBy: "objectsCount", direction: "asc" },
+    { value: "name", label: t("common.sort-by-name", { fallback: "Sort by name" }) },
+    { value: "objectsCount", label: t("common.sort-by-objects", { fallback: "Sort by objects" }) },
+    { value: "created_at", label: t("common.sort-by-date", { fallback: "Sort by date" }) },
   ]);
-
-  const currentSort = $derived(sortOptions.find(o => o.orderBy === params.orderBy && o.direction === params.direction) ?? sortOptions[0]);
 </script>
 
 <PageHeader
@@ -70,29 +64,15 @@
   {#snippet toolbar()}
     <div></div>
     <div class="d-flex align-items-center gap-2">
-      <BaseDropdownMenu 
-      bind:open={sortOpen} 
-        contentProps={{ style: "right: 0; left: auto;" }}
-        side="bottom"
-        align="end"
-        triggerClass="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
-        {#snippet trigger()}
-          {currentSort.label}
-          <IconChevronDown size={16} />
-        {/snippet}
-        {#snippet children()}
-          {#each sortOptions as option}
-            <button
-              class="dropdown-item rounded px-2 py-1 d-flex align-items-center gap-2"
-              class:active={params.orderBy === option.orderBy && params.direction === option.direction}
-              onclick={() => { params.orderBy = option.orderBy; params.direction = option.direction; sortOpen = false; }}
-            >
-              <option.icon size={16} class="text-body-secondary" />
-              <span class="flex-grow-1">{option.label}</span>
-            </button>
-          {/each}
-        {/snippet}
-      </BaseDropdownMenu>
+      <SortMenu
+        fields={sortOptions}
+        bind:orderBy={params.orderBy}
+        bind:direction={params.direction}
+        sortByLabel={t("common.sort-by", { fallback: "Sort by" })}
+        orderLabel={t("common.order", { fallback: "Order" })}
+        ascendingLabel={t("common.ascending", { fallback: "Ascending" })}
+        descendingLabel={t("common.descending", { fallback: "Descending" })}
+      />
     </div>
   {/snippet}
 </BaseSearchBar>
