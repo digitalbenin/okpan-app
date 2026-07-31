@@ -8,7 +8,7 @@
   import { createResearchField } from "$lib/api/ResearchFieldsApi.js";
   import { IconCirclePlus, IconTags, IconIcons, IconMapPin, IconMicrophone, IconUsersGroup } from "@tabler/icons-svelte";
 
-  let { projectId, languages = [], buttonClass = "btn btn-sm btn-primary text-white" } = $props();
+  let { projectId, languages = [], buttonClass = "btn btn-sm btn-primary text-white", autoOpen = false } = $props();
 
   const { t } = getTranslationStore();
 
@@ -46,6 +46,13 @@
   let fieldsConfig = $state({ ...DEFAULT_FIELDS_CONFIG });
   let basicInfo = $state({});
   let isSubmitting = $state(false);
+
+  // Open automatically when arriving from the object page "no connection types" CTA
+  $effect(() => {
+    if (autoOpen) {
+      isModalOpen = true;
+    }
+  });
 
   function getTemplateLabel(template) {
     switch (template?.id) {

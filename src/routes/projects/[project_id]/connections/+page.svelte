@@ -1,5 +1,8 @@
 <script>
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
+  import { onMount } from "svelte";
+  import { page } from "$app/state";
+  import { goto } from "$app/navigation";
   import { IconChartCircles, IconChevronDown, IconSortAscendingLetters, IconSortDescendingLetters, IconSortAscendingNumbers, IconSortDescendingNumbers, IconSortAscending, IconSortDescending } from "@tabler/icons-svelte";
   import AddConnectionTypeModal from "$lib/components/research_fields/AddConnectionTypeModal.svelte";
   import ConnectionTypeImportModal from "$lib/components/research_fields/ConnectionTypeImportModal.svelte";
@@ -12,6 +15,18 @@
   const { t } = getTranslationStore();
   let search = $state("");
   let sortOpen = $state(false);
+  let autoOpenAddModal = $state(false);
+
+  // Auto-open the "Add connection type" modal when arriving from the object page CTA,
+  // then strip the query param so a refresh doesn't re-open it.
+  onMount(() => {
+    if (page.url.searchParams.get("create") === "true") {
+      autoOpenAddModal = true;
+      const url = new URL(page.url);
+      url.searchParams.delete("create");
+      goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+    }
+  });
 
   const sortOptions = $derived([
     { label: t("common.sort-by-date", { fallback: "Sort by date" }), icon: IconSortDescendingNumbers, orderBy: "created_at", direction: "desc" },
@@ -59,7 +74,7 @@
 <BaseSearchBar bind:search placeholder={t("common.search")}>
   {#snippet children()}
     <ConnectionTypeImportModal projectId={data.project.id} languages={data.languages} />
-    <AddConnectionTypeModal projectId={data.project.id} languages={data.languages} />
+    <AddConnectionTypeModal projectId={data.project.id} languages={data.languages} autoOpen={autoOpenAddModal} />
   {/snippet}
   {#snippet toolbar()}
     <div class="d-flex align-items-center justify-content-between w-100">

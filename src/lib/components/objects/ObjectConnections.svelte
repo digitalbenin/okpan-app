@@ -325,10 +325,16 @@
     </div>
 
     {#if allVocabularyFields.length === 0}
-        <div class="text-muted small">
-            {t("objects.connections.no_fields", {
-                fallback: "No connection fields defined for this project",
-            })}
+        <div class="text-muted small d-flex flex-column align-items-start gap-2">
+            <span>
+                {t("objects.connections.no_fields", {
+                    fallback: "No connection fields defined for this project",
+                })}
+            </span>
+            <a class="btn btn-sm btn-outline-secondary" href={`/projects/${object?.project_id}/connections?create=true`}>
+                <i class="bi bi-plus me-1"></i>
+                {t("project.add_connection_type", { fallback: "Add a new connection type" })}
+            </a>
         </div>
     {:else if allConnections.length === 0}
         <div class="text-muted small">
