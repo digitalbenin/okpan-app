@@ -15,6 +15,9 @@
     headerClass = "fs-7 fw-normal",
     bordered = false,
     wrap = true,
+    cellClass = "",
+    cellContentClass = "",
+    cellContentStyle = "",
   } = $props();
 
   const defaultColumns = [];
@@ -87,14 +90,16 @@
               component: Component,
               props,
             } = getRenderResult(header, cellValue, item)}
-            <td class:text-nowrap={header.nowrap}>
-              {#if type === "component"}
-                <Component {...props}></Component>
-              {:else if type === "function" || header.html}
-                {@html value}
-              {:else}
-                {value || cellValue}
-              {/if}
+            <td class="{cellClass}" class:text-nowrap={header.nowrap}>
+              <div class={cellContentClass} style={cellContentStyle}>
+                {#if type === "component"}
+                  <Component {...props}></Component>
+                {:else if type === "function" || header.html}
+                  {@html value}
+                {:else}
+                  {value || cellValue}
+                {/if}
+              </div>
             </td>
           {/each}
         </tr>

@@ -20,4 +20,6 @@
   bordered={true}
   headerClass="fs-7 fw-bold"
   wrap={true}
+  cellClass="align-top"
+  cellContentStyle="display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;"
 />
