@@ -36,7 +36,14 @@
         existing.primary = existing.primary || Boolean(entry?.primary);
       }
     }
-    return Array.from(groups.values());
+    return Array.from(groups.values()).sort((a, b) => {
+      // Primary identifier first, then mapped fields, then unmapped
+      if (a.primary !== b.primary) return a.primary ? -1 : 1;
+      const aMatched = a.mappedLabels.length > 0;
+      const bMatched = b.mappedLabels.length > 0;
+      if (aMatched !== bMatched) return aMatched ? -1 : 1;
+      return 0;
+    });
   });
 
   const defaultSelectedHeaderField = $derived.by(() => {
