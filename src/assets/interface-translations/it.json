@@ -4789,6 +4789,16 @@
                          },
                          {
                              "namespace":  "editor",
+                             "key":  "bullet-list",
+                             "value":  "Elenco puntato"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "ordered-list",
+                             "value":  "Elenco numerato"
+                         },
+                         {
+                             "namespace":  "editor",
                              "key":  "link",
                              "value":  "Collegamento"
                          },

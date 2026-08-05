@@ -4861,6 +4861,16 @@
                          },
                          {
                              "namespace":  "editor",
+                             "key":  "bullet-list",
+                             "value":  "Bullet list"
+                         },
+                         {
+                             "namespace":  "editor",
+                             "key":  "ordered-list",
+                             "value":  "Numbered list"
+                         },
+                         {
+                             "namespace":  "editor",
                              "key":  "link",
                              "value":  "Link"
                          },

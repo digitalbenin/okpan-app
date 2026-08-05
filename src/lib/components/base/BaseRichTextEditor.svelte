@@ -6,10 +6,13 @@
     import Bold from '@tiptap/extension-bold';
     import Italic from '@tiptap/extension-italic';
     import LinkExtension from '@tiptap/extension-link';
+    import BulletList from '@tiptap/extension-bullet-list';
+    import OrderedList from '@tiptap/extension-ordered-list';
+    import ListItem from '@tiptap/extension-list-item';
     import { TextSelection } from '@tiptap/pm/state';
     import { watch } from 'runed';
     import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
-    import { IconBold, IconItalic, IconLink } from "@tabler/icons-svelte";
+    import { IconBold, IconItalic, IconLink, IconList, IconListNumbers } from "@tabler/icons-svelte";
     import BaseModal from "$lib/components/base/BaseModal.svelte";
 
     let {
@@ -32,6 +35,8 @@
     let isBoldActive = $state(false);
     let isItalicActive = $state(false);
     let isLinkActive = $state(false);
+    let isBulletListActive = $state(false);
+    let isOrderedListActive = $state(false);
 
     const hasErrors = $derived(errors && errors.length > 0);
 
@@ -39,6 +44,8 @@
         isBoldActive = ed.isActive('bold');
         isItalicActive = ed.isActive('italic');
         isLinkActive = ed.isActive('link');
+        isBulletListActive = ed.isActive('bulletList');
+        isOrderedListActive = ed.isActive('orderedList');
     }
 
     // Initialize Tiptap editor once the DOM element is available
@@ -53,6 +60,9 @@
                 Text,
                 Bold,
                 Italic,
+                BulletList,
+                OrderedList,
+                ListItem,
                 LinkExtension.configure({
                     openOnClick: false,
                     HTMLAttributes: {
@@ -117,6 +127,14 @@
 
     function toggleItalic() {
         editor?.chain().focus().toggleItalic().run();
+    }
+
+    function toggleBulletList() {
+        editor?.chain().focus().toggleBulletList().run();
+    }
+
+    function toggleOrderedList() {
+        editor?.chain().focus().toggleOrderedList().run();
     }
 
     // Link modal state
@@ -211,6 +229,28 @@
                     aria-label={t('editor.italic', { fallback: 'Italic' })}
                 >
                     <IconItalic size={16} />
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-sm {isBulletListActive ? 'btn-secondary' : 'btn-secondary-subtle'}"
+                    onclick={toggleBulletList}
+                    title={t('editor.bullet-list', { fallback: 'Bullet list' })}
+                    disabled={disabled}
+                    aria-label={t('editor.bullet-list', { fallback: 'Bullet list' })}
+                >
+                    <IconList size={16} />
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-sm {isOrderedListActive ? 'btn-secondary' : 'btn-secondary-subtle'}"
+                    onclick={toggleOrderedList}
+                    title={t('editor.ordered-list', { fallback: 'Numbered list' })}
+                    disabled={disabled}
+                    aria-label={t('editor.ordered-list', { fallback: 'Numbered list' })}
+                >
+                    <IconListNumbers size={16} />
                 </button>
 
                 <button

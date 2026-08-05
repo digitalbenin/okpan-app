@@ -21,6 +21,7 @@
     import { createDirtyTracker } from "$lib/stores/DirtyTracker.svelte.js";
     import { IconChartCircles, IconTrash, IconPencil, IconDeviceFloppy } from "@tabler/icons-svelte";
     import { watch } from "runed";
+    import imgLg from "$assets/img_lg.png";
 
     let {
         data,
@@ -219,7 +220,7 @@
                         {#if mainAsset}
                             <AssetPreview asset={mainAsset} size={56} width="100%" height="100%" showRemoveButton={false} showFilename={false} />
                         {:else}
-                            <img src="/src/assets/img_lg.png" alt="" class="w-100 h-100 object-fit-cover" />
+                            <img src={imgLg} alt="" class="w-100 h-100 object-fit-cover" />
                         {/if}
                         <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center">
                             <IconPencil size={16} class="text-white" />
