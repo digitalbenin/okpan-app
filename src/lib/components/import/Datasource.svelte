@@ -6,6 +6,7 @@
   import { createDatasource, updateDatasource, getDatasource } from "$lib/api/DatasourcesApi.js";
   import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
   import AutoForm from "$lib/components/form/AutoForm.svelte";
+  import CreateInstitutionModal from "$lib/components/institutions/CreateInstitutionModal.svelte";
   import { queryParameters, ssp } from "sveltekit-search-params";
   import { onMount, onDestroy } from "svelte";
 
@@ -30,6 +31,20 @@
   let allValidationErrors = $state([]);
   let loading = $state(false);
   let initialValues = $state({});
+  let localInstitutions = $state([]);
+  let showCreateInstitutionModal = $state(false);
+  let previousInstitutionId = $state("");
+
+  const institutionOptions = $derived([
+    ...[...(institutions || []), ...localInstitutions].map((institution) => ({
+      value: institution.id,
+      label: institution.name?.content || institution.name || "",
+    })),
+    {
+      value: "__create_new__",
+      label: t("institutions.create-new", { fallback: "+ Create new institution" }),
+    },
+  ]);
 
   onMount(async () => {
     if (params.institution_id && !wizard.institutionId) {
@@ -159,6 +174,28 @@
 
   // Derive nextEnabled from form field values
   const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
+  watch(() => formStore?.current?.values?.institutionId, (institutionId) => {
+    if (institutionId !== "__create_new__") {
+      previousInstitutionId = institutionId || "";
+      return;
+    }
+
+    if (showCreateInstitutionModal) return;
+    form.setFieldValue("institutionId", previousInstitutionId);
+    showCreateInstitutionModal = true;
+  });
+
+  const handleInstitutionCreated = (institution) => {
+    if (!institution?.id) return;
+    localInstitutions = [...localInstitutions, institution];
+    form.setFieldValue("institutionId", institution.id);
+    showCreateInstitutionModal = false;
+  };
+
+  const cancelInstitutionCreation = () => {
+    form.setFieldValue("institutionId", previousInstitutionId || "");
+    showCreateInstitutionModal = false;
+  };
   let canProceed = $derived.by(() => {
     const v = formStore?.current?.values;
     return Boolean(
@@ -183,7 +220,7 @@
     institutionId: {
       type: "select",
       label: t("common.institution", { fallback: "Institution" }),
-      options: institutions.map((i) => ({ value: i.id, label: i.name.content })),
+      options: institutionOptions,
       colSize: 9,
       required: true,
     },
@@ -259,4 +296,12 @@
       </div>
     </div>
   </div>
+
+  <CreateInstitutionModal
+    bind:isOpen={showCreateInstitutionModal}
+    languages={languages}
+    projectId={wizard.projectId}
+    onCreated={handleInstitutionCreated}
+    onCancel={cancelInstitutionCreation}
+  />
 </div>

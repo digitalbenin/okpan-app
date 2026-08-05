@@ -1901,6 +1901,11 @@
                          },
                          {
                              "namespace":  "institutions",
+                             "key":  "create-new",
+                             "value":  "+ Create new institution"
+                         },
+                         {
+                             "namespace":  "institutions",
                              "key":  "confirm-delete-institution",
                              "value":  "Are you sure you want to delete this institution? This action cannot be undone."
                          },

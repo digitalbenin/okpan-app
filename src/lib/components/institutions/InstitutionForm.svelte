@@ -2,8 +2,7 @@
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
   import { createForm } from "@tanstack/svelte-form";
-  import AutoForm from "$lib/components/form/AutoForm.svelte";
-  import DynamicArrayField from "$lib/components/base/DynamicArrayField.svelte";
+  import InstitutionFormFields from "$lib/components/institutions/InstitutionFormFields.svelte";
   import BaseModal from "$lib/components/base/BaseModal.svelte";
   import {
     getValidator,
@@ -123,62 +122,6 @@
   const form = $derived(createForm(() => getFormConfig("institutions", operationName, { defaultValues, onSubmit: onSubmitForm })));
   const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
 
-  // UI Schema
-  const uiSchema = $derived({
-    ...(isEditMode && { id: { hidden: true } }),
-    project_id: { hidden: true },
-    languageId: { hidden: true },
-    status: { hidden: true },
-    links: {
-      label: t("institutions.links"),
-      renderer: DynamicArrayField,
-      rendererProps: {
-        arrayFieldName: "links",
-        itemFields: [
-          {
-            name: "url",
-            label: t("institutions.url"),
-            type: "text",
-            placeholder: t("institutions.url-placeholder"),
-            required: false,
-            colSize: 5,
-          },
-          {
-            name: "label",
-            label: t("common.label"),
-            type: "text",
-            placeholder: t("institutions.link-label-placeholder"),
-            required: false,
-            colSize: 5,
-          },
-        ],
-        addButtonText: t("institutions.add-link"),
-        deleteButtonTitle: t("institutions.remove-link"),
-        minItems: 0,
-        maxItems: 10,
-        deleteColSize: 2,
-      },
-      colSize: 9
-    },
-    name: {
-      label: t("institutions.institution-name"),
-      colSize: 9,
-    },
-    description: { type: "textarea", label: t("common.description"), colSize: 9 },
-    country: { label: t("institutions.country"), colSize: 9 },
-    location: { label: t("institutions.location"), colSize: 9 },
-    website: { label: t("common.website"), colSize: 9 },
-  });
-
-  // Hidden value providers & static values
-  const hiddenValueProviders = $derived({
-    ...(isEditMode && { id: () => institution?.id || "" }),
-    project_id: () => currentProjectId,
-    languageId: () => defaultLanguage?.id || "",
-  });
-
-  const hiddenStaticValues = $derived(mode === "create" ? { status: "in progress" } : {});
-  const fieldOrder = $derived(["website", "links"]);
   const institutionDisplayName = $derived(institution?.name?.content || "");
   const deleteImpactCounts = $derived.by(() => ({
     objects: Number(institution?.objectsCount || 0),
@@ -288,18 +231,13 @@
 
     <div class="row">
       <div class="col-12">
-        <AutoForm
+        <InstitutionFormFields
           {form}
           {validator}
-          {createFieldValidator}
           {languages}
-          translatableFields={TRANSLATABLE_FIELDS}
-          defaultColSize={7}
-          translationsValidator={getValidator("translations", "create")}
-          {fieldOrder}
-          {uiSchema}
-          {hiddenStaticValues}
-          {hiddenValueProviders}
+          mode={mode}
+          {currentProjectId}
+          {institution}
           margin={0}
           bind:dirtyTracker={autoFormDirtyTracker}
         />

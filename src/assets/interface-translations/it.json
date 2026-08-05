@@ -3614,6 +3614,11 @@
                          },
                          {
                              "namespace":  "institutions",
+                             "key":  "create-new",
+                             "value":  "+ Crea nuova istituzione"
+                         },
+                         {
+                             "namespace":  "institutions",
                              "key":  "confirm-delete-institution",
                              "value":  "Sei sicuro di voler eliminare questa istituzione? Questa azione non puÃ² essere annullata."
                          },

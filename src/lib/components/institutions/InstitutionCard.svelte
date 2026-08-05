@@ -24,23 +24,29 @@
           alt={institution.name.content || t("common.institution", { fallback: "Institution" })}
         />
       </div>
-      {#if institution.previewImages.length >= 3}
+      {#if institution.previewImages.length >= 2}
         <div class="d-flex flex-column h-100 border-start border-2 border-white" style="flex: 1 0 0;">
-          {#each institution.previewImages.slice(1, 3) as image, i}
+          {#each [institution.previewImages[1], institution.previewImages[2]] as image, i}
             <div
               class="flex-grow-1 h-50"
               class:border-bottom={i === 0}
               class:border-2={i === 0}
               class:border-white={i === 0}
             >
-              <BaseImage
-                class="w-100 h-100"
-                objectFit="cover"
-                asset={image}
-                preferredFormat="sm"
-                compact={true}
-                alt={institution.name.content || t("common.institution", { fallback: "Institution" })}
-              />
+              {#if image}
+                <BaseImage
+                  class="w-100 h-100"
+                  objectFit="cover"
+                  asset={image}
+                  preferredFormat="sm"
+                  compact={true}
+                  alt={institution.name.content || t("common.institution", { fallback: "Institution" })}
+                />
+              {:else}
+                <div class="w-100 h-100 bg-light d-flex align-items-center justify-content-center">
+                  <img src={imgSm} alt="" class="w-100 h-100" style="object-fit: cover;" />
+                </div>
+              {/if}
             </div>
           {/each}
         </div>
