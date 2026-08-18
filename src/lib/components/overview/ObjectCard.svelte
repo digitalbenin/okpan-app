@@ -69,12 +69,14 @@
           value: formatDate(+object[field.value], translationState.currentLocale, true),
         };
       } else if (field.type === "research_field") {
-        const research_field = (object.objectsResearchFields || []).find(
+        const researchFields = (object.objectsResearchFields || []).filter(
           (rf) => rf?.researchField?.id === field.value
         );
-        if (!research_field) return { label: field?.name?.content || "", value: null };
-        const value = research_field?.vocabulary?.option?.content ?? research_field?.value ?? null;
-        return { label: field?.name?.content || "", value };
+        const value = researchFields
+          .map((rf) => rf?.vocabulary?.option?.content ?? rf?.value ?? null)
+          .filter((v) => v !== null && v !== "")
+          .join(", ");
+        return { label: field?.name?.content || "", value: value || null };
       }
     });
   });

@@ -31,7 +31,7 @@
   );
 
   const objectInformationLabel = t("objects.object-information");
-  const researchFieldsLabel = t("filters.research-fields");
+  const connectionsLabel = t("common.connections");
 
   const baseObjectFields = [
     {
@@ -54,27 +54,29 @@
       id: getSelectedFieldsId(fields, item.value),
     }));
 
-  const buildResearchFieldsGroup = (researchFields = [], fields = []) =>
-    researchFields.map((researchField) => ({
-      value: researchField.id,
-      label: researchField.name.content,
-      group: researchFieldsLabel,
-      groupType: "researchFieldId",
-      id: getSelectedFieldsId(fields, researchField.id),
-    }));
+  const buildConnectionsGroup = (researchFields = [], fields = []) =>
+    researchFields
+      .filter((field) => (field.type || "").toLowerCase() === "vocabulary")
+      .map((researchField) => ({
+        value: researchField.id,
+        label: researchField.name.content,
+        group: connectionsLabel,
+        groupType: "researchFieldId",
+        id: getSelectedFieldsId(fields, researchField.id),
+      }));
 
   const getFieldValues = (fields) =>
     Array.isArray(fields) ? fields.map((field) => field.value) : [];
 
   const objectFieldsGroup = $derived.by(() => buildObjectFieldsGroup(dfArray));
 
-  const researchFieldsGroup = $derived.by(() =>
-    buildResearchFieldsGroup(rfArray, dfArray)
+  const connectionsGroup = $derived.by(() =>
+    buildConnectionsGroup(rfArray, dfArray)
   );
 
   const fieldsItems = $derived.by(() => [
     ...objectFieldsGroup,
-    ...researchFieldsGroup,
+    ...connectionsGroup,
   ]);
 
   let fieldsSelected = $state([]);

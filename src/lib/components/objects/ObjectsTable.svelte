@@ -106,12 +106,14 @@
           label: field.name.content,
           //   sortable: true,
           accessor: (value) => {
-            const research_field = (value.objectsResearchFields || []).find(
+            const researchFields = (value.objectsResearchFields || []).filter(
               (rf) => rf?.researchField?.id === field.value
             );
-            return research_field
-              ? (research_field?.vocabulary?.option?.content ?? research_field?.value ?? null)
-              : null;
+            const joined = researchFields
+              .map((rf) => rf?.vocabulary?.option?.content ?? rf?.value ?? null)
+              .filter((v) => v !== null && v !== "")
+              .join(", ");
+            return joined || null;
           },
         };
       }
