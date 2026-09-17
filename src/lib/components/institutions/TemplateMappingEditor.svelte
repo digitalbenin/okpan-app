@@ -107,7 +107,7 @@
         return;
       }
       try {
-        const res = await window.api.suggestFieldMappings([raw], { maxSuggestions: 3, threshold: 0.2 });
+        const res = await window.api.suggestFieldMappings([raw], { maxSuggestions: 3 });
         pickerSuggestions = res?.[0]?.suggestions || [];
       } catch (err) {
         console.warn("Failed to load mapping suggestions:", err);

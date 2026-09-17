@@ -24,7 +24,7 @@ export default {
             '.vite/node_modules/@libsql/**',
             '.vite/node_modules/sharp/**/*',
             '.vite/node_modules/@img/**/*',
-            '.vite/node_modules/@xenova/transformers/**',
+            '.vite/node_modules/@huggingface/transformers/**',
             '.vite/node_modules/onnxruntime-node/**',
             '.vite/node_modules/onnxruntime/**',
             '.vite/node_modules/libsql/**'
@@ -100,6 +100,11 @@ export default {
             const buildNodeModules = path.join(buildPath, 'node_modules');
             const copiedDestinations = new Set();
             const queuedPackages = new Set();
+
+            // Browser-only packages that must not be bundled when walking a
+            // package's dependency tree (e.g. @huggingface/transformers declares
+            // onnxruntime-web, which is only usable in browsers).
+            const skippedPackageNames = new Set(['onnxruntime-web']);
 
             async function readPackageJson(packageDir) {
                 const pkgPath = path.join(packageDir, 'package.json');
@@ -194,6 +199,11 @@ export default {
                     for (const field of depFields) {
                         const deps = pkgJson?.[field] || {};
                         for (const depName of Object.keys(deps)) {
+                            if (skippedPackageNames.has(depName)) {
+                                console.log(`packageAfterCopy: Skipping browser-only dependency '${depName}'`);
+                                continue;
+                            }
+
                             const depDir = resolveInstalledPackageDir(depName, currentPackageDir);
                             if (!depDir || queuedPackages.has(depDir)) continue;
                             queue.push(depDir);
@@ -213,7 +223,7 @@ export default {
                 // Explicitly copy Sharp's Windows vendor packages for packaged runtime
                 '@img/sharp-win32-x64',
                 '@img/sharp-libvips-win32-x64',
-                '@xenova/transformers',
+                '@huggingface/transformers',
                 'onnxruntime-node',
                 'onnxruntime',
                 // P2P/runtime packages that are externalized from the main-process bundle

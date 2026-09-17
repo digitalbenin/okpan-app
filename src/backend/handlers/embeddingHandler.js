@@ -19,8 +19,7 @@ export async function handleComputeAllMissingEmbeddings() {
     const fieldsWithoutEmbeddings = await db
       .select({
         field_id: ontology_fields.id,
-        name_content: texts.content,
-        description_content: texts.content
+        name_content: texts.content
       })
       .from(ontology_fields)
       .leftJoin(texts, eq(ontology_fields.name_id, texts.id))
@@ -30,10 +29,7 @@ export async function handleComputeAllMissingEmbeddings() {
     await embeddingService.initialize();
 
     for (const field of fieldsWithoutEmbeddings) {
-      const embedding = await embeddingService.computeOntologyFieldEmbedding(
-        field.name_content,
-        field.description_content
-      );
+      const embedding = await embeddingService.computeDocumentEmbedding(field.name_content);
 
       if (embedding) {
         await db

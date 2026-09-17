@@ -9,7 +9,7 @@ import { db } from '../../db/init.js';
 import { ontology_fields, texts } from '../../db/schema.js';
 import { eq, sql, isNotNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
-import { embeddingService } from '../services/embeddingService.js';
+import { embeddingService, MATCH_THRESHOLD } from '../services/embeddingService.js';
 import { getCurrentProjectId } from '../services/projectCacheService.js';
 
 /**
@@ -22,14 +22,14 @@ import { getCurrentProjectId } from '../services/projectCacheService.js';
  */
 export const suggestFieldMappings = async (csvFieldNames, options = {
     maxSuggestions: 3,
-    threshold: 0.2,
+    threshold: MATCH_THRESHOLD,
     excludeFieldIds: [],
     projectId: null // Optional: will auto-read from cache if not provided
 }) => {
 
     const {
         maxSuggestions = 3,
-        threshold = 0.2,
+        threshold = MATCH_THRESHOLD,
         excludeFieldIds = [],
         projectId = null
     } = options || {};
