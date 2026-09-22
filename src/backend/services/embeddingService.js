@@ -5,12 +5,36 @@
  * @namespace backend.services.embeddingService
  * @memberof backend.services
  */
-import { pipeline } from '@xenova/transformers';
+import { AutoModel, AutoTokenizer } from '@huggingface/transformers';
 import path from 'path';
 import fs from 'fs';
 
-const modelName = 'Snowflake/snowflake-arctic-embed-m-v2.0';
+// Multilingual model producing 768-dim vectors. It is asymmetric: queries and
+// documents must be encoded with different instruction prefixes, otherwise the
+// vectors do not align. Queries are CSV field names, documents are ontology
+// field names.
+// See https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX
+const QUERY_PREFIX = 'task: search result | query: ';
+const DOCUMENT_PREFIX = 'title: none | text: ';
+
+// q4 is the smallest supported export; this model does not support fp16.
+const modelName = 'onnx-community/embeddinggemma-300m-ONNX';
+const modelDtype = 'q4';
+
+/**
+ * Minimum cosine similarity for a suggestion to be offered.
+
+ */
+export const MATCH_THRESHOLD = 0.3;
+
+// Similarity bands for the confidence label attached to a suggestion. `low`
+// reuses the matching threshold because anything below it is filtered out
+// before a label is assigned.
+const CONFIDENCE_HIGH = 0.54;
+const CONFIDENCE_MEDIUM = 0.42;
+
 let model = null;
+let tokenizer = null;
 let isInitializing = false;
 let initPromise = null;
 
@@ -26,6 +50,26 @@ function resolveModelPath() {
 
 const modelPath = resolveModelPath();
 
+// Download progress arrives once per file, each starting from 0%.
+const loggedProgress = new Set();
+
+/**
+ * Log model download progress in 10% steps, without repeating entries.
+ * @param {Object} progress - Progress event from transformers.js.
+ */
+function logDownloadProgress(progress) {
+    if (progress.status !== 'progress') return;
+
+    const percent = Math.round(progress.progress || 0);
+    if (percent % 10 !== 0) return;
+
+    const key = `${progress.file}:${percent}`;
+    if (loggedProgress.has(key)) return;
+
+    loggedProgress.add(key);
+    console.log(`Model download: ${progress.file} ${percent}%`);
+}
+
 /**
  * Load the embedding model into memory if it is not already initialized.
  * @function initialize
@@ -33,7 +77,7 @@ const modelPath = resolveModelPath();
  * @returns {Promise<void>}
  */
 async function initialize() {
-    if (model) {
+    if (model && tokenizer) {
         return;
     }
 
@@ -49,15 +93,10 @@ async function initialize() {
 
             await fs.promises.mkdir(modelPath, { recursive: true });
 
-            model = await pipeline('feature-extraction', modelName, {
-                cache_dir: modelPath,
-                dtype: 'q8',
-                progress_callback: (progress) => {
-                    if (progress.status === 'downloading') {
-                        console.log(`Model download: ${Math.round(progress.percent || 0)}%`);
-                    }
-                }
-            });
+            const options = { cache_dir: modelPath, progress_callback: logDownloadProgress };
+
+            tokenizer = await AutoTokenizer.from_pretrained(modelName, options);
+            model = await AutoModel.from_pretrained(modelName, { ...options, dtype: modelDtype });
 
             console.log('Model initialized successfully');
         } catch (error) {
@@ -77,14 +116,16 @@ async function initialize() {
 
 /**
  * Compute a normalized embedding for a single text input.
+
+ *
  * @function computeEmbedding
  * @memberof backend.services.embeddingService
  * @param {string} text - Input text.
- * @param {string} [prefix=''] - Optional prefix used by the model.
+ * @param {string} prefix - Instruction prefix matching the input side.
  * @returns {Promise.<(string|null)>}
  */
-async function computeEmbedding(text, prefix = '') {
-    if (!model) {
+async function computeEmbedding(text, prefix) {
+    if (!model || !tokenizer) {
         await initialize();
     }
 
@@ -94,15 +135,14 @@ async function computeEmbedding(text, prefix = '') {
             return null;
         }
 
-        const processedText = `${prefix}${cleanText}`;
+        const inputs = await tokenizer(`${prefix}${cleanText}`, { padding: true, truncation: true });
+        const output = await model(inputs);
 
-        const output = await model(processedText, {
-            pooling: 'cls',
-            normalize: true
-        });
+        if (!output.sentence_embedding) {
+            throw new Error('Model output is missing sentence_embedding');
+        }
 
-        const embedding = Array.from(output.data);
-        return JSON.stringify(embedding);
+        return JSON.stringify(Array.from(output.sentence_embedding.data));
     } catch (error) {
         console.error('Error computing embedding:', error);
         return null;
@@ -110,32 +150,25 @@ async function computeEmbedding(text, prefix = '') {
 }
 
 /**
- * Compute an embedding for an ontology field description.
- * @function computeOntologyFieldEmbedding
- * @memberof backend.services.embeddingService
- * @param {string} name - Field name.
- * @param {string} description - Field description.
- * @returns {Promise.<(string|null)>}
- */
-async function computeOntologyFieldEmbedding(name, description) {
-    const combinedText = `${name || ''} ${description || ''}`.trim();
-
-    if (!combinedText) {
-        return null;
-    }
-
-    return computeEmbedding(combinedText);
-}
-
-/**
- * Compute an embedding for a CSV field name query.
- * @function computeFieldNameEmbedding
+ * Compute an embedding for a CSV field name, which acts as a search query.
+ * @function computeQueryEmbedding
  * @memberof backend.services.embeddingService
  * @param {string} fieldName - CSV field name.
  * @returns {Promise.<(string|null)>}
  */
-async function computeFieldNameEmbedding(fieldName) {
-    return computeEmbedding(fieldName, 'query: ');
+async function computeQueryEmbedding(fieldName) {
+    return computeEmbedding(fieldName, QUERY_PREFIX);
+}
+
+/**
+ * Compute an embedding for an ontology field, which acts as a search document.
+ * @function computeDocumentEmbedding
+ * @memberof backend.services.embeddingService
+ * @param {string} name - Ontology field name.
+ * @returns {Promise.<(string|null)>}
+ */
+async function computeDocumentEmbedding(name) {
+    return computeEmbedding(name, DOCUMENT_PREFIX);
 }
 
 /**
@@ -144,15 +177,15 @@ async function computeFieldNameEmbedding(fieldName) {
  * @memberof backend.services.embeddingService
  * @param {string} csvFieldName - CSV field name.
  * @param {Array.<{id: (string|number), embeddings: (string|null|undefined)}>} ontologyFields - Ontology field rows.
- * @param {number} [threshold=0.1] - Minimum similarity threshold.
+ * @param {number} [threshold=MATCH_THRESHOLD] - Minimum similarity threshold.
  * @returns {Promise.<Array.<{field: Object, similarity: number, confidence: string}>>}
  */
-async function findSimilarFields(csvFieldName, ontologyFields, threshold = 0.1) {
+async function findSimilarFields(csvFieldName, ontologyFields, threshold = MATCH_THRESHOLD) {
     if (!csvFieldName || !ontologyFields || ontologyFields.length === 0) {
         return [];
     }
 
-    const queryEmbedding = await computeFieldNameEmbedding(csvFieldName);
+    const queryEmbedding = await computeQueryEmbedding(csvFieldName);
     if (!queryEmbedding) {
         return [];
     }
@@ -208,15 +241,17 @@ function cosineSimilarity(a, b) {
 
 /**
  * Convert a similarity score into a human-readable confidence label.
+ * Bands follow the measured score distribution for EmbeddingGemma, where a
+ * correct match sits at 0.42 (median) and 0.54 (upper quartile).
  * @function getConfidenceLevel
  * @memberof backend.services.embeddingService
  * @param {number} similarity - Similarity score.
  * @returns {string}
  */
 function getConfidenceLevel(similarity) {
-    if (similarity >= 0.35) return 'high';
-    if (similarity >= 0.25) return 'medium';
-    if (similarity >= 0.20) return 'low';
+    if (similarity >= CONFIDENCE_HIGH) return 'high';
+    if (similarity >= CONFIDENCE_MEDIUM) return 'medium';
+    if (similarity >= MATCH_THRESHOLD) return 'low';
     return 'very_low';
 }
 
@@ -224,21 +259,21 @@ function getConfidenceLevel(similarity) {
  * Get the current embedding model status.
  * @function getStatus
  * @memberof backend.services.embeddingService
- * @returns {{isLoaded: boolean, isInitializing: boolean, modelName: string}}
+ * @returns {{isLoaded: boolean, isInitializing: boolean, modelName: string, dtype: string}}
  */
 function getStatus() {
     return {
-        isLoaded: model !== null,
+        isLoaded: model !== null && tokenizer !== null,
         isInitializing,
-        modelName
+        modelName,
+        dtype: modelDtype
     };
 }
 
 export const embeddingService = {
     initialize,
-    computeEmbedding,
-    computeOntologyFieldEmbedding,
-    computeFieldNameEmbedding,
+    computeQueryEmbedding,
+    computeDocumentEmbedding,
     findSimilarFields,
     cosineSimilarity,
     getConfidenceLevel,

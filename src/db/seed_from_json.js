@@ -295,8 +295,7 @@ export const seedFromJson = async ({ seedDataPath = DEFAULT_SEED_DATA_PATH, user
                 const fieldWithTexts = await db
                     .select({
                         field_id: ontology_fields.id,
-                        name_content: texts.content,
-                        description_content: texts.content
+                        name_content: texts.content
                     })
                     .from(ontology_fields)
                     .leftJoin(texts, sql`${ontology_fields.name_id} = ${texts.id}`)
@@ -305,10 +304,7 @@ export const seedFromJson = async ({ seedDataPath = DEFAULT_SEED_DATA_PATH, user
 
                 if (fieldWithTexts.length > 0) {
                     const field = fieldWithTexts[0];
-                    const embedding = await embeddingService.computeOntologyFieldEmbedding(
-                        field.name_content,
-                        field.description_content
-                    );
+                    const embedding = await embeddingService.computeDocumentEmbedding(field.name_content);
 
                     if (embedding) {
                         await db

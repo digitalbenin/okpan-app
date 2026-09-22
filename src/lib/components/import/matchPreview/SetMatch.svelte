@@ -39,6 +39,10 @@
   let searchTerm = $state("");
   let selectedValues = $state([]);
 
+  // Items without a suggestion sort after every suggested one, keeping their
+  // original order relative to each other.
+  const NOT_SUGGESTED = Number.MAX_SAFE_INTEGER;
+
   // Initialize from existing match (can be single object or array)
   let _initialized = false;
   watch(
@@ -55,18 +59,26 @@
     }
   );
 
+  // Suggestions arrive ordered by similarity, best first, and the first one is
+  // the match that was applied automatically. Track that position so the list
+  // can present them in the same order.
+  const suggestionOrderById = $derived.by(() => {
+    const order = new Map();
+    (suggestions || []).forEach((suggestion, index) => {
+      order.set(suggestion.ontologyFieldId, index);
+    });
+    return order;
+  });
+
   const allItems = $derived.by(() => {
     return page.data.ontologyFields
       .map((s) => ({
         value: s.id,
         label: s.name.content,
-        suggested: suggestions.some((ss) => ss.ontologyFieldId === s.id),
+        suggested: suggestionOrderById.has(s.id),
+        order: suggestionOrderById.get(s.id) ?? NOT_SUGGESTED,
       }))
-      .sort((a, b) => {
-        if (a.suggested && !b.suggested) return -1;
-        if (!a.suggested && b.suggested) return 1;
-        return 0;
-      });
+      .sort((a, b) => a.order - b.order);
   });
 
   const items = $derived.by(() => {

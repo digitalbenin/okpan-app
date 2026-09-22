@@ -124,3 +124,6 @@ copilot-instructions.md
 docs/api.md
 docs/jsdoc/
 docs/graphql/
+
+# Throwaway model comparison tooling
+model-comparison/
