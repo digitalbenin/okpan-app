@@ -21,7 +21,6 @@
         hiddenStaticValues = {},
         hiddenValueProviders = {},
         enableDirtyTracking = true,
-        dirtyTrackingMessage = null,
         usePortal = true,
         margin = 4,
         hideLanguageSelector = false,
@@ -33,53 +32,49 @@
 
     // Dirty tracking setup
     const formStore = $derived(form?.useStore ? form.useStore((state) => state) : null);
-    const dirtyGuardEnabled = $derived(
-        enableDirtyTracking &&
-        !!dirtyTracker &&
-        !formStore?.current?.isSubmitting
-    );
-    
+
     let dirtyTracker = $state(null);
-    let trackerInitialized = $state(false);
-    let hydrationPristineScheduled = $state(false);
+    let hydrationPristineScheduled = false;
+    let lastFormRef = null;
+    // Values last written for each hidden field, to skip redundant form updates.
+    const lastAppliedHidden = {};
 
     watch(() => dirtyTracker, (tracker) => { externalDirtyTracker = tracker; });
 
+    /** Hidden fields as [name, resolveValue] pairs, from static values and providers alike. */
+    const hiddenEntries = () => [
+        ...Object.entries(hiddenStaticValues || {}).map(([name, value]) => [name, () => value]),
+        ...Object.entries(hiddenValueProviders || {}).map(([name, provider]) => [name, typeof provider === 'function' ? provider : () => undefined]),
+    ];
+
     /**
-     * Merge hidden field values into form values so the dirty tracker baseline
-     * always includes them. This prevents false-positive dirty states when
-     * TanStack injects hidden fields asynchronously after form creation.
+     * Form values merged with the hidden field values, so the dirty tracker baseline
+     * includes hidden fields too. TanStack injects them into the form after creation,
+     * and without this they would register as user edits.
      */
     const mergeHiddenFields = (values) => {
         if (!values || typeof values !== 'object') return values;
         const merged = { ...values };
-        Object.entries(hiddenStaticValues || {}).forEach(([name, value]) => {
-            if (!(name in merged)) merged[name] = value;
-        });
-        Object.entries(hiddenValueProviders || {}).forEach(([name, provider]) => {
-            if (!(name in merged)) {
-                const resolved = typeof provider === 'function' ? provider() : undefined;
-                if (resolved !== undefined) merged[name] = resolved;
-            }
+        hiddenEntries().forEach(([name, resolveValue]) => {
+            if (name in merged) return;
+            const resolved = resolveValue();
+            if (resolved !== undefined) merged[name] = resolved;
         });
         return merged;
     };
 
+    /** Re-baseline the tracker once hidden values have been injected into the form. */
     const scheduleHydrationPristineSync = () => {
         if (hydrationPristineScheduled) return;
         hydrationPristineScheduled = true;
-        Promise.resolve().then(async () => {
-            await tick();
+        tick().then(() => {
             hydrationPristineScheduled = false;
-            if (!trackerInitialized || !dirtyTracker) return;
-            const stabilizedValues = formStore?.current?.values;
-            if (stabilizedValues) {
-                dirtyTracker.setPristine(mergeHiddenFields(stabilizedValues));
+            const values = formStore?.current?.values;
+            if (dirtyTracker && values) {
+                dirtyTracker.setPristine(mergeHiddenFields(values));
             }
         });
     };
-
-    let lastFormRef = $state(null);
 
     watch(
         () => form,
@@ -87,25 +82,27 @@
             if (nextForm === lastFormRef) return;
             lastFormRef = nextForm;
             dirtyTracker = null;
-            trackerInitialized = false;
             hydrationPristineScheduled = false;
         }
     );
 
-    // Initialize tracker once form values are available
+    // Create the tracker as soon as form values are available, then keep it in sync.
+    // It is re-baselined whenever the form reports itself pristine (e.g. after a reset).
     watch(
         () => formStore?.current?.values,
         (newValues) => {
-            const formState = formStore?.current;
-            if (!trackerInitialized && newValues && enableDirtyTracking) {
+            if (!newValues) return;
+
+            if (!dirtyTracker) {
+                if (!enableDirtyTracking) return;
                 dirtyTracker = createDirtyTracker({ initialData: mergeHiddenFields(newValues) });
-                trackerInitialized = true;
                 scheduleHydrationPristineSync();
-            } else if (dirtyTracker && newValues) {
-                dirtyTracker.update(newValues);
-                if (formState?.isDirty === false) {
-                    dirtyTracker.setPristine(mergeHiddenFields(newValues));
-                }
+                return;
+            }
+
+            dirtyTracker.update(newValues);
+            if (formStore?.current?.isDirty === false) {
+                dirtyTracker.setPristine(mergeHiddenFields(newValues));
             }
         }
     );
@@ -120,11 +117,11 @@
         }
     );
 
-    // Keep tracker baseline in sync when form reports pristine
+    // Keep the baseline in sync when the form reports itself pristine
     watch(
         () => formStore?.current?.isDirty,
         (isFormDirty) => {
-            if (isFormDirty === false && trackerInitialized && dirtyTracker) {
+            if (isFormDirty === false && dirtyTracker) {
                 const latestValues = formStore?.current?.values;
                 if (latestValues) {
                     dirtyTracker.setPristine(latestValues);
@@ -175,11 +172,11 @@
     const isRequired = (fieldName) => Boolean(validator?.requiredFields?.has(fieldName));
     const VALIDATE_ON_CHANGE_OPTIONS = { validateOnChange: true };
 
-    // Form submission tracking
-    const formSubmitted = $derived(Boolean(formStore?.current?.isSubmitted || formStore?.current?.submitCount > 0));
+    // Errors surface only once the field was touched or a submit was attempted.
+    const formSubmitted = $derived(Boolean(formStore?.current?.isSubmitted));
 
-    const shouldShowError = (meta) => 
-        meta && Array.isArray(meta.errors) && meta.errors.length > 0 && (meta.touched || meta.isTouched || formSubmitted);
+    const shouldShowError = (meta) =>
+        (meta?.errors?.length ?? 0) > 0 && (meta.isTouched || formSubmitted);
 
     const formatErrors = (errors) => {
         if (!Array.isArray(errors)) return "";
@@ -225,35 +222,30 @@
         }
     };
 
-    const getCurrentFormValue = (fieldName) => formStore?.current?.values?.[fieldName];
-
     const marginClass = $derived(`m-${Math.min(Math.max(Number(margin) || 0, 0), 5)}`);
 
-    let lastHiddenStatic = $state({});
-    let lastHiddenProvided = $state({});
-
-    const syncHiddenValues = (entries, lastAppliedValues, resolveValue) => {
-        const setter = form?.setFieldValue || form?.setValue;
-        if (!setter || entries.length === 0) return false;
+    const clampColSize = (size) => Math.min(Math.max(size, 1), 12);
+    const syncHiddenValues = (entries) => {
+        if (!form || entries.length === 0) return false;
 
         let mutated = false;
 
-        entries.forEach(([name, source]) => {
+        entries.forEach(([name, resolveValue]) => {
             try {
-                const nextValue = resolveValue(source);
+                const nextValue = resolveValue();
                 if (nextValue === undefined) return;
 
-                const currentValue = getCurrentFormValue(name);
-                const hasValueChanged = !valuesEqual(nextValue, lastAppliedValues[name]);
+                const currentValue = formStore?.current?.values?.[name];
+                const hasValueChanged = !valuesEqual(nextValue, lastAppliedHidden[name]);
                 const differsFromForm = !valuesEqual(nextValue, currentValue);
 
-                if (differsFromForm) {                    // Hidden values are infrastructure, not user input: skip validation and meta
-                    setter(name, nextValue, { dontValidate: true, dontUpdateMeta: true });
+                if (differsFromForm) {
+                    form.setFieldValue(name, nextValue, { dontValidate: true, dontUpdateMeta: true });
                     mutated = true;
                 }
 
                 if (hasValueChanged || differsFromForm) {
-                    lastAppliedValues[name] = nextValue;
+                    lastAppliedHidden[name] = nextValue;
                 }
             } catch {}
         });
@@ -262,27 +254,14 @@
     };
 
     watch(
-        [() => form, () => formStore?.current?.values, () => hiddenStaticValues],
+        [
+            () => form,
+            () => formStore?.current?.values,
+            () => hiddenStaticValues,
+            () => hiddenValueProviders,
+        ],
         () => {
-            const mutated = syncHiddenValues(
-                Object.entries(hiddenStaticValues || {}),
-                lastHiddenStatic,
-                (value) => value
-            );
-            if (mutated) scheduleHydrationPristineSync();
-        },
-        { immediate: true }
-    );
-
-    watch(
-        [() => form, () => formStore?.current?.values, () => hiddenValueProviders],
-        () => {
-            const mutated = syncHiddenValues(
-                Object.entries(hiddenValueProviders || {}),
-                lastHiddenProvided,
-                (provide) => (typeof provide === "function" ? provide() : undefined)
-            );
-            if (mutated) scheduleHydrationPristineSync();
+            if (syncHiddenValues(hiddenEntries())) scheduleHydrationPristineSync();
         },
         { immediate: true }
     );
@@ -298,6 +277,26 @@
     );
 </script>
 
+{#snippet renderField({ name, config, validatorSource, isRequired = false, languageCode = null })}
+    <form.Field
+        name={name}
+        validators={validatorSource && createFieldValidator?.(name, validatorSource, form, { ...VALIDATE_ON_CHANGE_OPTIONS, maxLength: config.charLimit })}
+    >
+        {#snippet children(field)}
+            <FormField
+                {field}
+                {config}
+                {isRequired}
+                {languageCode}
+                {shouldShowError}
+                {formatErrors}
+                {activeLanguageCode}
+                {t}
+            />
+        {/snippet}
+    </form.Field>
+{/snippet}
+
 {#if derivedTranslatable.length > 0 && defaultLanguage}
     <div class="mb-2">
         {#if !hideLanguageSelector}
@@ -311,24 +310,14 @@
             <div class="pt-2 row">
                 {#each derivedTranslatable as fieldName}
                     {@const config = getFieldConfig(fieldName)}
-                    <div class={`col-md-${Math.min(Math.max(config.colSize, 1), 12)}`}>
-                        <form.Field
-                            name={fieldName}
-                            validators={createFieldValidator?.(fieldName, validator, form, { ...VALIDATE_ON_CHANGE_OPTIONS, maxLength: config.charLimit })}
-                        >
-                            {#snippet children(field)}
-                                <FormField
-                                    {field}
-                                    {config}
-                                    isRequired={isRequired(fieldName)}
-                                    languageCode={defaultLanguage?.code || "default"}
-                                    {shouldShowError}
-                                    {formatErrors}
-                                    {activeLanguageCode}
-                                    {t}
-                                />
-                            {/snippet}
-                        </form.Field>
+                    <div class={`col-md-${clampColSize(config.colSize)}`}>
+                        {@render renderField({
+                            name: fieldName,
+                            config,
+                            validatorSource: validator,
+                            isRequired: isRequired(fieldName),
+                            languageCode: defaultLanguage?.code || "default",
+                        })}
                     </div>
                 {/each}
             </div>
@@ -340,23 +329,13 @@
                 <div class="pt-2 row">
                     {#each derivedTranslatable as baseField}
                         {@const config = getFieldConfig(baseField)}
-                        <div class={`col-md-${Math.min(Math.max(config.colSize, 1), 12)}`}>
-                            <form.Field
-                                name={`translations_${lang.id}_${baseField}`}
-                                validators={translationsValidator && createFieldValidator?.(`translations_${lang.id}_${baseField}`, translationsValidator, form, { ...VALIDATE_ON_CHANGE_OPTIONS, maxLength: config.charLimit })}
-                            >
-                                {#snippet children(field)}
-                                    <FormField
-                                        {field}
-                                        {config}
-                                        languageCode={lang.code}
-                                        {shouldShowError}
-                                        {formatErrors}
-                                        {activeLanguageCode}
-                                        {t}
-                                    />
-                                {/snippet}
-                            </form.Field>
+                        <div class={`col-md-${clampColSize(config.colSize)}`}>
+                            {@render renderField({
+                                name: `translations_${lang.id}_${baseField}`,
+                                config,
+                                validatorSource: translationsValidator,
+                                languageCode: lang.code,
+                            })}
                         </div>
                     {/each}
                 </div>
@@ -371,23 +350,13 @@
         {#each orderedFields as fieldName}
             {@const config = getFieldConfig(fieldName)}
             {#if !config.hidden && !derivedTranslatable.includes(fieldName)}
-                <div class={`col-md-${Math.min(Math.max(config.colSize, 1), 12)}`}>
-                    <form.Field
-                        name={fieldName}
-                        validators={createFieldValidator?.(fieldName, validator, form, { ...VALIDATE_ON_CHANGE_OPTIONS, maxLength: config.charLimit })}
-                    >
-                        {#snippet children(field)}
-                            <FormField
-                                {field}
-                                {config}
-                                isRequired={isRequired(fieldName)}
-                                {shouldShowError}
-                                {formatErrors}
-                                {activeLanguageCode}
-                                {t}
-                            />
-                        {/snippet}
-                    </form.Field>
+                <div class={`col-md-${clampColSize(config.colSize)}`}>
+                    {@render renderField({
+                        name: fieldName,
+                        config,
+                        validatorSource: validator,
+                        isRequired: isRequired(fieldName),
+                    })}
                 </div>
             {/if}
         {/each}
@@ -405,8 +374,8 @@
     {/each}
 </div>
 
-<DirtyNavigationGuard 
-    dirtyTracker={dirtyTracker} 
-    enabled={dirtyGuardEnabled}
-    message={dirtyTrackingMessage || t("form.unsaved-changes")}
+<DirtyNavigationGuard
+    dirtyTracker={dirtyTracker}
+    enabled={enableDirtyTracking && !!dirtyTracker && !formStore?.current?.isSubmitting}
+    message={t("form.unsaved-changes")}
 />
