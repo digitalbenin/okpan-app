@@ -247,8 +247,8 @@
                 const hasValueChanged = !valuesEqual(nextValue, lastAppliedValues[name]);
                 const differsFromForm = !valuesEqual(nextValue, currentValue);
 
-                if (differsFromForm) {
-                    setter(name, nextValue);
+                if (differsFromForm) {                    // Hidden values are infrastructure, not user input: skip validation and meta
+                    setter(name, nextValue, { dontValidate: true, dontUpdateMeta: true });
                     mutated = true;
                 }
 
