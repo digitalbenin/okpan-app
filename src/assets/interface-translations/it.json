@@ -4734,6 +4734,11 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "uploading",
+                             "value":  "Caricamento…"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "today",
                              "value":  "Oggi"
                          },

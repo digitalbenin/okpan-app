@@ -9,6 +9,7 @@
     let {
         type = "image", // 'image' | 'video' | 'audio'
         assets = [],
+        uploading = false,
         onAdd = async () => {},
         onRemove = () => {},
     } = $props();
@@ -33,6 +34,7 @@
 
     /** Open the system file picker (Electron). */
     async function pickFiles() {
+        if (uploading) return;
         try {
             const result = await window.api.openFileDialog({
                 properties: ["openFile", "multiSelections"],
@@ -56,6 +58,7 @@
     /** dragover must preventDefault so the browser allows dropping. */
     function handleDragOver(e) {
         e.preventDefault();
+        if (uploading) return;
         isDragOver = true;
     }
 
@@ -74,6 +77,7 @@
     async function handleDrop(e) {
         e.preventDefault();
         isDragOver = false;
+        if (uploading) return;
 
         const files = Array.from(e.dataTransfer?.files || []);
         const paths = files
@@ -100,7 +104,7 @@
             class="w-100 rounded-3 py-5 px-3 d-flex flex-column align-items-center justify-content-center text-center"
             role="button"
             tabindex="0"
-            style="border: 2px dashed {isDragOver || isZoneHovered ? 'var(--bs-primary)' : 'var(--bs-gray-500)'}; cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease;"
+            style="border: 2px dashed {isDragOver || isZoneHovered ? 'var(--bs-primary)' : 'var(--bs-gray-500)'}; cursor: {uploading ? 'default' : 'pointer'}; transition: border-color 0.15s ease, background-color 0.15s ease;"
             onclick={pickFiles}
             onkeydown={handleKeyDown}
             ondragover={handleDragOver}
@@ -109,24 +113,29 @@
             onmouseenter={() => isZoneHovered = true}
             onmouseleave={() => isZoneHovered = false}
         >
-            <IconUpload size={20} class="text-body-secondary mb-2" />
-            <div class="fw-semibold mb-1">
-                {t("common.click-to-select-a-file", { fallback: "Click to select a file" })}
-            </div>
-            <div class="text-muted small mb-2">
-                {t("common.or-drag-and-drop-here", { fallback: "Or drag and drop here" })}
-            </div>
-            {#if formatChips.length}
-                <div class="d-flex gap-1">
-                    {#each formatChips as ext}
-                        <span class="badge fw-normal text-bg-secondary border">{ext}</span>
-                    {/each}
+            {#if uploading}
+                <div class="spinner-border text-secondary mb-2" role="status" aria-hidden="true"></div>
+                <div class="fw-semibold mb-1">{t("common.uploading", { fallback: "Uploading…" })}</div>
+            {:else}
+                <IconUpload size={20} class="text-body-secondary mb-2" />
+                <div class="fw-semibold mb-1">
+                    {t("common.click-to-select-a-file", { fallback: "Click to select a file" })}
                 </div>
+                <div class="text-muted small mb-2">
+                    {t("common.or-drag-and-drop-here", { fallback: "Or drag and drop here" })}
+                </div>
+                {#if formatChips.length}
+                    <div class="d-flex gap-1">
+                        {#each formatChips as ext}
+                            <span class="badge fw-normal text-bg-secondary border">{ext}</span>
+                        {/each}
+                    </div>
+                {/if}
             {/if}
         </div>
     {:else}
         <div
-            class="rounded-3 p-3 d-flex flex-wrap gap-3"
+            class="rounded-3 p-3 d-flex flex-wrap gap-3 position-relative"
             role="region"
             aria-label={t("common.drop-zone", { fallback: "Drop zone" })}
             style="border: 2px dashed {isDragOver ? 'var(--bs-primary)' : 'var(--bs-gray-500)'}; transition: border-color 0.15s ease, background-color 0.15s ease; background-color: {isDragOver ? 'rgba(var(--bs-primary-rgb, 0, 128, 96), 0.06)' : 'transparent'};"
@@ -137,6 +146,13 @@
             {#each assets as asset (asset.id)}
                 <AssetPreview {asset} size={180} showRemoveButton={true} {onRemove} />
             {/each}
+            {#if uploading}
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center rounded-3 bg-body bg-opacity-50">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{t("common.uploading", { fallback: "Uploading…" })}</span>
+                    </div>
+                </div>
+            {/if}
         </div>
     {/if}
 </div>

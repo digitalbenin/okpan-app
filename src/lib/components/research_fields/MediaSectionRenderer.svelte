@@ -19,8 +19,15 @@
         { type: "audio", key: "audio", visible: visibleFields.audios },
     ]);
 
+    const keyForType = (type) => ({ image: "images", video: "videos", audio: "audio" }[type] || type);
+
+    // Uploads in progress, keyed by media type, so each section can show its own spinner.
+    let uploadingTypes = $state({});
+    const isUploading = (type) => Boolean(uploadingTypes[type]);
+
     async function importPaths(paths, type) {
-        if (!project?.id) return;
+        if (!project?.id || isUploading(type)) return;
+        uploadingTypes = { ...uploadingTypes, [type]: true };
         try {
             const importResult = await window.api.importAssets({
                 path: paths,
@@ -28,7 +35,7 @@
                 isGenericAsset: true,
             });
             if (!importResult?.createdAssets) return;
-            const key = type === "image" ? "images" : type === "video" ? "videos" : "audio";
+            const key = keyForType(type);
             const updated = {
                 ...value,
                 [key]: [...(value[key] || []), ...importResult.createdAssets],
@@ -36,6 +43,8 @@
             onChange(updated);
         } catch (e) {
             console.error("Failed to import asset", e);
+        } finally {
+            uploadingTypes = { ...uploadingTypes, [type]: false };
         }
     }
 
@@ -59,7 +68,7 @@
     }
 
     function handleRemove(type, asset) {
-        const key = type === "image" ? "images" : type === "video" ? "videos" : "audio";
+        const key = keyForType(type);
         const updated = {
             ...value,
             [key]: (value[key] || []).filter((a) => a.id !== asset.id),
@@ -83,19 +92,26 @@
                         <button
                             type="button"
                             class="btn btn-sm btn-outline-dark d-flex align-items-center gap-1"
+                            disabled={isUploading(section.type)}
                             onclick={() => pickAndImport(section.type)}
                         >
-                            <IconPlus size={14} />
-                            {t(
-                                `common.add-${section.type}`,
-                                { fallback: "Add " + section.type }
-                            )}
+                            {#if isUploading(section.type)}
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                {t("common.uploading", { fallback: "Uploading…" })}
+                            {:else}
+                                <IconPlus size={14} />
+                                {t(
+                                    `common.add-${section.type}`,
+                                    { fallback: "Add " + section.type }
+                                )}
+                            {/if}
                         </button>
                     {/if}
                 </div>
                 <MediaUploadZone
                     type={section.type}
                     assets={value[section.key] || []}
+                    uploading={isUploading(section.type)}
                     onAdd={(paths) => importPaths(paths, section.type)}
                     onRemove={(asset) => handleRemove(section.type, asset)}
                 />

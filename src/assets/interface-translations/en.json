@@ -4811,6 +4811,11 @@
                          },
                          {
                              "namespace":  "common",
+                             "key":  "uploading",
+                             "value":  "Uploading…"
+                         },
+                         {
+                             "namespace":  "common",
                              "key":  "today",
                              "value":  "Today"
                          },
