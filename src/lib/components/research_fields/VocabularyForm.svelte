@@ -187,16 +187,22 @@
         }
     }
 
+    let isUploadingMainAsset = $state(false);
+
     async function handleAddMainAsset() {
+        if (isUploadingMainAsset) return;
         try {
             const result = await window.api.openFileDialog({ properties: ["openFile", "multiSelections"], filters: createMediaFilters(["image"]) });
             if (result?.canceled || !result.filePaths.length) return;
+            isUploadingMainAsset = true;
             const importResult = await window.api.importAssets({ path: result.filePaths, projectId: project.id, isGenericAsset: true });
             if (importResult?.createdAssets?.[0]) {
                 form?.setFieldValue("mainAsset", importResult.createdAssets[0]);
             }
         } catch (e) {
             console.error("Failed to add main asset", e);
+        } finally {
+            isUploadingMainAsset = false;
         }
     }
 
@@ -214,6 +220,7 @@
                         type="button"
                         class="flex-shrink-0 bg-light rounded-2 border-0 p-0 d-flex align-items-center justify-content-center position-relative"
                         style="width: 56px; height: 56px; overflow: hidden; cursor: pointer;"
+                        disabled={isUploadingMainAsset}
                         onclick={handleAddMainAsset}
                         aria-label={mainAsset ? t("connections.main-image", { fallback: "Main image" }) : t("connections.add-main-image", { fallback: "Add main image" })}
                     >
@@ -222,9 +229,15 @@
                         {:else}
                             <img src={imgLg} alt="" class="w-100 h-100 object-fit-cover" />
                         {/if}
-                        <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center">
-                            <IconPencil size={16} class="text-white" />
-                        </div>
+                        {#if isUploadingMainAsset}
+                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center">
+                                <span class="spinner-border spinner-border-sm text-white" role="status" aria-hidden="true"></span>
+                            </div>
+                        {:else}
+                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center">
+                                <IconPencil size={16} class="text-white" />
+                            </div>
+                        {/if}
                     </button>
                     <div class="d-flex flex-column min-w-0">
                         <h2 class=" mb-0 text-truncate">{vocabularyName}</h2>
