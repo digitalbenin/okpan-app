@@ -1,7 +1,7 @@
 {
   "name": "okpan",
   "productName": "Okpan",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "type": "module",
   "description": "My Electron application description",
   "main": ".vite/main.js",
