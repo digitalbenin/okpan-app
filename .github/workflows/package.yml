@@ -26,12 +26,6 @@ jobs:
       - name: Install website dependencies
         run: yarn --cwd src/website install --frozen-lockfile
 
-      - name: Verify bundled embedding runtime
-        shell: bash
-        run: |
-          test -f node_modules/onnxruntime-node/bin/napi-v3/darwin/x64/onnxruntime_binding.node
-          test -f node_modules/onnxruntime-node/bin/napi-v3/darwin/x64/libonnxruntime.1.21.0.dylib
-
       - name: Download embedding model
         run: yarn download-model
 
@@ -78,6 +72,12 @@ jobs:
 
       - name: Install website dependencies
         run: yarn --cwd src/website install --frozen-lockfile
+
+      - name: Verify bundled embedding runtime
+        shell: bash
+        run: |
+          test -f node_modules/onnxruntime-node/bin/napi-v6/darwin/x64/onnxruntime_binding.node
+          test -f node_modules/onnxruntime-node/bin/napi-v6/darwin/x64/libonnxruntime.1.23.2.dylib
 
       - name: Download embedding model
         run: yarn download-model
