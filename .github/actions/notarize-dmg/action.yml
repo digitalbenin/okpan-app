@@ -1,0 +1,50 @@
+name: Notarize and staple DMG
+description: >-
+  Submits the DMG to Apple's notary service, waits for the verdict and staples
+  the ticket onto it. Expects APPLE_API_KEY_PATH, APPLE_API_KEY_ID and
+  APPLE_API_ISSUER to be exported by the setup-apple-credentials action.
+
+inputs:
+  dmg-path:
+    description: Path to the .dmg to notarize (when empty, the first .dmg under out/make is used)
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Submit DMG to notarytool and staple
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        DMG="${{ inputs.dmg-path }}"
+        if [ -z "$DMG" ]; then
+          DMG=$(find out/make -name "*.dmg" | head -n 1)
+        fi
+        if [ -z "$DMG" ] || [ ! -f "$DMG" ]; then
+          echo "::error::No DMG found to notarize"
+          exit 1
+        fi
+
+        SUBMIT_LOG="$RUNNER_TEMP/dmg-notarization.log"
+        if ! xcrun notarytool submit "$DMG" \
+          --key "$APPLE_API_KEY_PATH" \
+          --key-id "$APPLE_API_KEY_ID" \
+          --issuer "$APPLE_API_ISSUER" \
+          --wait | tee "$SUBMIT_LOG"; then
+          SUBMISSION_ID=$(awk '/submission id: /{print $NF; exit} /^id: /{print $2; exit}' "$SUBMIT_LOG" || true)
+          if [ -n "$SUBMISSION_ID" ]; then
+            echo "Notarization log for submission $SUBMISSION_ID:"
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --key "$APPLE_API_KEY_PATH" \
+              --key-id "$APPLE_API_KEY_ID" \
+              --issuer "$APPLE_API_ISSUER" || true
+          fi
+          exit 1
+        fi
+
+        grep -q 'status: Accepted' "$SUBMIT_LOG" || { echo "::error::Unexpected notarization status"; exit 1; }
+
+        xcrun stapler staple "$DMG"
+        xcrun stapler validate "$DMG"

@@ -15,6 +15,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Apple signing & notarization
+        uses: ./.github/actions/setup-apple-credentials
+        with:
+          csc-link: ${{ secrets.CSC_LINK }}
+          csc-key-password: ${{ secrets.CSC_KEY_PASSWORD }}
+          apple-api-key: ${{ secrets.APPLE_API_KEY }}
+          apple-api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+          apple-api-issuer: ${{ secrets.APPLE_API_ISSUER }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -32,20 +41,14 @@ jobs:
       - name: Build Electron app (ARM64)
         run: yarn make -- --arch=arm64
 
-      - name: Generate unlock.command
-        shell: bash
-        run: |
-          cat > out/make/unlock.command << 'EOF'
-          #!/bin/bash
-          xattr -c /Applications/Okpan.app
-          EOF
-          chmod +x out/make/unlock.command
+      - name: Notarize and staple the DMG
+        uses: ./.github/actions/notarize-dmg
 
       - name: Zip macOS ARM64 release bundle
         shell: bash
         run: |
           dmg_path=$(find out/make -name "*.dmg" | head -n 1)
-          zip -j okpan-macos-arm64.zip out/make/unlock.command "$dmg_path"
+          zip -j okpan-macos-arm64.zip "$dmg_path"
 
       - name: Upload ARM64 artifacts
         uses: actions/upload-artifact@v4
@@ -61,6 +64,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Apple signing & notarization
+        uses: ./.github/actions/setup-apple-credentials
+        with:
+          csc-link: ${{ secrets.CSC_LINK }}
+          csc-key-password: ${{ secrets.CSC_KEY_PASSWORD }}
+          apple-api-key: ${{ secrets.APPLE_API_KEY }}
+          apple-api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+          apple-api-issuer: ${{ secrets.APPLE_API_ISSUER }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -85,20 +97,14 @@ jobs:
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64
 
-      - name: Generate unlock.command
-        shell: bash
-        run: |
-          cat > out/make/unlock.command << 'EOF'
-          #!/bin/bash
-          xattr -c /Applications/Okpan.app
-          EOF
-          chmod +x out/make/unlock.command
+      - name: Notarize and staple the DMG
+        uses: ./.github/actions/notarize-dmg
 
       - name: Zip macOS x64 release bundle
         shell: bash
         run: |
           dmg_path=$(find out/make -name "*.dmg" | head -n 1)
-          zip -j okpan-macos-x64.zip out/make/unlock.command "$dmg_path"
+          zip -j okpan-macos-x64.zip "$dmg_path"
 
       - name: Upload x64 artifacts
         uses: actions/upload-artifact@v4
@@ -153,15 +159,6 @@ jobs:
         with:
           path: artifacts
 
-      - name: Generate unlock.command
-        shell: bash
-        run: |
-          cat > artifacts/unlock.command << 'EOF'
-          #!/bin/bash
-          xattr -c /Applications/Okpan.app
-          EOF
-          chmod +x artifacts/unlock.command
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -169,7 +166,6 @@ jobs:
             artifacts/macOS-arm64/**/*
             artifacts/macOS-x64/**/*
             artifacts/windows-x64/**/*
-            artifacts/unlock.command
           draft: false
           prerelease: false
           generate_release_notes: true

@@ -3,11 +3,34 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import fs from 'fs-extra';
 import path from 'path';
 
+// macOS signing and notarization run only when CI exports credentials
+// (see .github/workflows/package.yml); local builds stay unsigned.
+// osx-sign provides the rest out of the box: hardened runtime, secure
+// timestamp and Electron-friendly entitlements.
+const osxSign = process.env.APPLE_IDENTITY
+    ? {
+        identity: process.env.APPLE_IDENTITY,
+        keychain: process.env.APPLE_KEYCHAIN,
+        // Fail the build instead of packing an unsigned app
+        continueOnError: false,
+    }
+    : undefined;
+
+const osxNotarize = process.env.APPLE_API_KEY_PATH
+    ? {
+        appleApiKey: process.env.APPLE_API_KEY_PATH,
+        appleApiKeyId: process.env.APPLE_API_KEY_ID,
+        appleApiIssuer: process.env.APPLE_API_ISSUER,
+    }
+    : undefined;
+
 export default {
     packagerConfig: {
         name: 'Okpan',
         executableName: "Okpan",
         icon: './src/assets/okpan_logo',
+        osxSign,
+        osxNotarize,
         // Disable ASAR to prevent native .node extraction to temp, ensuring DLLs
         // like libvips are loaded from their adjacent directory on Windows
         asar: false,
