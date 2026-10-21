@@ -1,0 +1,159 @@
+name: Test Apple Signing & Notarization
+
+# Smoke test for the Apple credentials used by the macOS packaging pipeline.
+# Runs with no checkout, no dependency install and no artifact upload, so it
+# consumes no GitHub storage. Required secrets:
+#   CSC_LINK         - base64 of the .p12 (Developer ID Application cert + private key)
+#   CSC_KEY_PASSWORD - password of the .p12
+#   APPLE_API_KEY    - raw PEM content of the App Store Connect API key (.p8,
+#                      must be a Team Key with the App Manager role)
+#   APPLE_API_KEY_ID - 10-character key id
+#   APPLE_API_ISSUER - issuer id (UUID) of the developer team
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  test-apple-signing:
+    name: Test Apple signing & notarization
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Test code signing with .p12
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          WORK_DIR="$RUNNER_TEMP/apple-signing-test"
+          KEYCHAIN="$WORK_DIR/build.keychain"
+          mkdir -p "$WORK_DIR"
+
+          printf '%s' "$CSC_LINK" | base64 --decode > "$WORK_DIR/cert.p12"
+          test -s "$WORK_DIR/cert.p12"
+
+          KEYCHAIN_PWD=$(openssl rand -base64 24)
+          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN"
+
+          security import "$WORK_DIR/cert.p12" -k "$KEYCHAIN" -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PWD" "$KEYCHAIN"
+
+          security find-identity -v -p codesigning "$KEYCHAIN"
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | grep -m1 -o '"[^"]*"' | tr -d '"' || true)
+          if [ -z "$IDENTITY" ]; then
+            echo "::error::No valid signing identity in the .p12 (expected a Developer ID Application certificate with its private key)"
+            exit 1
+          fi
+          echo "Signing identity: $IDENTITY"
+
+          # Real Mach-O binary signed the way production builds are (hardened runtime + timestamp)
+          cp /bin/echo "$WORK_DIR/dummy"
+          codesign --sign "$IDENTITY" --options runtime --timestamp --force "$WORK_DIR/dummy"
+          codesign --verify --verbose "$WORK_DIR/dummy"
+          echo "Code signing test succeeded."
+
+          echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+
+      - name: Test notarization credentials
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          set -euo pipefail
+
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+          printf '%s\n' "$APPLE_API_KEY" > "$KEY_PATH"
+
+          xcrun notarytool history \
+            --key "$KEY_PATH" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER"
+          echo "Notarization credentials validated."
+
+      - name: Test notarization end-to-end with a minimal app
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SIGN_IDENTITY:-}" ]; then
+            echo "::error::SIGN_IDENTITY is not set, the code signing step must have failed"
+            exit 1
+          fi
+
+          WORK_DIR="$RUNNER_TEMP/apple-signing-test"
+          APP="$WORK_DIR/dummy.app"
+          mkdir -p "$APP/Contents/MacOS"
+
+          cp /bin/echo "$APP/Contents/MacOS/dummy"
+          cat > "$APP/Contents/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleIdentifier</key>
+            <string>com.calibro.okpan.signtest</string>
+            <key>CFBundleName</key>
+            <string>OkpanSigningTest</string>
+            <key>CFBundleExecutable</key>
+            <string>dummy</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>11.0</string>
+          </dict>
+          </plist>
+          PLIST
+
+          codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
+          codesign --verify --strict --verbose=2 "$APP"
+
+          ZIP="$WORK_DIR/dummy_app.zip"
+          ditto -c -k --keepParent "$APP" "$ZIP"
+
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+          printf '%s\n' "$APPLE_API_KEY" > "$KEY_PATH"
+
+          SUBMIT_LOG="$WORK_DIR/submit.log"
+          if ! xcrun notarytool submit "$ZIP" \
+            --key "$KEY_PATH" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait | tee "$SUBMIT_LOG"; then
+            SUBMISSION_ID=$(awk '/^id: /{print $2; exit}' "$SUBMIT_LOG" || true)
+            if [ -n "$SUBMISSION_ID" ]; then
+              echo "Notarization log for submission $SUBMISSION_ID:"
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --key "$KEY_PATH" \
+                --key-id "$APPLE_API_KEY_ID" \
+                --issuer "$APPLE_API_ISSUER" || true
+            fi
+            exit 1
+          fi
+
+          grep -q 'status: Accepted' "$SUBMIT_LOG" || { echo "::error::Unexpected notarization status"; exit 1; }
+
+          xcrun stapler staple "$APP"
+          xcrun stapler validate "$APP"
+          echo "Notarization end-to-end test succeeded."
+
+      - name: Cleanup
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/apple-signing-test/build.keychain" 2>/dev/null || true
+          rm -rf "$RUNNER_TEMP/apple-signing-test"
+          rm -f "$RUNNER_TEMP"/AuthKey_*.p8
