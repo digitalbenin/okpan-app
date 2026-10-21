@@ -42,7 +42,13 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
           security list-keychains -d user -s "$KEYCHAIN"
 
-          security import "$WORK_DIR/cert.p12" -k "$KEYCHAIN" -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign
+          # On failure, openssl tells a wrong CSC_KEY_PASSWORD ("Mac verify error")
+          # apart from a corrupted/invalid CSC_LINK ("Could not parse PKCS12")
+          if ! security import "$WORK_DIR/cert.p12" -k "$KEYCHAIN" -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign; then
+            echo "::error::PKCS#12 import failed. openssl diagnosis:"
+            openssl pkcs12 -info -in "$WORK_DIR/cert.p12" -noout -passin env:CSC_KEY_PASSWORD || true
+            exit 1
+          fi
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PWD" "$KEYCHAIN"
 
           security find-identity -v -p codesigning "$KEYCHAIN"
