@@ -42,11 +42,18 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
           security list-keychains -d user -s "$KEYCHAIN"
 
-          # On failure, openssl tells a wrong CSC_KEY_PASSWORD ("Mac verify error")
-          # apart from a corrupted/invalid CSC_LINK ("Could not parse PKCS12")
+          # macOS' PKCS#12 importer only understands legacy algorithms (SHA-1 MAC,
+          # 3DES/RC2). Files exported by OpenSSL 3 defaults use PBES2/AES-256-CBC
+          # with a SHA-256 MAC, which raises a misleading "wrong password" error.
           if ! security import "$WORK_DIR/cert.p12" -k "$KEYCHAIN" -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign; then
             echo "::error::PKCS#12 import failed. openssl diagnosis:"
-            openssl pkcs12 -info -in "$WORK_DIR/cert.p12" -noout -passin env:CSC_KEY_PASSWORD || true
+            P12_INFO=$(openssl pkcs12 -info -in "$WORK_DIR/cert.p12" -noout -passin env:CSC_KEY_PASSWORD 2>&1 || true)
+            echo "$P12_INFO"
+            if echo "$P12_INFO" | grep -q "Mac verify error"; then
+              echo "::error::CSC_KEY_PASSWORD does not match the .p12"
+            elif echo "$P12_INFO" | grep -qi "MAC: sha256\|PBES2"; then
+              echo "::error::The .p12 uses modern PKCS#12 algorithms (SHA-256 MAC / PBES2). Re-export it with: openssl pkcs12 -export -in bundle.pem -out cert.p12 -macalg sha1 -certpbe PBE-SHA1-3DES -keypbe PBE-SHA1-3DES"
+            fi
             exit 1
           fi
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PWD" "$KEYCHAIN"
