@@ -21,7 +21,7 @@ permissions: {}
 jobs:
   test-apple-signing:
     name: Test Apple signing & notarization
-        # Pinned rather than macos-latest: the alias is remapped by GitHub and has
+    # Pinned rather than macos-latest: the alias is remapped by GitHub and has
     # left jobs queued when the image it points to has no capacity
     runs-on: macos-15
     timeout-minutes: 30
@@ -113,11 +113,12 @@ jobs:
             --issuer "$APPLE_API_ISSUER"
           echo "Notarization credentials validated."
 
-      - name: Test notarization end-to-end with a minimal app
-        env:
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          # Consumed by the notarize-artifact action below
+          echo "APPLE_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          echo "APPLE_API_KEY_ID=$APPLE_API_KEY_ID" >> "$GITHUB_ENV"
+          echo "APPLE_API_ISSUER=$APPLE_API_ISSUER" >> "$GITHUB_ENV"
+
+      - name: Build a minimal signed app
         run: |
           set -euo pipefail
 
@@ -157,34 +158,10 @@ jobs:
           codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
           codesign --verify --strict --verbose=2 "$APP"
 
-          ZIP="$WORK_DIR/dummy_app.zip"
-          ditto -c -k --keepParent "$APP" "$ZIP"
-
-          KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
-          printf '%s\n' "$APPLE_API_KEY" > "$KEY_PATH"
-
-          SUBMIT_LOG="$WORK_DIR/submit.log"
-          if ! xcrun notarytool submit "$ZIP" \
-            --key "$KEY_PATH" \
-            --key-id "$APPLE_API_KEY_ID" \
-            --issuer "$APPLE_API_ISSUER" \
-            --wait | tee "$SUBMIT_LOG"; then
-            SUBMISSION_ID=$(awk '/submission id: /{print $NF; exit} /^id: /{print $2; exit}' "$SUBMIT_LOG" || true)
-            if [ -n "$SUBMISSION_ID" ]; then
-              echo "Notarization log for submission $SUBMISSION_ID:"
-              xcrun notarytool log "$SUBMISSION_ID" \
-                --key "$KEY_PATH" \
-                --key-id "$APPLE_API_KEY_ID" \
-                --issuer "$APPLE_API_ISSUER" || true
-            fi
-            exit 1
-          fi
-
-          grep -q 'status: Accepted' "$SUBMIT_LOG" || { echo "::error::Unexpected notarization status"; exit 1; }
-
-          xcrun stapler staple "$APP"
-          xcrun stapler validate "$APP"
-          echo "Notarization end-to-end test succeeded."
+      - name: Test notarization end-to-end with the minimal app
+        uses: ./.github/actions/notarize-artifact
+        with:
+          path: ${{ runner.temp }}/apple-signing-test/dummy.app
 
       - name: Cleanup
         if: always()
