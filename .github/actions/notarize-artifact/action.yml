@@ -20,6 +20,33 @@ inputs:
 runs:
   using: composite
   steps:
+    # Since 2026-10-12 GitHub-hosted macOS runners drop stapler's HTTP/3 (UDP 443)
+    # connections, failing the ticket download with NSURLErrorDomain -1005 and
+    # exit code 68. Blocking UDP 443 makes stapler fall back to HTTPS over TCP
+    # (actions/runner-images#14924). Failure here is not fatal: the staple retries
+    # below remain as the second line of defence.
+    - name: Force stapler onto TCP
+      shell: bash
+      run: |
+        set -uo pipefail
+
+        if ! command -v pfctl >/dev/null 2>&1; then
+          echo "::notice::pfctl unavailable, skipping the HTTP/3 workaround"
+          exit 0
+        fi
+
+        if ! echo "block return out quick proto udp from any to any port 443" | sudo pfctl -f -; then
+          echo "::warning::Could not load the UDP 443 block, stapler may hit the HTTP/3 issue"
+          exit 0
+        fi
+        sudo pfctl -E || true
+
+        if sudo pfctl -s rules | grep -q 'udp.*443'; then
+          echo "UDP 443 blocked: stapler will use HTTPS over TCP"
+        else
+          echo "::warning::The UDP 443 block is not active, stapler may hit the HTTP/3 issue"
+        fi
+
     - name: Submit and wait for Apple's verdict
       shell: bash
       run: |
@@ -79,6 +106,26 @@ runs:
           exit 1
         fi
 
-        xcrun stapler staple "$TARGET"
-        xcrun stapler validate "$TARGET"
+        # stapler fetches the ticket from CloudKit, so it can hit the same dropped
+        # connections; a failed staple writes nothing, and validate performs its
+        # own fresh lookup
+        retry() {
+          local label="$1"
+          shift
+          local attempt
+          for attempt in 1 2 3; do
+            if "$@"; then
+              return 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::$label attempt $attempt failed, retrying in 15s"
+              sleep 15
+            fi
+          done
+          echo "::error::$label failed after 3 attempts, $(basename "$TARGET") could not be stapled"
+          return 1
+        }
+
+        retry "stapler staple" xcrun stapler staple "$TARGET"
+        retry "stapler validate" xcrun stapler validate "$TARGET"
         echo "Notarized and stapled $(basename "$TARGET")"
