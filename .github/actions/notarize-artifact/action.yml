@@ -1,0 +1,131 @@
+name: Notarize and staple artifact
+description: >-
+  Submits an .app or .dmg to Apple's notary service, polls for the verdict with
+  a hard time limit, and staples the ticket onto the artifact. Expects
+  APPLE_API_KEY_PATH, APPLE_API_KEY_ID and APPLE_API_ISSUER to be exported by
+  the setup-apple-credentials action. A bounded poll is used instead of
+  `notarytool submit --wait`, which is known to hang for hours on Apple's side
+  (see electron/notarize#179).
+
+inputs:
+  path:
+    description: Path to the .app bundle or .dmg to notarize (when empty, the first .dmg under out/make is used)
+    required: false
+    default: ''
+  wait-minutes:
+    description: Maximum time to wait for Apple's verdict before failing
+    required: false
+    default: '20'
+
+runs:
+  using: composite
+  steps:
+    # Since 2026-10-12 GitHub-hosted macOS runners drop stapler's HTTP/3 (UDP 443)
+    # connections, failing the ticket download with NSURLErrorDomain -1005 and
+    # exit code 68. Blocking UDP 443 makes stapler fall back to HTTPS over TCP
+    # (actions/runner-images#14924). Failure here is not fatal: the staple retries
+    # below remain as the second line of defence.
+    - name: Force stapler onto TCP
+      shell: bash
+      run: |
+        set -uo pipefail
+
+        if ! command -v pfctl >/dev/null 2>&1; then
+          echo "::notice::pfctl unavailable, skipping the HTTP/3 workaround"
+          exit 0
+        fi
+
+        if ! echo "block return out quick proto udp from any to any port 443" | sudo pfctl -f -; then
+          echo "::warning::Could not load the UDP 443 block, stapler may hit the HTTP/3 issue"
+          exit 0
+        fi
+        sudo pfctl -E || true
+
+        if sudo pfctl -s rules | grep -q 'udp.*443'; then
+          echo "UDP 443 blocked: stapler will use HTTPS over TCP"
+        else
+          echo "::warning::The UDP 443 block is not active, stapler may hit the HTTP/3 issue"
+        fi
+
+    - name: Submit and wait for Apple's verdict
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        TARGET="${{ inputs.path }}"
+        if [ -z "$TARGET" ]; then
+          TARGET=$(find out/make -name "*.dmg" | head -n 1)
+        fi
+        if [ -z "$TARGET" ] || [ ! -e "$TARGET" ]; then
+          echo "::error::No artifact found to notarize"
+          exit 1
+        fi
+
+        # notarytool accepts zip/dmg/pkg; an .app is zipped first and the
+        # ticket is then stapled onto the bundle itself
+        SUBMIT_FILE="$TARGET"
+        case "$TARGET" in
+          *.app)
+            SUBMIT_FILE="$RUNNER_TEMP/$(basename "$TARGET").zip"
+            ditto -c -k --keepParent "$TARGET" "$SUBMIT_FILE"
+            ;;
+        esac
+
+        AUTH=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER")
+
+        echo "Submitting $(basename "$TARGET") to Apple notary service..."
+        SUBMIT_JSON=$(xcrun notarytool submit "$SUBMIT_FILE" "${AUTH[@]}" --output-format json | tee /dev/stderr)
+        SUBMISSION_ID=$(echo "$SUBMIT_JSON" | jq -r '.id // empty')
+        if [ -z "$SUBMISSION_ID" ]; then
+          echo "::error::Could not read the submission id from notarytool submit"
+          exit 1
+        fi
+
+        # Apple returns exactly one of: In Progress, Accepted, Invalid, Rejected.
+        # First-ever submissions of an account can sit in "In Progress" for hours
+        # (electron/notarize#179), so poll only up to the time budget and fail
+        # with the submission id so the status can be checked later.
+        DEADLINE=$(( $(date +%s) + ${{ inputs.wait-minutes }} * 60 ))
+        STATUS=""
+        while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+          STATUS=$(xcrun notarytool info "$SUBMISSION_ID" "${AUTH[@]}" --output-format json 2>/dev/null | jq -r '.status // empty' || true)
+          if [ "$STATUS" = "Accepted" ]; then
+            break
+          fi
+          if [ "$STATUS" = "Invalid" ] || [ "$STATUS" = "Rejected" ]; then
+            echo "::error::Notarization $STATUS for submission $SUBMISSION_ID"
+            xcrun notarytool log "$SUBMISSION_ID" "${AUTH[@]}" || true
+            exit 1
+          fi
+          echo "status: ${STATUS:-unknown} — waiting..."
+          sleep 60
+        done
+
+        if [ "$STATUS" != "Accepted" ]; then
+          echo "::error::Notarization still '${STATUS:-unknown}' after ${{ inputs.wait-minutes }} minutes. The submission $SUBMISSION_ID may still complete later: check 'xcrun notarytool info $SUBMISSION_ID' and re-run this workflow when it is Accepted (resubmitting identical content is fast). Apple's notary service is known to take hours on first-ever submissions."
+          exit 1
+        fi
+
+        # stapler fetches the ticket from CloudKit, so it can hit the same dropped
+        # connections; a failed staple writes nothing, and validate performs its
+        # own fresh lookup
+        retry() {
+          local label="$1"
+          shift
+          local attempt
+          for attempt in 1 2 3; do
+            if "$@"; then
+              return 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::$label attempt $attempt failed, retrying in 15s"
+              sleep 15
+            fi
+          done
+          echo "::error::$label failed after 3 attempts, $(basename "$TARGET") could not be stapled"
+          return 1
+        }
+
+        retry "stapler staple" xcrun stapler staple "$TARGET"
+        retry "stapler validate" xcrun stapler validate "$TARGET"
+        echo "Notarized and stapled $(basename "$TARGET")"

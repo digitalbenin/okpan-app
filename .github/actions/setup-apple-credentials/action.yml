@@ -2,7 +2,7 @@ name: Setup Apple credentials
 description: >-
   Imports the Developer ID certificate into a temporary keychain and writes the
   App Store Connect API key to disk, then exports what forge.config.js needs to
-  sign and notarize the app.
+  sign the app and what the notarize-artifact action needs to notarize it.
 
 inputs:
   csc-link:
@@ -54,8 +54,10 @@ runs:
         security list-keychains -d user -s "$KEYCHAIN"
 
         # macOS' PKCS#12 importer only accepts legacy algorithms (SHA-1 MAC,
-        # 3DES/RC2); test-apple-signing.yml prints the re-export command when
-        # a modern .p12 fails here
+        # 3DES/RC2), so a .p12 exported with OpenSSL 3 defaults (PBES2/AES-256-CBC)
+        # fails here; re-export it with:
+        #   openssl pkcs12 -export -in bundle.pem -out cert.p12 -macalg sha1 \
+        #     -certpbe PBE-SHA1-3DES -keypbe PBE-SHA1-3DES
         if ! security import "$WORK_DIR/cert.p12" -k "$KEYCHAIN" -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign; then
           echo "::error::PKCS#12 import failed (wrong password, or modern PKCS#12 algorithms)"
           exit 1
