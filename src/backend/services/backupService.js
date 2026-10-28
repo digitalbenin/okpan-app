@@ -374,6 +374,7 @@ const generateSchemaDDL = () => {
     password TEXT,
     sync_url TEXT,
     sig_server TEXT,
+    turn_secret TEXT,
     project_id TEXT REFERENCES project(id)
   )`);
 

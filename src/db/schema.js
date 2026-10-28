@@ -244,6 +244,8 @@ export const settings = sqliteTable('settings', {
     //db_name: text('db_name'),
     sync_url: text('sync_url'),
     sig_server: text('sig_server'),
+    // TURN REST API shared secret of the project's TURN server (optional)
+    turn_secret: text('turn_secret'),
     project_id: text('project_id').references(() => project.id),
 });
 

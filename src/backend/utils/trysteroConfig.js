@@ -42,19 +42,27 @@ export function getTurnOnlyIceServers() {
 }
 
 /**
- * Parse TRYSTERO_RELAY_URLS env var into a relayUrls array.
+ * Build the relayUrls config for Trystero joinRoom() calls.
  * Trystero's Nostr strategy in v0.22.0 reads config.relayUrls (flat array),
  * NOT config.relayConfig.urls (nested object).
- * Custom URLs are merged with the default NOSTR relays so the client
- * connects to both the specified relays and the public fallback pool.
- * @returns {Object} with relayUrls array, or empty object if not set.
+ * Per-project custom signaling URLs and the TRYSTERO_RELAY_URLS env var are
+ * merged with the default NOSTR relays so the client connects to both the
+ * custom relays and the public fallback pool.
+ * @param {Object} [options={}] - Relay options.
+ * @param {Array.<string>} [options.extraUrls=[]] - Per-project relay URLs (custom signaling servers).
+ * @returns {Object} with relayUrls array, or empty object if no custom relay is configured.
  */
-export function getRelayConfig() {
+export function getRelayConfig(options = {}) {
+  const extraUrls = Array.isArray(options?.extraUrls)
+    ? options.extraUrls.map(u => (typeof u === 'string' ? u.trim() : '')).filter(Boolean)
+    : [];
+
   const urls = process.env.TRYSTERO_RELAY_URLS;
-  const customUrls = urls
+  const envUrls = urls
     ? urls.split(',').map(u => u.trim()).filter(Boolean)
     : [];
 
+  const customUrls = [...new Set([...extraUrls, ...envUrls])];
   if (customUrls.length === 0) {
     return {};
   }

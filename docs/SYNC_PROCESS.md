@@ -209,6 +209,17 @@ If a peer goes offline, local work continues. The peer keeps writing to SQLite a
 
 This is what makes the system resilient to intermittent connectivity. The peer does not pause work while disconnected; it accumulates valid CRDT state and reconciles later.
 
+### Custom Signaling Relays and Backup TURN
+By default every project is announced on the shared public relay network. A project can additionally define its own signaling relay (for example a self-hosted Okpan server): the URL is stored per project in `settings.sig_server` and is resolved at connection time as **extra relay added to the default pool**, never as a replacement. This means a project with a custom relay stays reachable through the public network as well. The address can be entered exactly as the deployment dashboard shows it (typically an `https://` URL): it is normalized internally to the matching WebSocket scheme, because the WebSocket handshake is an HTTP upgrade served on that very same endpoint.
+
+Resolution order is always: persisted `settings` row (owner-defined, syncs to all peers like any other project data) -> URL entered at join time (kept in transient backend state, never written to a placeholder row) -> default network. A peer that joins with a custom URL only persists it after the first successful sync, and only when the project has no settings row yet; an owner-defined row that arrives later always wins at the next reconnect.
+
+When a custom signaling relay is configured, the backup TURN server is derived automatically from the relay host (`turn:<host>:3478`). Credentials follow the TURN REST API scheme: time-limited HMAC values generated with `generateTurnCredentials` from a shared secret. The secret is resolved per project in this order: `settings.turn_secret` (set once by the project owner in Share project and synced to every peer like any other project data), then the project password, then the env-configured `TURN_*` settings. The matching coturn instance uses `use-auth-secret` with `static-auth-secret` set to the same value: the deployment operator generates it (for example with `openssl rand -hex 32`), keeps it on the server and shares it only with project owners, who enter it once as the project TURN secret. coturn accepts multiple `static-auth-secret` lines, so a single server can host several projects with different secrets.
+
+A peer joining an existing project can need the TURN secret before any sync can happen: behind a strict NAT the very first connection requires TURN, while `settings.turn_secret` only arrives through sync. The join dialog therefore has a "dedicated sharing server" switch that reveals the server URL (required) and TURN secret (optional) inputs: those values travel as bootstrap hints, shared by the project owner together with the project ID and password. The persisted settings row always wins as soon as it is synced, and the hints are only written to the settings row when the project has none after the first successful sync. Connection settings are configured exclusively in the project's Share settings page after creation, never during project creation.
+
+Changing the signaling URL persists before the runtime reconnects, so the peer that edits it switches immediately; already-connected peers pick the change up from sync at their next reconnect.
+
 ## 5. Inbound Flow: Network to Local (`remoteIngestionHandler.js`)
 
 ### Receiving Remote Yjs Updates

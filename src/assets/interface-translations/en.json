@@ -3099,6 +3099,94 @@
                          },
 
                          {
+                             "namespace":  "signaling",
+                             "key":  "label",
+                             "value":  "Signaling server"
+                         },
+                         {
+                             "namespace":  "signaling",
+                             "key":  "placeholder",
+                             "value":  "https://relay.example.com"
+                         },
+                         {
+                             "namespace":  "signaling",
+                             "key":  "use-dedicated-server",
+                             "value":  "Use dedicated sharing server"
+                         },
+                         {
+                             "namespace":  "signaling",
+                             "key":  "help",
+                             "value":  "The server that helps project members find each other online. Whoever set up the dedicated sharing server provides the address."
+                         },
+                         {
+                             "namespace":  "signaling",
+                             "key":  "warning-insecure",
+                             "value":  "The connection is not encrypted. Use an https:// address outside trusted local networks."
+                         },
+                         {
+                             "namespace":  "signaling",
+                             "key":  "error-invalid",
+                             "value":  "Enter a valid server address, for example https://relay.example.com."
+                         },
+                         {
+                             "namespace":  "signaling",
+                             "key":  "error-required",
+                             "value":  "Enter the server address."
+                         },
+                         {
+                             "namespace":  "signaling",
+                             "key":  "error-protocol",
+                             "value":  "Only web addresses (https://...) and WebSocket addresses (wss://...) are supported."
+                         },
+
+                         {
+                             "namespace":  "turn-secret",
+                             "key":  "label",
+                             "value":  "TURN secret (optional)"
+                         },
+                         {
+                             "namespace":  "turn-secret",
+                             "key":  "help",
+                             "value":  "The access key for the backup connection server, provided by whoever set up the dedicated sharing server."
+                         },
+                         {
+                             "namespace":  "turn-secret",
+                             "key":  "placeholder",
+                             "value":  "Paste the secret code here"
+                         },
+
+                         {
+                             "namespace":  "project-create",
+                             "key":  "sharing-title",
+                             "value":  "Do you want to make a collaborative project?"
+                         },
+                         {
+                             "namespace":  "project-create",
+                             "key":  "use-password",
+                             "value":  "Use password"
+                         },
+                         {
+                             "namespace":  "project-create",
+                             "key":  "password",
+                             "value":  "Password"
+                         },
+                         {
+                             "namespace":  "project-create",
+                             "key":  "password-placeholder",
+                             "value":  "Enter password"
+                         },
+                         {
+                             "namespace":  "project-create",
+                             "key":  "yes",
+                             "value":  "Yes"
+                         },
+                         {
+                             "namespace":  "project-create",
+                             "key":  "no",
+                             "value":  "No"
+                         },
+
+                         {
                              "namespace":  "share-project",
                              "key":  "page-description",
                              "value":  "Configure sharing settings for your project."
@@ -4793,6 +4881,11 @@
                             "namespace":  "projects",
                             "key":  "syncing",
                             "value":  "Syncing..."
+                         },
+                         {
+                            "namespace":  "projects",
+                            "key":  "join-timeout-description",
+                            "value":  "No project found, wrong password, or no users are currently online. If the project uses a custom signaling server, make sure it is set correctly."
                          },
                          {
                             "namespace":  "datasources",

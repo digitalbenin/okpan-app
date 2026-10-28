@@ -8,6 +8,7 @@
     trigger,
     rootProps = {},
     triggerProps = {},
+    contentProps = {},
     ...restProps
   } = $props();
 </script>
@@ -20,7 +21,8 @@
       {/snippet}
     </Tooltip.Trigger>
     <Tooltip.Portal>
-      <Tooltip.Content sideOffset={3}>
+      <!-- z-index must sit on the positioned content to stay above Bootstrap modals (1055). -->
+      <Tooltip.Content sideOffset={3} style="z-index: 1080;" {...contentProps}>
         <!-- <Tooltip.Arrow /> -->
         <div class="text-bg-dark py-1 px-2 rounded fs-7">
           {@render children?.()}

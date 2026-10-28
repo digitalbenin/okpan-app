@@ -59,16 +59,14 @@
     oninput={onInput}
   />
   {#if clearable}
-    <span class="input-group-text bg-white">
-      <button
-        type="button"
-        class="btn p-0 border-0 bg-transparent"
-        onclick={clearInput}
-        aria-label="Clear input"
-      >
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </span>
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      onclick={clearInput}
+      aria-label="Clear input"
+    >
+      <i class="bi bi-x-lg"></i>
+    </button>
   {/if}
   {#if optionsList && optionsList.length > 0}
     <span class="input-group-text bg-white p-0 col-4">

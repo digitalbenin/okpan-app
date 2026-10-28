@@ -1,19 +1,23 @@
 <script>
-  import { IconSettings, IconBulb, IconDeviceFloppy } from "@tabler/icons-svelte";
+  import { IconSettings, IconDeviceFloppy } from "@tabler/icons-svelte";
   import { watch } from "runed";
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import BaseButton from "$lib/components/base/BaseButton.svelte";
   import { invalidateAll } from "$app/navigation";
   import { updateProjectSharingSettings } from "$lib/api/ProjectsApi.js";
+  import { setProjectSignalingServer, setProjectTurnSecret } from "$lib/api/SettingsApi.js";
+  import { normalizeSignalingUrl } from "$lib/utils/signalingUrl.js";
   import PageActionFooter from "$lib/components/common/PageActionFooter.svelte";
   import PasswordDialog from "$lib/components/projects/PasswordDialog.svelte";
+  import SignalingServerField from "$lib/components/projects/SignalingServerField.svelte";
+  import TurnSecretField from "$lib/components/projects/TurnSecretField.svelte";
+  import SharingHelpCard from "$lib/components/projects/SharingHelpCard.svelte";
+  import SharingProjectLink from "$lib/components/projects/SharingProjectLink.svelte";
 
   const { t } = getTranslationStore();
   const { data } = $props();
   const project = $derived(data.project);
 
-  let isCopyingProjectId = $state(false);
-  let copiedProjectId = $state(false);
   let isSaving = $state(false);
   let showProjectPassword = $state(false);
   let passwordDialogOpen = $state(false);
@@ -22,31 +26,32 @@
   let draftIsShared = $state(false);
   let draftUsePassword = $state(false);
   let draftPassword = $state("");
+  let draftUseDedicatedServer = $state(false);
+  let draftSignalingUrl = $state("");
+  let draftTurnSecret = $state("");
 
   const hasDraftPassword = $derived(!!draftPassword);
+  const savedSignalingUrl = $derived(data.signalingServer || "");
+  const savedTurnSecret = $derived(data.turnSecret || "");
+  // When the dedicated server is off the hidden drafts are ignored and cleared on save.
+  const effectiveSignalingUrl = $derived(draftUseDedicatedServer ? draftSignalingUrl : "");
+  const effectiveTurnSecret = $derived(draftUseDedicatedServer ? draftTurnSecret : "");
+  const signalingValidation = $derived(normalizeSignalingUrl(effectiveSignalingUrl));
+  const dedicatedServerValid = $derived(
+    !draftUseDedicatedServer || (!!effectiveSignalingUrl.trim() && signalingValidation.ok)
+  );
 
   // Init draft from project data
   function initDraft() {
     draftIsShared = project?.is_shared === 1 || project?.is_shared === true;
     draftPassword = project?.password || "";
     draftUsePassword = !!project?.password;
+    draftUseDedicatedServer = !!(savedSignalingUrl || savedTurnSecret);
+    draftSignalingUrl = savedSignalingUrl;
+    draftTurnSecret = savedTurnSecret;
   }
 
   watch(() => project, () => { initDraft(); });
-
-  async function handleCopyProjectId() {
-    if (!project?.id || isCopyingProjectId) return;
-    try {
-      isCopyingProjectId = true;
-      await navigator.clipboard.writeText(project.id);
-      copiedProjectId = true;
-      setTimeout(() => { copiedProjectId = false; }, 2500);
-    } catch (error) {
-      console.error("Failed to copy project ID:", error);
-    } finally {
-      isCopyingProjectId = false;
-    }
-  }
 
   async function syncSharingRuntime(shared, passwordOverride = undefined) {
     try {
@@ -86,7 +91,21 @@
         await persistProjectPassword(null);
       }
 
-      await syncSharingRuntime(draftIsShared, nextPassword);
+      // Persist the connection settings before the runtime sync so the
+      // reconnect already picks up the new values.
+      if (draftIsShared && effectiveSignalingUrl !== savedSignalingUrl) {
+        const { error: signalingError } = await setProjectSignalingServer(project.id, effectiveSignalingUrl);
+        if (signalingError) throw new Error(signalingError);
+      }
+
+      if (draftIsShared && effectiveTurnSecret !== savedTurnSecret) {
+        const { error: turnSecretError } = await setProjectTurnSecret(project.id, effectiveTurnSecret);
+        if (turnSecretError) throw new Error(turnSecretError);
+      }
+
+      // Persistenza completata: la riconnessione P2P gira in background e non deve bloccare il salvataggio.
+      void syncSharingRuntime(draftIsShared, nextPassword);
+
       await invalidateAll();
     } catch (error) {
       console.error("Failed to save sharing settings:", error);
@@ -114,7 +133,9 @@
   const hasChanges = $derived(
     draftIsShared !== (project?.is_shared === 1 || project?.is_shared === true) ||
     draftUsePassword !== (!!project?.password) ||
-    draftPassword !== (project?.password || "")
+    draftPassword !== (project?.password || "") ||
+    effectiveSignalingUrl !== savedSignalingUrl ||
+    effectiveTurnSecret !== savedTurnSecret
   );
 
   const rightActionButtons = $derived([
@@ -124,7 +145,7 @@
       class: "btn btn-success me-3",
       iconComponent: IconDeviceFloppy,
       type: "submit",
-      disabled: isSaving || !hasChanges,
+      disabled: isSaving || !hasChanges || !dedicatedServerValid,
     },
   ]);
 </script>
@@ -164,18 +185,7 @@
           </div>
 
           {#if draftIsShared}
-            <div class="mb-4">
-              <label class="form-label mb-2" for="project-sharing-id">{t("share-project.project-link", { fallback: "Project link" })}</label>
-              <div class="input-group">
-                <input id="project-sharing-id" class="form-control" type="text" value={project.id} readonly />
-                <button class="btn btn-outline-secondary" type="button" onclick={handleCopyProjectId} disabled={isCopyingProjectId}>
-                  {copiedProjectId ? t("share-project.copied", { fallback: "Copied" }) : t("share-project.copy-to-clipboard", { fallback: "Copy to clipboard" })}
-                </button>
-              </div>
-              <p class="text-muted mt-3 mb-0" style="max-width: 42rem;">
-                {t("share-project.join-instruction", { fallback: "To join a project, go to the new project page, select Import from URL, and paste the link." })}
-              </p>
-            </div>
+            <SharingProjectLink projectId={project.id} />
 
             <div class="mb-4">
               <div class="form-check d-flex align-items-center gap-2 mb-3">
@@ -227,6 +237,35 @@
                 />
               {/if}
             </div>
+
+            <div class="form-check d-flex align-items-center gap-2 mb-3">
+              <input
+                id="use-dedicated-server"
+                class="form-check-input mt-0"
+                type="checkbox"
+                checked={draftUseDedicatedServer}
+                onchange={() => { draftUseDedicatedServer = !draftUseDedicatedServer; }}
+              />
+              <label class="form-check-label" for="use-dedicated-server">
+                {t("signaling.use-dedicated-server", { fallback: "Use dedicated sharing server" })}
+              </label>
+            </div>
+
+            {#if draftUseDedicatedServer}
+              <div class="mb-4">
+                <SignalingServerField
+                  bind:value={draftSignalingUrl}
+                  disabled={isSaving}
+                />
+              </div>
+
+              <div class="mb-4">
+                <TurnSecretField
+                  bind:value={draftTurnSecret}
+                  disabled={isSaving}
+                />
+              </div>
+            {/if}
           {:else}
             <p class="text-muted mb-0" style="max-width: 42rem;">
               {t("share-project.private-message", { fallback: "This project is private. Enable sharing to generate a project link and optionally protect it with a password." })}
@@ -238,20 +277,7 @@
     </div>
 
     <div class="col-12 col-lg-4 col-xl-3">
-      <div class="bg-white border rounded-3 p-4 d-flex flex-column">
-        <div class="d-flex flex-column gap-1">
-          <div class="flex-shrink-0">
-            <IconBulb size={16} stroke={2} />
-          </div>
-          <div>
-            <p class="fw-semibold mb-1 text-body">{t("share-project.help-title", { fallback: "Sharing?" })}</p>
-            <div class="text-body-secondary fs-7">
-              <p class="mb-3">{t("share-project.help-desc-p1", { fallback: "Here you can configure sharing settings for your project. Multi user projects can be accessed by multiple collaborators simultaneously and are required for real-time collaboration features." })}</p>
-              <p class="mb-0">{t("share-project.help-desc-p2", { fallback: "Private projects are only accessible on this device and do not support real-time collaboration." })}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <SharingHelpCard />
     </div>
   </div>
 </PageActionFooter>

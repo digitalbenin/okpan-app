@@ -157,6 +157,33 @@ function isTorrentWithinProjectDir(projectId, torrent) {
   }) || false;
 }
 
+// webtorrent can drop the remove callback (missing or already-destroyed torrent): resolve on the first of callback, close or rejection.
+async function removeClientTorrent(client, infoHash) {
+  let torrent = null;
+  try {
+    torrent = await client.get(infoHash);
+  } catch {}
+
+  await new Promise((resolve) => {
+    if (!torrent || torrent.destroyed) return resolve();
+
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+
+    torrent.once('close', done);
+    try {
+      const removal = client.remove(infoHash, { destroyStore: false }, done);
+      if (removal?.catch) removal.catch(done);
+    } catch {
+      done();
+    }
+  });
+}
+
 async function removeProjectClientTorrents(projectId) {
   if (!_wtClient || _wtClient.destroyed) return;
 
@@ -165,20 +192,7 @@ async function removeProjectClientTorrents(projectId) {
     return hashes.has(torrent.infoHash) || isTorrentWithinProjectDir(projectId, torrent);
   });
 
-  await Promise.allSettled(matchingTorrents.map((torrent) => {
-    return new Promise((resolve) => {
-      try {
-        _wtClient.remove(torrent.infoHash, { destroyStore: false }, () => resolve());
-      } catch (error) {
-        console.warn('[AssetTorrent] Failed to remove project torrent before restore:', {
-          projectId,
-          infoHash: torrent?.infoHash,
-          error: error?.message,
-        });
-        resolve();
-      }
-    });
-  }));
+  await Promise.allSettled(matchingTorrents.map((torrent) => removeClientTorrent(_wtClient, torrent.infoHash)));
 }
 
 const WINDOWS_RESERVED_BASENAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
@@ -492,7 +506,8 @@ export async function seedAsset({ projectId, assetId, filePath, isGeneric = fals
         }
 
         if (existing) {
-          client.remove(existing.infoHash, { destroyStore: false }, () => beginSeed());
+          await removeClientTorrent(client, existing.infoHash);
+          beginSeed();
           return;
         }
 
@@ -581,8 +596,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
     const abortDownload = async () => {
       active.delete(assetId);
       cleanupAssetSignalingPeer(projectId, infoHash);
-      const staleT = await client.get(infoHash);
-      if (staleT) await new Promise((res) => client.remove(infoHash, { destroyStore: false }, res));
+      await removeClientTorrent(client, infoHash);
       settle({ success: false, reason: 'aborted' });
     };
     getOrSet(downloadAbortFuncs, projectId, () => new Map()).set(assetId, abortDownload);
@@ -599,8 +613,7 @@ async function downloadAsset({ projectId, assetId, infoHash, torrentName, isGene
 
     (async () => {
       try {
-        const stale = await client.get(infoHash);
-        if (stale) await new Promise((res) => client.remove(infoHash, { destroyStore: false }, res));
+        await removeClientTorrent(client, infoHash);
 
         const torrent = client.add(magnet, { path: destDir });
         if (!torrent) throw new Error('client.add returned null');
