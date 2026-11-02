@@ -12,15 +12,14 @@ import { RTCPeerConnection } from 'node-datachannel/polyfill'
 import WebSocket from 'ws'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
 import * as Y from 'yjs'
-import { eq } from 'drizzle-orm'
-import { db } from '../../db/init.js'
-import { project } from '../../db/schema.js'
 import { getProjectDoc } from './projectCacheService.js'
 import { ingestRemoteUpdate } from './remoteIngestionService.js'
 import { hydrateProjectFromDatabase } from './snapshotService.js'
 import { scheduleAssetReconcile, resetErroredAssets } from './assetTorrentManagerService.js'
 import { getGlobalProfile } from '../../db/queries/globalSettings.js'
-import { getRelayConfig, getTurnConfig, getTurnOnlyIceServers, isForceTurnOnly } from '../utils/trysteroConfig.js'
+import { getTurnOnlyIceServers, isForceTurnOnly } from '../utils/trysteroConfig.js'
+import { resolveProjectConnection } from './projectSignalingService.js'
+import { formatSignalingHost } from '../../lib/utils/signalingUrl.js'
 
 // Helper: count tables and rows in a Y.Doc's `tables` map
 function countDocTables(doc) {
@@ -57,29 +56,12 @@ function syncBaselineFromCanonical(projectId, baselineDoc, canonicalDoc) {
 // Minimal P2P provider registry keyed by projectId
 // Stores { provider, awareness, onUpdate }
 const providers = new Map()
-const pendingProjectPasswords = new Map()
 let presenceNotifier = null
 const LOCAL_PRESENCE_HEARTBEAT_MS = 10000
 const WEBSOCKET_READY_STATE_LABELS = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']
 
-/**
- * Store a pending project password used during reconnect flows.
- * @memberof backend.services.p2pService
- * @param {string} projectId - Project identifier.
- * @param {string} password - Pending password.
- * @returns {void}
- */
-export function setPendingProjectPassword(projectId, password) {
-  if (!projectId) return
-
-  const normalizedPassword = typeof password === 'string' ? password.trim() : ''
-  if (!normalizedPassword) {
-    pendingProjectPasswords.delete(projectId)
-    return
-  }
-
-  pendingProjectPasswords.set(projectId, normalizedPassword)
-}
+// Join-time password/signaling hints live in projectSignalingService next to
+// the rest of the pending connection state.
 
 function normalizeUsername(username) {
   if (typeof username !== 'string') return null
@@ -280,33 +262,26 @@ export async function startP2PForProject(projectId, options = {}) {
   }
   awareness.on('change', onChange)
 
-  // Run db query to get project password
-  let password = undefined;
-  try {
-    const projRecord = await db.select({ password: project.password }).from(project).where(eq(project.id, projectId)).limit(1);
-    if (projRecord.length > 0 && projRecord[0].password) {
-      password = projRecord[0].password;
-    }
-  } catch (err) {
-    console.warn('[P2P] Failed to get project password', err);
-  }
-
-  if (!password) {
-    password = pendingProjectPasswords.get(projectId)
-  }
+  // Per-project signaling relay, password and TURN. The persisted settings row
+  // wins over the pending values captured at join time (see projectSignalingService).
+  const connection = await resolveProjectConnection(projectId)
+  const password = connection.password
 
   const trysteroRoom = joinRoom({
     appId,
     password,
     rtcPolyfill: RTCPeerConnection,
-    ...getRelayConfig(),
-    ...getTurnConfig(),
-    ...(isForceTurnOnly() ? { rtcConfig: { iceServers: getTurnOnlyIceServers(), iceTransportPolicy: 'relay' } } : {}),
+    ...connection.relay,
+    ...connection.turn,
+    ...(isForceTurnOnly() ? { rtcConfig: { iceServers: connection.turn.turnConfig || getTurnOnlyIceServers(), iceTransportPolicy: 'relay' } } : {}),
   }, roomId)
 
   logRelayState(projectId, 'room-created', {
     roomId,
     appId,
+    signalingHost: formatSignalingHost(connection.signalingUrl),
+    hasCustomSignaling: !!connection.signalingUrl,
+    hasTurn: !!connection.turn?.turnConfig?.length,
     hasPassword: !!password
   })
   trysteroRoom.onPeerJoin((peerId) => {

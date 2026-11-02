@@ -9,19 +9,20 @@ import crypto from 'crypto';
 import { joinRoom } from 'trystero';
 import { RTCPeerConnection } from 'node-datachannel/polyfill';
 import SimplePeer from '@thaunknown/simple-peer';
-import { getRelayConfig, getTurnConfig, getTurnOnlyIceServers, isForceTurnOnly } from '../utils/trysteroConfig.js';
+import { getTurnOnlyIceServers, isForceTurnOnly } from '../utils/trysteroConfig.js';
+import { resolveProjectConnection } from './projectSignalingService.js';
 
-function getWebRTCConfig() {
+function getWebRTCConfig(turn = {}) {
   const stunServers = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun.cloudflare.com:3478' },
   ];
-  const turnServers = getTurnConfig().turnConfig || [];
+  const turnServers = turn.turnConfig || [];
 
   return isForceTurnOnly()
     ? {
-        iceServers: getTurnOnlyIceServers(),
+        iceServers: turnServers.length > 0 ? turnServers : getTurnOnlyIceServers(),
         iceTransportPolicy: 'relay',
       }
     : {
@@ -168,7 +169,7 @@ export function createDownloaderSignalPeer({ projectId, infoHash, torrent }) {
   const attemptId = crypto.randomUUID();
 
   let sigPeer;
-  try { sigPeer = new SimplePeer({ initiator: false, trickle: true, config: getWebRTCConfig() }); }
+  try { sigPeer = new SimplePeer({ initiator: false, trickle: true, config: getWebRTCConfig(sig.turn) }); }
   catch (err) {
     console.warn(`[AssetTorrent] downloader SimplePeer failed ${infoHash}:`, err?.message);
     return false;
@@ -255,14 +256,19 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
   if (existing) return existing;
 
   let room;
+  let turn = {};
   try {
     const appId = process.env.TRYSTERO_APP_ID || 'db-conn-tool';
+    // Same per-project relay/TURN resolution as the sync room, so assets and
+    // project data always meet on the same signaling network.
+    const connection = await resolveProjectConnection(projectId);
+    turn = connection.turn;
     room = joinRoom({
       appId,
       rtcPolyfill: RTCPeerConnection,
-      ...getRelayConfig(),
-      ...getTurnConfig(),
-      ...(isForceTurnOnly() ? { rtcConfig: { iceServers: getTurnOnlyIceServers(), iceTransportPolicy: 'relay' } } : {}),
+      ...connection.relay,
+      ...connection.turn,
+      ...(isForceTurnOnly() ? { rtcConfig: { iceServers: connection.turn.turnConfig || getTurnOnlyIceServers(), iceTransportPolicy: 'relay' } } : {}),
     }, `project-assets-${projectId}`);
   } catch (err) {
     console.error('[AssetTorrent] signaling room creation failed:', err?.message);
@@ -272,7 +278,7 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
   const [sendRequest, receiveRequest] = room.makeAction('peerRequest');
   const [sendSignal, receiveSignal] = room.makeAction('peerSignal');
 
-  const state = { room, sendRequest, sendSignal, seederPeers: new Map(), getTorrent };
+  const state = { room, sendRequest, sendSignal, seederPeers: new Map(), getTorrent, turn };
   signalingActions.set(projectId, state);
 
   room.onPeerJoin((peerId) => {
@@ -295,7 +301,7 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
     const normalizedAttemptId = normalizeAttemptId(attemptId) || `legacy-${requesterId}`;
 
     let peer;
-    try { peer = new SimplePeer({ initiator: true, trickle: true, config: getWebRTCConfig() }); }
+    try { peer = new SimplePeer({ initiator: true, trickle: true, config: getWebRTCConfig(state.turn) }); }
     catch (err) {
       console.error('[AssetTorrent] seeder SimplePeer failed:', err?.message);
       return;

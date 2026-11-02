@@ -7,9 +7,14 @@ import {
   startP2PForProject,
   stopP2PForProject,
   getP2PProvider,
-  getProjectPeersCount,
-  setPendingProjectPassword
+  getProjectPeersCount
 } from '../services/p2pService.js';
+import {
+  setPendingProjectPassword,
+  setPendingSignalingServer,
+  setPendingTurnSecret
+} from '../services/projectSignalingService.js';
+import { normalizeSignalingUrl, normalizeTurnSecret } from '../../lib/utils/signalingUrl.js';
 import { stopProjectTorrents } from '../services/assetTorrentManagerService.js';
 import { db } from '../../db/init.js';
 import { project } from '../../db/schema.js';
@@ -42,16 +47,26 @@ export async function handleSetProjectPassword(_event, { projectId, password }) 
 
 /**
  * Prepare a project to be joined via P2P: stop existing sessions so the next
- * runtime bootstrap picks up the new password and peer list.
+ * runtime bootstrap picks up the new password, signaling relay, TURN secret and
+ * peer list. The optional `signalingUrl` and `turnSecret` are kept as pending
+ * hints: they are only persisted after the first successful sync when the
+ * project has no settings row yet.
  * @memberof backend.handlers.projectHandlers
  * @param {Electron.IpcMainInvokeEvent} _event
- * @param {Object} payload - Payload containing `projectId` and optional `password`.
- * @returns {Promise.<{success: boolean, projectId: (string|undefined), error: (string|undefined)}>}
+ * @param {Object} payload - Payload containing `projectId` and optional `password`, `signalingUrl`, `turnSecret`.
+ * @returns {Promise.<{success: boolean, projectId: (string|undefined), error: (string|undefined)}>} 
  */
-export async function handleJoinP2P(_event, { projectId, password }) {
+export async function handleJoinP2P(_event, { projectId, password, signalingUrl, turnSecret }) {
   try {
+    const normalizedSignaling = normalizeSignalingUrl(signalingUrl);
+    if (!normalizedSignaling.ok) {
+      return { success: false, error: `Invalid signaling server URL (${normalizedSignaling.error})` };
+    }
+
     pendingProjectJoins.add(projectId);
     setPendingProjectPassword(projectId, password || null);
+    setPendingSignalingServer(projectId, normalizedSignaling.value);
+    setPendingTurnSecret(projectId, normalizeTurnSecret(turnSecret));
     clearDelayedReconcileStart(projectId);
     await stopProjectTorrents(projectId);
     await stopP2PForProject(projectId);

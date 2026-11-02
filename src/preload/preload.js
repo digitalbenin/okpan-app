@@ -318,14 +318,16 @@ contextBridge.exposeInMainWorld('api', {
     setProjectPassword: (projectId, password) => ipcRenderer.invoke('project-set-password', { projectId, password }),
 
     /**
-     * Joins an existing P2P-shared project using a password.
+     * Joins an existing P2P-shared project using a password and optional
+     * custom signaling relay URL and TURN shared secret.
      * @memberOf preload
      * @param {string} projectId
      * @param {string} password
-        * @returns {Promise.<{success: boolean, projectId: (string|undefined), error: (string|undefined)}>}
+     * @param {string} [signalingUrl]
+     * @param {string} [turnSecret]
+        * @returns {Promise.<{success: boolean, projectId: (string|undefined), error: (string|undefined)}>} 
      */
-    joinP2PProject: (projectId, password) => ipcRenderer.invoke('project-join-p2p', { projectId, password }),
-
+    joinP2PProject: (projectId, password, signalingUrl, turnSecret) => ipcRenderer.invoke('project-join-p2p', { projectId, password, signalingUrl, turnSecret }),
     /**
      * Pauses P2P sync for a project without removing it.
      * @memberOf preload

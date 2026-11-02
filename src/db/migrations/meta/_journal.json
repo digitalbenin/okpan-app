@@ -57,6 +57,13 @@
       "when": 1778243000000,
       "tag": "0007_object-updated-at-triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793012300000,
+      "tag": "0008_settings-turn-secret",
+      "breakpoints": true
     }
   ]
 }

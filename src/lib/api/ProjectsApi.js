@@ -123,7 +123,7 @@ export const createProject = async (project) => {
         languageCode, 
         languageName,
         isShared,
-        password 
+        password
     });
 
     const result = response;

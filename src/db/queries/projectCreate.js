@@ -35,7 +35,7 @@ export const createProjectCreateMutation = (db, drizzleResult) => {
             { name: 'languageCode', type: new GraphQLNonNull(drizzleResult.schema._typeMap.String), description: 'BCP 47 language code for the default language (e.g. en, it)' },
             { name: 'languageName', type: drizzleResult.schema._typeMap.String, description: 'Human-readable name of the default language; falls back to languageCode if omitted' },
             { name: 'isShared', type: drizzleResult.schema._typeMap.Int, description: '1 if the project is shared over the network, 0 otherwise' },
-            { name: 'password', type: drizzleResult.schema._typeMap.String, description: 'Optional password to protect the shared project' }
+            { name: 'password', type: drizzleResult.schema._typeMap.String, description: 'Optional password to protect the shared project' },
         ],
         resolve: async (source, args) => {
             const { title, description, languageCode, isShared, password } = args;
