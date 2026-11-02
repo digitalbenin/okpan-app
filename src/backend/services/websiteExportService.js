@@ -202,6 +202,11 @@ export async function exportStaticWebsite(
     console.log(`[Website Export] Exported ${data.objects.length} objects to data.json`);
     console.log('[Website Export] Exported site.json for sidebar');
 
+    // Disable Jekyll processing on GitHub Pages: Jekyll silently drops files
+    // and folders starting with "_" (e.g. SvelteKit's "_app" runtime assets),
+    // which would break the exported site. An empty ".nojekyll" opts out.
+    await fs.writeFile(path.join(resolvedOutputPath, '.nojekyll'), '', 'utf-8');
+
     // Ensure direct refresh/deep-link works on static hosts without rewrite rules.
     // This runs after writing the exported data so route generation can rely on the final export payload.
     await createSpaShellRoutes(resolvedOutputPath, data, basePath, exportLocale);
