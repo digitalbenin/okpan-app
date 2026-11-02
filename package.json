@@ -105,7 +105,7 @@
     "node-datachannel": "0.32.1",
     "openseadragon": "^5.0.1",
     "runed": "^0.30.0",
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.5",
     "svelte-dnd-action": "^0.9.65",
     "sveltekit-i18n": "^2.4.2",
     "swiper": "^11.2.10",
@@ -125,7 +125,7 @@
     "**/graphql": "16.10.0",
     "onnxruntime-node": "1.23.2",
     "**/onnxruntime-node": "1.23.2",
-    "sharp": "0.33.5",
-    "**/sharp": "0.33.5"
+    "sharp": "0.35.5",
+    "**/sharp": "0.35.5"
   }
 }
