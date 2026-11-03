@@ -47,6 +47,7 @@ jobs:
         shell: bash
         run: |
           model_dir="out/Okpan-darwin-arm64/Okpan.app/Contents/Resources/app/src/assets/models/onnx-community/embeddinggemma-300m-ONNX"
+          echo "Checking: $model_dir"
           for file in config.json tokenizer.json tokenizer_config.json onnx/model_q4.onnx onnx/model_q4.onnx_data; do
             if [ -f "$model_dir/$file" ]; then
               echo "Embedding model file present: $file"
@@ -119,6 +120,7 @@ jobs:
         shell: bash
         run: |
           model_dir="out/Okpan-darwin-x64/Okpan.app/Contents/Resources/app/src/assets/models/onnx-community/embeddinggemma-300m-ONNX"
+          echo "Checking: $model_dir"
           for file in config.json tokenizer.json tokenizer_config.json onnx/model_q4.onnx onnx/model_q4.onnx_data; do
             if [ -f "$model_dir/$file" ]; then
               echo "Embedding model file present: $file"
@@ -174,7 +176,8 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          model_dir="out/Okpan-win32-x64/src/assets/models/onnx-community/embeddinggemma-300m-ONNX"
+          model_dir="out/Okpan-win32-x64/resources/app/src/assets/models/onnx-community/embeddinggemma-300m-ONNX"
+          echo "Checking: $model_dir"
           for file in config.json tokenizer.json tokenizer_config.json onnx/model_q4.onnx onnx/model_q4.onnx_data; do
             if [ -f "$model_dir/$file" ]; then
               echo "Embedding model file present: $file"
@@ -219,7 +222,8 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          model_dir="out/Okpan-linux-x64/src/assets/models/onnx-community/embeddinggemma-300m-ONNX"
+          model_dir="out/Okpan-linux-x64/resources/app/src/assets/models/onnx-community/embeddinggemma-300m-ONNX"
+          echo "Checking: $model_dir"
           for file in config.json tokenizer.json tokenizer_config.json onnx/model_q4.onnx onnx/model_q4.onnx_data; do
             if [ -f "$model_dir/$file" ]; then
               echo "Embedding model file present: $file"
