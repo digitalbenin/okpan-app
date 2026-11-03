@@ -42,6 +42,19 @@ jobs:
       - name: Package Electron app (ARM64)
         run: yarn package -- --arch=arm64
 
+      - name: Verify bundled embedding model (non-blocking)
+        continue-on-error: true
+        shell: bash
+        run: |
+          model_dir="out/Okpan-darwin-arm64/Okpan.app/Contents/Resources/app/src/assets/models/onnx-community/embeddinggemma-300m-ONNX"
+          for file in config.json tokenizer.json tokenizer_config.json onnx/model_q4.onnx onnx/model_q4.onnx_data; do
+            if [ -f "$model_dir/$file" ]; then
+              echo "Embedding model file present: $file"
+            else
+              echo "::warning title=Embedding model missing::Missing '$file' in the packaged app. AI field suggestions will need a network download at runtime."
+            fi
+          done
+
       - name: Notarize and staple the app
         uses: ./.github/actions/notarize-artifact
         with:
@@ -101,6 +114,19 @@ jobs:
       - name: Package Electron app (x64)
         run: yarn package -- --arch=x64
 
+      - name: Verify bundled embedding model (non-blocking)
+        continue-on-error: true
+        shell: bash
+        run: |
+          model_dir="out/Okpan-darwin-x64/Okpan.app/Contents/Resources/app/src/assets/models/onnx-community/embeddinggemma-300m-ONNX"
+          for file in config.json tokenizer.json tokenizer_config.json onnx/model_q4.onnx onnx/model_q4.onnx_data; do
+            if [ -f "$model_dir/$file" ]; then
+              echo "Embedding model file present: $file"
+            else
+              echo "::warning title=Embedding model missing::Missing '$file' in the packaged app. AI field suggestions will need a network download at runtime."
+            fi
+          done
+
       - name: Notarize and staple the app
         uses: ./.github/actions/notarize-artifact
         with:
@@ -144,11 +170,69 @@ jobs:
       - name: Build Electron app (x64)
         run: yarn make -- --arch=x64
 
+      - name: Verify bundled embedding model (non-blocking)
+        continue-on-error: true
+        shell: bash
+        run: |
+          model_dir="out/Okpan-win32-x64/src/assets/models/onnx-community/embeddinggemma-300m-ONNX"
+          for file in config.json tokenizer.json tokenizer_config.json onnx/model_q4.onnx onnx/model_q4.onnx_data; do
+            if [ -f "$model_dir/$file" ]; then
+              echo "Embedding model file present: $file"
+            else
+              echo "::warning title=Embedding model missing::Missing '$file' in the packaged app. AI field suggestions will need a network download at runtime."
+            fi
+          done
+
       - name: Upload Windows x64 artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-x64
           path: out/make/**/*
+          retention-days: 1
+
+  build-linux-x64:
+    name: Build Linux x64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --network-timeout 300000
+
+      - name: Install website dependencies
+        run: yarn --cwd src/website install --frozen-lockfile --network-timeout 300000
+
+      - name: Download embedding model
+        run: yarn download-model
+
+      - name: Build Electron app (x64, zip)
+        run: yarn make -- --arch=x64 --targets=@electron-forge/maker-zip
+
+      - name: Verify bundled embedding model (non-blocking)
+        continue-on-error: true
+        shell: bash
+        run: |
+          model_dir="out/Okpan-linux-x64/src/assets/models/onnx-community/embeddinggemma-300m-ONNX"
+          for file in config.json tokenizer.json tokenizer_config.json onnx/model_q4.onnx onnx/model_q4.onnx_data; do
+            if [ -f "$model_dir/$file" ]; then
+              echo "Embedding model file present: $file"
+            else
+              echo "::warning title=Embedding model missing::Missing '$file' in the packaged app. AI field suggestions will need a network download at runtime."
+            fi
+          done
+
+      - name: Upload Linux x64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: out/make/zip/linux/x64/*.zip
           retention-days: 1
 
   create-release:
@@ -158,6 +242,7 @@ jobs:
       - build-macos-arm64
       - build-macos-x64
       - build-windows-x64
+      - build-linux-x64
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -176,6 +261,7 @@ jobs:
             artifacts/macOS-arm64/**/*.dmg
             artifacts/macOS-x64/**/*.dmg
             artifacts/windows-x64/**/*
+            artifacts/linux-x64/**/*.zip
           draft: false
           prerelease: false
           generate_release_notes: true

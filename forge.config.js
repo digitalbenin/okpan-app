@@ -66,6 +66,11 @@ export default {
             }
         },
         {
+            name: '@electron-forge/maker-zip',
+            platforms: ['linux'],
+            config: {},
+        },
+        {
             name: '@electron-forge/maker-deb',
             config: {},
         },
