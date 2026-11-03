@@ -32,6 +32,7 @@ export default {
         ignore: [
             /^\/artic-dataset($|\/)/,
             /^\/docs($|\/)/,
+            /^\/src\/assets\/dmg($|\/)/,
             /^\/src\/db\/db_sample_data($|\/)/,
             /^\/src\/db\/seed_data($|\/)/,
             /^\/node_modules($|\/)/,
@@ -60,9 +61,17 @@ export default {
             platforms: ['darwin'],
             config: {
                 icon: './src/assets/okpan_logo.icns',
+                background: './src/assets/dmg/dmg-background.png',
                 overwrite: true,
-                iconSize: 80,
-                format: 'ULFO'
+                // Icon centers taken from installer-template.svg (1080x900 at 2x):
+                // icon boxes at x=284.5/644.5 (150x150) and arrow centered at
+                // y=683 -> icons are vertically centered on the arrow (341.5pt).
+                iconSize: 75,
+                format: 'ULFO',
+                contents: (opts) => [
+                    { x: 180, y: 341, type: 'file', path: opts.appPath },
+                    { x: 360, y: 341, type: 'link', path: '/Applications' }
+                ]
             }
         },
         {
