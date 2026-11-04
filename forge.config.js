@@ -60,7 +60,7 @@ export default {
             platforms: ['darwin'],
             config: {
                 icon: './src/assets/okpan_logo.icns',
-                background: './src/assets/dmg/dmg-background.tiff',
+                background: './src/assets/dmg/dmgbackground.tiff',
                 overwrite: true,
                 // Icon centers taken from installer-template.svg (1080x900 at 2x):
                 // icon boxes at x=284.5/644.5 (150x150) and arrow centered at
