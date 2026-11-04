@@ -52,7 +52,8 @@ export default {
         {
             name: '@electron-forge/maker-squirrel',
             config: {
-                icon: './src/assets/okpan_logo.ico'
+                icon: './src/assets/okpan_logo.ico',
+                loadingGif: './src/assets/okpan-installer-win.gif'
             },
         },
         {
@@ -62,9 +63,10 @@ export default {
                 icon: './src/assets/okpan_logo.icns',
                 background: './src/assets/dmg/dmgbackground.tiff',
                 overwrite: true,
-                // Icon centers taken from installer-template.svg (1080x900 at 2x):
-                // icon boxes at x=284.5/644.5 (150x150) and arrow centered at
-                // y=683 -> icons are vertically centered on the arrow (341.5pt).
+                // Icon centers match the background artwork (1080x900 at 2x):
+                // the two 150x150 icon boxes sit at x=284.5/644.5 and the arrow
+                // is centered at y=683, so the icons line up with the arrow
+                // vertically (341.5pt in the 540x450 window).
                 iconSize: 75,
                 format: 'ULFO',
                 contents: (opts) => [
