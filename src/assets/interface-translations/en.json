@@ -294,6 +294,56 @@
                              "value":  "Import connections"
                          },
                          {
+                             "namespace":  "connections",
+                             "key":  "import-connection",
+                             "value":  "Import connection"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "import-data",
+                             "value":  "Import data"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-title",
+                             "value":  "Prepare the CSV for connections"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-download",
+                             "value":  "Download"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-template",
+                             "value":  "the template"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-download-suffix",
+                             "value":  "in tabular format"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-one-row",
+                             "value":  "Use one row per connection"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-language-columns",
+                             "value":  "Columns you can translate carry the language at the end of the name — option_en for English, option_it for Italian."
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "import-file-valid",
+                             "value":  "You loaded the file {{fileName}} and it seems valid."
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template-downloaded",
+                             "value":  "The CSV template has been saved."
+                         },
+                         {
                                 "namespace":  "connections",
                                 "key":  "no-connections-types-present",
                                 "value":  "No connection types yet. Add one by clicking on “Add connection type”."
@@ -1121,7 +1171,7 @@
                           {
                               "namespace":  "connections",
                               "key":  "type-exact-name-to-delete",
-                              "value":  "Type \"{name}\" to confirm."
+                              "value":  "Type \"{{name}}\" to confirm."
                           },
                           {
                               "namespace":  "objects",

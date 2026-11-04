@@ -153,6 +153,14 @@ contextBridge.exposeInMainWorld('api', {
      */
     importConnectionTypeCsv: (options) => ipcRenderer.invoke('import-connection-type-csv', options),
 
+    /**
+     * Exports an empty CSV template for the given connection type import.
+     * @memberOf preload
+     * @param {Object} options
+        * @returns {Promise.<{canceled: (boolean|undefined), filePath: (string|undefined), error: (string|undefined)}>}
+     */
+    exportConnectionTypeCsvTemplate: (options) => ipcRenderer.invoke('export-connection-type-csv-template', options),
+
     // --- Backup ---
     /**
      * Creates a full backup of the project database.

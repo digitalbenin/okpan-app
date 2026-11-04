@@ -10,6 +10,7 @@ import { parse } from 'csv-parse/sync';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import * as dbSchema from '../../db/schema.js';
+import { DEFAULT_FIELDS_CONFIG } from '../../lib/constants/connectionTemplates.js';
 
 async function createTextWithTranslations({ defaultLanguage, context, valuesByCode, languageIdsByCode }, db) {
   const baseContent = valuesByCode[defaultLanguage.code] || '';
@@ -197,7 +198,8 @@ export async function importConnectionTypeCsv(options, { db }) {
     type: 'vocabulary',
     project_id: projectId,
     private: 0,
-    onwebsite: 1
+    onwebsite: 1,
+    fields_config: { ...DEFAULT_FIELDS_CONFIG, templateId: 'custom' }
   }).returning();
 
   let importedConnections = 0;

@@ -12,7 +12,7 @@ import { exportProjectSql } from '../services/exportSqlService.js';
 import { exportProjectCsv } from '../services/exportCsvService.js';
 import { exportConnectionsJson } from '../services/exportConnectionsJsonService.js';
 import { importConnectionsJson } from '../services/importConnectionsJsonService.js';
-import { exportConnectionTypeCsv } from '../services/exportConnectionTypeCsvService.js';
+import { exportConnectionTypeCsv, exportConnectionTypeCsvTemplate } from '../services/exportConnectionTypeCsvService.js';
 import { importConnectionTypeCsv } from '../services/importConnectionTypeCsvService.js';
 import { sanitizeFilename } from '../utils/exportUtils.js';
 export { buildCounts, makeExportResult, buildObjectSearchConditions } from '../utils/exportUtils.js';
@@ -251,7 +251,8 @@ export async function handleImportConnectionTypeCsv(event, options, { db }) {
     const {
       filePath: inputFilePath,
       projectId,
-      connectionTypeName
+      connectionTypeName,
+      languageMapping
     } = options || {};
 
     if (!projectId) {
@@ -272,9 +273,50 @@ export async function handleImportConnectionTypeCsv(event, options, { db }) {
       filePath = result.filePaths[0];
     }
 
-    return await importConnectionTypeCsv({ filePath, projectId, connectionTypeName }, { db });
+    return await importConnectionTypeCsv({ filePath, projectId, connectionTypeName, languageMapping }, { db });
   } catch (error) {
     console.error('Error in handleImportConnectionTypeCsv:', error);
+    throw error;
+  }
+}
+
+/**
+ * Export an empty connection type CSV template for bulk imports.
+ * @memberof backend.handlers.exportHandlers
+ * @param {Electron.IpcMainInvokeEvent} event - IPC event.
+ * @param {Object} options - Export options.
+ * @param {Object} options.db - Database connection.
+ * @returns {Promise.<{canceled: (boolean|undefined), success: (boolean|undefined), error: (string|undefined)}>}
+ */
+export async function handleExportConnectionTypeCsvTemplate(event, options, { db }) {
+  try {
+    const {
+      filePath: inputFilePath,
+      projectId
+    } = options || {};
+
+    if (!projectId) {
+      throw new Error('projectId is required');
+    }
+
+    let filePath = inputFilePath;
+    if (!filePath) {
+      const result = await dialog.showSaveDialog({
+        title: 'Save Connection Type CSV Template',
+        defaultPath: 'connections-template.csv',
+        filters: [{ name: 'CSV', extensions: ['csv'] }]
+      });
+      if (result.canceled) return { canceled: true };
+      filePath = result.filePath;
+    }
+
+    const csvPath = filePath && typeof filePath === 'string' && filePath.toLowerCase().endsWith('.csv')
+      ? filePath
+      : `${filePath}.csv`;
+
+    return await exportConnectionTypeCsvTemplate({ filePath: csvPath, projectId }, { db });
+  } catch (error) {
+    console.error('Error in handleExportConnectionTypeCsvTemplate:', error);
     throw error;
   }
 }

@@ -275,6 +275,7 @@
       />
       <div class="form-text">
         {t("connections.type-exact-name-to-delete", {
+          name: connectionDisplayName,
           fallback: `Type "${connectionDisplayName}" to confirm.`,
         })}
       </div>

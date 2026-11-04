@@ -223,6 +223,56 @@
                              "value":  "Importa connessioni"
                          },
                          {
+                             "namespace":  "connections",
+                             "key":  "import-connection",
+                             "value":  "Importa connessione"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "import-data",
+                             "value":  "Importa dati"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-title",
+                             "value":  "Prepara il CSV per le connessioni"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-download",
+                             "value":  "Scarica"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-template",
+                             "value":  "il modello"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-download-suffix",
+                             "value":  "in formato tabellare"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-one-row",
+                             "value":  "Usa una riga per connessione"
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "prepare-csv-language-columns",
+                             "value":  "Le colonne traducibili riportano la lingua alla fine del nome — option_en per l'inglese, option_it per l'italiano."
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "import-file-valid",
+                             "value":  "Hai caricato il file {{fileName}} e sembra valido."
+                         },
+                         {
+                             "namespace":  "connections",
+                             "key":  "template-downloaded",
+                             "value":  "Il modello CSV è stato salvato."
+                         },
+                         {
                                 "namespace":  "connections",
                                 "key":  "no-connections-types-present",
                                 "value":  "Nessun tipo di connessione presente. Aggiungine uno facendo clic su “Aggiungi tipo di connessione”."

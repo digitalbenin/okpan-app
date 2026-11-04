@@ -75,6 +75,7 @@ import {
   handleImportConnections,
   handleExportConnectionTypeCsv,
   handleImportConnectionTypeCsv,
+  handleExportConnectionTypeCsvTemplate,
   handleExportStaticWebsite
 } from './handlers/exportHandlers.js';
 
@@ -325,6 +326,7 @@ function registerExportIpcHandlers() {
   ipcMain.handle('import-connections', withDatabaseContext(handleImportConnections));
   ipcMain.handle('export-connection-type-csv', withDatabaseContext(handleExportConnectionTypeCsv));
   ipcMain.handle('import-connection-type-csv', withDatabaseContext(handleImportConnectionTypeCsv));
+  ipcMain.handle('export-connection-type-csv-template', withDatabaseContext(handleExportConnectionTypeCsvTemplate));
   ipcMain.handle('backup-create', withDatabaseContext(handleCreateBackup));
   ipcMain.handle('backup-select-file', handleSelectBackupFile);
   ipcMain.handle('backup-check-file', withDatabaseContext(handleCheckBackupFile));

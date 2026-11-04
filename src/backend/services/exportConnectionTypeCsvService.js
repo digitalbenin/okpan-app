@@ -38,6 +38,22 @@ function groupBy(rows, key) {
   }, {});
 }
 
+function sortProjectLanguages(languages) {
+  return [...languages].sort((a, b) => {
+    if (a.is_default === b.is_default) return String(a.code || '').localeCompare(String(b.code || ''));
+    return a.is_default === 1 ? -1 : 1;
+  });
+}
+
+function buildConnectionTypeHeader(orderedLanguages, { includeConnectionId = true } = {}) {
+  return [
+    ...(includeConnectionId ? ['connection_id'] : []),
+    'external_link',
+    ...orderedLanguages.map((language) => `option_${language.code}`),
+    ...orderedLanguages.map((language) => `description_${language.code}`)
+  ];
+}
+
 function getTextMap(textRow, translations, languagesById) {
   if (!textRow) return {};
 
@@ -88,10 +104,7 @@ export async function exportConnectionTypeCsv(options, { db }) {
     db.select().from(dbSchema.vocabularies).where(eq(dbSchema.vocabularies.field_id, connectionTypeId)).execute()
   ]);
 
-  const orderedLanguages = [...languages].sort((a, b) => {
-    if (a.is_default === b.is_default) return String(a.code || '').localeCompare(String(b.code || ''));
-    return a.is_default === 1 ? -1 : 1;
-  });
+  const orderedLanguages = sortProjectLanguages(languages);
 
   const textIds = Array.from(new Set(vocabularies.flatMap((vocabulary) => [
     vocabulary.option_id,
@@ -114,12 +127,7 @@ export async function exportConnectionTypeCsv(options, { db }) {
   const translationsByTextId = groupBy(translations, 'text_id');
   const languagesById = indexBy(orderedLanguages);
 
-  const header = [
-    'connection_id',
-    'external_link',
-    ...orderedLanguages.map((language) => `option_${language.code}`),
-    ...orderedLanguages.map((language) => `description_${language.code}`)
-  ];
+  const header = buildConnectionTypeHeader(orderedLanguages);
 
   const rows = vocabularies.map((vocabulary) => {
     const optionMap = getTextMap(
@@ -149,6 +157,41 @@ export async function exportConnectionTypeCsv(options, { db }) {
     counts: {
       connection_types: 1,
       connections: vocabularies.length,
+      images: 0
+    }
+  };
+}
+
+/**
+ * Export an empty connection-type CSV template (header only) for a project.
+ * @memberof backend.services.exportConnectionTypeCsvService
+ * @param {Object} options - Export options.
+ * @param {string} options.filePath - Destination .csv path.
+ * @param {string} options.projectId - Project id.
+ * @param {Object} db - Database handle.
+ * @returns {Promise<Object>}
+ */
+export async function exportConnectionTypeCsvTemplate(options, { db }) {
+  const { filePath, projectId } = options || {};
+  if (!filePath || !filePath.toLowerCase().endsWith('.csv')) throw new Error('filePath must be a .csv path for connection type template');
+  if (!projectId) throw new Error('projectId is required');
+
+  const languages = await db
+    .select()
+    .from(dbSchema.languages)
+    .where(eq(dbSchema.languages.project_id, projectId))
+    .execute();
+
+  const orderedLanguages = sortProjectLanguages(languages);
+
+  await writeCsv(filePath, buildConnectionTypeHeader(orderedLanguages, { includeConnectionId: false }), []);
+
+  return {
+    filePath,
+    mode: 'csv-template',
+    counts: {
+      connection_types: 0,
+      connections: 0,
       images: 0
     }
   };
