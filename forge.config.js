@@ -335,25 +335,11 @@ export default {
                     }
                 }
                 if (copiedFrom) {
+                    // Keep SvelteKit's root-relative fallback asset URLs intact.
+                    // electron-serve resolves /_app/... at app://-/ on every OS;
+                    // rewriting to ./_app/... breaks reloads on nested routes.
+                    // Relative URLs were needed by the former file:// loader.
                     console.log(`packageAfterCopy: Copied renderer from '${copiedFrom}' to '${targetBuildDir}'`);
-
-                    // Post-process HTML to convert absolute '/_app/...' URLs to relative './_app/...'
-                    const htmlFiles = (await fs.readdir(targetBuildDir)).filter(f => f.toLowerCase().endsWith('.html'));
-                    for (const html of htmlFiles) {
-                        const fp = path.join(targetBuildDir, html);
-                        try {
-                            let content = await fs.readFile(fp, 'utf-8');
-                            content = content
-                                .replace(/href="\/_app\//g, 'href="./_app/')
-                                .replace(/src="\/_app\//g, 'src="./_app/')
-                                .replace(/import\("\/_app\//g, 'import("./_app/')
-                                .replace(/<base\s+href="\/">/g, '<base href="./">');
-                            await fs.writeFile(fp, content);
-                            console.log(`packageAfterCopy: Rewrote asset URLs in '${html}' to relative paths`);
-                        } catch (err) {
-                            console.warn(`packageAfterCopy: Failed to rewrite '${html}':`, err);
-                        }
-                    }
                 } else {
                     console.warn('packageAfterCopy: Renderer output not found in expected locations');
                 }
