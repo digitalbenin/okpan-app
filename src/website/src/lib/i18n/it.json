@@ -22,6 +22,8 @@
       "know-more": "Scopri di più"
     },
     "connections": {
+        "count-one": "{{count}} connessione",
+        "count-other": "{{count}} connessioni",
         "sort-label": "Ordina per",
         "sort-name": "Nome",
         "sort-count": "Numero oggetti"

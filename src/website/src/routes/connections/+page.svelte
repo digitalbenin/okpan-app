@@ -66,13 +66,11 @@
 									<span class="fs-5 fw-semibold text-body">
 										{content(type, 'name')}
 									</span>
-									{#if type.description}
-										<p class="fs-7 text-body mb-0" style="min-height: 90px;">
-											{content(type, 'description')}
-										</p>
-									{/if}
+									<p class="fs-7 text-body mb-0" style="line-height: 1.5; min-height: 3em;">
+										{content(type, 'description')}
+									</p>
 									<span class="fs-7 text-body-secondary">
-										{t('object.objects-connected', { count: type.count || 0 })}
+										{t(type.count === 1 ? 'connections.count-one' : 'connections.count-other', { count: type.count || 0 })}
 									</span>
 								</div>
 							</a>

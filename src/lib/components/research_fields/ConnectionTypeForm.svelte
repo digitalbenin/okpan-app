@@ -16,6 +16,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { processEntityTranslations, buildTranslationFormValues } from "$lib/api/TranslationsApi.js";
   import { updateResearchField, deleteResearchField } from "$lib/api/ResearchFieldsApi.js";
+  import { addToast } from "$lib/components/base/BaseToast.svelte";
   import { DEFAULT_FIELDS_CONFIG } from "$lib/constants/connectionTemplates.js";
   import { goto } from "$app/navigation";
   import { IconDeviceFloppy, IconTrash, IconArrowLeft } from "@tabler/icons-svelte";
@@ -65,11 +66,16 @@
         fieldsConfig: value.fieldsConfig || value.fields_config,
       };
 
-      await updateResearchField(researchField.id, payload);
-      await processEntityTranslations(researchField, secondaryLanguages, TRANSLATABLE_FIELDS, value, languages);
+      const { result, error } = await updateResearchField(researchField.id, payload);
+      if (error) throw new Error(error);
+      await processEntityTranslations(researchField, secondaryLanguages, TRANSLATABLE_FIELDS, value, languages, {
+        description: result?.linkedDescription?.[0]?.description_id,
+      });
       pageDirtyTracker?.markPristine();
     } catch (error) {
       console.error("Error updating connection type:", error);
+      addToast({ data: { title: "Error", description: error.message, type: "error" } });
+      throw error;
     }
   }
 
@@ -193,7 +199,8 @@
       text: t("common.save-changes", { fallback: "Save changes" }),
       class: "btn btn-sm btn-success",
       iconComponent: IconDeviceFloppy,
-      type: "submit",
+      type: "button",
+      onClick: () => form.handleSubmit(),
       disableOnError: true,
       disableWhenClean: true,
     },

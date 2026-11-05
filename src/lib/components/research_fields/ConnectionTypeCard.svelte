@@ -36,13 +36,9 @@
     {field.name?.content || t("common.untitled", {fallback: "Untitled"})}
   </p>
 
-  {#if description}
-    <p class="small mb-0" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-      {description}
-    </p>
-  {:else}
-    <div style="height: 2.8em;"></div>
-  {/if}
+  <p class="small mb-0" style="line-height: 1.5; min-height: 3em;">
+    {description}
+  </p>
 
   <div class="d-flex align-items-center gap-2">
     <div class="d-flex align-items-center gap-1">

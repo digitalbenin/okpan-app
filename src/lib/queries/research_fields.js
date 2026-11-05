@@ -320,6 +320,7 @@ export const researchFieldsOperations = {
   research_fields(where: { id: { eq: $fieldId } }) {
     id
     name_id
+    name { original_language_id }
     description_id
     type
     private
@@ -347,6 +348,34 @@ export const researchFieldsOperations = {
         skipIf: { variableName: "name", isUndefined: true }
       },
       {
+        name: "createDescription",
+        query: `mutation CreateResearchFieldDescription($description: String!, $languageId: String!) {
+  insertIntoTexts(values: [{ content: $description, context: "research_fields.description", original_language_id: $languageId }]) {
+    id
+  }
+}`,
+        useVariables: ["description"],
+        mapVariables: {
+          languageId: { from: "getResearchField", path: "research_fields.0.name.original_language_id" }
+        },
+        skipIf: { variableName: "description", isUndefined: true },
+        onlyIf: { from: "getResearchField", path: "research_fields.0.description_id", isNull: true }
+      },
+      {
+        name: "linkDescription",
+        query: `mutation LinkResearchFieldDescription($fieldId: String!, $descriptionId: String!) {
+  linkedDescription:updateResearch_fields(set: { description_id: $descriptionId }, where: { id: { eq: $fieldId } }) {
+    id
+    description_id
+  }
+}`,
+        useVariables: ["fieldId"],
+        mapVariables: {
+          descriptionId: { from: "createDescription", path: "insertIntoTexts.0.id", skipIfUndefined: true }
+        },
+        skipIf: { variableName: "descriptionId", isUndefined: true }
+      },
+      {
         name: "updateDescription",
         query: `mutation UpdateResearchFieldDescription($descriptionId: String!, $description: String!) {
   updateTexts(
@@ -362,7 +391,8 @@ export const researchFieldsOperations = {
           descriptionId: { from: "getResearchField", path: "research_fields.0.description_id" }
         },
         // Skip if description is undefined to avoid required variable errors
-        skipIf: { variableName: "description", isUndefined: true }
+        skipIf: { variableName: "description", isUndefined: true },
+        onlyIf: { from: "getResearchField", path: "research_fields.0.description_id", isNull: false }
       },
       {
         name: "updateType",
@@ -431,7 +461,7 @@ export const researchFieldsOperations = {
       {
         name: "processDescriptionTranslations",
         processTranslations: {
-          textIdPath: "getResearchField.research_fields.0.description_id",
+          textIdPaths: ["getResearchField.research_fields.0.description_id", "createDescription.insertIntoTexts.0.id"],
           translationsParam: "descriptionTranslations"
         }
       }

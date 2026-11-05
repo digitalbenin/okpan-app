@@ -22,6 +22,8 @@
       "know-more": "Know more"
     },
     "connections": {
+        "count-one": "{{count}} connection",
+        "count-other": "{{count}} connections",
         "sort-label": "Sort by",
         "sort-name": "Name",
         "sort-count": "Object count"
