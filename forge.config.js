@@ -52,7 +52,8 @@ export default {
         {
             name: '@electron-forge/maker-squirrel',
             config: {
-                icon: './src/assets/okpan_logo.ico'
+                icon: './src/assets/okpan_logo.ico',
+                loadingGif: './src/assets/okpan-installer-win.gif'
             },
         },
         {
@@ -60,9 +61,25 @@ export default {
             platforms: ['darwin'],
             config: {
                 icon: './src/assets/okpan_logo.icns',
+                background: './src/assets/dmg/dmgbackground.tiff',
                 overwrite: true,
-                iconSize: 80,
-                format: 'ULFO'
+                // Icon centers match the background artwork (1080x900 at 2x):
+                // the two 150x150 icon boxes sit at x=284.5/644.5 and the arrow
+                // is centered at y=683, so the icons line up with the arrow
+                // vertically (341.5pt in the 540x450 window).
+                iconSize: 75,
+                format: 'ULFO',
+                contents: (opts) => [
+                    { x: 180, y: 341, type: 'file', path: opts.appPath },
+                    { x: 360, y: 341, type: 'link', path: '/Applications' }
+                ],
+                // Pin the window to the background size instead of relying on
+                // appdmg reading it (same approach as balena-etcher).
+                additionalDMGOptions: {
+                    window: {
+                        size: { width: 540, height: 450 }
+                    }
+                }
             }
         },
         {
