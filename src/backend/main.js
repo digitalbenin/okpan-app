@@ -417,7 +417,10 @@ function createWindow() {
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
     autoHideMenuBar: true,
-    icon: path.join(app.getAppPath(), 'src/assets/okpan_logo.png'),
+    icon: path.join(
+      app.getAppPath(),
+      process.platform === 'win32' ? 'src/assets/okpan_logo_win.png' : 'src/assets/okpan_logo.png'
+    ),
     webPreferences: {
       preload: path.join(app.getAppPath(), '.vite/preload.js'),
       nodeIntegration: false,
