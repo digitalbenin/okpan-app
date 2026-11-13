@@ -32,7 +32,7 @@
  * @namespace backend.protocols
  * @memberof backend
  */
-import { app, BrowserWindow, ipcMain, protocol, net, powerMonitor, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, protocol, net, powerMonitor, shell } from 'electron';
 import serve from 'electron-serve';
 import started from 'electron-squirrel-startup';
 import 'dotenv/config';
@@ -226,6 +226,27 @@ const withGraphQLContext = (handler) => (event, payload) =>
 // ── IPC handler registration ────────────────────────────────────────────────
 
 function registerSystemIpcHandlers() {
+  // beforeunload must receive the decision synchronously so Electron can
+  // complete the original close, quit, or reload operation.
+  ipcMain.on('confirm-page-unload', (event, { title, message, confirmText, cancelText }) => {
+    event.returnValue = false;
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window || window.isDestroyed()) return;
+
+    try {
+      event.returnValue = dialog.showMessageBoxSync(window, {
+        type: 'question',
+        title,
+        message,
+        buttons: [cancelText, confirmText],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true
+      }) === 1;
+    } catch (error) {
+      console.error('Failed to confirm page unload:', error);
+    }
+  });
   ipcMain.handle('ping', handlePing);
   ipcMain.handle('get-system-info', () => ({
     arch: process.arch,

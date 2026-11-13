@@ -7,7 +7,6 @@
  */
 import { AutoModel, AutoTokenizer } from '@huggingface/transformers';
 import path from 'path';
-import fs from 'fs';
 
 // Multilingual model producing 768-dim vectors. It is asymmetric: queries and
 // documents must be encoded with different instruction prefixes, otherwise the
@@ -48,27 +47,7 @@ function resolveModelPath() {
         : path.join(process.cwd(), 'src', 'assets', 'models');
 }
 
-const modelPath = resolveModelPath();
-
-// Download progress arrives once per file, each starting from 0%.
-const loggedProgress = new Set();
-
-/**
- * Log model download progress in 10% steps, without repeating entries.
- * @param {Object} progress - Progress event from transformers.js.
- */
-function logDownloadProgress(progress) {
-    if (progress.status !== 'progress') return;
-
-    const percent = Math.round(progress.progress || 0);
-    if (percent % 10 !== 0) return;
-
-    const key = `${progress.file}:${percent}`;
-    if (loggedProgress.has(key)) return;
-
-    loggedProgress.add(key);
-    console.log(`Model download: ${progress.file} ${percent}%`);
-}
+const modelPath = path.resolve(resolveModelPath(), modelName);
 
 /**
  * Load the embedding model into memory if it is not already initialized.
@@ -89,14 +68,14 @@ async function initialize() {
     initPromise = (async () => {
         try {
             isInitializing = true;
-            console.log(`Initializing embedding model: ${modelName}`);
+            console.log(`Initializing embedding model from: ${modelPath}`);
 
-            await fs.promises.mkdir(modelPath, { recursive: true });
+            // Use the local directory directly: Transformers.js 4.3.0's tokenizer
+            // metadata lookup ignores cache_dir and local_files_only for repo IDs.
+            const options = { local_files_only: true };
 
-            const options = { cache_dir: modelPath, progress_callback: logDownloadProgress };
-
-            tokenizer = await AutoTokenizer.from_pretrained(modelName, options);
-            model = await AutoModel.from_pretrained(modelName, { ...options, dtype: modelDtype });
+            tokenizer = await AutoTokenizer.from_pretrained(modelPath, options);
+            model = await AutoModel.from_pretrained(modelPath, { ...options, dtype: modelDtype });
 
             console.log('Model initialized successfully');
         } catch (error) {

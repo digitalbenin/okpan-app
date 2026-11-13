@@ -42,6 +42,20 @@
 
     if (!enabled || !isDirty) return;
 
+    // Unloading has no resumable URL. Decide synchronously so the original
+    // close/quit/reload can continue after confirmation.
+    if (navigation.type === 'leave') {
+      const confirmed = window.api?.confirmPageUnload?.({
+        title: resolvedTitle,
+        message: resolvedMessage,
+        confirmText: resolvedConfirmText,
+        cancelText: resolvedCancelText,
+      });
+      // In a browser, cancel() delegates to the native unload confirmation.
+      if (!confirmed) navigation.cancel();
+      return;
+    }
+
     // Cancel navigation and show dialog
     navigation.cancel();
     pendingNavigation = navigation;
