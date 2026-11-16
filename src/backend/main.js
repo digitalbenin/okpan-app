@@ -32,7 +32,7 @@
  * @namespace backend.protocols
  * @memberof backend
  */
-import { app, BrowserWindow, dialog, ipcMain, protocol, net, powerMonitor, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net, powerMonitor, shell } from 'electron';
 import serve from 'electron-serve';
 import started from 'electron-squirrel-startup';
 import 'dotenv/config';
@@ -43,6 +43,7 @@ import { broadcastNetworkStatus, getCurrentNetworkStatus, setNetworkStatus, star
 import { registerMediaProtocol } from './protocols/media.js';
 import { registerWebsiteProtocol } from './protocols/website.js';
 import log from 'electron-log/main'; 
+import { createPageUnloadController } from './services/pageUnloadService.js';
 
 // Database
 import { db, ensureDatabaseReady } from '../db/init.js';
@@ -219,6 +220,8 @@ if (started) {
 
 // ── IPC context helpers ─────────────────────────────────────────────────────
 
+const pageUnloadController = createPageUnloadController({ quit: () => app.quit() });
+
 const withDatabaseContext = (handler) => (event, payload) => handler(event, payload, { db });
 const withGraphQLContext = (handler) => (event, payload) =>
   handler(event, payload, { schema, resolvers, db });
@@ -226,26 +229,8 @@ const withGraphQLContext = (handler) => (event, payload) =>
 // ── IPC handler registration ────────────────────────────────────────────────
 
 function registerSystemIpcHandlers() {
-  // beforeunload must receive the decision synchronously so Electron can
-  // complete the original close, quit, or reload operation.
-  ipcMain.on('confirm-page-unload', (event, { title, message, confirmText, cancelText }) => {
-    event.returnValue = false;
-    const window = BrowserWindow.fromWebContents(event.sender);
-    if (!window || window.isDestroyed()) return;
-
-    try {
-      event.returnValue = dialog.showMessageBoxSync(window, {
-        type: 'question',
-        title,
-        message,
-        buttons: [cancelText, confirmText],
-        defaultId: 0,
-        cancelId: 0,
-        noLink: true
-      }) === 1;
-    } catch (error) {
-      console.error('Failed to confirm page unload:', error);
-    }
+  ipcMain.on('respond-to-page-unload', (event, confirmed) => {
+    pageUnloadController.respondToUnload(event.sender, confirmed === true);
   });
   ipcMain.handle('ping', handlePing);
   ipcMain.handle('get-system-info', () => ({
@@ -450,6 +435,8 @@ function createWindow() {
     },
   });
 
+  pageUnloadController.registerWindow(mainWindow);
+
   // Handle CSP for inline scripts by intercepting and updating headers
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     const responseHeaders = { ...details.responseHeaders };
@@ -533,6 +520,11 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  pageUnloadController.requestQuit();
+});
+
+// Keep background services running if the user cancels the quit request.
+app.on('will-quit', () => {
   stopConnectivityProbe();
   try {
     destroyTorrentManager();

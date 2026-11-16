@@ -42,17 +42,10 @@
 
     if (!enabled || !isDirty) return;
 
-    // Unloading has no resumable URL. Decide synchronously so the original
-    // close/quit/reload can continue after confirmation.
-    if (navigation.type === 'leave') {
-      const confirmed = window.api?.confirmPageUnload?.({
-        title: resolvedTitle,
-        message: resolvedMessage,
-        confirmText: resolvedConfirmText,
-        cancelText: resolvedCancelText,
-      });
-      // In a browser, cancel() delegates to the native unload confirmation.
-      if (!confirmed) navigation.cancel();
+    // Browsers own unload confirmation. Electron instead keeps the page open
+    // while our modal is shown and can resume the operation through IPC.
+    if (navigation.type === 'leave' && !window.api?.respondToPageUnload) {
+      navigation.cancel();
       return;
     }
 
@@ -63,6 +56,9 @@
   });
 
   function handleStay() {
+    if (pendingNavigation?.type === 'leave') {
+      window.api?.respondToPageUnload(false);
+    }
     showDialog = false;
     pendingNavigation = null;
   }
@@ -72,6 +68,12 @@
     showDialog = false;
     pendingNavigation = null;
 
+    if (navigation?.type === 'leave') {
+      bypassNextNavigation = true;
+      window.api.respondToPageUnload(true);
+      return;
+    }
+
     const targetUrl = navigation?.to?.url;
     if (!targetUrl) return;
 
@@ -80,7 +82,10 @@
   }
 </script>
 
-<BaseModal bind:isOpen={showDialog} size="md">
+<BaseModal
+  bind:isOpen={() => showDialog, (open) => open ? showDialog = true : handleStay()}
+  size="md"
+>
   {#snippet header()}{resolvedTitle}{/snippet}
   {#snippet body()}
     <p class="mb-0">{resolvedMessage}</p>

@@ -3,8 +3,7 @@
  * Exposes a curated API to the renderer via `contextBridge` so the renderer never
  * needs direct access to Node.js or Electron internals.
  *
- * Two-way calls use `ipcRenderer.invoke` (request/response), except the
- * synchronous unload confirmation required by beforeunload.
+ * All two-way calls use `ipcRenderer.invoke` (request/response).
  * Fire-and-forget notifications use `ipcRenderer.send`.
  * Event subscriptions return an unsubscribe function so callers can clean up.
  *
@@ -41,13 +40,13 @@ contextBridge.exposeInMainWorld('api', {
     ping: () => ipcRenderer.invoke('ping'),
 
     /**
-     * Confirms closing or reloading a page with unsaved changes.
-     * Synchronous because beforeunload cannot await a response.
+     * Resumes or cancels an operation blocked by the page's DirtyGuard.
+     * Fire-and-forget because the window may close after confirmation.
      * @memberOf preload
-     * @param {{title: string, message: string, confirmText: string, cancelText: string}} labels
-     * @returns {boolean}
+     * @param {boolean} confirmed
+     * @returns {void}
      */
-    confirmPageUnload: (labels) => ipcRenderer.sendSync('confirm-page-unload', labels),
+    respondToPageUnload: (confirmed) => ipcRenderer.send('respond-to-page-unload', confirmed),
 
     /**
      * Returns OS and application version information.
