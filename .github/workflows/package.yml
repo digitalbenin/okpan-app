@@ -83,7 +83,8 @@ jobs:
           path: out/Okpan-darwin-arm64/Okpan.app
 
       - name: Build DMG from the notarized app
-        run: yarn make -- --arch=arm64 --skip-package
+        # Invoke Forge directly: yarn make would rebuild the website artifacts.
+        run: yarn electron-forge make --arch=arm64 --skip-package
 
       - name: Notarize and staple the DMG
         uses: ./.github/actions/notarize-artifact
@@ -157,7 +158,8 @@ jobs:
           path: out/Okpan-darwin-x64/Okpan.app
 
       - name: Build DMG from the notarized app
-        run: yarn make -- --arch=x64 --skip-package
+        # Invoke Forge directly: yarn make would rebuild the website artifacts.
+        run: yarn electron-forge make --arch=x64 --skip-package
 
       - name: Notarize and staple the DMG
         uses: ./.github/actions/notarize-artifact

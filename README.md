@@ -157,6 +157,14 @@ Create the packaged production build:
 yarn make
 ```
 
+`yarn package`, `yarn make`, and `yarn publish` build both website artifacts,
+then let Electron Forge's Vite plugin build the main process, preload, and
+renderer during packaging. A separate `yarn build` is not needed beforehand.
+To create an installer from an already packaged app, use
+`yarn electron-forge make --skip-package` (with `--arch` matching the app).
+The macOS workflow uses this after notarizing and stapling the app, preserving
+that bundle when creating the DMG.
+
 ## Troubleshooting
 
 ### Common Issues

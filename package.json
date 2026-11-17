@@ -8,9 +8,9 @@
   "scripts": {
     "start": "electron-forge start",
     "build": "yarn build:website && yarn build:app",
-    "package": "yarn build && electron-forge package",
-    "make": "yarn build && electron-forge make",
-    "publish": "yarn build && electron-forge publish",
+    "package": "yarn build:website && electron-forge package",
+    "make": "yarn build:website && electron-forge make",
+    "publish": "yarn build:website && electron-forge publish",
     "lint": "echo \"No linting configured\"",
     "dev:sveltekit": "vite dev",
     "build:app": "vite build",
