@@ -54,7 +54,9 @@
 
   function itemsForField(field) {
     const vocabs = Array.isArray(field?.vocabularies) ? field.vocabularies : [];
-    return vocabs.map((v) => ({ value: v.id, label: v?.option?.content || v.id }));
+    return vocabs
+      .map((v) => ({ value: v.id, label: v?.option?.content || v.id }))
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
   }
 
   function toggleDropdown(fieldId) {
