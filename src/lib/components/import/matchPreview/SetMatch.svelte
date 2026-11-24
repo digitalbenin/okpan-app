@@ -43,21 +43,11 @@
   // original order relative to each other.
   const NOT_SUGGESTED = Number.MAX_SAFE_INTEGER;
 
-  // Initialize from existing match (can be single object or array)
-  let _initialized = false;
-  watch(
-    () => fieldMatched,
-    (match) => {
-      if (!_initialized && match) {
-        const arr = Array.isArray(match) ? match : [match];
-        const existingIds = arr.map((m) => m.id).filter(Boolean);
-        if (existingIds.length) {
-          _initialized = true;
-          selectedValues = existingIds;
-        }
-      }
-    }
-  );
+  watch(() => open, (isOpen) => {
+    if (!isOpen) return;
+    selectedValues = (fieldMatched ?? []).map((match) => match.id);
+    searchTerm = "";
+  });
 
   // Suggestions arrive ordered by similarity, best first, and the first one is
   // the match that was applied automatically. Track that position so the list
@@ -102,17 +92,7 @@
   }
 
   function updateMatch() {
-    const matches = page.data.ontologyFields
-      .filter((f) => selectedValues.includes(f.id))
-      .map((f) => ({
-        name: f.name.content,
-        id: f.id,
-        description: f.description.content,
-        suggestion: false,
-      }));
-    if (matches.length) {
-      onSetMatchChange(matches);
-    }
+    onSetMatchChange(selectedValues);
     open = false;
   }
 </script>
@@ -143,7 +123,7 @@
 
   <BaseSearchBar border="border-secondary-gray-200" bind:search={searchTerm} placeholder={t("import.search-fields", { fallback: "Search" })} width="100%" />
   <div class="border rounded mt-2" style="max-height: 350px; overflow-y: auto;">
-    {#each items as item}
+    {#each items as item (item.value)}
       <div
         class="form-check py-2 px-0 m-0 border-bottom"
         class:bg-primary-subtle={isSelected(item.value)}

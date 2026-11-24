@@ -1,4 +1,5 @@
 import { getContext, setContext } from 'svelte';
+import { SvelteMap } from 'svelte/reactivity';
 
 const IMPORT_WIZARD_KEY = 'importWizard';
 
@@ -25,6 +26,17 @@ export function createImportWizardContext(params) {
     let useMatchingTemplate = $state(false);
     let importCompleted = $state(false);
     let submitStep = $state(null);
+    let fieldMappingsInitialized = $state(false);
+    const matchingRequests = new Map();
+    const excludedMappings = new SvelteMap();
+    const autoMatches = new SvelteMap();
+
+    function resetMatchingPreview() {
+        matchingRequests.clear();
+        excludedMappings.clear();
+        autoMatches.clear();
+        fieldMappingsInitialized = false;
+    }
     // let formData = $state({});
     // let isValid = $state(false);
     // let errors = $state([]);
@@ -62,7 +74,11 @@ export function createImportWizardContext(params) {
         set mapping(value) { mapping = value; },
 
         get data() { return data; },
-        set data(value) { data = value; },
+        set data(value) {
+            if (value === data) return;
+            data = value;
+            resetMatchingPreview();
+        },
 
         get useMatchingSuggestions() { return useMatchingSuggestions; },
         set useMatchingSuggestions(value) { useMatchingSuggestions = value; },
@@ -93,30 +109,82 @@ export function createImportWizardContext(params) {
         // get errors() { return errors; },
         // set errors(value) { errors = value; },
 
-        // Helper methods
-        addMappingEntry(entry) {
-            // Check for exact duplicate (same headerField + mappedField)
-            const existingIndex = mapping.findIndex(
-                e => e.headerField === entry.headerField && e.mappedField === entry.mappedField
-            );
-            if (existingIndex !== -1) {
-                mapping[existingIndex] = entry;
-            } else {
-                mapping = [...mapping, entry];
+        get fieldMappingsInitialized() { return fieldMappingsInitialized; },
+
+        getMatchingRequest(kind, fetch) {
+            if (!matchingRequests.has(kind)) matchingRequests.set(kind, fetch());
+            return matchingRequests.get(kind);
+        },
+
+        initializeFieldMappings(fields, suggestions) {
+            if (fieldMappingsInitialized) return;
+            const entriesByField = new Map();
+            for (const entry of mapping) {
+                if (!entriesByField.has(entry.headerField)) entriesByField.set(entry.headerField, []);
+                entriesByField.get(entry.headerField).push(entry);
+            }
+            const bestMatches = new Map(suggestions.map(({ csvField, suggestions }) => [
+                csvField, suggestions?.[0]?.ontologyFieldId,
+            ]));
+            const replaced = new Set();
+            const additions = [];
+            for (const headerField of fields) {
+                const entries = entriesByField.get(headerField) || [];
+                if (excludedMappings.has(headerField) || entries.some((entry) => entry.mappedField)) continue;
+                const mappedField = bestMatches.get(headerField);
+                if (mappedField) {
+                    autoMatches.set(headerField, mappedField);
+                    replaced.add(headerField);
+                    additions.push({ headerField, mappedField, primary: entries.some((entry) => entry.primary) });
+                } else if (!entries.length) {
+                    additions.push({ headerField, mappedField: null, primary: false });
+                }
+            }
+            mapping = [...mapping.filter((entry) => !replaced.has(entry.headerField)), ...additions];
+            fieldMappingsInitialized = true;
+        },
+
+        isAutoMatch(headerField, mappedField) {
+            return autoMatches.get(headerField) === mappedField;
+        },
+
+        isFieldIncluded(headerField) {
+            return !excludedMappings.has(headerField);
+        },
+
+        setFieldIncluded(headerField, included) {
+            if (included) {
+                const entries = excludedMappings.get(headerField);
+                if (!entries) return;
+                excludedMappings.delete(headerField);
+                mapping = [...mapping, ...entries];
+            } else if (!excludedMappings.has(headerField)) {
+                excludedMappings.set(headerField, mapping.filter((entry) => entry.headerField === headerField));
+                mapping = mapping.filter((entry) => entry.headerField !== headerField);
             }
         },
-        removeMappingEntry(entry) {
-            // Remove by headerField + mappedField if both provided, else by headerField only
-            if (entry.mappedField) {
-                mapping = mapping.filter(
-                    e => !(e.headerField === entry.headerField && e.mappedField === entry.mappedField)
-                );
-            } else {
-                mapping = mapping.filter(e => e.headerField !== entry.headerField);
-            }
+
+        setFieldMatches(headerField, mappedFields) {
+            const previous = mapping.filter((entry) => entry.headerField === headerField);
+            const primary = previous.some((entry) => entry.primary);
+            autoMatches.delete(headerField);
+            mapping = [
+                ...mapping.filter((entry) => entry.headerField !== headerField),
+                ...(mappedFields.length ? mappedFields : [null]).map((mappedField) => ({
+                    ...previous.find((entry) => entry.mappedField === mappedField),
+                    headerField,
+                    mappedField,
+                    primary,
+                })),
+            ];
         },
         setPrimaryHeaderField(headerField) {
             const primaryHeaderField = headerField || null;
+            for (const [field, entries] of excludedMappings) {
+                if (entries.some((entry) => entry.primary)) {
+                    excludedMappings.set(field, entries.map((entry) => ({ ...entry, primary: 0 })));
+                }
+            }
             mapping = mapping.map((entry) => {
                 const nextPrimary = primaryHeaderField && entry?.headerField === primaryHeaderField ? 1 : 0;
                 return { ...entry, primary: nextPrimary };
@@ -142,6 +210,7 @@ export function createImportWizardContext(params) {
         // },
 
         reset() {
+            resetMatchingPreview();
             currentStep = 1;
             importCompleted = false;
             institutionId = null;

@@ -1,14 +1,9 @@
 <script>
-  import { getImportWizardContext } from "$lib/stores/ImportWizard.svelte.js";
-
   import Self from "./CardTree.svelte";
   import Card from "./Card.svelte";
-  const { node, matchingSuggestions, matchingSuggestionsLoading, fields, fieldInclusion = {} } =
-    $props();
-
-  const wizard = getImportWizardContext();
+  const { node, matchingSuggestions, fields } = $props();
   const hasChildren = $derived(node.analysis ? true : false);
-  const childern = $derived.by(() => {
+  const children = $derived.by(() => {
     if (hasChildren) {
       return Object.keys(node.analysis).sort();
     }
@@ -17,12 +12,6 @@
 
   const matchingSuggestion = $derived.by(() => {
     return matchingSuggestions?.find((s) => s.csvField === node.pathString);
-  });
-
-  const mappedField = $derived.by(() => {
-    return wizard.mapping?.filter(
-      (m) => m.headerField === node.pathString
-    );
   });
 
   const values = $derived.by(() => {
@@ -49,30 +38,16 @@
         {node.pathString || "root"}
       </div>
     {/if}
-    {#each childern as field}
+    {#each children as field (field)}
       <div class:border-start={node.depth > 0}>
         <Self
           node={node.analysis[field]}
           {matchingSuggestions}
-          {mappedField}
-          {matchingSuggestionsLoading}
           {fields}
-          {fieldInclusion}
         ></Self>
       </div>
     {/each}
   {:else}
-    {#if node.pathString in fieldInclusion}
-      <Card
-        field={node.pathString}
-        {values}
-        {mappedField}
-        {matchingSuggestion}
-        {matchingSuggestionsLoading}
-        bind:included={fieldInclusion[node.pathString]}
-        {i}
-        {tot}
-      />
-    {/if}
+    <Card field={node.pathString} {values} {matchingSuggestion} {i} {tot} />
   {/if}
 </div>
