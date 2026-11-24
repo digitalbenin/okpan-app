@@ -238,6 +238,11 @@
     if (!selectedObjects?.length) return;
     showBulkEditModal = true;
   };
+
+  const handleBulkEditSaved = () => {
+    selectedObjects = [];
+    void objectsResource.refetch();
+  };
 </script>
 
 {#snippet actionButton(icon, text, onClick, variant = "secondary")}
@@ -373,7 +378,7 @@
 
 <BulkDeleteObjectsModal bind:isOpen={showBulkDeleteModal} selectedIds={selectedObjects} on:deleted={() => (selectedObjects = [])} />
 <BulkChangeInstitutionModal bind:isOpen={showBulkInstitutionModal} projectId={institution.project_id} selectedCount={selectedObjects.length} onConfirm={handleConfirmInstitution} />
-<BulkEditObjectsModal bind:isOpen={showBulkEditModal} projectId={institution.project_id} selectedIds={selectedObjects} researchFields={researchFields} onSaved={() => (selectedObjects = [])} />
+<BulkEditObjectsModal bind:isOpen={showBulkEditModal} projectId={institution.project_id} selectedIds={selectedObjects} researchFields={researchFields} onSaved={handleBulkEditSaved} />
 
 {#if showAdvancedFilters}
   <ObjectAdvancedFilters
