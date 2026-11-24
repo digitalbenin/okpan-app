@@ -3,6 +3,7 @@ import { getAssets } from "$lib/api/AssetsApi.js";
 import { getObjects } from "$lib/api/ObjectsApi.js";
 import { getDatasources } from '$lib/api/DatasourcesApi.js';
 import { getTemplatesByInstitution } from "$lib/api/TemplatesApi.js";
+import { getResearchFields } from '$lib/api/ResearchFieldsApi.js';
 // import { getContentLanguageStore } from "$lib/stores/ContentLanguageStore.svelte.js";
 
 export const load = async ({ params, depends, url }) => {
@@ -10,6 +11,7 @@ export const load = async ({ params, depends, url }) => {
     depends('app:institution');
     depends('app:templates');
     depends('app:assets');
+    depends('app:research-fields');
 
     const projectId = params.project_id;
     const institutionId = params.institution_id;
@@ -78,12 +80,14 @@ export const load = async ({ params, depends, url }) => {
         objectsData,
         datasourcesData,
         templatesData,
+        researchFields,
         // projectLanguages,
     ] = await Promise.all([
         getAssets(aOptions),
         getObjects(oOptions),
         getDatasources(sOptions),
         getTemplatesByInstitution(institutionId),
+        getResearchFields(projectId),
         // getAvaliableLocalesForProject(projectId),
     ]);
 
@@ -96,6 +100,7 @@ export const load = async ({ params, depends, url }) => {
         // institutionId,
         datasources: datasourcesData,
         mappingTemplates: templatesData || [],
+        researchFields: researchFields || [],
         //projectLanguages: projectLanguages?.result || projectLanguages || [] // Adjust as per getAvaliableLocalesForProject's return
     };
     return res;
