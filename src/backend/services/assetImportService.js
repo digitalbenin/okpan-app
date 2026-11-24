@@ -1,6 +1,5 @@
 /**
- * Asset import service for processing uploaded media, persisting imported
- * assets, and creating seeded asset records with torrent metadata.
+ * Process and save local media with the metadata needed for later P2P sync.
  *
  * @namespace backend.services.assetImportService
  * @memberof backend.services
@@ -8,12 +7,11 @@
 import * as fs from 'fs';
 import sharp from 'sharp';
 import { db } from '../../db/init.js';
-import { assets, genericAssets } from '../../db/schema.js';
+import { assets, genericAssets, asset_local_state, generic_asset_local_state } from '../../db/schema.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { seedAsset } from './assetTorrentManagerService.js';
-import { resolveLogicalAssetPath, toLogicalAssetFormats } from '../utils/assetPaths.js';
-import { computeFileSha256, getAssetContentInfo } from '../utils/assetMetadata.js';
+import { toLogicalAssetFormats } from '../utils/assetPaths.js';
+import { computeFileSha256, computeFileTorrentMetadata, getAssetContentInfo } from '../utils/assetMetadata.js';
 
 const sm = 300;
 const md = 1400;
@@ -68,15 +66,22 @@ export const checkAssetType = (filePath) => {
     return "unknown";
 };
 
+function reserveImportFile(filePath, createdFiles) {
+    const fd = fs.openSync(filePath, 'wx');
+    createdFiles.push(filePath);
+    fs.closeSync(fd);
+}
+
 /**
  * Convert an image into AVIF derivatives and return the generated paths.
  * @memberof backend.services.assetImportService
  * @method
  * @param {string} imagePath - Source image path.
  * @param {string} destPath - Destination folder path.
+ * @param {string[]} createdFiles - Output files owned by the current attempt.
  * @returns {Promise<Object>}
  */
-export const makeAVIF = async (imagePath, destPath) => {
+async function makeAVIF(imagePath, destPath, createdFiles) {
     const image = sharp(imagePath);
     const metadata = await image.metadata();
     const format = metadata.format;
@@ -89,21 +94,25 @@ export const makeAVIF = async (imagePath, destPath) => {
     if (origSize > assetConfig.image.maxSize) {
         throw new Error(`Image file is too large (max ${assetConfig.image.maxSizeLabel})`);
     }
-    if (format === "avif") {
-        await image.resize(sm).toFile(`${destPath}_sm.avif`);
-        await image.resize(md).toFile(`${destPath}_md.avif`);
-        fs.copyFileSync(imagePath, `${destPath}.avif`);
-    } else {
-        await image.avif({ quality: 70, effort: 2, smartSubsample: true }).resize(sm).toFile(`${destPath}_sm.avif`);
-        await image.avif({ quality: 70, effort: 2, smartSubsample: true }).resize(md).toFile(`${destPath}_md.avif`);
-        await image.avif({ quality: 70, effort: 2, smartSubsample: true }).toFile(`${destPath}.avif`);
-    }
-    return {
+    const formats = {
         sm: `${destPath}_sm.avif`,
         md: `${destPath}_md.avif`,
         original: `${destPath}.avif`
     };
-};
+    for (const filePath of Object.values(formats)) {
+        reserveImportFile(filePath, createdFiles);
+    }
+    if (format === "avif") {
+        await image.resize(sm).toFile(formats.sm);
+        await image.resize(md).toFile(formats.md);
+        await fs.promises.copyFile(imagePath, formats.original);
+    } else {
+        await image.avif({ quality: 70, effort: 2, smartSubsample: true }).resize(sm).toFile(formats.sm);
+        await image.avif({ quality: 70, effort: 2, smartSubsample: true }).resize(md).toFile(formats.md);
+        await image.avif({ quality: 70, effort: 2, smartSubsample: true }).toFile(formats.original);
+    }
+    return formats;
+}
 
 /**
  * Copy a video or audio file into the project asset folder.
@@ -112,9 +121,10 @@ export const makeAVIF = async (imagePath, destPath) => {
  * @param {string} filePath - Source file path.
  * @param {string} destPath - Destination folder path.
  * @param {string} assetType - Asset type label.
+ * @param {string[]} createdFiles - Output files owned by the current attempt.
  * @returns {Promise<Object>}
  */
-export const processMediaFile = async (filePath, destPath, assetType) => {
+async function processMediaFile(filePath, destPath, assetType, createdFiles) {
     const config = assetConfig[assetType];
     if (!config) {
         throw new Error(`Unsupported asset type: ${assetType}`);
@@ -132,15 +142,15 @@ export const processMediaFile = async (filePath, destPath, assetType) => {
     const newFileName = `${fileNameWithoutExt}_${uuid}${fileExt}`;
     const finalPath = path.join(destPath, newFileName);
 
-    // Simply copy the media file for now - no processing
-    fs.copyFileSync(filePath, finalPath);
+    reserveImportFile(finalPath, createdFiles);
+    await fs.promises.copyFile(filePath, finalPath);
 
     return { original: finalPath };
-};
+}
 
 
 /**
- * Process a single asset file and return the normalized asset payload.
+ * Process and persist one local asset and its sync state.
  * @memberof backend.services.assetImportService
  * @method
  * @param {string} filePath - Source file path.
@@ -149,76 +159,42 @@ export const processMediaFile = async (filePath, destPath, assetType) => {
  * @param {string} basePath - Logical asset base path.
  * @returns {Promise<Object|null>}
  */
-export const processAssetFile = async (filePath, projectFolder, data, basePath) => {
+export async function importAssetFile(filePath, projectFolder, data, basePath) {
     const assetType = checkAssetType(filePath);
-    let formats = null;
-
-    if (assetType === "image") {
-        formats = await makeAVIF(filePath, projectFolder);
-    } else if (assetType === "video" || assetType === "audio") {
-        formats = await processMediaFile(filePath, projectFolder, assetType);
-    } else {
+    if (assetType === "unknown") {
         console.warn(`Unsupported asset type: ${assetType} for file: ${filePath}`);
         return null;
     }
 
-    const logicalFormats = toLogicalAssetFormats(formats, { assetBasePath: basePath });
-
-    return {
-        project_id: data?.projectId,
-        institution_id: data.isGenericAsset ? undefined : data?.institutionId,
-        path: logicalFormats.original,
-        filename: path.basename(filePath),
-        type: assetType,
-        formats: logicalFormats
-    };
-};
-
-/**
- * Persist an imported asset record to the appropriate table.
- * @memberof backend.services.assetImportService
- * @method
- * @param {Object} assetData - Asset payload.
- * @param {boolean} isGeneric - Whether to save into generic_assets.
- * @returns {Promise<Object>}
- */
-export const saveAssetToDb = async (assetData, isGeneric) => {
-    const table = isGeneric ? genericAssets : assets;
-    const [newAsset] = await db.insert(table).values({
-        ...assetData,
-        id: assetData.id || uuidv4(),
-        institution_id: isGeneric ? undefined : (assetData.institution_id || null),
-    }).returning();
-    return newAsset;
-};
-
-/**
- * Build a seeded asset record with torrent metadata before insert.
- * @memberof backend.services.assetImportService
- * @param {Object} assetData - Asset payload.
- * @param {boolean} isGeneric - Whether the record is generic.
- * @param {boolean} [disableP2P=false] - Disable signaling for this import.
- * @returns {Promise<Object>}
- */
-export async function buildSeededAssetRecord(assetData, isGeneric, disableP2P = false) {
-    const filePath = resolveLogicalAssetPath(assetData.path);
-    if (!filePath || !fs.existsSync(filePath)) {
-        throw new Error(`Imported asset file not found: ${filePath}`);
+    const createdFiles = [];
+    try {
+        const formats = assetType === "image"
+            ? await makeAVIF(filePath, projectFolder, createdFiles)
+            : await processMediaFile(filePath, projectFolder, assetType, createdFiles);
+        const logicalFormats = toLogicalAssetFormats(formats, { assetBasePath: basePath });
+        return await saveAssetToDb({
+            id: uuidv4(),
+            project_id: data.projectId,
+            path: logicalFormats.original,
+            filename: path.basename(filePath),
+            type: assetType,
+            formats: logicalFormats,
+            ...await buildAssetMetadata(formats.original)
+        }, data.isGenericAsset, data.institutionId);
+    } catch (error) {
+        for (const createdFile of createdFiles) {
+            try {
+                await fs.promises.rm(createdFile, { force: true });
+            } catch (cleanupError) {
+                console.warn(`[assetImportService] Could not remove ${createdFile}:`, cleanupError.message);
+            }
+        }
+        throw error;
     }
+}
 
-    const assetId = assetData.id || uuidv4();
-    const torrentMeta = await seedAsset({
-        projectId: assetData.project_id,
-        assetId,
-        filePath,
-        isGeneric,
-        enableSignaling: !disableP2P
-    });
-
-    if (!torrentMeta?.infoHash) {
-        throw new Error(`Failed to create torrent metadata for imported asset ${assetId}`);
-    }
-
+async function buildAssetMetadata(filePath) {
+    const torrentMeta = await computeFileTorrentMetadata(filePath);
     let sha256 = null;
     try {
         sha256 = await computeFileSha256(filePath);
@@ -228,7 +204,7 @@ export async function buildSeededAssetRecord(assetData, isGeneric, disableP2P = 
 
     const { ext, mime } = getAssetContentInfo(filePath);
 
-    const torrentFields = {
+    return {
         torrent_info_hash:    torrentMeta.infoHash,
         torrent_name:         torrentMeta.name,
         torrent_length:       torrentMeta.length,
@@ -237,10 +213,23 @@ export async function buildSeededAssetRecord(assetData, isGeneric, disableP2P = 
         asset_content_ext:    ext,
         asset_content_sha256: sha256,
     };
+}
 
-    return {
-        ...assetData,
-        id: assetId,
-        ...torrentFields,
-    };
+async function saveAssetToDb(asset, isGeneric, institutionId) {
+    const table = isGeneric ? genericAssets : assets;
+    const stateTable = isGeneric ? generic_asset_local_state : asset_local_state;
+    const stateIdKey = isGeneric ? 'generic_asset_id' : 'asset_id';
+    const [[newAsset]] = await db.batch([
+        db.insert(table).values({
+            ...asset,
+            institution_id: isGeneric ? undefined : (institutionId || null)
+        }).returning(),
+        db.insert(stateTable).values({
+            [stateIdKey]: asset.id,
+            sync_status: 'available',
+            last_success_at: Date.now(),
+            download_progress: 100
+        })
+    ]);
+    return newAsset;
 }

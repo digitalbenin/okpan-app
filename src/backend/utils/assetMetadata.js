@@ -7,6 +7,24 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { promisify } from 'node:util';
+import createTorrent from 'create-torrent';
+import parseTorrent from 'parse-torrent';
+
+const createTorrentBuffer = promisify(createTorrent);
+
+/**
+ * Derive the BitTorrent metadata locally, with the same name and piece
+ * defaults as WebTorrent's single-file seed.
+ * @memberof backend.utils.assetMetadata
+ * @param {string} filePath - Local asset file.
+ * @returns {Promise<Object>}
+ */
+export async function computeFileTorrentMetadata(filePath) {
+  const name = path.basename(filePath);
+  const torrent = await createTorrentBuffer(filePath, { name });
+  return parseTorrent(torrent);
+}
 
 /**
  * MIME type lookup used for persisted asset content metadata.

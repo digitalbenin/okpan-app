@@ -24,6 +24,23 @@ const pendingSignalingServers = new Map();
 const pendingTurnSecrets = new Map();
 
 /**
+ * Read the project's persisted sharing setting.
+ * @memberof backend.services.projectSignalingService
+ * @param {string} projectId - Project identifier.
+ * @returns {Promise<boolean>}
+ */
+export async function isProjectShared(projectId) {
+    if (!projectId) return false;
+
+    const [row] = await db.select({ isShared: project.is_shared })
+        .from(project)
+        .where(eq(project.id, projectId))
+        .limit(1)
+        .execute();
+    return row?.isShared === 1 || row?.isShared === true;
+}
+
+/**
  * Store a pending project password used during join/reconnect flows. Passing a
  * falsy password clears the pending value.
  * @memberof backend.services.projectSignalingService

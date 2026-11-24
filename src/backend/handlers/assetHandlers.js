@@ -5,9 +5,9 @@
  */
 import * as fs from 'fs';
 import path from 'path';
-import { scheduleAssetReconcile } from '../services/assetTorrentManagerService.js';
+import { emitSyncProgress, scheduleAssetReconcile } from '../services/assetTorrentManagerService.js';
 import { resolveAssetBasePath, resolveProjectAssetPath } from '../utils/assetPaths.js';
-import { processAssetFile, buildSeededAssetRecord, saveAssetToDb } from '../services/assetImportService.js';
+import { importAssetFile } from '../services/assetImportService.js';
 
 const getProgress = (progress, total) => {
     return Math.round((progress / total) * 100)
@@ -92,16 +92,11 @@ const handleImportAssets = async (event, data) => {
     for (const filePath of filesToProcess) {
         try {
             console.debug('[import-assets] processing file:', filePath);
-            const asset = await processAssetFile(filePath, projectFolder, data, basePath);
-
-            if (asset) {
-                const seededAssetRecord = await buildSeededAssetRecord(asset, data.isGenericAsset, data.disableP2P === true);
-                const newAsset = await saveAssetToDb(seededAssetRecord, data.isGenericAsset);
-                if (data.disableP2P !== true) {
-                    scheduleAssetReconcile(newAsset.project_id, newAsset.id);
-                }
+            const newAsset = await importAssetFile(filePath, projectFolder, data, basePath);
+            if (newAsset) {
                 importedFilePaths.push(filePath);
                 createdAssets.push({ ...newAsset, _sourcePath: filePath });
+                emitSyncProgress(newAsset.id, !!data.isGenericAsset, 'available', 100);
             }
         } catch (error) {
             console.error(`Error processing file ${filePath}:`, error);
@@ -110,6 +105,9 @@ const handleImportAssets = async (event, data) => {
 
         // Emit progress update after each attempt
         sendProgress();
+    }
+    if (createdAssets.length && data.disableP2P !== true) {
+        scheduleAssetReconcile(data.projectId);
     }
     // Ensure a final progress emission for UI before complete
     sendProgress(true);

@@ -32,6 +32,8 @@ function getWebRTCConfig(turn = {}) {
 
 const signalingActions = new Map();
 const pendingPeerSignals = new Map();
+const SEED_REQUEST_TTL_MS = 60_000;
+const MAX_PENDING_SEED_REQUESTS = 512;
 
 function normalizeAttemptId(attemptId) {
   return typeof attemptId === 'string' && attemptId.length > 0 ? attemptId : null;
@@ -245,12 +247,13 @@ async function resetPendingSeederForPeer(projectId, peerId) {
  * Ensure a signaling room exists for the project and attach request/signal handlers.
  * @memberof backend.services.assetTorrentSignalingService
  * @param {string} projectId - Project identifier.
- * @param {Object} [options={}] - Signaling options.
+ * @param {Object} options - Signaling options.
  * @param {Function} options.getTorrent - Lookup function that returns a torrent by info hash.
+ * @param {Function} options.canSignal - Check whether this sync session is still active.
  * @returns {Promise<Object|null>}
  */
-export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}) {
-  if (!projectId || typeof getTorrent !== 'function') return null;
+export async function ensureProjectAssetSignaling(projectId, { getTorrent, canSignal }) {
+  if (!await canSignal()) return null;
 
   const existing = signalingActions.get(projectId);
   if (existing) return existing;
@@ -262,6 +265,9 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
     // Same per-project relay/TURN resolution as the sync room, so assets and
     // project data always meet on the same signaling network.
     const connection = await resolveProjectConnection(projectId);
+    if (!await canSignal()) return null;
+    const current = signalingActions.get(projectId);
+    if (current) return current;
     turn = connection.turn;
     room = joinRoom({
       appId,
@@ -278,8 +284,18 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
   const [sendRequest, receiveRequest] = room.makeAction('peerRequest');
   const [sendSignal, receiveSignal] = room.makeAction('peerSignal');
 
-  const state = { room, sendRequest, sendSignal, seederPeers: new Map(), getTorrent, turn };
+  const pendingSeedRequests = new Map();
+  const state = { room, sendRequest, sendSignal, seederPeers: new Map(), getTorrent, turn, servePendingRequests };
   signalingActions.set(projectId, state);
+
+  async function servePendingRequests(torrent) {
+    const waiting = [...pendingSeedRequests.values()].filter(({ infoHash }) => infoHash.toLowerCase() === torrent.infoHash);
+    if (!waiting.length || !await canSignal()) return;
+
+    for (const request of waiting) {
+      offerSeed(request, torrent);
+    }
+  }
 
   room.onPeerJoin((peerId) => {
     for (const entry of pendingPeerSignals.values()) {
@@ -289,16 +305,48 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
   });
 
   room.onPeerLeave((peerId) => {
+    for (const [key, request] of pendingSeedRequests) {
+      if (request.requesterId === peerId) pendingSeedRequests.delete(key);
+    }
     resetPendingSeederForPeer(projectId, peerId).catch((err) => {
       console.warn('[AssetTorrent] failed to reset pending seeder on leave:', err?.message);
     });
   });
 
   receiveRequest(async ({ infoHash, attemptId }, requesterId) => {
-    const torrent = await getTorrent(infoHash);
-    if (!torrent) return;
+    if (typeof infoHash !== 'string' || !/^[a-f\d]{40}$/i.test(infoHash)) return;
+    const requestKey = `${infoHash.toLowerCase()}:${requesterId}`;
+    const request = {
+      requestKey,
+      infoHash,
+      requesterId,
+      attemptId: normalizeAttemptId(attemptId) || `legacy-${requesterId}`,
+      expiresAt: Date.now() + SEED_REQUEST_TTL_MS,
+    };
 
-    const normalizedAttemptId = normalizeAttemptId(attemptId) || `legacy-${requesterId}`;
+    // Register before lookup so a seed becoming ready during lookup can answer.
+    pendingSeedRequests.delete(requestKey);
+    if (pendingSeedRequests.size >= MAX_PENDING_SEED_REQUESTS) {
+      pendingSeedRequests.delete(pendingSeedRequests.keys().next().value);
+    }
+    pendingSeedRequests.set(requestKey, request);
+
+    try {
+      const torrent = await getTorrent(infoHash);
+      if (!torrent || torrent.destroyed || !await canSignal()) return;
+      offerSeed(request, torrent);
+    } catch (err) {
+      console.warn('[AssetTorrent] could not handle a peer request:', err?.message);
+    }
+  });
+
+  function offerSeed(request, torrent) {
+    const { requestKey, infoHash, requesterId, attemptId, expiresAt } = request;
+    if (pendingSeedRequests.get(requestKey) !== request) return;
+    pendingSeedRequests.delete(requestKey);
+    if (Date.now() >= expiresAt || torrent.destroyed || signalingActions.get(projectId) !== state) return;
+    const key = getSeederPeerKey(infoHash, requesterId, attemptId);
+    if (state.seederPeers.has(key)) return;
 
     let peer;
     try { peer = new SimplePeer({ initiator: true, trickle: true, config: getWebRTCConfig(state.turn) }); }
@@ -307,20 +355,19 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
       return;
     }
 
-    peer.id = `seed-${infoHash}-${normalizedAttemptId}`;
+    peer.id = `seed-${infoHash}-${attemptId}`;
 
-    const key = getSeederPeerKey(infoHash, requesterId, normalizedAttemptId);
-    clearSeederPeersForRequest(state.seederPeers, infoHash, requesterId, normalizedAttemptId);
+    clearSeederPeersForRequest(state.seederPeers, infoHash, requesterId, attemptId);
     state.seederPeers.set(key, {
       key,
       infoHash,
       requesterId,
-      attemptId: normalizedAttemptId,
+      attemptId,
       createdAt: Date.now(),
       peer,
     });
 
-    peer.on('signal', (signal) => sendSignal({ infoHash, attemptId: normalizedAttemptId, signal }, [requesterId]));
+    peer.on('signal', (signal) => sendSignal({ infoHash, attemptId, signal }, [requesterId]));
     peer.on('error', (err) => {
       console.warn(`[AssetTorrent] seeder peer error ${infoHash}:`, err?.message);
       state.seederPeers.delete(key);
@@ -334,7 +381,7 @@ export async function ensureProjectAssetSignaling(projectId, { getTorrent } = {}
       peer.destroy();
       state.seederPeers.delete(key);
     }
-  });
+  }
 
   receiveSignal(({ infoHash, attemptId, signal }, senderId) => {
     const seederEntry = findSeederPeerEntry(state.seederPeers, infoHash, senderId, attemptId);

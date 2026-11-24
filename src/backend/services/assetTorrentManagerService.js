@@ -22,6 +22,8 @@ import {
   toLogicalStoredAssetPath,
 } from '../utils/assetPaths.js';
 import { computeFileSha256, getAssetContentInfo } from '../utils/assetMetadata.js';
+import { getCurrentNetworkStatus } from './connectivityService.js';
+import { isProjectShared } from './projectSignalingService.js';
 import {
   cleanupAssetSignalingPeer,
   createDownloaderSignalPeer,
@@ -97,13 +99,21 @@ async function getWtClient() {
   return _wtClient;
 }
 
-async function getProjectTorrent(infoHash) {
-  const client = await getWtClient();
-  return client.get(infoHash);
+function isSyncActive(projectId, interval = reconcileIntervals.get(projectId)) {
+  return !!interval && reconcileIntervals.get(projectId) === interval
+    && !stoppedProjects.has(projectId) && getCurrentNetworkStatus().online;
 }
 
-function ensureProjectSignaling(projectId) {
-  return ensureProjectAssetSignaling(projectId, { getTorrent: getProjectTorrent });
+async function canSyncProject(projectId, interval) {
+  return isSyncActive(projectId, interval) && await isProjectShared(projectId)
+    && isSyncActive(projectId, interval);
+}
+
+function ensureProjectSignaling(projectId, interval = reconcileIntervals.get(projectId)) {
+  return ensureProjectAssetSignaling(projectId, {
+    getTorrent: (infoHash) => _wtClient?.get(infoHash),
+    canSignal: () => canSyncProject(projectId, interval),
+  });
 }
 
 function getOrSet(map, key, factory) {
@@ -296,7 +306,7 @@ export function setMainWindowContents(webContents) {
   _webContents = webContents;
 }
 
-function emitSyncProgress(assetId, isGeneric, status, progress = 0, error = null) {
+export function emitSyncProgress(assetId, isGeneric, status, progress = 0, error = null) {
   if (!_webContents || _webContents.isDestroyed()) return;
   try { _webContents.send('asset-sync-progress', { assetId, isGeneric, status, progress, error }); }
   catch (err) { console.warn('[AssetTorrent] IPC send failed:', err?.message); }
@@ -459,65 +469,71 @@ function reseedExistingAsset({ projectId, row, filePath, isGeneric }) {
 
 
 /**
- * Seed a local asset file and persist torrent metadata.
+ * Seed a file while its project's asset sync is active.
  * @memberof backend.services.assetTorrentManagerService
  * @param {Object} options - Seeding options.
  * @returns {Promise<Object|null>}
  */
-export async function seedAsset({ projectId, assetId, filePath, isGeneric = false, expectedInfoHash = null, expectedLength = null, enableSignaling = true }) {
-  if (!projectId || !assetId || !filePath) return null;
-  if (stoppedProjects.has(projectId)) return null;
+async function seedAsset({ projectId, assetId, filePath, isGeneric = false, expectedInfoHash = null, expectedLength = null }) {
+  const interval = reconcileIntervals.get(projectId);
+  if (!assetId || !filePath || !isSyncActive(projectId, interval)) return null;
   if (!hasCompleteLocalFile(filePath, expectedLength)) {
     console.warn(`[AssetTorrent] seedAsset: file not found: ${filePath}`);
     return null;
   }
 
-  const client  = await getWtClient();
-  const name    = getTorrentMetadataName(path.basename(filePath));
-  const absPath = path.resolve(filePath);
+  const publishSeed = async (torrent) => {
+    if (!await canSyncProject(projectId, interval) || torrent.destroyed) return null;
 
-  return new Promise((resolve) => {
-    const beginSeed = () => {
-      client.seed(filePath, { name }, (torrent) => {
-        //console.log(`[AssetTorrent] Seeding: assetId=${assetId} infoHash=${torrent.infoHash}`);
-        recordSeededHash(projectId, torrent.infoHash);
-        if (enableSignaling) {
-          ensureProjectSignaling(projectId).catch(() => {});
-        }
-        upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, last_success_at: Date.now(), download_progress: 100 }).catch(() => {});
-        emitSyncProgress(assetId, isGeneric, 'seeding', 100);
-        resolve({ infoHash: torrent.infoHash, name: torrent.name, length: torrent.length, pieceLength: torrent.pieceLength });
+    recordSeededHash(projectId, torrent.infoHash);
+    ensureProjectSignaling(projectId, interval)
+      .then((signaling) => signaling?.servePendingRequests(torrent))
+      .catch(() => {});
+    upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, last_success_at: Date.now(), download_progress: 100 }).catch(() => {});
+    emitSyncProgress(assetId, isGeneric, 'seeding', 100);
+    return { infoHash: torrent.infoHash, name: torrent.name, length: torrent.length, pieceLength: torrent.pieceLength };
+  };
+
+  let pendingTorrent;
+  let metadata;
+  try {
+    if (!await canSyncProject(projectId, interval)) return null;
+    const client = await getWtClient();
+    if (!isSyncActive(projectId, interval)) return null;
+    const absPath = path.resolve(filePath);
+    const existing = (expectedInfoHash && client.torrents.find((torrent) => torrent.infoHash === expectedInfoHash))
+      || client.torrents.find((torrent) => torrent.files?.some((file) => path.resolve(file.path) === absPath));
+    if (existing?.done && await isReadableTorrentStore(existing)) {
+      return await publishSeed(existing);
+    }
+
+    if (existing) await removeClientTorrent(client, existing.infoHash);
+    if (!await canSyncProject(projectId, interval)) return null;
+
+    metadata = await new Promise((resolve, reject) => {
+      let receivedSeed = false;
+      const name = getTorrentMetadataName(path.basename(filePath));
+      pendingTorrent = client.seed(filePath, { name }, (torrent) => {
+        receivedSeed = true;
+        publishSeed(torrent).then(resolve, reject);
       });
-    };
-
-    (async () => {
-      try {
-        const existing = (expectedInfoHash && client.torrents.find((torrent) => torrent.infoHash === expectedInfoHash))
-          || client.torrents.find((torrent) => torrent.files?.some((file) => path.resolve(file.path) === absPath));
-        if (existing?.done && hasCompleteLocalFile(filePath, expectedLength) && await isReadableTorrentStore(existing)) {
-          recordSeededHash(projectId, existing.infoHash);
-          if (enableSignaling) {
-            ensureProjectSignaling(projectId).catch(() => {});
-          }
-          upsertLocalState(assetId, isGeneric, { sync_status: 'seeding', sync_error: null, download_progress: 100 }).catch(() => {});
-          emitSyncProgress(assetId, isGeneric, 'seeding', 100);
-          resolve({ infoHash: existing.infoHash, name: existing.name, length: existing.length, pieceLength: existing.pieceLength });
-          return;
-        }
-
-        if (existing) {
-          await removeClientTorrent(client, existing.infoHash);
-          beginSeed();
-          return;
-        }
-
-        beginSeed();
-      } catch (err) {
-        console.error(`[AssetTorrent] seedAsset error for ${assetId}:`, err);
-        resolve(null);
-      }
-    })();
-  });
+      pendingTorrent.once('error', reject);
+      pendingTorrent.once('close', () => {
+        // A duplicate seed can close the new torrent and immediately return the existing one.
+        queueMicrotask(() => {
+          if (!receivedSeed) resolve(null);
+        });
+      });
+    });
+    return metadata;
+  } catch (err) {
+    console.error(`[AssetTorrent] seedAsset error for ${assetId}:`, err);
+    return null;
+  } finally {
+    if (pendingTorrent && !pendingTorrent.destroyed && !metadata) {
+      pendingTorrent.destroy({ destroyStore: false });
+    }
+  }
 }
 
 
@@ -760,7 +776,7 @@ async function seedUnseededLocalAssets(projectId) {
  * @returns {void}
  */
 export function scheduleAssetReconcile(projectId, assetId = null) {
-  if (!projectId) return;
+  if (!isSyncActive(projectId)) return;
   if (reconcileDebounce.has(projectId)) clearTimeout(reconcileDebounce.get(projectId));
   const t = setTimeout(() => {
     reconcileDebounce.delete(projectId);
@@ -772,13 +788,16 @@ export function scheduleAssetReconcile(projectId, assetId = null) {
 }
 
 async function reconcileProject(projectId, specificAssetId = null) {
-  if (reconcileRunning.has(projectId) || stoppedProjects.has(projectId)) return;
+  const interval = reconcileIntervals.get(projectId);
+  if (reconcileRunning.has(projectId) || !isSyncActive(projectId, interval)) return;
   reconcileRunning.add(projectId);
    //console.log(`[AssetTorrent] Reconcile: project=${projectId}${specificAssetId ? ` asset=${specificAssetId}` : ''}`);
   try {
+    if (!await canSyncProject(projectId, interval)) return;
     await repairProjectAssetStates(projectId);
     if (!specificAssetId) await seedUnseededLocalAssets(projectId);
     for (const variant of ASSET_TABLE_VARIANTS) {
+      if (!isSyncActive(projectId, interval)) return;
       await reconcileTable({ projectId, variant, specificAssetId });
     }
   } catch (err) {
@@ -850,18 +869,6 @@ async function reconcileTable({ projectId, variant, specificAssetId }) {
 
 
 /**
- * Allow asset seeding/imports for a project without starting the full reconcile
- * loop.  Call this after tearing down P2P for a private project so that local
- * torrent metadata can still be created (needed if the project is later shared).
- * @memberof backend.services.assetTorrentManagerService
- * @param {string} projectId - Project identifier.
- * @returns {void}
- */
-export function resumeAssetSeeding(projectId) {
-  if (projectId) stoppedProjects.delete(projectId);
-}
-
-/**
  * Start the recurring reconcile loop for a project.
  * @memberof backend.services.assetTorrentManagerService
  * @param {string} projectId - Project identifier.
@@ -871,12 +878,12 @@ export function startReconcileLoop(projectId) {
   if (!projectId || reconcileIntervals.has(projectId)) return;
   stoppedProjects.delete(projectId);
   resetErroredAssets(projectId).catch((err) => console.warn('[AssetTorrent] resetErroredAssets on start:', err?.message));
-  scheduleAssetReconcile(projectId);
   const interval = setInterval(
     () => reconcileProject(projectId).catch((err) => console.error('[AssetTorrent] periodic reconcile error:', err)),
     RECONCILE_INTERVAL_MS
   );
   reconcileIntervals.set(projectId, interval);
+  scheduleAssetReconcile(projectId);
 }
 
 /**

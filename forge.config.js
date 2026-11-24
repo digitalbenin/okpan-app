@@ -273,6 +273,8 @@ export default {
                 'yjs',
                 'y-protocols',
                 'webtorrent',
+                'create-torrent',
+                'parse-torrent',
                 '@thaunknown/simple-peer',
                 'bittorrent-dht',
                 'bittorrent-tracker',

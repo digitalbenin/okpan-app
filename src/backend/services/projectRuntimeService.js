@@ -5,14 +5,14 @@
  * @namespace backend.services.projectRuntimeService
  * @memberof backend.services
  */
-import { db } from '../../db/init.js';
-import { project } from '../../db/schema.js';
-import { eq } from 'drizzle-orm';
 import { startP2PForProject, stopP2PForProject, getP2PProvider } from './p2pService.js';
-import { startReconcileLoop, stopProjectTorrents, resumeAssetSeeding } from './assetTorrentManagerService.js';
+import { startReconcileLoop, stopProjectTorrents } from './assetTorrentManagerService.js';
+import { isProjectShared } from './projectSignalingService.js';
 import { startChangeLogTailer } from './changeLogTailerService.js';
 import { hydrateProjectFromDatabase } from './snapshotService.js';
 import { prepareSessionOpenRecoverySnapshot } from './recoverySnapshotService.js';
+
+export { isProjectShared };
 
 // ─── Runtime State ────────────────────────────────────────────────────────────
 // These maps/sets track in-flight async jobs and per-project lifecycle state so
@@ -83,28 +83,6 @@ export function scheduleDelayedReconcileStart(projectId) {
   }, 5000);
 
   delayedReconcileStarts.set(projectId, timer);
-}
-
-// ─── Project sharing check ────────────────────────────────────────────────────
-
-/**
- * Check whether a project is shared.
- * @memberof backend.services.projectRuntimeService
- * @param {string} projectId - Project identifier.
- * @returns {Promise<boolean>}
- */
-export async function isProjectShared(projectId) {
-  if (!projectId) return false;
-
-  const rows = await db
-    .select({ is_shared: project.is_shared })
-    .from(project)
-    .where(eq(project.id, projectId))
-    .limit(1)
-    .execute();
-
-  const row = rows[0];
-  return row != null && (row.is_shared === 1 || row.is_shared === true);
 }
 
 // ─── Session-open recovery snapshot ──────────────────────────────────────────
@@ -197,10 +175,6 @@ export async function bootstrapProjectRuntime(event, projectId, options = {}, { 
         console.warn('Failed to stop P2P for private project', projectId, err);
       }
     }
-
-    // Torrent metadata must still be creatable for private projects so that
-    // assets can be shared if the project is later promoted to shared.
-    resumeAssetSeeding(projectId);
 
     return { success: true, shared: false };
   }
