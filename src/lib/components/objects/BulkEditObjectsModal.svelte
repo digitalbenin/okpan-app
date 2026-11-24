@@ -5,6 +5,7 @@
   import { getTranslationStore } from "$lib/stores/InterfaceTranslationStore.svelte.js";
   import { getObjectById, updateObjectResearchFields } from "$lib/api/ObjectsApi.js";
   import { IconAlertTriangle } from "@tabler/icons-svelte";
+  import { watch } from "runed";
 
   let {
     isOpen = $bindable(false),
@@ -23,6 +24,16 @@
   let modes = $state({});
   let isSaving = $state(false);
   let openDropdown = $state({});
+  let editSession = 0;
+
+  watch(() => isOpen, (open) => {
+    if (!open) return;
+    editSession += 1;
+    selected = {};
+    values = {};
+    modes = {};
+    openDropdown = {};
+  });
 
   const selectedCount = $derived(selectedIds.length);
 
@@ -100,18 +111,22 @@
   });
 
   async function handleSave() {
+    if (isSaving) return;
+    const session = editSession;
+    const objectIds = [...selectedIds];
+    const fieldsToEdit = researchFields.filter((field) => selected[field.id]);
+    const { values: savedValues, modes: savedModes } = $state.snapshot({ values, modes });
     isSaving = true;
     try {
-      for (const id of selectedIds) {
+      for (const id of objectIds) {
         const objRes = await getObjectById(id);
         const obj = objRes?.result;
         const currentFields = Array.isArray(obj?.objectsResearchFields) ? obj.objectsResearchFields : [];
 
         const changes = [];
-        for (const field of researchFields) {
-          if (!selected[field.id]) continue;
+        for (const field of fieldsToEdit) {
           const isVocabulary = (field.type || "").toLowerCase() === "vocabulary";
-          const mode = modes[field.id] || "add";
+          const mode = savedModes[field.id] || "add";
           const existingForField = currentFields.filter((rf) => (rf?.researchField?.id || rf?.field_id) === field.id);
 
           if (mode === "replace") {
@@ -124,9 +139,9 @@
           }
 
           if (isVocabulary) {
-            const selectedVocabs = Array.isArray(values[field.id])
-              ? values[field.id]
-              : (values[field.id] ? [values[field.id]] : []);
+            const selectedVocabs = Array.isArray(savedValues[field.id])
+              ? savedValues[field.id]
+              : (savedValues[field.id] ? [savedValues[field.id]] : []);
             if (selectedVocabs.length === 0) continue;
 
             for (const vocabId of selectedVocabs) {
@@ -138,7 +153,7 @@
               changes.push({ fieldId: field.id, vocabularyId: String(vocabId) });
             }
           } else {
-            const newVal = values[field.id];
+            const newVal = savedValues[field.id];
             if (!newVal || !String(newVal).trim()) continue;
 
             if (mode === "add") {
@@ -162,8 +177,10 @@
         }
       }
 
-      onSaved();
-      close();
+      if (session === editSession) {
+        onSaved();
+        close();
+      }
     } catch (e) {
       console.error("Bulk edit save failed:", e);
     } finally {
