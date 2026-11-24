@@ -5,7 +5,7 @@
     import { getWebsiteContentStore } from '$lib/stores/WebsiteContentStore.svelte.js';
     import { buildPathWithProjectId } from '$lib/utils/projectContext.js';
     import { resolveStaticHref } from '$lib/utils/sitePaths.js';
-    import logoWip from '../../assets/logo_wip.png';
+    import okpanLogo from '../../../../assets/okpan_logo.svg';
 
     let { project, settings, activeProjectId = null } = $props();
     const { t } = getWebsiteTranslationStore();
@@ -44,7 +44,7 @@
 <nav class="bg-white border-top border-bottom fixed-top px-3 py-2" style="z-index: 1030; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 1rem;">
     <!-- Left: logo + title, truncates before the center column -->
     <div class="d-flex align-items-center gap-2" style="min-width: 0;" >
-        <img src={logoUrl || logoWip} alt={titleText} style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0;" />
+        <img src={logoUrl || okpanLogo} alt={titleText} style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0;" />
         <span class="fw-bold" style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{titleText}</span>
     </div>
 
