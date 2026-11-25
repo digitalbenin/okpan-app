@@ -73,9 +73,6 @@
 						<p class="fs-7 text-body-secondary mb-0">
 							{t('about.created-with')}<a href="https://www.digitalbenin.org" target="_blank" class="text-body-secondary">{t('site.okpan')}</a>{t('about.tool-description')}
 						</p>
-						<p class="fs-7 text-body-secondary mb-0">
-							{t('about.built-with')}
-						</p>
 					</div>
 				</div>
 			</div>

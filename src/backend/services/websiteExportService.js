@@ -47,18 +47,13 @@ function normalizeLocale(locale) {
   return typeof locale === 'string' ? locale.trim().toLowerCase() : '';
 }
 
-function buildTextPayload(textId, textRowsById, translationsByTextId, languagesById) {
-  if (!textId) {
-    return null;
-  }
-
-  const textRow = textRowsById[textId];
+function buildTextPayload(textRow, translationRows, languagesById) {
   if (!textRow) {
     return null;
   }
 
   const originalLanguage = languagesById[textRow.original_language_id] || null;
-  const translations = (translationsByTextId[textId] || [])
+  const translations = (translationRows || [])
     .map((translation) => {
       const language = languagesById[translation.language_id] || null;
       const languageCode = normalizeLocale(language?.code);
@@ -75,7 +70,7 @@ function buildTextPayload(textId, textRowsById, translationsByTextId, languagesB
     .filter(Boolean);
 
   return {
-    text_id: textId,
+    text_id: textRow.id,
     content: textRow.content || '',
     original_language_id: textRow.original_language_id || null,
     original_language_code: normalizeLocale(originalLanguage?.code),
@@ -120,6 +115,91 @@ function filterTextPayloadByLocales(payload, includedLocaleCodes, fallbackLocale
     original_language_id: nextOriginalLanguageId,
     original_language_code: nextOriginalLanguageCode,
     translations: filteredTranslations
+  };
+}
+
+function getExportContentLanguages(projectLanguages, projectTitleLocale, languageCodes) {
+  const availableLanguages = projectLanguages
+    .map((language) => ({
+      code: normalizeLocale(language.code),
+      name: language.name,
+      is_default: language.is_default
+    }))
+    .filter((language) => language.code);
+
+  const fallbackLocale = availableLanguages.find((language) => Number(language.is_default) === 1)?.code
+    || normalizeLocale(projectTitleLocale)
+    || availableLanguages[0]?.code
+    || '';
+  const requestedLocales = Array.isArray(languageCodes)
+    ? languageCodes.map(normalizeLocale).filter(Boolean)
+    : [];
+  const availableLocales = new Set(availableLanguages.map(({ code }) => code));
+  const includedLocales = requestedLocales.length > 0
+    ? new Set(requestedLocales.filter((code) => availableLocales.has(code)))
+    : availableLocales;
+
+  if (fallbackLocale) includedLocales.add(fallbackLocale);
+
+  const contentLanguages = availableLanguages.filter(({ code }) => includedLocales.has(code));
+  const defaultContentLocale = contentLanguages.find((language) => Number(language.is_default) === 1)?.code
+    || contentLanguages[0]?.code
+    || fallbackLocale;
+
+  return {
+    includedLocales,
+    fallbackLocale,
+    content_languages: contentLanguages.map(({ code, name }) => ({ code, name })),
+    default_content_locale: defaultContentLocale
+  };
+}
+
+function getConnectionsDescriptionSettings(payload) {
+  return {
+    connections_description: payload?.content ?? null,
+    connections_description_i18n: payload ?? null
+  };
+}
+
+async function getEmptyExportMetadata(projectId, db, languageCodes) {
+  const [project, settings, languages] = await Promise.all([
+    db.query.project.findFirst({
+      columns: {},
+      where: eq(dbSchema.project.id, projectId),
+      with: { title: { with: { translations: true } } }
+    }),
+    db.query.websiteSettings.findFirst({
+      columns: {},
+      where: eq(dbSchema.websiteSettings.project_id, projectId),
+      with: {
+        title: { with: { translations: true } },
+        connectionsDescription: { with: { translations: true } }
+      }
+    }),
+    db.select().from(dbSchema.languages).where(eq(dbSchema.languages.project_id, projectId)).execute()
+  ]);
+
+  const languagesById = Object.fromEntries(languages.map((language) => [language.id, language]));
+  const { includedLocales, fallbackLocale, ...localeData } = getExportContentLanguages(
+    languages,
+    languagesById[project?.title?.original_language_id]?.code,
+    languageCodes
+  );
+  const localize = (text) => filterTextPayloadByLocales(
+    buildTextPayload(text, text?.translations, languagesById),
+    includedLocales,
+    fallbackLocale
+  );
+  const projectTitle = localize(project?.title);
+  const websiteTitle = localize(settings?.title);
+
+  return {
+    settings: {
+      title: settings?.title?.content || project?.title?.content || null,
+      title_i18n: websiteTitle ?? projectTitle,
+      ...getConnectionsDescriptionSettings(localize(settings?.connectionsDescription))
+    },
+    ...localeData
   };
 }
 
@@ -422,7 +502,7 @@ async function exportWebsiteData(projectId, db, filters = {}) {
           version: '1.0'
         },
         project: {},
-        settings: {},
+        ...await getEmptyExportMetadata(projectId, db, filters?.contentLanguageCodes),
         objects: [],
         institutions: [],
         research_fields: [],
@@ -568,7 +648,7 @@ async function exportWebsiteData(projectId, db, filters = {}) {
     ))];
     // Add project and settings text IDs
     const projectTextIds = [project?.title_id, project?.description_id].filter(Boolean);
-    const settingsTextIds = [settings?.title_id, settings?.short_description_id, settings?.about_id].filter(Boolean);
+    const settingsTextIds = [settings?.title_id, settings?.short_description_id, settings?.about_id, settings?.connections_description_id].filter(Boolean);
     // Add datasource text IDs
     const datasourceTextIds = [...new Set(allDatasources.flatMap(ds => 
       [ds.name_id, ds.method_id, ds.notes_id].filter(Boolean)
@@ -600,49 +680,15 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       acc[translation.text_id].push(translation);
       return acc;
     }, {});
-    let textPayloadMap = Object.fromEntries(
-      allTextIds.map((textId) => [textId, buildTextPayload(textId, textRowsById, translationsByTextId, languagesById)])
+    const { includedLocales, fallbackLocale, ...localeData } = getExportContentLanguages(
+      projectLanguages,
+      languagesById[textRowsById[project?.title_id]?.original_language_id]?.code,
+      filters?.contentLanguageCodes
     );
-
-    let contentLanguages = projectLanguages
-      .map((language) => ({
-        code: normalizeLocale(language.code),
-        name: language.name,
-        is_default: language.is_default
-      }))
-      .filter((language) => language.code);
-
-    let defaultContentLocale = contentLanguages.find((language) => Number(language.is_default) === 1)?.code
-      || normalizeLocale(textPayloadMap[project?.title_id]?.original_language_code)
-      || contentLanguages[0]?.code
-      || '';
-
-    const requestedContentLanguageCodes = Array.isArray(filters?.contentLanguageCodes)
-      ? filters.contentLanguageCodes.map(normalizeLocale).filter(Boolean)
-      : [];
-    const availableContentLanguageSet = new Set(contentLanguages.map((language) => language.code));
-    const effectiveContentLanguageSet = requestedContentLanguageCodes.length > 0
-      ? new Set(requestedContentLanguageCodes.filter((code) => availableContentLanguageSet.has(code)))
-      : new Set(availableContentLanguageSet);
-
-    if (defaultContentLocale) {
-      effectiveContentLanguageSet.add(defaultContentLocale);
-    }
-    if (effectiveContentLanguageSet.size === 0 && contentLanguages[0]?.code) {
-      effectiveContentLanguageSet.add(contentLanguages[0].code);
-    }
-
-    textPayloadMap = Object.fromEntries(
-      Object.entries(textPayloadMap).map(([textId, payload]) => [
-        textId,
-        filterTextPayloadByLocales(payload, effectiveContentLanguageSet, defaultContentLocale)
-      ])
-    );
-
-    contentLanguages = contentLanguages.filter((language) => effectiveContentLanguageSet.has(language.code));
-    defaultContentLocale = contentLanguages.find((language) => Number(language.is_default) === 1)?.code
-      || contentLanguages[0]?.code
-      || defaultContentLocale;
+    const textPayloadMap = Object.fromEntries(allTextIds.map((textId) => {
+      const payload = buildTextPayload(textRowsById[textId], translationsByTextId[textId], languagesById);
+      return [textId, filterTextPayloadByLocales(payload, includedLocales, fallbackLocale)];
+    }));
 
     // Create datasource lookup with resolved text
     const datasourceMap = Object.fromEntries(allDatasources.map(ds => [ds.id, {
@@ -895,6 +941,7 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       short_description_i18n: textPayloadMap[settings?.short_description_id] || textPayloadMap[project?.description_id] || null,
       about: aboutText,
       about_i18n: textPayloadMap[settings?.about_id] || textPayloadMap[project?.description_id] || null,
+      ...getConnectionsDescriptionSettings(textPayloadMap[settings?.connections_description_id]),
       description: aboutText,
       description_i18n: textPayloadMap[settings?.about_id] || textPayloadMap[project?.description_id] || null,
       authors: settings?.authors || null,
@@ -923,8 +970,7 @@ async function exportWebsiteData(projectId, db, filters = {}) {
       },
       project: transformedProject,
       settings: transformedSettings,
-      content_languages: contentLanguages.map(({ is_default, ...language }) => language),
-      default_content_locale: defaultContentLocale,
+      ...localeData,
       objects: transformedObjects,
       institutions: transformedInstitutions,
       research_fields: transformedResearchFields,

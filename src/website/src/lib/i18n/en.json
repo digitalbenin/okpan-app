@@ -79,8 +79,7 @@
     },
     "about": {
       "created-with": "This archive was created using ",
-      "tool-description": ", a tool for connecting cultural objects across institutions and publishing them as a searchable public archive.",
-      "built-with": "Built with Okpan · 2026"
+      "tool-description": ", a tool for connecting cultural objects across institutions and publishing them as a searchable public archive."
     },
     "common": {
       "loading": "Loading...",

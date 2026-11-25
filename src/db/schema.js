@@ -831,6 +831,7 @@ export const websiteSettings = sqliteTable('website_settings', {
     title_id: text('title_id').references(() => texts.id),
     short_description_id: text('short_description_id').references(() => texts.id),
     about_id: text('about_id').references(() => texts.id),
+    connections_description_id: text('connections_description_id').references(() => texts.id),
     authors: text('authors'),
     logo_id: text('logo_id').references(() => genericAssets.id),
     subfolder_path: text('subfolder_path'),
@@ -854,6 +855,10 @@ export const websiteSettingsRelations = relations(websiteSettings, ({ one }) => 
     }),
     about: one(texts, {
         fields: [websiteSettings.about_id],
+        references: [texts.id]
+    }),
+    connectionsDescription: one(texts, {
+        fields: [websiteSettings.connections_description_id],
         references: [texts.id]
     }),
     logo: one(genericAssets, {

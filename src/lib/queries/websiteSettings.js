@@ -1,3 +1,14 @@
+const createConnectionsDescriptionText = {
+  name: "createConnectionsDescriptionText",
+  query: `mutation CreateConnectionsDescriptionText($newConnectionsDescription: String!, $languageId: String!) {
+  insertIntoTexts(
+    values: [{ content: $newConnectionsDescription, context: "website_settings.connections_description", original_language_id: $languageId }]
+  ) { id }
+}`,
+  useVariables: ["newConnectionsDescription", "languageId"],
+  skipIf: { variableName: "newConnectionsDescription", isUndefined: true }
+};
+
 export const websiteSettingsOperations = {
   // GET BY PROJECT ID
   getByProjectId: {
@@ -14,6 +25,7 @@ export const websiteSettingsOperations = {
     title_id
     short_description_id
     about_id
+    connections_description_id
     authors
     logo_id
     subfolder_path
@@ -66,6 +78,21 @@ export const websiteSettingsOperations = {
         }
       }
     }
+    connectionsDescription {
+      id
+      content
+      original_language_id
+      translations {
+        id
+        content
+        language_id
+        language {
+          id
+          code
+          name
+        }
+      }
+    }
     logo {
       id
       filename
@@ -87,6 +114,7 @@ export const websiteSettingsOperations = {
       title: "Title content",
       shortDescription: "Short description content",
       about: "About content",
+      connectionsDescription: "Connections page description (optional)",
       authors: "Authors text",
       subfolderPath: "Subfolder path for website",
       showUnmapped: "Whether to show unmapped objects (boolean)",
@@ -95,7 +123,8 @@ export const websiteSettingsOperations = {
       // Translation arrays
       titleTranslations: "Array of title translations (optional)",
       shortDescriptionTranslations: "Array of short description translations (optional)",
-      aboutTranslations: "Array of about translations (optional)"
+      aboutTranslations: "Array of about translations (optional)",
+      connectionsDescriptionTranslations: "Array of Connections page description translations (optional)"
     },
     mutations: [
       {
@@ -149,6 +178,7 @@ export const websiteSettingsOperations = {
   useVariables: ["about", "languageId"],
   skipIf: { variableName: "about", isEmpty: true }
       },
+      createConnectionsDescriptionText,
       {
         name: "createWebsiteSettings",
         query: `mutation CreateWebsiteSettings(
@@ -156,6 +186,7 @@ export const websiteSettingsOperations = {
   $titleId: String
   $shortDescriptionId: String
   $aboutId: String
+  $connectionsDescriptionId: String
   $authors: String
   $subfolderPath: String
   $showUnmapped: Int
@@ -168,6 +199,7 @@ export const websiteSettingsOperations = {
       title_id: $titleId
       short_description_id: $shortDescriptionId
       about_id: $aboutId
+      connections_description_id: $connectionsDescriptionId
       authors: $authors
       subfolder_path: $subfolderPath
       show_unmapped: $showUnmapped
@@ -180,6 +212,7 @@ export const websiteSettingsOperations = {
     title_id
     short_description_id
     about_id
+    connections_description_id
     authors
     subfolder_path
     show_unmapped
@@ -193,7 +226,8 @@ export const websiteSettingsOperations = {
         mapVariables: {
           titleId: { from: "createTitleText", path: "insertIntoTexts.0.id" },
           shortDescriptionId: { from: "createShortDescriptionText", path: "insertIntoTexts.0.id" },
-          aboutId: { from: "createAboutText", path: "insertIntoTexts.0.id" }
+          aboutId: { from: "createAboutText", path: "insertIntoTexts.0.id" },
+          connectionsDescriptionId: { from: "createConnectionsDescriptionText", path: "insertIntoTexts.0.id", skipIfUndefined: true }
         }
       },
       // Process translations only when base texts exist
@@ -220,6 +254,13 @@ export const websiteSettingsOperations = {
           translationsParam: "aboutTranslations"
         },
         onlyIf: { from: "createAboutText", path: "insertIntoTexts.0.id", isNull: false }
+      },
+      {
+        name: "processConnectionsDescriptionTranslations",
+        processTranslations: {
+          textIdPath: "createConnectionsDescriptionText.insertIntoTexts.0.id",
+          translationsParam: "connectionsDescriptionTranslations"
+        }
       }
     ],
     query: null
@@ -235,6 +276,7 @@ export const websiteSettingsOperations = {
       title: "New title content (optional)",
       shortDescription: "New short description content (optional)",
       about: "New about content (optional)",
+      connectionsDescription: "New Connections page description (optional)",
       authors: "New authors text (optional)",
       subfolderPath: "New subfolder path (optional)",
       showUnmapped: "New show unmapped setting (optional)",
@@ -243,7 +285,8 @@ export const websiteSettingsOperations = {
       // Translation arrays
       titleTranslations: "Array of title translations (optional)",
       shortDescriptionTranslations: "Array of short description translations (optional)",
-      aboutTranslations: "Array of about translations (optional)"
+      aboutTranslations: "Array of about translations (optional)",
+      connectionsDescriptionTranslations: "Array of Connections page description translations (optional)"
     },
     mutations: [
       {
@@ -254,6 +297,7 @@ export const websiteSettingsOperations = {
     title_id
     short_description_id
     about_id
+    connections_description_id
     authors
     logo_id
     subfolder_path
@@ -418,6 +462,39 @@ export const websiteSettingsOperations = {
         },
         skipIf: { variableName: "aboutId", isUndefined: true }
       },
+      {
+        ...createConnectionsDescriptionText,
+        onlyIf: { from: "getWebsiteSettings", path: "websiteSettings.0.connections_description_id", isNull: true }
+      },
+      {
+        name: "linkNewConnectionsDescriptionText",
+        query: `mutation LinkNewConnectionsDescriptionText($id: String!, $connectionsDescriptionId: String!) {
+  updateWebsiteSettings(
+    set: { connections_description_id: $connectionsDescriptionId }
+    where: { id: { eq: $id } }
+  ) { id connections_description_id }
+}`,
+        useVariables: ["id"],
+        mapVariables: {
+          connectionsDescriptionId: { from: "createConnectionsDescriptionText", path: "insertIntoTexts.0.id", skipIfUndefined: true }
+        },
+        skipIf: { variableName: "connectionsDescriptionId", isUndefined: true }
+      },
+      {
+        name: "updateConnectionsDescription",
+        query: `mutation UpdateConnectionsDescription($connectionsDescriptionId: String!, $connectionsDescription: String!) {
+  updateTexts(
+    set: { content: $connectionsDescription }
+    where: { id: { eq: $connectionsDescriptionId } }
+  ) { id content }
+}`,
+        useVariables: ["connectionsDescription"],
+        mapVariables: {
+          connectionsDescriptionId: { from: "getWebsiteSettings", path: "websiteSettings.0.connections_description_id" }
+        },
+        onlyIf: { from: "getWebsiteSettings", path: "websiteSettings.0.connections_description_id", isNull: false },
+        skipIf: { variableName: "connectionsDescription", isUndefined: true }
+      },
       // Update scalar fields
       {
         name: "updateWebsiteSettingsScalarFields",
@@ -489,6 +566,16 @@ export const websiteSettingsOperations = {
             "createAboutTextIfMissing.insertIntoTexts.0.id"
           ],
           translationsParam: "aboutTranslations"
+        }
+      },
+      {
+        name: "processConnectionsDescriptionTranslations",
+        processTranslations: {
+          textIdPaths: [
+            "getWebsiteSettings.websiteSettings.0.connections_description_id",
+            "linkNewConnectionsDescriptionText.updateWebsiteSettings.0.connections_description_id"
+          ],
+          translationsParam: "connectionsDescriptionTranslations"
         }
       }
     ],

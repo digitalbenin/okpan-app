@@ -60,6 +60,7 @@
       title: "",
       shortDescription: "",
       about: "",
+      connectionsDescription: "",
       authors: "",
       subfolderPath: "",
       showUnmapped: false,
@@ -69,6 +70,7 @@
       titleTranslations: [],
       shortDescriptionTranslations: [],
       aboutTranslations: [],
+      connectionsDescriptionTranslations: [],
       logoFile: null,
     };
 
@@ -77,6 +79,7 @@
       baseValues.title = websiteSettings?.title?.content || "";
       baseValues.shortDescription = websiteSettings?.shortDescription?.content || "";
       baseValues.about = websiteSettings?.about?.content || "";
+      baseValues.connectionsDescription = websiteSettings?.connectionsDescription?.content || "";
       baseValues.authors = websiteSettings?.authors || "";
       baseValues.subfolderPath = websiteSettings?.subfolder_path || "";
       baseValues.showUnmapped = Boolean(websiteSettings?.show_unmapped);
@@ -87,12 +90,14 @@
         baseValues[`translations_${lang.id}_title`] = findTranslationForLanguage(websiteSettings?.title, lang)?.content || "";
         baseValues[`translations_${lang.id}_shortDescription`] = findTranslationForLanguage(websiteSettings?.shortDescription, lang)?.content || "";
         baseValues[`translations_${lang.id}_about`] = findTranslationForLanguage(websiteSettings?.about, lang)?.content || "";
+        baseValues[`translations_${lang.id}_connectionsDescription`] = findTranslationForLanguage(websiteSettings?.connectionsDescription, lang)?.content || "";
       });
     } else {
       secondaryLanguages.forEach((lang) => {
         baseValues[`translations_${lang.id}_title`] = "";
         baseValues[`translations_${lang.id}_shortDescription`] = "";
         baseValues[`translations_${lang.id}_about`] = "";
+        baseValues[`translations_${lang.id}_connectionsDescription`] = "";
       });
     }
 
@@ -116,6 +121,8 @@
       const titleTranslations = [];
       const shortDescriptionTranslations = [];
       const aboutTranslations = [];
+      const connectionsDescription = value.connectionsDescription?.trim() || "";
+      const connectionsDescriptionTranslations = [];
 
       secondaryLanguages.forEach((lang) => {
         const tContent = (value?.[`translations_${lang.id}_title`] || "").trim();
@@ -124,6 +131,8 @@
         const existingTitle = findTranslationForLanguage(websiteSettings?.title, lang);
         const existingShortDesc = findTranslationForLanguage(websiteSettings?.shortDescription, lang);
         const existingAbout = findTranslationForLanguage(websiteSettings?.about, lang);
+        const connectionsContent = (value?.[`translations_${lang.id}_connectionsDescription`] || "").trim();
+        const existingConnectionsDescription = findTranslationForLanguage(websiteSettings?.connectionsDescription, lang);
         // Include translation if there's an existing record (to allow clearing) or new content (to create)
         if (existingTitle || tContent) {
           titleTranslations.push(existingTitle?.id
@@ -143,6 +152,14 @@
             : { language_id: lang.id, language_code: lang.code, content: aContent }
           );
         }
+        if (connectionsContent !== (existingConnectionsDescription?.content || "")) {
+          connectionsDescriptionTranslations.push({
+            ...(existingConnectionsDescription?.id && { id: existingConnectionsDescription.id }),
+            language_id: lang.id,
+            language_code: lang.code,
+            content: connectionsContent
+          });
+        }
       });
 
       const payload = {
@@ -151,6 +168,8 @@
         ...(titleTranslations.length && { titleTranslations }),
         ...(shortDescriptionTranslations.length && { shortDescriptionTranslations }),
         ...(aboutTranslations.length && { aboutTranslations }),
+        ...(connectionsDescription !== (websiteSettings?.connectionsDescription?.content || "") && { connectionsDescription }),
+        ...(connectionsDescriptionTranslations.length && { connectionsDescriptionTranslations }),
       };
 
       if (!isEditMode) {
@@ -192,17 +211,19 @@
     titleTranslations: { hidden: true },
     shortDescriptionTranslations: { hidden: true },
     aboutTranslations: { hidden: true },
+    connectionsDescriptionTranslations: { hidden: true },
     logoId: { hidden: true },
     logoFile: { hidden: true },
     title: { label: t("settings.title"), colSize: 12, charLimit: 100 },
     shortDescription: { label: t("common.short-description"), type: "textarea", colSize: 12, charLimit: 300 },
     about: { label: t("common.about"), type: "textarea", colSize: 12, renderer: BaseRichTextEditor, rendererProps: { placeholder: t("common.about-placeholder", { fallback: "Write about your project..." }) } },
+    connectionsDescription: { label: t("website-settings.connections-description", { fallback: "Connections page description" }), type: "textarea", colSize: 12 },
     authors: { label: t("common.authors"), colSize: 12, hidden: true },
     subfolderPath: { label: t("common.subfolder-path"), colSize: 12, hidden: true },
     showUnmapped: { label: t("common.show-unmapped"), type: "checkbox", colSize: 12, hidden: true },
   });
 
-  const fieldOrder = $derived(["title", "shortDescription", "about"]);
+  const fieldOrder = $derived(["title", "shortDescription", "about", "connectionsDescription"]);
 
   const hiddenValueProviders = $derived({
     ...(isEditMode && { id: () => websiteSettings?.id || "" }),
@@ -217,7 +238,7 @@
     {validator}
     {createFieldValidator}
     {languages}
-    translatableFields={["title", "shortDescription", "about"]}
+    translatableFields={fieldOrder}
     translationsValidator={getValidator("translations", "create")}
     defaultColSize={12}
     {fieldOrder}

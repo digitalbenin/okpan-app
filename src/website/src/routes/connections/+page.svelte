@@ -14,7 +14,9 @@
 	const projectId = $derived(data?.activeProjectId || null);
 
 	let connectionTypes = $state(data?.connection_types || []);
+	let staticSettings = $state(null);
 	let isLoading = $state(isStaticExport && data?.needsClientLoad);
+	const headerDescription = $derived(content(staticSettings ?? data?.settings, 'connections_description'));
 
 	onMount(async () => {
 		if (isStaticExport && data?.needsClientLoad) {
@@ -22,6 +24,7 @@
 				const response = await fetch(resolveSitePath('site.json'));
 				const json = await response.json();
 				connectionTypes = json.connection_types || [];
+				staticSettings = json.settings || {};
 			} catch (error) {
 				console.error('[Connections] Failed to load site.json:', error);
 			} finally {
@@ -29,11 +32,6 @@
 			}
 		}
 	});
-	/* tbd
-	const headerDescription = $derived(
-		content(data?.settings, 'short_description') || content(data?.project, 'description') || ''
-	); */
-	const headerDescription = "this text is a placeholder for the connections page description, which will be derived from the project settings or project description in the future.";
 </script>
 
 {#if isLoading}
@@ -41,10 +39,11 @@
 {:else}
 	<div class="bg-gray-200">
 		<Header
+			{...data}
 			title={t('nav.connections')}
 			description={headerDescription}
+			useDescriptionFallback={false}
 			showButton={false}
-			{...data}
 		/>
 		<div
 			class="container-xl mt-4"

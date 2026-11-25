@@ -11,7 +11,7 @@
     const { t } = getWebsiteTranslationStore();
     const { contentState, setLocale, content } = getWebsiteContentStore();
 
-	const titleText = $derived.by(() => (content(settings, 'title') || content(project, 'name') || t('site.untitled-project')));
+	const titleText = $derived(content(settings, 'title').trim() || content(project, 'name').trim());
 	const showContentLanguageSelector = $derived.by(() => contentState.languages.length > 1);
 
     const logoUrl = $derived.by(() => {

@@ -4129,6 +4129,11 @@
                          },
                          {
                              "namespace":  "website-settings",
+                             "key":  "connections-description",
+                             "value":  "Connections page description"
+                         },
+                         {
+                             "namespace":  "website-settings",
                              "key":  "page-description",
                              "value":  "Configure how your project appears when exported as a static website."
                          },

@@ -340,6 +340,12 @@ registerCustomValidator('websiteSettings', 'about', {
     defaultValue: ''
 });
 
+registerCustomValidator('websiteSettings', 'connectionsDescription', {
+    validator: () => z.string().optional(),
+    required: false,
+    defaultValue: ''
+});
+
 // Authors validator - optional field
 registerCustomValidator('websiteSettings', 'authors', {
     validator: () => z.string().optional(),
@@ -391,6 +397,17 @@ registerCustomValidator('websiteSettings', 'aboutTranslations', {
     validator: () => z.array(z.object({
         languageId: z.string().min(1, 'Language ID is required'),
         content: z.string().optional()
+    })).optional(),
+    required: false,
+    defaultValue: []
+});
+
+registerCustomValidator('websiteSettings', 'connectionsDescriptionTranslations', {
+    validator: () => z.array(z.object({
+        id: z.string().optional(),
+        language_id: z.string().min(1),
+        language_code: z.string().optional(),
+        content: z.string()
     })).optional(),
     required: false,
     defaultValue: []

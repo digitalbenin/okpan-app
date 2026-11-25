@@ -24,14 +24,15 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 
 	let { data } = $props();
 
-	// Derive local project/settings from data (these don't exist in page scope otherwise)
-	const project = $derived(data?.project || {});
-	const settings = $derived(data?.settings || {});
+	let staticProject = $state(null);
+	let staticSettings = $state(null);
+	const project = $derived(staticProject ?? data?.project);
+	const settings = $derived(staticSettings ?? data?.settings);
 
 	// SEO data
-	const siteTitle = $derived(content(data?.settings, 'title') || content(data?.project, 'name') || t('site.default-title'));
-	const siteDescription = $derived(content(data?.settings, 'short_description') || content(data?.project, 'description') || t('site.default-description'));
-	const siteLogo = $derived(data?.settings?.logo_asset_path ? getAssetUrl({ asset_path: data.settings.logo_asset_path }) : null);
+	const siteTitle = $derived(content(settings, 'title').trim() || content(project, 'name').trim());
+	const siteDescription = $derived(content(settings, 'short_description') || content(project, 'description') || t('site.default-description'));
+	const siteLogo = $derived(settings?.logo_asset_path ? getAssetUrl({ asset_path: settings.logo_asset_path }) : null);
 
 	// URL search params — single source of truth
 	const params = queryParameters({
@@ -90,9 +91,8 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 				staticInstitutions = jsonData.institutions || [];
 				staticVocabularies = jsonData.vocabularies || [];
 				
-				// Update SEO data from loaded data
-				if (jsonData.settings) data.settings = jsonData.settings;
-				if (jsonData.project) data.project = jsonData.project;
+				staticSettings = jsonData.settings ?? null;
+				staticProject = jsonData.project ?? null;
 				
 				// Run initial search
 				isLoading = false;
@@ -107,7 +107,7 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	function buildSearchOptions() {
 		// Base options mapped to searchUtils expectations (snake_case where required)
 		const qp = data.queryParams || {};
-		const storedFilters = data.settings?.filters || {};
+		const storedFilters = settings?.filters || {};
 		const options = {
 			q: (searchTerm ?? '').trim(),
 			project_id: qp.projectId || null,
@@ -329,7 +329,7 @@ const isStaticExport = import.meta.env.VITE_USE_JSON === 'true';
 	{/if}
 </svelte:head>
 
-<Header {project} {settings} activeProjectId={data?.activeProjectId} />
+<Header {project} {settings} title={siteTitle} activeProjectId={data?.activeProjectId} />
 
 <div class="container-xl mt-4 d-flex flex-column gap-2">
 

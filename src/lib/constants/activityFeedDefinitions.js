@@ -16,7 +16,7 @@ export const OBJECT_ACTIVITY_JUNCTION_TABLES = new Set([
 export const TEXT_OWNER_DEFINITIONS = [
     {
         tableName: 'websiteSettings',
-        fields: ['title_id', 'about_id'],
+        fields: ['title_id', 'about_id', 'connections_description_id'],
         entityType: 'website_settings',
         messageKey: 'activity.website-settings-updated'
     },

@@ -407,7 +407,7 @@ export function fetchProject(db, projectId) {
 }
 
 /**
- * Fetch website settings for a project, including resolved title/about and logo path.
+ * Fetch website settings for a project, including localized text and the logo path.
  * Returns a single row or null if none exist.
  * @param {import('sql.js').Database} db
  * @param {string|null} projectId
@@ -456,7 +456,8 @@ export function fetchWebsiteSettings(db, projectId) {
     return null;
   }
 
-  const textPayloadMap = buildTextPayloadMap(db, [row.title_id, row.short_description_id, row.about_id]);
+  const textPayloadMap = buildTextPayloadMap(db, [row.title_id, row.short_description_id, row.about_id, row.connections_description_id]);
+  const connectionsDescription = textPayloadMap[row.connections_description_id] || null;
 
   let filters = {};
   if (row.filters) {
@@ -469,6 +470,8 @@ export function fetchWebsiteSettings(db, projectId) {
     title_i18n: textPayloadMap[row.title_id] || null,
     short_description_i18n: textPayloadMap[row.short_description_id] || null,
     about_i18n: textPayloadMap[row.about_id] || null,
+    connections_description: connectionsDescription?.content ?? null,
+    connections_description_i18n: connectionsDescription,
     description_i18n: textPayloadMap[row.about_id] || null
   };
 }

@@ -1,9 +1,29 @@
 import { executeQuery } from "$lib/api/graphqlClient.js";
 import { getValidationStore } from "$lib/stores/ValidationStore.svelte.js";
+import { getValidator } from "$lib/utils/formValidation.js";
 import { invalidate } from "$app/navigation";
 
 // Get validation store
 const { getSchema, validate } = getValidationStore();
+const connectionsDescriptionFields = getValidator('websiteSettings').schema.pick({
+    connectionsDescription: true,
+    connectionsDescriptionTranslations: true,
+}).shape;
+
+function getConnectionsDescriptionParams(data) {
+    const connectionsDescription = data.connectionsDescription?.trim();
+    const connectionsDescriptionTranslations = data.connectionsDescriptionTranslations
+        ?.map((translation) => ({ ...translation, content: translation.content.trim() }))
+        .filter(({ id, content }) => id || content);
+    const hasContent = connectionsDescription || connectionsDescriptionTranslations?.some(({ content }) => content);
+
+    return {
+        connectionsDescription,
+        connectionsDescriptionTranslations,
+        // Translation-only descriptions still need an original text row.
+        newConnectionsDescription: hasContent ? (connectionsDescription ?? "") : undefined,
+    };
+}
 
 /**
  * @namespace frontend.api.WebsiteSettingsApi
@@ -29,14 +49,14 @@ export const getWebsiteSettings = async (projectId) => {
  * Creates new website settings for a project, including logo upload handling.
  * @memberOf frontend.api.WebsiteSettingsApi
  * @method
- * @param {Object} data - Settings data (projectId, project_id, title, description, about, logoFile, copyright, languageId, titleTranslations, descriptionTranslations, aboutTranslations).
+ * @param {Object} data - Settings data, including optional connectionsDescription and connectionsDescriptionTranslations.
  * @returns {Promise.<Object>} The created website settings record.
  */
 export const createWebsiteSettings = async (data) => {
     // Validate the data
     const websiteSettingsSchema = getSchema('websiteSettings', 'insert');
     if (websiteSettingsSchema) {
-        const validation = await validate(data, websiteSettingsSchema);
+        const validation = await validate(data, websiteSettingsSchema.extend(connectionsDescriptionFields));
         if (!validation.success) {
             return { error: validation.errors?.[0] || 'Validation failed' };
         }
@@ -77,6 +97,7 @@ export const createWebsiteSettings = async (data) => {
 
     const finalParams = {
         ...data,
+        ...getConnectionsDescriptionParams(data),
         // Pass null to remove, pass id to set, omit to leave unchanged
         logoId: logoId,
     };
@@ -96,14 +117,14 @@ export const createWebsiteSettings = async (data) => {
  * Updates existing website settings, including logo upload handling.
  * @memberOf frontend.api.WebsiteSettingsApi
  * @method
- * @param {Object} data - Updated settings data (projectId, project_id, title, description, about, logoFile, copyright, languageId, titleTranslations, descriptionTranslations, aboutTranslations).
+ * @param {Object} data - Updated settings data, including optional connectionsDescription and connectionsDescriptionTranslations.
  * @returns {Promise.<Object>} The updated website settings record with fresh nested translations.
  */
 export const updateWebsiteSettings = async (data) => {
     // Validate the data
     const websiteSettingsSchema = getSchema('websiteSettings', 'update');
     if (websiteSettingsSchema) {
-        const validation = await validate(data, websiteSettingsSchema);
+        const validation = await validate(data, websiteSettingsSchema.extend(connectionsDescriptionFields));
         if (!validation.success) {
             return { error: validation.errors?.[0] || 'Validation failed' };
         }
@@ -143,6 +164,7 @@ export const updateWebsiteSettings = async (data) => {
 
     const finalParams = {
         ...data,
+        ...getConnectionsDescriptionParams(data),
         logoId: logoId,
     };
     console.log('[WebsiteSettings:update]', 'final logoId', logoId);

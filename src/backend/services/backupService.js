@@ -395,6 +395,7 @@ const generateSchemaDDL = () => {
     title_id TEXT REFERENCES texts(id),
     short_description_id TEXT REFERENCES texts(id),
     about_id TEXT REFERENCES texts(id),
+    connections_description_id TEXT REFERENCES texts(id),
     authors TEXT,
     logo_id TEXT REFERENCES generic_assets(id),
     subfolder_path TEXT,
@@ -507,6 +508,7 @@ export async function createProjectBackup(options, { db }) {
     if (ws.title_id) textIds.add(ws.title_id);
     if (ws.short_description_id) textIds.add(ws.short_description_id);
     if (ws.about_id) textIds.add(ws.about_id);
+    if (ws.connections_description_id) textIds.add(ws.connections_description_id);
   });
 
   // Object display fields

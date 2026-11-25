@@ -2197,6 +2197,11 @@
                          },
                          {
                              "namespace":  "website-settings",
+                             "key":  "connections-description",
+                             "value":  "Descrizione della pagina Connessioni"
+                         },
+                         {
+                             "namespace":  "website-settings",
                              "key":  "page-description",
                              "value":  "Configura come appare il tuo progetto quando viene esportato come sito web statico."
                          },
