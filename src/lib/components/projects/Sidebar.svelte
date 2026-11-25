@@ -172,10 +172,15 @@
     </div>
   {/if}
 
-  <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2">
+  <a
+    class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2"
+    href="https://github.com/digitalbenin/okpan-app/wiki"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
     <IconHelp size={14} stroke={2} />
     {t("common.help", { fallback: "Help" })}
-  </button>
+  </a>
 </div>
 
 <style>
