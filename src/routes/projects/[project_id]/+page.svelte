@@ -25,7 +25,7 @@
       objects: t("common.objects", { fallback: "Objects" }),
       mediaFiles: t("common.media-files", { fallback: "Media files" }),
       institutions: t("common.institutions", { fallback: "Institutions" }),
-      relations: t("common.relations", { fallback: "Relations" }),
+      connections: t("common.connections"),
       objectsPercentage: t("common.objects-percentage", { fallback: "marked as complete" }),
       assetsPercentage: t("common.assets-percentage", { fallback: "assets linked to objects" }),
       assetsAllLinked: t("overview.assets-all-linked", { fallback: "All linked to objects" }),
@@ -60,7 +60,7 @@
       iconColorClass: "text-blue-400",
     },
     {
-      label: i18n.relations,
+      label: i18n.connections,
       value: connectionTypesCount,
       icon: IconChartCircles,
       iconBgClass: "bg-orange-100",
